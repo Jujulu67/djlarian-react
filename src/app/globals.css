@@ -56,6 +56,10 @@
   .text-gradient {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-blue-500 to-purple-600;
   }
+
+  .cursor-follow {
+    @apply transition-transform duration-100;
+  }
 }
 
 /* Custom Scrollbar */
@@ -94,19 +98,8 @@
 }
 
 /* Custom Cursor */
-.custom-cursor {
-  @apply fixed w-8 h-8 pointer-events-none mix-blend-difference z-50;
-  border: 2px solid white;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  transition:
-    width 0.2s,
-    height 0.2s,
-    border-color 0.2s;
-}
-
-.custom-cursor.hover {
-  @apply w-12 h-12 border-purple-400;
+.custom-cursor-active {
+  cursor: none;
 }
 
 /* Loading Animation */

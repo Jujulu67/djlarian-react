@@ -198,6 +198,18 @@ const MusicVisualizer = () => {
         particle.draw();
       });
 
+      // Dessiner le curseur personnalisé si l'effet est actif
+      if (isEffectActive) {
+        ctx.beginPath();
+        ctx.arc(mousePosition.current.x, mousePosition.current.y, 10, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(147, 51, 234, 0.5)';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(mousePosition.current.x, mousePosition.current.y, 5, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.fill();
+      }
+
       // Dessin des lignes avec dégradé de couleur
       for (let i = 0; i < particlesRef.current.length; i++) {
         for (let j = i + 1; j < particlesRef.current.length; j++) {
@@ -254,15 +266,27 @@ const MusicVisualizer = () => {
     };
   }, [isHovered, isEffectActive]);
 
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+    document.documentElement.classList.add('over-visualizer');
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    if (!document.documentElement.classList.contains('custom-cursor-active')) {
+      document.documentElement.classList.remove('over-visualizer');
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       whileInView={{ opacity: 1 }}
       viewport={{ once: true }}
       transition={{ duration: 1 }}
-      className="relative aspect-[2/1] w-full rounded-lg overflow-hidden"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      className="relative aspect-[2/1] w-full rounded-lg overflow-hidden music-visualizer"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onClick={() => setIsEffectActive(!isEffectActive)}
     >
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />

@@ -1,10 +1,7 @@
 import type { Metadata } from 'next';
 import { Audiowide, Montserrat } from 'next/font/google';
-import Navigation from '@/components/layout/Navigation';
-import CustomCursor from '@/components/ui/CustomCursor';
-import AuthProvider from '@/providers/AuthProvider';
+import ClientLayout from '@/components/layout/ClientLayout';
 import './globals.css';
-import { Toaster } from 'react-hot-toast';
 
 const audiowide = Audiowide({
   weight: '400',
@@ -43,35 +40,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${audiowide.variable} ${montserrat.variable}`}>
       <body className="bg-black text-white antialiased">
-        <AuthProvider>
-          <CustomCursor />
-          <Navigation />
-          <main className="pt-16">{children}</main>
-          <Toaster
-            position="top-center"
-            toastOptions={{
-              duration: 5000,
-              style: {
-                background: '#1a1a1a',
-                color: '#fff',
-                borderRadius: '0.5rem',
-                border: '1px solid rgba(139, 92, 246, 0.2)',
-              },
-              success: {
-                iconTheme: {
-                  primary: '#10B981',
-                  secondary: '#fff',
-                },
-              },
-              error: {
-                iconTheme: {
-                  primary: '#EF4444',
-                  secondary: '#fff',
-                },
-              },
-            }}
-          />
-        </AuthProvider>
+        <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   );

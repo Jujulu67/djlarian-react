@@ -1,18 +1,21 @@
-"use client";
+'use client';
 
-import { useEffect, useRef } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
-import gsap from "gsap";
-import LatestReleases from "@/components/sections/LatestReleases";
-import UpcomingEvents from "@/components/sections/UpcomingEvents";
-import TwitchStream from "@/components/sections/TwitchStream";
-import MusicVisualizer from "@/components/3d/MusicVisualizer";
+import { useEffect, useRef, useState } from 'react';
+import { motion, useScroll, useTransform } from 'framer-motion';
+import gsap from 'gsap';
+import LatestReleases from '@/components/sections/LatestReleases';
+import UpcomingEvents from '@/components/sections/UpcomingEvents';
+import TwitchStream from '@/components/sections/TwitchStream';
+import MusicVisualizer from '@/components/3d/MusicVisualizer';
 
 export default function HomePage() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [isSoundActive, setIsSoundActive] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const { scrollYProgress } = useScroll({
     target: containerRef,
-    offset: ["start start", "end start"],
+    offset: ['start start', 'end start'],
   });
 
   const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
@@ -23,16 +26,55 @@ export default function HomePage() {
 
     const tl = gsap.timeline({ repeat: -1 });
 
-    tl.to(".waveform", {
-      backgroundPositionX: "100%",
+    tl.to('.waveform', {
+      backgroundPositionX: '100%',
       duration: 10,
-      ease: "none",
+      ease: 'none',
     });
 
     return () => {
       tl.kill();
     };
   }, []);
+
+  const handleExperienceClick = () => {
+    if (!isSoundActive) {
+      // Initialiser l'audio si ce n'est pas déjà fait
+      if (!audioRef.current) {
+        audioRef.current = new Audio('/audio/easter-egg.mp3');
+        audioRef.current.loop = true;
+      }
+
+      // Jouer l'audio et activer le curseur
+      audioRef.current.play().catch((error) => console.error('Erreur de lecture audio:', error));
+      document.documentElement.classList.add('custom-cursor-active', 'sound-active');
+      setIsPlaying(true);
+    } else {
+      // Arrêter l'audio et désactiver le curseur et le bouton volume
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+      document.documentElement.classList.remove('custom-cursor-active', 'sound-active');
+      setIsSoundActive(false);
+      setIsPlaying(false);
+    }
+
+    setIsSoundActive(!isSoundActive);
+  };
+
+  const handleVolumeClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (audioRef.current) {
+      if (!audioRef.current.paused) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        audioRef.current.play().catch((error) => console.error('Erreur de lecture audio:', error));
+        setIsPlaying(true);
+      }
+    }
+  };
 
   return (
     <>
@@ -60,7 +102,7 @@ export default function HomePage() {
           <motion.h1
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
+            transition={{ duration: 0.8, ease: 'easeOut' }}
             className="text-5xl md:text-7xl lg:text-8xl font-audiowide text-white mb-6"
           >
             DJ LARIAN
@@ -69,7 +111,7 @@ export default function HomePage() {
           <motion.p
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+            transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
             className="text-xl md:text-2xl text-gray-300 font-montserrat mb-8 max-w-2xl"
           >
             Electronic Music Producer & Innovative Performer
@@ -79,7 +121,7 @@ export default function HomePage() {
           <motion.div
             initial={{ scaleX: 0 }}
             animate={{ scaleX: 1 }}
-            transition={{ duration: 1, ease: "easeOut", delay: 0.4 }}
+            transition={{ duration: 1, ease: 'easeOut', delay: 0.4 }}
             className="waveform w-full max-w-md h-16 bg-gradient-to-r from-purple-500 via-blue-500 to-purple-500 bg-[length:200%_100%] rounded-lg opacity-60"
           />
 
@@ -87,7 +129,7 @@ export default function HomePage() {
           <motion.div
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.8, ease: "easeOut", delay: 0.6 }}
+            transition={{ duration: 0.8, ease: 'easeOut', delay: 0.6 }}
             className="flex flex-col sm:flex-row gap-4 mt-12"
           >
             <a
@@ -121,7 +163,7 @@ export default function HomePage() {
               transition={{
                 duration: 1.5,
                 repeat: Infinity,
-                ease: "linear",
+                ease: 'linear',
               }}
               className="w-full h-1/3 bg-white absolute top-0"
             />
@@ -135,14 +177,48 @@ export default function HomePage() {
       {/* Music Visualizer Section */}
       <section className="py-20">
         <div className="max-w-7xl mx-auto">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="text-4xl md:text-5xl font-audiowide mb-12 text-center"
-          >
-            Experience the Sound
-          </motion.h2>
+          <div className="relative group">
+            <motion.h2
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="text-4xl md:text-5xl font-audiowide mb-12 text-center flex items-center justify-center gap-4"
+              onClick={handleExperienceClick}
+            >
+              <span className="cursor-pointer hover:text-purple-400 transition-colors">
+                Experience the Sound
+              </span>
+              {isSoundActive && (
+                <motion.button
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  whileHover={{ scale: 1.1 }}
+                  className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-purple-600 hover:bg-purple-700 transition-colors"
+                  onClick={handleVolumeClick}
+                  aria-label={isPlaying ? 'Désactiver le son' : 'Activer le son'}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-6 h-6 text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d={
+                        isPlaying
+                          ? 'M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z'
+                          : 'M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2'
+                      }
+                    />
+                  </svg>
+                </motion.button>
+              )}
+            </motion.h2>
+          </div>
           <MusicVisualizer />
         </div>
       </section>
