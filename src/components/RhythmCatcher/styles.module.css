@@ -1,0 +1,262 @@
+/* Conteneur principal du jeu */
+.gameContainer {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  background-color: #080810;
+  user-select: none;
+}
+
+/* Conteneur du canvas */
+.canvasContainer {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  cursor: none;
+}
+
+/* Style du canvas */
+.gameCanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #080810;
+}
+
+/* Overlay de démarrage du jeu */
+.startOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(3px);
+  z-index: 10;
+}
+
+/* Message de démarrage */
+.startMessage {
+  padding: 2rem;
+  background: rgba(30, 30, 40, 0.9);
+  border-radius: 1rem;
+  text-align: center;
+  max-width: 80%;
+  color: white;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(100, 100, 255, 0.3);
+}
+
+.startMessage h2 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  color: #f0f0ff;
+  font-weight: 600;
+}
+
+.startMessage p {
+  margin-bottom: 1.5rem;
+  font-size: 1.1rem;
+  color: #d0d0ff;
+}
+
+/* Style pour les instructions */
+.instruction {
+  display: flex;
+  align-items: center;
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background: rgba(60, 60, 100, 0.3);
+  border-radius: 0.5rem;
+}
+
+.instructionIcon {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ff5e80, #ff3060);
+  margin-right: 0.5rem;
+  position: relative;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(255, 94, 128, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 10px rgba(255, 94, 128, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(255, 94, 128, 0);
+  }
+}
+
+/* Boutons de contrôle */
+.controls {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  display: flex;
+  gap: 0.5rem;
+  z-index: 50;
+}
+
+.controlButton {
+  background: rgba(30, 30, 40, 0.8);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 3rem;
+  height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.controlButton:hover {
+  background: rgba(60, 60, 100, 0.8);
+  transform: translateY(-2px);
+}
+
+.controlButton:active {
+  transform: translateY(0);
+}
+
+/* Panneau de score */
+.scorePanel {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  z-index: 20;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.mainScore {
+  background: rgba(0, 0, 0, 0.5);
+  padding: 0.5rem 1rem;
+  border-radius: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.scoreValue {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+  display: flex;
+  align-items: center;
+}
+
+.scoreIncreasing {
+  color: #ffde17;
+  margin-left: 0.5rem;
+  animation: blink 0.5s infinite;
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.combo {
+  background: rgba(90, 80, 170, 0.7);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.highScore {
+  font-size: 0.9rem;
+  color: #d0d0d0;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.statsPanel {
+  background: rgba(0, 0, 0, 0.6);
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  margin-top: 0.5rem;
+  min-width: 150px;
+}
+
+.statRow {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+  font-size: 0.85rem;
+  color: #e0e0e0;
+}
+
+.statDivider {
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  padding-top: 0.25rem;
+  margin-top: 0.25rem;
+}
+
+.rank {
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.scoreChange {
+  position: absolute;
+  top: 0;
+  right: 6rem;
+  color: #ffde17;
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+/* Style pour l'audio */
+.audioControls {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 20;
+}
+
+.volumeButton {
+  background: rgba(30, 30, 40, 0.8);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.volumeButton:hover {
+  background: rgba(60, 60, 100, 0.8);
+}

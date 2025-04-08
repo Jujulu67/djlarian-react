@@ -1,0 +1,55 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+node_modules/
+.cache/
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+dist/
+build/
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env*.local
+.env
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# IDE
+.vscode/
+.idea/
+
+# Environment variables
+.env.development.local
+.env.test.local
+.env.production.local
+
+# OS files
+Thumbs.db
+
+# Large binary files
+*.node
+mongod-*
+
+# Other websites folder
+Other websites/
