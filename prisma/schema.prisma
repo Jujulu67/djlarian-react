@@ -41,8 +41,10 @@ model User {
   emailVerified DateTime?
   image         String?
   hashedPassword String?
+  role          String?   @default("USER")
   accounts      Account[]
   sessions      Session[]
+  events        Event[]   @relation("EventCreator")
 }
 
 model VerificationToken {
@@ -51,4 +53,35 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  title       String
+  description String    @db.Text
+  location    String
+  address     String?
+  startDate   DateTime
+  endDate     DateTime?
+  image       String?
+  status      String    @default("UPCOMING") // UPCOMING, CANCELLED, COMPLETED
+  isPublished Boolean   @default(false)
+  featured    Boolean   @default(false)
+  tickets     TicketInfo?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdBy   String
+  creator     User      @relation("EventCreator", fields: [createdBy], references: [id])
+}
+
+model TicketInfo {
+  id           String   @id @default(cuid())
+  eventId      String   @unique
+  event        Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  price        Float?
+  currency     String   @default("EUR")
+  buyUrl       String?
+  availableFrom DateTime?
+  availableTo   DateTime?
+  quantity     Int?
 }

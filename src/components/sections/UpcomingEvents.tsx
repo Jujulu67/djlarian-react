@@ -1,38 +1,71 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
 
-const events = [
-  {
-    id: 1,
-    title: 'Electric Dreams Festival',
-    date: '2024-03-15',
-    time: '22:00',
-    venue: 'Metropolis Arena',
-    location: 'Paris, France',
-    ticketUrl: '#',
-  },
-  {
-    id: 2,
-    title: 'Club Neon',
-    date: '2024-03-22',
-    time: '23:00',
-    venue: 'Club Neon',
-    location: 'Berlin, Germany',
-    ticketUrl: '#',
-  },
-  {
-    id: 3,
-    title: 'Summer Vibes Festival',
-    date: '2024-04-05',
-    time: '20:00',
-    venue: 'Beach Club',
-    location: 'Ibiza, Spain',
-    ticketUrl: '#',
-  },
-];
+interface Event {
+  id: string;
+  title: string;
+  location: string;
+  address?: string;
+  startDate: string;
+  endDate?: string;
+  image?: string;
+  status: string;
+  isPublished: boolean;
+  tickets?: {
+    price: number;
+    currency: string;
+    buyUrl: string;
+    availableFrom?: string;
+    availableTo?: string;
+  };
+}
 
 const UpcomingEvents = () => {
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const response = await fetch('/api/events');
+        if (!response.ok) {
+          throw new Error('Erreur lors de la récupération des événements');
+        }
+        const data = await response.json();
+        setEvents(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Une erreur est survenue');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEvents();
+  }, []);
+
+  if (loading) {
+    return (
+      <section className="py-20 bg-gradient-to-b from-black to-purple-900/20">
+        <div className="max-w-7xl mx-auto px-4 text-center">
+          <p className="text-gray-400">Chargement des événements...</p>
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className="py-20 bg-gradient-to-b from-black to-purple-900/20">
+        <div className="max-w-7xl mx-auto px-4 text-center">
+          <p className="text-red-400">{error}</p>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="py-20 bg-gradient-to-b from-black to-purple-900/20">
       <div className="max-w-7xl mx-auto px-4">
@@ -43,7 +76,7 @@ const UpcomingEvents = () => {
           transition={{ duration: 0.6 }}
           className="text-4xl md:text-5xl font-audiowide mb-12 text-center"
         >
-          Upcoming Events
+          Prochains Événements
         </motion.h2>
 
         <div className="grid gap-6">
@@ -75,29 +108,12 @@ const UpcomingEvents = () => {
                       />
                     </svg>
                     <span>
-                      {new Date(event.date).toLocaleDateString('fr-FR', {
+                      {new Date(event.startDate).toLocaleDateString('fr-FR', {
                         day: 'numeric',
                         month: 'long',
                         year: 'numeric',
                       })}
                     </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    <span>{event.time}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <svg
@@ -121,17 +137,22 @@ const UpcomingEvents = () => {
                       />
                     </svg>
                     <span>
-                      {event.venue}, {event.location}
+                      {event.location}
+                      {event.address && `, ${event.address}`}
                     </span>
                   </div>
                 </div>
               </div>
-              <a
-                href={event.ticketUrl}
-                className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-full transition-colors duration-200"
-              >
-                Get Tickets
-              </a>
+              {event.tickets?.buyUrl && (
+                <a
+                  href={event.tickets.buyUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-full transition-colors duration-200"
+                >
+                  Acheter des billets
+                </a>
+              )}
             </motion.div>
           ))}
         </div>
@@ -147,7 +168,7 @@ const UpcomingEvents = () => {
             href="/events"
             className="text-purple-400 hover:text-purple-300 transition-colors duration-200"
           >
-            View All Events →
+            Voir tous les événements →
           </a>
         </motion.div>
       </div>

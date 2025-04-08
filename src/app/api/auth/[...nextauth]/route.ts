@@ -1,4 +1,4 @@
-import NextAuth from 'next-auth';
+import NextAuth, { AuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import TwitchProvider from 'next-auth/providers/twitch';
 import { PrismaAdapter } from '@auth/prisma-adapter';
@@ -17,7 +17,7 @@ if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma;
 }
 
-const handler = NextAuth({
+export const authOptions: AuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
     GoogleProvider({
@@ -43,6 +43,14 @@ const handler = NextAuth({
           where: {
             email: credentials.email,
           },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            hashedPassword: true,
+            role: true,
+            image: true,
+          },
         });
 
         if (!user || !user.hashedPassword) {
@@ -59,14 +67,37 @@ const handler = NextAuth({
       },
     }),
   ],
+  callbacks: {
+    async jwt({ token, user, trigger, session }) {
+      if (trigger === 'update' && session?.user) {
+        // Handle user update
+        return { ...token, ...session.user };
+      }
+
+      if (user) {
+        token.role = user.role;
+        token.id = user.id;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.role = token.role;
+        session.user.id = token.id as string;
+      }
+      return session;
+    },
+  },
   session: {
-    strategy: 'jwt',
+    strategy: 'jwt' as const,
   },
   secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === 'development',
   pages: {
     signIn: '/',
   },
-});
+};
+
+const handler = NextAuth(authOptions);
 
 export { handler as GET, handler as POST };

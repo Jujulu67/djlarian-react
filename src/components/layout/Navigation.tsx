@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSession, signOut } from 'next-auth/react';
 import AuthModal from '../auth/AuthModal';
-import { Menu, User, LogOut, Music, Calendar, ImageIcon, Mail } from 'lucide-react';
+import { Menu, User, LogOut, Music, Calendar, ImageIcon, Mail, Settings } from 'lucide-react';
 import Image from 'next/image';
 
 const Navigation = () => {
@@ -14,6 +14,14 @@ const Navigation = () => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+
+  // Debug: Afficher les informations de session
+  useEffect(() => {
+    if (session) {
+      console.log('Session:', session);
+      console.log('User role:', session?.user?.role);
+    }
+  }, [session]);
 
   useEffect(() => {
     setMounted(true);
@@ -85,6 +93,10 @@ const Navigation = () => {
 
             {session ? (
               <div className="relative user-menu">
+                {/* Debug: Afficher le rôle */}
+                <div className="absolute -top-6 left-0 text-xs text-purple-400">
+                  Role: {session?.user?.role || 'none'}
+                </div>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -98,46 +110,51 @@ const Navigation = () => {
                     {session.user?.image ? (
                       <Image
                         src={session.user.image}
-                        alt="Avatar"
-                        width={32}
-                        height={32}
+                        alt={session.user.name || 'Avatar'}
+                        fill
                         className="object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center">
-                        <User className="w-5 h-5 text-white" />
-                      </div>
+                      <User className="w-full h-full p-1" />
                     )}
                   </div>
-                  <span className="font-medium">{session.user?.name}</span>
+                  <span>{session.user?.name || 'Utilisateur'}</span>
                 </button>
 
                 <AnimatePresence>
                   {isUserMenuOpen && (
                     <motion.div
-                      initial={{ opacity: 0, y: 10 }}
+                      initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
+                      exit={{ opacity: 0, y: -10 }}
                       transition={{ duration: 0.2 }}
-                      className="absolute right-0 mt-2 w-48 bg-black/95 backdrop-blur-xl rounded-lg shadow-lg py-2 border border-purple-500/20"
+                      className="absolute right-0 mt-2 w-48 rounded-lg bg-black/95 backdrop-blur-lg border border-purple-500/20 shadow-lg shadow-purple-500/5 overflow-hidden"
                     >
-                      <Link
-                        href="/profile"
-                        className="flex items-center px-4 py-2 text-gray-300 hover:text-white hover:bg-gradient-to-r hover:from-purple-500/20 hover:to-blue-500/20 transition-all duration-300"
-                      >
-                        <User className="w-4 h-4 mr-2" />
-                        Profil
-                      </Link>
-                      <button
-                        onClick={() => {
-                          signOut();
-                          setIsUserMenuOpen(false);
-                        }}
-                        className="w-full flex items-center px-4 py-2 text-gray-300 hover:text-white hover:bg-gradient-to-r hover:from-purple-500/20 hover:to-blue-500/20 transition-all duration-300"
-                      >
-                        <LogOut className="w-4 h-4 mr-2" />
-                        Déconnexion
-                      </button>
+                      <div className="py-1">
+                        {session.user?.role === 'ADMIN' && (
+                          <Link
+                            href="/admin"
+                            className="flex items-center px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-purple-500/10 transition-colors"
+                          >
+                            <Settings className="w-4 h-4 mr-2" />
+                            Panel Admin
+                          </Link>
+                        )}
+                        <Link
+                          href="/profile"
+                          className="flex items-center px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-purple-500/10 transition-colors"
+                        >
+                          <User className="w-4 h-4 mr-2" />
+                          Profil
+                        </Link>
+                        <button
+                          onClick={() => signOut()}
+                          className="flex items-center w-full px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-purple-500/10 transition-colors"
+                        >
+                          <LogOut className="w-4 h-4 mr-2" />
+                          Déconnexion
+                        </button>
+                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -145,10 +162,10 @@ const Navigation = () => {
             ) : (
               <button
                 onClick={() => setIsAuthModalOpen(true)}
-                className="px-6 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 
-                  text-white rounded-full transition-all duration-300 flex items-center gap-2 hover:scale-105 shadow-lg shadow-purple-500/20"
+                className="text-gray-300 hover:text-white transition-all duration-300 
+                  bg-gradient-to-r from-purple-500/10 to-blue-500/10 hover:from-purple-500/20 hover:to-blue-500/20 
+                  px-4 py-2 rounded-full border border-purple-500/20 hover:border-purple-500/40 hover:scale-105"
               >
-                <User size={18} />
                 Connexion
               </button>
             )}

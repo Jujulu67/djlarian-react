@@ -1,8 +1,6 @@
 // Optional: configure or set up a testing framework before each test.
 // If you delete this file, remove `setupFilesAfterEnv` from `jest.config.js`
 
-import '@testing-library/jest-dom';
-
 // Mock next/router
 jest.mock('next/router', () => require('next-router-mock'));
 
@@ -29,3 +27,6 @@ Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: jest.fn(),
   })),
 });
+
+// Augmenter la limite de temps pour les tests qui interagissent avec la base de données
+jest.setTimeout(10000);
