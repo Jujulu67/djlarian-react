@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
@@ -20,15 +20,11 @@ import {
   Eye,
   Loader2,
   AlertCircle,
-  Crop as CropIcon,
-  Trash2,
 } from 'lucide-react';
 import EventPreview from '@/app/components/EventPreview';
 import EventForm, { EventFormData } from '@/app/components/EventForm';
-import ReactCrop, { type Crop } from 'react-image-crop';
+import ReactCrop, { Crop, PercentCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
-import { Button } from '@/components/ui';
-import { Image } from 'lucide-react';
 
 export default function EventFormPage({ params }: { params: { id?: string } }) {
   const { data: session, status } = useSession();
@@ -79,18 +75,17 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [previewMode, setPreviewMode] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [showCropModal, setShowCropModal] = useState(false);
   const [crop, setCrop] = useState<Crop>({
     unit: '%',
     width: 100,
-    height: 56.25, // Ratio 16:9
+    height: 56.25,
     x: 0,
-    y: 21.875, // Centré verticalement pour 16:9
+    y: 21.875,
   });
-  const [completedCrop, setCompletedCrop] = useState<Crop | null>(null);
+  const [showCropModal, setShowCropModal] = useState(false);
   const [croppedImageUrl, setCroppedImageUrl] = useState<string | null>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
-  const previewRef = useRef<HTMLDivElement | null>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
 
   // Rediriger si l'utilisateur n'est pas un admin
   useEffect(() => {
@@ -252,183 +247,176 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
     }
   }, [isEditMode, formData.currentImage, formData.originalImage]);
 
-  // Annuler toute opération de recadrage en cours avant de démonter le composant
+  // Fonction pour recadrer l'image
+  const onImageLoaded = (img: HTMLImageElement) => {
+    imgRef.current = img;
+    // Ne pas définir setCrop ici pour éviter la boucle infinie
+  };
+
   useEffect(() => {
-    return () => {
-      // Nettoyer les ressources lors du démontage
-      if (croppedImageUrl) {
-        URL.revokeObjectURL(croppedImageUrl);
-      }
+    // Initialiser le recadrage une seule fois lorsque showCropModal devient true
+    if (showCropModal && imgRef.current) {
+      setCrop({
+        unit: '%',
+        width: 100,
+        height: 56.25, // 9/16 * 100
+        x: 0,
+        y: 21.875, // (100 - 56.25) / 2 pour centrer verticalement
+      });
+    }
+  }, [showCropModal]);
+
+  const getCroppedImg = (image: HTMLImageElement, crop: Crop): Promise<string> => {
+    const canvas = document.createElement('canvas');
+    const scaleX = image.naturalWidth / image.width;
+    const scaleY = image.naturalHeight / image.height;
+
+    // S'assurer que les dimensions sont validées
+    if (!crop.width || !crop.height || crop.width <= 0 || crop.height <= 0) {
+      return Promise.reject('Dimensions de recadrage invalides');
+    }
+
+    // Calculer les dimensions exactes en pixels
+    const pixelCrop = {
+      x: (crop.x || 0) * scaleX,
+      y: (crop.y || 0) * scaleY,
+      width: crop.width * scaleX,
+      height: crop.height * scaleY,
     };
-  }, []);
+
+    // Définir la taille du canvas pour maintenir le ratio 16:9
+    canvas.width = pixelCrop.width;
+    canvas.height = pixelCrop.height;
+
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) {
+      return Promise.reject('No canvas context');
+    }
+
+    // Dessiner la section recadrée de l'image sur le canvas
+    ctx.drawImage(
+      image,
+      pixelCrop.x,
+      pixelCrop.y,
+      pixelCrop.width,
+      pixelCrop.height,
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+
+    // Convertir le canvas en blob avec une qualité élevée
+    return new Promise((resolve) => {
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            return Promise.reject('Canvas is empty');
+          }
+          const url = URL.createObjectURL(blob);
+          resolve(url);
+        },
+        'image/jpeg',
+        0.95
+      );
+    });
+  };
+
+  const applyCrop = async () => {
+    if (imgRef.current && crop.width && crop.height) {
+      try {
+        // S'assurer que le recadrage maintient un ratio 16:9 exact
+        const aspectRatio = 16 / 9;
+        const adjustedCrop: Crop = { ...crop };
+
+        // Garantir que la hauteur correspond exactement à la largeur / aspectRatio
+        if (adjustedCrop.unit === '%') {
+          adjustedCrop.height = adjustedCrop.width / aspectRatio;
+          // Ajuster la position Y pour s'assurer que le recadrage reste dans les limites de l'image
+          const maxY = 100 - adjustedCrop.height;
+          if (adjustedCrop.y !== undefined) {
+            adjustedCrop.y = Math.min(adjustedCrop.y, maxY);
+          }
+        }
+
+        // S'assurer que le recadrage est strictement contrainte au ratio 16:9
+        if (Math.abs(adjustedCrop.width / adjustedCrop.height - aspectRatio) > 0.01) {
+          console.warn('Correction du ratio de recadrage pour respecter 16:9');
+          adjustedCrop.height = adjustedCrop.width / aspectRatio;
+        }
+
+        const croppedUrl = await getCroppedImg(imgRef.current, adjustedCrop);
+        setCroppedImageUrl(croppedUrl);
+
+        // Convertir l'URL en Blob puis en File
+        const response = await fetch(croppedUrl);
+        const blob = await response.blob();
+        const file = new File([blob], 'cropped-image.jpg', { type: 'image/jpeg' });
+
+        // Mettre à jour à la fois l'image dans formData et l'aperçu
+        setFormData((prevData) => ({
+          ...prevData,
+          image: file,
+          // Conserver l'image originale pour les recadrages futurs
+          // Si originalImage n'existe pas déjà
+          originalImage: prevData.originalImage || imagePreview || undefined,
+        }));
+
+        // Mettre à jour explicitement l'aperçu avec la nouvelle URL d'image recadrée
+        setImagePreview(croppedUrl);
+
+        // Fermer la modale de recadrage
+        setShowCropModal(false);
+      } catch (e) {
+        console.error('Error cropping image', e);
+      }
+    }
+  };
 
   // Pour gérer l'upload d'image avec recadrage
   const handleImageChangeWithCrop = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      // Nettoyer les anciens objets URL si nécessaire
-      if (imagePreview && imagePreview.startsWith('blob:')) {
-        URL.revokeObjectURL(imagePreview);
-      }
-      if (croppedImageUrl) {
-        URL.revokeObjectURL(croppedImageUrl);
-      }
-
       // Créer une URL pour la prévisualisation
       const reader = new FileReader();
       reader.onloadend = () => {
         // Stocker l'image originale pour le recadrage
         const originalImageUrl = reader.result as string;
 
-        // Réinitialiser l'état de recadrage
-        setCrop({
-          unit: '%',
-          width: 100,
-          height: 56.25,
-          x: 0,
-          y: 21.875,
-        });
-        setCompletedCrop(null);
-
-        // Mettre à jour l'aperçu et les données du formulaire
         setImagePreview(originalImageUrl);
         setFormData((prev) => ({
           ...prev,
           image: e.target.files![0],
+          // Stocker aussi l'URL d'origine pour pouvoir y revenir lors du recadrage
           originalImage: originalImageUrl,
         }));
 
-        // Ouvrir la modale de recadrage
+        // Réinitialiser les paramètres de recadrage aux valeurs par défaut
+        // Utiliser un ratio 16:9 exact et centrer
+        const initialCrop: Crop = {
+          unit: '%',
+          width: 100,
+          height: 56.25, // 9/16 * 100
+          x: 0,
+          y: 21.875, // (100 - 56.25) / 2 pour centrer verticalement
+        };
+        setCrop(initialCrop);
+
         setShowCropModal(true);
       };
       reader.readAsDataURL(e.target.files[0]);
     }
   };
 
-  // Fonction qui sera appelée lorsqu'une image est chargée dans la zone de recadrage
-  const onImageLoaded = useCallback((img: HTMLImageElement) => {
-    imgRef.current = img;
-  }, []);
-
-  // Fonction pour appliquer le recadrage
-  const applyCrop = useCallback(async () => {
-    if (!imgRef.current || !completedCrop?.width || !completedCrop?.height) {
-      console.warn('Impossible de recadrer: image ou recadrage non défini');
-      return;
-    }
-
-    try {
-      // S'assurer que le recadrage respecte exactement le ratio 16:9
-      const aspectRatio = 16 / 9;
-      const adjustedCrop = { ...completedCrop };
-
-      // Garantir que le ratio est bien respecté
-      if (Math.abs(adjustedCrop.width / adjustedCrop.height - aspectRatio) > 0.01) {
-        console.warn('Correction du ratio pour maintenir 16:9');
-        adjustedCrop.height = adjustedCrop.width / aspectRatio;
-      }
-
-      // Créer un canvas pour le recadrage
-      const canvas = document.createElement('canvas');
-      const scaleX = imgRef.current.naturalWidth / imgRef.current.width;
-      const scaleY = imgRef.current.naturalHeight / imgRef.current.height;
-
-      // Calculer les dimensions exactes en pixels
-      const pixelCrop = {
-        x: (adjustedCrop.x || 0) * scaleX,
-        y: (adjustedCrop.y || 0) * scaleY,
-        width: adjustedCrop.width * scaleX,
-        height: adjustedCrop.height * scaleY,
-      };
-
-      canvas.width = pixelCrop.width;
-      canvas.height = pixelCrop.height;
-
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        throw new Error('Impossible de créer le contexte du canvas');
-      }
-
-      // Dessiner l'image recadrée
-      ctx.drawImage(
-        imgRef.current,
-        pixelCrop.x,
-        pixelCrop.y,
-        pixelCrop.width,
-        pixelCrop.height,
-        0,
-        0,
-        pixelCrop.width,
-        pixelCrop.height
-      );
-
-      // Convertir le canvas en Blob puis en URL
-      const blob = await new Promise<Blob>((resolve, reject) => {
-        canvas.toBlob(
-          (blob) => {
-            if (!blob) {
-              reject(new Error('Échec de la création du blob'));
-              return;
-            }
-            resolve(blob);
-          },
-          'image/jpeg',
-          0.95
-        );
-      });
-
-      // Créer une URL pour l'aperçu
-      const croppedUrl = URL.createObjectURL(blob);
-
-      // Mettre à jour l'URL de l'image recadrée
-      if (croppedImageUrl) {
-        URL.revokeObjectURL(croppedImageUrl);
-      }
-      setCroppedImageUrl(croppedUrl);
-
-      // Créer un objet File à partir du Blob
-      const file = new File([blob], 'cropped-image.jpg', { type: 'image/jpeg' });
-
-      // Mettre à jour l'état du formulaire
-      setFormData((prevData) => ({
-        ...prevData,
-        image: file,
-        // Conserver l'image originale pour les recadrages futurs
-        originalImage:
-          prevData.originalImage || (typeof imagePreview === 'string' ? imagePreview : undefined),
-      }));
-
-      // Mettre à jour l'aperçu
-      setImagePreview(croppedUrl);
-
-      // Fermer la modale
-      setShowCropModal(false);
-    } catch (error) {
-      console.error('Erreur lors du recadrage:', error);
-    }
-  }, [completedCrop, imagePreview, croppedImageUrl]);
-
-  // Fonction pour annuler le recadrage
-  const cancelCrop = useCallback(() => {
-    setShowCropModal(false);
-  }, []);
-
-  // Gestionnaire pour le bouton de recadrage sur une image existante
-  const handleRecropButtonClick = useCallback(() => {
-    // Utiliser l'image originale si disponible, sinon utiliser l'image actuelle
-    const imageToRecrop = formData.originalImage || formData.currentImage;
-    if (imageToRecrop) {
-      setImagePreview(imageToRecrop);
-      setCrop({
-        unit: '%',
-        width: 100,
-        height: 56.25,
-        x: 0,
-        y: 21.875,
-      });
-      setCompletedCrop(null);
-      setShowCropModal(true);
-    }
-  }, [formData.originalImage, formData.currentImage]);
+  // Supprimer l'image
+  const handleRemoveImage = () => {
+    setFormData((prev) => ({
+      ...prev,
+      image: null,
+      currentImage: undefined,
+    }));
+    setImagePreview(null);
+  };
 
   // Valider le formulaire
   const validateForm = () => {
@@ -595,14 +583,7 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
               handleSubmit={handleSubmit}
               handleChange={handleChange}
               handleImageChange={handleImageChangeWithCrop}
-              handleRemoveImage={() => {
-                setFormData((prev) => ({
-                  ...prev,
-                  image: null,
-                  currentImage: undefined,
-                }));
-                setImagePreview(null);
-              }}
+              handleRemoveImage={handleRemoveImage}
               handleCheckboxChange={handleCheckboxChange}
               isEditMode={isEditMode}
             />
@@ -616,67 +597,18 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
               </span>
               Aperçu en direct
             </h3>
-            <div className="relative mb-4">
-              {imagePreview ? (
-                <div
-                  className="rounded-lg border border-gray-600 overflow-hidden"
-                  style={{ aspectRatio: '16/9' }}
-                >
-                  <img
-                    src={imagePreview}
-                    alt="Prévisualisation"
-                    className="w-full h-full object-cover"
-                    style={{ objectPosition: '50% 25%' }}
-                  />
-                  <div className="absolute top-2 right-2 flex space-x-2">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={handleRecropButtonClick}
-                      className="bg-black/60 hover:bg-black/80 text-white rounded-full"
-                    >
-                      <CropIcon className="w-5 h-5" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setFormData((prev) => ({
-                          ...prev,
-                          image: null,
-                          currentImage: undefined,
-                          originalImage: undefined,
-                        }));
-                        setImagePreview(null);
-                        if (croppedImageUrl) {
-                          URL.revokeObjectURL(croppedImageUrl);
-                          setCroppedImageUrl(null);
-                        }
-                      }}
-                      className="bg-black/60 hover:bg-black/80 text-white rounded-full"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div
-                  className="bg-gray-800/30 rounded-lg border border-dashed border-gray-600 flex flex-col items-center justify-center p-8"
-                  style={{ aspectRatio: '16/9' }}
-                >
-                  <Image className="w-12 h-12 text-gray-500 mb-4" />
-                  <p className="text-gray-400 text-center">Aucune image sélectionnée</p>
-                </div>
-              )}
+            <div
+              ref={previewRef}
+              className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700 overflow-hidden shadow-2xl"
+            >
+              <EventPreview formData={formData} imagePreview={imagePreview} />
             </div>
           </div>
         </div>
 
         {/* Modal de recadrage */}
         {showCropModal && imagePreview && (
-          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
             <div className="bg-gray-800 rounded-lg p-6 max-w-4xl w-full">
               <h3 className="text-xl font-semibold text-white mb-4">Recadrer l'image</h3>
               <p className="text-gray-300 mb-3">
@@ -685,14 +617,30 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
               <div className="mb-6 overflow-hidden">
                 <ReactCrop
                   crop={crop}
-                  onChange={(newCrop) => setCrop(newCrop)}
-                  onComplete={(c) => setCompletedCrop(c)}
+                  onChange={(c: Crop) => {
+                    // Forcer le respect du ratio 16:9 lors du redimensionnement
+                    const newCrop = { ...c };
+                    const aspectRatio = 16 / 9;
+
+                    // Ajuster la hauteur si la largeur change
+                    if (c.width !== crop.width) {
+                      newCrop.height = c.width / aspectRatio;
+                    }
+
+                    // Ajuster la largeur si la hauteur change
+                    if (c.height !== crop.height && c.height > 0) {
+                      newCrop.width = c.height * aspectRatio;
+                    }
+
+                    setCrop(newCrop);
+                  }}
                   aspect={16 / 9}
-                  locked={true}
+                  minHeight={60}
+                  locked={true} // Verrouiller le ratio d'aspect
                 >
                   <img
-                    src={imagePreview}
-                    alt="Prévisualisation pour recadrage"
+                    src={formData.originalImage || imagePreview}
+                    alt="Prévisualisation"
                     ref={imgRef}
                     style={{ maxHeight: '70vh', maxWidth: '100%' }}
                     onLoad={(e) => onImageLoaded(e.currentTarget)}
@@ -705,16 +653,18 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
                   visible respectera exactement le ratio 16:9.
                 </div>
                 <div className="flex space-x-3">
-                  <Button type="button" variant="outline" onClick={cancelCrop}>
+                  <button
+                    onClick={() => setShowCropModal(false)}
+                    className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg"
+                  >
                     Annuler
-                  </Button>
-                  <Button
-                    type="button"
+                  </button>
+                  <button
                     onClick={applyCrop}
-                    disabled={!completedCrop?.width || !completedCrop?.height}
+                    className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg"
                   >
                     Appliquer
-                  </Button>
+                  </button>
                 </div>
               </div>
             </div>
