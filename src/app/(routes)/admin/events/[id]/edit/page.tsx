@@ -10,8 +10,19 @@ export default function EditEventRedirect() {
   const eventId = params.id as string;
 
   useEffect(() => {
+    console.log('Edit redirect - Event ID from params:', eventId);
+
+    // Vérifier que l'ID est valide
+    if (!eventId) {
+      console.error('Invalid event ID for edit redirection');
+      router.push('/admin/events');
+      return;
+    }
+
     // Rediriger vers la page de création d'événement avec l'ID
-    router.push(`/admin/events/new?id=${eventId}`);
+    const redirectUrl = `/admin/events/new?id=${encodeURIComponent(eventId)}`;
+    console.log('Redirecting to:', redirectUrl);
+    router.push(redirectUrl);
   }, [eventId, router]);
 
   return (
@@ -19,6 +30,7 @@ export default function EditEventRedirect() {
       <div className="flex flex-col items-center">
         <Loader2 className="w-12 h-12 text-purple-500 mb-4 animate-spin" />
         <h2 className="text-2xl font-semibold text-white">Redirection...</h2>
+        <p className="text-gray-400 mt-2">ID: {eventId}</p>
       </div>
     </div>
   );

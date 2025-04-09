@@ -112,7 +112,21 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   const id = params.id;
   console.log(`--- PATCH /api/events/${id} ---`);
+
   try {
+    // Vérifier d'abord si l'événement existe
+    const eventExists = await prisma.event.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+
+    if (!eventExists) {
+      console.error(`[API] Event with ID ${id} not found`);
+      return NextResponse.json({ error: 'Événement non trouvé' }, { status: 404 });
+    }
+
+    console.log(`[API] Event with ID ${id} found, proceeding with update`);
+
     const session = await getServerSession(authOptions);
 
     if (!session?.user || session.user.role !== 'ADMIN') {
@@ -224,85 +238,32 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
             },
           };
 
-          // Si l'événement n'était pas récurrent avant mais le devient maintenant,
-          // ou si la configuration de récurrence a changé,
-          // nous devons générer les occurrences
-          if (
-            !wasRecurring ||
-            currentRecurrenceConfig?.frequency !== recurrence.frequency ||
-            currentRecurrenceConfig?.endDate?.toString() !== recurrence.endDate
-          ) {
-            // Supprimer les occurrences existantes si nécessaire
-            if (wasRecurring) {
-              await prisma.event.deleteMany({
-                where: {
-                  masterId: id,
-                },
-              });
-              console.log(`Deleted existing occurrences for master event ${id}`);
-            }
+          // Marquer l'événement comme maître
+          dataToUpdate.isMasterEvent = true;
 
-            // Marquer l'événement comme maître
-            dataToUpdate.isMasterEvent = true;
+          // Générer virtuellement les dates pour information seulement
+          const recurringDates = generateRecurringDates(
+            eventInfo?.startDate || new Date(), // Fallback si eventInfo est null
+            recurrence,
+            recurrence.excludedDates || []
+          );
 
-            // Générer les dates récurrentes
-            const recurringDates = generateRecurringDates(
-              eventInfo?.startDate || new Date(), // Fallback si eventInfo est null
-              recurrence,
-              recurrence.excludedDates || []
-            );
-
-            console.log(`Generated ${recurringDates.length} recurring dates for event ${id}`);
-
-            // Créer les occurrences d'événements
-            const occurrencePromises = recurringDates.map((date) => {
-              // Calculer la date de fin en fonction de la durée de l'événement maître
-              let occurrenceEndDate = null;
-              if (eventInfo?.endDate) {
-                const masterStartMs = eventInfo.startDate.getTime();
-                const masterEndMs = eventInfo.endDate.getTime();
-                const duration = masterEndMs - masterStartMs;
-                occurrenceEndDate = new Date(date.getTime() + duration);
-              }
-
-              return prisma.event.create({
-                data: {
-                  title: title || undefined,
-                  description: description || undefined,
-                  location: location || undefined,
-                  address: address || undefined,
-                  startDate: date,
-                  endDate: occurrenceEndDate,
-                  status: status || undefined,
-                  isPublished: isPublished !== undefined ? isPublished : undefined,
-                  featured: featured !== undefined ? featured : undefined,
-                  image: imageUrl || undefined,
-                  originalImageUrl: originalImageUrl || undefined,
-                  userId: session.user.id,
-                  masterId: id, // Référence à l'événement maître
-                  tickets: tickets
-                    ? {
-                        create: {
-                          price: tickets.price ?? 0,
-                          currency: tickets.currency || 'EUR',
-                          buyUrl: tickets.buyUrl || '',
-                          quantity: tickets.quantity ?? 0,
-                        },
-                      }
-                    : undefined,
-                },
-              });
-            });
-
-            // Attendre que toutes les occurrences soient créées
-            createdOccurrences = await Promise.all(occurrencePromises);
-            console.log(`Created ${createdOccurrences.length} occurrences for event ${id}`);
-          }
+          console.log(
+            `L'événement ${id} générerait virtuellement ${recurringDates.length} occurrences`
+          );
+          // Nous ne créons pas réellement les occurrences, elles seront générées dynamiquement à l'affichage
         } else {
-          // Si isRecurring est false, on supprime la configuration de récurrence
-          dataToUpdate.recurrenceConfig = {
-            delete: true,
-          };
+          // Si isRecurring est false, vérifier d'abord si une configuration existe
+          const hasRecurrenceConfig = !!eventInfo?.recurrenceConfig;
+
+          if (hasRecurrenceConfig) {
+            // Supprimer la configuration uniquement si elle existe
+            dataToUpdate.recurrenceConfig = {
+              delete: true,
+            };
+          } else {
+            console.log(`Event ${id} had no recurrence config, skipping deletion`);
+          }
 
           // Si l'événement était récurrent mais ne l'est plus, supprimer les occurrences
           if (wasRecurring) {

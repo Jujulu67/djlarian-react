@@ -188,158 +188,119 @@ export async function POST(request: Request) {
       );
     }
 
-    // Créer l'événement
-    const event = await prisma.event.create({
-      data: {
-        title: body.title,
-        description: body.description || '',
-        location: body.location,
-        address: body.address,
-        startDate: new Date(body.startDate),
-        endDate: body.endDate ? new Date(body.endDate) : null,
-        image: body.imageUrl || body.image,
-        originalImageUrl: body.originalImageUrl,
-        status: body.status || 'UPCOMING',
-        isPublished: body.isPublished || false,
-        featured: body.featured || false,
-        userId: session.user.id,
-        tickets: body.tickets
-          ? {
-              create: {
-                price: body.tickets.price ? Number(body.tickets.price) : null,
-                currency: body.tickets.currency || 'EUR',
-                buyUrl: body.tickets.buyUrl,
-                quantity: body.tickets.quantity ? Number(body.tickets.quantity) : null,
-                availableFrom: body.tickets.availableFrom
-                  ? new Date(body.tickets.availableFrom)
-                  : null,
-                availableTo: body.tickets.availableTo ? new Date(body.tickets.availableTo) : null,
-              },
-            }
-          : undefined,
-      },
-      include: {
-        tickets: true,
-      },
-    });
+    // Préparer les données communes de l'événement
+    const commonEventData: any = {
+      title: body.title,
+      description: body.description || '',
+      location: body.location,
+      address: body.address || '',
+      startDate: new Date(body.startDate),
+      endDate: body.endDate ? new Date(body.endDate) : null,
+      image: body.imageUrl || body.image || null,
+      originalImageUrl: body.originalImageUrl || null,
+      status: body.status || 'UPCOMING',
+      isPublished: body.isPublished !== undefined ? body.isPublished : false,
+      featured: body.featured !== undefined ? body.featured : false,
+      userId: session.user.id,
+    };
+
+    // Ajouter tickets si présents
+    if (body.tickets) {
+      commonEventData.tickets = {
+        create: {
+          price: body.tickets.price !== undefined ? Number(body.tickets.price) : 0,
+          currency: body.tickets.currency || 'EUR',
+          buyUrl: body.tickets.buyUrl || '',
+          quantity: body.tickets.quantity !== undefined ? Number(body.tickets.quantity) : 0,
+          availableFrom: body.tickets.availableFrom ? new Date(body.tickets.availableFrom) : null,
+          availableTo: body.tickets.availableTo ? new Date(body.tickets.availableTo) : null,
+        },
+      };
+    }
 
     // Vérifier si c'est un événement récurrent
     if (body.recurrence?.isRecurring) {
-      // Événement récurrent - créer un événement maître et ses occurrences
-      // Créer l'événement maître
-      const masterEvent = await prisma.event.create({
-        data: {
+      try {
+        console.log("Création d'un événement récurrent:", {
           title: body.title,
-          description: body.description,
-          location: body.location,
-          address: body.address,
-          startDate: new Date(body.startDate),
-          endDate: body.endDate ? new Date(body.endDate) : null,
-          status: body.status,
-          isPublished: body.isPublished || false,
-          featured: body.featured || false,
-          image: body.imageUrl || body.image,
-          originalImageUrl: body.originalImageUrl,
-          userId: session.user.id,
+          startDate: body.startDate,
+          recurrence: body.recurrence,
+        });
+
+        // Valider les données de récurrence
+        if (!body.recurrence.frequency) {
+          console.error('Fréquence de récurrence manquante');
+          return NextResponse.json(
+            { error: 'La fréquence de récurrence est requise' },
+            { status: 400 }
+          );
+        }
+
+        // Ajouter les propriétés spécifiques à un événement récurrent
+        const masterEventData = {
+          ...commonEventData,
           isMasterEvent: true, // Marquer comme événement maître
           recurrenceConfig: {
             create: {
               frequency: body.recurrence.frequency,
-              day: body.recurrence.day,
+              day: body.recurrence.day || new Date().getDay(),
               endDate: body.recurrence.endDate ? new Date(body.recurrence.endDate) : null,
+              excludedDates: body.recurrence.excludedDates || [],
             },
           },
-          tickets: body.tickets
-            ? {
-                create: {
-                  price: body.tickets.price,
-                  currency: body.tickets.currency,
-                  buyUrl: body.tickets.buyUrl,
-                  quantity: body.tickets.quantity,
-                },
-              }
-            : undefined,
-        },
-      });
+        };
 
-      // Générer les dates récurrentes
-      const recurringDates = generateRecurringDates(
-        new Date(body.startDate),
-        body.recurrence,
-        body.recurrence.excludedDates || []
-      );
+        console.log("Création de l'événement maître avec données:", masterEventData);
 
-      // Créer les occurrences d'événements
-      const occurrencePromises = recurringDates.map((date, index) => {
-        // Calculer la date de fin en fonction de la durée de l'événement maître
-        let occurrenceEndDate = null;
-        if (body.endDate) {
-          const masterStartMs = new Date(body.startDate).getTime();
-          const masterEndMs = new Date(body.endDate).getTime();
-          const duration = masterEndMs - masterStartMs;
-
-          occurrenceEndDate = new Date(date.getTime() + duration);
-        }
-
-        return prisma.event.create({
-          data: {
-            title: body.title,
-            description: body.description,
-            location: body.location,
-            address: body.address,
-            startDate: date,
-            endDate: occurrenceEndDate,
-            status: body.status,
-            isPublished: body.isPublished || false,
-            featured: body.featured || false,
-            image: body.imageUrl || body.image,
-            originalImageUrl: body.originalImageUrl,
-            userId: session.user.id,
-            masterId: masterEvent.id, // Référence à l'événement maître
-            tickets: body.tickets
-              ? {
-                  create: {
-                    price: body.tickets.price,
-                    currency: body.tickets.currency,
-                    buyUrl: body.tickets.buyUrl,
-                    quantity: body.tickets.quantity,
-                  },
-                }
-              : undefined,
+        // Créer uniquement l'événement maître
+        const masterEvent = await prisma.event.create({
+          data: masterEventData,
+          include: {
+            recurrenceConfig: true,
+            tickets: true,
           },
         });
-      });
 
-      // Attendre que toutes les occurrences soient créées
-      await Promise.all(occurrencePromises);
+        console.log('Événement maître créé avec ID:', masterEvent.id);
 
-      return NextResponse.json({ success: true, event: masterEvent }, { status: 201 });
+        // Calculer virtuellement combien d'occurrences seraient générées
+        const recurringDates = generateRecurringDates(
+          new Date(body.startDate),
+          body.recurrence,
+          body.recurrence.excludedDates || []
+        );
+
+        console.log(
+          `${recurringDates.length} dates seraient générées pour cet événement récurrent`
+        );
+        console.log("Les occurrences seront générées virtuellement lors de l'affichage");
+
+        return NextResponse.json(
+          {
+            success: true,
+            event: masterEvent,
+            virtualOccurrencesCount: recurringDates.length,
+          },
+          { status: 201 }
+        );
+      } catch (recurrenceError) {
+        console.error("Erreur lors de la création d'événement récurrent:", recurrenceError);
+        return NextResponse.json(
+          {
+            error: "Erreur lors de la création d'événement récurrent",
+            details:
+              recurrenceError instanceof Error ? recurrenceError.message : String(recurrenceError),
+          },
+          { status: 500 }
+        );
+      }
     } else {
       // Événement non récurrent - créer un seul événement
+      console.log("Création d'un événement simple (non récurrent)");
       const event = await prisma.event.create({
-        data: {
-          title: body.title,
-          description: body.description,
-          location: body.location,
-          address: body.address,
-          startDate: new Date(body.startDate),
-          endDate: body.endDate ? new Date(body.endDate) : null,
-          status: body.status,
-          isPublished: body.isPublished || false,
-          featured: body.featured || false,
-          image: body.imageUrl || body.image,
-          originalImageUrl: body.originalImageUrl,
-          userId: session.user.id,
-          tickets: body.tickets
-            ? {
-                create: {
-                  price: body.tickets.price,
-                  currency: body.tickets.currency,
-                  buyUrl: body.tickets.buyUrl,
-                  quantity: body.tickets.quantity,
-                },
-              }
-            : undefined,
+        data: commonEventData,
+        include: {
+          tickets: true,
         },
       });
 

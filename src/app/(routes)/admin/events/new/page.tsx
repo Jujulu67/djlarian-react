@@ -50,16 +50,22 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
   const searchParams = useSearchParams();
 
   // Récupérer l'ID via useEffect pour éviter les problèmes d'hydratation
-  const [eventId, setEventId] = useState<string | undefined>(routeParams?.id as string);
+  const [eventId, setEventId] = useState<string | undefined>(undefined);
   const isEditMode = !!eventId;
 
   useEffect(() => {
-    // Vérifier les searchParams au montage
+    // Récupérer l'ID de l'événement à partir des paramètres de route ou de requête
+    const idFromParams = routeParams?.id as string;
     const idFromQuery = searchParams.get('id');
-    if (idFromQuery) {
-      setEventId(idFromQuery);
+
+    // Préférer l'ID des paramètres d'URL, puis des paramètres de requête
+    const id = idFromParams || idFromQuery || undefined;
+    console.log('Event ID from route/query:', id);
+
+    if (id) {
+      setEventId(id);
     }
-  }, [searchParams]);
+  }, [routeParams, searchParams]);
 
   // État initial du formulaire
   const initialFormData = {
@@ -113,11 +119,12 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
   // Charger les données de l'événement en mode édition
   useEffect(() => {
     const fetchEvent = async () => {
-      if (!isEditMode) {
+      if (!isEditMode || !eventId) {
         setLoading(false);
         return;
       }
 
+      console.log(`Fetching event data for ID: ${eventId}`);
       setLoading(true);
       try {
         const response = await fetch(`/api/events/${eventId}`);
@@ -160,11 +167,18 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
           featured: event.featured || false,
           // Charger l'image originale depuis le backend
           originalImage: event.originalImageUrl,
-          recurrence: event.recurrence || {
-            isRecurring: false,
-            frequency: 'weekly' as 'weekly' | 'monthly',
-            day: new Date().getDay(),
-            excludedDates: [],
+          // Corriger la récupération des données de récurrence
+          recurrence: {
+            isRecurring: !!event.recurrenceConfig, // Vrai si recurrenceConfig existe
+            frequency: event.recurrenceConfig?.frequency || 'weekly',
+            day:
+              event.recurrenceConfig?.day !== undefined
+                ? event.recurrenceConfig.day
+                : new Date().getDay(),
+            endDate: event.recurrenceConfig?.endDate
+              ? formatDateForInput(event.recurrenceConfig.endDate)
+              : '',
+            excludedDates: event.recurrenceConfig?.excludedDates || [],
           },
         });
 
@@ -391,7 +405,13 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
                   : 0,
             }
           : null, // Important: on envoie null et non undefined pour que le backend comprenne qu'il faut supprimer les tickets
-        recurrence: formData.recurrence,
+        recurrence: isEditMode
+          ? {
+              ...formData.recurrence,
+              // Assurer que isRecurring est un booléen pour éviter des problèmes de type
+              isRecurring: !!formData.recurrence?.isRecurring,
+            }
+          : formData.recurrence,
       };
 
       if (dataToSend.imageUrl === undefined) {
@@ -406,7 +426,32 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
         JSON.stringify(dataToSend, null, 2)
       );
 
-      const response = await fetch(isEditMode ? `/api/events/${eventId}` : '/api/events', {
+      // Vérifier si l'ID est défini avant de faire une requête PATCH
+      if (isEditMode && !eventId) {
+        setLoading(false);
+        throw new Error("ID de l'événement non défini pour la mise à jour");
+      }
+
+      // Vérifier que l'URL utilisée est correcte
+      const apiUrl = isEditMode ? `/api/events/${eventId}` : '/api/events';
+      console.log(`Sending ${isEditMode ? 'PATCH' : 'POST'} request to: ${apiUrl}`);
+      console.log('EventID:', eventId);
+      console.log('IsEditMode:', isEditMode);
+
+      // Vérifier d'abord que l'événement existe (pour PATCH)
+      if (isEditMode) {
+        const checkResponse = await fetch(`/api/events/${eventId}`);
+        if (!checkResponse.ok) {
+          const errorData = await checkResponse.json();
+          console.error('Event check failed:', errorData);
+          throw new Error(
+            `Impossible de trouver l'événement. ${errorData.error || 'Erreur inconnue'}`
+          );
+        }
+        console.log('Event exists, proceeding with update');
+      }
+
+      const response = await fetch(apiUrl, {
         method: isEditMode ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(dataToSend),
