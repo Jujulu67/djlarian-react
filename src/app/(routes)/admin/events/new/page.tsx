@@ -23,8 +23,25 @@ import {
 } from 'lucide-react';
 import EventPreview from '@/app/components/EventPreview';
 import EventForm, { EventFormData } from '@/app/components/EventForm';
-import ReactCrop, { Crop, PercentCrop } from 'react-image-crop';
+import type { Crop as CropType } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
+
+// Déplacer la fonction helper ici pour qu'elle soit accessible partout
+const formatDateForInput = (dateString: string | null | undefined): string => {
+  if (!dateString) return '';
+  try {
+    const date = new Date(dateString);
+    // Vérifier si la date est valide
+    if (isNaN(date.getTime())) {
+      return '';
+    }
+    // Format ISO avec timezone locale
+    return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  } catch (e) {
+    console.error('Erreur de formatage de date:', e);
+    return '';
+  }
+};
 
 export default function EventFormPage({ params }: { params: { id?: string } }) {
   const { data: session, status } = useSession();
@@ -75,16 +92,6 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [previewMode, setPreviewMode] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [crop, setCrop] = useState<Crop>({
-    unit: '%',
-    width: 100,
-    height: 56.25,
-    x: 0,
-    y: 21.875,
-  });
-  const [showCropModal, setShowCropModal] = useState(false);
-  const [croppedImageUrl, setCroppedImageUrl] = useState<string | null>(null);
-  const imgRef = useRef<HTMLImageElement | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
 
   // Rediriger si l'utilisateur n'est pas un admin
@@ -105,24 +112,16 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
         return;
       }
 
+      setLoading(true);
       try {
         const response = await fetch(`/api/events/${eventId}`);
         if (!response.ok) {
-          throw new Error('Erreur lors du chargement des données');
+          throw new Error("Erreur lors du chargement des données de l'événement");
         }
 
         const event = await response.json();
 
-        // Formater les dates pour l'input datetime-local
-        const formatDateForInput = (dateString: string) => {
-          if (!dateString) return '';
-          const date = new Date(dateString);
-          // Format ISO avec timezone locale
-          return new Date(date.getTime() - date.getTimezoneOffset() * 60000)
-            .toISOString()
-            .slice(0, 16);
-        };
-
+        // Mettre à jour l'état du formulaire avec les données chargées
         setFormData({
           title: event.title,
           description: event.description || '',
@@ -133,35 +132,37 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
           endDate: event.endDate ? formatDateForInput(event.endDate) : '',
           status: event.status,
           isPublished: event.isPublished,
-          image: null,
-          currentImage: event.image,
+          image: null, // Ne pas pré-remplir le champ File
+          currentImage: event.image, // Utiliser image (champ dans la base de données)
           tickets: event.tickets
             ? {
-                price: event.tickets.price,
+                // Pré-remplir les détails des tickets
+                price: event.tickets.price ?? 0,
                 currency: event.tickets.currency || 'EUR',
                 buyUrl: event.tickets.buyUrl || '',
-                availableFrom: event.tickets.availableFrom || undefined,
-                availableTo: event.tickets.availableTo || undefined,
-                quantity: event.tickets.quantity,
+                quantity: event.tickets.quantity ?? 0,
+                // Ajouter availableFrom/To si nécessaire
               }
             : {
+                // Fournir un objet par défaut si pas de tickets
                 price: 0,
                 currency: 'EUR',
                 buyUrl: '',
-                availableFrom: undefined,
-                availableTo: undefined,
                 quantity: 0,
               },
           hasTickets: !!event.tickets,
           featured: event.featured || false,
-          originalImage: event.image,
+          // Charger l'image originale depuis le backend
+          originalImage: event.originalImageUrl,
         });
 
+        // Mettre à jour l'aperçu de l'image
         if (event.image) {
           setImagePreview(event.image);
         }
       } catch (error) {
-        console.error('Erreur:', error);
+        // ASCII log
+        console.error('Error loading event data:', error);
         setErrors({ submit: 'Erreur lors du chargement des données' });
       } finally {
         setLoading(false);
@@ -169,6 +170,7 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
     };
 
     fetchEvent();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventId, isEditMode]);
 
   // Gérer les changements de valeur dans le formulaire
@@ -236,176 +238,26 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Mettre à jour le recadrage lorsque l'image est modifiée
-  // Pour les images existantes, stocker l'URL originale si disponible
-  useEffect(() => {
-    if (isEditMode && !formData.originalImage && formData.currentImage) {
-      setFormData((prev) => ({
-        ...prev,
-        originalImage: formData.currentImage,
-      }));
-    }
-  }, [isEditMode, formData.currentImage, formData.originalImage]);
+  // Nouvelle fonction pour gérer la sélection/recadrage d'image depuis EventForm
+  const handleImageSelected = (
+    file: File, // Fichier (recadré ou original)
+    previewUrl: string, // Data URL pour l'aperçu (recadré ou original)
+    originalImageUrl?: string // Data URL de l'originale (peut être undefined si original)
+  ) => {
+    // Toujours mettre à jour l'aperçu avec la previewUrl fournie
+    setImagePreview(previewUrl);
 
-  // Fonction pour recadrer l'image
-  const onImageLoaded = (img: HTMLImageElement) => {
-    imgRef.current = img;
-    // Ne pas définir setCrop ici pour éviter la boucle infinie
-  };
+    // Déterminer l'URL de l'originale à sauvegarder
+    // Si originalImageUrl est fourni (cas recadrage), l'utiliser.
+    // Sinon (cas original), utiliser previewUrl qui est l'originale.
+    const originalToSave = originalImageUrl || previewUrl;
 
-  useEffect(() => {
-    // Initialiser le recadrage une seule fois lorsque showCropModal devient true
-    if (showCropModal && imgRef.current) {
-      setCrop({
-        unit: '%',
-        width: 100,
-        height: 56.25, // 9/16 * 100
-        x: 0,
-        y: 21.875, // (100 - 56.25) / 2 pour centrer verticalement
-      });
-    }
-  }, [showCropModal]);
-
-  const getCroppedImg = (image: HTMLImageElement, crop: Crop): Promise<string> => {
-    const canvas = document.createElement('canvas');
-    const scaleX = image.naturalWidth / image.width;
-    const scaleY = image.naturalHeight / image.height;
-
-    // S'assurer que les dimensions sont validées
-    if (!crop.width || !crop.height || crop.width <= 0 || crop.height <= 0) {
-      return Promise.reject('Dimensions de recadrage invalides');
-    }
-
-    // Calculer les dimensions exactes en pixels
-    const pixelCrop = {
-      x: (crop.x || 0) * scaleX,
-      y: (crop.y || 0) * scaleY,
-      width: crop.width * scaleX,
-      height: crop.height * scaleY,
-    };
-
-    // Définir la taille du canvas pour maintenir le ratio 16:9
-    canvas.width = pixelCrop.width;
-    canvas.height = pixelCrop.height;
-
-    const ctx = canvas.getContext('2d');
-
-    if (!ctx) {
-      return Promise.reject('No canvas context');
-    }
-
-    // Dessiner la section recadrée de l'image sur le canvas
-    ctx.drawImage(
-      image,
-      pixelCrop.x,
-      pixelCrop.y,
-      pixelCrop.width,
-      pixelCrop.height,
-      0,
-      0,
-      canvas.width,
-      canvas.height
-    );
-
-    // Convertir le canvas en blob avec une qualité élevée
-    return new Promise((resolve) => {
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) {
-            return Promise.reject('Canvas is empty');
-          }
-          const url = URL.createObjectURL(blob);
-          resolve(url);
-        },
-        'image/jpeg',
-        0.95
-      );
-    });
-  };
-
-  const applyCrop = async () => {
-    if (imgRef.current && crop.width && crop.height) {
-      try {
-        // S'assurer que le recadrage maintient un ratio 16:9 exact
-        const aspectRatio = 16 / 9;
-        const adjustedCrop: Crop = { ...crop };
-
-        // Garantir que la hauteur correspond exactement à la largeur / aspectRatio
-        if (adjustedCrop.unit === '%') {
-          adjustedCrop.height = adjustedCrop.width / aspectRatio;
-          // Ajuster la position Y pour s'assurer que le recadrage reste dans les limites de l'image
-          const maxY = 100 - adjustedCrop.height;
-          if (adjustedCrop.y !== undefined) {
-            adjustedCrop.y = Math.min(adjustedCrop.y, maxY);
-          }
-        }
-
-        // S'assurer que le recadrage est strictement contrainte au ratio 16:9
-        if (Math.abs(adjustedCrop.width / adjustedCrop.height - aspectRatio) > 0.01) {
-          console.warn('Correction du ratio de recadrage pour respecter 16:9');
-          adjustedCrop.height = adjustedCrop.width / aspectRatio;
-        }
-
-        const croppedUrl = await getCroppedImg(imgRef.current, adjustedCrop);
-        setCroppedImageUrl(croppedUrl);
-
-        // Convertir l'URL en Blob puis en File
-        const response = await fetch(croppedUrl);
-        const blob = await response.blob();
-        const file = new File([blob], 'cropped-image.jpg', { type: 'image/jpeg' });
-
-        // Mettre à jour à la fois l'image dans formData et l'aperçu
-        setFormData((prevData) => ({
-          ...prevData,
-          image: file,
-          // Conserver l'image originale pour les recadrages futurs
-          // Si originalImage n'existe pas déjà
-          originalImage: prevData.originalImage || imagePreview || undefined,
-        }));
-
-        // Mettre à jour explicitement l'aperçu avec la nouvelle URL d'image recadrée
-        setImagePreview(croppedUrl);
-
-        // Fermer la modale de recadrage
-        setShowCropModal(false);
-      } catch (e) {
-        console.error('Error cropping image', e);
-      }
-    }
-  };
-
-  // Pour gérer l'upload d'image avec recadrage
-  const handleImageChangeWithCrop = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      // Créer une URL pour la prévisualisation
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        // Stocker l'image originale pour le recadrage
-        const originalImageUrl = reader.result as string;
-
-        setImagePreview(originalImageUrl);
-        setFormData((prev) => ({
-          ...prev,
-          image: e.target.files![0],
-          // Stocker aussi l'URL d'origine pour pouvoir y revenir lors du recadrage
-          originalImage: originalImageUrl,
-        }));
-
-        // Réinitialiser les paramètres de recadrage aux valeurs par défaut
-        // Utiliser un ratio 16:9 exact et centrer
-        const initialCrop: Crop = {
-          unit: '%',
-          width: 100,
-          height: 56.25, // 9/16 * 100
-          x: 0,
-          y: 21.875, // (100 - 56.25) / 2 pour centrer verticalement
-        };
-        setCrop(initialCrop);
-
-        setShowCropModal(true);
-      };
-      reader.readAsDataURL(e.target.files[0]);
-    }
+    setFormData((prev) => ({
+      ...prev,
+      image: file, // Fichier recadré ou original
+      originalImage: originalToSave, // Sauvegarder l'originale
+      currentImage: previewUrl, // Mettre à jour l'image courante affichée
+    }));
   };
 
   // Supprimer l'image
@@ -414,6 +266,7 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
       ...prev,
       image: null,
       currentImage: undefined,
+      originalImage: undefined,
     }));
     setImagePreview(null);
   };
@@ -435,39 +288,38 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
     }
 
     if (formData.hasTickets) {
-      if (!formData.tickets?.price) {
-        errors.ticketPrice = 'Le prix du billet est requis';
+      if (!formData.tickets?.price || parseFloat(String(formData.tickets.price)) <= 0) {
+        errors['tickets.price'] = 'Le prix du billet doit être supérieur à 0';
       }
-      if (!formData.tickets?.quantity) {
-        errors.ticketQuantity = 'La quantité de billets est requise';
+      if (!formData.tickets?.buyUrl) {
+        errors['tickets.buyUrl'] = "L'URL de la billetterie est requise";
       }
     }
 
     setErrors(errors);
-    return errors;
+    return Object.keys(errors).length === 0;
   };
 
   // Soumettre le formulaire
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setErrors({});
 
+    if (!validateForm()) {
+      console.log('Validation errors:', errors);
+      return;
+    }
+
+    setLoading(true);
     try {
-      // Valider le formulaire
-      const validationErrors = validateForm();
-      if (Object.keys(validationErrors).length > 0) {
-        setErrors(validationErrors);
-        setLoading(false);
-        return;
-      }
-
       let imageUrl = formData.currentImage;
+      let imageToUpload = formData.image;
+      let originalImageUrlToSave = formData.originalImage;
 
-      // Upload de l'image si une nouvelle image est sélectionnée
-      if (formData.image) {
+      if (imageToUpload instanceof File) {
+        console.log('Uploading image file...');
         const imageFormData = new FormData();
-        imageFormData.append('file', formData.image);
+        imageFormData.append('file', imageToUpload);
 
         const uploadResponse = await fetch('/api/upload', {
           method: 'POST',
@@ -475,15 +327,24 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
         });
 
         if (!uploadResponse.ok) {
-          throw new Error("Erreur lors de l'upload de l'image");
+          const errorText = await uploadResponse.text();
+          console.error('Upload failed:', errorText);
+          throw new Error(`Erreur lors de l'upload de l'image: ${uploadResponse.statusText}`);
         }
 
         const uploadResult = await uploadResponse.json();
         imageUrl = uploadResult.url;
+        console.log('Upload successful, final imageUrl:', imageUrl);
+      } else if (imageUrl && !imageUrl.startsWith('data:image')) {
+        console.log('No new image file to upload, using existing image URL:', imageUrl);
+        originalImageUrlToSave = formData.originalImage;
+      } else {
+        console.log('Image removed or never set. Variables will be undefined.');
+        imageUrl = undefined;
+        originalImageUrlToSave = undefined;
       }
 
-      // Préparer les données pour l'API
-      const dataToSend = {
+      const dataToSend: any = {
         title: formData.title,
         description: formData.description,
         location: formData.location,
@@ -493,59 +354,75 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
         status: formData.status,
         isPublished: formData.isPublished,
         featured: formData.featured || false,
-        image: imageUrl,
+        imageUrl: imageUrl,
+        originalImageUrl: originalImageUrlToSave,
         tickets: formData.hasTickets
           ? {
               price:
                 formData.tickets?.price !== undefined
-                  ? typeof formData.tickets.price === 'string'
-                    ? parseFloat(formData.tickets.price) || 0
-                    : formData.tickets.price
+                  ? parseFloat(String(formData.tickets.price)) || 0
                   : 0,
               currency: formData.tickets?.currency || 'EUR',
               buyUrl: formData.tickets?.buyUrl || '',
               quantity:
                 formData.tickets?.quantity !== undefined
-                  ? typeof formData.tickets.quantity === 'string'
-                    ? parseInt(formData.tickets.quantity, 10) || 0
-                    : formData.tickets.quantity
+                  ? parseInt(String(formData.tickets.quantity), 10) || 0
                   : 0,
             }
-          : undefined,
+          : null, // Important: on envoie null et non undefined pour que le backend comprenne qu'il faut supprimer les tickets
       };
 
-      console.log('Données à envoyer:', JSON.stringify(dataToSend, null, 2));
+      if (dataToSend.imageUrl === undefined) {
+        dataToSend.imageUrl = null;
+      }
+      if (dataToSend.originalImageUrl === undefined) {
+        dataToSend.originalImageUrl = null;
+      }
 
-      // Envoyer les données à l'API
+      console.log(
+        'Data to send to /events (undefined replaced with null):',
+        JSON.stringify(dataToSend, null, 2)
+      );
+
       const response = await fetch(isEditMode ? `/api/events/${eventId}` : '/api/events', {
         method: isEditMode ? 'PATCH' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(dataToSend),
       });
 
+      // Log la réponse brute pour le débogage
+      console.log(`Response status: ${response.status} ${response.statusText}`);
+
       if (!response.ok) {
-        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+        let errorMessage = response.statusText;
+        try {
+          const errorData = await response.json();
+          console.error('API Error Response:', errorData);
+          errorMessage =
+            errorData.error || errorData.message || errorData.details || response.statusText;
+        } catch (parseError) {
+          console.error('Error parsing error response:', parseError);
+          errorMessage = `${response.status}: ${response.statusText} (Couldn't parse error)`;
+        }
+
+        setLoading(false);
+        throw new Error(`API Error ${response.status}: ${errorMessage}`);
       }
 
       const result = await response.json();
+      console.log('API /events Success! Redirecting...', result);
 
-      // Rediriger vers la liste des événements admin
       router.push('/admin/events');
-    } catch (error) {
-      console.error("Erreur lors de la création/modification de l'événement:", error);
+    } catch (error: any) {
+      console.error('Error during event creation/update:', error);
       setErrors({
-        submit: `Une erreur est survenue lors de la ${
-          isEditMode ? 'modification' : 'création'
-        } de l'événement. Veuillez réessayer.`,
+        submit: `Une erreur est survenue: ${error.message || 'Erreur inconnue'}`,
       });
-    } finally {
       setLoading(false);
     }
   };
 
-  if (loading) {
+  if (loading && isEditMode) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-8">
         <div className="container mx-auto">
@@ -573,8 +450,14 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
           </Link>
         </div>
 
+        {errors.submit && (
+          <div className="mb-6 p-4 bg-red-900/30 border border-red-700 text-red-300 rounded-lg flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 flex-shrink-0" />
+            <span>{errors.submit}</span>
+          </div>
+        )}
+
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Formulaire */}
           <div className="w-full lg:w-3/5 bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700 overflow-hidden shadow-xl">
             <EventForm
               formData={formData}
@@ -582,14 +465,13 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
               imagePreview={imagePreview}
               handleSubmit={handleSubmit}
               handleChange={handleChange}
-              handleImageChange={handleImageChangeWithCrop}
+              onImageSelected={handleImageSelected}
               handleRemoveImage={handleRemoveImage}
               handleCheckboxChange={handleCheckboxChange}
               isEditMode={isEditMode}
             />
           </div>
 
-          {/* Prévisualisation en direct */}
           <div className="w-full lg:w-2/5">
             <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
               <span className="w-8 h-8 bg-purple-500/20 text-purple-400 flex items-center justify-center rounded-lg mr-2">
@@ -605,71 +487,6 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
             </div>
           </div>
         </div>
-
-        {/* Modal de recadrage */}
-        {showCropModal && imagePreview && (
-          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-800 rounded-lg p-6 max-w-4xl w-full">
-              <h3 className="text-xl font-semibold text-white mb-4">Recadrer l'image</h3>
-              <p className="text-gray-300 mb-3">
-                L'image sera affichée avec un ratio 16:9 dans la présentation finale.
-              </p>
-              <div className="mb-6 overflow-hidden">
-                <ReactCrop
-                  crop={crop}
-                  onChange={(c: Crop) => {
-                    // Forcer le respect du ratio 16:9 lors du redimensionnement
-                    const newCrop = { ...c };
-                    const aspectRatio = 16 / 9;
-
-                    // Ajuster la hauteur si la largeur change
-                    if (c.width !== crop.width) {
-                      newCrop.height = c.width / aspectRatio;
-                    }
-
-                    // Ajuster la largeur si la hauteur change
-                    if (c.height !== crop.height && c.height > 0) {
-                      newCrop.width = c.height * aspectRatio;
-                    }
-
-                    setCrop(newCrop);
-                  }}
-                  aspect={16 / 9}
-                  minHeight={60}
-                  locked={true} // Verrouiller le ratio d'aspect
-                >
-                  <img
-                    src={formData.originalImage || imagePreview}
-                    alt="Prévisualisation"
-                    ref={imgRef}
-                    style={{ maxHeight: '70vh', maxWidth: '100%' }}
-                    onLoad={(e) => onImageLoaded(e.currentTarget)}
-                  />
-                </ReactCrop>
-              </div>
-              <div className="flex justify-between space-x-3">
-                <div className="text-gray-300 text-sm">
-                  Conseil: Recadrez l'image pour mettre en valeur le sujet principal. La zone
-                  visible respectera exactement le ratio 16:9.
-                </div>
-                <div className="flex space-x-3">
-                  <button
-                    onClick={() => setShowCropModal(false)}
-                    className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg"
-                  >
-                    Annuler
-                  </button>
-                  <button
-                    onClick={applyCrop}
-                    className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg"
-                  >
-                    Appliquer
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

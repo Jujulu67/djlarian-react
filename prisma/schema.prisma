@@ -13,15 +13,14 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -35,16 +34,16 @@ model Session {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
+  id             String    @id @default(cuid())
+  name           String?
+  email          String?   @unique
+  emailVerified  DateTime?
+  image          String?
   hashedPassword String?
-  role          String?   @default("USER")
-  accounts      Account[]
-  sessions      Session[]
-  events        Event[]   @relation("EventCreator")
+  role           String?   @default("USER")
+  accounts       Account[]
+  events         Event[]   @relation("EventCreator")
+  sessions       Session[]
 }
 
 model VerificationToken {
@@ -56,32 +55,33 @@ model VerificationToken {
 }
 
 model Event {
-  id          String   @id @default(cuid())
+  id          String      @id @default(cuid())
   title       String
-  description String    @db.Text
+  description String
   location    String
   address     String?
   startDate   DateTime
   endDate     DateTime?
   image       String?
-  status      String    @default("UPCOMING") // UPCOMING, CANCELLED, COMPLETED
-  isPublished Boolean   @default(false)
-  featured    Boolean   @default(false)
-  tickets     TicketInfo?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  originalImageUrl String? @db.Text
+  status      String      @default("UPCOMING")
+  isPublished Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
   createdBy   String
-  creator     User      @relation("EventCreator", fields: [createdBy], references: [id])
+  featured    Boolean     @default(false)
+  creator     User        @relation("EventCreator", fields: [createdBy], references: [id])
+  tickets     TicketInfo?
 }
 
 model TicketInfo {
-  id           String   @id @default(cuid())
-  eventId      String   @unique
-  event        Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  price        Float?
-  currency     String   @default("EUR")
-  buyUrl       String?
+  id            String    @id @default(cuid())
+  eventId       String    @unique
+  price         Float?
+  currency      String    @default("EUR")
+  buyUrl        String?
   availableFrom DateTime?
   availableTo   DateTime?
-  quantity     Int?
+  quantity      Int?
+  event         Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
 }

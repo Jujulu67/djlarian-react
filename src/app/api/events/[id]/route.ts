@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import prisma from '@/lib/prisma';
+// Réimporter Prisma pour JsonNull
+import { Prisma } from '@prisma/client';
+// Ne pas importer Prisma pour l'instant, testons avec null standard
+// import { Prisma } from '@prisma/client';
 
 // GET - Récupérer un événement spécifique par son ID
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
@@ -45,82 +49,118 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
 // PATCH - Mettre à jour un événement existant
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+  const id = params.id;
+  console.log(`--- PATCH /api/events/${id} ---`);
   try {
-    const id = (await params).id;
     const session = await getServerSession(authOptions);
 
-    // Vérifier l'authentification et les autorisations
     if (!session?.user || session.user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
 
     const body = await request.json();
+    console.log(`Request body for PATCH ${id}:`, body);
 
-    // Vérifier si l'événement existe
-    const eventExists = await prisma.event.findUnique({
+    const {
+      title,
+      description,
+      location,
+      address,
+      startDate,
+      endDate,
+      imageUrl,
+      originalImageUrl,
+      status,
+      isPublished,
+      featured,
+      tickets,
+    } = body;
+
+    const dataToUpdate: any = {};
+
+    if (title !== undefined) dataToUpdate.title = title;
+    if (description !== undefined) dataToUpdate.description = description;
+    if (location !== undefined) dataToUpdate.location = location;
+    if (address !== undefined) dataToUpdate.address = address;
+    if (startDate !== undefined) dataToUpdate.startDate = startDate ? new Date(startDate) : null;
+    dataToUpdate.endDate = endDate ? new Date(endDate) : null;
+    if (status !== undefined) dataToUpdate.status = status;
+    if (isPublished !== undefined) dataToUpdate.isPublished = isPublished;
+    if (featured !== undefined) dataToUpdate.featured = featured;
+
+    if (imageUrl !== undefined) {
+      dataToUpdate.image = imageUrl;
+    }
+    if (originalImageUrl !== undefined) {
+      dataToUpdate.originalImageUrl = originalImageUrl;
+    }
+
+    if (tickets === null || tickets === undefined) {
+      const existingEvent = await prisma.event.findUnique({
+        where: { id },
+        select: { tickets: true },
+      });
+      if (existingEvent?.tickets) {
+        console.log(`Event ${id} has tickets, attempting disconnect.`);
+        dataToUpdate.tickets = { disconnect: true };
+      } else {
+        console.log(`Event ${id} has no tickets, skipping disconnect.`);
+      }
+    } else if (typeof tickets === 'object' && tickets !== null) {
+      console.log(`Event ${id} tickets provided, attempting upsert.`);
+      dataToUpdate.tickets = {
+        upsert: {
+          create: {
+            price: tickets.price ?? 0,
+            currency: tickets.currency || 'EUR',
+            buyUrl: tickets.buyUrl,
+            quantity: tickets.quantity ?? 0,
+          },
+          update: {
+            price: tickets.price ?? 0,
+            currency: tickets.currency || 'EUR',
+            buyUrl: tickets.buyUrl,
+            quantity: tickets.quantity ?? 0,
+          },
+        },
+      };
+    }
+
+    console.log(
+      `Attempting prisma.event.update for ${id} with data:`,
+      JSON.stringify(dataToUpdate, null, 2)
+    );
+
+    const updatedEvent = await prisma.event.update({
       where: { id },
+      data: dataToUpdate,
+      include: {
+        tickets: true,
+        creator: { select: { name: true } },
+      },
     });
 
-    if (!eventExists) {
+    console.log(`Event ${id} updated successfully.`);
+    return NextResponse.json(updatedEvent);
+  } catch (error: any) {
+    console.error(`--- ERROR in PATCH /api/events/${id} ---`);
+    console.error('Error details:', error);
+    console.error('Error code:', error.code);
+    console.error('Error meta:', error.meta);
+    console.error('Stack trace:', error.stack);
+
+    // Renvoi d'une réponse d'erreur plus détaillée pour le débogage
+    if (error.code === 'P2025') {
       return NextResponse.json({ error: 'Événement non trouvé' }, { status: 404 });
     }
 
-    // Mettre à jour l'événement
-    const updatedEvent = await prisma.event.update({
-      where: { id },
-      data: {
-        title: body.title,
-        description: body.description,
-        location: body.location,
-        address: body.address,
-        startDate: body.startDate ? new Date(body.startDate) : undefined,
-        endDate: body.endDate ? new Date(body.endDate) : null,
-        image: body.image,
-        status: body.status,
-        isPublished: body.isPublished,
-        featured: body.featured,
-        tickets: body.tickets
-          ? {
-              upsert: {
-                create: {
-                  price: body.tickets.price,
-                  currency: body.tickets.currency || 'EUR',
-                  buyUrl: body.tickets.buyUrl,
-                  availableFrom: body.tickets.availableFrom
-                    ? new Date(body.tickets.availableFrom)
-                    : null,
-                  availableTo: body.tickets.availableTo ? new Date(body.tickets.availableTo) : null,
-                  quantity: body.tickets.quantity,
-                },
-                update: {
-                  price: body.tickets.price,
-                  currency: body.tickets.currency || 'EUR',
-                  buyUrl: body.tickets.buyUrl,
-                  availableFrom: body.tickets.availableFrom
-                    ? new Date(body.tickets.availableFrom)
-                    : null,
-                  availableTo: body.tickets.availableTo ? new Date(body.tickets.availableTo) : null,
-                  quantity: body.tickets.quantity,
-                },
-              },
-            }
-          : undefined,
-      },
-      include: {
-        tickets: true,
-        creator: {
-          select: {
-            name: true,
-          },
-        },
-      },
-    });
-
-    return NextResponse.json(updatedEvent);
-  } catch (error) {
-    console.error("Erreur lors de la mise à jour de l'événement:", error);
     return NextResponse.json(
-      { error: "Erreur lors de la mise à jour de l'événement" },
+      {
+        error: 'Internal Server Error during update.',
+        details: error.message,
+        code: error.code,
+        meta: error.meta,
+      },
       { status: 500 }
     );
   }

@@ -1,9 +1,9 @@
 import React from 'react';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button, Input, Label, Switch, Textarea } from '@/components/ui';
 import { Upload, X, Image as ImageIcon, XCircle, Crop } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
-import ReactCrop, { type Crop as CropType } from 'react-image-crop';
+import ReactCrop, { type Crop as CropType, centerCrop, makeAspectCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 
 export interface TicketInfo {
@@ -38,23 +38,23 @@ export interface EventFormData {
 // Définir un type pour les erreurs qui permet d'accéder aux propriétés imbriquées
 interface FormErrors extends Partial<Record<keyof EventFormData, string>> {
   'tickets.price'?: string;
-  'tickets.url'?: string;
+  'tickets.buyUrl'?: string;
   'tickets.quantity'?: string;
 }
 
-interface EventFormProps {
+type EventFormProps = {
   formData: EventFormData;
-  errors: FormErrors;
+  errors: Record<string, string>;
   imagePreview: string | null;
-  handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+  handleSubmit: (e: React.FormEvent) => Promise<void>;
   handleChange: (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => void;
-  handleImageChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleRemoveImage: () => void;
   handleCheckboxChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  isEditMode: boolean;
-}
+  handleRemoveImage: () => void;
+  onImageSelected: (file: File, previewUrl: string, originalImageUrl?: string) => void;
+  isEditMode?: boolean;
+};
 
 // Style global pour les inputs et labels
 const inputBaseClass =
@@ -65,47 +65,52 @@ const sectionHeaderClass =
 const sectionNumberClass =
   'flex items-center justify-center h-7 w-7 bg-purple-500/20 text-purple-400 rounded-lg mr-3 text-sm font-semibold';
 
+// Helper function to center the crop area with a specific aspect ratio
+function centerAspectCrop(mediaWidth: number, mediaHeight: number, aspect: number): CropType {
+  return centerCrop(
+    makeAspectCrop(
+      {
+        // Utiliser 100% pour maximiser la zone initiale
+        unit: '%',
+        width: 100,
+      },
+      aspect,
+      mediaWidth,
+      mediaHeight
+    ),
+    mediaWidth,
+    mediaHeight
+  );
+}
+
 const EventForm: React.FC<EventFormProps> = ({
   formData,
   errors,
   imagePreview,
   handleSubmit,
   handleChange,
-  handleImageChange,
   handleRemoveImage,
   handleCheckboxChange,
   isEditMode,
+  onImageSelected,
 }) => {
   const [dragActive, setDragActive] = useState(false);
   const formRef = React.useRef<HTMLFormElement>(null);
   const [showCropper, setShowCropper] = useState<boolean>(false);
-  const [cropData, setCropData] = useState<CropType>({
-    unit: '%',
-    width: 100,
-    height: 56.25,
-    x: 0,
-    y: 21.875,
-  });
+  const [displayCrop, setDisplayCrop] = useState<CropType>();
   const [imageToEdit, setImageToEdit] = useState<string | null>(null);
   const imageRef = React.useRef<HTMLImageElement | null>(null);
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
 
   // Ajout de l'écouteur d'événement pour le recadrage
   React.useEffect(() => {
     const handleRecropImage = (e: CustomEvent) => {
       if (e.detail && e.detail.imageUrl) {
-        // Utiliser l'image d'origine si disponible, sinon utiliser l'image actuelle
         const imageToUse = formData.originalImage || e.detail.imageUrl;
+        setIsImageLoaded(false);
+        setDisplayCrop(undefined);
         setImageToEdit(imageToUse);
         setShowCropper(true);
-
-        // Réinitialiser toujours les données de recadrage pour éviter les problèmes
-        setCropData({
-          unit: '%',
-          width: 100,
-          height: 56.25,
-          x: 0,
-          y: 21.875,
-        });
       }
     };
 
@@ -116,103 +121,91 @@ const EventForm: React.FC<EventFormProps> = ({
     };
   }, [formData.originalImage]);
 
-  // Fonction pour précharger l'image
-  const handleImageLoad = (img: HTMLImageElement) => {
-    imageRef.current = img;
+  // Fonction pour précharger l'image ET initialiser le recadrage
+  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const { naturalWidth, naturalHeight } = e.currentTarget;
+    imageRef.current = e.currentTarget;
+
+    if (naturalWidth > 0 && naturalHeight > 0) {
+      const initialCrop = centerAspectCrop(naturalWidth, naturalHeight, 16 / 9);
+      setDisplayCrop(initialCrop);
+      setIsImageLoaded(true);
+    } else {
+      console.error("L'image chargée n'a pas de dimensions.");
+      handleCancelRecrop();
+    }
   };
 
-  // Fonction pour finaliser le recadrage
-  const handleCompleteRecrop = () => {
-    if (imageRef.current && imageToEdit) {
-      const canvas = document.createElement('canvas');
-      const scaleX = imageRef.current.naturalWidth / imageRef.current.width;
-      const scaleY = imageRef.current.naturalHeight / imageRef.current.height;
+  // Fonction pour dessiner l'image recadrée et envoyer les données au parent
+  const drawCroppedImage = (crop: CropType) => {
+    if (!imageRef.current || !crop.width || !crop.height) return;
 
-      // S'assurer que le recadrage respecte le ratio 16:9
-      const aspectRatio = 16 / 9;
-      const adjustedCrop = { ...cropData };
+    const image = imageRef.current;
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
 
-      // Garantir que la hauteur correspond exactement à la largeur / aspectRatio
-      if (adjustedCrop.unit === '%') {
-        adjustedCrop.height = adjustedCrop.width / aspectRatio;
-        const maxY = 100 - adjustedCrop.height;
-        if (adjustedCrop.y !== undefined) {
-          adjustedCrop.y = Math.min(adjustedCrop.y, maxY);
-        }
-      }
-
-      // Vérifier que le ratio est strictement respecté
-      if (Math.abs(adjustedCrop.width / adjustedCrop.height - aspectRatio) > 0.01) {
-        console.warn('Correction du ratio de recadrage pour respecter 16:9');
-        adjustedCrop.height = adjustedCrop.width / aspectRatio;
-      }
-
-      const cropX = adjustedCrop.x! * scaleX;
-      const cropY = adjustedCrop.y! * scaleY;
-      const cropWidth = adjustedCrop.width! * scaleX;
-      const cropHeight = adjustedCrop.height! * scaleY;
-
-      canvas.width = cropWidth;
-      canvas.height = cropHeight;
-
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(
-          imageRef.current,
-          cropX,
-          cropY,
-          cropWidth,
-          cropHeight,
-          0,
-          0,
-          cropWidth,
-          cropHeight
-        );
-
-        const croppedImageUrl = canvas.toDataURL('image/jpeg', 0.95);
-
-        // Créer un objet File à partir du canvas
-        canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              const file = new File([blob], 'cropped-image.jpg', { type: 'image/jpeg' });
-
-              // Fermer d'abord le modal pour éviter l'ouverture d'une autre fenêtre de recadrage
-              setShowCropper(false);
-              setImageToEdit(null);
-
-              // Mettre à jour l'image dans le formulaire avec un léger délai
-              setTimeout(() => {
-                const event = {
-                  target: {
-                    name: 'image',
-                    files: [file],
-                  },
-                } as unknown as React.ChangeEvent<HTMLInputElement>;
-
-                handleImageChange(event);
-              }, 50);
-            }
-          },
-          'image/jpeg',
-          0.95
-        );
-      } else {
-        // En cas d'erreur, fermer quand même le modal
-        setShowCropper(false);
-        setImageToEdit(null);
-      }
-    } else {
-      // Si pas d'image référencée, fermer quand même le modal
-      setShowCropper(false);
-      setImageToEdit(null);
+    if (!ctx) {
+      console.error('Impossible de créer le contexte 2D');
+      return;
     }
+
+    // Récupérer les dimensions de l'image
+    const imageWidth = image.naturalWidth || image.width;
+    const imageHeight = image.naturalHeight || image.height;
+
+    // Calculer les dimensions du recadrage en pixels
+    let cropX, cropY, cropWidth, cropHeight;
+
+    if (crop.unit === '%') {
+      // Convertir les pourcentages en pixels
+      cropX = (imageWidth * crop.x) / 100;
+      cropY = (imageHeight * crop.y) / 100;
+      cropWidth = (imageWidth * crop.width) / 100;
+      cropHeight = (imageHeight * crop.height) / 100;
+    } else {
+      // Utiliser directement les valeurs en pixels
+      cropX = crop.x;
+      cropY = crop.y;
+      cropWidth = crop.width;
+      cropHeight = crop.height;
+    }
+
+    // Définir les dimensions du canvas pour le recadrage
+    canvas.width = cropWidth;
+    canvas.height = cropHeight;
+
+    // Dessiner la partie recadrée de l'image sur le canvas
+    ctx.drawImage(image, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+
+    // Convertir le canvas en data URL
+    const croppedImageUrl = canvas.toDataURL('image/jpeg', 0.95);
+
+    // Convertir en Blob puis en File
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          const file = new File([blob], 'cropped-image.jpg', { type: 'image/jpeg' });
+          onImageSelected(file, croppedImageUrl, imageToEdit || undefined);
+          setShowCropper(false);
+          setImageToEdit(null);
+          setIsImageLoaded(false);
+          setDisplayCrop(undefined);
+        } else {
+          console.error("Blob n'a pas pu être créé.");
+          handleCancelRecrop();
+        }
+      },
+      'image/jpeg',
+      0.95
+    );
   };
 
   // Fonction pour annuler le recadrage
   const handleCancelRecrop = () => {
     setShowCropper(false);
     setImageToEdit(null);
+    setIsImageLoaded(false);
+    setDisplayCrop(undefined);
   };
 
   // Gérer le drag & drop pour l'upload d'image
@@ -227,41 +220,33 @@ const EventForm: React.FC<EventFormProps> = ({
     }
   };
 
-  const handleDrop = (e: React.DragEvent | any) => {
-    if (e.preventDefault) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    setDragActive(false);
+  // Gère le drop d'une NOUVELLE image
+  const handleNewImageDrop = (acceptedFiles: File[]) => {
+    if (acceptedFiles && acceptedFiles.length > 0) {
+      const file = acceptedFiles[0];
+      const reader = new FileReader();
 
-    let files;
-    if (e.dataTransfer) {
-      files = e.dataTransfer.files;
-    } else if (e.target && e.target.files) {
-      files = e.target.files;
-    } else if (Array.isArray(e)) {
-      files = { 0: e[0], length: e.length };
-    }
-
-    if (files && files[0]) {
-      // Simuler l'événement de changement de fichier
-      const event = {
-        target: {
-          files,
-        },
-      } as unknown as React.ChangeEvent<HTMLInputElement>;
-
-      handleImageChange(event);
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        setIsImageLoaded(false);
+        setDisplayCrop(undefined);
+        setImageToEdit(result);
+        setShowCropper(true);
+        onImageSelected(file, result, result);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
   const { getRootProps, getInputProps } = useDropzone({
-    onDrop: handleDrop,
+    onDrop: handleNewImageDrop,
     onDragEnter: () => setDragActive(true),
     onDragLeave: () => setDragActive(false),
     accept: {
       'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp'],
     },
+    noClick: false,
+    noKeyboard: true,
   });
 
   return (
@@ -463,25 +448,30 @@ const EventForm: React.FC<EventFormProps> = ({
                     style={{ objectPosition: '50% 25%' }}
                   />
                 </div>
-                <div className="absolute top-0 left-0 w-full">
-                  <div className="bg-gradient-to-b from-black/30 to-transparent py-2 px-3 text-xs text-white opacity-70">
-                    Ratio 16:9 - Cette vue représente l'affichage final
-                  </div>
-                </div>
                 <div className="absolute top-2 right-2 flex gap-2">
                   <button
                     type="button"
                     onClick={() => {
-                      // Un nouvel événement personnalisé pour le recadrage
-                      const event = new CustomEvent('recrop-image', {
-                        detail: { imageUrl: imagePreview },
-                      });
-                      document.dispatchEvent(event);
+                      const imageToUse = formData.originalImage || imagePreview;
+                      if (imageToUse) {
+                        console.log(
+                          "Relance du recadrage avec l'image:",
+                          imageToUse ? 'Source fournie' : 'Source manquante'
+                        );
+                        setIsImageLoaded(false);
+                        setDisplayCrop(undefined);
+                        setImageToEdit(imageToUse);
+                        setShowCropper(true);
+                      } else {
+                        console.error(
+                          "Impossible de relancer le recadrage: aucune source d'image valide."
+                        );
+                      }
                     }}
                     className="bg-black/60 text-white p-1 rounded-full hover:bg-black/80 transition-colors"
                     title="Recadrer l'image"
                   >
-                    <ImageIcon className="w-5 h-5" />
+                    <Crop size={18} />
                   </button>
                   <button
                     type="button"
@@ -495,61 +485,62 @@ const EventForm: React.FC<EventFormProps> = ({
               </div>
             )}
 
-            {/* Interface de recadrage pour l'image existante */}
+            {/* Interface de recadrage */}
             {showCropper && imageToEdit && (
-              <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-                <div className="bg-gray-800 rounded-lg p-6 max-w-3xl w-full">
-                  <h3 className="text-xl font-bold mb-4">Recadrez votre image</h3>
-                  <p className="text-gray-300 mb-3">
-                    L'image sera affichée avec un ratio 16:9 dans la présentation finale.
-                  </p>
-                  <div className="mb-4">
-                    <ReactCrop
-                      crop={cropData}
-                      onChange={(c) => {
-                        // Forcer le respect du ratio 16:9 lors du redimensionnement
-                        const newCrop = { ...c };
-                        const aspectRatio = 16 / 9;
-
-                        // Ajuster la hauteur si la largeur change
-                        if (c.width !== cropData.width) {
-                          newCrop.height = c.width / aspectRatio;
-                        }
-
-                        // Ajuster la largeur si la hauteur change
-                        if (c.height !== cropData.height && c.height > 0) {
-                          newCrop.width = c.height * aspectRatio;
-                        }
-
-                        setCropData(newCrop);
-                      }}
-                      aspect={16 / 9}
-                      minHeight={60}
-                      locked={true} // Verrouiller le ratio d'aspect
-                      className="max-h-[60vh]"
-                    >
-                      <img
-                        ref={imageRef}
-                        src={imageToEdit}
-                        alt="Preview to crop"
-                        className="max-w-full max-h-[60vh]"
-                        onLoad={(e) => handleImageLoad(e.currentTarget)}
-                      />
-                    </ReactCrop>
+              <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+                <div className="bg-gray-800 rounded-lg shadow-2xl max-w-3xl w-full overflow-hidden">
+                  <div className="p-6 border-b border-gray-700">
+                    <h3 className="text-lg font-semibold text-white">Recadrer l'image (16:9)</h3>
                   </div>
-                  <div className="flex justify-between space-x-3">
-                    <div className="text-gray-300 text-sm">
-                      Conseil: Assurez-vous que l'élément principal est visible dans le cadrage. La
-                      zone visible respectera exactement le ratio 16:9.
-                    </div>
-                    <div className="flex space-x-3">
-                      <Button type="button" variant="outline" onClick={handleCancelRecrop}>
-                        Annuler
-                      </Button>
-                      <Button type="button" onClick={handleCompleteRecrop}>
-                        Appliquer
-                      </Button>
-                    </div>
+                  <div className="p-6 max-h-[70vh] overflow-auto flex justify-center items-center">
+                    {/* Image cachée pour déclencher onLoad */}
+                    <img
+                      src={imageToEdit}
+                      onLoad={handleImageLoad}
+                      alt=""
+                      style={{ display: 'none' }}
+                    />
+
+                    {/* Afficher ReactCrop seulement quand l'image est chargée et displayCrop défini */}
+                    {isImageLoaded && displayCrop ? (
+                      <ReactCrop
+                        crop={displayCrop}
+                        onChange={(_, percentCrop) => {
+                          setDisplayCrop(percentCrop);
+                        }}
+                        aspect={16 / 9}
+                        className="max-w-full max-h-[60vh]"
+                      >
+                        {/* Image visible à l'intérieur de ReactCrop */}
+                        <img
+                          ref={imageRef}
+                          src={imageToEdit}
+                          alt="Recadrage"
+                          style={{ maxHeight: '60vh', objectFit: 'contain' }}
+                        />
+                      </ReactCrop>
+                    ) : (
+                      <div className="flex items-center justify-center h-40 text-gray-400">
+                        Chargement de l'image...
+                      </div>
+                    )}
+                  </div>
+                  <div className="px-6 py-4 bg-gray-800/50 border-t border-gray-700 flex justify-end space-x-3">
+                    <Button variant="ghost" onClick={handleCancelRecrop} type="button">
+                      Annuler
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        if (displayCrop) {
+                          drawCroppedImage(displayCrop);
+                        }
+                      }}
+                      className="bg-purple-600 hover:bg-purple-700"
+                      disabled={!isImageLoaded || !displayCrop?.width || !displayCrop?.height}
+                    >
+                      Appliquer le recadrage
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -616,21 +607,21 @@ const EventForm: React.FC<EventFormProps> = ({
               </div>
 
               <div>
-                <label htmlFor="tickets.url" className={labelBaseClass}>
+                <label htmlFor="tickets.buyUrl" className={labelBaseClass}>
                   URL de billetterie <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="url"
-                  id="tickets.url"
-                  name="tickets.url"
-                  value={formData.tickets.url || ''}
+                  id="tickets.buyUrl"
+                  name="tickets.buyUrl"
+                  value={formData.tickets.buyUrl || ''}
                   onChange={handleChange}
-                  className={`${inputBaseClass} ${errors['tickets.url'] ? 'border-red-500 bg-red-900/10' : ''}`}
+                  className={`${inputBaseClass} ${errors['tickets.buyUrl'] ? 'border-red-500 bg-red-900/10' : ''}`}
                   placeholder="https://..."
                   required
                 />
-                {errors['tickets.url'] && (
-                  <p className="mt-2 text-red-500 text-sm">{errors['tickets.url']}</p>
+                {errors['tickets.buyUrl'] && (
+                  <p className="mt-2 text-red-500 text-sm">{errors['tickets.buyUrl']}</p>
                 )}
               </div>
             </div>
@@ -682,14 +673,7 @@ const EventForm: React.FC<EventFormProps> = ({
 
         <div className="pt-8 flex justify-end space-x-4">
           <button
-            type="button"
-            onClick={() => {
-              if (formRef.current) {
-                formRef.current.dispatchEvent(
-                  new Event('submit', { bubbles: true, cancelable: true })
-                );
-              }
-            }}
+            type="submit"
             className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 shadow-lg shadow-purple-600/20 hover:shadow-purple-600/40"
           >
             {isEditMode ? 'Mettre à jour' : "Créer l'événement"}
