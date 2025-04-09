@@ -189,6 +189,9 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
 
+    // Afficher les informations de session pour debug
+    console.log('Session user info for update:', JSON.stringify(session.user, null, 2));
+
     const body = await request.json();
     console.log(`Request body for PATCH ${id}:`, body);
 
@@ -219,6 +222,25 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     if (status !== undefined) dataToUpdate.status = status;
     if (isPublished !== undefined) dataToUpdate.isPublished = isPublished;
     if (featured !== undefined) dataToUpdate.featured = featured;
+
+    // Vérifier si l'utilisateur existe avant d'essayer d'établir la relation
+    try {
+      const userExists = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { id: true },
+      });
+
+      if (userExists) {
+        dataToUpdate.user = {
+          connect: { id: session.user.id },
+        };
+      } else {
+        console.log(`Utilisateur avec ID ${session.user.id} n'existe pas dans la base de données`);
+      }
+    } catch (error) {
+      console.error("Erreur lors de la vérification de l'utilisateur:", error);
+      // On continue sans établir la relation utilisateur
+    }
 
     if (imageUrl !== undefined) {
       dataToUpdate.image = imageUrl;

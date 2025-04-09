@@ -43,6 +43,7 @@ model User {
   role           String?   @default("USER")
   accounts       Account[]
   events         Event[]
+  tracks         Track[]
   sessions       Session[]
 }
 
@@ -108,4 +109,70 @@ model RecurrenceConfig {
   
   // Dates exclues stockées sous forme de JSON
   excludedDates Json? // Stocke un tableau de dates ISO
+}
+
+// Modèles pour la gestion musicale
+
+model Track {
+  id           String           @id @default(cuid())
+  title        String
+  artist       String
+  coverUrl     String?
+  releaseDate  DateTime
+  bpm          Int?
+  description  String?          @db.Text
+  type         String           // 'single', 'ep', 'album', 'remix', 'live', 'djset', 'video'
+  featured     Boolean          @default(false)
+  isPublished  Boolean          @default(true)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  user         User?            @relation(fields: [userId], references: [id])
+  userId       String?
+  
+  // Relations
+  platforms    TrackPlatform[]
+  genres       GenresOnTracks[]
+  collection   MusicCollection? @relation(fields: [collectionId], references: [id])
+  collectionId String?
+}
+
+model TrackPlatform {
+  id        String  @id @default(cuid())
+  platform  String  // 'spotify', 'youtube', 'soundcloud', 'apple', 'deezer'
+  url       String
+  embedId   String?
+  track     Track   @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  trackId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Genre {
+  id        String          @id @default(cuid())
+  name      String          @unique
+  tracks    GenresOnTracks[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}
+
+model GenresOnTracks {
+  track     Track   @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  trackId   String
+  genre     Genre   @relation(fields: [genreId], references: [id], onDelete: Cascade)
+  genreId   String
+  assignedAt DateTime @default(now())
+
+  @@id([trackId, genreId])
+}
+
+model MusicCollection {
+  id          String   @id @default(cuid())
+  title       String
+  description String?  @db.Text
+  coverUrl    String?
+  releaseDate DateTime?
+  type        String   // 'album', 'ep', 'compilation', 'playlist'
+  tracks      Track[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

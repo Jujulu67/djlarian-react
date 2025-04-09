@@ -45,9 +45,12 @@ export default async function AdminPage() {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Musique</h2>
             <p className="text-gray-600 dark:text-gray-300 mb-4">Gérez les morceaux et playlists</p>
-            <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors">
+            <Link
+              href="/admin/music"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors inline-block"
+            >
               Gérer la musique
-            </button>
+            </Link>
           </div>
 
           {/* Carte Utilisateurs */}

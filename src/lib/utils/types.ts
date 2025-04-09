@@ -10,15 +10,30 @@ export interface SocialLink {
   icon: string;
 }
 
+export type MusicPlatform = 'spotify' | 'youtube' | 'soundcloud' | 'apple' | 'deezer';
+
+export type MusicType = 'single' | 'ep' | 'album' | 'remix' | 'live' | 'djset' | 'video';
+
 export interface Track {
   id: string;
   title: string;
   artist: string;
   coverUrl: string;
-  audioUrl: string;
-  duration: number;
+  audioUrl?: string;
+  duration?: number;
   releaseDate: string;
   genre: string[];
+  description?: string;
+  bpm?: number;
+  featured?: boolean;
+  type: MusicType;
+  collection?: string; // ID d'un album ou EP parent
+  platforms: {
+    [key in MusicPlatform]?: {
+      url: string;
+      embedId?: string;
+    };
+  };
 }
 
 export interface Event {

@@ -194,6 +194,32 @@ export async function POST(request: Request) {
       );
     }
 
+    // Afficher les informations de session pour debug
+    console.log('Session user info:', JSON.stringify(session.user, null, 2));
+
+    // Vérifier si l'utilisateur existe avant d'essayer d'établir la relation
+    let userConnect = {};
+
+    try {
+      const userExists = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { id: true },
+      });
+
+      if (userExists) {
+        userConnect = {
+          user: {
+            connect: { id: session.user.id },
+          },
+        };
+      } else {
+        console.log(`Utilisateur avec ID ${session.user.id} n'existe pas dans la base de données`);
+      }
+    } catch (error) {
+      console.error("Erreur lors de la vérification de l'utilisateur:", error);
+      // On continue sans établir la relation utilisateur
+    }
+
     // Préparer les données communes de l'événement
     const commonEventData: any = {
       title: body.title,
@@ -207,7 +233,7 @@ export async function POST(request: Request) {
       status: body.status || 'UPCOMING',
       isPublished: body.isPublished !== undefined ? body.isPublished : false,
       featured: body.featured !== undefined ? body.featured : false,
-      userId: session.user.id,
+      ...userConnect, // Ajouter la relation utilisateur seulement si l'utilisateur existe
     };
 
     // Ajouter tickets si présents
