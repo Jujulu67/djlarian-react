@@ -1,45 +1,55 @@
-import { Calendar, Clock, Euro, Eye, MapPin, Ticket, Star } from 'lucide-react';
+import { Calendar, Clock, Euro, Eye, MapPin, Ticket, Star, Repeat } from 'lucide-react';
+import { EventFormData } from './EventForm';
 
 interface EventPreviewProps {
-  formData: any;
-  imagePreview: string | null;
+  event: EventFormData;
 }
 
-export default function EventPreview({ formData, imagePreview }: EventPreviewProps) {
+export default function EventPreview({ event }: EventPreviewProps) {
+  // Utiliser l'image preview stockée dans formData, ou current image si disponible
+  const imageToShow = event.currentImage || null;
+
   return (
     <div>
       <div
         className="relative bg-gradient-to-r from-purple-900/30 to-blue-900/30 flex items-center justify-center overflow-hidden"
         style={{ aspectRatio: '16/9' }}
       >
-        {imagePreview ? (
+        {imageToShow ? (
           <img
-            src={imagePreview}
-            alt={formData.title}
+            src={imageToShow}
+            alt={event.title}
             className="w-full h-full object-cover object-center"
             style={{ objectPosition: '50% 25%' }}
           />
         ) : (
           <Calendar className="w-16 h-16 text-gray-600" />
         )}
-        <div className="absolute top-4 left-4">
+        <div className="absolute top-4 left-4 flex gap-2">
           <span className="bg-blue-500/80 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
             <Clock className="w-3 h-3" />
-            {formData.status === 'UPCOMING'
+            {event.status === 'UPCOMING'
               ? 'À venir'
-              : formData.status === 'COMPLETED'
+              : event.status === 'COMPLETED'
                 ? 'Terminé'
                 : 'Annulé'}
           </span>
+
+          {event.recurrence?.isRecurring && (
+            <span className="bg-purple-500/80 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
+              <Repeat className="w-3 h-3" />
+              {event.recurrence?.frequency === 'weekly' ? 'Hebdomadaire' : 'Mensuel'}
+            </span>
+          )}
         </div>
         <div className="absolute top-4 right-4 flex gap-2">
-          {formData.featured && (
+          {event.featured && (
             <span className="bg-yellow-500/80 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
               <Star className="w-3 h-3" />
               En avant
             </span>
           )}
-          {formData.isPublished ? (
+          {event.isPublished ? (
             <span className="bg-green-500/80 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
               <Eye className="w-3 h-3" />
               Publié
@@ -63,14 +73,14 @@ export default function EventPreview({ formData, imagePreview }: EventPreviewPro
 
       <div className="p-6">
         <h3 className="text-xl font-bold text-white mb-2">
-          {formData.title || "Titre de l'événement"}
+          {event.title || "Titre de l'événement"}
         </h3>
 
         <div className="flex items-center text-gray-400 mb-4">
           <Calendar className="w-4 h-4 mr-2" />
           <span>
-            {formData.startDate || formData.date
-              ? new Date(formData.startDate || formData.date).toLocaleDateString('fr-FR', {
+            {event.startDate || event.date
+              ? new Date(event.startDate || event.date || '').toLocaleDateString('fr-FR', {
                   year: 'numeric',
                   month: 'long',
                   day: 'numeric',
@@ -82,28 +92,30 @@ export default function EventPreview({ formData, imagePreview }: EventPreviewPro
         </div>
 
         <p className="text-gray-300 mb-4">
-          {formData.description || 'Aucune description disponible.'}
+          {event.description || 'Aucune description disponible.'}
         </p>
 
         <div className="flex flex-wrap gap-2 mb-6">
           <span className="bg-gray-700 text-gray-300 px-3 py-1 rounded-full text-xs flex items-center gap-1">
             <MapPin className="w-3 h-3" />
-            {formData.location || 'Lieu non défini'}
+            {event.location || 'Lieu non défini'}
           </span>
 
-          {formData.hasTickets && formData.tickets?.price && (
+          {event.hasTickets && event.tickets?.price !== undefined && (
             <span className="bg-purple-900/50 text-purple-300 px-3 py-1 rounded-full text-xs flex items-center gap-1">
               <Euro className="w-3 h-3" />
-              {formData.tickets.price} {formData.tickets.currency}
+              {event.tickets.price} {event.tickets.currency}
             </span>
           )}
 
-          {formData.hasTickets && formData.tickets?.quantity > 0 && (
-            <span className="bg-indigo-900/50 text-indigo-300 px-3 py-1 rounded-full text-xs flex items-center gap-1">
-              <Ticket className="w-3 h-3" />
-              {formData.tickets.quantity} billets disponibles
-            </span>
-          )}
+          {event.hasTickets &&
+            event.tickets?.quantity !== undefined &&
+            event.tickets.quantity > 0 && (
+              <span className="bg-indigo-900/50 text-indigo-300 px-3 py-1 rounded-full text-xs flex items-center gap-1">
+                <Ticket className="w-3 h-3" />
+                {event.tickets.quantity} billets disponibles
+              </span>
+            )}
         </div>
       </div>
     </div>

@@ -50,7 +50,7 @@ type Event = {
     availableTo?: string;
     quantity?: number;
   };
-  creator?: {
+  user?: {
     name: string;
   };
 };
@@ -361,10 +361,10 @@ export default function EventDetailPage() {
                   </div>
                 </div>
 
-                {event.creator && (
+                {event.user && (
                   <div className="mt-10 pt-6 border-t border-gray-700/50">
-                    <p className="text-gray-400 text-sm">
-                      Organisé par <span className="text-purple-400">{event.creator.name}</span>
+                    <p className="text-gray-400 text-sm mb-4">
+                      Organisé par <span className="text-purple-400">{event.user.name}</span>
                     </p>
                   </div>
                 )}

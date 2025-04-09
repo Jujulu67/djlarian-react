@@ -86,14 +86,18 @@ export default function EventsPage() {
         const data = await response.json();
 
         // Trier les événements pour mettre ceux en avant en premier
-        const sortedEvents = data.sort((a: Event, b: Event) => {
-          // Événements mis en avant en premier
-          if (a.featured && !b.featured) return -1;
-          if (!a.featured && b.featured) return 1;
+        const sortedEvents = Array.isArray(data)
+          ? data.sort((a: Event, b: Event) => {
+              // Événements mis en avant en premier
+              if (a.featured && !b.featured) return -1;
+              if (!a.featured && b.featured) return 1;
 
-          // Puis par date (les prochains événements d'abord)
-          return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
-        });
+              // Puis par date (les prochains événements d'abord)
+              return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
+            })
+          : data.events
+            ? data.events
+            : [];
 
         setEvents(sortedEvents);
       } catch (err) {

@@ -7,18 +7,25 @@ export interface EventData {
   location: string;
   address?: string;
   startDate: string;
-  endDate?: string | null;
-  status?: string;
+  endDate?: string;
+  status: 'UPCOMING' | 'COMPLETED' | 'CANCELLED';
   isPublished?: boolean;
-  featured?: boolean;
-  imageUrl?: string | null;
-  originalImageUrl?: string | null;
+  image?: File | null;
+  imageUrl?: string;
   tickets?: {
-    price?: number;
-    currency?: string;
-    buyUrl?: string;
-    quantity?: number;
+    price: number;
+    currency: string;
+    buyUrl: string;
+    quantity: number;
   } | null;
+  featured?: boolean;
+  recurrence?: {
+    isRecurring: boolean;
+    frequency: 'weekly' | 'monthly';
+    day?: number;
+    endDate?: string;
+    excludedDates?: string[];
+  };
 }
 
 export const useEditEvent = () => {

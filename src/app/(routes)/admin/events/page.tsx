@@ -46,10 +46,20 @@ type Event = {
     currency: string;
     buyUrl?: string;
   };
-  creator?: {
+  user?: {
     name: string;
   };
   featured: boolean;
+  // Propriétés pour les événements récurrents
+  isMasterEvent?: boolean;
+  masterId?: string;
+  master?: { id: string };
+  occurrences?: { id: string; startDate: string }[];
+  recurrenceConfig?: {
+    frequency: 'weekly' | 'monthly';
+    day?: number;
+    endDate?: string;
+  };
 };
 
 export default function AdminEventsPage() {
@@ -95,7 +105,8 @@ export default function AdminEventsPage() {
         }
 
         const data = await response.json();
-        setEvents(data);
+        // Vérifier si data.events existe et est un tableau, sinon utiliser un tableau vide
+        setEvents(Array.isArray(data.events) ? data.events : []);
       } catch (err) {
         setError('Erreur lors du chargement des événements');
         console.error(err);
@@ -109,7 +120,9 @@ export default function AdminEventsPage() {
 
   // Filtrer les événements en fonction des critères de recherche et des filtres
   const filteredEvents = useMemo(() => {
-    return events.filter((event) => {
+    // S'assurer que events est un tableau avant d'appliquer filter
+    const eventsArray = Array.isArray(events) ? events : [];
+    return eventsArray.filter((event) => {
       // Filtre de recherche sur le titre et la description
       const matchesSearch =
         searchTerm === '' ||

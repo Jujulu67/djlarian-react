@@ -16,6 +16,14 @@ export interface TicketInfo {
   availableFrom?: string;
 }
 
+export interface RecurrenceConfig {
+  isRecurring: boolean;
+  frequency: 'weekly' | 'monthly';
+  day?: number; // 0-6 pour les jours de la semaine (0=dimanche)
+  endDate?: string;
+  excludedDates?: string[]; // Dates à exclure de la récurrence
+}
+
 export interface EventFormData {
   title: string;
   description: string;
@@ -33,6 +41,7 @@ export interface EventFormData {
   originalImage?: string;
   tickets: TicketInfo;
   imageUrl?: string;
+  recurrence?: RecurrenceConfig;
 }
 
 // Définir un type pour les erreurs qui permet d'accéder aux propriétés imbriquées
@@ -40,6 +49,8 @@ interface FormErrors extends Partial<Record<keyof EventFormData, string>> {
   'tickets.price'?: string;
   'tickets.buyUrl'?: string;
   'tickets.quantity'?: string;
+  'recurrence.day'?: string;
+  'recurrence.endDate'?: string;
 }
 
 type EventFormProps = {
@@ -54,6 +65,7 @@ type EventFormProps = {
   handleRemoveImage: () => void;
   onImageSelected: (file: File, previewUrl: string, originalImageUrl?: string) => void;
   isEditMode?: boolean;
+  setFormData: React.Dispatch<React.SetStateAction<EventFormData>>;
 };
 
 // Style global pour les inputs et labels
@@ -93,6 +105,7 @@ const EventForm: React.FC<EventFormProps> = ({
   handleCheckboxChange,
   isEditMode,
   onImageSelected,
+  setFormData,
 }) => {
   const [dragActive, setDragActive] = useState(false);
   const formRef = React.useRef<HTMLFormElement>(null);
@@ -548,10 +561,208 @@ const EventForm: React.FC<EventFormProps> = ({
           </div>
         </div>
 
-        {/* Section 3: Billets */}
+        {/* Section Récurrence */}
         <div className="space-y-6 pt-2">
           <h2 className={sectionHeaderClass}>
             <span className={sectionNumberClass}>3</span>
+            Récurrence de l'événement
+          </h2>
+
+          <div className="mb-6">
+            <div className="flex items-center justify-between py-2">
+              <label htmlFor="isRecurring" className="text-gray-300 font-medium">
+                Cet événement se répète régulièrement
+              </label>
+              <Switch
+                id="isRecurring"
+                name="isRecurring"
+                checked={formData.recurrence?.isRecurring || false}
+                onCheckedChange={(checked) => {
+                  // Si recurrence n'existe pas, créer un objet avec les valeurs par défaut
+                  const currentRecurrence = formData.recurrence || {
+                    isRecurring: false,
+                    frequency: 'weekly',
+                    day: new Date().getDay(),
+                  };
+
+                  setFormData({
+                    ...formData,
+                    recurrence: {
+                      ...currentRecurrence,
+                      isRecurring: checked,
+                    },
+                  });
+                }}
+              />
+            </div>
+            <p className="text-gray-400 text-sm mt-1">
+              En activant cette option, l'événement sera automatiquement répété selon la
+              configuration.
+            </p>
+          </div>
+
+          {formData.recurrence?.isRecurring && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label htmlFor="recurrence.frequency" className={labelBaseClass}>
+                    Fréquence de répétition
+                  </label>
+                  <select
+                    id="recurrence.frequency"
+                    name="recurrence.frequency"
+                    value={formData.recurrence?.frequency || 'weekly'}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        recurrence: {
+                          ...formData.recurrence!,
+                          frequency: e.target.value as 'weekly' | 'monthly',
+                        },
+                      });
+                    }}
+                    className={inputBaseClass}
+                  >
+                    <option value="weekly">Hebdomadaire</option>
+                    <option value="monthly">Mensuelle</option>
+                  </select>
+                </div>
+
+                {formData.recurrence?.frequency === 'weekly' && (
+                  <div>
+                    <label htmlFor="recurrence.day" className={labelBaseClass}>
+                      Jour de la semaine
+                    </label>
+                    <select
+                      id="recurrence.day"
+                      name="recurrence.day"
+                      value={formData.recurrence?.day || 0}
+                      onChange={(e) => {
+                        setFormData({
+                          ...formData,
+                          recurrence: {
+                            ...formData.recurrence!,
+                            day: parseInt(e.target.value),
+                          },
+                        });
+                      }}
+                      className={`${inputBaseClass} ${errors['recurrence.day'] ? 'border-red-500 bg-red-900/10' : ''}`}
+                    >
+                      <option value="1">Lundi</option>
+                      <option value="2">Mardi</option>
+                      <option value="3">Mercredi</option>
+                      <option value="4">Jeudi</option>
+                      <option value="5">Vendredi</option>
+                      <option value="6">Samedi</option>
+                      <option value="0">Dimanche</option>
+                    </select>
+                    {errors['recurrence.day'] && (
+                      <p className="mt-2 text-red-500 text-sm">{errors['recurrence.day']}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-6">
+                <label htmlFor="recurrence.endDate" className={labelBaseClass}>
+                  Date de fin de récurrence
+                </label>
+                <input
+                  type="date"
+                  id="recurrence.endDate"
+                  name="recurrence.endDate"
+                  value={formData.recurrence?.endDate || ''}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      recurrence: {
+                        ...formData.recurrence!,
+                        endDate: e.target.value,
+                      },
+                    });
+                  }}
+                  className={`${inputBaseClass} ${errors['recurrence.endDate'] ? 'border-red-500 bg-red-900/10' : ''} cursor-pointer`}
+                  onClick={(e) => e.currentTarget.showPicker()}
+                />
+                {errors['recurrence.endDate'] && (
+                  <p className="mt-2 text-red-500 text-sm">{errors['recurrence.endDate']}</p>
+                )}
+                <p className="text-gray-400 text-sm mt-1">
+                  Laissez vide pour une récurrence sans fin.
+                </p>
+              </div>
+
+              <div className="mt-6">
+                <div className="flex items-center justify-between">
+                  <label className={labelBaseClass}>Dates à exclure</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const currentDate = new Date();
+                      const formattedDate = currentDate.toISOString().split('T')[0];
+
+                      setFormData({
+                        ...formData,
+                        recurrence: {
+                          ...formData.recurrence!,
+                          excludedDates: [
+                            ...(formData.recurrence?.excludedDates || []),
+                            formattedDate,
+                          ],
+                        },
+                      });
+                    }}
+                    className="text-sm text-purple-400 hover:text-purple-300"
+                  >
+                    + Ajouter une date
+                  </button>
+                </div>
+
+                {formData.recurrence?.excludedDates &&
+                formData.recurrence.excludedDates.length > 0 ? (
+                  <div className="mt-2 space-y-2">
+                    {formData.recurrence.excludedDates.map((date, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-2 bg-gray-800/50 p-2 rounded-md"
+                      >
+                        <span className="flex-1">{new Date(date).toLocaleDateString('fr-FR')}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updatedExcludedDates = [...formData.recurrence!.excludedDates!];
+                            updatedExcludedDates.splice(index, 1);
+
+                            setFormData({
+                              ...formData,
+                              recurrence: {
+                                ...formData.recurrence!,
+                                excludedDates: updatedExcludedDates,
+                              },
+                            });
+                          }}
+                          className="text-red-400 hover:text-red-300"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-400 text-sm mt-1">
+                    Aucune date exclue. Ajoutez des dates spécifiques pour désactiver l'événement
+                    ces jours-là.
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Section 4: Billets */}
+        <div className="space-y-6 pt-2">
+          <h2 className={sectionHeaderClass}>
+            <span className={sectionNumberClass}>4</span>
             Informations de billetterie
           </h2>
 

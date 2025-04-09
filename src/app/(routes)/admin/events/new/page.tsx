@@ -85,6 +85,12 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
     hasTickets: false,
     featured: false,
     originalImage: '',
+    recurrence: {
+      isRecurring: false,
+      frequency: 'weekly' as 'weekly' | 'monthly',
+      day: new Date().getDay(),
+      excludedDates: [],
+    },
   };
 
   const [formData, setFormData] = useState<EventFormData>(initialFormData);
@@ -154,6 +160,12 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
           featured: event.featured || false,
           // Charger l'image originale depuis le backend
           originalImage: event.originalImageUrl,
+          recurrence: event.recurrence || {
+            isRecurring: false,
+            frequency: 'weekly' as 'weekly' | 'monthly',
+            day: new Date().getDay(),
+            excludedDates: [],
+          },
         });
 
         // Mettre à jour l'aperçu de l'image
@@ -216,25 +228,34 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
 
   // Effet pour faire suivre l'aperçu lors du défilement
   useEffect(() => {
+    // Référence au conteneur d'espace réservé
+    const placeholderRef = document.getElementById('preview-placeholder');
+
     const handleScroll = () => {
-      if (previewRef.current) {
+      if (previewRef.current && placeholderRef) {
         const scrollY = window.scrollY;
         const headerOffset = 100; // Offset pour tenir compte du header
+        const containerRect = placeholderRef.getBoundingClientRect();
+        const initialTop = placeholderRef.offsetTop;
 
-        if (scrollY > headerOffset) {
+        if (scrollY > initialTop - headerOffset) {
+          // Passer en position fixe quand on dépasse le point initial - headerOffset
           previewRef.current.style.position = 'fixed';
-          previewRef.current.style.top = '100px';
-          previewRef.current.style.width = previewRef.current.parentElement?.offsetWidth + 'px';
-          previewRef.current.style.zIndex = '10';
+          previewRef.current.style.top = `${headerOffset}px`;
+          previewRef.current.style.width = '400px';
         } else {
-          previewRef.current.style.position = 'static';
+          // Position normale avant de défiler
+          previewRef.current.style.position = 'relative';
+          previewRef.current.style.top = '0';
           previewRef.current.style.width = '100%';
-          previewRef.current.style.zIndex = 'auto';
         }
       }
     };
 
     window.addEventListener('scroll', handleScroll);
+    // Appel initial pour positionner correctement
+    setTimeout(handleScroll, 100);
+
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -370,6 +391,7 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
                   : 0,
             }
           : null, // Important: on envoie null et non undefined pour que le backend comprenne qu'il faut supprimer les tickets
+        recurrence: formData.recurrence,
       };
 
       if (dataToSend.imageUrl === undefined) {
@@ -457,36 +479,37 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
           </div>
         )}
 
-        <div className="flex flex-col lg:flex-row gap-6">
-          <div className="w-full lg:w-3/5 bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700 overflow-hidden shadow-xl">
-            <EventForm
-              formData={formData}
-              errors={errors}
-              imagePreview={imagePreview}
-              handleSubmit={handleSubmit}
-              handleChange={handleChange}
-              onImageSelected={handleImageSelected}
-              handleRemoveImage={handleRemoveImage}
-              handleCheckboxChange={handleCheckboxChange}
-              isEditMode={isEditMode}
-            />
-          </div>
-
-          <div className="w-full lg:w-2/5">
-            <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
-              <span className="w-8 h-8 bg-purple-500/20 text-purple-400 flex items-center justify-center rounded-lg mr-2">
-                <Eye className="w-4 h-4" />
-              </span>
-              Aperçu en direct
-            </h3>
-            <div
-              ref={previewRef}
-              className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700 overflow-hidden shadow-2xl"
-            >
-              <EventPreview formData={formData} imagePreview={imagePreview} />
+        {!previewMode ? (
+          <div className="flex flex-col lg:flex-row gap-8">
+            <div className="flex-1 lg:max-w-[calc(100%-450px)]">
+              <EventForm
+                formData={formData}
+                errors={errors}
+                imagePreview={imagePreview}
+                handleSubmit={handleSubmit}
+                handleChange={handleChange}
+                handleCheckboxChange={handleCheckboxChange}
+                handleRemoveImage={handleRemoveImage}
+                onImageSelected={handleImageSelected}
+                isEditMode={isEditMode}
+                setFormData={setFormData}
+              />
+            </div>
+            {/* Conteneur d'espace réservé pour l'aperçu */}
+            <div id="preview-placeholder" className="lg:w-[400px] flex-shrink-0">
+              <div ref={previewRef} className="w-full">
+                <div className="bg-gray-800/30 backdrop-blur-sm border border-gray-700/50 rounded-xl overflow-hidden shadow-lg">
+                  <h3 className="text-lg font-bold p-4">Aperçu</h3>
+                  <EventPreview event={formData} />
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="max-w-[800px] mx-auto">
+            <EventPreview event={formData} />
+          </div>
+        )}
       </div>
     </div>
   );

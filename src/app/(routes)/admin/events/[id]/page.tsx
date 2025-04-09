@@ -27,6 +27,7 @@ import {
   AlertTriangle,
   Loader2,
   Star,
+  User,
 } from 'lucide-react';
 
 // Types
@@ -43,8 +44,7 @@ type Event = {
   isPublished: boolean;
   createdAt: string;
   updatedAt: string;
-  createdBy: string;
-  creator: {
+  user?: {
     name: string;
   };
   tickets?: {
@@ -56,6 +56,16 @@ type Event = {
     availableTo?: string;
   };
   featured: boolean;
+  // Propriétés pour les événements récurrents
+  isMasterEvent?: boolean;
+  masterId?: string;
+  master?: { id: string };
+  occurrences?: { id: string; startDate: string }[];
+  recurrenceConfig?: {
+    frequency: 'weekly' | 'monthly';
+    day?: number;
+    endDate?: string;
+  };
 };
 
 export default function EventDetailsPage() {
@@ -546,9 +556,10 @@ export default function EventDetailsPage() {
 
                       <div className="flex justify-between items-center">
                         <span className="text-gray-400 text-sm">Créateur</span>
-                        <span className="text-white text-sm">
-                          {event.creator?.name || 'Inconnu'}
-                        </span>
+                        <div className="text-gray-500 text-sm mt-1 flex items-center">
+                          <User className="w-4 h-4 mr-1" />
+                          {event.user?.name || 'Inconnu'}
+                        </div>
                       </div>
 
                       <div className="flex justify-between items-center">
