@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {
@@ -24,6 +23,10 @@ import {
   ArrowLeft,
   ArrowRight,
   Users,
+  Calendar as CalendarIcon,
+  AlertTriangle,
+  Loader2,
+  Star,
 } from 'lucide-react';
 
 // Types
@@ -52,6 +55,7 @@ type Event = {
     availableFrom?: string;
     availableTo?: string;
   };
+  featured: boolean;
 };
 
 export default function EventDetailsPage() {
@@ -150,21 +154,82 @@ export default function EventDetailsPage() {
     }
   };
 
+  // Changer le statut "featured"
+  const toggleFeaturedStatus = async () => {
+    if (!event) return;
+
+    try {
+      const response = await fetch(`/api/events/${eventId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          featured: !event.featured,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+      }
+
+      const updatedEvent = await response.json();
+      setEvent(updatedEvent);
+    } catch (err) {
+      console.error('Erreur lors de la mise à jour:', err);
+      setError("Erreur lors de la mise à jour de l'événement");
+    }
+  };
+
   // Formater la date
   const formatDate = (dateString?: string) => {
     if (!dateString) return '';
     return format(new Date(dateString), 'dd MMMM yyyy à HH:mm', { locale: fr });
   };
 
+  // Obtenir le libellé du statut
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'UPCOMING':
+        return 'À venir';
+      case 'CANCELLED':
+        return 'Annulé';
+      case 'COMPLETED':
+        return 'Terminé';
+      default:
+        return status;
+    }
+  };
+
+  // Obtenir la couleur du badge selon le statut
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'UPCOMING':
+        return 'bg-blue-600/90';
+      case 'CANCELLED':
+        return 'bg-red-600/90';
+      case 'COMPLETED':
+        return 'bg-gray-600/90';
+      default:
+        return 'bg-blue-600/90';
+    }
+  };
+
   // Afficher un état de chargement
   if (status === 'loading' || loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-8">
-        <div className="container mx-auto">
+        <div className="container mx-auto max-w-6xl">
           <div className="flex justify-center items-center min-h-[60vh]">
             <div className="animate-pulse flex flex-col items-center">
-              <Calendar className="w-12 h-12 text-purple-500 mb-4" />
-              <h2 className="text-2xl font-semibold text-white">Chargement de l'événement...</h2>
+              <div className="relative">
+                <div className="absolute inset-0 bg-purple-500 blur-xl opacity-20 rounded-full"></div>
+                <Loader2 className="w-16 h-16 text-purple-500 mb-4 animate-spin relative z-10" />
+              </div>
+              <h2 className="text-2xl font-semibold text-white mt-4">
+                Chargement de l'événement...
+              </h2>
+              <p className="text-gray-400 mt-2">Préparation des détails administratifs</p>
             </div>
           </div>
         </div>
@@ -176,15 +241,17 @@ export default function EventDetailsPage() {
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-8">
-        <div className="container mx-auto">
+        <div className="container mx-auto max-w-6xl">
           <div className="flex flex-col items-center justify-center min-h-[60vh]">
-            <div className="bg-red-500/10 border border-red-500/50 p-8 rounded-lg text-center max-w-lg">
-              <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-              <h2 className="text-2xl font-semibold text-white mb-2">Une erreur est survenue</h2>
+            <div className="bg-gray-800/40 backdrop-blur-sm border border-red-500/30 p-8 rounded-xl text-center max-w-lg shadow-xl">
+              <div className="w-20 h-20 mx-auto bg-red-500/10 rounded-full flex items-center justify-center mb-6">
+                <XCircle className="w-10 h-10 text-red-500" />
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-3">Une erreur est survenue</h2>
               <p className="text-gray-300 mb-6">{error}</p>
               <Link
                 href="/admin/events"
-                className="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors inline-flex items-center gap-2"
+                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-800 hover:from-purple-500 hover:to-purple-700 text-white rounded-lg transition-all duration-300 inline-flex items-center gap-2 shadow-lg shadow-purple-900/30"
               >
                 <ChevronLeft className="w-5 h-5" />
                 Retour aux événements
@@ -200,17 +267,19 @@ export default function EventDetailsPage() {
   if (!event) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-8">
-        <div className="container mx-auto">
+        <div className="container mx-auto max-w-6xl">
           <div className="flex flex-col items-center justify-center min-h-[60vh]">
-            <div className="bg-gray-800/30 backdrop-blur-sm p-8 rounded-lg text-center max-w-lg border border-gray-700">
-              <Calendar className="w-12 h-12 text-gray-500 mx-auto mb-4" />
-              <h2 className="text-2xl font-semibold text-white mb-2">Événement non trouvé</h2>
+            <div className="bg-gray-800/30 backdrop-blur-sm p-8 rounded-xl text-center max-w-lg border border-gray-700 shadow-xl">
+              <div className="w-24 h-24 mx-auto bg-gray-700/30 rounded-full flex items-center justify-center mb-6">
+                <AlertTriangle className="w-12 h-12 text-yellow-500" />
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-3">Événement non trouvé</h2>
               <p className="text-gray-300 mb-6">
                 L'événement que vous recherchez n'existe pas ou a été supprimé.
               </p>
               <Link
                 href="/admin/events"
-                className="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors inline-flex items-center gap-2"
+                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-800 hover:from-purple-500 hover:to-purple-700 text-white rounded-lg transition-all duration-300 inline-flex items-center gap-2 shadow-lg shadow-purple-900/30"
               >
                 <ChevronLeft className="w-5 h-5" />
                 Retour aux événements
@@ -223,118 +292,188 @@ export default function EventDetailsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-8">
-      <div className="container mx-auto">
-        {/* En-tête */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-          <div className="flex items-center gap-2">
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-8 pt-8 pb-16">
+      <div className="container mx-auto max-w-6xl">
+        {/* En-tête avec titre et retour */}
+        <div className="mb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+          <div className="flex items-center gap-3">
             <Link
               href="/admin/events"
-              className="bg-gray-800 hover:bg-gray-700 text-white p-2 rounded-full transition-colors"
+              className="bg-gray-800/70 hover:bg-gray-700/70 text-white p-2 rounded-full transition-colors flex items-center justify-center shadow-md"
             >
               <ChevronLeft className="w-5 h-5" />
             </Link>
-            <h1 className="text-3xl font-bold text-white">Détails de l'événement</h1>
+            <h1 className="text-3xl font-bold text-white font-audiowide bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-400">
+              {event.title}
+            </h1>
+          </div>
+
+          {/* Quick actions dans l'en-tête */}
+          <div className="flex gap-2">
+            <button
+              onClick={toggleFeaturedStatus}
+              className={`p-2 rounded-lg transition-colors flex items-center gap-1.5 ${
+                event.featured
+                  ? 'bg-yellow-600/80 hover:bg-yellow-500/80 text-white'
+                  : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+              }`}
+              title={event.featured ? 'Retirer de la mise en avant' : 'Mettre en avant'}
+            >
+              <Star className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={togglePublishStatus}
+              className={`p-2 rounded-lg transition-colors flex items-center gap-1.5 ${
+                event.isPublished
+                  ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                  : 'bg-green-600/80 hover:bg-green-500/80 text-white'
+              }`}
+              title={event.isPublished ? 'Dépublier' : 'Publier'}
+            >
+              {event.isPublished ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+
+            <Link
+              href={`/admin/events/${eventId}/edit`}
+              className="p-2 bg-blue-600/80 hover:bg-blue-500/80 text-white rounded-lg transition-colors flex items-center"
+              title="Modifier"
+            >
+              <Edit className="w-4 h-4" />
+            </Link>
+
+            <button
+              onClick={() => setShowDeleteModal(true)}
+              className="p-2 bg-red-600/80 hover:bg-red-500/80 text-white rounded-lg transition-colors flex items-center"
+              title="Supprimer"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+
+            <Link
+              href={`/events/${eventId}`}
+              target="_blank"
+              className="p-2 bg-purple-600/80 hover:bg-purple-500/80 text-white rounded-lg transition-colors flex items-center"
+              title="Voir page publique"
+            >
+              <ExternalLink className="w-4 h-4" />
+            </Link>
           </div>
         </div>
 
         {/* Contenu principal */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Informations principales */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Carte de l'événement */}
-            <div className="bg-gray-800/30 backdrop-blur-sm rounded-lg overflow-hidden border border-gray-700">
-              <div className="relative h-64 bg-gradient-to-r from-purple-900/30 to-blue-900/30 flex items-center justify-center">
-                {event.image ? (
-                  <Image src={event.image} alt={event.title} fill className="object-cover" />
-                ) : (
-                  <Calendar className="w-16 h-16 text-gray-600" />
-                )}
-
-                {/* Badge statut */}
-                <div className="absolute top-4 left-4">
-                  {event.status === 'UPCOMING' && (
-                    <span className="bg-blue-500/80 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
-                      <Clock className="w-3 h-3" />À venir
-                    </span>
-                  )}
-                  {event.status === 'COMPLETED' && (
-                    <span className="bg-green-500/80 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
-                      <CheckCircle className="w-3 h-3" />
-                      Terminé
-                    </span>
-                  )}
-                  {event.status === 'CANCELLED' && (
-                    <span className="bg-red-500/80 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
-                      <XCircle className="w-3 h-3" />
-                      Annulé
-                    </span>
-                  )}
-                </div>
-
-                {/* Badge publication */}
-                <div className="absolute top-4 right-4">
-                  {event.isPublished ? (
-                    <span className="bg-green-500/80 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
-                      <Eye className="w-3 h-3" />
-                      Publié
-                    </span>
-                  ) : (
-                    <span className="bg-gray-500/80 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
-                      <EyeOff className="w-3 h-3" />
-                      Brouillon
-                    </span>
-                  )}
-                </div>
+        <div className="bg-gray-800/30 backdrop-blur-sm rounded-xl overflow-hidden border border-gray-700 shadow-xl">
+          {/* Image de couverture */}
+          <div className="relative overflow-hidden" style={{ aspectRatio: '16/9' }}>
+            {event.image ? (
+              <img
+                src={event.image}
+                alt={event.title}
+                className="w-full h-full object-cover object-center"
+                style={{ objectPosition: '50% 25%' }}
+              />
+            ) : (
+              <div className="bg-gradient-to-r from-purple-900/50 to-blue-900/50 w-full h-full flex items-center justify-center">
+                <CalendarIcon className="w-24 h-24 text-gray-600" />
               </div>
+            )}
 
-              <div className="p-6">
-                <h2 className="text-2xl font-bold text-white mb-4">{event.title}</h2>
+            {/* Overlay sombre pour mieux voir les badges */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-60"></div>
 
-                <div className="flex items-center text-gray-400 mb-6">
-                  <Calendar className="w-5 h-5 mr-2" />
-                  <span>
-                    {formatDate(event.startDate)}
-                    {event.endDate && ` - ${formatDate(event.endDate)}`}
-                  </span>
-                </div>
+            {/* Badge statut */}
+            <div className="absolute top-6 left-6">
+              <div
+                className={`${getStatusColor(event.status)} backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 shadow-lg`}
+              >
+                <Clock className="w-4 h-4" />
+                {getStatusLabel(event.status)}
+              </div>
+            </div>
 
-                <div className="bg-gray-900/50 rounded-lg p-4 mb-6">
-                  <p className="text-gray-300 whitespace-pre-line">
-                    {event.description || 'Aucune description disponible.'}
-                  </p>
-                </div>
+            {/* Badge mise en avant */}
+            {event.featured && (
+              <div className="absolute top-6 right-6">
+                <span className="bg-yellow-600/90 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 shadow-lg">
+                  <Star className="w-4 h-4" />
+                  Mise en avant
+                </span>
+              </div>
+            )}
+          </div>
 
+          <div className="p-6 md:p-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Colonne principale - Informations */}
+              <div className="lg:col-span-2">
+                {/* Infos principales compactes */}
                 <div className="flex flex-wrap gap-4 mb-6">
-                  <div className="bg-gray-900/50 rounded-lg p-3 flex items-start gap-3">
-                    <MapPin className="w-5 h-5 text-purple-400 mt-0.5" />
+                  <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 flex items-start gap-3">
+                    <CalendarIcon className="w-5 h-5 text-purple-400 mt-1 flex-shrink-0" />
                     <div>
-                      <h3 className="text-white font-medium">Lieu</h3>
-                      <p className="text-gray-300">{event.location}</p>
-                      {event.address && <p className="text-gray-400 text-sm">{event.address}</p>}
+                      <h3 className="text-white font-medium mb-1">Date et heure</h3>
+                      <p className="text-gray-300 text-sm">{formatDate(event.startDate)}</p>
+                      {event.endDate && (
+                        <p className="text-gray-400 text-sm mt-1">
+                          Jusqu'à {formatDate(event.endDate)}
+                        </p>
+                      )}
                     </div>
                   </div>
 
+                  <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 flex items-start gap-3">
+                    <MapPin className="w-5 h-5 text-purple-400 mt-1 flex-shrink-0" />
+                    <div>
+                      <h3 className="text-white font-medium mb-1">Lieu</h3>
+                      <p className="text-gray-300 text-sm">{event.location}</p>
+                      {event.address && (
+                        <p className="text-gray-400 text-sm mt-1">{event.address}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* À propos de l'événement */}
+                <div className="mb-6">
+                  <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+                    <span className="w-6 h-6 bg-purple-500/20 rounded-full flex items-center justify-center">
+                      <CalendarIcon className="w-3.5 h-3.5 text-purple-400" />
+                    </span>
+                    À propos de cet événement
+                  </h2>
+                  <div className="text-gray-300 prose prose-invert max-w-none bg-gray-800/30 backdrop-blur-sm rounded-xl p-5 border border-gray-700/50">
+                    {event.description.split('\n').map((paragraph, i) => (
+                      <p key={i} className="mb-3 text-sm">
+                        {paragraph || 'Aucune description disponible.'}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Informations billetterie et créateur */}
+                <div className="grid grid-cols-1 md:grid-cols-1 gap-4 mb-6">
                   {event.tickets && (
-                    <div className="bg-gray-900/50 rounded-lg p-3 flex items-start gap-3">
-                      <Euro className="w-5 h-5 text-purple-400 mt-0.5" />
+                    <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 flex items-start gap-3">
+                      <Euro className="w-5 h-5 text-purple-400 mt-1 flex-shrink-0" />
                       <div>
-                        <h3 className="text-white font-medium">Billetterie</h3>
+                        <h3 className="text-white font-medium mb-1">Billetterie</h3>
                         {event.tickets.price ? (
-                          <p className="text-gray-300">
+                          <p className="text-gray-300 text-sm">
                             {event.tickets.price} {event.tickets.currency}
                           </p>
                         ) : (
-                          <p className="text-gray-300">Entrée gratuite ou prix non spécifié</p>
+                          <p className="text-gray-300 text-sm">
+                            Entrée gratuite ou prix non spécifié
+                          </p>
                         )}
                         {event.tickets.buyUrl && (
                           <a
                             href={event.tickets.buyUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-purple-400 hover:text-purple-300 text-sm flex items-center gap-1 mt-1"
+                            className="text-purple-400 hover:text-purple-300 text-sm flex items-center gap-1 mt-2"
                           >
-                            <ExternalLink className="w-3 h-3" />
+                            <ExternalLink className="w-3.5 h-3.5" />
                             Lien d'achat
                           </a>
                         )}
@@ -343,157 +482,121 @@ export default function EventDetailsPage() {
                   )}
                 </div>
 
-                <div className="border-t border-gray-700 pt-6">
-                  <h3 className="text-white font-medium mb-2">Partager cet événement</h3>
-                  <div className="flex gap-2">
-                    <button className="p-2 bg-blue-600 hover:bg-blue-500 text-white rounded-full transition-colors">
-                      <Share2 className="w-5 h-5" />
-                    </button>
+                {/* Dernière mise à jour */}
+                <div className="pt-4 border-t border-gray-700/50">
+                  <div className="flex justify-between items-center">
+                    <p className="text-gray-400 text-sm">
+                      Dernière mise à jour :{' '}
+                      <span className="text-purple-400">{formatDate(event.updatedAt)}</span>
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className={`w-3 h-3 rounded-full ${event.isPublished ? 'bg-green-500' : 'bg-yellow-500'}`}
+                      ></div>
+                      <p className="text-gray-300 text-sm">
+                        {event.isPublished ? 'Événement public' : 'Mode brouillon'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Colonne secondaire - Actions et résumé */}
+              <div className="space-y-3">
+                {/* Actions supplémentaires */}
+                <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700 shadow-lg overflow-hidden">
+                  <div className="p-3 border-b border-gray-700/50">
+                    <h3 className="font-medium text-white">Actions supplémentaires</h3>
+                  </div>
+
+                  <div className="p-3">
+                    {/* Bouton copier lien */}
                     <button
                       onClick={() => {
                         navigator.clipboard.writeText(
                           `${window.location.origin}/events/${event.id}`
                         );
-                        alert('Lien copié dans le presse-papier !');
+                        alert('Lien public copié dans le presse-papier !');
                       }}
-                      className="text-gray-300 hover:text-white transition-colors"
+                      className="w-full p-2 bg-gray-700/50 hover:bg-gray-600/50 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
                     >
-                      Copier le lien public
+                      <Share2 className="w-4 h-4" />
+                      <span className="text-sm">Copier le lien public</span>
                     </button>
                   </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Navigation */}
-            <div className="flex justify-between">
-              <Link
-                href="/admin/events"
-                className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors flex items-center gap-2"
-              >
-                <ArrowLeft className="w-5 h-5" />
-                Retour à la liste
-              </Link>
-            </div>
-          </div>
+                {/* Récapitulatif compact */}
+                <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700 shadow-lg overflow-hidden">
+                  <div className="p-3 border-b border-gray-700/50">
+                    <h3 className="font-medium text-white">Récapitulatif</h3>
+                  </div>
 
-          {/* Informations secondaires */}
-          <div className="space-y-6">
-            {/* Métadonnées */}
-            <div className="bg-gray-800/30 backdrop-blur-sm rounded-lg p-6 border border-gray-700">
-              <h3 className="text-lg font-semibold text-white mb-4">Informations</h3>
+                  <div className="p-3">
+                    <div className="space-y-2.5">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-400 text-sm">ID</span>
+                        <span
+                          className="text-purple-300 font-mono text-xs overflow-hidden"
+                          title={event.id}
+                        >
+                          {event.id}
+                        </span>
+                      </div>
 
-              <div className="space-y-4">
-                <div>
-                  <p className="text-gray-400 text-sm">ID de l'événement</p>
-                  <p className="text-gray-300 font-mono">{event.id}</p>
-                </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-400 text-sm">Créateur</span>
+                        <span className="text-white text-sm">
+                          {event.creator?.name || 'Inconnu'}
+                        </span>
+                      </div>
 
-                <div>
-                  <p className="text-gray-400 text-sm">Créé par</p>
-                  <p className="text-gray-300">{event.creator?.name || 'Inconnu'}</p>
-                </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-400 text-sm">Statut</span>
+                        <span
+                          className={`text-sm font-medium ${
+                            event.status === 'UPCOMING'
+                              ? 'text-blue-400'
+                              : event.status === 'COMPLETED'
+                                ? 'text-green-400'
+                                : 'text-red-400'
+                          }`}
+                        >
+                          {getStatusLabel(event.status)}
+                        </span>
+                      </div>
 
-                <div>
-                  <p className="text-gray-400 text-sm">Créé le</p>
-                  <p className="text-gray-300">{formatDate(event.createdAt)}</p>
-                </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-400 text-sm">Publication</span>
+                        <span
+                          className={`text-sm font-medium ${
+                            event.isPublished ? 'text-green-400' : 'text-yellow-400'
+                          }`}
+                        >
+                          {event.isPublished ? 'Publié' : 'Brouillon'}
+                        </span>
+                      </div>
 
-                <div>
-                  <p className="text-gray-400 text-sm">Dernière mise à jour</p>
-                  <p className="text-gray-300">{formatDate(event.updatedAt)}</p>
-                </div>
-
-                <div>
-                  <p className="text-gray-400 text-sm">État de publication</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <div
-                      className={`w-3 h-3 rounded-full ${event.isPublished ? 'bg-green-500' : 'bg-gray-500'}`}
-                    ></div>
-                    <p className="text-gray-300">{event.isPublished ? 'Publié' : 'Brouillon'}</p>
+                      {event.tickets?.price && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-400 text-sm">Prix</span>
+                          <span className="text-white text-sm font-medium flex items-center gap-1">
+                            {event.tickets.price} {event.tickets.currency}
+                            <Euro className="w-3.5 h-3.5 text-purple-400" />
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                <div>
-                  <p className="text-gray-400 text-sm">Statut</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <div
-                      className={`w-3 h-3 rounded-full ${
-                        event.status === 'UPCOMING'
-                          ? 'bg-blue-500'
-                          : event.status === 'COMPLETED'
-                            ? 'bg-green-500'
-                            : 'bg-red-500'
-                      }`}
-                    ></div>
-                    <p className="text-gray-300">
-                      {event.status === 'UPCOMING'
-                        ? 'À venir'
-                        : event.status === 'COMPLETED'
-                          ? 'Terminé'
-                          : 'Annulé'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Actions rapides */}
-            <div className="bg-gray-800/30 backdrop-blur-sm rounded-lg p-6 border border-gray-700">
-              <h3 className="text-lg font-semibold text-white mb-4">Actions rapides</h3>
-
-              <div className="space-y-3">
-                <button
-                  onClick={togglePublishStatus}
-                  className={`w-full px-4 py-2 rounded-lg transition-colors flex items-center justify-between ${
-                    event.isPublished
-                      ? 'bg-gray-700 hover:bg-gray-600 text-white'
-                      : 'bg-green-600 hover:bg-green-500 text-white'
-                  }`}
-                >
-                  <span className="flex items-center gap-2">
-                    {event.isPublished ? (
-                      <EyeOff className="w-5 h-5" />
-                    ) : (
-                      <Eye className="w-5 h-5" />
-                    )}
-                    {event.isPublished ? 'Dépublier' : 'Publier'}
-                  </span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-
+                {/* Lien retour */}
                 <Link
-                  href={`/admin/events/${eventId}/edit`}
-                  className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors flex items-center justify-between"
+                  href="/admin/events"
+                  className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-3 border border-gray-700/50 flex items-center justify-center gap-2 text-white hover:bg-gray-700/50 transition-all duration-200 shadow-md"
                 >
-                  <span className="flex items-center gap-2">
-                    <Edit className="w-5 h-5" />
-                    Modifier
-                  </span>
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-
-                <button
-                  onClick={() => setShowDeleteModal(true)}
-                  className="w-full px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors flex items-center justify-between"
-                >
-                  <span className="flex items-center gap-2">
-                    <Trash2 className="w-5 h-5" />
-                    Supprimer
-                  </span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-
-                <Link
-                  href={`/events/${eventId}`}
-                  target="_blank"
-                  className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors flex items-center justify-between"
-                >
-                  <span className="flex items-center gap-2">
-                    <ExternalLink className="w-5 h-5" />
-                    Voir la page publique
-                  </span>
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowLeft className="w-4 h-4" />
+                  <span className="text-sm">Retour à la liste</span>
                 </Link>
               </div>
             </div>
@@ -503,8 +606,13 @@ export default function EventDetailsPage() {
         {/* Modale de confirmation de suppression */}
         {showDeleteModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-            <div className="bg-gray-800 rounded-lg p-6 shadow-xl max-w-md w-full border border-gray-700 animate-fadeIn">
-              <h3 className="text-xl font-bold text-white mb-4">Confirmer la suppression</h3>
+            <div className="bg-gray-800 rounded-xl p-6 shadow-xl max-w-md w-full border border-gray-700/50 animate-fadeIn">
+              <div className="flex items-center gap-4 mb-5">
+                <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
+                  <AlertTriangle className="w-6 h-6 text-red-400" />
+                </div>
+                <h3 className="text-xl font-bold text-white">Confirmer la suppression</h3>
+              </div>
               <p className="text-gray-300 mb-2">
                 Êtes-vous sûr de vouloir supprimer cet événement ?
               </p>
@@ -521,7 +629,7 @@ export default function EventDetailsPage() {
                 </button>
                 <button
                   onClick={handleDeleteEvent}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors"
+                  className="px-4 py-2 bg-gradient-to-r from-red-600 to-red-800 hover:from-red-500 hover:to-red-700 text-white rounded-lg transition-all shadow-lg"
                 >
                   Supprimer
                 </button>

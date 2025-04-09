@@ -60,6 +60,26 @@
   .cursor-follow {
     @apply transition-transform duration-100;
   }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Animations */
+  .animate-fadeIn {
+    animation: fadeIn 0.3s ease-out forwards;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
 }
 
 /* Custom Scrollbar */
@@ -163,4 +183,14 @@
   to {
     filter: hue-rotate(360deg);
   }
+}
+
+/* Custom styles for event cards */
+.card-hover-effect:hover img {
+  transform: scale(1.05);
+  transition: transform 0.5s ease;
+}
+
+.card-hover-effect img {
+  transition: transform 0.5s ease;
 }

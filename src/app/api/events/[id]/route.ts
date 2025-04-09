@@ -10,7 +10,7 @@ import { Prisma } from '@prisma/client';
 // GET - Récupérer un événement spécifique par son ID
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const id = (await params).id;
+    const id = params.id;
     const session = await getServerSession(authOptions);
     const isAdmin = session?.user?.role === 'ADMIN';
 
@@ -95,17 +95,11 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       dataToUpdate.originalImageUrl = originalImageUrl;
     }
 
+    // La gestion des tickets
     if (tickets === null || tickets === undefined) {
-      const existingEvent = await prisma.event.findUnique({
-        where: { id },
-        select: { tickets: true },
-      });
-      if (existingEvent?.tickets) {
-        console.log(`Event ${id} has tickets, attempting disconnect.`);
-        dataToUpdate.tickets = { disconnect: true };
-      } else {
-        console.log(`Event ${id} has no tickets, skipping disconnect.`);
-      }
+      // Au lieu de déconnecter les tickets, nous les laissons inchangés
+      // car la relation est requise, nous ne pouvons pas simplement les déconnecter
+      console.log(`Event ${id} tickets not modified (keeping existing tickets)`);
     } else if (typeof tickets === 'object' && tickets !== null) {
       console.log(`Event ${id} tickets provided, attempting upsert.`);
       dataToUpdate.tickets = {
@@ -113,13 +107,13 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
           create: {
             price: tickets.price ?? 0,
             currency: tickets.currency || 'EUR',
-            buyUrl: tickets.buyUrl,
+            buyUrl: tickets.buyUrl || '', // Assure une valeur par défaut
             quantity: tickets.quantity ?? 0,
           },
           update: {
             price: tickets.price ?? 0,
             currency: tickets.currency || 'EUR',
-            buyUrl: tickets.buyUrl,
+            buyUrl: tickets.buyUrl || '', // Assure une valeur par défaut
             quantity: tickets.quantity ?? 0,
           },
         },
@@ -169,7 +163,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 // DELETE - Supprimer un événement
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const id = (await params).id;
+    const id = params.id;
     const session = await getServerSession(authOptions);
 
     // Vérifier l'authentification et les autorisations

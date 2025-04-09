@@ -253,14 +253,13 @@ export default function EventDetailPage() {
         {/* Contenu principal */}
         <div className="bg-gray-800/30 backdrop-blur-sm rounded-lg overflow-hidden border border-gray-700">
           {/* Image de couverture */}
-          <div className="relative h-64 md:h-96 w-full overflow-hidden">
+          <div className="relative overflow-hidden" style={{ aspectRatio: '16/9' }}>
             {event.image ? (
-              <Image
+              <img
                 src={event.image}
                 alt={event.title}
-                width={1200}
-                height={600}
-                className="object-cover w-full h-full"
+                className="w-full h-full object-cover object-center"
+                style={{ objectPosition: '50% 25%' }}
               />
             ) : (
               <div className="bg-gradient-to-r from-purple-900/50 to-blue-900/50 w-full h-full flex items-center justify-center">
@@ -400,7 +399,7 @@ export default function EventDetailPage() {
                           href={event.tickets.buyUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white w-full py-3 rounded-lg text-center font-medium flex items-center justify-center gap-2 transition-all hover:scale-[1.02] mt-4"
+                          className="bg-gradient-to-r from-purple-600 to-purple-800 hover:from-purple-500 hover:to-purple-700 text-white w-full py-3 rounded-lg text-center font-medium flex items-center justify-center gap-2 transition-all hover:scale-105 shadow-md shadow-purple-900/20"
                         >
                           Acheter des billets
                           <ExternalLink className="w-4 h-4" />
