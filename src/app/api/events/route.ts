@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
     const endDateFilter = searchParams.get('endDate');
     const categoryFilter = searchParams.get('category');
     const typeFilter = searchParams.get('type');
+    const isPublishedParam = searchParams.get('isPublished');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
     const skip = (page - 1) * limit;
@@ -26,7 +27,12 @@ export async function GET(request: NextRequest) {
     // Préparer la condition de filtrage
     const where: Prisma.EventWhereInput = {
       // Pour les non-admins, ne montrer que les événements publiés
-      ...(isAdmin ? {} : { isPublished: true }),
+      // Si un paramètre isPublished est fourni, l'utiliser à la place
+      ...(isPublishedParam !== null
+        ? { isPublished: isPublishedParam === 'true' }
+        : isAdmin
+          ? {}
+          : { isPublished: true }),
 
       // Filtres
       ...(titleFilter

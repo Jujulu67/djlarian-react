@@ -52,9 +52,20 @@ function generateRecurringDates(
 // GET - Récupérer un événement spécifique par son ID
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const id = params.id;
+    // Corriger l'erreur en attendant que params soit résolu avant d'utiliser id
+    const id = await Promise.resolve(params.id);
+    console.log(`Fetching event with ID: ${id}`);
+
     const session = await getServerSession(authOptions);
     const isAdmin = session?.user?.role === 'ADMIN';
+
+    // Récupérer la date virtuelle depuis le paramètre de requête au lieu de l'ID
+    const searchParams = request.nextUrl.searchParams;
+    const virtualStartDate = searchParams.get('date');
+
+    if (virtualStartDate) {
+      console.log(`Virtual date from query parameter: ${virtualStartDate}`);
+    }
 
     // Récupérer l'événement avec ses tickets associés
     const event = await prisma.event.findUnique({
@@ -86,6 +97,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     // Si l'événement n'existe pas
     if (!event) {
+      console.log(`Event not found with ID: ${id}`);
       return NextResponse.json({ error: 'Événement non trouvé' }, { status: 404 });
     }
 
@@ -94,6 +106,50 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: 'Accès non autorisé' }, { status: 403 });
     }
 
+    // Si c'est un événement virtuel avec une date valide, modifier les dates
+    if (virtualStartDate) {
+      try {
+        console.log(
+          `Creating virtual event based on master event ${id} with date ${virtualStartDate}`
+        );
+
+        // Calculer la durée entre la date de début et de fin de l'événement original
+        let duration = 0;
+        if (event.endDate) {
+          duration = new Date(event.endDate).getTime() - new Date(event.startDate).getTime();
+          console.log(`Original event duration: ${duration}ms`);
+        }
+
+        // Convertir la date virtuelle en objet Date puis en chaîne ISO pour assurer la cohérence
+        const virtualDate = new Date(virtualStartDate);
+        const formattedVirtualDate = virtualDate.toISOString();
+
+        // Créer un événement virtuel basé sur l'événement maître
+        const virtualEvent = {
+          ...event,
+          // Générer un ID virtuel pour référence interne uniquement
+          id: `${id}___VIRTUAL___${formattedVirtualDate}`,
+          // Remplacer complètement la date de début par la date virtuelle
+          startDate: formattedVirtualDate,
+          // Si l'événement a une date de fin, calculer la nouvelle date de fin
+          endDate: event.endDate ? new Date(virtualDate.getTime() + duration).toISOString() : null,
+          isVirtualOccurrence: true,
+          virtualStartDate: formattedVirtualDate,
+          masterId: id,
+        };
+
+        console.log(`Returning virtual event with date: ${virtualEvent.startDate}`);
+        // Assurons-nous que la date virtuelle est bien appliquée
+        console.log(
+          `Date comparison - Original: ${event.startDate}, Virtual: ${virtualEvent.startDate}`
+        );
+        return NextResponse.json(virtualEvent);
+      } catch (error) {
+        console.error(`Error creating virtual event:`, error);
+      }
+    }
+
+    console.log(`Returning regular event with date: ${event.startDate}`);
     return NextResponse.json(event);
   } catch (error) {
     console.error("Erreur lors de la récupération de l'événement:", error);

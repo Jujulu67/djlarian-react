@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -53,6 +53,16 @@ type Event = {
   user?: {
     name: string;
   };
+  // Propriétés pour les événements virtuels récurrents
+  isVirtualOccurrence?: boolean;
+  virtualStartDate?: string;
+  masterId?: string;
+  isRecurringMaster?: boolean;
+  recurrenceConfig?: {
+    frequency: 'weekly' | 'monthly';
+    endDate?: string;
+    excludedDates?: string[];
+  };
 };
 
 export default function EventDetailPage() {
@@ -60,17 +70,55 @@ export default function EventDetailPage() {
   const router = useRouter();
   const eventId = params.id as string;
 
+  // Récupérer le paramètre de date depuis l'URL
+  const [searchParams, setSearchParams] = useState<URLSearchParams | null>(null);
+  const [virtualDate, setVirtualDate] = useState<string | null>(null);
+
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showShareOptions, setShowShareOptions] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
 
+  // Utiliser une référence pour suivre si un appel API est déjà en cours
+  const isApiCallInProgress = useRef(false);
+
+  // Combine les deux effets en un seul pour garantir l'ordre d'exécution
   useEffect(() => {
+    // Récupérer les paramètres de l'URL d'abord
+    const url = new URL(window.location.href);
+    setSearchParams(url.searchParams);
+
+    const dateParam = url.searchParams.get('date');
+    let actualVirtualDate = null;
+
+    if (dateParam) {
+      actualVirtualDate = dateParam;
+      setVirtualDate(dateParam);
+      console.log(`Virtual date from URL: ${dateParam}`);
+    }
+
+    // Éviter les appels en double
+    if (isApiCallInProgress.current) {
+      return;
+    }
+
+    // Ensuite procéder avec l'appel API en utilisant directement dateParam
     const fetchEvent = async () => {
       try {
+        isApiCallInProgress.current = true;
         setLoading(true);
-        const response = await fetch(`/api/events/${eventId}`);
+
+        // Construire l'URL de l'API avec le paramètre de date récupéré directement
+        let apiUrl = `/api/events/${eventId}`;
+        if (actualVirtualDate) {
+          apiUrl += `?date=${encodeURIComponent(actualVirtualDate)}`;
+          console.log(`Fetching event with virtual date parameter: ${actualVirtualDate}`);
+        } else {
+          console.log(`Fetching event without virtual date parameter`);
+        }
+
+        const response = await fetch(apiUrl);
 
         if (!response.ok) {
           if (response.status === 404) {
@@ -83,20 +131,48 @@ export default function EventDetailPage() {
         }
 
         const data = await response.json();
+        // Vérifier l'état des dates avant et après
+        console.log(
+          `Dates avant traitement - startDate: ${data.startDate}, virtualStartDate: ${data.virtualStartDate}`
+        );
+
+        // Si c'est un événement virtuel, on s'assure que la date est correctement utilisée
+        if (data.isVirtualOccurrence && data.virtualStartDate) {
+          console.log(`Événement virtuel avec date spécifique: ${data.virtualStartDate}`);
+          // Forcer la date principale à être la date virtuelle
+          data.startDate = data.virtualStartDate;
+          console.log(`Date après remplacement: ${data.startDate}`);
+        }
+
         setEvent(data);
+        console.log('Événement final chargé:', {
+          titre: data.title,
+          startDate: data.startDate,
+          isVirtualOccurrence: data.isVirtualOccurrence,
+          virtualStartDate: data.virtualStartDate,
+        });
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Une erreur est survenue');
       } finally {
         setLoading(false);
+        isApiCallInProgress.current = false;
       }
     };
 
     if (eventId) {
       fetchEvent();
     }
-  }, [eventId]);
+  }, [eventId]); // L'effet ne dépend plus de virtualDate car nous utilisons directement dateParam
 
-  const formatEventDate = (dateString: string) => {
+  const formatEventDate = (event: Event) => {
+    // Ne plus vérifier isVirtualOccurrence, car nous avons déjà remplacé startDate
+    // par virtualStartDate dans useEffect si nécessaire
+    const dateString = event.startDate;
+
+    console.log(
+      `Formatting date from: ${dateString} (isVirtual: ${!!event.isVirtualOccurrence}, virtualDate: ${event.virtualStartDate})`
+    );
+
     const date = parseISO(dateString);
     return format(date, "EEEE d MMMM yyyy 'à' HH'h'mm", { locale: fr });
   };
@@ -157,6 +233,7 @@ export default function EventDetailPage() {
 
   // Formater la date
   const formatDate = (dateString: string) => {
+    console.log(`formatDate called with: ${dateString}`);
     return format(parseISO(dateString), 'dd MMMM yyyy à HH:mm', { locale: fr });
   };
 
@@ -327,10 +404,10 @@ export default function EventDetailPage() {
                     <FaCalendarAlt className="w-5 h-5 text-purple-400 mt-1 flex-shrink-0" />
                     <div>
                       <h3 className="text-white font-medium mb-1">Date et heure</h3>
-                      <p className="text-gray-300 text-sm">{formatEventDate(event.startDate)}</p>
+                      <p className="text-gray-300 text-sm">{formatEventDate(event)}</p>
                       {event.endDate && (
                         <p className="text-gray-400 text-sm mt-1">
-                          Jusqu'à {formatEventDate(event.endDate)}
+                          Jusqu'à {formatDate(event.endDate)}
                         </p>
                       )}
                     </div>

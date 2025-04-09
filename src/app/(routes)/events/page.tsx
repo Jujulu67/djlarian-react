@@ -103,10 +103,16 @@ export default function EventsPage() {
 
         // Ajouter chaque occurrence comme un événement virtuel
         for (const occurrence of occurrences) {
+          // Générer un ID spécial pour les occurrences virtuelles en utilisant un format clair
+          // Nous séparons l'ID et la date avec "___VIRTUAL___" pour éviter toute ambiguïté
+          const occurrenceDate = occurrence.toISOString();
+          const virtualEventId = `${masterEvent.id}___VIRTUAL___${occurrenceDate}`;
+          console.log(`Generated virtual event ID: ${virtualEventId}`);
+
           const virtualEvent: Event = {
             ...masterEvent,
-            id: `${masterEvent.id}-${occurrence.toISOString()}`, // ID unique pour l'occurrence
-            startDate: occurrence.toISOString(),
+            id: virtualEventId,
+            startDate: occurrenceDate,
             // Calculer la date de fin si l'événement original en a une
             endDate: masterEvent.endDate
               ? calculateEndDate(
@@ -116,7 +122,7 @@ export default function EventsPage() {
                 )
               : undefined,
             isVirtualOccurrence: true,
-            virtualStartDate: occurrence.toISOString(),
+            virtualStartDate: occurrenceDate,
             masterId: masterEvent.id,
           };
 
@@ -667,8 +673,8 @@ export default function EventsPage() {
                   {/* Lien qui couvre toute la carte, sauf pour le bouton d'achat de billets */}
                   <Link
                     href={
-                      event.isVirtualOccurrence
-                        ? `/events/${event.masterId}`
+                      event.isVirtualOccurrence && event.virtualStartDate
+                        ? `/events/${event.masterId}?date=${encodeURIComponent(event.virtualStartDate)}` // URL propre avec paramètre de requête
                         : `/events/${event.id}`
                     }
                     className="absolute inset-0 z-10"
