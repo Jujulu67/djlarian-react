@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Track, MusicType } from '@/lib/utils/types';
 import MusicCard from '@/components/ui/MusicCard';
-import MusicPlayer from '@/components/ui/MusicPlayer';
+import SimpleMusicPlayer from '@/components/ui/SimpleMusicPlayer';
 import { Filter, Search, Zap, ChevronDown, Music, Loader } from 'lucide-react';
 
 // Types de musique disponibles
@@ -84,24 +84,54 @@ export default function MusicPage() {
     setFilteredTracks(filtered);
   }, [tracks, selectedType, searchTerm]);
 
-  // Gérer la lecture d'un morceau
+  // Fonction pour jouer un morceau avec gestion simplifiée
   const playTrack = (track: Track) => {
-    if (currentTrack?.id === track.id) {
+    // Si c'est le même morceau, on bascule l'état
+    if (currentTrack && currentTrack.id === track.id) {
       setIsPlaying(!isPlaying);
     } else {
+      // Pour un nouveau morceau, on l'active
       setCurrentTrack(track);
       setIsPlaying(true);
     }
   };
 
-  // Fermer le lecteur
+  // Fermer le lecteur (pas utilisé pour YouTube)
   const closePlayer = () => {
     setCurrentTrack(null);
     setIsPlaying(false);
   };
 
+  // Trouver l'index du morceau actuel dans la liste filtrée
+  const getCurrentTrackIndex = () => {
+    if (!currentTrack) return -1;
+    return filteredTracks.findIndex((track) => track.id === currentTrack.id);
+  };
+
+  // Passer au morceau suivant
+  const playNextTrack = () => {
+    const currentIndex = getCurrentTrackIndex();
+    if (currentIndex === -1 || currentIndex === filteredTracks.length - 1) {
+      // Si c'est le dernier morceau, jouer le premier
+      playTrack(filteredTracks[0]);
+    } else {
+      playTrack(filteredTracks[currentIndex + 1]);
+    }
+  };
+
+  // Passer au morceau précédent
+  const playPrevTrack = () => {
+    const currentIndex = getCurrentTrackIndex();
+    if (currentIndex <= 0) {
+      // Si c'est le premier morceau, jouer le dernier
+      playTrack(filteredTracks[filteredTracks.length - 1]);
+    } else {
+      playTrack(filteredTracks[currentIndex - 1]);
+    }
+  };
+
   return (
-    <div className="min-h-screen pt-24 pb-28 px-4 relative">
+    <div className="min-h-screen pt-24 pb-36 px-4 relative">
       <div className="max-w-7xl mx-auto">
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
@@ -221,7 +251,7 @@ export default function MusicPage() {
                   <h2 className="text-2xl font-bold text-white">En vedette</h2>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 auto-rows-auto">
                   {filteredTracks
                     .filter((track) => track.featured)
                     .map((track) => (
@@ -245,7 +275,7 @@ export default function MusicPage() {
                   : MUSIC_TYPES.find((t) => t.value === selectedType)?.label || 'Morceaux'}
               </h2>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 auto-rows-auto">
                 {filteredTracks
                   .filter((track) => (selectedType === 'all' ? !track.featured : true))
                   .map((track) => (
@@ -263,13 +293,15 @@ export default function MusicPage() {
         )}
       </div>
 
-      {/* Lecteur de musique */}
-      {currentTrack && (
-        <MusicPlayer
+      {/* Lecteur de musique - uniquement pour les morceaux non-YouTube */}
+      {currentTrack && !currentTrack.platforms.youtube && (
+        <SimpleMusicPlayer
           track={currentTrack}
           isPlaying={isPlaying}
           onClose={closePlayer}
           onTogglePlay={() => setIsPlaying(!isPlaying)}
+          onNextTrack={filteredTracks.length > 1 ? playNextTrack : undefined}
+          onPrevTrack={filteredTracks.length > 1 ? playPrevTrack : undefined}
         />
       )}
     </div>
