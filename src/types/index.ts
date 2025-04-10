@@ -14,6 +14,7 @@ export interface Track {
   artist: string;
   duration: number;
   coverUrl?: string;
+  originalImageUrl?: string;
   audioUrl: string;
   genre?: string;
   bpm?: number;

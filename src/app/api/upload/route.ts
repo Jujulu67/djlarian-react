@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
+    const fileType = (formData.get('type') as string) || 'general'; // Type de fichier (event, music, etc.)
 
     if (!file) {
       return NextResponse.json({ error: 'Aucun fichier fourni' }, { status: 400 });
@@ -36,7 +37,18 @@ export async function POST(request: NextRequest) {
     // Créer un nom de fichier unique
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
     const extension = file.name.split('.').pop();
-    const filename = `event-${uniqueSuffix}.${extension}`;
+
+    // Utiliser le préfixe approprié selon le type de fichier
+    let prefix = 'general';
+    if (fileType === 'event') {
+      prefix = 'event';
+    } else if (fileType === 'music') {
+      prefix = 'music';
+    } else if (fileType === 'music-original') {
+      prefix = 'music-original';
+    }
+
+    const filename = `${prefix}-${uniqueSuffix}.${extension}`;
 
     // Sauvegarder le fichier
     const publicPath = join(process.cwd(), 'public', 'uploads');

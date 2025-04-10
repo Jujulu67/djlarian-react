@@ -19,6 +19,7 @@ export interface Track {
   title: string;
   artist: string;
   coverUrl: string;
+  originalImageUrl?: string;
   audioUrl?: string;
   duration?: number;
   releaseDate: string;

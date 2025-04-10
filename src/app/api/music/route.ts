@@ -165,10 +165,17 @@ export async function PUT(request: Request) {
     }
 
     // Mettre à jour les données de base
-    const trackUpdateData: any = { ...trackData };
-    if (trackData.releaseDate) {
-      trackUpdateData.releaseDate = new Date(trackData.releaseDate);
-    }
+    const dataToUpdate: any = {
+      title: trackData.title,
+      artist: trackData.artist,
+      description: trackData.description,
+      type: trackData.type as MusicType,
+      releaseDate: new Date(trackData.releaseDate),
+      featured: trackData.featured || false,
+      bpm: trackData.bpm ? parseInt(String(trackData.bpm)) : null,
+      coverUrl: trackData.coverUrl || null,
+      originalImageUrl: trackData.originalImageUrl || null,
+    };
 
     // Gérer les mises à jour des genres
     if (genreNames && genreNames.length > 0) {
@@ -223,7 +230,7 @@ export async function PUT(request: Request) {
     // Mettre à jour la piste
     const updatedTrack = await prisma.track.update({
       where: { id },
-      data: trackUpdateData,
+      data: dataToUpdate,
       include: {
         platforms: true,
         genres: {

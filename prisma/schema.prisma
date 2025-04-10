@@ -118,6 +118,7 @@ model Track {
   title        String
   artist       String
   coverUrl     String?
+  originalImageUrl String?      // Image originale avant recadrage
   releaseDate  DateTime
   bpm          Int?
   description  String?          @db.Text
