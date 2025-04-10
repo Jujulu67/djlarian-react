@@ -22,6 +22,10 @@ import {
   Star,
   ImageIcon,
   Crop,
+  Youtube,
+  Check,
+  Plus,
+  AlertCircle,
 } from 'lucide-react';
 import { FaSpotify, FaYoutube, FaSoundcloud, FaApple, FaMusic } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
@@ -86,6 +90,117 @@ const emptyTrackForm: Omit<Track, 'id'> & { id?: string } = {
   platforms: {},
 };
 
+// Interface pour les vidéos YouTube
+interface YouTubeVideo {
+  id: string;
+  title: string;
+  thumbnail: string;
+  publishedAt: string;
+  exists: boolean; // Si la vidéo existe déjà dans la base de données
+}
+
+// Type pour le menu d'onglets
+type AdminMusicTab = 'tracks' | 'collections' | 'youtube';
+
+// Fonction pour extraire des informations supplémentaires du titre
+function extractInfoFromTitle(title: string) {
+  const result = {
+    cleanTitle: title,
+    bpm: undefined as number | undefined,
+    genres: [] as string[],
+  };
+
+  // Nettoyer les caractères spéciaux/HTML entities dans le titre
+  let cleanTitle = title
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>');
+
+  // Essayer de détecter le BPM dans le titre
+  const bpmMatch =
+    cleanTitle.match(/\b(\d{2,3})\s*(?:bpm|BPM)\b/) ||
+    cleanTitle.match(/\[(\d{2,3})\]/) ||
+    cleanTitle.match(/\((\d{2,3})\s*(?:bpm|BPM)\)/);
+
+  if (bpmMatch && bpmMatch[1]) {
+    const detectedBpm = parseInt(bpmMatch[1]);
+    if (detectedBpm >= 70 && detectedBpm <= 200) {
+      result.bpm = detectedBpm;
+    }
+  }
+
+  // Extraire des genres potentiels à partir du titre
+  const genreKeywords = [
+    'House',
+    'Tech House',
+    'Deep House',
+    'Progressive House',
+    'Future House',
+    'Techno',
+    'Melodic Techno',
+    'Hard Techno',
+    'Industrial Techno',
+    'Trance',
+    'Progressive Trance',
+    'Uplifting Trance',
+    'Psytrance',
+    'Drum & Bass',
+    'DnB',
+    'Jungle',
+    'Dubstep',
+    'Trap',
+    'Future Bass',
+    'Ambient',
+    'Chill',
+    'Lo-Fi',
+    'EDM',
+    'Electronic',
+    'Electronica',
+    'Hardstyle',
+    'Hardcore',
+    'Gabber',
+    'Disco',
+    'Nu Disco',
+    'Funk',
+    'Breakbeat',
+    'Big Beat',
+    'Breaks',
+    'Downtempo',
+    'Trip Hop',
+    'Chillout',
+  ];
+
+  // Vérifier si des mots-clés de genre sont présents dans le titre
+  for (const genre of genreKeywords) {
+    const regex = new RegExp(`\\b${genre.replace(/\s+/g, '\\s+')}\\b`, 'i');
+    if (regex.test(cleanTitle)) {
+      result.genres.push(genre);
+    }
+  }
+
+  // Détecter les types spécifiques
+  if (
+    /\bremix\b/i.test(cleanTitle) ||
+    /\bflip\b/i.test(cleanTitle) ||
+    /\bedit\b/i.test(cleanTitle)
+  ) {
+    result.genres.push('Remix');
+  }
+
+  if (/\blive\b/i.test(cleanTitle) || /\bset\b/i.test(cleanTitle) || /\@/.test(cleanTitle)) {
+    result.genres.push('Live');
+  }
+
+  if (/\bmix\b/i.test(cleanTitle) || /\bsession\b/i.test(cleanTitle)) {
+    result.genres.push('DJ Set');
+  }
+
+  return result;
+}
+
 export default function AdminMusicPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -99,7 +214,7 @@ export default function AdminMusicPage() {
   );
   const [genreInput, setGenreInput] = useState('');
   const [coverPreview, setCoverPreview] = useState('');
-  const [activeTab, setActiveTab] = useState<'tracks' | 'collections'>('tracks');
+  const [activeTab, setActiveTab] = useState<AdminMusicTab>('tracks');
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredTracks, setFilteredTracks] = useState<Track[]>([]);
 
@@ -113,6 +228,26 @@ export default function AdminMusicPage() {
 
   // État pour suivre le chargement de l'image dans le modal de recadrage
   const [isImageLoaded, setIsImageLoaded] = useState(false);
+
+  const [youtubeUsername, setYoutubeUsername] = useState('');
+  const [youtubeVideos, setYoutubeVideos] = useState<YouTubeVideo[]>([]);
+  const [isLoadingVideos, setIsLoadingVideos] = useState(false);
+  const [youtubeError, setYoutubeError] = useState<string | null>(null);
+  const [selectedVideos, setSelectedVideos] = useState<string[]>([]);
+
+  // Nouvelles options pour la recherche YouTube
+  const [hideImported, setHideImported] = useState(false);
+  const [maxResults, setMaxResults] = useState(25);
+  const [youtubeSearchTerm, setYoutubeSearchTerm] = useState('');
+  const [filteredYoutubeVideos, setFilteredYoutubeVideos] = useState<YouTubeVideo[]>([]);
+
+  // État pour la modale de vérification avant import
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [currentVideoForImport, setCurrentVideoForImport] = useState<YouTubeVideo | null>(null);
+  const [verifyFormData, setVerifyFormData] = useState<Omit<Track, 'id'> & { id?: string }>(
+    emptyTrackForm
+  );
+  const [verifyIndex, setVerifyIndex] = useState(0);
 
   // Vérifier l'authentification
   useEffect(() => {
@@ -734,6 +869,193 @@ export default function AdminMusicPage() {
     resetFileInput();
   };
 
+  // Fonction pour récupérer les vidéos YouTube d'un channel
+  const fetchYouTubeVideos = async () => {
+    if (!youtubeUsername.trim()) return;
+
+    setIsLoadingVideos(true);
+    setYoutubeError(null);
+    setYoutubeVideos([]);
+
+    try {
+      // Construire l'URL avec le paramètre pour les résultats maximum
+      const apiUrl = `/api/youtube?q=${encodeURIComponent(youtubeUsername)}&maxResults=${maxResults}`;
+      const response = await fetch(apiUrl);
+      const data = await response.json();
+
+      if (response.ok) {
+        setYoutubeVideos(data.videos || []);
+      } else {
+        setYoutubeError(`Erreur: ${data.error || 'Impossible de récupérer les vidéos'}`);
+      }
+    } catch (error) {
+      console.error('Error fetching YouTube videos:', error);
+      setYoutubeError("Une erreur s'est produite lors de la récupération des vidéos");
+    } finally {
+      setIsLoadingVideos(false);
+    }
+  };
+
+  // Effet pour filtrer les vidéos YouTube
+  useEffect(() => {
+    if (youtubeVideos.length === 0) {
+      setFilteredYoutubeVideos([]);
+      return;
+    }
+
+    let filtered = [...youtubeVideos];
+
+    // Filtrer par terme de recherche
+    if (youtubeSearchTerm.trim() !== '') {
+      const searchLower = youtubeSearchTerm.toLowerCase();
+      filtered = filtered.filter((video) => video.title.toLowerCase().includes(searchLower));
+    }
+
+    // Masquer les vidéos déjà importées si l'option est activée
+    if (hideImported) {
+      filtered = filtered.filter((video) => !video.exists);
+    }
+
+    setFilteredYoutubeVideos(filtered);
+  }, [youtubeVideos, youtubeSearchTerm, hideImported]);
+
+  // Fonction pour ouvrir la modale de vérification avant import
+  const handleVerifyBeforeImport = () => {
+    if (selectedVideos.length === 0) {
+      toast.error('Veuillez sélectionner au moins une vidéo');
+      return;
+    }
+
+    // Préparer le premier élément à vérifier
+    startVerificationProcess();
+  };
+
+  // Commencer le processus de vérification
+  const startVerificationProcess = () => {
+    setVerifyIndex(0);
+    processNextVideo();
+  };
+
+  // Traiter la vidéo suivante dans la file d'attente
+  const processNextVideo = () => {
+    if (verifyIndex >= selectedVideos.length) {
+      // Tous les éléments ont été traités
+      setShowVerifyModal(false);
+
+      // Rafraîchir les listes après la fin du traitement
+      fetchTracks();
+      if (youtubeUsername) {
+        fetchYouTubeVideos();
+      }
+
+      setSelectedVideos([]);
+      toast.success('Importation terminée');
+      return;
+    }
+
+    const videoId = selectedVideos[verifyIndex];
+    const video = youtubeVideos.find((v) => v.id === videoId);
+
+    if (!video) {
+      // Vidéo non trouvée, passer à la suivante
+      setVerifyIndex((prev) => prev + 1);
+      processNextVideo();
+      return;
+    }
+
+    // Extraire des informations supplémentaires du titre
+    const { bpm, genres } = extractInfoFromTitle(video.title);
+
+    // Préparer les données pour la modale de vérification
+    setCurrentVideoForImport(video);
+    setVerifyFormData({
+      title: video.title,
+      artist: 'DJ Larian',
+      releaseDate: video.publishedAt,
+      coverUrl: video.thumbnail,
+      bpm: bpm,
+      genre: genres,
+      type: genres.includes('Live')
+        ? 'live'
+        : genres.includes('Remix')
+          ? 'remix'
+          : genres.includes('DJ Set')
+            ? 'djset'
+            : 'video',
+      description: '',
+      featured: false,
+      platforms: {
+        youtube: {
+          url: `https://www.youtube.com/watch?v=${video.id}`,
+          embedId: video.id,
+        },
+      },
+    });
+
+    setShowVerifyModal(true);
+  };
+
+  // Confirmer l'importation de la vidéo actuelle
+  const confirmVideoImport = async () => {
+    if (!currentVideoForImport) return;
+
+    setIsSubmitting(true);
+
+    try {
+      // Envoyer à l'API
+      const response = await fetch('/api/music', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...verifyFormData,
+          genreNames: verifyFormData.genre,
+          platforms: [
+            {
+              platform: 'youtube',
+              url: `https://www.youtube.com/watch?v=${currentVideoForImport.id}`,
+              embedId: currentVideoForImport.id,
+            },
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erreur lors de l'ajout: ${response.statusText}`);
+      }
+
+      // Passer à la vidéo suivante
+      setVerifyIndex((prev) => prev + 1);
+      setIsSubmitting(false);
+      processNextVideo();
+    } catch (error) {
+      console.error('Error adding video:', error);
+      toast.error("Erreur lors de l'ajout de la vidéo");
+      setIsSubmitting(false);
+    }
+  };
+
+  // Sauter la vidéo actuelle
+  const skipCurrentVideo = () => {
+    setVerifyIndex((prev) => prev + 1);
+    processNextVideo();
+  };
+
+  // Fonction pour ajouter les vidéos sélectionnées à la base
+  const addSelectedVideosToDatabase = async () => {
+    handleVerifyBeforeImport();
+  };
+
+  // Toggle pour sélectionner/désélectionner une vidéo
+  const toggleVideoSelection = (videoId: string) => {
+    if (selectedVideos.includes(videoId)) {
+      setSelectedVideos(selectedVideos.filter((id) => id !== videoId));
+    } else {
+      setSelectedVideos([...selectedVideos, videoId]);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen pt-24 pb-16 px-4">
@@ -772,6 +1094,16 @@ export default function AdminMusicPage() {
             onClick={() => setActiveTab('collections')}
           >
             Collections
+          </button>
+          <button
+            className={`px-4 py-2 font-medium text-sm focus:outline-none ${
+              activeTab === 'youtube'
+                ? 'text-purple-500 border-b-2 border-purple-500'
+                : 'text-gray-400 hover:text-gray-200'
+            }`}
+            onClick={() => setActiveTab('youtube')}
+          >
+            Atelier YouTube
           </button>
         </div>
 
@@ -1195,6 +1527,266 @@ export default function AdminMusicPage() {
           </div>
         )}
 
+        {activeTab === 'collections' && (
+          <div className="text-center py-12">
+            <Music className="w-12 h-12 mx-auto text-gray-600 mb-3" />
+            <p className="text-gray-400">Gestion des collections à venir...</p>
+          </div>
+        )}
+
+        {activeTab === 'youtube' && (
+          <div className="grid grid-cols-1 gap-8">
+            <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg border border-gray-700/50 p-6">
+              <h2 className="text-xl font-bold mb-6 text-white flex items-center gap-2">
+                <Youtube className="w-5 h-5" />
+                Atelier d'ajout intelligent YouTube
+              </h2>
+
+              <p className="text-gray-300 mb-6">
+                Retrouvez vos vidéos YouTube et importez-les directement dans votre base de données
+                musicale. Le système détectera automatiquement les vidéos déjà présentes dans votre
+                bibliothèque.
+              </p>
+
+              {/* Formulaire de recherche */}
+              <div className="flex items-end gap-4 mb-8">
+                <div className="flex-1">
+                  <label htmlFor="youtubeUsername" className="block text-gray-300 font-medium mb-2">
+                    Nom d'utilisateur / Channel YouTube
+                  </label>
+                  <input
+                    type="text"
+                    id="youtubeUsername"
+                    value={youtubeUsername}
+                    onChange={(e) => setYoutubeUsername(e.target.value)}
+                    className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="Ex: https://www.youtube.com/@DJLarian"
+                  />
+                </div>
+                <button
+                  onClick={fetchYouTubeVideos}
+                  disabled={isLoadingVideos || !youtubeUsername}
+                  className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoadingVideos ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      Chargement...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="w-4 h-4" />
+                      Rechercher
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Message d'erreur */}
+              {youtubeError && (
+                <div className="p-4 mb-6 bg-red-900/30 border border-red-700/50 rounded-lg text-red-200 flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                  <p>{youtubeError}</p>
+                </div>
+              )}
+
+              {/* Options de filtrage */}
+              {youtubeVideos.length > 0 && (
+                <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Filtre de recherche */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <input
+                      type="text"
+                      placeholder="Filtrer les résultats..."
+                      value={youtubeSearchTerm}
+                      onChange={(e) => setYoutubeSearchTerm(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                    />
+                  </div>
+
+                  {/* Option pour masquer les vidéos déjà importées */}
+                  <div className="flex items-center">
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={hideImported}
+                        onChange={() => setHideImported(!hideImported)}
+                        className="sr-only"
+                      />
+                      <div
+                        className={`w-10 h-5 rounded-full ${hideImported ? 'bg-purple-600' : 'bg-gray-700'} relative`}
+                      >
+                        <div
+                          className={`absolute left-0.5 top-0.5 w-4 h-4 rounded-full transition-transform bg-white ${hideImported ? 'transform translate-x-5' : ''}`}
+                        ></div>
+                      </div>
+                      <span className="ml-2 text-sm text-gray-300">
+                        Masquer les vidéos déjà importées
+                      </span>
+                    </label>
+                  </div>
+
+                  {/* Sélecteur de nombre de résultats */}
+                  <div className="flex items-center gap-2">
+                    <label htmlFor="maxResults" className="text-sm text-gray-300">
+                      Afficher :
+                    </label>
+                    <select
+                      id="maxResults"
+                      value={maxResults}
+                      onChange={(e) => setMaxResults(parseInt(e.target.value))}
+                      className="bg-gray-700/50 border border-gray-600 rounded-lg px-3 py-1 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                    >
+                      <option value={10}>10 vidéos</option>
+                      <option value={25}>25 vidéos</option>
+                      <option value={50}>50 vidéos</option>
+                      <option value={100}>100 vidéos</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {/* Liste des vidéos */}
+              {youtubeVideos.length > 0 && (
+                <div className="mb-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-white font-medium">
+                      {filteredYoutubeVideos.length} vidéos trouvées
+                    </h3>
+
+                    <button
+                      onClick={addSelectedVideosToDatabase}
+                      disabled={isSubmitting || selectedVideos.length === 0}
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <RefreshCw className="w-3 h-3 animate-spin" />
+                          Importation...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-3 h-3" />
+                          Importer la sélection ({selectedVideos.length})
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="space-y-4">
+                    {filteredYoutubeVideos
+                      .filter((_, index) => index < maxResults)
+                      .map((video) => (
+                        <div
+                          key={video.id}
+                          className={`flex items-center gap-4 p-4 rounded-lg border transition-colors ${
+                            video.exists
+                              ? 'bg-green-900/20 border-green-700/50 text-green-200'
+                              : selectedVideos.includes(video.id)
+                                ? 'bg-purple-900/30 border-purple-700/50'
+                                : 'bg-gray-800/40 border-gray-700/30 hover:bg-gray-800/60'
+                          }`}
+                        >
+                          {/* Checkbox pour sélection */}
+                          {!video.exists && (
+                            <button
+                              onClick={() => toggleVideoSelection(video.id)}
+                              className={`p-2 rounded-md transition-colors ${
+                                selectedVideos.includes(video.id)
+                                  ? 'bg-purple-600 text-white'
+                                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                              }`}
+                            >
+                              {selectedVideos.includes(video.id) ? (
+                                <Check className="w-4 h-4" />
+                              ) : (
+                                <Plus className="w-4 h-4" />
+                              )}
+                            </button>
+                          )}
+
+                          {/* Image */}
+                          <div className="w-20 h-16 flex-shrink-0 rounded-md overflow-hidden">
+                            <img
+                              src={video.thumbnail}
+                              alt={video.title}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+
+                          {/* Infos */}
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium truncate">
+                              {video.title
+                                .replace(/&#39;/g, "'")
+                                .replace(/&quot;/g, '"')
+                                .replace(/&amp;/g, '&')
+                                .replace(/&apos;/g, "'")
+                                .replace(/&lt;/g, '<')
+                                .replace(/&gt;/g, '>')}
+                            </h4>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-gray-700/50 text-gray-300">
+                                {new Date(video.publishedAt).toLocaleDateString()}
+                              </span>
+                              {video.exists && (
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-green-700/50 text-green-200">
+                                  Déjà importé
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Lien vers la vidéo */}
+                          <a
+                            href={`https://youtube.com/watch?v=${video.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+                            title="Voir sur YouTube"
+                          >
+                            <ExternalLink className="w-5 h-5" />
+                          </a>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+              {/* Message explicatif */}
+              {youtubeVideos.length === 0 && !isLoadingVideos && !youtubeError && (
+                <div className="text-center py-8">
+                  <Youtube className="w-12 h-12 mx-auto text-gray-600 mb-3" />
+                  <p className="text-gray-400">
+                    Entrez votre nom d'utilisateur YouTube pour retrouver vos vidéos
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Section d'aide et documentation */}
+            <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg border border-gray-700/50 p-6">
+              <h3 className="text-lg font-bold mb-4 text-white">Comment ça marche ?</h3>
+              <ol className="list-decimal list-inside space-y-3 text-gray-300">
+                <li>Entrez votre nom d'utilisateur YouTube pour récupérer vos vidéos</li>
+                <li>
+                  Sélectionnez les vidéos que vous souhaitez importer dans votre base de données
+                </li>
+                <li>Vérifiez que les informations sont correctes</li>
+                <li>
+                  Cliquez sur "Importer la sélection" pour ajouter les vidéos à votre bibliothèque
+                </li>
+              </ol>
+              <div className="mt-4 p-4 bg-blue-900/20 border border-blue-700/50 rounded-lg text-blue-200">
+                <p className="text-sm">
+                  <strong>Note:</strong> Les vidéos déjà présentes dans votre bibliothèque seront
+                  automatiquement détectées et marquées comme "Déjà importé".
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Modal Crop */}
         {showCropModal && uploadedImage && (
           <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
@@ -1256,11 +1848,272 @@ export default function AdminMusicPage() {
           </div>
         )}
 
-        {activeTab === 'collections' && (
-          <div className="flex items-center justify-center h-64 text-gray-400">
-            <div className="text-center">
-              <ListFilter className="w-12 h-12 mx-auto text-gray-600 mb-3" />
-              <p>La gestion des collections sera disponible prochainement</p>
+        {/* Modal de vérification avant import */}
+        {showVerifyModal && currentVideoForImport && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-gray-800 rounded-lg border border-gray-700 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-bold text-white">
+                    Vérifier avant import ({verifyIndex + 1}/{selectedVideos.length})
+                  </h2>
+                  <button
+                    onClick={() => setShowVerifyModal(false)}
+                    className="p-2 text-gray-400 hover:text-white rounded-full"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Aperçu de la vidéo */}
+                  <div className="md:col-span-1">
+                    <div className="aspect-video bg-black rounded-lg overflow-hidden mb-3">
+                      <img
+                        src={currentVideoForImport.thumbnail}
+                        alt={currentVideoForImport.title}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="text-sm text-gray-400 mb-3">
+                      Video originale:{' '}
+                      <a
+                        href={`https://www.youtube.com/watch?v=${currentVideoForImport.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-purple-400 hover:underline flex items-center gap-1"
+                      >
+                        Voir sur YouTube <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
+                  </div>
+
+                  {/* Formulaire de vérification */}
+                  <div className="md:col-span-2">
+                    <div className="space-y-4">
+                      {/* Titre */}
+                      <div>
+                        <label
+                          htmlFor="verify-title"
+                          className="block text-gray-300 font-medium mb-1"
+                        >
+                          Titre <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          id="verify-title"
+                          value={verifyFormData.title}
+                          onChange={(e) =>
+                            setVerifyFormData({ ...verifyFormData, title: e.target.value })
+                          }
+                          className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          required
+                        />
+                      </div>
+
+                      {/* Type et Date */}
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* Type */}
+                        <div>
+                          <label
+                            htmlFor="verify-type"
+                            className="block text-gray-300 font-medium mb-1"
+                          >
+                            Type <span className="text-red-500">*</span>
+                          </label>
+                          <select
+                            id="verify-type"
+                            value={verifyFormData.type}
+                            onChange={(e) =>
+                              setVerifyFormData({
+                                ...verifyFormData,
+                                type: e.target.value as MusicType,
+                              })
+                            }
+                            className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          >
+                            {MUSIC_TYPES.map((type) => (
+                              <option key={type.value} value={type.value}>
+                                {type.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Date */}
+                        <div>
+                          <label
+                            htmlFor="verify-date"
+                            className="block text-gray-300 font-medium mb-1"
+                          >
+                            Date <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="date"
+                            id="verify-date"
+                            value={verifyFormData.releaseDate}
+                            onChange={(e) =>
+                              setVerifyFormData({ ...verifyFormData, releaseDate: e.target.value })
+                            }
+                            className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Genres */}
+                      <div>
+                        <label className="block text-gray-300 font-medium mb-1">Genres</label>
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          <input
+                            type="text"
+                            value={genreInput}
+                            onChange={(e) => setGenreInput(e.target.value)}
+                            className="flex-1 bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            placeholder="Ajouter un genre"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                if (
+                                  genreInput.trim() &&
+                                  !verifyFormData.genre.includes(genreInput.trim())
+                                ) {
+                                  setVerifyFormData({
+                                    ...verifyFormData,
+                                    genre: [...verifyFormData.genre, genreInput.trim()],
+                                  });
+                                  setGenreInput('');
+                                }
+                              }
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (
+                                genreInput.trim() &&
+                                !verifyFormData.genre.includes(genreInput.trim())
+                              ) {
+                                setVerifyFormData({
+                                  ...verifyFormData,
+                                  genre: [...verifyFormData.genre, genreInput.trim()],
+                                });
+                                setGenreInput('');
+                              }
+                            }}
+                            className="px-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg"
+                          >
+                            +
+                          </button>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {verifyFormData.genre.map((genre) => (
+                            <span
+                              key={genre}
+                              className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-purple-600/30 text-purple-200"
+                            >
+                              {genre}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setVerifyFormData({
+                                    ...verifyFormData,
+                                    genre: verifyFormData.genre.filter((g) => g !== genre),
+                                  });
+                                }}
+                                className="ml-2 text-purple-300 hover:text-white"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* BPM */}
+                      <div>
+                        <label
+                          htmlFor="verify-bpm"
+                          className="block text-gray-300 font-medium mb-1"
+                        >
+                          BPM
+                        </label>
+                        <input
+                          type="number"
+                          id="verify-bpm"
+                          value={verifyFormData.bpm || ''}
+                          onChange={(e) =>
+                            setVerifyFormData({
+                              ...verifyFormData,
+                              bpm: parseInt(e.target.value) || undefined,
+                            })
+                          }
+                          className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          placeholder="Ex: 128"
+                        />
+                      </div>
+
+                      {/* Description */}
+                      <div>
+                        <label
+                          htmlFor="verify-description"
+                          className="block text-gray-300 font-medium mb-1"
+                        >
+                          Description
+                        </label>
+                        <textarea
+                          id="verify-description"
+                          value={verifyFormData.description || ''}
+                          onChange={(e) =>
+                            setVerifyFormData({ ...verifyFormData, description: e.target.value })
+                          }
+                          className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none h-20"
+                          placeholder="Description (optionnelle)"
+                        />
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex justify-between pt-4">
+                        <button
+                          type="button"
+                          onClick={skipCurrentVideo}
+                          className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg"
+                          disabled={isSubmitting}
+                        >
+                          Ignorer
+                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setShowVerifyModal(false)}
+                            className="px-4 py-2 bg-red-800/60 hover:bg-red-700/60 text-white rounded-lg"
+                            disabled={isSubmitting}
+                          >
+                            Annuler
+                          </button>
+                          <button
+                            type="button"
+                            onClick={confirmVideoImport}
+                            className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center gap-2"
+                            disabled={isSubmitting}
+                          >
+                            {isSubmitting ? (
+                              <>
+                                <RefreshCw className="w-4 h-4 animate-spin" />
+                                Import...
+                              </>
+                            ) : (
+                              <>
+                                <Save className="w-4 h-4" />
+                                Confirmer
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
