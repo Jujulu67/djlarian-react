@@ -6,6 +6,8 @@ import { Track, MusicType } from '@/lib/utils/types';
 import MusicCard from '@/components/ui/MusicCard';
 import SimpleMusicPlayer from '@/components/ui/SimpleMusicPlayer';
 import { Filter, Search, Zap, ChevronDown, Music, Loader } from 'lucide-react';
+import { Input } from '@/components/ui/Input';
+import { setGlobalVolume } from '@/components/ui/SimpleMusicPlayer';
 
 // Types de musique disponibles
 const MUSIC_TYPES: { label: string; value: MusicType | 'all' }[] = [
@@ -27,6 +29,54 @@ export default function MusicPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeCard, setActiveCard] = useState<HTMLElement | null>(null);
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+
+  // Variable globale pour éviter les commandes en cascade
+  let isTogglingPlayback = false;
+
+  // Protéger les lecteurs embedded contre les clics extérieurs
+  useEffect(() => {
+    const handleDocumentClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+
+      // Protection globale pour tout le footer player (prioritaire)
+      if (target.closest('[data-footer-player="true"]')) {
+        console.log('Clic protégé: footer player');
+        return;
+      }
+
+      // Si le clic est sur un élément protégé, ne rien faire
+      if (
+        // Contrôles du footer
+        target.closest('[data-footer-control="true"]') ||
+        // Éléments du lecteur dans les cartes
+        target.closest('[id^="youtube-iframe"]') ||
+        target.closest('[id^="soundcloud-iframe"]') ||
+        target
+          .closest('[id^="music-card-"]')
+          ?.querySelector('[id^="youtube-iframe"], [id^="soundcloud-iframe"]') ||
+        // Autres éléments à protéger
+        target.closest('header') ||
+        target.closest('nav') ||
+        target.closest('.play-button') ||
+        target.closest('button[aria-label="Lecture"]') ||
+        target.closest('button[aria-label="Pause"]') ||
+        target.closest('.music-card-controls') ||
+        target.closest('.music-card-overlay')
+      ) {
+        return; // Ne rien faire, mais ne pas stopper la propagation
+      }
+
+      // Nous ne fermons plus les lecteurs en cliquant ailleurs
+      // L'utilisateur devra utiliser le bouton X dans l'interface
+    };
+
+    document.addEventListener('click', handleDocumentClick);
+    return () => {
+      document.removeEventListener('click', handleDocumentClick);
+    };
+  }, [currentTrack]);
 
   // Charger les morceaux depuis l'API
   useEffect(() => {
@@ -86,9 +136,19 @@ export default function MusicPage() {
 
   // Fonction pour jouer un morceau avec gestion simplifiée
   const playTrack = (track: Track) => {
+    // Si la propriété close est définie, cela signifie que le bouton X de la carte a été cliqué
+    // Comportement identique au closePlayer pour fermer complètement le lecteur
+    if ('close' in track) {
+      closePlayer();
+      return;
+    }
+
     // Si c'est le même morceau, on bascule l'état
     if (currentTrack && currentTrack.id === track.id) {
       setIsPlaying(!isPlaying);
+
+      // On ne modifie pas la visibilité du lecteur ici, juste l'état de lecture
+      // Le composant MusicCard s'occupe de maintenir le bon affichage
     } else {
       // Pour un nouveau morceau, on l'active
       setCurrentTrack(track);
@@ -96,8 +156,146 @@ export default function MusicPage() {
     }
   };
 
-  // Fermer le lecteur (pas utilisé pour YouTube)
+  // Contrôle de la lecture depuis le footer
+  const toggleFooterPlay = () => {
+    if (!currentTrack || isTogglingPlayback) return;
+
+    // Activer le verrouillage pour éviter les commandes multiples
+    isTogglingPlayback = true;
+
+    // L'état isPlaying va changer après cette fonction, donc la logique doit être inversée
+    const willPlay = !isPlaying;
+
+    // Trouver le lecteur YouTube actif
+    const activeTrackId = currentTrack.id;
+    const activeYoutubeIframe = document.querySelector(
+      `iframe[id="youtube-iframe-${activeTrackId}"]`
+    );
+
+    // Mettre à jour l'état React AVANT de manipuler l'iframe
+    setIsPlaying(willPlay);
+
+    // Gestion spéciale pour YouTube
+    if (activeYoutubeIframe instanceof HTMLIFrameElement && activeYoutubeIframe.contentWindow) {
+      try {
+        // 1. Assurer la visibilité du conteneur de l'iframe si on passe en lecture
+        if (willPlay) {
+          const container = activeYoutubeIframe.closest('div');
+          if (container) {
+            container.style.opacity = '1';
+            container.style.pointerEvents = 'auto';
+          }
+        }
+
+        // 2. Envoyer une SEULE commande à YouTube avec un délai minimum
+        setTimeout(() => {
+          if (activeYoutubeIframe.contentWindow) {
+            activeYoutubeIframe.contentWindow.postMessage(
+              JSON.stringify({
+                event: 'command',
+                func: willPlay ? 'playVideo' : 'pauseVideo',
+              }),
+              '*'
+            );
+          }
+
+          console.log(
+            `${willPlay ? 'Playing' : 'Pausing'} active YouTube track: ${currentTrack.title}`
+          );
+
+          // Appliquer le volume après l'action
+          setTimeout(() => {
+            const currentVolume = localStorage.getItem('global-music-volume');
+            if (currentVolume) {
+              setGlobalVolume(parseFloat(currentVolume));
+            }
+
+            // Relâcher le verrouillage après un délai suffisant
+            isTogglingPlayback = false;
+          }, 300);
+        }, 50);
+      } catch (error) {
+        console.error('Error controlling YouTube iframe:', error);
+        isTogglingPlayback = false;
+      }
+    }
+    // Gestion pour SoundCloud
+    else {
+      // Contrôle du lecteur SoundCloud actif
+      const activeSoundcloudIframe = document.querySelector(
+        `iframe[id="soundcloud-iframe-${activeTrackId}"]`
+      );
+
+      if (
+        activeSoundcloudIframe instanceof HTMLIFrameElement &&
+        activeSoundcloudIframe.contentWindow
+      ) {
+        try {
+          // Commande simple à SoundCloud
+          activeSoundcloudIframe.contentWindow.postMessage(
+            `{"method":"${willPlay ? 'play' : 'pause'}"}`,
+            '*'
+          );
+
+          console.log(
+            `${willPlay ? 'Playing' : 'Pausing'} active SoundCloud track: ${currentTrack.title}`
+          );
+
+          // Appliquer le volume et relâcher le verrouillage après un délai
+          setTimeout(() => {
+            const currentVolume = localStorage.getItem('global-music-volume');
+            if (currentVolume) {
+              setGlobalVolume(parseFloat(currentVolume));
+            }
+            isTogglingPlayback = false;
+          }, 300);
+        } catch (error) {
+          console.error('Error controlling SoundCloud iframe:', error);
+          isTogglingPlayback = false;
+        }
+      } else {
+        // Pas d'iframe trouvé, relâcher le verrouillage
+        isTogglingPlayback = false;
+      }
+    }
+  };
+
+  // Fermer le lecteur - comportement identique aux boutons X des cartes
   const closePlayer = () => {
+    if (!currentTrack) return;
+
+    // Fermer d'abord tous les lecteurs YouTube actifs
+    const activeTrackId = currentTrack.id;
+    const activeYoutubeIframe = document.querySelector(
+      `iframe[id="youtube-iframe-${activeTrackId}"]`
+    );
+    if (activeYoutubeIframe instanceof HTMLIFrameElement && activeYoutubeIframe.contentWindow) {
+      try {
+        activeYoutubeIframe.contentWindow.postMessage(
+          JSON.stringify({ event: 'command', func: 'pauseVideo' }),
+          '*'
+        );
+      } catch (error) {
+        console.error('Error pausing YouTube iframe:', error);
+      }
+    }
+
+    // Fermer tous les lecteurs SoundCloud actifs
+    const activeSoundcloudIframe = document.querySelector(
+      `iframe[id="soundcloud-iframe-${activeTrackId}"]`
+    );
+    if (
+      activeSoundcloudIframe instanceof HTMLIFrameElement &&
+      activeSoundcloudIframe.contentWindow
+    ) {
+      try {
+        activeSoundcloudIframe.contentWindow.postMessage('{"method":"pause"}', '*');
+      } catch (error) {
+        console.error('Error pausing SoundCloud iframe:', error);
+      }
+    }
+
+    // Réinitialiser l'état de lecture
     setCurrentTrack(null);
     setIsPlaying(false);
   };
@@ -108,26 +306,66 @@ export default function MusicPage() {
     return filteredTracks.findIndex((track) => track.id === currentTrack.id);
   };
 
-  // Passer au morceau suivant
+  // Jouer la piste suivante
   const playNextTrack = () => {
-    const currentIndex = getCurrentTrackIndex();
-    if (currentIndex === -1 || currentIndex === filteredTracks.length - 1) {
-      // Si c'est le dernier morceau, jouer le premier
-      playTrack(filteredTracks[0]);
-    } else {
-      playTrack(filteredTracks[currentIndex + 1]);
-    }
+    if (!currentTrack) return;
+
+    console.log('Play next track, current track:', currentTrack);
+    const currentIndex = filteredTracks.findIndex((track) => track.id === currentTrack.id);
+    if (currentIndex === -1 || currentIndex === null) return;
+
+    const nextIndex = (currentIndex + 1) % filteredTracks.length;
+    console.log('Next index:', nextIndex, 'Next track:', filteredTracks[nextIndex]);
+
+    // Définir la piste suivante et commencer la lecture
+    setCurrentTrack(filteredTracks[nextIndex]);
+    setIsPlaying(true);
+
+    // Mettre à jour l'UI après un court délai
+    setTimeout(() => {
+      const cardElement = document.getElementById(`music-card-${filteredTracks[nextIndex].id}`);
+      if (cardElement && cardElement instanceof HTMLElement) {
+        cardElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setActiveCard(cardElement);
+      }
+
+      // Appliquer le volume actuel
+      const currentVolume = localStorage.getItem('global-music-volume');
+      if (currentVolume) {
+        setGlobalVolume(parseFloat(currentVolume));
+      }
+    }, 300);
   };
 
-  // Passer au morceau précédent
+  // Jouer la piste précédente
   const playPrevTrack = () => {
-    const currentIndex = getCurrentTrackIndex();
-    if (currentIndex <= 0) {
-      // Si c'est le premier morceau, jouer le dernier
-      playTrack(filteredTracks[filteredTracks.length - 1]);
-    } else {
-      playTrack(filteredTracks[currentIndex - 1]);
-    }
+    if (!currentTrack) return;
+
+    console.log('Play previous track, current track:', currentTrack);
+    const currentIndex = filteredTracks.findIndex((track) => track.id === currentTrack.id);
+    if (currentIndex === -1 || currentIndex === null) return;
+
+    const prevIndex = (currentIndex - 1 + filteredTracks.length) % filteredTracks.length;
+    console.log('Previous index:', prevIndex, 'Previous track:', filteredTracks[prevIndex]);
+
+    // Définir la piste précédente et commencer la lecture
+    setCurrentTrack(filteredTracks[prevIndex]);
+    setIsPlaying(true);
+
+    // Mettre à jour l'UI après un court délai
+    setTimeout(() => {
+      const cardElement = document.getElementById(`music-card-${filteredTracks[prevIndex].id}`);
+      if (cardElement && cardElement instanceof HTMLElement) {
+        cardElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setActiveCard(cardElement);
+      }
+
+      // Appliquer le volume actuel
+      const currentVolume = localStorage.getItem('global-music-volume');
+      if (currentVolume) {
+        setGlobalVolume(parseFloat(currentVolume));
+      }
+    }, 300);
   };
 
   return (
@@ -293,13 +531,13 @@ export default function MusicPage() {
         )}
       </div>
 
-      {/* Lecteur de musique - uniquement pour les morceaux non-YouTube */}
-      {currentTrack && !currentTrack.platforms.youtube && (
+      {/* Lecteur de musique */}
+      {currentTrack && (
         <SimpleMusicPlayer
           track={currentTrack}
           isPlaying={isPlaying}
           onClose={closePlayer}
-          onTogglePlay={() => setIsPlaying(!isPlaying)}
+          onTogglePlay={toggleFooterPlay}
           onNextTrack={filteredTracks.length > 1 ? playNextTrack : undefined}
           onPrevTrack={filteredTracks.length > 1 ? playPrevTrack : undefined}
         />
