@@ -34,6 +34,7 @@ const platformColors: Record<MusicPlatform, string> = {
 
 export const MusicCard: React.FC<MusicCardProps> = ({ track, onPlay, isPlaying, isActive }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   // Transforme le type en badge
   const getTypeLabel = (type: string) => {
@@ -75,13 +76,14 @@ export const MusicCard: React.FC<MusicCardProps> = ({ track, onPlay, isPlaying, 
     >
       {/* Image avec effet de zoom au survol */}
       <div className="relative overflow-hidden" style={{ aspectRatio: '1/1' }}>
-        {track.coverUrl ? (
+        {track.coverUrl && !imageError ? (
           <Image
             src={track.coverUrl}
             alt={track.title}
             width={400}
             height={400}
             className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+            onError={() => setImageError(true)}
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-r from-purple-900/30 to-blue-900/30 flex items-center justify-center group-hover:scale-105 transition-transform duration-500">

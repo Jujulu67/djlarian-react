@@ -13,6 +13,9 @@ import {
   Clock,
   Ticket,
 } from 'lucide-react';
+import prisma from '@/lib/prisma';
+import { formatDistanceToNow } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 export default async function AdminPage() {
   const session = await getServerSession(authOptions);
@@ -20,6 +23,87 @@ export default async function AdminPage() {
   if (!session?.user?.role || session.user.role !== 'ADMIN') {
     redirect('/');
   }
+
+  // Récupérer les statistiques des événements
+  const eventsCount = await prisma.event.count();
+  const recentEvents = await prisma.event.count({
+    where: {
+      createdAt: {
+        gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 derniers jours
+      },
+    },
+  });
+
+  // Statistiques simulées pour les tables qui n'existent pas encore
+  const mediaCount = '156 (placeholder)'; // Valeur fictive pour la démo
+  let tracksCount = '42 (placeholder)'; // Valeur fictive pour la démo
+
+  // Récupérer les statistiques des utilisateurs
+  const usersCount = await prisma.user.count();
+  const adminCount = await prisma.user.count({
+    where: { role: 'ADMIN' },
+  });
+
+  // Récupérer les activités récentes
+  const recentActivities = [];
+
+  // Récupérer les événements récents
+  const latestEvents = await prisma.event.findMany({
+    take: 1,
+    orderBy: { createdAt: 'desc' },
+  });
+
+  if (latestEvents.length > 0) {
+    recentActivities.push({
+      type: 'event',
+      title: 'Nouvel événement créé',
+      description: `L'événement "${latestEvents[0].title}" a été créé`,
+      date: latestEvents[0].createdAt,
+      icon: CalendarDays,
+      isPlaceholder: false,
+    });
+  }
+
+  // Ajouter un morceau de musique simulé pour la démo
+  recentActivities.push({
+    type: 'track',
+    title: 'Nouveau morceau ajouté (placeholder)',
+    description: 'Le morceau "Midnight Pulse" a été ajouté à la bibliothèque',
+    date: new Date(Date.now() - 24 * 60 * 60 * 1000), // Hier
+    icon: Music2,
+    isPlaceholder: true,
+  });
+
+  // Récupérer les ventes de billets récentes si disponible
+  const latestTickets = await prisma.ticketInfo.findMany({
+    take: 1,
+    orderBy: { id: 'desc' },
+    include: { event: true },
+  });
+
+  if (latestTickets.length > 0 && latestTickets[0].event) {
+    recentActivities.push({
+      type: 'ticket',
+      title: 'Vente de billets',
+      description: `Nouvelle configuration de billets pour "${latestTickets[0].event.title}"`,
+      date: latestTickets[0].event.createdAt,
+      icon: Ticket,
+      isPlaceholder: false,
+    });
+  } else {
+    // Ajouter une vente de billets simulée si aucune n'est trouvée
+    recentActivities.push({
+      type: 'ticket',
+      title: 'Vente de billets (placeholder)',
+      description: '12 nouveaux billets vendus pour "Summer Festival"',
+      date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // Il y a 3 jours
+      icon: Ticket,
+      isPlaceholder: true,
+    });
+  }
+
+  // Trier les activités par date (plus récent en premier)
+  recentActivities.sort((a, b) => b.date.getTime() - a.date.getTime());
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-[#0c0117] to-black">
@@ -73,7 +157,7 @@ export default async function AdminPage() {
                   </span>
                 </Link>
                 <span className="text-xs text-purple-300/70 flex items-center">
-                  <Clock className="h-3 w-3 mr-1" /> Récents: 3
+                  <Clock className="h-3 w-3 mr-1" /> Récents: {recentEvents}
                 </span>
               </div>
             </div>
@@ -120,7 +204,7 @@ export default async function AdminPage() {
                   </span>
                 </Link>
                 <span className="text-xs text-blue-300/70 flex items-center">
-                  <ImageIcon className="h-3 w-3 mr-1" /> Total: 156
+                  <ImageIcon className="h-3 w-3 mr-1" /> Total: {mediaCount}
                 </span>
               </div>
             </div>
@@ -166,7 +250,7 @@ export default async function AdminPage() {
                   </span>
                 </Link>
                 <span className="text-xs text-indigo-300/70 flex items-center">
-                  <Music2 className="h-3 w-3 mr-1" /> Titres: 42
+                  <Music2 className="h-3 w-3 mr-1" /> Titres: {tracksCount}
                 </span>
               </div>
             </div>
@@ -212,7 +296,7 @@ export default async function AdminPage() {
                   </span>
                 </Link>
                 <span className="text-xs text-pink-300/70 flex items-center">
-                  <Users className="h-3 w-3 mr-1" /> Actifs: 124
+                  <Users className="h-3 w-3 mr-1" /> Actifs: {usersCount}
                 </span>
               </div>
             </div>
@@ -256,7 +340,9 @@ export default async function AdminPage() {
                   </span>
                 </button>
                 <span className="text-xs text-teal-300/70 flex items-center">
-                  <BarChart3 className="h-3 w-3 mr-1" /> +12% ce mois
+                  {adminCount > 0
+                    ? `${adminCount} admin${adminCount > 1 ? 's' : ''}`
+                    : 'Aucune donnée'}
                 </span>
               </div>
             </div>
@@ -299,7 +385,8 @@ export default async function AdminPage() {
                   </span>
                 </button>
                 <span className="text-xs text-indigo-300/70 flex items-center">
-                  <Settings className="h-3 w-3 mr-1" /> Dernière: 2j
+                  <Settings className="h-3 w-3 mr-1" /> Dernière:{' '}
+                  <span className="italic opacity-75">2j (placeholder)</span>
                 </span>
               </div>
             </div>
@@ -313,50 +400,54 @@ export default async function AdminPage() {
               <h3 className="text-xl font-audiowide text-white mb-4">Activités récentes</h3>
 
               <div className="space-y-3">
-                <div className="bg-black/30 p-3 rounded-lg flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="bg-purple-500/20 p-2 rounded-lg mr-3">
-                      <CalendarDays className="h-5 w-5 text-purple-400" />
+                {recentActivities.length > 0 ? (
+                  recentActivities.map((activity, index) => (
+                    <div
+                      key={index}
+                      className="bg-black/30 p-3 rounded-lg flex items-center justify-between"
+                    >
+                      <div className="flex items-center">
+                        <div
+                          className={`${
+                            activity.type === 'event'
+                              ? 'bg-purple-500/20'
+                              : activity.type === 'track'
+                                ? 'bg-blue-500/20'
+                                : 'bg-pink-500/20'
+                          } p-2 rounded-lg mr-3`}
+                        >
+                          <activity.icon
+                            className={`h-5 w-5 ${
+                              activity.type === 'event'
+                                ? 'text-purple-400'
+                                : activity.type === 'track'
+                                  ? 'text-blue-400'
+                                  : 'text-pink-400'
+                            }`}
+                          />
+                        </div>
+                        <div>
+                          <p className="text-white font-medium flex items-center">
+                            {activity.title}
+                            {activity.isPlaceholder && (
+                              <span className="ml-1 text-xs text-gray-400 italic">
+                                (données fictives)
+                              </span>
+                            )}
+                          </p>
+                          <p className="text-xs text-gray-400">{activity.description}</p>
+                        </div>
+                      </div>
+                      <span className="text-xs text-gray-500">
+                        {formatDistanceToNow(activity.date, { addSuffix: true, locale: fr })}
+                      </span>
                     </div>
-                    <div>
-                      <p className="text-white font-medium">Nouvel événement créé</p>
-                      <p className="text-xs text-gray-400">
-                        L'événement récurrent "Club Night" a été créé
-                      </p>
-                    </div>
+                  ))
+                ) : (
+                  <div className="bg-black/30 p-3 rounded-lg text-center">
+                    <p className="text-gray-400">Aucune activité récente</p>
                   </div>
-                  <span className="text-xs text-gray-500">Il y a 2h</span>
-                </div>
-
-                <div className="bg-black/30 p-3 rounded-lg flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="bg-blue-500/20 p-2 rounded-lg mr-3">
-                      <Music2 className="h-5 w-5 text-blue-400" />
-                    </div>
-                    <div>
-                      <p className="text-white font-medium">Nouveau morceau ajouté</p>
-                      <p className="text-xs text-gray-400">
-                        Le morceau "Midnight Pulse" a été ajouté à la bibliothèque
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-xs text-gray-500">Hier</span>
-                </div>
-
-                <div className="bg-black/30 p-3 rounded-lg flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="bg-pink-500/20 p-2 rounded-lg mr-3">
-                      <Ticket className="h-5 w-5 text-pink-400" />
-                    </div>
-                    <div>
-                      <p className="text-white font-medium">Vente de billets</p>
-                      <p className="text-xs text-gray-400">
-                        12 nouveaux billets vendus pour "Summer Festival"
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-xs text-gray-500">Il y a 3j</span>
-                </div>
+                )}
               </div>
             </div>
           </div>

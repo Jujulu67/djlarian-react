@@ -3,10 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Track, MusicType } from '@/lib/utils/types';
-import { getDemoTracks } from '@/lib/utils/music-service';
 import MusicCard from '@/components/ui/MusicCard';
 import MusicPlayer from '@/components/ui/MusicPlayer';
-import { Filter, Search, Zap, ChevronDown, Music } from 'lucide-react';
+import { Filter, Search, Zap, ChevronDown, Music, Loader } from 'lucide-react';
 
 // Types de musique disponibles
 const MUSIC_TYPES: { label: string; value: MusicType | 'all' }[] = [
@@ -26,12 +25,30 @@ export default function MusicPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState<MusicType | 'all'>('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Charger les morceaux
+  // Charger les morceaux depuis l'API
   useEffect(() => {
-    // À terme, ce sera un appel API
-    const fetchedTracks = getDemoTracks();
-    setTracks(fetchedTracks);
+    const fetchTracks = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch('/api/music');
+        if (!response.ok) {
+          throw new Error('Erreur lors de la récupération des morceaux');
+        }
+        const data = await response.json();
+        setTracks(data);
+        setError(null);
+      } catch (err) {
+        console.error('Erreur:', err);
+        setError('Impossible de charger les morceaux');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTracks();
   }, []);
 
   // Appliquer les filtres
@@ -172,8 +189,19 @@ export default function MusicPage() {
           )}
         </div>
 
-        {/* Affichage des résultats */}
-        {filteredTracks.length === 0 ? (
+        {/* Affichage des résultats - État de chargement */}
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-24">
+            <Loader className="w-12 h-12 text-purple-500 animate-spin mb-4" />
+            <p className="text-gray-400">Chargement de la musique...</p>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-16">
+            <Music className="w-16 h-16 text-gray-600 mb-4" />
+            <h2 className="text-xl text-gray-300 mb-2">Erreur de chargement</h2>
+            <p className="text-gray-500">{error}</p>
+          </div>
+        ) : filteredTracks.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16">
             <Music className="w-16 h-16 text-gray-600 mb-4" />
             <h2 className="text-xl text-gray-300 mb-2">Aucun résultat trouvé</h2>

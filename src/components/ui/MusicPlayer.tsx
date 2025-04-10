@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { FaSpotify, FaYoutube, FaSoundcloud, FaMusic } from 'react-icons/fa';
 import { getEmbedUrl } from '@/lib/utils/music-service';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, Music } from 'lucide-react';
 
 interface MusicPlayerProps {
   track: Track | null;
@@ -18,6 +18,7 @@ interface MusicPlayerProps {
 const MusicPlayer: React.FC<MusicPlayerProps> = ({ track, isPlaying, onClose, onTogglePlay }) => {
   const [selectedPlatform, setSelectedPlatform] = useState<MusicPlatform | null>(null);
   const [embedUrl, setEmbedUrl] = useState<string | null>(null);
+  const [imageError, setImageError] = useState(false);
 
   // Sélectionner la première plateforme disponible par défaut
   useEffect(() => {
@@ -51,6 +52,7 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({ track, isPlaying, onClose, on
       }
 
       setSelectedPlatform(platformToUse);
+      setImageError(false);
     } else {
       setSelectedPlatform(null);
     }
@@ -86,14 +88,21 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({ track, isPlaying, onClose, on
             {/* Header du player avec informations sur le morceau */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 relative rounded-md overflow-hidden">
-                  <Image
-                    src={track.coverUrl}
-                    alt={track.title}
-                    width={64}
-                    height={64}
-                    className="w-full h-full object-cover"
-                  />
+                <div className="w-16 h-16 relative rounded-md overflow-hidden bg-gray-800">
+                  {track.coverUrl && !imageError ? (
+                    <Image
+                      src={track.coverUrl}
+                      alt={track.title}
+                      width={64}
+                      height={64}
+                      className="w-full h-full object-cover"
+                      onError={() => setImageError(true)}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-800">
+                      <Music className="w-8 h-8 text-gray-600" />
+                    </div>
+                  )}
                 </div>
                 <div>
                   <h3 className="text-white font-bold text-lg">{track.title}</h3>
