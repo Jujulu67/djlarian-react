@@ -4,6 +4,10 @@ const nextConfig = {
   compiler: {
     styledComponents: true,
   },
+  // Désactiver les transformations SWC forcées
+  experimental: {
+    forceSwcTransforms: false,
+  },
   images: {
     domains: [
       'i.scdn.co', // Images Spotify

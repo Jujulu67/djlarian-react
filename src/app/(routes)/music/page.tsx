@@ -1,13 +1,90 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useReducer, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Track, MusicType } from '@/lib/utils/types';
 import MusicCard from '@/components/ui/MusicCard';
 import SimpleMusicPlayer from '@/components/ui/SimpleMusicPlayer';
 import { Filter, Search, Zap, ChevronDown, Music, Loader } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
-import { setGlobalVolume } from '@/components/ui/SimpleMusicPlayer';
+import { useMusicContext } from '@/context/MusicPlayerContext';
+
+// --- Définition du Reducer pour l'état de lecture ---
+interface PlayerState {
+  currentTrack: Track | null;
+  isPlaying: boolean;
+  // On garde la liste filtrée ici pour la logique next/prev
+  filteredTracks: Track[];
+}
+
+type PlayerAction =
+  | { type: 'PLAY_TRACK'; payload: Track }
+  | { type: 'TOGGLE_PLAY_PAUSE' }
+  | { type: 'CLOSE_PLAYER' }
+  | { type: 'PLAY_NEXT' }
+  | { type: 'PLAY_PREV' }
+  | { type: 'SET_FILTERED_TRACKS'; payload: Track[] }; // Pour mettre à jour la liste pour next/prev
+
+const initialPlayerState: PlayerState = {
+  currentTrack: null,
+  isPlaying: false,
+  filteredTracks: [],
+};
+
+function playerReducer(state: PlayerState, action: PlayerAction): PlayerState {
+  switch (action.type) {
+    case 'SET_FILTERED_TRACKS':
+      // Si la piste actuelle n'est plus dans les pistes filtrées, on arrête la lecture
+      const stillExists =
+        state.currentTrack && action.payload.some((t) => t.id === state.currentTrack?.id);
+      return {
+        ...state,
+        filteredTracks: action.payload,
+        currentTrack: stillExists ? state.currentTrack : null,
+        isPlaying: stillExists ? state.isPlaying : false,
+      };
+
+    case 'PLAY_TRACK':
+      // Si c'est la même piste, basculer play/pause
+      if (state.currentTrack?.id === action.payload.id) {
+        return { ...state, isPlaying: !state.isPlaying };
+      }
+      // Nouvelle piste
+      return { ...state, currentTrack: action.payload, isPlaying: true };
+
+    case 'TOGGLE_PLAY_PAUSE':
+      if (!state.currentTrack) return state; // Ne rien faire si pas de piste
+      return { ...state, isPlaying: !state.isPlaying };
+
+    case 'CLOSE_PLAYER':
+      // Mettre en pause les lecteurs via postMessage (logique à ajouter si nécessaire ou laisser MusicCard le faire)
+      // Ici, on réinitialise juste l'état
+      return { ...state, currentTrack: null, isPlaying: false };
+
+    case 'PLAY_NEXT': {
+      if (!state.currentTrack || state.filteredTracks.length < 2) return state;
+      const currentIndex = state.filteredTracks.findIndex((t) => t.id === state.currentTrack?.id);
+      if (currentIndex === -1)
+        return { ...state, currentTrack: state.filteredTracks[0], isPlaying: true }; // Fallback
+      const nextIndex = (currentIndex + 1) % state.filteredTracks.length;
+      return { ...state, currentTrack: state.filteredTracks[nextIndex], isPlaying: true };
+    }
+
+    case 'PLAY_PREV': {
+      if (!state.currentTrack || state.filteredTracks.length < 2) return state;
+      const currentIndex = state.filteredTracks.findIndex((t) => t.id === state.currentTrack?.id);
+      if (currentIndex === -1)
+        return { ...state, currentTrack: state.filteredTracks[0], isPlaying: true }; // Fallback
+      const prevIndex =
+        (currentIndex - 1 + state.filteredTracks.length) % state.filteredTracks.length;
+      return { ...state, currentTrack: state.filteredTracks[prevIndex], isPlaying: true };
+    }
+
+    default:
+      return state;
+  }
+}
+// --- Fin Définition Reducer ---
 
 // Types de musique disponibles
 const MUSIC_TYPES: { label: string; value: MusicType | 'all' }[] = [
@@ -21,19 +98,18 @@ const MUSIC_TYPES: { label: string; value: MusicType | 'all' }[] = [
 
 export default function MusicPage() {
   const [tracks, setTracks] = useState<Track[]>([]);
-  const [filteredTracks, setFilteredTracks] = useState<Track[]>([]);
-  const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState<MusicType | 'all'>('all');
   const [showFilters, setShowFilters] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeCard, setActiveCard] = useState<HTMLElement | null>(null);
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
-  // Variable globale pour éviter les commandes en cascade
-  let isTogglingPlayback = false;
+  // Utilisation du reducer pour l'état de lecture
+  const [playerState, dispatch] = useReducer(playerReducer, initialPlayerState);
+  const { currentTrack, isPlaying, filteredTracks } = playerState;
+
+  // Obtenir applyVolumeGlobally du contexte de volume
+  const { applyVolumeGlobally } = useMusicContext();
 
   // Protéger les lecteurs embedded contre les clics extérieurs
   useEffect(() => {
@@ -101,7 +177,7 @@ export default function MusicPage() {
     fetchTracks();
   }, []);
 
-  // Appliquer les filtres
+  // Appliquer les filtres et mettre à jour le reducer
   useEffect(() => {
     let filtered = [...tracks];
 
@@ -131,242 +207,72 @@ export default function MusicPage() {
       return dateB.getTime() - dateA.getTime();
     });
 
-    setFilteredTracks(filtered);
+    // Mettre à jour l'état du reducer avec les pistes filtrées
+    dispatch({ type: 'SET_FILTERED_TRACKS', payload: filtered });
   }, [tracks, selectedType, searchTerm]);
 
-  // Fonction pour jouer un morceau avec gestion simplifiée
-  const playTrack = (track: Track) => {
-    // Si la propriété close est définie, cela signifie que le bouton X de la carte a été cliqué
-    // Comportement identique au closePlayer pour fermer complètement le lecteur
+  // Effet pour faire défiler vers la carte active et appliquer le volume
+  useEffect(() => {
+    if (currentTrack && isPlaying) {
+      console.log(`Effect: Scrolling to track ${currentTrack.id}`);
+      setTimeout(() => {
+        const cardElement = document.getElementById(`music-card-${currentTrack.id}`);
+        cardElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Appliquer le volume actuel lors du changement de piste ou reprise
+        const currentVolume =
+          typeof window !== 'undefined'
+            ? Number(localStorage.getItem('global-music-volume') || 0.8)
+            : 0.8;
+        applyVolumeGlobally(currentVolume);
+      }, 150); // Délai réduit
+    }
+  }, [currentTrack, isPlaying, applyVolumeGlobally]);
+
+  // --- Handlers utilisant dispatch ---
+
+  // Jouer un morceau (appelé par MusicCard)
+  const handlePlayTrack = useCallback((track: Track) => {
     if ('close' in track) {
-      closePlayer();
-      return;
-    }
-
-    // Si c'est le même morceau, on bascule l'état
-    if (currentTrack && currentTrack.id === track.id) {
-      setIsPlaying(!isPlaying);
-
-      // On ne modifie pas la visibilité du lecteur ici, juste l'état de lecture
-      // Le composant MusicCard s'occupe de maintenir le bon affichage
+      dispatch({ type: 'CLOSE_PLAYER' });
     } else {
-      // Pour un nouveau morceau, on l'active
-      setCurrentTrack(track);
-      setIsPlaying(true);
+      dispatch({ type: 'PLAY_TRACK', payload: track });
     }
-  };
+  }, []);
 
-  // Contrôle de la lecture depuis le footer
-  const toggleFooterPlay = () => {
-    if (!currentTrack || isTogglingPlayback) return;
+  // Basculer lecture/pause (appelé par SimpleMusicPlayer)
+  const handleTogglePlayPause = useCallback(() => {
+    // La logique de communication avec l'iframe est complexe à gérer ici
+    // MusicCard gère déjà play/pause de l'iframe quand isPlaying change
+    // SimpleMusicPlayer pourrait aussi envoyer un message si besoin, mais évitons la duplication
+    // On se contente de dispatcher l'action pour changer l'état React
+    dispatch({ type: 'TOGGLE_PLAY_PAUSE' });
 
-    // Activer le verrouillage pour éviter les commandes multiples
-    isTogglingPlayback = true;
-
-    // L'état isPlaying va changer après cette fonction, donc la logique doit être inversée
-    const willPlay = !isPlaying;
-
-    // Trouver le lecteur YouTube actif
-    const activeTrackId = currentTrack.id;
-    const activeYoutubeIframe = document.querySelector(
-      `iframe[id="youtube-iframe-${activeTrackId}"]`
-    );
-
-    // Mettre à jour l'état React AVANT de manipuler l'iframe
-    setIsPlaying(willPlay);
-
-    // Gestion spéciale pour YouTube
-    if (activeYoutubeIframe instanceof HTMLIFrameElement && activeYoutubeIframe.contentWindow) {
-      try {
-        // 1. Assurer la visibilité du conteneur de l'iframe si on passe en lecture
-        if (willPlay) {
-          const container = activeYoutubeIframe.closest('div');
-          if (container) {
-            container.style.opacity = '1';
-            container.style.pointerEvents = 'auto';
-          }
-        }
-
-        // 2. Envoyer une SEULE commande à YouTube avec un délai minimum
-        setTimeout(() => {
-          if (activeYoutubeIframe.contentWindow) {
-            activeYoutubeIframe.contentWindow.postMessage(
-              JSON.stringify({
-                event: 'command',
-                func: willPlay ? 'playVideo' : 'pauseVideo',
-              }),
-              '*'
-            );
-          }
-
-          console.log(
-            `${willPlay ? 'Playing' : 'Pausing'} active YouTube track: ${currentTrack.title}`
-          );
-
-          // Appliquer le volume après l'action
-          setTimeout(() => {
-            const currentVolume = localStorage.getItem('global-music-volume');
-            if (currentVolume) {
-              setGlobalVolume(parseFloat(currentVolume));
-            }
-
-            // Relâcher le verrouillage après un délai suffisant
-            isTogglingPlayback = false;
-          }, 300);
-        }, 50);
-      } catch (error) {
-        console.error('Error controlling YouTube iframe:', error);
-        isTogglingPlayback = false;
-      }
+    // Solution alternative (moins propre) : manipuler l'iframe depuis ici
+    /*
+    if (currentTrack) {
+       const iframe = document.querySelector(`#youtube-iframe-${currentTrack.id}, #soundcloud-iframe-${currentTrack.id}`);
+       if (iframe instanceof HTMLIFrameElement && iframe.contentWindow) {
+           const command = isPlaying ? 'pauseVideo' : 'playVideo'; // Adapater pour SC
+           // ... postMessage ... 
+       }
     }
-    // Gestion pour SoundCloud
-    else {
-      // Contrôle du lecteur SoundCloud actif
-      const activeSoundcloudIframe = document.querySelector(
-        `iframe[id="soundcloud-iframe-${activeTrackId}"]`
-      );
+    */
+  }, []);
 
-      if (
-        activeSoundcloudIframe instanceof HTMLIFrameElement &&
-        activeSoundcloudIframe.contentWindow
-      ) {
-        try {
-          // Commande simple à SoundCloud
-          activeSoundcloudIframe.contentWindow.postMessage(
-            `{"method":"${willPlay ? 'play' : 'pause'}"}`,
-            '*'
-          );
+  // Fermer le lecteur (appelé par SimpleMusicPlayer)
+  const handleClosePlayer = useCallback(() => {
+    dispatch({ type: 'CLOSE_PLAYER' });
+  }, []);
 
-          console.log(
-            `${willPlay ? 'Playing' : 'Pausing'} active SoundCloud track: ${currentTrack.title}`
-          );
+  // Jouer suivant (appelé par SimpleMusicPlayer)
+  const handlePlayNext = useCallback(() => {
+    dispatch({ type: 'PLAY_NEXT' });
+  }, []);
 
-          // Appliquer le volume et relâcher le verrouillage après un délai
-          setTimeout(() => {
-            const currentVolume = localStorage.getItem('global-music-volume');
-            if (currentVolume) {
-              setGlobalVolume(parseFloat(currentVolume));
-            }
-            isTogglingPlayback = false;
-          }, 300);
-        } catch (error) {
-          console.error('Error controlling SoundCloud iframe:', error);
-          isTogglingPlayback = false;
-        }
-      } else {
-        // Pas d'iframe trouvé, relâcher le verrouillage
-        isTogglingPlayback = false;
-      }
-    }
-  };
-
-  // Fermer le lecteur - comportement identique aux boutons X des cartes
-  const closePlayer = () => {
-    if (!currentTrack) return;
-
-    // Fermer d'abord tous les lecteurs YouTube actifs
-    const activeTrackId = currentTrack.id;
-    const activeYoutubeIframe = document.querySelector(
-      `iframe[id="youtube-iframe-${activeTrackId}"]`
-    );
-    if (activeYoutubeIframe instanceof HTMLIFrameElement && activeYoutubeIframe.contentWindow) {
-      try {
-        activeYoutubeIframe.contentWindow.postMessage(
-          JSON.stringify({ event: 'command', func: 'pauseVideo' }),
-          '*'
-        );
-      } catch (error) {
-        console.error('Error pausing YouTube iframe:', error);
-      }
-    }
-
-    // Fermer tous les lecteurs SoundCloud actifs
-    const activeSoundcloudIframe = document.querySelector(
-      `iframe[id="soundcloud-iframe-${activeTrackId}"]`
-    );
-    if (
-      activeSoundcloudIframe instanceof HTMLIFrameElement &&
-      activeSoundcloudIframe.contentWindow
-    ) {
-      try {
-        activeSoundcloudIframe.contentWindow.postMessage('{"method":"pause"}', '*');
-      } catch (error) {
-        console.error('Error pausing SoundCloud iframe:', error);
-      }
-    }
-
-    // Réinitialiser l'état de lecture
-    setCurrentTrack(null);
-    setIsPlaying(false);
-  };
-
-  // Trouver l'index du morceau actuel dans la liste filtrée
-  const getCurrentTrackIndex = () => {
-    if (!currentTrack) return -1;
-    return filteredTracks.findIndex((track) => track.id === currentTrack.id);
-  };
-
-  // Jouer la piste suivante
-  const playNextTrack = () => {
-    if (!currentTrack) return;
-
-    console.log('Play next track, current track:', currentTrack);
-    const currentIndex = filteredTracks.findIndex((track) => track.id === currentTrack.id);
-    if (currentIndex === -1 || currentIndex === null) return;
-
-    const nextIndex = (currentIndex + 1) % filteredTracks.length;
-    console.log('Next index:', nextIndex, 'Next track:', filteredTracks[nextIndex]);
-
-    // Définir la piste suivante et commencer la lecture
-    setCurrentTrack(filteredTracks[nextIndex]);
-    setIsPlaying(true);
-
-    // Mettre à jour l'UI après un court délai
-    setTimeout(() => {
-      const cardElement = document.getElementById(`music-card-${filteredTracks[nextIndex].id}`);
-      if (cardElement && cardElement instanceof HTMLElement) {
-        cardElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        setActiveCard(cardElement);
-      }
-
-      // Appliquer le volume actuel
-      const currentVolume = localStorage.getItem('global-music-volume');
-      if (currentVolume) {
-        setGlobalVolume(parseFloat(currentVolume));
-      }
-    }, 300);
-  };
-
-  // Jouer la piste précédente
-  const playPrevTrack = () => {
-    if (!currentTrack) return;
-
-    console.log('Play previous track, current track:', currentTrack);
-    const currentIndex = filteredTracks.findIndex((track) => track.id === currentTrack.id);
-    if (currentIndex === -1 || currentIndex === null) return;
-
-    const prevIndex = (currentIndex - 1 + filteredTracks.length) % filteredTracks.length;
-    console.log('Previous index:', prevIndex, 'Previous track:', filteredTracks[prevIndex]);
-
-    // Définir la piste précédente et commencer la lecture
-    setCurrentTrack(filteredTracks[prevIndex]);
-    setIsPlaying(true);
-
-    // Mettre à jour l'UI après un court délai
-    setTimeout(() => {
-      const cardElement = document.getElementById(`music-card-${filteredTracks[prevIndex].id}`);
-      if (cardElement && cardElement instanceof HTMLElement) {
-        cardElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        setActiveCard(cardElement);
-      }
-
-      // Appliquer le volume actuel
-      const currentVolume = localStorage.getItem('global-music-volume');
-      if (currentVolume) {
-        setGlobalVolume(parseFloat(currentVolume));
-      }
-    }, 300);
-  };
+  // Jouer précédent (appelé par SimpleMusicPlayer)
+  const handlePlayPrev = useCallback(() => {
+    dispatch({ type: 'PLAY_PREV' });
+  }, []);
 
   return (
     <div className="min-h-screen pt-24 pb-36 px-4 relative">
@@ -496,7 +402,7 @@ export default function MusicPage() {
                       <MusicCard
                         key={track.id}
                         track={track}
-                        onPlay={playTrack}
+                        onPlay={handlePlayTrack}
                         isPlaying={isPlaying}
                         isActive={currentTrack?.id === track.id}
                       />
@@ -520,7 +426,7 @@ export default function MusicPage() {
                     <MusicCard
                       key={track.id}
                       track={track}
-                      onPlay={playTrack}
+                      onPlay={handlePlayTrack}
                       isPlaying={isPlaying}
                       isActive={currentTrack?.id === track.id}
                     />
@@ -536,10 +442,10 @@ export default function MusicPage() {
         <SimpleMusicPlayer
           track={currentTrack}
           isPlaying={isPlaying}
-          onClose={closePlayer}
-          onTogglePlay={toggleFooterPlay}
-          onNextTrack={filteredTracks.length > 1 ? playNextTrack : undefined}
-          onPrevTrack={filteredTracks.length > 1 ? playPrevTrack : undefined}
+          onClose={handleClosePlayer}
+          onTogglePlay={handleTogglePlayPause}
+          onNextTrack={filteredTracks.length > 1 ? handlePlayNext : undefined}
+          onPrevTrack={filteredTracks.length > 1 ? handlePlayPrev : undefined}
         />
       )}
     </div>

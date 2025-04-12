@@ -1,3 +1,5 @@
+import '@testing-library/jest-dom';
+
 // Optional: configure or set up a testing framework before each test.
 // If you delete this file, remove `setupFilesAfterEnv` from `jest.config.js`
 
@@ -12,6 +14,36 @@ jest.mock('next/image', () => ({
     return <img {...props} />;
   },
 }));
+
+// Mock framer-motion
+jest.mock('framer-motion', () => {
+  const mockComponent = (type) => {
+    const component = (props) => {
+      const { children, ...rest } = props;
+      return require('react').createElement(type, rest, children);
+    };
+    component.displayName = `motion.${type}`;
+    return component;
+  };
+
+  return {
+    __esModule: true,
+    motion: {
+      div: mockComponent('div'),
+      button: mockComponent('button'),
+      span: mockComponent('span'),
+      p: mockComponent('p'),
+      a: mockComponent('a'),
+      h1: mockComponent('h1'),
+      h2: mockComponent('h2'),
+      h3: mockComponent('h3'),
+    },
+    AnimatePresence: ({ children }) => children,
+    useAnimation: () => ({ start: jest.fn() }),
+    useMotionValue: (initial) => ({ get: () => initial, set: jest.fn() }),
+    useTransform: () => ({ get: () => 0, set: jest.fn() }),
+  };
+});
 
 // Mock matchMedia
 Object.defineProperty(window, 'matchMedia', {

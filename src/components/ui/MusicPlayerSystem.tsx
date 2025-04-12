@@ -314,7 +314,12 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h3 className="text-white font-bold text-sm truncate">{track.title}</h3>
+                  <h3
+                    data-testid="footer-track-title"
+                    className="text-white font-bold text-sm truncate"
+                  >
+                    {track.title}
+                  </h3>
                   <p className="text-gray-400 text-xs truncate">{track.artist}</p>
                 </div>
               </div>
@@ -342,6 +347,7 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
                 {onPrevTrack && (
                   <button
                     onClick={onPrevTrack}
+                    data-testid="system-prev-button"
                     className="p-2 text-gray-400 hover:text-gray-200 transition-colors"
                     aria-label="Morceau précédent"
                   >
@@ -352,6 +358,7 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
                 {/* Lecture/Pause */}
                 <button
                   onClick={onTogglePlay}
+                  data-testid="system-play-button"
                   className="p-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-full transition-all transform hover:scale-105"
                   aria-label={isPlaying ? 'Pause' : 'Lecture'}
                 >
@@ -362,6 +369,7 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
                 {onNextTrack && (
                   <button
                     onClick={onNextTrack}
+                    data-testid="system-next-button"
                     className="p-2 text-gray-400 hover:text-gray-200 transition-colors"
                     aria-label="Morceau suivant"
                   >
@@ -373,6 +381,7 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
                 {selectedPlatform === 'youtube' && (
                   <button
                     onClick={openYoutubePlayer}
+                    data-testid="system-youtube-button"
                     className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-full transition-all transform hover:scale-105"
                     aria-label="Ouvrir YouTube"
                   >
@@ -383,6 +392,7 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
                 {/* Plein écran */}
                 <button
                   onClick={() => setIsFullScreen(true)}
+                  data-testid="system-fullscreen-button"
                   className="p-2 text-gray-400 hover:text-gray-200 transition-colors"
                   aria-label="Agrandir le lecteur"
                 >
@@ -392,6 +402,7 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
                 {/* Fermer */}
                 <button
                   onClick={onClose}
+                  data-testid="system-close-button"
                   className="p-2 text-gray-400 hover:text-gray-200 transition-colors"
                   aria-label="Fermer le lecteur"
                 >
@@ -455,7 +466,12 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
                     )}
                   </div>
 
-                  <h1 className="text-2xl font-bold text-white mb-2 text-center">{track.title}</h1>
+                  <h1
+                    className="text-2xl font-bold text-white mb-2 text-center"
+                    data-testid="fullscreen-track-title"
+                  >
+                    {track.title}
+                  </h1>
                   <p className="text-gray-400 mb-4 text-center">{track.artist}</p>
 
                   <div className="flex flex-wrap justify-center gap-2 mb-4">
@@ -503,6 +519,7 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
                   </button>
                   <div className="relative w-32 md:w-48 h-2 bg-gray-800 rounded-full overflow-hidden">
                     <div
+                      data-testid="system-volume-slider"
                       className="h-full bg-gradient-to-r from-purple-600 to-blue-500 rounded-full"
                       style={{ width: `${muted ? 0 : volume}%` }}
                     ></div>
@@ -585,6 +602,7 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
                   {onPrevTrack && (
                     <button
                       onClick={onPrevTrack}
+                      data-testid="system-fullscreen-prev-button"
                       className="p-3 bg-gray-800/70 hover:bg-gray-700/80 text-gray-300 rounded-full"
                       aria-label="Morceau précédent"
                     >
@@ -594,6 +612,7 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
 
                   <button
                     onClick={onTogglePlay}
+                    data-testid="system-fullscreen-play-button"
                     className="p-5 bg-purple-600 hover:bg-purple-700 text-white rounded-full"
                     aria-label={isPlaying ? 'Pause' : 'Lecture'}
                   >
@@ -607,6 +626,7 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
                   {onNextTrack && (
                     <button
                       onClick={onNextTrack}
+                      data-testid="system-fullscreen-next-button"
                       className="p-3 bg-gray-800/70 hover:bg-gray-700/80 text-gray-300 rounded-full"
                       aria-label="Morceau suivant"
                     >
