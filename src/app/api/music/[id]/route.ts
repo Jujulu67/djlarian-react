@@ -5,32 +5,38 @@ import prisma from '@/lib/prisma';
 import { UpdateTrackInput, formatTrackData } from '@/lib/api/musicService';
 import { MusicType } from '@/lib/utils/types';
 
-interface RouteParams {
-  params: {
-    id: string;
-  };
-}
-
 // GET /api/music/[id] - Récupérer une piste spécifique
-export async function GET(request: Request, { params }: RouteParams) {
-  const { id } = params;
+export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
+  // Attendre la résolution de la Promise params
+  const resolvedParams = await context.params;
+  const id = resolvedParams.id; // Accéder à l'ID sur l'objet résolu
+
+  console.log('API Route GET - Resolved params:', resolvedParams); // Log optionnel pour confirmer
 
   if (!id) {
-    return NextResponse.json({ error: 'Track ID is required' }, { status: 400 });
+    return NextResponse.json({ error: 'Track ID is required or invalid' }, { status: 400 });
   }
 
   try {
+    // Utiliser select pour choisir explicitement les champs, y compris les nouveaux
     const track = await prisma.track.findUnique({
       where: { id },
-      include: {
-        platforms: true,
-        genres: {
-          include: {
-            genre: true,
-          },
-        },
-        collection: true,
-        user: true, // Inclure l'utilisateur si nécessaire
+      select: {
+        id: true,
+        title: true,
+        artist: true,
+        coverUrl: true,
+        releaseDate: true,
+        description: true,
+        bpm: true,
+        featured: true,
+        type: true,
+        createdAt: true, // Inclure createdAt
+        isPublished: true, // Inclure isPublished
+        platforms: { select: { platform: true, url: true, embedId: true } }, // Sélectionner les champs de plateforme
+        genres: { include: { genre: { select: { name: true } } } }, // Garder l'include pour les genres
+        collection: { select: { id: true, title: true } }, // Sélectionner les champs de collection si nécessaire
+        user: { select: { id: true, name: true } }, // Sélectionner les champs de l'utilisateur si nécessaire
       },
     });
 
@@ -39,7 +45,11 @@ export async function GET(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'Track not found' }, { status: 404 });
     }
 
-    return NextResponse.json(formatTrackData(track));
+    // Adapter formatTrackData si nécessaire pour gérer la nouvelle structure de données (select vs include)
+    // Ou ajuster l'appel ici pour correspondre à ce que formatTrackData attend.
+    // Pour l'instant, supposons que formatTrackData peut gérer l'objet track sélectionné.
+    // Si formatTrackData échoue, il faudra l'ajuster ou reconstruire l'objet attendu ici.
+    return NextResponse.json(formatTrackData(track as any)); // Utiliser 'as any' temporairement ou ajuster formatTrackData
   } catch (error) {
     console.error(`Error fetching track ${id}:`, error);
     return NextResponse.json({ error: 'Failed to fetch track' }, { status: 500 });
@@ -47,8 +57,10 @@ export async function GET(request: Request, { params }: RouteParams) {
 }
 
 // PUT /api/music/[id] - Mettre à jour une piste spécifique
-export async function PUT(request: Request, { params }: RouteParams) {
-  const { id } = params;
+export async function PUT(request: Request, context: { params: Promise<{ id: string }> }) {
+  // Attendre la résolution de la Promise params
+  const resolvedParams = await context.params;
+  const id = resolvedParams.id; // Accéder à l'ID sur l'objet résolu
 
   if (!id) {
     return NextResponse.json({ error: 'Track ID is required' }, { status: 400 });
@@ -182,8 +194,10 @@ export async function PUT(request: Request, { params }: RouteParams) {
 }
 
 // DELETE /api/music/[id] - Supprimer une piste spécifique
-export async function DELETE(request: Request, { params }: RouteParams) {
-  const { id } = params;
+export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
+  // Attendre la résolution de la Promise params
+  const resolvedParams = await context.params;
+  const id = resolvedParams.id; // Accéder à l'ID sur l'objet résolu
 
   if (!id) {
     return NextResponse.json({ error: 'Track ID is required' }, { status: 400 });

@@ -35,6 +35,8 @@ export interface Track {
       embedId?: string;
     };
   };
+  createdAt?: string;
+  isPublished?: boolean;
 }
 
 export interface Event {

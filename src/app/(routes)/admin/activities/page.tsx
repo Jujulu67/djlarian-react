@@ -15,6 +15,7 @@ import {
 import prisma from '@/lib/prisma';
 import { format, formatDistanceToNow, isToday, isYesterday, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { Suspense } from 'react';
 
 // Définir un type pour les activités pour plus de clarté
 type ActivityType = 'event' | 'track' | 'ticket';
@@ -40,11 +41,71 @@ const formatGroupDate = (dateString: string) => {
   return format(date, 'eeee d MMMM yyyy', { locale: fr });
 };
 
-// Props incluant searchParams pour les filtres et la pagination
+// Composant de pagination moderne avec simple HTML
+function ModernPagination({
+  currentPage,
+  totalPages,
+  baseUrl,
+}: {
+  currentPage: number;
+  totalPages: number;
+  baseUrl: string;
+}) {
+  // Fonction pour générer l'URL de pagination
+  const getPageUrl = (page: number) => {
+    if (baseUrl.includes('?')) {
+      return `${baseUrl}&page=${page}`;
+    }
+    return `${baseUrl}?page=${page}`;
+  };
+
+  // Ne rien afficher s'il n'y a pas besoin de pagination
+  if (totalPages <= 1) return null;
+
+  return (
+    <div className="flex items-center justify-center mt-8 space-x-4">
+      {/* Navigation précédent */}
+      {currentPage <= 1 ? (
+        <span className="w-10 h-10 flex items-center justify-center rounded-full bg-black/40 text-gray-500 cursor-not-allowed">
+          <ChevronLeft className="h-5 w-5" />
+        </span>
+      ) : (
+        <a
+          href={getPageUrl(currentPage - 1)}
+          className="w-10 h-10 flex items-center justify-center rounded-full bg-purple-900/50 text-white hover:bg-purple-800 transition-all"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </a>
+      )}
+
+      {/* Indicateur de page */}
+      <span className="text-sm text-gray-300 font-medium">
+        Page {currentPage} sur {totalPages}
+      </span>
+
+      {/* Navigation suivant */}
+      {currentPage >= totalPages ? (
+        <span className="w-10 h-10 flex items-center justify-center rounded-full bg-black/40 text-gray-500 cursor-not-allowed">
+          <ChevronRight className="h-5 w-5" />
+        </span>
+      ) : (
+        <a
+          href={getPageUrl(currentPage + 1)}
+          className="w-10 h-10 flex items-center justify-center rounded-full bg-purple-900/50 text-white hover:bg-purple-800 transition-all"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </a>
+      )}
+    </div>
+  );
+}
+
+// Revenir au type standard pour searchParams
 export default async function AdminActivitiesPage({
   searchParams,
 }: {
   searchParams?: {
+    // Rendre optionnel et objet standard
     type?: string;
     page?: string;
     limit?: string;
@@ -56,10 +117,13 @@ export default async function AdminActivitiesPage({
     redirect('/');
   }
 
-  // Accéder aux searchParams de manière asynchrone
-  const filterType = searchParams?.type ? String(searchParams.type) : undefined;
-  const currentPage = searchParams?.page ? String(searchParams.page) : '1';
-  const currentLimit = searchParams?.limit ? String(searchParams.limit) : '10';
+  // Attendre d'abord searchParams lui-même avant d'accéder à ses propriétés
+  const resolvedSearchParams = await searchParams;
+
+  // Utiliser les valeurs depuis l'objet résolu
+  const filterType = resolvedSearchParams?.type;
+  const currentPage = resolvedSearchParams?.page || '1';
+  const currentLimit = resolvedSearchParams?.limit || '10';
 
   const page = parseInt(currentPage, 10);
   const limit = parseInt(currentLimit, 10);
@@ -194,7 +258,7 @@ export default async function AdminActivitiesPage({
           ? `L'événement "${data.title}" a été créé`
           : 'Un nouvel événement a été créé';
         icon = CalendarDays;
-        href = data.id ? `/admin/events/${data.id}/detail` : undefined;
+        href = data.id ? `/admin/events/${data.id}` : undefined;
         break;
       case 'track':
         activityTitle = 'Nouveau morceau ajouté';
@@ -210,7 +274,6 @@ export default async function AdminActivitiesPage({
           ? `Billets configurés pour "${data.title}"`
           : 'Billets configurés pour un événement';
         icon = Ticket;
-        // Lien vers l'événement associé
         href = data.eventId ? `/admin/events/${data.eventId}` : undefined;
         break;
     }
@@ -255,23 +318,24 @@ export default async function AdminActivitiesPage({
       : `${baseClass} bg-gray-700/50 text-gray-300 hover:bg-gray-600/70 hover:text-white`;
   };
 
-  // Fonction pour générer l'URL de pagination (corrigée et simplifiée)
-  const getPageUrl = (newPage: number) => {
-    const params = new URLSearchParams();
-    // Conserver le filtre de type s'il est présent
+  // Construire l'URL de base pour la pagination
+  const getPaginationBaseUrl = () => {
+    let baseUrl = '/admin/activities';
     if (filterType) {
-      // Utiliser la variable déjà lue
-      params.set('type', filterType);
+      baseUrl += `?type=${filterType}`;
     }
-    // Définir la nouvelle page
-    params.set('page', newPage.toString());
-    return `/admin/activities?${params.toString()}`;
+    if (currentLimit !== '10') {
+      baseUrl += (baseUrl.includes('?') ? '&' : '?') + `limit=${currentLimit}`;
+    }
+    return baseUrl;
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-[#0c0117] to-black text-white">
-      <div className="container mx-auto px-4 py-12">
-        {/* Lien Retour */}
+    <div className="p-4 md:p-8 min-h-screen bg-gradient-radial from-gray-950 to-black text-white">
+      <div className="max-w-7xl mx-auto">
+        {/* Structure réorganisée en 3 sections distinctes et séparées */}
+
+        {/* 1. Lien de retour - Toujours en haut et à gauche */}
         <div className="mb-4">
           <Link
             href="/admin"
@@ -282,7 +346,7 @@ export default async function AdminActivitiesPage({
           </Link>
         </div>
 
-        {/* En-tête */}
+        {/* 2. En-tête principal avec titre - Centré, occupe toute la largeur */}
         <div className="mb-6 flex flex-col items-center">
           <div className="flex items-center mb-4">
             <Clock className="h-10 w-10 mr-4 text-purple-400" />
@@ -293,7 +357,7 @@ export default async function AdminActivitiesPage({
           <div className="bg-purple-500/30 h-1 w-40 mx-auto rounded-full mb-6"></div>
         </div>
 
-        {/* Filtres */}
+        {/* 3. Filtres - Section dédiée en dessous du titre */}
         <div className="mb-8 flex justify-center items-center space-x-3 bg-black/20 p-3 rounded-xl backdrop-blur-sm border border-purple-500/10">
           <Filter className="w-5 h-5 text-purple-400 mr-2" />
           <Link href="/admin/activities" className={getFilterButtonClass(undefined)}>
@@ -315,72 +379,86 @@ export default async function AdminActivitiesPage({
           <div className="absolute inset-0 bg-gradient-to-b from-purple-900/5 to-black/20"></div>
           <div className="relative z-10 space-y-6">
             {Object.keys(groupedActivities).length > 0 ? (
-              Object.entries(groupedActivities).map(([dateKey, activities]) => (
-                <div key={dateKey}>
-                  <h4 className="text-sm font-semibold text-purple-300 mb-2 sticky top-0 bg-[#0c0117]/80 backdrop-blur-sm py-1 px-2 rounded -mx-2">
-                    {formatGroupDate(dateKey)}
-                  </h4>
-                  <div className="space-y-3">
-                    {activities.map((activity) => {
-                      const Icon = activity.icon;
-                      const relativeDate = formatDistanceToNow(activity.date, {
-                        addSuffix: true,
-                        locale: fr,
-                      });
-                      let bgColorClass = 'bg-gray-500/20';
-                      let textColorClass = 'text-gray-400';
-                      if (activity.type === 'event') {
-                        bgColorClass = 'bg-purple-500/20';
-                        textColorClass = 'text-purple-400';
-                      } else if (activity.type === 'track') {
-                        bgColorClass = 'bg-blue-500/20';
-                        textColorClass = 'text-blue-400';
-                      } else if (activity.type === 'ticket') {
-                        bgColorClass = 'bg-pink-500/20';
-                        textColorClass = 'text-pink-400';
-                      }
+              <>
+                {/* Contenu des activités regroupées par jour */}
+                {Object.entries(groupedActivities).map(([dateKey, activities]) => (
+                  <div key={dateKey}>
+                    <h4 className="text-sm font-semibold text-purple-300 mb-2 sticky top-0 bg-black/60 backdrop-blur-sm py-2 px-3 rounded border-l-2 border-purple-400 -mx-2">
+                      {formatGroupDate(dateKey)}
+                    </h4>
+                    <div className="space-y-3">
+                      {activities.map((activity) => {
+                        const Icon = activity.icon;
+                        const relativeDate = formatDistanceToNow(activity.date, {
+                          addSuffix: true,
+                          locale: fr,
+                        });
+                        let bgColorClass = 'bg-gray-500/20';
+                        let textColorClass = 'text-gray-400';
+                        if (activity.type === 'event') {
+                          bgColorClass = 'bg-purple-500/20';
+                          textColorClass = 'text-purple-400';
+                        } else if (activity.type === 'track') {
+                          bgColorClass = 'bg-blue-500/20';
+                          textColorClass = 'text-blue-400';
+                        } else if (activity.type === 'ticket') {
+                          bgColorClass = 'bg-pink-500/20';
+                          textColorClass = 'text-pink-400';
+                        }
 
-                      const ActivityContent = () => (
-                        <div className="flex items-center flex-grow min-w-0 mr-4">
-                          <div className={`p-2 rounded-lg mr-4 flex-shrink-0 ${bgColorClass}`}>
-                            <Icon className={`h-6 w-6 ${textColorClass}`} />
+                        const ActivityContent = () => (
+                          <div className="flex items-center flex-grow min-w-0 mr-4">
+                            <div className={`p-2 rounded-lg mr-4 flex-shrink-0 ${bgColorClass}`}>
+                              <Icon className={`h-6 w-6 ${textColorClass}`} />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-white font-medium flex items-center truncate">
+                                {activity.title}
+                              </p>
+                              <p className="text-sm text-gray-400 truncate">
+                                {activity.description}
+                              </p>
+                            </div>
                           </div>
-                          <div className="min-w-0">
-                            <p className="text-white font-medium flex items-center truncate">
-                              {activity.title}
-                            </p>
-                            <p className="text-sm text-gray-400 truncate">{activity.description}</p>
-                          </div>
-                        </div>
-                      );
+                        );
 
-                      return activity.href ? (
-                        <Link
-                          key={activity.id}
-                          href={activity.href}
-                          scroll={false}
-                          className={`bg-black/40 p-4 rounded-lg flex items-center justify-between transition-colors duration-200 hover:bg-black/60 cursor-pointer`}
-                        >
-                          <ActivityContent />
-                          <span className="text-sm text-gray-500 flex-shrink-0 ml-auto pl-4">
-                            {relativeDate}
-                          </span>
-                        </Link>
-                      ) : (
-                        <div
-                          key={activity.id}
-                          className={`bg-black/40 p-4 rounded-lg flex items-center justify-between cursor-default`}
-                        >
-                          <ActivityContent />
-                          <span className="text-sm text-gray-500 flex-shrink-0 ml-auto pl-4">
-                            {relativeDate}
-                          </span>
-                        </div>
-                      );
-                    })}
+                        return activity.href ? (
+                          <Link
+                            key={activity.id}
+                            href={activity.href}
+                            scroll={false}
+                            className={`bg-black/40 p-4 rounded-lg flex items-center justify-between transition-colors duration-200 hover:bg-black/60 cursor-pointer`}
+                          >
+                            <ActivityContent />
+                            <span className="text-sm text-gray-500 flex-shrink-0 ml-auto pl-4">
+                              {relativeDate}
+                            </span>
+                          </Link>
+                        ) : (
+                          <div
+                            key={activity.id}
+                            className={`bg-black/40 p-4 rounded-lg flex items-center justify-between cursor-default`}
+                          >
+                            <ActivityContent />
+                            <span className="text-sm text-gray-500 flex-shrink-0 ml-auto pl-4">
+                              {relativeDate}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              ))
+                ))}
+
+                {/* Pagination moderne à afficher après le contenu s'il y a plus d'une page */}
+                {totalPages > 1 && (
+                  <ModernPagination
+                    currentPage={page}
+                    totalPages={totalPages}
+                    baseUrl={getPaginationBaseUrl()}
+                  />
+                )}
+              </>
             ) : (
               <div className="bg-black/30 p-4 rounded-lg text-center">
                 <p className="text-gray-400">
@@ -390,33 +468,6 @@ export default async function AdminActivitiesPage({
               </div>
             )}
           </div>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="mt-8 pt-6 border-t border-purple-500/20 flex justify-between items-center">
-              <Link
-                href={getPageUrl(page - 1)}
-                className={`inline-flex items-center px-4 py-2 border border-purple-500/30 text-sm font-medium rounded-md text-purple-300 bg-black/30 hover:bg-purple-900/40 transition-colors ${page <= 1 ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
-                aria-disabled={page <= 1}
-                tabIndex={page <= 1 ? -1 : undefined}
-              >
-                <ChevronLeft className="mr-2 h-5 w-5" />
-                Précédent
-              </Link>
-              <span className="text-sm text-gray-400">
-                Page {page} sur {totalPages}
-              </span>
-              <Link
-                href={getPageUrl(page + 1)}
-                className={`inline-flex items-center px-4 py-2 border border-purple-500/30 text-sm font-medium rounded-md text-purple-300 bg-black/30 hover:bg-purple-900/40 transition-colors ${page >= totalPages ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
-                aria-disabled={page >= totalPages}
-                tabIndex={page >= totalPages ? -1 : undefined}
-              >
-                Suivant
-                <ChevronRight className="ml-2 h-5 w-5" />
-              </Link>
-            </div>
-          )}
         </div>
       </div>
     </div>

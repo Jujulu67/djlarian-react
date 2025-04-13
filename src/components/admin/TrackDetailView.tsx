@@ -95,9 +95,6 @@ export default function TrackDetailView({ trackId, onClose }: TrackDetailViewPro
   const formattedReleaseDate = track.releaseDate
     ? format(new Date(track.releaseDate), 'd MMMM yyyy', { locale: fr })
     : 'N/A';
-  const formattedCreatedAt = track.createdAt
-    ? format(new Date(track.createdAt), 'd MMM yyyy HH:mm', { locale: fr })
-    : 'Date inconnue';
   const genres = track.genre?.join(', ') || 'Aucun';
 
   return (
@@ -108,14 +105,14 @@ export default function TrackDetailView({ trackId, onClose }: TrackDetailViewPro
           <Image
             src={track.coverUrl}
             alt={`Pochette de ${track.title}`}
-            width={250} // Taille réduite pour la modale
-            height={250}
+            width={300}
+            height={300}
             className="rounded-lg shadow-lg mb-6 aspect-square object-cover border-2 border-purple-500/30"
             priority
           />
         ) : (
-          <div className="w-full h-[250px] bg-gray-800/50 rounded-lg flex items-center justify-center mb-6 border-2 border-purple-500/30">
-            <Music className="w-16 h-16 text-gray-500" />
+          <div className="w-[300px] h-[300px] bg-gray-800/50 rounded-lg flex items-center justify-center mb-6 border-2 border-purple-500/30">
+            <Music className="w-20 h-20 text-gray-500" />
           </div>
         )}
         <div className="text-center">
@@ -134,82 +131,98 @@ export default function TrackDetailView({ trackId, onClose }: TrackDetailViewPro
         </h1>
         <div className="bg-purple-500/30 h-0.5 w-16 rounded-full mb-6"></div>
 
-        <div className="space-y-3 text-gray-300 mb-6">
+        <div className="space-y-4 text-gray-300 mb-8">
           <div className="flex items-center">
             <Calendar className="w-4 h-4 mr-3 text-purple-400 flex-shrink-0" />
-            <span>Date de sortie: {formattedReleaseDate}</span>
+            <span>
+              <span className="font-semibold text-gray-200">Date de sortie:</span>{' '}
+              <span className="text-gray-400">{formattedReleaseDate}</span>
+            </span>
           </div>
           <div className="flex items-center">
             <Tag className="w-4 h-4 mr-3 text-purple-400 flex-shrink-0" />
-            <span>Genre(s): {genres}</span>
+            <span>
+              <span className="font-semibold text-gray-200">Genre(s):</span>{' '}
+              <span className="text-gray-400">{genres}</span>
+            </span>
           </div>
           {track.description && (
             <div className="flex items-start">
               <Info className="w-4 h-4 mr-3 mt-1 text-purple-400 flex-shrink-0" />
-              <p className="whitespace-pre-wrap text-sm">{track.description}</p>
+              <p className="whitespace-pre-wrap text-sm text-gray-300">{track.description}</p>
             </div>
           )}
           <div className="flex items-center">
-            {track.hasOwnProperty('isPublished') ? (
-              track.isPublished ? (
-                <CheckCircle className="w-4 h-4 mr-3 text-green-400 flex-shrink-0" />
-              ) : (
-                <XCircle className="w-4 h-4 mr-3 text-red-400 flex-shrink-0" />
-              )
-            ) : null}
+            {track.isPublished === true ? (
+              <CheckCircle className="w-4 h-4 mr-3 text-green-400 flex-shrink-0" />
+            ) : track.isPublished === false ? (
+              <XCircle className="w-4 h-4 mr-3 text-red-400 flex-shrink-0" />
+            ) : (
+              <Info className="w-4 h-4 mr-3 text-gray-500 flex-shrink-0" />
+            )}
             <span className="text-sm">
-              Statut:{' '}
-              {track.hasOwnProperty('isPublished')
-                ? track.isPublished
+              <span className="font-semibold text-gray-200">Statut:</span>{' '}
+              <span className="text-gray-400">
+                {track.isPublished === true
                   ? 'Publié'
-                  : 'Non publié'
-                : 'Inconnu'}
+                  : track.isPublished === false
+                    ? 'Non publié'
+                    : 'Inconnu'}
+              </span>
             </span>
           </div>
           {track.featured && (
             <div className="flex items-center">
               <CheckCircle className="w-4 h-4 mr-3 text-yellow-400 flex-shrink-0" />
-              <span className="text-sm">Mis en avant</span>
+              <span className="text-sm font-semibold text-gray-200">Mis en avant</span>
             </div>
           )}
-          {/* Afficher l'utilisateur si nécessaire (à adapter selon le type Track) */}
-          {/* {track.user && (...) } */}
           <div className="flex items-center">
             <Clock className="w-4 h-4 mr-3 text-purple-400 flex-shrink-0" />
-            <span className="text-sm">Ajouté le: {formattedCreatedAt}</span>
+            <span className="text-sm">
+              <span className="font-semibold text-gray-200">Ajouté le:</span>{' '}
+              <span className="text-gray-400">
+                {track.createdAt
+                  ? format(new Date(track.createdAt), 'd MMM yyyy HH:mm', { locale: fr })
+                  : 'Date inconnue'}
+              </span>
+            </span>
           </div>
         </div>
 
-        {/* Plateformes */}
-        <h2 className="text-xl font-semibold text-white mb-3">Plateformes</h2>
-        {track.platforms &&
-        typeof track.platforms === 'object' &&
-        Object.keys(track.platforms).length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {Object.entries(track.platforms)
-              .filter(([_, platformData]) => platformData?.url) // Filtrer celles qui ont une URL
-              .map(([platformKey, platformData]) => {
-                const Icon = platformIcons[platformKey] || Music;
-                return (
-                  <a
-                    key={platformKey}
-                    href={platformData!.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="bg-black/30 p-3 rounded-lg flex items-center justify-between hover:bg-black/50 transition-colors"
-                  >
-                    <div className="flex items-center">
-                      <Icon className="w-5 h-5 mr-2" />
-                      <span className="capitalize text-sm">{platformKey}</span>
-                    </div>
-                    <ExternalLink className="w-4 h-4 text-gray-400" />
-                  </a>
-                );
-              })}
-          </div>
-        ) : (
-          <p className="text-gray-500 italic text-sm">Aucune plateforme liée.</p>
-        )}
+        {/* Plateformes Groupbox */}
+        <div className="mt-8 p-4 border border-purple-500/30 rounded-lg bg-black/20 relative">
+          <h2 className="text-xl font-semibold text-white mb-4">Plateformes</h2>
+
+          {track.platforms &&
+          typeof track.platforms === 'object' &&
+          Object.keys(track.platforms).length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {Object.entries(track.platforms)
+                .filter(([_, platformData]) => platformData?.url)
+                .map(([platformKey, platformData]) => {
+                  const Icon = platformIcons[platformKey] || Music;
+                  return (
+                    <a
+                      key={platformKey}
+                      href={platformData!.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-black/30 p-3 rounded-lg flex items-center justify-between border border-transparent hover:border-purple-500/50 hover:bg-black/40 transition-all duration-200"
+                    >
+                      <div className="flex items-center">
+                        <Icon className="w-5 h-5 mr-2" />
+                        <span className="capitalize text-sm text-gray-200">{platformKey}</span>
+                      </div>
+                      <ExternalLink className="w-4 h-4 text-gray-400" />
+                    </a>
+                  );
+                })}
+            </div>
+          ) : (
+            <p className="text-gray-500 italic text-sm">Aucune plateforme liée.</p>
+          )}
+        </div>
       </div>
     </div>
   );
