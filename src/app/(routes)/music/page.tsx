@@ -1,13 +1,60 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Track, MusicType } from '@/lib/utils/types';
 import MusicCard from '@/components/ui/MusicCard';
 import SimpleMusicPlayer from '@/components/ui/SimpleMusicPlayer';
 import { Filter, Search, Zap, ChevronDown, Music, Loader } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
-import { setGlobalVolume } from '@/components/ui/SimpleMusicPlayer';
+import { sendPlayerCommand } from '@/lib/utils/audioUtils';
+
+// Helper function for locking mechanism
+const withLock = async (
+  lockRef: React.MutableRefObject<boolean>,
+  action: () => Promise<void> | void,
+  delay: number = 500 // Default delay
+) => {
+  if (lockRef.current) {
+    console.log('Action bloquée: Verrou actif.');
+    return;
+  }
+  lockRef.current = true;
+  console.log('Verrou activé.');
+  try {
+    await action();
+  } catch (error) {
+    console.error("Erreur pendant l'action verrouillée:", error);
+  } finally {
+    setTimeout(() => {
+      lockRef.current = false;
+      console.log('Verrou désactivé après délai.');
+    }, delay);
+  }
+};
+
+// Helper function to find an iframe with retries
+const findIframeWithRetry = async (
+  trackId: string,
+  platform: 'youtube' | 'soundcloud',
+  retries: number = 5,
+  delay: number = 100 // Increased delay slightly
+): Promise<HTMLIFrameElement | null> => {
+  const selector = `iframe[id="${platform}-iframe-${trackId}"]`;
+  for (let i = 0; i < retries; i++) {
+    const iframe = document.querySelector<HTMLIFrameElement>(selector);
+    if (iframe) {
+      console.log(`findIframeWithRetry: Iframe ${selector} trouvé après ${i + 1} tentatives.`);
+      return iframe;
+    }
+    console.log(
+      `findIframeWithRetry: Tentative ${i + 1}/${retries} pour trouver ${selector}, attente ${delay}ms...`
+    );
+    await new Promise((resolve) => setTimeout(resolve, delay));
+  }
+  console.warn(`findIframeWithRetry: Iframe ${selector} non trouvé après ${retries} tentatives.`);
+  return null;
+};
 
 // Types de musique disponibles
 const MUSIC_TYPES: { label: string; value: MusicType | 'all' }[] = [
@@ -19,6 +66,12 @@ const MUSIC_TYPES: { label: string; value: MusicType | 'all' }[] = [
   { label: 'Live', value: 'live' },
 ];
 
+/**
+ * Music Page Component:
+ * Displays tracks, allows filtering, searching, and playing music via embedded players.
+ * Manages the overall playback state (current track, playing/paused) and coordinates
+ * interactions between MusicCard components and the SimpleMusicPlayer footer.
+ */
 export default function MusicPage() {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [filteredTracks, setFilteredTracks] = useState<Track[]>([]);
@@ -32,10 +85,9 @@ export default function MusicPage() {
   const [activeCard, setActiveCard] = useState<HTMLElement | null>(null);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
-  // Variable globale pour éviter les commandes en cascade
-  let isTogglingPlayback = false;
-  // Verrouillage pour éviter que les événements de l'API YouTube changent l'état
-  let stateLocked = false;
+  // Refs for imperative logic and state management outside of React's render cycle:
+  // - stateLockedRef: Prevents external events or rapid actions during critical state transitions.
+  const stateLockedRef = useRef(false);
 
   // Protéger les lecteurs embedded contre les clics extérieurs
   useEffect(() => {
@@ -137,13 +189,7 @@ export default function MusicPage() {
   }, [tracks, selectedType, searchTerm]);
 
   // Fonction pour jouer un morceau avec gestion simplifiée
-  const playTrack = (track: Track) => {
-    // Ne pas permettre de changer l'état pendant un verrouillage
-    if (stateLocked) {
-      console.log('Demande de lecture ignorée - état verrouillé');
-      return;
-    }
-
+  const playTrack = async (track: Track) => {
     // Si la propriété close est définie, cela signifie que le bouton X de la carte a été cliqué
     // Comportement identique au closePlayer pour fermer complètement le lecteur
     if ('close' in track) {
@@ -151,197 +197,143 @@ export default function MusicPage() {
       return;
     }
 
-    // Si c'est le même morceau, on bascule l'état
+    // Si c'est le même morceau, on bascule l'état (pas besoin de withLock ici, géré par le debounce enfant)
     if (currentTrack && currentTrack.id === track.id) {
       setIsPlaying(!isPlaying);
-
-      // On ne modifie pas la visibilité du lecteur ici, juste l'état de lecture
-      // Le composant MusicCard s'occupe de maintenir le bon affichage
+      // On ne touche plus à stateLockedRef ici
     } else {
-      // Pour un nouveau morceau, on l'active
-      setCurrentTrack(track);
-      setIsPlaying(true);
+      // Pour un nouveau morceau, on l'active avec withLock
+      // Réactivation du withLock
+      withLock(
+        stateLockedRef, // Use the main state lock
+        async () => {
+          console.log(`Sélection d'une nouvelle piste: ${track.title}`); // Garder ce log utile
+          // Arrêter l'ancien lecteur si existant
+          if (currentTrack) {
+            const oldYoutubeIframe = document.querySelector<HTMLIFrameElement>(
+              `iframe[id="youtube-iframe-${currentTrack.id}"]`
+            );
+            const oldSoundcloudIframe = document.querySelector<HTMLIFrameElement>(
+              `iframe[id="soundcloud-iframe-${currentTrack.id}"]`
+            );
+            if (oldYoutubeIframe) sendPlayerCommand(oldYoutubeIframe, 'youtube', 'pause');
+            if (oldSoundcloudIframe) sendPlayerCommand(oldSoundcloudIframe, 'soundcloud', 'pause');
+          }
+
+          setCurrentTrack(track);
+          setIsPlaying(true);
+          // L'index sera mis à jour par l'effet si nécessaire, ou on peut le chercher ici
+          const newIndex = filteredTracks.findIndex((t) => t.id === track.id);
+          setActiveIndex(newIndex >= 0 ? newIndex : null);
+
+          // Determine platform for the new track
+          const newPlatform = track.platforms.youtube
+            ? 'youtube'
+            : track.platforms.soundcloud
+              ? 'soundcloud'
+              : null;
+
+          if (newPlatform) {
+            // Use retry mechanism to find the new iframe
+            const newIframe = await findIframeWithRetry(track.id, newPlatform);
+            if (newIframe) {
+              console.log(
+                `Envoi de la commande play à l'iframe ${newPlatform} trouvé pour ${track.title}`
+              );
+              sendPlayerCommand(newIframe, newPlatform, 'play');
+            } else {
+              console.warn(
+                `Nouvel iframe ${newPlatform} non trouvé pour ${track.title} après plusieurs tentatives.`
+              );
+            }
+          } else {
+            console.warn(
+              `Aucune plateforme de lecteur trouvée pour démarrer la lecture de ${track.title}`
+            );
+          }
+        },
+        150
+      ); // Lock delay 150ms for initiating play with state lock
     }
   };
 
-  // Contrôle de la lecture depuis le footer
+  // Contrôle de la lecture depuis le footer (sans withLock)
   const toggleFooterPlay = () => {
-    if (!currentTrack || isTogglingPlayback) return;
+    if (!currentTrack) return;
 
-    // Activer le verrouillage pour éviter les commandes multiples
-    isTogglingPlayback = true;
-
-    // L'état isPlaying va changer après cette fonction, donc la logique doit être inversée
+    // On se fie au debounce dans SimpleMusicPlayer
     const willPlay = !isPlaying;
-
     console.log(
       `ToggleFooterPlay: Basculement de lecture: ${isPlaying ? 'lecture → pause' : 'pause → lecture'}`
     );
 
-    // PROBLÈME CRITIQUE: Quelque chose change l'état juste après qu'on le définit
-    // Solution: Utiliser setTimeout pour définir l'état après un délai très court
-    // Ce délai permet d'éviter une course entre les mises à jour d'état
-    setTimeout(() => {
-      // Mettre à jour l'état React IMMÉDIATEMENT avant de toucher aux iframes
-      console.log(`Setting isPlaying to ${willPlay} (avec délai de protection)`);
-      setIsPlaying(willPlay);
-    }, 10);
+    // Mettre à jour l'état React IMMÉDIATEMENT
+    console.log(`Setting isPlaying to ${willPlay}`);
+    setIsPlaying(willPlay);
 
-    // Trouver le lecteur YouTube actif
+    // Trouver le lecteur actif
     const activeTrackId = currentTrack.id;
-    const activeYoutubeIframe = document.querySelector(
+    const activeYoutubeIframe = document.querySelector<HTMLIFrameElement>(
       `iframe[id="youtube-iframe-${activeTrackId}"]`
     );
+    const activeSoundcloudIframe = document.querySelector<HTMLIFrameElement>(
+      `iframe[id="soundcloud-iframe-${activeTrackId}"]`
+    );
 
-    // Gestion spéciale pour YouTube
-    if (activeYoutubeIframe instanceof HTMLIFrameElement && activeYoutubeIframe.contentWindow) {
-      try {
-        // 1. Assurer la visibilité du conteneur de l'iframe si on passe en lecture
-        if (willPlay) {
-          const container = activeYoutubeIframe.closest('div');
-          if (container) {
-            container.style.opacity = '1';
-            container.style.pointerEvents = 'auto';
-          }
+    const iframe = activeYoutubeIframe || activeSoundcloudIframe;
+    const playerType = activeYoutubeIframe ? 'youtube' : 'soundcloud';
+
+    if (iframe instanceof HTMLIFrameElement && iframe.contentWindow) {
+      // Assurer la visibilité si on passe en lecture (pour YouTube)
+      if (willPlay && playerType === 'youtube') {
+        const container = iframe.closest('div');
+        if (container) {
+          container.style.opacity = '1';
+          container.style.pointerEvents = 'auto';
         }
-
-        // 2. Envoyer une SEULE commande à YouTube APRÈS un délai pour assurer que l'état React est appliqué
-        setTimeout(() => {
-          if (activeYoutubeIframe.contentWindow) {
-            // Action explicite ici - ce log doit correspondre à l'action effectuée
-            const action = willPlay ? 'playVideo' : 'pauseVideo';
-            console.log(
-              `Envoi de la commande ${action} à l'iframe YouTube pour: ${currentTrack.title}`
-            );
-
-            activeYoutubeIframe.contentWindow.postMessage(
-              JSON.stringify({
-                event: 'command',
-                func: action,
-              }),
-              '*'
-            );
-          }
-
-          // Appliquer le volume après l'action
-          setTimeout(() => {
-            const currentVolume = localStorage.getItem('global-music-volume');
-            if (currentVolume) {
-              setGlobalVolume(parseFloat(currentVolume));
-            }
-
-            // Relâcher le verrouillage après un délai suffisant
-            setTimeout(() => {
-              isTogglingPlayback = false;
-              console.log('Verrou de basculement relâché');
-            }, 500);
-          }, 300);
-        }, 100); // Délai augmenté pour s'assurer que le changement d'état est complété
-      } catch (error) {
-        console.error('Error controlling YouTube iframe:', error);
-        isTogglingPlayback = false;
       }
-    }
-    // Gestion pour SoundCloud
-    else {
-      // Contrôle du lecteur SoundCloud actif
-      const activeSoundcloudIframe = document.querySelector(
-        `iframe[id="soundcloud-iframe-${activeTrackId}"]`
+
+      // Envoyer la commande
+      const action = willPlay ? 'play' : 'pause';
+      console.log(
+        `Envoi de la commande ${action} à l'iframe ${playerType} pour: ${currentTrack.title}`
       );
-
-      if (
-        activeSoundcloudIframe instanceof HTMLIFrameElement &&
-        activeSoundcloudIframe.contentWindow
-      ) {
-        try {
-          // Action explicite ici aussi
-          const method = willPlay ? 'play' : 'pause';
-          console.log(
-            `Envoi de la commande ${method} à l'iframe SoundCloud pour: ${currentTrack.title}`
-          );
-
-          // Attendre un peu avant d'envoyer la commande pour s'assurer que l'état est bien à jour
-          setTimeout(() => {
-            // Commande simple à SoundCloud
-            activeSoundcloudIframe.contentWindow?.postMessage(`{"method":"${method}"}`, '*');
-
-            // Appliquer le volume et relâcher le verrouillage après un délai
-            setTimeout(() => {
-              const currentVolume = localStorage.getItem('global-music-volume');
-              if (currentVolume) {
-                setGlobalVolume(parseFloat(currentVolume));
-              }
-
-              // Relâcher le verrouillage après un délai pour éviter les rebonds
-              setTimeout(() => {
-                isTogglingPlayback = false;
-                console.log('Verrou de basculement relâché (SoundCloud)');
-              }, 500);
-            }, 300);
-          }, 100);
-        } catch (error) {
-          console.error('Error controlling SoundCloud iframe:', error);
-          isTogglingPlayback = false;
-        }
-      } else {
-        // Pas d'iframe trouvé, relâcher le verrouillage
-        setTimeout(() => {
-          isTogglingPlayback = false;
-          console.log("Verrou relâché (pas d'iframe trouvé)");
-        }, 300);
-      }
+      // Envoyer la commande immédiatement, sans verrou ici
+      sendPlayerCommand(iframe, playerType, action);
+    } else {
+      console.warn(`Aucun iframe actif trouvé pour ${currentTrack.title}`);
     }
   };
 
-  // Fermer le lecteur - comportement identique aux boutons X des cartes
+  // Fermer le lecteur (garder withLock avec délai court)
   const closePlayer = () => {
-    if (!currentTrack) return;
+    withLock(
+      stateLockedRef,
+      () => {
+        console.log('Fermeture du lecteur demandée');
+        if (currentTrack) {
+          const activeYoutubeIframe = document.querySelector<HTMLIFrameElement>(
+            `iframe[id="youtube-iframe-${currentTrack.id}"]`
+          );
+          const activeSoundcloudIframe = document.querySelector<HTMLIFrameElement>(
+            `iframe[id="soundcloud-iframe-${currentTrack.id}"]`
+          );
 
-    // Verrouiller temporairement pour éviter les interférences
-    isTogglingPlayback = true;
-    stateLocked = true;
-
-    // Fermer d'abord tous les lecteurs YouTube actifs
-    const activeTrackId = currentTrack.id;
-    const activeYoutubeIframe = document.querySelector(
-      `iframe[id="youtube-iframe-${activeTrackId}"]`
+          if (activeYoutubeIframe) {
+            sendPlayerCommand(activeYoutubeIframe, 'youtube', 'pause');
+          }
+          if (activeSoundcloudIframe) {
+            sendPlayerCommand(activeSoundcloudIframe, 'soundcloud', 'pause');
+          }
+        }
+        setCurrentTrack(null);
+        setIsPlaying(false);
+        setActiveIndex(null);
+        setActiveCard(null);
+        console.log('Lecteur fermé, états réinitialisés.');
+      },
+      100
     );
-    if (activeYoutubeIframe instanceof HTMLIFrameElement && activeYoutubeIframe.contentWindow) {
-      try {
-        activeYoutubeIframe.contentWindow.postMessage(
-          JSON.stringify({ event: 'command', func: 'pauseVideo' }),
-          '*'
-        );
-      } catch (error) {
-        console.error('Error pausing YouTube iframe:', error);
-      }
-    }
-
-    // Fermer tous les lecteurs SoundCloud actifs
-    const activeSoundcloudIframe = document.querySelector(
-      `iframe[id="soundcloud-iframe-${activeTrackId}"]`
-    );
-    if (
-      activeSoundcloudIframe instanceof HTMLIFrameElement &&
-      activeSoundcloudIframe.contentWindow
-    ) {
-      try {
-        activeSoundcloudIframe.contentWindow.postMessage('{"method":"pause"}', '*');
-      } catch (error) {
-        console.error('Error pausing SoundCloud iframe:', error);
-      }
-    }
-
-    // Réinitialiser l'état de lecture
-    setCurrentTrack(null);
-    setIsPlaying(false);
-
-    // Relâcher les verrous après une courte période
-    setTimeout(() => {
-      isTogglingPlayback = false;
-      stateLocked = false;
-      console.log('Lecteur fermé, verrous relâchés');
-    }, 500);
   };
 
   // Trouver l'index du morceau actuel dans la liste filtrée
@@ -350,92 +342,135 @@ export default function MusicPage() {
     return filteredTracks.findIndex((track) => track.id === currentTrack.id);
   };
 
-  // Jouer la piste suivante
+  // Jouer le morceau suivant
   const playNextTrack = () => {
-    if (!currentTrack || isTogglingPlayback) return;
+    if (stateLockedRef.current) {
+      console.log('Changement de piste (suivant) bloqué: Verrou actif.');
+      return;
+    }
 
-    console.log('Play next track, current track:', currentTrack);
-    const currentIndex = filteredTracks.findIndex((track) => track.id === currentTrack.id);
-    if (currentIndex === -1 || currentIndex === null) return;
+    withLock(
+      stateLockedRef,
+      async () => {
+        const currentIndex = getCurrentTrackIndex();
+        if (currentIndex === null || currentIndex >= filteredTracks.length - 1) {
+          console.log('Dernière piste atteinte ou index invalide.');
+          return; // Ne rien faire si c'est la dernière piste ou si l'index est invalide
+        }
 
-    const nextIndex = (currentIndex + 1) % filteredTracks.length;
-    console.log('Next index:', nextIndex, 'Next track:', filteredTracks[nextIndex]);
+        const nextIndex = currentIndex + 1;
+        const nextTrack = filteredTracks[nextIndex];
 
-    // Verrouiller l'état pour éviter les modifications non sollicitées
-    stateLocked = true;
-    isTogglingPlayback = true;
+        console.log(`Passage à la piste suivante: ${nextTrack.title}`);
 
-    // Définir la piste suivante et commencer la lecture
-    setCurrentTrack(filteredTracks[nextIndex]);
-    setIsPlaying(true);
+        // Arrêter l'ancien lecteur (si nécessaire)
+        if (currentTrack) {
+          const oldYoutubeIframe = document.querySelector<HTMLIFrameElement>(
+            `iframe[id="youtube-iframe-${currentTrack.id}"]`
+          );
+          const oldSoundcloudIframe = document.querySelector<HTMLIFrameElement>(
+            `iframe[id="soundcloud-iframe-${currentTrack.id}"]`
+          );
+          if (oldYoutubeIframe) sendPlayerCommand(oldYoutubeIframe, 'youtube', 'pause');
+          if (oldSoundcloudIframe) sendPlayerCommand(oldSoundcloudIframe, 'soundcloud', 'pause');
+        }
 
-    // Mettre à jour l'UI après un court délai
-    setTimeout(() => {
-      const cardElement = document.getElementById(`music-card-${filteredTracks[nextIndex].id}`);
-      if (cardElement && cardElement instanceof HTMLElement) {
-        cardElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        setActiveCard(cardElement);
-      }
+        setCurrentTrack(nextTrack);
+        setActiveIndex(nextIndex);
+        setIsPlaying(true);
 
-      // Appliquer le volume actuel
-      const currentVolume = localStorage.getItem('global-music-volume');
-      if (currentVolume) {
-        setGlobalVolume(parseFloat(currentVolume));
-      }
-
-      // Relâcher le verrouillage d'exécution
-      isTogglingPlayback = false;
-
-      // Maintenir le verrouillage d'état pendant 2 secondes pour éviter les modifications externes
-      setTimeout(() => {
-        stateLocked = false;
-        console.log('État déverrouillé après changement de piste');
-      }, 2000);
-    }, 300);
+        // Utiliser findIframeWithRetry au lieu d'une attente fixe
+        // await new Promise((resolve) => setTimeout(resolve, 150));
+        const nextPlatform = nextTrack.platforms.youtube
+          ? 'youtube'
+          : nextTrack.platforms.soundcloud
+            ? 'soundcloud'
+            : null;
+        if (nextPlatform) {
+          const nextIframe = await findIframeWithRetry(nextTrack.id, nextPlatform);
+          if (nextIframe) {
+            console.log(
+              `Envoi de la commande play à l'iframe ${nextPlatform} trouvé pour ${nextTrack.title}`
+            );
+            sendPlayerCommand(nextIframe, nextPlatform, 'play');
+          } else {
+            console.warn(
+              `Nouvel iframe ${nextPlatform} non trouvé pour ${nextTrack.title} après changement (suivant).`
+            );
+          }
+        } else {
+          console.warn(
+            `Aucune plateforme de lecteur trouvée pour démarrer la lecture de ${nextTrack.title}`
+          );
+        }
+      },
+      150
+    ); // Délai de 150ms pour le verrou d'état lors du changement de piste
   };
 
-  // Jouer la piste précédente
+  // Jouer le morceau précédent
   const playPrevTrack = () => {
-    if (!currentTrack || isTogglingPlayback) return;
+    if (stateLockedRef.current) {
+      console.log('Changement de piste (précédent) bloqué: Verrou actif.');
+      return;
+    }
+    withLock(
+      stateLockedRef,
+      async () => {
+        const currentIndex = getCurrentTrackIndex();
+        if (currentIndex === null || currentIndex <= 0) {
+          console.log('Première piste atteinte ou index invalide.');
+          return; // Ne rien faire si c'est la première piste ou si l'index est invalide
+        }
 
-    console.log('Play previous track, current track:', currentTrack);
-    const currentIndex = filteredTracks.findIndex((track) => track.id === currentTrack.id);
-    if (currentIndex === -1 || currentIndex === null) return;
+        const prevIndex = currentIndex - 1;
+        const prevTrack = filteredTracks[prevIndex];
 
-    const prevIndex = (currentIndex - 1 + filteredTracks.length) % filteredTracks.length;
-    console.log('Previous index:', prevIndex, 'Previous track:', filteredTracks[prevIndex]);
+        console.log(`Passage à la piste précédente: ${prevTrack.title}`);
 
-    // Verrouiller l'état pour éviter les modifications non sollicitées
-    stateLocked = true;
-    isTogglingPlayback = true;
+        // Arrêter l'ancien lecteur
+        if (currentTrack) {
+          const oldYoutubeIframe = document.querySelector<HTMLIFrameElement>(
+            `iframe[id="youtube-iframe-${currentTrack.id}"]`
+          );
+          const oldSoundcloudIframe = document.querySelector<HTMLIFrameElement>(
+            `iframe[id="soundcloud-iframe-${currentTrack.id}"]`
+          );
+          if (oldYoutubeIframe) sendPlayerCommand(oldYoutubeIframe, 'youtube', 'pause');
+          if (oldSoundcloudIframe) sendPlayerCommand(oldSoundcloudIframe, 'soundcloud', 'pause');
+        }
 
-    // Définir la piste précédente et commencer la lecture
-    setCurrentTrack(filteredTracks[prevIndex]);
-    setIsPlaying(true);
+        setCurrentTrack(prevTrack);
+        setActiveIndex(prevIndex);
+        setIsPlaying(true);
 
-    // Mettre à jour l'UI après un court délai
-    setTimeout(() => {
-      const cardElement = document.getElementById(`music-card-${filteredTracks[prevIndex].id}`);
-      if (cardElement && cardElement instanceof HTMLElement) {
-        cardElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        setActiveCard(cardElement);
-      }
-
-      // Appliquer le volume actuel
-      const currentVolume = localStorage.getItem('global-music-volume');
-      if (currentVolume) {
-        setGlobalVolume(parseFloat(currentVolume));
-      }
-
-      // Relâcher le verrouillage d'exécution
-      isTogglingPlayback = false;
-
-      // Maintenir le verrouillage d'état pendant 2 secondes pour éviter les modifications externes
-      setTimeout(() => {
-        stateLocked = false;
-        console.log('État déverrouillé après changement de piste');
-      }, 2000);
-    }, 300);
+        // Utiliser findIframeWithRetry au lieu d'une attente fixe
+        // await new Promise((resolve) => setTimeout(resolve, 150));
+        const prevPlatform = prevTrack.platforms.youtube
+          ? 'youtube'
+          : prevTrack.platforms.soundcloud
+            ? 'soundcloud'
+            : null;
+        if (prevPlatform) {
+          const prevIframe = await findIframeWithRetry(prevTrack.id, prevPlatform);
+          if (prevIframe) {
+            console.log(
+              `Envoi de la commande play à l'iframe ${prevPlatform} trouvé pour ${prevTrack.title}`
+            );
+            sendPlayerCommand(prevIframe, prevPlatform, 'play');
+          } else {
+            console.warn(
+              `Nouvel iframe ${prevPlatform} non trouvé pour ${prevTrack.title} après changement (précédent).`
+            );
+          }
+        } else {
+          console.warn(
+            `Aucune plateforme de lecteur trouvée pour démarrer la lecture de ${prevTrack.title}`
+          );
+        }
+      },
+      150
+    ); // Délai de 150ms pour le verrou d'état lors du changement de piste
   };
 
   return (
@@ -607,7 +642,9 @@ export default function MusicPage() {
           track={currentTrack}
           isPlaying={isPlaying}
           onClose={closePlayer}
-          onTogglePlay={toggleFooterPlay}
+          onFooterToggle={() => {
+            toggleFooterPlay();
+          }}
           onNextTrack={filteredTracks.length > 1 ? playNextTrack : undefined}
           onPrevTrack={filteredTracks.length > 1 ? playPrevTrack : undefined}
         />
