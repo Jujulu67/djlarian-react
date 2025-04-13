@@ -107,8 +107,19 @@ export const MusicCard: React.FC<MusicCardProps> = ({
       } catch (e) {
         console.error('Erreur lors de la mise en pause YouTube et SoundCloud:', e);
       }
+    } else {
+      // Si c'est la carte active, synchroniser avec l'état global
+      // mais seulement après un court délai pour éviter les changements transitoires
+      const syncTimeout = setTimeout(() => {
+        console.log(
+          `MusicCard: synchronisation de l'état local pour track ${track.id} - isPlaying=${isPlaying}`
+        );
+        setLocalIsPlaying(isPlaying);
+      }, 50); // Délai court pour éviter les réactions aux changements transitoires
+
+      return () => clearTimeout(syncTimeout);
     }
-  }, [isActive]);
+  }, [isActive, isPlaying, track.id]);
 
   // Défiler automatiquement vers la carte quand elle est activée
   useEffect(() => {
@@ -129,89 +140,95 @@ export const MusicCard: React.FC<MusicCardProps> = ({
     if (isActive) {
       console.log(`Card ${track.id} became active, isPlaying=${isPlaying}`);
 
-      // Synchroniser l'état local avec l'état global
-      setLocalIsPlaying(isPlaying);
+      // Ne pas réagir immédiatement aux changements d'état pour éviter les cycles
+      // Attendre un court délai pour s'assurer que c'est un changement délibéré
+      const syncTimer = setTimeout(() => {
+        // Synchroniser l'état local avec l'état global
+        setLocalIsPlaying(isPlaying);
 
-      // Si la lecture est active, activer le bon lecteur
-      if (isPlaying) {
-        if (track.platforms.youtube && youtubeVideoId) {
-          console.log(`Activating YouTube player for track ${track.id}`);
+        // Si la lecture est active, activer le bon lecteur
+        if (isPlaying) {
+          if (track.platforms.youtube && youtubeVideoId) {
+            console.log(`Activating YouTube player for track ${track.id}`);
 
-          // Activer la visibilité immédiatement pour éviter des basculements visuels
-          setIsYoutubeVisible(true);
-          setIsSoundcloudVisible(false);
+            // Activer la visibilité immédiatement pour éviter des basculements visuels
+            setIsYoutubeVisible(true);
+            setIsSoundcloudVisible(false);
 
-          // S'assurer que le lecteur est visible
-          const updateYoutubePlayer = () => {
-            if (iframeRef.current) {
-              iframeRef.current.style.opacity = '1';
-              iframeRef.current.style.pointerEvents = 'auto';
+            // S'assurer que le lecteur est visible
+            const updateYoutubePlayer = () => {
+              if (iframeRef.current) {
+                iframeRef.current.style.opacity = '1';
+                iframeRef.current.style.pointerEvents = 'auto';
 
-              // Attendre que l'iframe soit visible avant d'envoyer la commande play
-              // pour éviter des problèmes de synchronisation
-              if (iframeRef.current.contentWindow) {
+                // Attendre que l'iframe soit visible avant d'envoyer la commande play
+                // pour éviter des problèmes de synchronisation
+                if (iframeRef.current.contentWindow) {
+                  iframeRef.current.contentWindow.postMessage(
+                    JSON.stringify({ event: 'command', func: 'playVideo' }),
+                    '*'
+                  );
+                }
+              }
+            };
+
+            // Utiliser un court délai pour s'assurer que les propriétés DOM sont appliquées
+            setTimeout(updateYoutubePlayer, 100);
+          } else if (track.platforms.soundcloud && soundcloudUrl) {
+            console.log(`Activating SoundCloud player for track ${track.id}`);
+            setIsSoundcloudVisible(true);
+            setIsYoutubeVisible(false);
+
+            // S'assurer que le lecteur est visible et actif
+            setTimeout(() => {
+              if (soundcloudIframeRef.current) {
+                soundcloudIframeRef.current.style.opacity = '1';
+                soundcloudIframeRef.current.style.pointerEvents = 'auto';
+
+                // Démarrer la lecture
+                if (soundcloudIframeRef.current.contentWindow) {
+                  soundcloudIframeRef.current.contentWindow.postMessage('{"method":"play"}', '*');
+                }
+              }
+            }, 100);
+          }
+        } else {
+          // Si on est en pause, s'assurer que les iframes sont en pause mais rester visible
+          if (
+            track.platforms.youtube &&
+            youtubeVideoId &&
+            iframeRef.current &&
+            iframeRef.current.contentWindow
+          ) {
+            // Maintenir la visibilité même si en pause
+            setIsYoutubeVisible(true);
+
+            // Envoyer la commande de pause avec un délai
+            setTimeout(() => {
+              if (iframeRef.current && iframeRef.current.contentWindow) {
                 iframeRef.current.contentWindow.postMessage(
-                  JSON.stringify({ event: 'command', func: 'playVideo' }),
+                  JSON.stringify({ event: 'command', func: 'pauseVideo' }),
                   '*'
                 );
               }
-            }
-          };
+            }, 50);
+          }
 
-          // Utiliser un court délai pour s'assurer que les propriétés DOM sont appliquées
-          setTimeout(updateYoutubePlayer, 100);
-        } else if (track.platforms.soundcloud && soundcloudUrl) {
-          console.log(`Activating SoundCloud player for track ${track.id}`);
-          setIsSoundcloudVisible(true);
-          setIsYoutubeVisible(false);
+          if (
+            track.platforms.soundcloud &&
+            soundcloudUrl &&
+            soundcloudIframeRef.current &&
+            soundcloudIframeRef.current.contentWindow
+          ) {
+            // Maintenir la visibilité même si en pause
+            setIsSoundcloudVisible(true);
 
-          // S'assurer que le lecteur est visible et actif
-          setTimeout(() => {
-            if (soundcloudIframeRef.current) {
-              soundcloudIframeRef.current.style.opacity = '1';
-              soundcloudIframeRef.current.style.pointerEvents = 'auto';
-
-              // Démarrer la lecture
-              if (soundcloudIframeRef.current.contentWindow) {
-                soundcloudIframeRef.current.contentWindow.postMessage('{"method":"play"}', '*');
-              }
-            }
-          }, 100);
+            soundcloudIframeRef.current.contentWindow.postMessage('{"method":"pause"}', '*');
+          }
         }
-      } else {
-        // Si on est en pause, s'assurer que les iframes sont en pause mais rester visible
-        if (
-          track.platforms.youtube &&
-          youtubeVideoId &&
-          iframeRef.current &&
-          iframeRef.current.contentWindow
-        ) {
-          // Maintenir la visibilité même si en pause
-          setIsYoutubeVisible(true);
+      }, 100); // Délai court pour éviter les réactions aux changements transitoires
 
-          // Envoyer la commande de pause avec un délai
-          setTimeout(() => {
-            if (iframeRef.current && iframeRef.current.contentWindow) {
-              iframeRef.current.contentWindow.postMessage(
-                JSON.stringify({ event: 'command', func: 'pauseVideo' }),
-                '*'
-              );
-            }
-          }, 50);
-        }
-
-        if (
-          track.platforms.soundcloud &&
-          soundcloudUrl &&
-          soundcloudIframeRef.current &&
-          soundcloudIframeRef.current.contentWindow
-        ) {
-          // Maintenir la visibilité même si en pause
-          setIsSoundcloudVisible(true);
-
-          soundcloudIframeRef.current.contentWindow.postMessage('{"method":"pause"}', '*');
-        }
-      }
+      return () => clearTimeout(syncTimer);
     }
   }, [isActive, isPlaying, track.id, youtubeVideoId, soundcloudUrl]);
 
@@ -266,6 +283,35 @@ export const MusicCard: React.FC<MusicCardProps> = ({
               data.info.currentTime.toString()
             );
           }
+
+          // IMPORTANT: Ignorer les événements de changement d'état (playerState)
+          // qui viennent de l'API YouTube et qui pourraient perturber notre logique
+          // PlayerState: -1 (non démarré), 0 (terminé), 1 (lecture), 2 (pause), 3 (buffering), 5 (vidéo à lire)
+          if (data && data.info && typeof data.info.playerState !== 'undefined') {
+            console.log(
+              `[Card ${track.id}] Événement YouTube ignoré - playerState: ${data.info.playerState}`
+            );
+            // Si on reçoit un événement de lecture (playerState=1) alors que localIsPlaying est déjà true,
+            // ou un événement de pause (playerState=2) alors que localIsPlaying est déjà false,
+            // c'est probablement un écho de notre commande et on peut l'ignorer
+            if (
+              (data.info.playerState === 1 && localIsPlaying) ||
+              (data.info.playerState === 2 && !localIsPlaying)
+            ) {
+              console.log(
+                `[Card ${track.id}] Événement YouTube cohérent avec état actuel - ignoré`
+              );
+              return;
+            }
+
+            // Si on reçoit un événement contradictoire, on pourrait avoir besoin de le bloquer
+            // pour empêcher des cycles, mais ne pas toucher à l'état global car cela pourrait
+            // interférer avec la navigation entre pistes
+            console.log(
+              `[Card ${track.id}] Événement YouTube contradictoire avec état actuel - bloqué`
+            );
+            return;
+          }
         } catch (e) {
           // Ignorer les erreurs de parsing
         }
@@ -280,7 +326,7 @@ export const MusicCard: React.FC<MusicCardProps> = ({
         }
       };
     }
-  }, [isYoutubeActive, youtubeVideoId]);
+  }, [isYoutubeActive, youtubeVideoId, track.id, localIsPlaying]);
 
   // Ajouter un gestionnaire de clic global pour mettre en pause la vidéo en cliquant ailleurs
   useEffect(() => {

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Track } from '@/lib/utils/types';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
@@ -145,6 +145,14 @@ const SimpleMusicPlayer: React.FC<SimpleMusicPlayerProps> = ({
   const [imageError, setImageError] = useState(false);
   const [volume, setVolume] = useState(globalVolume * 100);
   const [isMuted, setIsMuted] = useState(globalVolume === 0);
+  const [internalIsPlaying, setInternalIsPlaying] = useState(isPlaying);
+  const lastToggleTime = useRef<number>(0);
+
+  // Mise à jour de l'état interne lorsque les props changent
+  useEffect(() => {
+    setInternalIsPlaying(isPlaying);
+    console.log(`SimpleMusicPlayer: état de lecture mis à jour à ${isPlaying ? 'play' : 'pause'}`);
+  }, [isPlaying]);
 
   // Synchroniser le volume avec localStorage au démarrage
   useEffect(() => {
@@ -242,6 +250,31 @@ const SimpleMusicPlayer: React.FC<SimpleMusicPlayerProps> = ({
     }
   };
 
+  // Fonction pour gérer le clic sur le bouton play/pause avec protection anti-rebond
+  const handleTogglePlay = () => {
+    // Protection anti-rebond - ignorer les clics trop rapprochés (moins de 500ms)
+    const now = Date.now();
+    if (now - lastToggleTime.current < 500) {
+      console.log('SimpleMusicPlayer: clic ignoré (trop rapide)');
+      return;
+    }
+
+    // Mettre à jour le timestamp du dernier clic
+    lastToggleTime.current = now;
+
+    // Appeler la fonction de basculement fournie par les props
+    console.log(
+      `SimpleMusicPlayer: demande de basculement de ${internalIsPlaying ? 'lecture → pause' : 'pause → lecture'}`
+    );
+    onTogglePlay();
+  };
+
+  // Gérer la fermeture du lecteur avec mise en pause des vidéos YouTube
+  const handleClose = () => {
+    // Appeler la fonction de fermeture fournie par les props
+    onClose();
+  };
+
   if (!track) return null;
 
   return (
@@ -295,12 +328,16 @@ const SimpleMusicPlayer: React.FC<SimpleMusicPlayerProps> = ({
 
             {/* Lecture/Pause */}
             <button
-              onClick={onTogglePlay}
+              onClick={handleTogglePlay}
               className="p-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-full transition-all transform hover:scale-105 shadow-md shadow-purple-700/20"
-              aria-label={isPlaying ? 'Pause' : 'Lecture'}
+              aria-label={internalIsPlaying ? 'Pause' : 'Lecture'}
               data-footer-control="true"
             >
-              {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
+              {internalIsPlaying ? (
+                <Pause className="w-5 h-5" />
+              ) : (
+                <Play className="w-5 h-5 ml-0.5" />
+              )}
             </button>
 
             {/* Suivant */}
@@ -367,7 +404,7 @@ const SimpleMusicPlayer: React.FC<SimpleMusicPlayerProps> = ({
 
             {/* Bouton de fermeture */}
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="p-2 text-gray-400 hover:text-white transition-colors rounded-full hover:bg-gray-800"
               aria-label="Fermer le lecteur"
               data-footer-control="true"
