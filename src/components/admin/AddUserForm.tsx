@@ -15,6 +15,7 @@ export default function AddUserForm({ onSuccess }: AddUserFormProps) {
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('USER'); // Rôle par défaut
+  const [isVip, setIsVip] = useState(false); // État pour le statut VIP
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,7 +28,7 @@ export default function AddUserForm({ onSuccess }: AddUserFormProps) {
       const response = await fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, name, password, role }),
+        body: JSON.stringify({ email, name, password, role, isVip }),
       });
 
       const data = await response.json();
@@ -38,9 +39,8 @@ export default function AddUserForm({ onSuccess }: AddUserFormProps) {
 
       // Succès
       console.log('Utilisateur créé:', data);
-      router.refresh(); // Rafraîchir la liste des utilisateurs en arrière-plan
       if (onSuccess) {
-        onSuccess(); // Appeler le callback (ex: pour fermer la modale)
+        onSuccess(); // Appeler le callback (ex: pour fermer la modale et rafraîchir)
       }
       // Idéalement, afficher un toast/notification de succès
     } catch (err: any) {
@@ -106,20 +106,99 @@ export default function AddUserForm({ onSuccess }: AddUserFormProps) {
         <p className="text-xs text-gray-400 mt-1">Doit contenir au moins 6 caractères.</p>
       </div>
 
-      <div>
-        <label htmlFor="role-add" className="block text-sm font-medium text-gray-300 mb-1">
+      {/* Remplacement du select par des boutons radio */}
+      <fieldset>
+        <legend className="block text-sm font-medium text-gray-300 mb-1">
           Rôle <span className="text-red-500">*</span>
+        </legend>
+        {/* Utilisation de Tailwind pour créer des "cartes" sélectionnables */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {' '}
+          {/* Passage à 3 colonnes sur sm+ */}
+          {/* Option Utilisateur */}
+          <div>
+            <input
+              id="role-user"
+              type="radio"
+              name="role" // Important pour grouper les radios
+              value="USER"
+              checked={role === 'USER'}
+              onChange={(e) => setRole(e.target.value)}
+              required
+              className="peer sr-only" // Masque l'input radio mais le garde accessible
+              aria-labelledby="role-user-label" // Lie à l'étiquette visible
+            />
+            <label
+              id="role-user-label"
+              htmlFor="role-user" // Associe au bon input
+              className="flex flex-col items-center justify-center rounded-md border border-gray-600 bg-gray-800 px-4 py-3 text-sm font-medium text-white shadow-sm cursor-pointer transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-gray-900 peer-checked:border-purple-500 peer-checked:bg-purple-900/30 peer-checked:ring-1 peer-checked:ring-purple-500"
+            >
+              <span className="text-lg">👤</span> {/* Icône simple */}
+              <span className="mt-1">Utilisateur (USER)</span>
+            </label>
+          </div>
+          {/* Option Administrateur */}
+          <div>
+            <input
+              id="role-admin"
+              type="radio"
+              name="role" // Important pour grouper les radios
+              value="ADMIN"
+              checked={role === 'ADMIN'}
+              onChange={(e) => setRole(e.target.value)}
+              required
+              className="peer sr-only" // Masque l'input radio
+              aria-labelledby="role-admin-label"
+            />
+            <label
+              id="role-admin-label"
+              htmlFor="role-admin"
+              className="flex flex-col items-center justify-center rounded-md border border-gray-600 bg-gray-800 px-4 py-3 text-sm font-medium text-white shadow-sm cursor-pointer transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-gray-900 peer-checked:border-purple-500 peer-checked:bg-purple-900/30 peer-checked:ring-1 peer-checked:ring-purple-500"
+            >
+              <span className="text-lg">👑</span> {/* Icône simple */}
+              <span className="mt-1">Administrateur (ADMIN)</span>
+            </label>
+          </div>
+          {/* Option Modérateur (nouvelle) */}
+          <div>
+            <input
+              id="role-moderator"
+              type="radio"
+              name="role"
+              value="MODERATOR"
+              checked={role === 'MODERATOR'}
+              onChange={(e) => setRole(e.target.value)}
+              required // Garder required car un rôle doit être choisi
+              className="peer sr-only"
+              aria-labelledby="role-moderator-label"
+            />
+            <label
+              id="role-moderator-label"
+              htmlFor="role-moderator"
+              className="flex flex-col items-center justify-center rounded-md border border-gray-600 bg-gray-800 px-4 py-3 text-sm font-medium text-white shadow-sm cursor-pointer transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-gray-900 peer-checked:border-purple-500 peer-checked:bg-purple-900/30 peer-checked:ring-1 peer-checked:ring-purple-500"
+            >
+              <span className="text-lg">🛡️</span> {/* Icône Bouclier */}
+              <span className="mt-1">Modérateur (MODERATOR)</span>
+            </label>
+          </div>
+        </div>
+      </fieldset>
+      {/* Fin du remplacement */}
+
+      {/* Option VIP */}
+      <div className="flex items-center mt-2">
+        <input
+          id="isVip"
+          type="checkbox"
+          checked={isVip}
+          onChange={(e) => setIsVip(e.target.checked)}
+          className="h-4 w-4 cursor-pointer text-purple-600 bg-gray-700 border-gray-500 rounded focus:ring-purple-500 focus:ring-opacity-20"
+        />
+        <label htmlFor="isVip" className="ml-2 block text-sm text-gray-300 cursor-pointer">
+          <span className="flex items-center">
+            <span className="mr-1">⭐</span> Marquer comme VIP
+          </span>
         </label>
-        <select
-          id="role-add"
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
-          required
-          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent appearance-none"
-        >
-          <option value="USER">Utilisateur (USER)</option>
-          <option value="ADMIN">Administrateur (ADMIN)</option>
-        </select>
       </div>
 
       {error && (
