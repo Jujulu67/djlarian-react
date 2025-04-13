@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { Track, MusicType } from '@/lib/utils/types';
 import MusicCard from '@/components/ui/MusicCard';
 import SimpleMusicPlayer from '@/components/ui/SimpleMusicPlayer';
-import { Filter, Search, Zap, ChevronDown, Music, Loader } from 'lucide-react';
+import { Filter, Search, Zap, ChevronDown, Music, Loader, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { sendPlayerCommand } from '@/lib/utils/audioUtils';
 
@@ -459,16 +459,20 @@ export default function MusicPage() {
   return (
     <div className="min-h-screen pt-24 pb-36 px-4 relative">
       <div className="max-w-7xl mx-auto">
-        <motion.h1
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-4xl md:text-5xl font-bold mb-4 text-center text-white"
-        >
-          Ma Musique
-        </motion.h1>
+        {/* Titre avec dégradé et icône */}
+        <div className="relative mb-4">
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-4xl md:text-5xl font-bold text-center bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent"
+          >
+            Ma Musique
+          </motion.h1>
+          <Sparkles className="absolute top-0 right-[calc(50%-150px)] md:right-[calc(50%-180px)] w-8 h-8 md:w-10 md:h-10 text-yellow-400 transform -translate-y-1 animate-pulse" />
+        </div>
 
-        <p className="text-gray-400 text-center mb-10 max-w-2xl mx-auto">
+        <p className="text-gray-400 text-center mb-10 max-w-2xl mx-auto mt-0">
           Découvrez ma discographie complète avec tous mes singles, EPs, remixes et DJ sets
           disponibles sur les plateformes de streaming.
         </p>

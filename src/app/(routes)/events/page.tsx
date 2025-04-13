@@ -24,6 +24,7 @@ import {
   Sparkles,
   Eye,
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 // Types
 type RecurrenceConfig = {
@@ -376,21 +377,24 @@ export default function EventsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-8 pt-28 pb-20">
       <div className="container mx-auto max-w-6xl">
-        {/* En-tête avec animation */}
-        <div className="mb-16 text-center relative">
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-purple-600/10 rounded-full blur-3xl -z-10"></div>
-          <div className="absolute top-1/2 left-1/3 transform -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-blue-600/10 rounded-full blur-3xl -z-10"></div>
-
-          <h1 className="text-6xl font-bold mb-5 inline-block relative">
-            <span className="text-gradient font-audiowide">Événements</span>
-            <Sparkles className="w-8 h-8 text-yellow-400 absolute -right-10 -top-4 animate-pulse" />
-          </h1>
-
-          <p className="text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
-            Découvrez les prochaines dates de DJ Larian et rejoignez-nous pour des soirées
-            électroniques inoubliables.
-          </p>
+        {/* Titre avec animation et icône */}
+        <div className="relative mb-4">
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-4xl md:text-5xl font-bold text-center bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent"
+          >
+            Événements
+          </motion.h1>
+          <Sparkles className="absolute top-0 right-[calc(50%-150px)] md:right-[calc(50%-180px)] w-8 h-8 md:w-10 md:h-10 text-yellow-400 transform -translate-y-1 animate-pulse" />
         </div>
+
+        {/* Sous-titre */}
+        <p className="text-gray-400 text-center mb-10 max-w-2xl mx-auto">
+          Découvrez les prochaines dates de DJ Larian et rejoignez-nous pour des soirées
+          électroniques inoubliables.
+        </p>
 
         {/* Filtres et recherche */}
         <div className="mb-12">
