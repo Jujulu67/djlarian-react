@@ -2,13 +2,14 @@ import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import prisma from '@/lib/prisma';
-import { User, Mail, ShieldCheck, ChevronLeft, ChevronRight, UserPlus } from 'lucide-react';
-import { format, formatDistanceToNow, parseISO } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import { ChevronLeft, UserPlus } from 'lucide-react';
 import Link from 'next/link';
-import UserActions from '@/components/admin/UserActions';
+import { Prisma } from '@prisma/client';
+import { UserTable } from './components/UserTable';
+import { UserPagination } from './components/UserPagination';
+import { UserFiltersServer } from './components/UserFiltersServer';
 
-// Type pour les utilisateurs (simplifié pour l'instant)
+// Type pour les utilisateurs
 type UserData = {
   id: string;
   name?: string | null;
@@ -17,84 +18,70 @@ type UserData = {
   isVip?: boolean;
 };
 
-// Composant de pagination (similaire à activities)
-function UserPagination({
-  currentPage,
-  totalPages,
-  baseUrl,
-}: {
-  currentPage: number;
-  totalPages: number;
-  baseUrl: string;
-}) {
-  const getPageUrl = (page: number) => {
-    const url = new URL(baseUrl, 'http://localhost'); // Base URL temporaire pour la construction de l'URL
-    url.searchParams.set('page', page.toString());
-    return url.pathname + url.search;
-  };
-
-  if (totalPages <= 1) return null;
-
-  return (
-    <div className="flex items-center justify-center mt-8 space-x-4">
-      {currentPage <= 1 ? (
-        <span className="w-10 h-10 flex items-center justify-center rounded-full bg-black/40 text-gray-500 cursor-not-allowed">
-          <ChevronLeft className="h-5 w-5" />
-        </span>
-      ) : (
-        <Link
-          href={getPageUrl(currentPage - 1)}
-          className="w-10 h-10 flex items-center justify-center rounded-full bg-purple-900/50 text-white hover:bg-purple-800 transition-all"
-          aria-label="Page précédente"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </Link>
-      )}
-      <span className="text-sm text-gray-300 font-medium">
-        Page {currentPage} sur {totalPages}
-      </span>
-      {currentPage >= totalPages ? (
-        <span className="w-10 h-10 flex items-center justify-center rounded-full bg-black/40 text-gray-500 cursor-not-allowed">
-          <ChevronRight className="h-5 w-5" />
-        </span>
-      ) : (
-        <Link
-          href={getPageUrl(currentPage + 1)}
-          className="w-10 h-10 flex items-center justify-center rounded-full bg-purple-900/50 text-white hover:bg-purple-800 transition-all"
-          aria-label="Page suivante"
-        >
-          <ChevronRight className="h-5 w-5" />
-        </Link>
-      )}
-    </div>
-  );
-}
-
-export default async function AdminUsersPage({
-  searchParams,
-}: {
+// Définir un type pour les paramètres
+type PageProps = {
   searchParams?: {
     page?: string;
     limit?: string;
+    search?: string;
+    role?: string;
+    isVip?: string;
   };
-}) {
+};
+
+export default async function AdminUsersPage({ searchParams }: PageProps) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.role || session.user.role !== 'ADMIN') {
     redirect('/');
   }
 
-  // Attendre la résolution de searchParams
-  const resolvedSearchParams = await searchParams;
+  // Suivre l'approche recommandée par Next.js pour résoudre searchParams
+  const resolvedParams = await Promise.resolve(searchParams || {});
 
-  // Utiliser les valeurs depuis l'objet résolu
-  const currentPage = parseInt(resolvedSearchParams?.page || '1', 10);
-  const limit = parseInt(resolvedSearchParams?.limit || '10', 10);
-  const skip = (currentPage - 1) * limit;
+  // Extraire les valeurs de manière sûre à partir des params résolus
+  const page = resolvedParams.page || '1';
+  const limit = resolvedParams.limit || '10';
+  const search = resolvedParams.search || '';
+  const role = resolvedParams.role || '';
+  const isVip = resolvedParams.isVip || '';
 
-  const totalUsers = await prisma.user.count();
+  // Pagination
+  const currentPage = parseInt(page, 10);
+  const limitNum = parseInt(limit, 10);
+  const skip = (currentPage - 1) * limitNum;
+
+  // Construire la clause WHERE dynamiquement
+  const whereClause: Prisma.UserWhereInput = {};
+  const filters: Prisma.UserWhereInput[] = [];
+
+  if (search) {
+    filters.push({
+      OR: [
+        { email: { contains: search, mode: 'insensitive' } },
+        { name: { contains: search, mode: 'insensitive' } },
+      ],
+    });
+  }
+
+  if (role) {
+    filters.push({ role });
+  }
+
+  if (isVip === 'true') {
+    filters.push({ isVip: true } as any);
+  } else if (isVip === 'false') {
+    filters.push({ isVip: false } as any);
+  }
+
+  if (filters.length > 0) {
+    whereClause.AND = filters;
+  }
+
+  const totalUsers = await prisma.user.count({ where: whereClause });
   const users = await prisma.user.findMany({
-    take: limit,
+    where: whereClause,
+    take: limitNum,
     skip: skip,
     orderBy: { email: 'asc' },
     select: {
@@ -102,53 +89,16 @@ export default async function AdminUsersPage({
       name: true,
       email: true,
       role: true,
-    },
+      isVip: true,
+    } as any,
   });
 
-  // Requête Prisma non typée pour récupérer directement le champ isVip
-  // Approche plus directe et universelle
-  const rawUsers = await prisma.$queryRaw`
-    SELECT id, email, "isVip" FROM "User"
-  `;
+  const totalPages = Math.ceil(totalUsers / limitNum);
 
-  // Log plus détaillé pour voir exactement ce que nous récupérons
-  console.log('Données brutes des utilisateurs:', JSON.stringify(rawUsers, null, 2));
-
-  // Créer une map des statuts VIP par ID d'utilisateur avec conversion explicite
-  const vipStatusMap = new Map();
-  if (Array.isArray(rawUsers)) {
-    rawUsers.forEach((rawUser: any) => {
-      // PostgreSQL peut retourner différents formats pour les booléens
-      const isVipValue =
-        rawUser.isVip === true ||
-        rawUser.isVip === 't' ||
-        rawUser.isVip === 'true' ||
-        rawUser.isVip === 1;
-
-      // Log détaillé par utilisateur
-      console.log(
-        `Utilisateur ${rawUser.email} (${rawUser.id}): isVip = ${rawUser.isVip} --> converti en ${isVipValue}`
-      );
-
-      vipStatusMap.set(rawUser.id, isVipValue);
-    });
-  }
-
-  // Ajouter le statut VIP aux utilisateurs
-  const usersWithData = users.map((user) => {
-    const hasVipStatus = vipStatusMap.has(user.id);
-    const isVip = hasVipStatus ? vipStatusMap.get(user.id) : false;
-
-    // Log supplémentaire pour vérifier la correspondance
-    console.log(`Mapping pour ${user.email}: hasVipStatus = ${hasVipStatus}, isVip = ${isVip}`);
-
-    return {
-      ...user,
-      isVip,
-    };
-  });
-
-  const totalPages = Math.ceil(totalUsers / limit);
+  const currentParams = new URLSearchParams();
+  if (search) currentParams.set('search', search);
+  if (role) currentParams.set('role', role);
+  if (isVip) currentParams.set('isVip', isVip);
 
   return (
     <div className="min-h-screen text-gray-100 p-4 sm:p-6 lg:p-8">
@@ -161,91 +111,33 @@ export default async function AdminUsersPage({
           Retour au tableau de bord
         </Link>
 
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-white">Gestion des Utilisateurs</h1>
           <Link
             href="/admin/users/add"
             className="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-md transition-colors shadow-md"
           >
             <UserPlus className="h-5 w-5 mr-2" />
-            Ajouter un utilisateur
+            Ajouter
           </Link>
         </div>
 
-        <div className="bg-gray-800/50 rounded-lg shadow-xl overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-700/50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-purple-300 uppercase tracking-wider">
-                  Nom
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-purple-300 uppercase tracking-wider">
-                  Email
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-purple-300 uppercase tracking-wider">
-                  Rôle
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-purple-300 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-700">
-              {usersWithData.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-700/30 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <User className="h-5 w-5 text-gray-400 mr-2" />
-                      {user.name || 'N/A'}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <Mail className="h-5 w-5 text-gray-400 mr-2" />
-                      {user.email || 'N/A'}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <span
-                        className={`px-3 py-1 inline-flex items-center text-xs leading-5 font-semibold rounded-full ${
-                          user.role === 'ADMIN'
-                            ? 'bg-purple-800/70 text-purple-100'
-                            : user.role === 'MODERATOR'
-                              ? 'bg-blue-800/70 text-blue-100'
-                              : 'bg-green-800/70 text-green-100'
-                        }`}
-                      >
-                        {user.role === 'ADMIN' && <span className="mr-1">👑</span>}
-                        {user.role === 'MODERATOR' && <span className="mr-1">🛡️</span>}
-                        {user.role === 'USER' && <span className="mr-1">👤</span>}
-                        {user.role}
-                      </span>
+        <UserFiltersServer searchValue={search} roleValue={role} statusValue={isVip} />
 
-                      {/* Badge VIP si applicable - Ajouter un log pour déboguer */}
-                      {console.log(`Affichage ${user.email}: isVip = ${user.isVip}`)}
-                      {user.isVip && (
-                        <span className="ml-2 px-3 py-1 inline-flex items-center text-xs leading-5 font-semibold rounded-full bg-amber-700/70 text-amber-100">
-                          <span className="mr-1">⭐</span>
-                          VIP
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <UserActions userId={user.id} userName={user.name} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <UserTable users={users} />
 
-        {usersWithData.length === 0 && (
-          <div className="text-center py-12 text-gray-400">Aucun utilisateur trouvé.</div>
+        {users.length === 0 && (
+          <div className="text-center py-12 text-gray-400">
+            Aucun utilisateur trouvé pour ces critères.
+          </div>
         )}
 
-        <UserPagination currentPage={currentPage} totalPages={totalPages} baseUrl="/admin/users" />
+        <UserPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          baseUrl="/admin/users"
+          currentParams={currentParams}
+        />
       </div>
     </div>
   );

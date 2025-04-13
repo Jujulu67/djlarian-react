@@ -33,10 +33,10 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
         type: true,
         createdAt: true, // Inclure createdAt
         isPublished: true, // Inclure isPublished
-        platforms: { select: { platform: true, url: true, embedId: true } }, // Sélectionner les champs de plateforme
-        genres: { include: { genre: { select: { name: true } } } }, // Garder l'include pour les genres
-        collection: { select: { id: true, title: true } }, // Sélectionner les champs de collection si nécessaire
-        user: { select: { id: true, name: true } }, // Sélectionner les champs de l'utilisateur si nécessaire
+        TrackPlatform: { select: { platform: true, url: true, embedId: true } }, // Corrigé: platforms -> TrackPlatform
+        GenresOnTracks: { include: { Genre: { select: { name: true } } } }, // Corrigé: genres -> GenresOnTracks, genre -> Genre
+        MusicCollection: { select: { id: true, title: true } }, // Corrigé: collection -> MusicCollection
+        User: { select: { id: true, name: true } }, // Corrigé: user -> User
       },
     });
 
@@ -177,9 +177,9 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
                 : undefined,
         },
         include: {
-          platforms: true,
-          genres: { include: { genre: true } },
-          collection: true,
+          TrackPlatform: true,
+          GenresOnTracks: { include: { Genre: true } },
+          MusicCollection: true,
         },
       });
     });

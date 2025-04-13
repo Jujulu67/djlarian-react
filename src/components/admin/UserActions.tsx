@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Trash2, Edit } from 'lucide-react'; // Importer les icônes nécessaires
+import Link from 'next/link'; // Importer Link
 
 interface UserActionsProps {
   userId: string;
@@ -52,27 +53,19 @@ export default function UserActions({ userId, userName }: UserActionsProps) {
     }
   };
 
-  // TODO: Implémenter la fonction handleEdit
-  const handleEdit = () => {
-    console.log('Modifier utilisateur:', userId);
-    // Logique pour ouvrir une modale ou naviguer vers une page d'édition
-    alert('Fonctionnalité de modification à implémenter.');
-  };
-
   return (
-    <div className="space-x-2">
-      <button
-        onClick={handleEdit}
-        className="text-indigo-400 hover:text-indigo-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center"
-        // disabled // Activer une fois la fonctionnalité prête
+    <div className="space-x-2 flex items-center">
+      <Link
+        href={`/admin/users/${userId}/edit`}
+        className="text-indigo-400 hover:text-indigo-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center px-2 py-1 rounded hover:bg-indigo-900/30"
         aria-label="Modifier l'utilisateur"
       >
         <Edit className="h-4 w-4 mr-1" /> Modifier
-      </button>
+      </Link>
       <button
         onClick={handleDelete}
         disabled={isDeleting}
-        className="text-red-500 hover:text-red-400 transition-colors disabled:opacity-50 disabled:cursor-wait inline-flex items-center"
+        className="text-red-500 hover:text-red-400 transition-colors disabled:opacity-50 disabled:cursor-wait inline-flex items-center px-2 py-1 rounded hover:bg-red-900/30"
         aria-label="Supprimer l'utilisateur"
       >
         <Trash2 className="h-4 w-4 mr-1" /> {isDeleting ? 'Suppression...' : 'Supprimer'}

@@ -75,3 +75,52 @@ psql postgresql://user:password@localhost:5432/dj_larian < backup_file.sql
 ```
 
 2. Si nécessaire, appliquez manuellement vos modifications avec des commandes SQL directes.
+
+## Convention de Nommage des Relations (PascalCase)
+
+**Important :** Pour éviter des erreurs d'exécution et des problèmes de linter, utilisez **toujours la casse PascalCase** pour les noms de relations lorsque vous utilisez `include`, `select` ou que vous manipulez des relations dans l'objet `data` des requêtes Prisma (`create`, `update`).
+
+Par exemple, si votre schéma définit `model Track { ... TrackPlatform TrackPlatform[] ... }`, utilisez `TrackPlatform` dans votre code :
+
+```typescript
+// Correct (PascalCase)
+await prisma.track.findMany({
+  include: {
+    TrackPlatform: true,
+    GenresOnTracks: { include: { Genre: true } },
+  },
+});
+
+// Incorrect (camelCase)
+await prisma.track.findMany({
+  include: {
+    trackPlatform: true, // <- ERREUR
+    genresOnTracks: { include: { genre: true } }, // <- ERREUR
+  },
+});
+```
+
+Cette convention s'applique également lors de l'accès aux données retournées par Prisma (`result.TrackPlatform`).
+
+## Gestion des Erreurs de Linter (Faux Positifs)
+
+Il est possible que TypeScript/ESLint signale des erreurs de type (faux positifs) lors de l'utilisation d'opérations Prisma comme `create` ou `upsert`, en particulier avec des créations imbriquées (`create: [...]`). Cela se produit souvent lorsque le linter s'attend à ce que vous fournissiez des champs qui sont en réalité auto-gérés par Prisma (par exemple, `@id @default(cuid())`, `@updatedAt`).
+
+Dans ces cas, si vous êtes certain que la logique Prisma est correcte, vous pouvez ignorer ces erreurs spécifiques à l'aide de commentaires :
+
+```typescript
+// @ts-ignore - Le linter signale des champs manquants mais Prisma les gère
+await prisma.genre.upsert({ ... });
+
+// Ou avec une assertion de type (moins recommandé car masque plus de potentielles erreurs)
+await prisma.track.create({
+  data: {
+    // ...
+    TrackPlatform: {
+      create: platformsData as any, // Assertion pour ignorer l'erreur de type
+    }
+  }
+});
+```
+
+Soyez prudent lorsque vous ignorez des erreurs et assurez-vous que ce sont bien des faux positifs liés à l'inférence de type.

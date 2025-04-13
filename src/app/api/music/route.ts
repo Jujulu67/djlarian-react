@@ -10,13 +10,19 @@ export async function GET() {
   try {
     const tracks = await prisma.track.findMany({
       include: {
-        platforms: true,
-        genres: {
+        TrackPlatform: true,
+        GenresOnTracks: {
           include: {
-            genre: true,
+            Genre: true,
           },
         },
-        collection: true,
+        MusicCollection: true,
+        User: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
       orderBy: [{ featured: 'desc' }, { releaseDate: 'desc' }],
     });
@@ -93,34 +99,40 @@ export async function POST(request: Request) {
         type: data.type,
         featured: data.featured || false,
         ...userConnect,
-        collection: data.collectionId
+        MusicCollection: data.collectionId
           ? {
               connect: { id: data.collectionId },
             }
           : undefined,
-        platforms: {
+        TrackPlatform: {
           create: data.platforms.map((platform) => ({
             platform: platform.platform,
             url: platform.url,
             embedId: platform.embedId,
           })),
         },
-        genres: {
+        GenresOnTracks: {
           create: genres.map((genre) => ({
-            genre: {
+            Genre: {
               connect: { id: genre.id },
             },
           })),
         },
       },
       include: {
-        platforms: true,
-        genres: {
+        TrackPlatform: true,
+        GenresOnTracks: {
           include: {
-            genre: true,
+            Genre: true,
           },
         },
-        collection: true,
+        MusicCollection: true,
+        User: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
 

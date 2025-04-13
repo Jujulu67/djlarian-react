@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { X } from 'lucide-react';
-import React, { useEffect, useLayoutEffect } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 interface ModalProps {
   children: React.ReactNode;
@@ -10,6 +10,8 @@ interface ModalProps {
 
 export default function Modal({ children }: ModalProps) {
   const router = useRouter();
+  const modalRef = useRef<HTMLDivElement>(null);
+  const [isMouseDownOutside, setIsMouseDownOutside] = useState(false);
 
   const handleClose = () => {
     router.back(); // Navigue en arrière pour fermer la modale
@@ -43,6 +45,24 @@ export default function Modal({ children }: ModalProps) {
     };
   }, []);
 
+  const handleMouseDown = (e: React.MouseEvent) => {
+    // Vérifie si le clic a commencé en dehors du contenu de la modale
+    if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
+      setIsMouseDownOutside(true);
+    } else {
+      setIsMouseDownOutside(false);
+    }
+  };
+
+  const handleMouseUp = (e: React.MouseEvent) => {
+    // Ferme la modale seulement si le mousedown et le mouseup sont tous deux en dehors
+    if (isMouseDownOutside && modalRef.current && !modalRef.current.contains(e.target as Node)) {
+      handleClose();
+    }
+    // Réinitialise l'état pour le prochain clic
+    setIsMouseDownOutside(false);
+  };
+
   return (
     <div
       className="absolute inset-0 z-50 overflow-hidden"
@@ -50,7 +70,8 @@ export default function Modal({ children }: ModalProps) {
       aria-labelledby="modal-title"
       role="dialog"
       aria-modal="true"
-      onClick={handleClose}
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
     >
       <div className="flex min-h-screen items-center justify-center p-4 text-center sm:p-0">
         <div
@@ -60,6 +81,7 @@ export default function Modal({ children }: ModalProps) {
         />
 
         <div
+          ref={modalRef}
           className="relative transform overflow-hidden rounded-xl bg-gradient-to-br from-[#1a0f2a] via-[#0c0117] to-[#1a0f2a] border border-purple-500/30 w-full max-w-4xl text-left shadow-2xl transition-all sm:my-8 animate-fadeIn"
           onClick={(e) => e.stopPropagation()}
         >

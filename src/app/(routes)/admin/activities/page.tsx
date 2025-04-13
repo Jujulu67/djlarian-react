@@ -175,21 +175,19 @@ export default async function AdminActivitiesPage({
         title: t.title,
       }));
     } else if (filterType === 'ticket') {
-      // Note: le comptage pour les tickets peut être imprécis si basé sur TicketInfo sans filtre event existant
-      totalItems = await prisma.ticketInfo.count(); // Compte tous les ticketInfo
-      query = prisma.ticketInfo.findMany({
+      const query = prisma.ticketInfo.findMany({
         take: limit,
         skip: skip,
         orderBy: { id: 'desc' },
-        include: { event: { select: { id: true, title: true, createdAt: true } } },
+        include: { Event: { select: { id: true, title: true, createdAt: true } } },
       });
-      const tickets = (await query).filter((ti) => ti.event);
+      const tickets = (await query).filter((ti) => ti.Event);
       activitiesData = tickets.map((ti) => ({
         id: ti.id,
         type: 'ticket',
-        date: ti.event!.createdAt,
-        title: ti.event!.title,
-        eventId: ti.event!.id,
+        date: ti.Event!.createdAt,
+        title: ti.Event!.title,
+        eventId: ti.Event!.id,
       }));
     }
     // Pas besoin de trier ici, Prisma l'a déjà fait
@@ -203,7 +201,7 @@ export default async function AdminActivitiesPage({
       select: { id: true, title: true, createdAt: true },
     });
     const allTickets = await prisma.ticketInfo.findMany({
-      include: { event: { select: { id: true, title: true, createdAt: true } } },
+      include: { Event: { select: { id: true, title: true, createdAt: true } } },
     });
 
     // Combiner et mapper
@@ -221,13 +219,13 @@ export default async function AdminActivitiesPage({
         title: t.title,
       })),
       ...allTickets
-        .filter((ti) => ti.event)
+        .filter((ti) => ti.Event)
         .map((ti) => ({
           id: ti.id,
           type: 'ticket' as ActivityType,
-          date: ti.event!.createdAt,
-          title: ti.event!.title,
-          eventId: ti.event!.id,
+          date: ti.Event!.createdAt,
+          title: ti.Event!.title,
+          eventId: ti.Event!.id,
         })),
     ];
 
