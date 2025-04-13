@@ -12,6 +12,7 @@ import {
   Zap,
   Clock,
   Ticket,
+  ArrowRight,
 } from 'lucide-react';
 import prisma from '@/lib/prisma';
 import { formatDistanceToNow } from 'date-fns';
@@ -34,9 +35,8 @@ export default async function AdminPage() {
     },
   });
 
-  // Statistiques simulées pour les tables qui n'existent pas encore
-  const mediaCount = '156 (placeholder)'; // Valeur fictive pour la démo
-  let tracksCount = '42 (placeholder)'; // Valeur fictive pour la démo
+  // Récupérer les statistiques de la musique
+  const tracksCount = await prisma.track.count();
 
   // Récupérer les statistiques des utilisateurs
   const usersCount = await prisma.user.count();
@@ -45,7 +45,7 @@ export default async function AdminPage() {
   });
 
   // Récupérer les activités récentes
-  const recentActivities = [];
+  let recentActivities = [];
 
   // Récupérer les événements récents
   const latestEvents = await prisma.event.findMany({
@@ -54,25 +54,54 @@ export default async function AdminPage() {
   });
 
   if (latestEvents.length > 0) {
-    recentActivities.push({
-      type: 'event',
-      title: 'Nouvel événement créé',
-      description: `L'événement "${latestEvents[0].title}" a été créé`,
-      date: latestEvents[0].createdAt,
-      icon: CalendarDays,
-      isPlaceholder: false,
-    });
+    // Vérifier que le premier événement existe et a toutes les propriétés requises
+    if (latestEvents[0] && latestEvents[0].title && latestEvents[0].createdAt) {
+      recentActivities.push({
+        type: 'event',
+        title: 'Nouvel événement créé',
+        description: `L'événement "${latestEvents[0].title}" a été créé`,
+        date: latestEvents[0].createdAt,
+        icon: CalendarDays,
+        isPlaceholder: false,
+      });
+    } else {
+      // Fallback si l'événement existe mais est malformé
+      recentActivities.push({
+        type: 'event',
+        title: 'Nouvel événement créé',
+        description: 'Un nouvel événement a été créé',
+        date: new Date(),
+        icon: CalendarDays,
+        isPlaceholder: false,
+      });
+    }
   }
 
-  // Ajouter un morceau de musique simulé pour la démo
-  recentActivities.push({
-    type: 'track',
-    title: 'Nouveau morceau ajouté (placeholder)',
-    description: 'Le morceau "Midnight Pulse" a été ajouté à la bibliothèque',
-    date: new Date(Date.now() - 24 * 60 * 60 * 1000), // Hier
-    icon: Music2,
-    isPlaceholder: true,
+  // Récupérer le dernier morceau ajouté
+  const latestTrack = await prisma.track.findFirst({
+    orderBy: { createdAt: 'desc' }, // Assure que le modèle Track a bien createdAt
   });
+
+  if (latestTrack) {
+    recentActivities.push({
+      type: 'track',
+      title: 'Nouveau morceau ajouté',
+      description: `Le morceau "${latestTrack.title}" a été ajouté`,
+      date: latestTrack.createdAt,
+      icon: Music2,
+      isPlaceholder: false,
+    });
+  } else {
+    // Placeholder si aucune musique n'existe encore
+    recentActivities.push({
+      type: 'track',
+      title: 'Aucun morceau ajouté récemment',
+      description: 'Ajoutez votre premier morceau via la gestion de musique.',
+      date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // Date arbitraire
+      icon: Music2,
+      isPlaceholder: true, // Indique que c'est un placeholder informatif
+    });
+  }
 
   // Récupérer les ventes de billets récentes si disponible
   const latestTickets = await prisma.ticketInfo.findMany({
@@ -81,22 +110,35 @@ export default async function AdminPage() {
     include: { event: true },
   });
 
-  if (latestTickets.length > 0 && latestTickets[0].event) {
-    recentActivities.push({
-      type: 'ticket',
-      title: 'Vente de billets',
-      description: `Nouvelle configuration de billets pour "${latestTickets[0].event.title}"`,
-      date: latestTickets[0].event.createdAt,
-      icon: Ticket,
-      isPlaceholder: false,
-    });
+  if (latestTickets.length > 0 && latestTickets[0]?.event) {
+    // Vérifier que le event associé est valide
+    if (latestTickets[0].event.title && latestTickets[0].event.createdAt) {
+      recentActivities.push({
+        type: 'ticket',
+        title: 'Configuration Billets',
+        description: `Configuration des billets ajoutée pour "${latestTickets[0].event.title}"`,
+        date: latestTickets[0].event.createdAt, // Utiliser une date pertinente si possible
+        icon: Ticket,
+        isPlaceholder: false,
+      });
+    } else {
+      // Fallback si l'événement associé existe mais est malformé
+      recentActivities.push({
+        type: 'ticket',
+        title: 'Configuration Billets',
+        description: 'Configuration des billets ajoutée pour un événement',
+        date: new Date(),
+        icon: Ticket,
+        isPlaceholder: false,
+      });
+    }
   } else {
-    // Ajouter une vente de billets simulée si aucune n'est trouvée
+    // Placeholder si aucune configuration de billet n'existe encore
     recentActivities.push({
       type: 'ticket',
-      title: 'Vente de billets (placeholder)',
-      description: '12 nouveaux billets vendus pour "Summer Festival"',
-      date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // Il y a 3 jours
+      title: 'Aucune configuration de billet récente',
+      description: 'Configurez la billetterie pour un événement.',
+      date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // Date arbitraire
       icon: Ticket,
       isPlaceholder: true,
     });
@@ -104,6 +146,8 @@ export default async function AdminPage() {
 
   // Trier les activités par date (plus récent en premier)
   recentActivities.sort((a, b) => b.date.getTime() - a.date.getTime());
+  // Garder seulement les 5 plus récentes pour l'affichage
+  recentActivities = recentActivities.slice(0, 5);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-[#0c0117] to-black">
@@ -157,13 +201,13 @@ export default async function AdminPage() {
                   </span>
                 </Link>
                 <span className="text-xs text-purple-300/70 flex items-center">
-                  <Clock className="h-3 w-3 mr-1" /> Récents: {recentEvents}
+                  <Clock className="h-3 w-3 mr-1" /> Récents: {recentEvents || 0}
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Carte Galerie */}
+          {/* Carte Galerie - Réactivée avec compteur N/A */}
           <div className="glass rounded-xl backdrop-blur-md overflow-hidden group relative transition-all duration-300 hover:shadow-[0_0_30px_rgba(139,92,246,0.3)] border border-purple-500/20">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 to-purple-600/5 opacity-70 group-hover:opacity-100 transition-opacity"></div>
             <div className="absolute -bottom-20 -right-20 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl group-hover:bg-blue-500/20 transition-all duration-500"></div>
@@ -204,7 +248,7 @@ export default async function AdminPage() {
                   </span>
                 </Link>
                 <span className="text-xs text-blue-300/70 flex items-center">
-                  <ImageIcon className="h-3 w-3 mr-1" /> Total: {mediaCount}
+                  <ImageIcon className="h-3 w-3 mr-1" /> Total: N/A
                 </span>
               </div>
             </div>
@@ -250,7 +294,7 @@ export default async function AdminPage() {
                   </span>
                 </Link>
                 <span className="text-xs text-indigo-300/70 flex items-center">
-                  <Music2 className="h-3 w-3 mr-1" /> Titres: {tracksCount}
+                  <Music2 className="h-3 w-3 mr-1" /> Total: {tracksCount}
                 </span>
               </div>
             </div>
@@ -397,7 +441,16 @@ export default async function AdminPage() {
           <div className="glass rounded-xl backdrop-blur-md overflow-hidden relative border border-purple-500/20 p-6">
             <div className="absolute inset-0 bg-gradient-to-b from-purple-900/5 to-black/20"></div>
             <div className="relative z-10">
-              <h3 className="text-xl font-audiowide text-white mb-4">Activités récentes</h3>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-audiowide text-white">Activités récentes</h3>
+                <Link
+                  href="/admin/activities"
+                  className="text-sm text-purple-400 hover:text-purple-300 transition-colors flex items-center"
+                >
+                  Voir tout
+                  <ArrowRight className="ml-1 h-4 w-4" />
+                </Link>
+              </div>
 
               <div className="space-y-3">
                 {recentActivities.length > 0 ? (

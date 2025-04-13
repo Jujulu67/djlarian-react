@@ -26,12 +26,14 @@ import {
   Check,
   Plus,
   AlertCircle,
+  Info, // Ajouter Info pour le bouton détail
 } from 'lucide-react';
 import { FaSpotify, FaYoutube, FaSoundcloud, FaApple, FaMusic } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
 import Image from 'next/image';
 import ReactCrop, { type Crop as CropType, centerCrop, makeAspectCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
+import Link from 'next/link';
 
 // Helper function to center the crop area with a specific aspect ratio
 function centerAspectCrop(mediaWidth: number, mediaHeight: number, aspect: number): CropType {
@@ -1409,89 +1411,102 @@ export default function AdminMusicPage() {
                 ) : (
                   <div className="space-y-4">
                     {filteredTracks.map((track) => (
-                      <div
+                      <div // Remplacer Link par div
                         key={track.id}
-                        className="flex items-center gap-4 p-4 bg-gray-800/40 hover:bg-gray-800/60 rounded-lg border border-gray-700/30 transition-colors"
+                        onClick={() =>
+                          router.push(`/admin/music/${track.id}/detail`, { scroll: false })
+                        } // Utiliser router.push pour la navigation
+                        className="block bg-gray-800/40 hover:bg-gray-800/60 rounded-lg border border-gray-700/30 transition-colors cursor-pointer"
                       >
-                        {/* Image */}
-                        <div className="w-16 h-16 flex-shrink-0 rounded-md overflow-hidden">
-                          {track.coverUrl ? (
-                            <img
-                              src={track.coverUrl}
-                              alt={track.title}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-gray-700 flex items-center justify-center">
-                              <Music className="w-8 h-8 text-gray-500" />
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Info */}
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-white font-medium truncate">{track.title}</h3>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-purple-600/30 text-purple-300">
-                              {MUSIC_TYPES.find((t) => t.value === track.type)?.label || track.type}
-                            </span>
-                            <span className="text-gray-400 text-sm flex items-center gap-1">
-                              <Calendar className="w-3 h-3" />
-                              {new Date(track.releaseDate).toLocaleDateString()}
-                            </span>
-                          </div>
-
-                          {/* Plateformes disponibles */}
-                          <div className="flex gap-1 mt-2">
-                            {Object.entries(track.platforms).map(
-                              ([platform, data]) =>
-                                data?.url && (
-                                  <a
-                                    key={platform}
-                                    href={data.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="p-1.5 bg-gray-700/60 hover:bg-gray-600 rounded-full text-gray-300 hover:text-white transition-colors"
-                                    title={`Voir sur ${platformLabels[platform as MusicPlatform]}`}
-                                  >
-                                    {platformIcons[platform as MusicPlatform]}
-                                  </a>
-                                )
+                        <div className="flex items-center gap-4 p-4">
+                          {/* Image */}
+                          <div className="w-16 h-16 flex-shrink-0 rounded-md overflow-hidden">
+                            {track.coverUrl ? (
+                              <img
+                                src={track.coverUrl}
+                                alt={track.title}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-gray-700 flex items-center justify-center">
+                                <Music className="w-8 h-8 text-gray-500" />
+                              </div>
                             )}
                           </div>
-                        </div>
 
-                        {/* Actions */}
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => toggleFeatured(track.id, track.featured || false)}
-                            className={`p-2 rounded-lg transition-colors ${
-                              track.featured
-                                ? 'bg-yellow-600/80 hover:bg-yellow-500/80 text-white'
-                                : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-                            }`}
-                            title={
-                              track.featured ? 'Retirer de la mise en avant' : 'Mettre en avant'
-                            }
-                          >
-                            <Star className="w-5 h-5" />
-                          </button>
-                          <button
-                            onClick={() => handleEdit(track)}
-                            className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
-                            title="Modifier"
-                          >
-                            <Edit className="w-5 h-5" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(track.id)}
-                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-gray-700 rounded-lg transition-colors"
-                            title="Supprimer"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-white font-medium truncate">{track.title}</h3>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-purple-600/30 text-purple-300">
+                                {MUSIC_TYPES.find((t) => t.value === track.type)?.label ||
+                                  track.type}
+                              </span>
+                              <span className="text-gray-400 text-sm flex items-center gap-1">
+                                <Calendar className="w-3 h-3" />
+                                {new Date(track.releaseDate).toLocaleDateString()}
+                              </span>
+                            </div>
+
+                            {/* Plateformes disponibles */}
+                            <div className="flex gap-1 mt-2">
+                              {Object.entries(track.platforms).map(
+                                ([platform, data]) =>
+                                  data?.url && (
+                                    <a
+                                      key={platform}
+                                      href={data.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="p-1.5 bg-gray-700/60 hover:bg-gray-600 rounded-full text-gray-300 hover:text-white transition-colors"
+                                      title={`Voir sur ${platformLabels[platform as MusicPlatform]}`}
+                                      onClick={(e) => e.stopPropagation()} // Garder stopPropagation ici
+                                    >
+                                      {platformIcons[platform as MusicPlatform]}
+                                    </a>
+                                  )
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Actions - Supprimer le bouton Info */}
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation(); // Ajouter stopPropagation ici aussi
+                                toggleFeatured(track.id, track.featured || false);
+                              }}
+                              className={`p-2 rounded-lg transition-colors ${track.featured ? 'bg-yellow-600/80 hover:bg-yellow-500/80 text-white' : 'bg-gray-700 hover:bg-gray-600 text-gray-300'}`}
+                              title={
+                                track.featured ? 'Retirer de la mise en avant' : 'Mettre en avant'
+                              }
+                            >
+                              <Star className="w-5 h-5" />
+                            </button>
+                            {/* Bouton Info supprimé */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation(); // Ajouter stopPropagation
+                                handleEdit(track);
+                              }}
+                              className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+                              title="Modifier"
+                            >
+                              <Edit className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation(); // Ajouter stopPropagation
+                                handleDelete(track.id);
+                              }}
+                              className="p-2 text-gray-400 hover:text-red-500 hover:bg-gray-700 rounded-lg transition-colors"
+                              title="Supprimer"
+                            >
+                              <Trash2 className="w-5 h-5" />
+                            </button>
+                          </div>
                         </div>
-                      </div>
+                      </div> // Fermer le div
                     ))}
                   </div>
                 )}
