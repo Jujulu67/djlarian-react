@@ -18,7 +18,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { email, name, password, role } = body;
+    const { email, name, password, role, isVip } = body;
 
     // 2. Valider les données reçues (simple validation)
     if (!email || !password || !role) {
@@ -31,9 +31,12 @@ export async function POST(request: Request) {
       );
     }
 
-    if (role !== 'ADMIN' && role !== 'USER') {
+    // Accepter ADMIN, USER, ou MODERATOR
+    if (role !== 'ADMIN' && role !== 'USER' && role !== 'MODERATOR') {
       return new NextResponse(
-        JSON.stringify({ error: 'Rôle invalide. Doit être ADMIN ou USER.' }),
+        JSON.stringify({
+          error: 'Rôle invalide. Doit être ADMIN, USER ou MODERATOR.',
+        }),
         {
           status: 400,
           headers: { 'Content-Type': 'application/json' },
@@ -63,6 +66,7 @@ export async function POST(request: Request) {
         name: name || null, // Utiliser null si name n'est pas fourni
         hashedPassword,
         role,
+        isVip: isVip === true, // Ajouter le champ isVip à la création
         emailVerified: new Date(), // Considérer l'email comme vérifié si créé par admin
       },
       select: {
@@ -71,12 +75,13 @@ export async function POST(request: Request) {
         name: true,
         email: true,
         role: true,
+        isVip: true, // Inclure isVip dans la sélection pour que le champ soit retourné
       },
     });
 
-    console.log(`Admin ${session.user.email} created user ${newUser.email}`);
+    console.log(`Admin ${session.user.email} created user ${newUser.email} with isVip=${!!isVip}`);
 
-    // 6. Renvoyer l'utilisateur créé
+    // 6. Renvoyer l'utilisateur créé directement (plus besoin d'ajouter isVip manuellement)
     return new NextResponse(JSON.stringify(newUser), {
       status: 201, // Created
       headers: { 'Content-Type': 'application/json' },

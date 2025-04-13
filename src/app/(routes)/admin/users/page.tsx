@@ -14,6 +14,7 @@ type UserData = {
   name?: string | null;
   email?: string | null;
   role: string;
+  isVip?: boolean;
 };
 
 // Composant de pagination (similaire à activities)
@@ -104,6 +105,49 @@ export default async function AdminUsersPage({
     },
   });
 
+  // Requête Prisma non typée pour récupérer directement le champ isVip
+  // Approche plus directe et universelle
+  const rawUsers = await prisma.$queryRaw`
+    SELECT id, email, "isVip" FROM "User"
+  `;
+
+  // Log plus détaillé pour voir exactement ce que nous récupérons
+  console.log('Données brutes des utilisateurs:', JSON.stringify(rawUsers, null, 2));
+
+  // Créer une map des statuts VIP par ID d'utilisateur avec conversion explicite
+  const vipStatusMap = new Map();
+  if (Array.isArray(rawUsers)) {
+    rawUsers.forEach((rawUser: any) => {
+      // PostgreSQL peut retourner différents formats pour les booléens
+      const isVipValue =
+        rawUser.isVip === true ||
+        rawUser.isVip === 't' ||
+        rawUser.isVip === 'true' ||
+        rawUser.isVip === 1;
+
+      // Log détaillé par utilisateur
+      console.log(
+        `Utilisateur ${rawUser.email} (${rawUser.id}): isVip = ${rawUser.isVip} --> converti en ${isVipValue}`
+      );
+
+      vipStatusMap.set(rawUser.id, isVipValue);
+    });
+  }
+
+  // Ajouter le statut VIP aux utilisateurs
+  const usersWithData = users.map((user) => {
+    const hasVipStatus = vipStatusMap.has(user.id);
+    const isVip = hasVipStatus ? vipStatusMap.get(user.id) : false;
+
+    // Log supplémentaire pour vérifier la correspondance
+    console.log(`Mapping pour ${user.email}: hasVipStatus = ${hasVipStatus}, isVip = ${isVip}`);
+
+    return {
+      ...user,
+      isVip,
+    };
+  });
+
   const totalPages = Math.ceil(totalUsers / limit);
 
   return (
@@ -147,7 +191,7 @@ export default async function AdminUsersPage({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-700">
-              {users.map((user) => (
+              {usersWithData.map((user) => (
                 <tr key={user.id} className="hover:bg-gray-700/30 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
@@ -163,16 +207,29 @@ export default async function AdminUsersPage({
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <ShieldCheck className="h-5 w-5 text-gray-400 mr-2" />
                       <span
-                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        className={`px-3 py-1 inline-flex items-center text-xs leading-5 font-semibold rounded-full ${
                           user.role === 'ADMIN'
-                            ? 'bg-green-800 text-green-100'
-                            : 'bg-blue-800 text-blue-100'
+                            ? 'bg-purple-800/70 text-purple-100'
+                            : user.role === 'MODERATOR'
+                              ? 'bg-blue-800/70 text-blue-100'
+                              : 'bg-green-800/70 text-green-100'
                         }`}
                       >
+                        {user.role === 'ADMIN' && <span className="mr-1">👑</span>}
+                        {user.role === 'MODERATOR' && <span className="mr-1">🛡️</span>}
+                        {user.role === 'USER' && <span className="mr-1">👤</span>}
                         {user.role}
                       </span>
+
+                      {/* Badge VIP si applicable - Ajouter un log pour déboguer */}
+                      {console.log(`Affichage ${user.email}: isVip = ${user.isVip}`)}
+                      {user.isVip && (
+                        <span className="ml-2 px-3 py-1 inline-flex items-center text-xs leading-5 font-semibold rounded-full bg-amber-700/70 text-amber-100">
+                          <span className="mr-1">⭐</span>
+                          VIP
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -184,7 +241,7 @@ export default async function AdminUsersPage({
           </table>
         </div>
 
-        {users.length === 0 && (
+        {usersWithData.length === 0 && (
           <div className="text-center py-12 text-gray-400">Aucun utilisateur trouvé.</div>
         )}
 

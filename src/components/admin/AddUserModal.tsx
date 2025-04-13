@@ -8,9 +8,15 @@ import AddUserForm from '@/components/admin/AddUserForm'; // Importer le formula
 export default function AddUserModal() {
   const router = useRouter();
 
-  // Le callback onSuccess fermera la modale
+  // Le callback onSuccess rafraîchira explicitement les données avant de fermer la modale
   const handleSuccess = () => {
-    router.back();
+    // Rafraîchir les données explicitement avant la navigation
+    router.refresh();
+
+    // Petit délai pour permettre au rafraîchissement de se propager
+    setTimeout(() => {
+      router.back();
+    }, 300);
   };
 
   return (
