@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { X } from 'lucide-react';
-import React from 'react';
+import React, { useEffect, useLayoutEffect } from 'react';
 
 interface ModalProps {
   children: React.ReactNode;
@@ -15,23 +15,63 @@ export default function Modal({ children }: ModalProps) {
     router.back(); // Navigue en arrière pour fermer la modale
   };
 
+  // Utiliser useLayoutEffect pour appliquer les styles AVANT le premier rendu visuel
+  useLayoutEffect(() => {
+    // Sauvegarder le scroll position actuel
+    const scrollY = window.scrollY;
+
+    // Calculer la largeur de la barre de défilement avant de bloquer le scroll
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+
+    // Appliquer immédiatement pour éviter le flash
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
+    document.body.style.paddingRight = `${scrollbarWidth}px`;
+
+    return () => {
+      // Restaurer le scrolling quand la modale se ferme
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      document.body.style.paddingRight = '';
+
+      // Restaurer la position de défilement
+      window.scrollTo(0, scrollY);
+    };
+  }, []);
+
   return (
     <div
-      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in"
-      onClick={handleClose} // Fermer en cliquant sur l'arrière-plan
+      className="absolute inset-0 z-50 overflow-hidden"
+      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+      aria-labelledby="modal-title"
+      role="dialog"
+      aria-modal="true"
+      onClick={handleClose}
     >
-      <div
-        className="bg-gradient-to-br from-[#1a0f2a] via-[#0c0117] to-[#1a0f2a] rounded-xl shadow-2xl border border-purple-500/30 w-full max-w-4xl max-h-[90vh] overflow-y-auto relative animate-slide-up"
-        onClick={(e) => e.stopPropagation()} // Empêcher la fermeture en cliquant sur le contenu
-      >
-        <button
-          onClick={handleClose}
-          className="absolute top-3 right-3 p-2 text-gray-400 hover:text-white bg-black/20 hover:bg-black/40 rounded-full transition-colors z-10"
-          aria-label="Fermer la modale"
+      <div className="flex min-h-screen items-center justify-center p-4 text-center sm:p-0">
+        <div
+          className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+          aria-hidden="true"
+        />
+
+        <div
+          className="relative transform overflow-hidden rounded-xl bg-gradient-to-br from-[#1a0f2a] via-[#0c0117] to-[#1a0f2a] border border-purple-500/30 w-full max-w-4xl text-left shadow-2xl transition-all sm:my-8 animate-fadeIn"
+          onClick={(e) => e.stopPropagation()}
         >
-          <X className="w-5 h-5" />
-        </button>
-        <div className="p-6 md:p-8 lg:p-10">{children}</div>
+          <button
+            onClick={handleClose}
+            className="absolute top-3 right-3 p-2 text-gray-400 hover:text-white bg-black/20 hover:bg-black/40 rounded-full transition-colors z-10"
+            aria-label="Fermer la modale"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          <div className="p-6 md:p-8 lg:p-10 max-h-[80vh] overflow-y-auto">{children}</div>
+        </div>
       </div>
     </div>
   );

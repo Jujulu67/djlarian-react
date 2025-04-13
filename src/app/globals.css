@@ -3,6 +3,13 @@
 @tailwind utilities;
 
 @layer base {
+  /* Désactiver le défilement automatique pour éviter les avertissements */
+  html {
+    scroll-behavior: auto !important;
+    /* Réserver l'espace pour la barre de défilement même quand elle est cachée */
+    scrollbar-gutter: stable;
+  }
+
   :root {
     --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
