@@ -107,17 +107,17 @@ export default async function AdminPage() {
   const latestTickets = await prisma.ticketInfo.findMany({
     take: 1,
     orderBy: { id: 'desc' },
-    include: { event: true },
+    include: { Event: true },
   });
 
-  if (latestTickets.length > 0 && latestTickets[0]?.event) {
+  if (latestTickets.length > 0 && latestTickets[0]?.Event) {
     // Vérifier que le event associé est valide
-    if (latestTickets[0].event.title && latestTickets[0].event.createdAt) {
+    if (latestTickets[0].Event.title && latestTickets[0].Event.createdAt) {
       recentActivities.push({
         type: 'ticket',
         title: 'Configuration Billets',
-        description: `Configuration des billets ajoutée pour "${latestTickets[0].event.title}"`,
-        date: latestTickets[0].event.createdAt, // Utiliser une date pertinente si possible
+        description: `Configuration des billets ajoutée pour "${latestTickets[0].Event.title}"`,
+        date: latestTickets[0].Event.createdAt, // Utiliser une date pertinente si possible
         icon: Ticket,
         isPlaceholder: false,
       });

@@ -71,19 +71,19 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const event = await prisma.event.findUnique({
       where: { id },
       include: {
-        user: {
+        User: {
           select: {
             name: true,
           },
         },
-        tickets: true,
-        recurrenceConfig: true,
-        master: {
+        TicketInfo: true,
+        RecurrenceConfig: true,
+        Event: {
           select: {
             id: true,
           },
         },
-        occurrences: {
+        other_Event: {
           select: {
             id: true,
             startDate: true,
@@ -150,7 +150,27 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     }
 
     console.log(`Returning regular event with date: ${event.startDate}`);
-    return NextResponse.json(event);
+
+    // Formater l'événement pour correspondre à ce qu'attend le client
+    const formattedEvent = { ...event } as any;
+
+    // Renommer les propriétés s'ils existent
+    if ('TicketInfo' in event) {
+      formattedEvent.tickets = event.TicketInfo;
+      delete formattedEvent.TicketInfo;
+    }
+
+    if ('RecurrenceConfig' in event) {
+      formattedEvent.recurrenceConfig = event.RecurrenceConfig;
+      delete formattedEvent.RecurrenceConfig;
+    }
+
+    if ('User' in event) {
+      formattedEvent.user = event.User;
+      delete formattedEvent.User;
+    }
+
+    return NextResponse.json(formattedEvent);
   } catch (error) {
     console.error("Erreur lors de la récupération de l'événement:", error);
     return NextResponse.json(
@@ -231,7 +251,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       });
 
       if (userExists) {
-        dataToUpdate.user = {
+        dataToUpdate.User = {
           connect: { id: session.user.id },
         };
       } else {
@@ -249,111 +269,75 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       dataToUpdate.originalImageUrl = originalImageUrl;
     }
 
-    // La gestion des tickets
-    if (tickets === null || tickets === undefined) {
-      // Au lieu de déconnecter les tickets, nous les laissons inchangés
-      // car la relation est requise, nous ne pouvons pas simplement les déconnecter
-      console.log(`Event ${id} tickets not modified (keeping existing tickets)`);
-    } else if (typeof tickets === 'object' && tickets !== null) {
-      console.log(`Event ${id} tickets provided, attempting upsert.`);
-      dataToUpdate.tickets = {
-        upsert: {
-          create: {
-            price: tickets.price ?? 0,
-            currency: tickets.currency || 'EUR',
-            buyUrl: tickets.buyUrl || '', // Assure une valeur par défaut
-            quantity: tickets.quantity ?? 0,
-          },
-          update: {
-            price: tickets.price ?? 0,
-            currency: tickets.currency || 'EUR',
-            buyUrl: tickets.buyUrl || '', // Assure une valeur par défaut
-            quantity: tickets.quantity ?? 0,
-          },
-        },
-      };
-    }
+    // Mettre à jour les tickets si fournis
+    if (tickets) {
+      try {
+        // Vérifier si l'événement a déjà des tickets
+        const existingTickets = await prisma.ticketInfo.findUnique({
+          where: { eventId: id },
+        });
 
-    // Vérifier si l'événement est un maître ou une occurrence
-    const eventInfo = await prisma.event.findUnique({
-      where: { id },
-      select: {
-        masterId: true,
-        startDate: true,
-        endDate: true,
-        recurrenceConfig: true,
-      },
-    });
-
-    let createdOccurrences = [];
-
-    // Gestion de la récurrence
-    if (recurrence !== undefined) {
-      if (eventInfo?.masterId) {
-        console.log(`Event ${id} is an occurrence, cannot update recurrence configuration.`);
-      } else {
-        console.log(`Event ${id} recurrence config provided:`, recurrence);
-
-        // Récupérer la configuration de récurrence actuelle
-        const currentRecurrenceConfig = eventInfo?.recurrenceConfig;
-        const wasRecurring = !!currentRecurrenceConfig;
-        const becomesRecurring = recurrence && recurrence.isRecurring;
-
-        if (becomesRecurring) {
-          // Ajouter ou mettre à jour la configuration de récurrence
-          dataToUpdate.recurrenceConfig = {
-            upsert: {
-              create: {
-                frequency: recurrence.frequency,
-                endDate: recurrence.endDate ? new Date(recurrence.endDate) : null,
-                excludedDates: recurrence.excludedDates || [],
-              },
-              update: {
-                frequency: recurrence.frequency,
-                endDate: recurrence.endDate ? new Date(recurrence.endDate) : null,
-                excludedDates: recurrence.excludedDates || [],
-              },
+        if (existingTickets) {
+          // Mettre à jour les tickets existants
+          dataToUpdate.TicketInfo = {
+            update: {
+              price: tickets.price !== undefined ? Number(tickets.price) : undefined,
+              currency: tickets.currency || undefined,
+              buyUrl: tickets.buyUrl || undefined,
+              quantity: tickets.quantity !== undefined ? Number(tickets.quantity) : undefined,
+              availableFrom: tickets.availableFrom ? new Date(tickets.availableFrom) : undefined,
+              availableTo: tickets.availableTo ? new Date(tickets.availableTo) : undefined,
             },
           };
-
-          // Marquer l'événement comme maître
-          dataToUpdate.isMasterEvent = true;
-
-          // Générer virtuellement les dates pour information seulement
-          const recurringDates = generateRecurringDates(
-            eventInfo?.startDate || new Date(), // Fallback si eventInfo est null
-            recurrence,
-            recurrence.excludedDates || []
-          );
-
-          console.log(
-            `L'événement ${id} générerait virtuellement ${recurringDates.length} occurrences`
-          );
-          // Nous ne créons pas réellement les occurrences, elles seront générées dynamiquement à l'affichage
         } else {
-          // Si isRecurring est false, vérifier d'abord si une configuration existe
-          const hasRecurrenceConfig = !!eventInfo?.recurrenceConfig;
-
-          if (hasRecurrenceConfig) {
-            // Supprimer la configuration uniquement si elle existe
-            dataToUpdate.recurrenceConfig = {
-              delete: true,
-            };
-          } else {
-            console.log(`Event ${id} had no recurrence config, skipping deletion`);
-          }
-
-          // Si l'événement était récurrent mais ne l'est plus, supprimer les occurrences
-          if (wasRecurring) {
-            await prisma.event.deleteMany({
-              where: {
-                masterId: id,
-              },
-            });
-            dataToUpdate.isMasterEvent = false;
-            console.log(`Deleted occurrences for event ${id} as it's no longer recurring`);
-          }
+          // Créer de nouveaux tickets
+          dataToUpdate.TicketInfo = {
+            create: {
+              price: tickets.price !== undefined ? Number(tickets.price) : 0,
+              currency: tickets.currency || 'EUR',
+              buyUrl: tickets.buyUrl || '',
+              quantity: tickets.quantity !== undefined ? Number(tickets.quantity) : 0,
+              availableFrom: tickets.availableFrom ? new Date(tickets.availableFrom) : null,
+              availableTo: tickets.availableTo ? new Date(tickets.availableTo) : null,
+            },
+          };
         }
+      } catch (error) {
+        console.error('Erreur lors de la mise à jour des tickets:', error);
+      }
+    }
+
+    // Mettre à jour les paramètres de récurrence si fournis
+    if (recurrence) {
+      try {
+        // Vérifier si l'événement a déjà une configuration de récurrence
+        const existingRecurrence = await prisma.recurrenceConfig.findUnique({
+          where: { eventId: id },
+        });
+
+        if (existingRecurrence) {
+          // Mettre à jour la configuration existante
+          dataToUpdate.RecurrenceConfig = {
+            update: {
+              frequency: recurrence.frequency || undefined,
+              day: recurrence.day !== undefined ? recurrence.day : undefined,
+              endDate: recurrence.endDate ? new Date(recurrence.endDate) : undefined,
+              excludedDates: recurrence.excludedDates || undefined,
+            },
+          };
+        } else if (recurrence.isRecurring) {
+          // Créer une nouvelle configuration de récurrence
+          dataToUpdate.RecurrenceConfig = {
+            create: {
+              frequency: recurrence.frequency || 'weekly',
+              day: recurrence.day || new Date().getDay(),
+              endDate: recurrence.endDate ? new Date(recurrence.endDate) : null,
+              excludedDates: recurrence.excludedDates || [],
+            },
+          };
+        }
+      } catch (error) {
+        console.error('Erreur lors de la mise à jour de la récurrence:', error);
       }
     }
 
@@ -366,21 +350,12 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       where: { id },
       data: dataToUpdate,
       include: {
-        user: { select: { name: true } },
-        tickets: true,
-        recurrenceConfig: true,
-        master: {
+        User: { select: { name: true } },
+        TicketInfo: true,
+        RecurrenceConfig: true,
+        Event: {
           select: {
             id: true,
-          },
-        },
-        occurrences: {
-          select: {
-            id: true,
-            startDate: true,
-          },
-          orderBy: {
-            startDate: 'asc',
           },
         },
       },
@@ -388,12 +363,26 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
     console.log(`Event ${id} updated successfully.`);
 
-    // Ajout des informations sur les occurrences créées si nécessaire
-    if (createdOccurrences.length > 0) {
-      console.log(`${createdOccurrences.length} occurrences were created for this event.`);
+    // Formater l'événement pour correspondre à ce qu'attend le client
+    const formattedEvent = { ...updatedEvent } as any;
+
+    // Renommer les propriétés s'ils existent
+    if ('TicketInfo' in updatedEvent) {
+      formattedEvent.tickets = updatedEvent.TicketInfo;
+      delete formattedEvent.TicketInfo;
     }
 
-    return NextResponse.json(updatedEvent);
+    if ('RecurrenceConfig' in updatedEvent) {
+      formattedEvent.recurrenceConfig = updatedEvent.RecurrenceConfig;
+      delete formattedEvent.RecurrenceConfig;
+    }
+
+    if ('User' in updatedEvent) {
+      formattedEvent.user = updatedEvent.User;
+      delete formattedEvent.User;
+    }
+
+    return NextResponse.json(formattedEvent);
   } catch (error: any) {
     console.error(`--- ERROR in PATCH /api/events/${id} ---`);
     console.error('Error details:', error);

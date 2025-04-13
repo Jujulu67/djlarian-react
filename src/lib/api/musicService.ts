@@ -29,13 +29,19 @@ export type UpdateTrackInput = {
 export async function getAllTracks() {
   return prisma.track.findMany({
     include: {
-      platforms: true,
-      genres: {
+      TrackPlatform: true,
+      GenresOnTracks: {
         include: {
-          genre: true,
+          Genre: true,
         },
       },
-      collection: true,
+      MusicCollection: true,
+      User: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
     },
     orderBy: [{ featured: 'desc' }, { releaseDate: 'desc' }],
   });
@@ -46,13 +52,19 @@ export async function getTrackById(id: string) {
   return prisma.track.findUnique({
     where: { id },
     include: {
-      platforms: true,
-      genres: {
+      TrackPlatform: true,
+      GenresOnTracks: {
         include: {
-          genre: true,
+          Genre: true,
         },
       },
-      collection: true,
+      MusicCollection: true,
+      User: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
     },
   });
 }
@@ -65,7 +77,7 @@ export async function createTrack(data: CreateTrackInput, userId?: string) {
     return prisma.genre.upsert({
       where: { name: normalizedName },
       update: {},
-      create: { name: normalizedName },
+      create: { name: normalizedName } as any,
     });
   });
 
@@ -82,32 +94,32 @@ export async function createTrack(data: CreateTrackInput, userId?: string) {
       description: data.description,
       type: data.type,
       featured: data.featured || false,
-      ...(userId ? { user: { connect: { id: userId } } } : {}),
-      collection: data.collectionId
+      ...(userId ? { User: { connect: { id: userId } } } : {}),
+      MusicCollection: data.collectionId
         ? {
             connect: { id: data.collectionId },
           }
         : undefined,
-      platforms: {
+      TrackPlatform: {
         create: data.platforms.map((platform) => ({
           platform: platform.platform,
           url: platform.url,
           embedId: platform.embedId,
-        })),
+        })) as any,
       },
-      genres: {
+      GenresOnTracks: {
         create: genres.map((genre: Genre) => ({
-          genre: {
+          Genre: {
             connect: { id: genre.id },
           },
         })),
       },
     },
     include: {
-      platforms: true,
-      genres: {
+      TrackPlatform: true,
+      GenresOnTracks: {
         include: {
-          genre: true,
+          Genre: true,
         },
       },
     },
@@ -127,26 +139,21 @@ export async function updateTrack(data: UpdateTrackInput) {
   // Gérer les mises à jour des genres
   let genreUpdates = {};
   if (genreNames && genreNames.length > 0) {
-    // Supprimer les associations de genres existantes
     await prisma.genresOnTracks.deleteMany({
       where: { trackId: id },
     });
-
-    // Ajouter les nouveaux genres
     const genrePromises = genreNames.map(async (name) => {
       const normalizedName = name.trim().toLowerCase();
       return prisma.genre.upsert({
         where: { name: normalizedName },
         update: {},
-        create: { name: normalizedName },
+        create: { name: normalizedName } as any,
       });
     });
-
     const genres = await Promise.all(genrePromises);
-
     genreUpdates = {
       create: genres.map((genre: Genre) => ({
-        genre: {
+        Genre: {
           connect: { id: genre.id },
         },
       })),
@@ -156,18 +163,15 @@ export async function updateTrack(data: UpdateTrackInput) {
   // Gérer les mises à jour des plateformes
   let platformUpdates = {};
   if (platforms && platforms.length > 0) {
-    // Supprimer les plateformes existantes
     await prisma.trackPlatform.deleteMany({
       where: { trackId: id },
     });
-
-    // Ajouter les nouvelles plateformes
     platformUpdates = {
       create: platforms.map((platform) => ({
         platform: platform.platform,
         url: platform.url,
         embedId: platform.embedId,
-      })),
+      })) as any,
     };
   }
 
@@ -176,17 +180,17 @@ export async function updateTrack(data: UpdateTrackInput) {
     where: { id },
     data: {
       ...trackUpdateData,
-      genres: genreNames ? genreUpdates : undefined,
-      platforms: platforms ? platformUpdates : undefined,
+      GenresOnTracks: genreNames ? genreUpdates : undefined,
+      TrackPlatform: platforms ? platformUpdates : undefined,
     },
     include: {
-      platforms: true,
-      genres: {
+      TrackPlatform: true,
+      GenresOnTracks: {
         include: {
-          genre: true,
+          Genre: true,
         },
       },
-      collection: true,
+      MusicCollection: true,
     },
   });
 }
@@ -217,24 +221,47 @@ export async function getAllGenres() {
 
 // Convertir les données Prisma au format attendu par le frontend
 export function formatTrackData(track: any) {
+  // Vérifications pour rendre la fonction plus robuste
+  const releaseDateStr = track.releaseDate ? track.releaseDate.toISOString().split('T')[0] : ''; // Fournir une valeur par défaut si releaseDate est null/undefined
+
+  // Utiliser les clés PascalCase pour lire les données de Prisma
+  const genresList = Array.isArray(track.GenresOnTracks) // <-- Corrigé: genres -> GenresOnTracks
+    ? track.GenresOnTracks.map((g: any) => g?.Genre?.name).filter(Boolean) // <-- Corrigé: genre -> Genre
+    : []; // Tableau vide si track.GenresOnTracks n'est pas un tableau
+
+  const platformsMap = Array.isArray(track.TrackPlatform) // <-- Corrigé: platforms -> TrackPlatform
+    ? track.TrackPlatform.reduce((acc: any, platform: any) => {
+        if (platform?.platform) {
+          // Vérifier que platform et platform.platform existent
+          acc[platform.platform] = {
+            url: platform.url || '', // Fournir des valeurs par défaut
+            embedId: platform.embedId,
+          };
+        }
+        return acc;
+      }, {})
+    : {}; // Objet vide si track.TrackPlatform n'est pas un tableau
+
+  // Conserver les clés camelCase pour l'objet retourné si le frontend les attend
   return {
     id: track.id,
     title: track.title,
     artist: track.artist,
     coverUrl: track.coverUrl || '',
-    releaseDate: track.releaseDate.toISOString().split('T')[0],
-    genre: track.genres.map((g: any) => g.genre.name),
+    releaseDate: releaseDateStr,
+    genre: genresList, // Clé de retour 'genre'
     bpm: track.bpm || undefined,
     description: track.description || '',
     type: track.type as MusicType,
     featured: track.featured || false,
-    collection: track.collection,
-    platforms: track.platforms.reduce((acc: any, platform: any) => {
-      acc[platform.platform] = {
-        url: platform.url,
-        embedId: platform.embedId,
-      };
-      return acc;
-    }, {}),
+    isPublished: track.isPublished !== undefined ? track.isPublished : true,
+    createdAt: track.createdAt?.toISOString(), // Formatter la date pour le JSON
+    platforms: platformsMap, // Clé de retour 'platforms'
+    collection: track.MusicCollection // Utiliser MusicCollection pour lire
+      ? { id: track.MusicCollection.id, title: track.MusicCollection.title }
+      : null,
+    user: track.User // Utiliser User pour lire
+      ? { id: track.User.id, name: track.User.name }
+      : null,
   };
 }

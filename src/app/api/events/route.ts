@@ -84,25 +84,16 @@ export async function GET(request: NextRequest) {
       skip,
       take: limit,
       include: {
-        user: {
+        User: {
           select: {
             name: true,
           },
         },
-        tickets: true,
-        recurrenceConfig: true,
-        master: {
+        TicketInfo: true,
+        RecurrenceConfig: true,
+        Event: {
           select: {
             id: true,
-          },
-        },
-        occurrences: {
-          select: {
-            id: true,
-            startDate: true,
-          },
-          orderBy: {
-            startDate: 'asc',
           },
         },
       },
@@ -111,8 +102,32 @@ export async function GET(request: NextRequest) {
     // Compter le nombre total d'événements pour la pagination
     const total = await prisma.event.count({ where });
 
+    // Formater les événements pour correspondre à ce qu'attend le client
+    const formattedEvents = events.map((event) => {
+      const formattedEvent = { ...event } as any;
+
+      if ('TicketInfo' in event) {
+        formattedEvent.tickets = event.TicketInfo;
+        delete formattedEvent.TicketInfo;
+      }
+      if ('RecurrenceConfig' in event) {
+        formattedEvent.recurrenceConfig = event.RecurrenceConfig;
+        delete formattedEvent.RecurrenceConfig;
+      }
+      if ('User' in event) {
+        formattedEvent.user = event.User;
+        delete formattedEvent.User;
+      }
+      if ('Event' in event && event.Event !== null) {
+        formattedEvent.master = event.Event;
+        delete formattedEvent.Event;
+      }
+
+      return formattedEvent;
+    });
+
     return NextResponse.json({
-      events,
+      events: formattedEvents,
       pagination: {
         total,
         page,
@@ -208,7 +223,7 @@ export async function POST(request: Request) {
 
       if (userExists) {
         userConnect = {
-          user: {
+          User: {
             connect: { id: session.user.id },
           },
         };
@@ -238,7 +253,7 @@ export async function POST(request: Request) {
 
     // Ajouter tickets si présents
     if (body.tickets) {
-      commonEventData.tickets = {
+      commonEventData.TicketInfo = {
         create: {
           price: body.tickets.price !== undefined ? Number(body.tickets.price) : 0,
           currency: body.tickets.currency || 'EUR',
@@ -268,32 +283,27 @@ export async function POST(request: Request) {
           );
         }
 
-        // Ajouter les propriétés spécifiques à un événement récurrent
-        const masterEventData = {
-          ...commonEventData,
-          isMasterEvent: true, // Marquer comme événement maître
-          recurrenceConfig: {
-            create: {
-              frequency: body.recurrence.frequency,
-              day: body.recurrence.day || new Date().getDay(),
-              endDate: body.recurrence.endDate ? new Date(body.recurrence.endDate) : null,
-              excludedDates: body.recurrence.excludedDates || [],
+        // Créer l'événement maître
+        const masterEvent = await prisma.event.create({
+          data: {
+            ...commonEventData,
+            isMasterEvent: true, // Marquer comme événement maître
+            // Créer la configuration de récurrence
+            RecurrenceConfig: {
+              create: {
+                frequency: body.recurrence.frequency,
+                day: body.recurrence.day !== undefined ? Number(body.recurrence.day) : undefined,
+                endDate: body.recurrence.endDate ? new Date(body.recurrence.endDate) : null,
+                excludedDates: body.recurrence.excludedDates || Prisma.JsonNull,
+              },
             },
           },
-        };
-
-        console.log("Création de l'événement maître avec données:", masterEventData);
-
-        // Créer uniquement l'événement maître
-        const masterEvent = await prisma.event.create({
-          data: masterEventData,
           include: {
-            recurrenceConfig: true,
-            tickets: true,
+            RecurrenceConfig: true,
           },
         });
 
-        console.log('Événement maître créé avec ID:', masterEvent.id);
+        console.log('✅ Événement maître créé:', masterEvent.id);
 
         // Calculer virtuellement combien d'occurrences seraient générées
         const recurringDates = generateRecurringDates(
@@ -331,9 +341,6 @@ export async function POST(request: Request) {
       console.log("Création d'un événement simple (non récurrent)");
       const event = await prisma.event.create({
         data: commonEventData,
-        include: {
-          tickets: true,
-        },
       });
 
       return NextResponse.json({ success: true, event }, { status: 201 });
