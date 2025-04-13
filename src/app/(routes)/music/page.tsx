@@ -225,32 +225,6 @@ export default function MusicPage() {
           // L'index sera mis à jour par l'effet si nécessaire, ou on peut le chercher ici
           const newIndex = filteredTracks.findIndex((t) => t.id === track.id);
           setActiveIndex(newIndex >= 0 ? newIndex : null);
-
-          // Determine platform for the new track
-          const newPlatform = track.platforms.youtube
-            ? 'youtube'
-            : track.platforms.soundcloud
-              ? 'soundcloud'
-              : null;
-
-          if (newPlatform) {
-            // Use retry mechanism to find the new iframe
-            const newIframe = await findIframeWithRetry(track.id, newPlatform);
-            if (newIframe) {
-              console.log(
-                `Envoi de la commande play à l'iframe ${newPlatform} trouvé pour ${track.title}`
-              );
-              sendPlayerCommand(newIframe, newPlatform, 'play');
-            } else {
-              console.warn(
-                `Nouvel iframe ${newPlatform} non trouvé pour ${track.title} après plusieurs tentatives.`
-              );
-            }
-          } else {
-            console.warn(
-              `Aucune plateforme de lecteur trouvée pour démarrer la lecture de ${track.title}`
-            );
-          }
         },
         150
       ); // Lock delay 150ms for initiating play with state lock
@@ -271,7 +245,8 @@ export default function MusicPage() {
     console.log(`Setting isPlaying to ${willPlay}`);
     setIsPlaying(willPlay);
 
-    // Trouver le lecteur actif
+    // Trouver le lecteur actif - NO LONGER NEEDED HERE, MusicCard handles it
+    /*
     const activeTrackId = currentTrack.id;
     const activeYoutubeIframe = document.querySelector<HTMLIFrameElement>(
       `iframe[id="youtube-iframe-${activeTrackId}"]`
@@ -299,10 +274,12 @@ export default function MusicPage() {
         `Envoi de la commande ${action} à l'iframe ${playerType} pour: ${currentTrack.title}`
       );
       // Envoyer la commande immédiatement, sans verrou ici
-      sendPlayerCommand(iframe, playerType, action);
+      // !!! SUPPRESSION DE L'APPEL DIRECT !!!
+      // sendPlayerCommand(iframe, playerType, action);
     } else {
       console.warn(`Aucun iframe actif trouvé pour ${currentTrack.title}`);
     }
+    */
   };
 
   // Fermer le lecteur (garder withLock avec délai court)
@@ -379,7 +356,8 @@ export default function MusicPage() {
         setActiveIndex(nextIndex);
         setIsPlaying(true);
 
-        // Utiliser findIframeWithRetry au lieu d'une attente fixe
+        // Utiliser findIframeWithRetry au lieu d'une attente fixe - NO LONGER NEEDED HERE
+        /*
         // await new Promise((resolve) => setTimeout(resolve, 150));
         const nextPlatform = nextTrack.platforms.youtube
           ? 'youtube'
@@ -392,7 +370,8 @@ export default function MusicPage() {
             console.log(
               `Envoi de la commande play à l'iframe ${nextPlatform} trouvé pour ${nextTrack.title}`
             );
-            sendPlayerCommand(nextIframe, nextPlatform, 'play');
+            // !!! SUPPRESSION DE L'APPEL DIRECT !!!
+            // sendPlayerCommand(nextIframe, nextPlatform, 'play');
           } else {
             console.warn(
               `Nouvel iframe ${nextPlatform} non trouvé pour ${nextTrack.title} après changement (suivant).`
@@ -403,6 +382,7 @@ export default function MusicPage() {
             `Aucune plateforme de lecteur trouvée pour démarrer la lecture de ${nextTrack.title}`
           );
         }
+        */
       },
       150
     ); // Délai de 150ms pour le verrou d'état lors du changement de piste
@@ -444,7 +424,8 @@ export default function MusicPage() {
         setActiveIndex(prevIndex);
         setIsPlaying(true);
 
-        // Utiliser findIframeWithRetry au lieu d'une attente fixe
+        // Utiliser findIframeWithRetry au lieu d'une attente fixe - NO LONGER NEEDED HERE
+        /*
         // await new Promise((resolve) => setTimeout(resolve, 150));
         const prevPlatform = prevTrack.platforms.youtube
           ? 'youtube'
@@ -457,7 +438,8 @@ export default function MusicPage() {
             console.log(
               `Envoi de la commande play à l'iframe ${prevPlatform} trouvé pour ${prevTrack.title}`
             );
-            sendPlayerCommand(prevIframe, prevPlatform, 'play');
+             // !!! SUPPRESSION DE L'APPEL DIRECT !!!
+            // sendPlayerCommand(prevIframe, prevPlatform, 'play');
           } else {
             console.warn(
               `Nouvel iframe ${prevPlatform} non trouvé pour ${prevTrack.title} après changement (précédent).`
@@ -468,6 +450,7 @@ export default function MusicPage() {
             `Aucune plateforme de lecteur trouvée pour démarrer la lecture de ${prevTrack.title}`
           );
         }
+        */
       },
       150
     ); // Délai de 150ms pour le verrou d'état lors du changement de piste

@@ -18,7 +18,7 @@ const ClientLayout = ({ children }: ClientLayoutProps) => {
       <Navigation />
       <main className="pt-16">{children}</main>
       <Toaster
-        position="top-center"
+        position="bottom-center"
         toastOptions={{
           duration: 5000,
           style: {

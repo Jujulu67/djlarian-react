@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Track, MusicPlatform } from '@/lib/utils/types';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { Play, Pause, ExternalLink, Music, Calendar, X } from 'lucide-react';
+import { Play, Pause, ExternalLink, Music, Calendar, X, Star } from 'lucide-react';
 import { FaSpotify, FaYoutube, FaSoundcloud, FaApple, FaMusic } from 'react-icons/fa';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -72,6 +72,8 @@ export const MusicCard: React.FC<MusicCardProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [showYouTube, setShowYouTube] = useState(false);
   const [showSoundCloud, setShowSoundCloud] = useState(false);
+  const [isSoundcloudReady, setIsSoundcloudReady] = useState(false);
+  const [playWhenReady, setPlayWhenReady] = useState(false);
 
   // Extraire l'ID YouTube quand c'est une piste YouTube
   useEffect(() => {
@@ -142,43 +144,87 @@ export const MusicCard: React.FC<MusicCardProps> = ({
       : track.platforms.soundcloud
         ? 'soundcloud'
         : null;
-    const iframe = platform === 'youtube' ? iframeRef.current : soundcloudIframeRef.current;
+    //const iframe = platform === 'youtube' ? iframeRef.current : soundcloudIframeRef.current; // We'll get the iframe ref inside logic now
 
     console.log(
       `Active Card Effect: Track ${track.id}, isPlaying: ${isPlaying}, platform: ${platform}`
     );
 
     if (isPlaying) {
-      // Play command
+      // Indicate intention to play when ready
       if (platform === 'youtube' && youtubeVideoId) {
         setIsYoutubeVisible(true);
         setIsSoundcloudVisible(false);
-        // Delay play command slightly to ensure iframe is ready/visible
-        setTimeout(() => sendPlayerCommand(iframe, 'youtube', 'play'), 150);
+        setPlayWhenReady(false); // Reset soundcloud flag
+        console.log(`[Card ${track.id}] YouTube selected. Visibility set. Play command delayed.`);
+        // Delay play command slightly to ensure iframe is ready/visible (YouTube seems less problematic)
+        // TODO: Consider adding 'ready' handling for YouTube as well for robustness
+        setTimeout(() => sendPlayerCommand(iframeRef.current, 'youtube', 'play'), 150);
       } else if (platform === 'soundcloud' && soundcloudUrl) {
         setIsSoundcloudVisible(true);
         setIsYoutubeVisible(false);
-        // Delay play command slightly
-        setTimeout(() => sendPlayerCommand(iframe, 'soundcloud', 'play'), 150);
+        console.log(
+          `[Card ${track.id}] SoundCloud selected. isReady=${isSoundcloudReady}, iframeRef=${!!soundcloudIframeRef.current}`
+        );
+        // If already ready, play immediately. Otherwise, set flag.
+        if (isSoundcloudReady && soundcloudIframeRef.current) {
+          console.log(`[Card ${track.id}] SoundCloud already ready. Applying volume and playing.`);
+          // Apply current volume immediately before playing
+          const currentVolume = getInitialVolume(); // Or ideally get from global state/context
+          console.log(`[Card ${track.id}] Applying volume ${currentVolume} before playing.`);
+          sendPlayerCommand(soundcloudIframeRef.current, 'soundcloud', 'setVolume', currentVolume);
+          sendPlayerCommand(soundcloudIframeRef.current, 'soundcloud', 'play');
+          setPlayWhenReady(false); // Reset flag
+        } else {
+          console.log(`[Card ${track.id}] SoundCloud not ready. Setting playWhenReady flag.`);
+          setPlayWhenReady(true); // Set flag to play when 'ready' event arrives
+        }
       }
     } else {
-      // Pause command (send immediately if player exists)
-      if (iframe) {
-        sendPlayerCommand(iframe, platform, 'pause');
-        // Keep player visible even when paused if it's the active track
-        if (platform === 'youtube') setIsYoutubeVisible(true);
-        if (platform === 'soundcloud') setIsSoundcloudVisible(true);
+      // Pause command
+      setPlayWhenReady(false); // Reset flag if pausing
+      if (platform === 'youtube' && iframeRef.current) {
+        sendPlayerCommand(iframeRef.current, 'youtube', 'pause');
+        // Keep visible for active track
+        setIsYoutubeVisible(true);
+      } else if (platform === 'soundcloud' && soundcloudIframeRef.current) {
+        sendPlayerCommand(soundcloudIframeRef.current, 'soundcloud', 'pause');
+        // Keep visible for active track
+        setIsSoundcloudVisible(true);
       }
     }
   }, [
     isActive,
-    isPlaying,
+    isPlaying, // Re-run when play state changes
     track.id,
     track.platforms.youtube,
     track.platforms.soundcloud,
     youtubeVideoId,
     soundcloudUrl,
-  ]); // Dependencies include platform info
+    isSoundcloudReady, // Re-run when SoundCloud becomes ready
+  ]); // Dependencies include platform info and ready state
+
+  // Effect to play SoundCloud when it becomes ready AND play is intended
+  useEffect(() => {
+    if (
+      playWhenReady &&
+      isSoundcloudReady &&
+      isActive &&
+      isPlaying && // Ensure we are still supposed to be playing
+      track.platforms.soundcloud &&
+      soundcloudIframeRef.current
+    ) {
+      console.log(
+        `[Card ${track.id}] useEffect[playWhenReady, isReady]: Triggered. playWhenReady=${playWhenReady}, isReady=${isSoundcloudReady}, isActive=${isActive}, isPlaying=${isPlaying}`
+      );
+      // Apply current volume immediately before playing
+      const currentVolume = getInitialVolume(); // Or ideally get from global state/context
+      console.log(`[Card ${track.id}] Applying volume ${currentVolume} then playing.`);
+      sendPlayerCommand(soundcloudIframeRef.current, 'soundcloud', 'setVolume', currentVolume);
+      sendPlayerCommand(soundcloudIframeRef.current, 'soundcloud', 'play');
+      setPlayWhenReady(false); // Reset the flag
+    }
+  }, [playWhenReady, isSoundcloudReady, isActive, isPlaying, track.platforms.soundcloud]);
 
   // Définir si on est en mode lecture YouTube ou SoundCloud, pour maintenir le format même en pause
   const isYoutubeActive =
@@ -409,54 +455,6 @@ export const MusicCard: React.FC<MusicCardProps> = ({
     }
   };
 
-  // Appliquer le volume lors de la navigation entre pistes
-  useEffect(() => {
-    // Fonction pour appliquer le volume global aux iframes
-    const applyVolumeToCurrentPlayer = () => {
-      try {
-        // Récupérer le volume global actuel
-        const volume =
-          typeof localStorage !== 'undefined'
-            ? Number(localStorage.getItem('global-music-volume') || '0.8')
-            : 0.8;
-
-        console.log(`Applying volume ${volume} to active player for track: ${track.title}`);
-
-        if (isYoutubeActive && iframeRef.current?.contentWindow) {
-          // Appliquer directement le volume à YouTube
-          const youtubeVolume = Math.min(100, Math.floor(volume * 100));
-          iframeRef.current.contentWindow.postMessage(
-            JSON.stringify({
-              event: 'command',
-              func: 'setVolume',
-              args: [youtubeVolume],
-            }),
-            '*'
-          );
-          console.log(`Applied volume ${youtubeVolume} to YouTube player`);
-        }
-
-        if (isSoundcloudActive && soundcloudIframeRef.current?.contentWindow) {
-          // Appliquer directement le volume à SoundCloud
-          const soundcloudVolume = Math.min(100, Math.floor(volume * 100));
-          soundcloudIframeRef.current.contentWindow.postMessage(
-            `{"method":"setVolume","value":${soundcloudVolume}}`,
-            '*'
-          );
-          console.log(`Applied volume ${soundcloudVolume} to SoundCloud player`);
-        }
-      } catch (error) {
-        console.error('Error applying volume to current player:', error);
-      }
-    };
-
-    // Si la carte devient active et en lecture, appliquer le volume
-    if (isActive && localIsPlaying) {
-      // Ajouter un délai pour s'assurer que l'API est prête
-      setTimeout(applyVolumeToCurrentPlayer, 300);
-    }
-  }, [isActive, localIsPlaying, isYoutubeActive, isSoundcloudActive, track.id, track.title]);
-
   // Gérer le chargement initial de l'iframe YouTube
   const handleIframeLoad = () => {
     setIsYoutubeLoaded(true);
@@ -548,6 +546,7 @@ export const MusicCard: React.FC<MusicCardProps> = ({
         if (animationFrameRef.current) {
           cancelAnimationFrame(animationFrameRef.current);
         }
+        analyzerRef.current = null; // Clean up analyzer node
       };
     } else {
       // Réinitialiser les données quand le lecteur n'est pas actif
@@ -558,32 +557,47 @@ export const MusicCard: React.FC<MusicCardProps> = ({
     }
   }, [isYoutubeActive, isYoutubeVisible, isSoundcloudActive, isSoundcloudVisible]);
 
-  // Ajout du gestionnaire pour SoundCloud
+  // Gérer les messages entrants de l'iframe SoundCloud
   useEffect(() => {
-    if (isSoundcloudActive) {
-      // Activer l'affichage SoundCloud
-      setIsSoundcloudVisible(true);
+    const handleSoundcloudMessage = (event: MessageEvent) => {
+      // Check if the source iframe matches this card's iframe
+      if (
+        !soundcloudIframeRef.current ||
+        event.source !== soundcloudIframeRef.current.contentWindow
+      ) {
+        // console.log(`[Card ${track.id}] Message ignored: Source mismatch or iframe ref not set.`);
+        return; // Ignore messages not from this specific iframe instance
+      }
 
-      // Écouter les messages de SoundCloud (SC Widget API)
-      const handleSoundcloudMessage = (event: MessageEvent) => {
-        if (event.origin !== 'https://w.soundcloud.com') return;
+      try {
+        const data = JSON.parse(event.data);
+        console.log(
+          `[Card ${track.id}] SoundCloud event received from OWN iframe: ${JSON.stringify(data)}`
+        );
 
-        try {
-          const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-          // Gérer les éventuels événements de l'API SoundCloud
-          console.log('SoundCloud event:', data);
-        } catch (e) {
-          // Ignorer les erreurs de parsing
+        if (data.method === 'ready') {
+          console.log(
+            `[Card ${track.id}] SoundCloud iframe READY event received. Setting isSoundcloudReady to true.`
+          );
+          setIsSoundcloudReady(true); // Mettre à jour l'état ready
         }
-      };
+        // Handle other methods if needed
+      } catch (e) {
+        console.error(`[Card ${track.id}] Error parsing SoundCloud message:`, e, event.data);
+      }
+    };
 
-      window.addEventListener('message', handleSoundcloudMessage);
+    window.addEventListener('message', handleSoundcloudMessage);
 
-      return () => {
-        window.removeEventListener('message', handleSoundcloudMessage);
-      };
-    }
-  }, [isSoundcloudActive, soundcloudUrl]);
+    return () => {
+      window.removeEventListener('message', handleSoundcloudMessage);
+      // Réinitialiser l'état ready quand le composant est démonté ou la track change
+      console.log(`[Card ${track.id}] Cleanup: Resetting isSoundcloudReady and playWhenReady.`);
+      setIsSoundcloudReady(false);
+      setPlayWhenReady(false);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Remove track.id dependency - listener identity doesn't depend on it, cleanup uses closure.
 
   // Fonction pour mettre en pause et cacher le lecteur SoundCloud sans le détruire
   const pauseAndHideSoundcloud = () => {
@@ -631,30 +645,19 @@ export const MusicCard: React.FC<MusicCardProps> = ({
 
   // Gérer le chargement initial de l'iframe SoundCloud
   const handleSoundcloudIframeLoad = () => {
-    setIsSoundcloudLoaded(true);
-    setIsLoading(false); // Fin du chargement pour SoundCloud
     console.log(
       `SoundCloud iframe loaded for ${track.title}, ID: ${soundcloudIframeRef.current?.id}`
     );
-
-    // Appliquer le volume initial une fois le widget prêt
-    // Appliquer le volume initial globalement
-    const currentVolume = getInitialVolume();
-    applyVolumeToAllPlayers(currentVolume);
-    console.log(
-      `MusicCard: Applied initial volume ${currentVolume} globally after SoundCloud load`
-    );
-
-    // Envoyer la commande de lecture si la carte est active et en lecture
-    if (isActive && localIsPlaying && soundcloudIframeRef.current) {
-      sendPlayerCommand(soundcloudIframeRef.current, 'soundcloud', 'play');
-    }
+    setIsSoundcloudLoaded(true);
+    // !!! SUPPRIMÉ: Appel redondant et potentiellement problématique
+    // applyVolumeToAllPlayers(getInitialVolume());
+    // console.log(`MusicCard: Applied initial volume ${getInitialVolume()} globally after SoundCloud load`);
   };
 
   // Préparation de l'URL pour l'embed SoundCloud
   const getSoundcloudEmbedUrl = (url: string) => {
     // Format standard pour les URL d'embed SoundCloud avec API JS
-    return `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%23ff5500&auto_play=true&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false&visual=true&buying=false&sharing=false&download=false&single_active=false&callback=true&allow_api=true&origin=${encodeURIComponent(window.location.origin)}`;
+    return `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%23ff5500&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false&visual=true&buying=false&sharing=false&download=false&single_active=false&callback=true&allow_api=true&origin=${encodeURIComponent(window.location.origin)}`;
   };
 
   return (
@@ -790,22 +793,29 @@ export const MusicCard: React.FC<MusicCardProps> = ({
 
         {/* Badge type de musique - masqué quand un player est actif */}
         {!isYoutubeVisible && !isSoundcloudVisible && (
-          <div className="absolute top-4 left-4">
-            <span className="bg-purple-600/90 backdrop-blur-sm text-white px-3.5 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 shadow-lg">
-              <Music className="w-3.5 h-3.5" />
+          <div className="absolute top-4 left-4 flex items-center gap-2">
+            {/* Badge Type */}
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-600 text-purple-100 shadow-lg">
+              <Music className="w-3 h-3 mr-1" />
               {getTypeLabel(track.type)}
             </span>
+            {/* Étoile Featured (si applicable) ajoutée ici */}
+            {track.featured && (
+              <span className="relative flex h-5 w-5" aria-hidden="true">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-300 opacity-75"></span>
+                <Star
+                  className="relative inline-flex h-5 w-5 text-yellow-400"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                />
+              </span>
+            )}
           </div>
         )}
 
-        {/* Combined Top-Right Badges: Featured + Platforms (Horizontal) */}
+        {/* Combined Top-Right Badges: Platforms only (Featured star removed from here) */}
         <div className="absolute top-4 right-4 flex flex-row items-center gap-2 z-10">
-          {/* Badge Featured */}
-          {track.featured && !isYoutubeVisible && !isSoundcloudVisible && (
-            <span className="bg-yellow-500/90 backdrop-blur-sm text-white px-3.5 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 shadow-lg">
-              Highlight
-            </span>
-          )}
           {/* Platform Badges - only visible when info section is shown */}
           {!isYoutubeVisible && !isSoundcloudVisible && (
             <>
@@ -918,17 +928,21 @@ export const MusicCard: React.FC<MusicCardProps> = ({
               <span>{format(parseISO(track.releaseDate), 'd MMMM yyyy', { locale: fr })}</span>
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            {/* Badges Type, Featured, Genre, BPM */}
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Étoile Featured (si applicable) - DÉJÀ SUPPRIMÉE D'ICI */}
+              {/* Badges Genre */}
               {track.genre.map((genre, index) => (
                 <span
                   key={index}
-                  className="text-xs px-2 py-1 rounded-full bg-gray-700/50 text-gray-300"
+                  className="text-xs px-2 py-1 rounded-full bg-gray-700/50 text-gray-300 order-3"
                 >
                   {genre}
                 </span>
               ))}
+              {/* Badge BPM */}
               {track.bpm && (
-                <span className="text-xs px-2 py-1 rounded-full bg-gray-700/50 text-gray-300">
+                <span className="text-xs px-2 py-1 rounded-full bg-gray-700/50 text-gray-300 order-4">
                   {track.bpm} BPM
                 </span>
               )}

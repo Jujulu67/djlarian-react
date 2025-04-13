@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import prisma from '@/lib/prisma';
 import { CreateTrackInput, UpdateTrackInput, formatTrackData } from '@/lib/api/musicService';
+import { MusicType } from '@/lib/utils/types';
 
 // GET /api/music - Récupérer toutes les pistes
 export async function GET() {
@@ -158,79 +159,80 @@ export async function PUT(request: Request) {
     // Vérifier que la piste existe
     const existingTrack = await prisma.track.findUnique({
       where: { id },
+      select: { id: true },
     });
 
     if (!existingTrack) {
       return NextResponse.json({ error: 'Track not found' }, { status: 404 });
     }
 
-    // Mettre à jour les données de base
-    const dataToUpdate: any = {
+    // Préparer les données de base à mettre à jour
+    const baseDataToUpdate: any = {
       title: trackData.title,
       artist: trackData.artist,
       description: trackData.description,
       type: trackData.type as MusicType,
-      releaseDate: new Date(trackData.releaseDate),
       featured: trackData.featured || false,
-      bpm: trackData.bpm ? parseInt(String(trackData.bpm)) : null,
+      bpm: trackData.bpm ? parseInt(String(trackData.bpm), 10) : null,
       coverUrl: trackData.coverUrl || null,
-      originalImageUrl: trackData.originalImageUrl || null,
     };
 
-    // Gérer les mises à jour des genres
-    if (genreNames && genreNames.length > 0) {
-      // Supprimer les associations genre existantes
-      await prisma.genresOnTracks.deleteMany({
-        where: { trackId: id },
-      });
+    // Ajouter releaseDate seulement s'il est fourni
+    if (trackData.releaseDate) {
+      baseDataToUpdate.releaseDate = new Date(trackData.releaseDate);
+    }
 
-      // Créer ou récupérer les nouveaux genres
-      const genrePromises = genreNames.map(async (name) => {
+    // Gérer les mises à jour des genres avec des écritures imbriquées
+    let genresUpdate = {};
+    if (genreNames !== undefined) {
+      const genrePromises = (genreNames || []).map(async (name) => {
         const normalizedName = name.trim().toLowerCase();
         return prisma.genre.upsert({
           where: { name: normalizedName },
           update: {},
           create: { name: normalizedName },
+          select: { id: true },
         });
       });
-
       const genres = await Promise.all(genrePromises);
-
-      // Créer de nouvelles associations
-      for (const genre of genres) {
-        await prisma.genresOnTracks.create({
-          data: {
-            trackId: id,
+      genresUpdate = {
+        genres: {
+          set: genres.map((genre) => ({
             genreId: genre.id,
-          },
-        });
-      }
+          })),
+        },
+      };
     }
 
-    // Gérer les mises à jour des plateformes
-    if (platforms && platforms.length > 0) {
-      // Supprimer les plateformes existantes
-      await prisma.trackPlatform.deleteMany({
-        where: { trackId: id },
-      });
-
-      // Créer les nouvelles plateformes
-      for (const platform of platforms) {
-        await prisma.trackPlatform.create({
-          data: {
-            trackId: id,
+    // Gérer les mises à jour des plateformes avec des écritures imbriquées
+    let platformsUpdate = {};
+    if (platforms !== undefined) {
+      platformsUpdate = {
+        platforms: {
+          deleteMany: { trackId: id },
+          create: (platforms || []).map((platform) => ({
             platform: platform.platform,
             url: platform.url,
             embedId: platform.embedId,
-          },
-        });
-      }
+          })),
+        },
+      };
     }
 
-    // Mettre à jour la piste
+    // Mettre à jour la piste avec les données de base et les relations imbriquées
     const updatedTrack = await prisma.track.update({
       where: { id },
-      data: dataToUpdate,
+      data: {
+        ...baseDataToUpdate,
+        ...(genreNames !== undefined && genresUpdate),
+        ...(platforms !== undefined && platformsUpdate),
+        collection:
+          trackData.collectionId !== undefined
+            ? { connect: { id: trackData.collectionId } }
+            : trackData.hasOwnProperty('collectionId')
+              ? { disconnect: true }
+              : undefined,
+      },
       include: {
         platforms: true,
         genres: {
@@ -245,7 +247,13 @@ export async function PUT(request: Request) {
     return NextResponse.json(formatTrackData(updatedTrack));
   } catch (error) {
     console.error('Error updating track:', error);
-    return NextResponse.json({ error: 'Failed to update track' }, { status: 500 });
+    if (error instanceof Error) {
+      console.error('Error details:', { message: error.message, stack: error.stack });
+    } else {
+      console.error('Unknown error structure:', error);
+    }
+    const errorMessage = error instanceof Error ? error.message : 'Failed to update track';
+    return NextResponse.json({ error: `Failed to update track: ${errorMessage}` }, { status: 500 });
   }
 }
 

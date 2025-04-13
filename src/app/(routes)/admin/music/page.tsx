@@ -437,59 +437,41 @@ export default function AdminMusicPage() {
         originalImageUrl: apiData.originalImageUrl,
       });
 
-      let response;
-
-      if (isEditing && currentForm.id) {
-        // Mise à jour
-        response = await fetch('/api/music', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(apiData),
-        });
-      } else {
-        // Création
-        response = await fetch('/api/music', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(apiData),
-        });
-      }
+      const response = await fetch('/api/music', {
+        method: isEditing ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(apiData),
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to save track');
+        console.error('API Error data:', errorData);
+        // Conserver l'erreur originale pour le catch
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
 
-      // Récupérer les données de la réponse pour vérifier ce qui a été sauvegardé
-      const savedData = await response.json();
-      console.log('Données sauvegardées:', {
-        id: savedData.id,
-        coverUrl: savedData.coverUrl,
-        originalImageUrl: savedData.originalImageUrl,
-      });
+      const resultData = await response.json();
+      // Log pour vérifier la réponse
+      console.log('API Success data:', resultData);
 
-      // Si originalImageUrl n'est pas renvoyé par l'API mais était défini dans notre formulaire,
-      // on le sauvegarde dans le stockage local
-      if (savedData.id && !savedData.originalImageUrl && apiData.originalImageUrl) {
-        console.log("L'API n'a pas renvoyé originalImageUrl, sauvegarde locale");
-        saveOriginalImageUrl(savedData.id, apiData.originalImageUrl);
-      }
+      // Supposons que resultData est déjà formaté comme une Track par formatTrackData dans l'API
+      const resultTrack: Track = resultData;
 
-      // Rafraîchir la liste
-      await fetchTracks();
+      // Afficher un message de succès avec le titre
+      toast.success(
+        `Morceau "${resultTrack.title}" ${isEditing ? 'mis à jour' : 'ajouté'} avec succès!`
+      );
 
-      // Afficher un message de succès
-      toast.success(isEditing ? 'Track updated successfully' : 'Track created successfully');
+      // Rafraîchir la liste des morceaux
+      fetchTracks();
 
-      // Réinitialiser le formulaire
+      // Réinitialiser le formulaire après succès
       resetForm();
     } catch (error) {
       console.error('Error saving track:', error);
-      toast.error(isEditing ? 'Failed to update track' : 'Failed to create track');
+      // Afficher le message d'erreur original dans le toast
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      toast.error(`Error saving track: ${errorMessage}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -542,25 +524,13 @@ export default function AdminMusicPage() {
   // Mettre à jour le statut "featured"
   const toggleFeatured = async (id: string, currentStatus: boolean) => {
     try {
-      const track = tracks.find((t) => t.id === id);
-      if (!track) return;
-
-      const updatedTrack = { ...track, featured: !currentStatus };
-
-      // Préparer les données pour l'API
-      const platformsArray = Object.entries(updatedTrack.platforms || {})
-        .filter(([_, value]) => value && value.url)
-        .map(([platform, data]) => ({
-          platform: platform as MusicPlatform,
-          url: data!.url,
-          embedId: data!.embedId,
-        }));
-
+      // Préparer uniquement les données à mettre à jour
       const apiData = {
-        ...updatedTrack,
-        genreNames: updatedTrack.genre,
-        platforms: platformsArray,
+        id: id,
+        featured: !currentStatus,
       };
+
+      console.log('Updating featured status:', apiData);
 
       const response = await fetch('/api/music', {
         method: 'PUT',
@@ -571,16 +541,19 @@ export default function AdminMusicPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update track');
+        const errorData = await response.json();
+        console.error('API Error data:', errorData);
+        throw new Error(errorData.error || 'Failed to update track');
       }
 
-      // Mettre à jour l'état local
+      // Mettre à jour l'état local après succès de l'API
       setTracks(tracks.map((t) => (t.id === id ? { ...t, featured: !currentStatus } : t)));
 
       toast.success('Statut mis à jour avec succès');
     } catch (error) {
       console.error('Error updating featured status:', error);
-      toast.error('Erreur lors de la mise à jour du statut');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Erreur lors de la mise à jour du statut: ${errorMessage}`);
     }
   };
 

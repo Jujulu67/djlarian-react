@@ -7,6 +7,7 @@ export type CreateTrackInput = {
   artist: string;
   releaseDate: string;
   coverUrl?: string;
+  originalImageUrl?: string;
   bpm?: number;
   description?: string;
   type: MusicType;
@@ -81,7 +82,7 @@ export async function createTrack(data: CreateTrackInput, userId?: string) {
       description: data.description,
       type: data.type,
       featured: data.featured || false,
-      userId: userId,
+      ...(userId ? { user: { connect: { id: userId } } } : {}),
       collection: data.collectionId
         ? {
             connect: { id: data.collectionId },
