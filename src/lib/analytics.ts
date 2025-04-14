@@ -2,6 +2,17 @@
  * Service pour récupérer les statistiques depuis Umami Analytics
  */
 
+import {
+  subDays,
+  subMonths,
+  startOfDay,
+  endOfDay,
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
+  endOfMonth,
+} from 'date-fns';
+
 // Types pour les données Umami
 interface UmamiPageView {
   value: number;
@@ -69,13 +80,30 @@ const UMAMI_WEBSITE_ID = (process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID || '').trim()
 const UMAMI_USERNAME = process.env.NEXT_PUBLIC_UMAMI_USERNAME || '';
 const UMAMI_PASSWORD = process.env.NEXT_PUBLIC_UMAMI_PASSWORD || '';
 
+// Cache pour le token Umami
+interface TokenCache {
+  token: string;
+  expiresAt: number;
+}
+
+let tokenCache: TokenCache | null = null;
+const TOKEN_CACHE_DURATION = 23 * 60 * 60 * 1000; // 23 heures en millisecondes
+
 /**
  * Obtient un token d'authentification Umami
  */
 export async function getUmamiToken(): Promise<string> {
+  // Vérification des identifiants
   if (!UMAMI_USERNAME || !UMAMI_PASSWORD) {
-    console.warn('Les identifiants Umami ne sont pas configurés, utilisation des données de démo');
+    console.warn('Les identifiants Umami ne sont pas configurés');
     return '';
+  }
+
+  // Vérifier si le token en cache est valide
+  const now = Date.now();
+  if (tokenCache && tokenCache.expiresAt > now) {
+    console.log('Utilisation du token Umami en cache');
+    return tokenCache.token;
   }
 
   try {
@@ -102,6 +130,13 @@ export async function getUmamiToken(): Promise<string> {
 
     const data = await response.json();
     console.log('Authentification Umami réussie, token obtenu');
+
+    // Mettre en cache le token
+    tokenCache = {
+      token: data.token,
+      expiresAt: now + TOKEN_CACHE_DURATION,
+    };
+
     return data.token;
   } catch (error) {
     console.error("Erreur lors de l'authentification Umami:", error);
@@ -121,8 +156,8 @@ export async function getUmamiStats(
   unit: 'day' | 'month' | 'year' = 'day'
 ): Promise<UmamiStats | null> {
   if (!UMAMI_WEBSITE_ID) {
-    console.warn('UMAMI_WEBSITE_ID non configuré, utilisation des données de démo');
-    return generateDemoStats(); // Renvoie des données de démo en l'absence de configuration
+    console.warn('UMAMI_WEBSITE_ID non configuré');
+    return null;
   }
 
   try {
@@ -145,23 +180,106 @@ export async function getUmamiStats(
     const response = await fetch(url, { headers });
 
     if (!response.ok) {
-      console.error(`Erreur API Umami (${response.status})`);
+      console.error(`Erreur API Umami (${response.status}): ${response.statusText}`);
       throw new Error(`Erreur lors de la récupération des statistiques: ${response.statusText}`);
     }
 
     const data = await response.json();
+    console.log('Données Umami reçues:', {
+      hasMetrics: !!data.metrics,
+      hasPageviews: !!data.pageviews,
+      isPageviewsArray: Array.isArray(data.pageviews),
+      dataKeys: Object.keys(data),
+      dataStructure:
+        JSON.stringify(data).slice(0, 500) + (JSON.stringify(data).length > 500 ? '...' : ''),
+    });
 
-    // Vérifiez si les données contiennent ce que nous attendons
-    if (!data.metrics || !data.pageviews || !Array.isArray(data.pageviews)) {
-      console.warn('Format de données Umami inattendu, utilisation des données de démo');
-      return generateDemoStats();
+    // Structure pour les résultats
+    let result: UmamiStats = {
+      metrics: {
+        pageviews: { value: 0, change: 0 },
+        uniques: { value: 0, change: 0 },
+        bounces: { value: 0, change: 0 },
+        totalTime: { value: 0, change: 0 },
+      },
+      pageviews: [],
+      pages: [],
+      referrers: [],
+      browsers: [],
+      os: [],
+      devices: [],
+      countries: [],
+    };
+
+    // Vérifier si les données sont valides et les fusionner avec notre structure
+    if (data) {
+      // Essayer de récupérer/reconstruire l'objet metrics principal
+      if (data.metrics) {
+        result.metrics = { ...result.metrics, ...data.metrics };
+      } else {
+        console.warn('Champ "metrics" manquant, tentative de reconstruction.');
+        // Reconstruire à partir des champs racine si disponibles
+        if (
+          data.pageviews &&
+          typeof data.pageviews === 'object' &&
+          !Array.isArray(data.pageviews)
+        ) {
+          result.metrics.pageviews = data.pageviews;
+          console.log(
+            'Reconstruction métriques: pageviews (objet) récupéré depuis la racine',
+            data.pageviews
+          );
+        }
+        if (data.uniques && typeof data.uniques === 'object') {
+          result.metrics.uniques = data.uniques;
+          console.log('Reconstruction métriques: uniques récupéré depuis la racine', data.uniques);
+        }
+        if (data.bounces && typeof data.bounces === 'object') {
+          result.metrics.bounces = data.bounces;
+          console.log('Reconstruction métriques: bounces récupéré depuis la racine', data.bounces);
+        }
+        if (data.totalTime && typeof data.totalTime === 'object') {
+          result.metrics.totalTime = data.totalTime;
+          console.log(
+            'Reconstruction métriques: totalTime récupéré depuis la racine',
+            data.totalTime
+          );
+        }
+      }
+
+      // Gérer les données pour le graphique pageviews (doit être un tableau)
+      if (data.pageviews && Array.isArray(data.pageviews) && data.pageviews.length > 0) {
+        result.pageviews = data.pageviews;
+        // Recalculer la valeur totale des pageviews si elle n'a pas été trouvée dans metrics
+        if (result.metrics.pageviews.value === 0 && result.metrics.pageviews.change === 0) {
+          const totalPageviews = result.pageviews.reduce((sum, item) => sum + item.y, 0);
+          // Note: Nous n'avons pas d'info sur 'change' ici, on le laisse à 0.
+          result.metrics.pageviews = { value: totalPageviews, change: 0 };
+          console.log(
+            `Reconstruction de metrics.pageviews.value à partir des données de pageviews: ${totalPageviews}`
+          );
+        }
+      } else {
+        console.warn("Données pour le graphique 'pageviews' (tableau) manquantes ou invalides");
+      }
+
+      // Gérer les autres tableaux (top pages, referrers, etc.) - Utiliser les données réelles si présentes
+      if (data.pages && Array.isArray(data.pages)) result.pages = data.pages;
+      if (data.referrers && Array.isArray(data.referrers)) result.referrers = data.referrers;
+      if (data.browsers && Array.isArray(data.browsers)) result.browsers = data.browsers;
+      if (data.os && Array.isArray(data.os)) result.os = data.os;
+      if (data.devices && Array.isArray(data.devices)) result.devices = data.devices;
+      if (data.countries && Array.isArray(data.countries)) result.countries = data.countries;
+    } else {
+      // Aucune donnée reçue de l'API
+      console.warn("Aucune donnée reçue de l'API Umami /stats");
+      return null;
     }
 
-    return data;
+    return result;
   } catch (error) {
     console.error('Erreur lors de la récupération des statistiques Umami:', error);
-    // En cas d'erreur, générer des données de démonstration
-    return generateDemoStats();
+    return null;
   }
 }
 
@@ -172,9 +290,9 @@ export async function getTopPages(
   startAt: number = getTimestamp(30),
   endAt: number = Date.now()
 ): Promise<UmamiTopPage[]> {
-  // Si pas de configuration, renvoyer des données de démo
+  // Si pas de configuration, renvoyer un tableau vide
   if (!UMAMI_WEBSITE_ID) {
-    return generateDemoTopPages();
+    return [];
   }
 
   try {
@@ -196,25 +314,36 @@ export async function getTopPages(
     const response = await fetch(url, { headers });
 
     if (!response.ok) {
-      console.error(`Erreur API Top Pages (${response.status})`);
+      console.error(`Erreur API Top Pages (${response.status}): ${response.statusText}`);
       throw new Error(`Erreur lors de la récupération des top pages: ${response.statusText}`);
     }
 
     const data = await response.json();
 
+    console.log('Données top pages reçues:', {
+      isArray: Array.isArray(data),
+      length: Array.isArray(data) ? data.length : 0,
+      firstItem: Array.isArray(data) && data.length > 0 ? data[0] : null,
+    });
+
     // Transformer les données au format attendu
     if (data && Array.isArray(data)) {
+      if (data.length === 0) {
+        console.warn('Aucune donnée de top pages disponible');
+        return [];
+      }
+
       return data.map((item: any) => ({
-        x: item.x,
-        y: item.y,
+        x: item.x || '/',
+        y: item.y || 0,
       }));
     }
 
-    console.warn('Format de données top pages inattendu, utilisation des données de démo');
-    return generateDemoTopPages();
+    console.warn('Format de données top pages inattendu');
+    return [];
   } catch (error) {
     console.error('Erreur lors de la récupération des top pages:', error);
-    return generateDemoTopPages();
+    return [];
   }
 }
 
@@ -225,9 +354,9 @@ export async function getTrafficSources(
   startAt: number = getTimestamp(30),
   endAt: number = Date.now()
 ): Promise<{ source: string; percentage: number; color: string }[]> {
-  // Si pas de configuration, renvoyer des données de démo
+  // Si pas de configuration, renvoyer un tableau vide
   if (!UMAMI_WEBSITE_ID) {
-    return generateDemoTrafficSources();
+    return [];
   }
 
   try {
@@ -249,21 +378,35 @@ export async function getTrafficSources(
     const response = await fetch(url, { headers });
 
     if (!response.ok) {
-      console.error(`Erreur API Sources de trafic (${response.status})`);
+      console.error(`Erreur API Sources de trafic (${response.status}): ${response.statusText}`);
       throw new Error(`Erreur lors de la récupération des référents: ${response.statusText}`);
     }
 
     const data = await response.json();
 
-    if (!data || !Array.isArray(data) || data.length === 0) {
-      console.warn(
-        'Format de données sources de trafic inattendu ou vide, utilisation des données de démo'
-      );
-      return generateDemoTrafficSources();
+    console.log('Données sources de trafic reçues:', {
+      isArray: Array.isArray(data),
+      length: Array.isArray(data) ? data.length : 0,
+      firstItem: Array.isArray(data) && data.length > 0 ? data[0] : null,
+    });
+
+    if (!data || !Array.isArray(data)) {
+      console.warn('Format de données sources de trafic inattendu');
+      return [];
+    }
+
+    if (data.length === 0) {
+      console.warn('Aucune donnée de sources de trafic disponible');
+      return [];
     }
 
     // Calculer le total pour les pourcentages
-    const total = data.reduce((sum, item) => sum + item.y, 0);
+    const total = data.reduce((sum, item) => sum + (item.y || 0), 0);
+
+    if (total === 0) {
+      console.warn('Total des visites nul');
+      return [];
+    }
 
     // Définir des couleurs pour chaque source
     const colors: Record<string, string> = {
@@ -279,8 +422,8 @@ export async function getTrafficSources(
     // Mapper les données
     return data.map((referrer: any) => {
       // Déterminer le type de source
-      let source = referrer.x.toLowerCase();
-      let displayName = referrer.x;
+      let source = (referrer.x || '').toLowerCase();
+      let displayName = referrer.x || '(unknown)';
       let colorKey = 'other';
 
       if (source === '(direct)' || source === 'direct' || source === '') {
@@ -307,13 +450,13 @@ export async function getTrafficSources(
 
       return {
         source: displayName,
-        percentage: Math.round((referrer.y / total) * 100),
+        percentage: Math.round(((referrer.y || 0) / total) * 100) || 1, // Minimum 1%
         color: colors[colorKey],
       };
     });
   } catch (error) {
     console.error('Erreur lors de la récupération des sources de trafic:', error);
-    return generateDemoTrafficSources();
+    return [];
   }
 }
 
@@ -328,91 +471,155 @@ function getTimestamp(daysAgo: number): number {
 }
 
 /**
- * Génère des statistiques de démonstration en l'absence de configuration Umami
+ * Helper pour obtenir les timestamps de début/fin en fonction de la période
  */
-export function generateDemoStats(): UmamiStats {
-  const now = Date.now();
-  const startDate = getTimestamp(30);
+function getPeriodTimestamps(period: 'daily' | 'weekly' | 'monthly'): {
+  startAt: number;
+  endAt: number;
+  unitForChart: 'day' | 'hour';
+} {
+  const now = new Date();
+  let start: Date;
+  let end: Date = endOfDay(now); // Fin de la journée actuelle par défaut
+  let unitForChart: 'day' | 'hour' = 'hour'; // Utiliser 'hour' pour le graphique daily
 
-  // Générer des données de pageviews quotidiennes sur 30 jours
-  const pageviews = [];
-  for (let i = 0; i < 30; i++) {
-    const date = new Date(startDate + i * 86400000); // 86400000 = 1 jour en ms
-    pageviews.push({
-      x: date.toISOString().split('T')[0],
-      y: Math.floor(Math.random() * 500) + 100,
-    });
+  switch (period) {
+    case 'daily':
+      start = startOfDay(now);
+      end = endOfDay(now); // Fin de journée
+      unitForChart = 'hour'; // Afficher par heure pour le graphique du jour
+      break;
+    case 'weekly':
+      start = startOfWeek(now, { weekStartsOn: 1 }); // Commence le lundi
+      end = endOfWeek(now, { weekStartsOn: 1 });
+      unitForChart = 'day'; // Afficher par jour pour le graphique de la semaine
+      break;
+    case 'monthly':
+    default: // Par défaut, mensuel si période inconnue
+      start = startOfMonth(now);
+      end = endOfMonth(now);
+      unitForChart = 'day'; // Afficher par jour pour le graphique du mois
+      break;
+  }
+  // Retourner le unit spécifique pour le graphique, l'API Stats utilisera 'day'
+  return { startAt: start.getTime(), endAt: end.getTime(), unitForChart };
+}
+
+/**
+ * Récupère les métriques générales depuis Umami
+ * @param startAt Date de début (timestamp)
+ * @param endAt Date de fin (timestamp)
+ */
+async function getUmamiMetrics(
+  startAt: number,
+  endAt: number,
+  token: string
+): Promise<UmamiMetrics | null> {
+  if (!UMAMI_WEBSITE_ID || !token) return null;
+
+  const url = `${UMAMI_URL}/api/websites/${UMAMI_WEBSITE_ID}/stats?startAt=${startAt}&endAt=${endAt}`;
+  console.log(`Appel API Umami (Metrics): ${url}`);
+
+  try {
+    const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    if (!response.ok) {
+      console.error(`Erreur API Umami [Metrics] (${response.status}): ${response.statusText}`);
+      return null;
+    }
+    const data = await response.json();
+    // L'API /stats retourne les métriques directement à la racine
+    return {
+      pageviews: data.pageviews || { value: 0, change: 0 },
+      uniques: data.uniques || { value: 0, change: 0 },
+      bounces: data.bounces || { value: 0, change: 0 },
+      totalTime: data.totaltime || { value: 0, change: 0 }, // Note: API retourne totaltime
+    };
+  } catch (error) {
+    console.error('Erreur lors de la récupération des métriques Umami:', error);
+    return null;
+  }
+}
+
+/**
+ * Récupère les données temporelles d'une statistique Umami (pour les graphiques)
+ * @param stat La statistique à récupérer (ex: 'pageviews')
+ * @param startAt Date de début (timestamp)
+ * @param endAt Date de fin (timestamp)
+ * @param unit Unité temporelle ('hour' ou 'day')
+ */
+async function getUmamiStatData(
+  stat: string = 'pageviews',
+  startAt: number,
+  endAt: number,
+  unit: 'hour' | 'day',
+  token: string
+): Promise<UmamiPageViewsData[] | null> {
+  // Utilise le type existant
+  if (!UMAMI_WEBSITE_ID || !token) return null;
+
+  const url = `${UMAMI_URL}/api/websites/${UMAMI_WEBSITE_ID}/stats?stat=${stat}&startAt=${startAt}&endAt=${endAt}&unit=${unit}`;
+  console.log(`Appel API Umami (Stat Data - ${stat}): ${url}`);
+
+  try {
+    const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    if (!response.ok) {
+      console.error(
+        `Erreur API Umami [Stat Data - ${stat}] (${response.status}): ${response.statusText}`
+      );
+      return null;
+    }
+    const data = await response.json();
+    // L'API /stats?stat=... retourne directement le tableau
+    return Array.isArray(data) ? data : null;
+  } catch (error) {
+    console.error(`Erreur lors de la récupération des données Umami pour ${stat}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Récupère toutes les statistiques nécessaires pour le tableau de bord admin
+ * @param period Période à récupérer ('daily', 'weekly', 'monthly')
+ */
+export async function getStatistics(period: 'daily' | 'weekly' | 'monthly' = 'daily') {
+  if (!UMAMI_WEBSITE_ID) {
+    console.warn('UMAMI_WEBSITE_ID non configuré');
+    return { umami: null };
   }
 
-  return {
-    metrics: {
-      pageviews: { value: 12458, change: 8.5 },
-      uniques: { value: 4567, change: 5.2 },
-      bounces: { value: 38, change: -5 },
-      totalTime: { value: 222, change: 12 },
-    },
-    pageviews,
-    pages: generateDemoTopPages(),
-    referrers: [
-      { x: 'Google', y: 6520 },
-      { x: '(direct)', y: 3504 },
-      { x: 'Facebook', y: 1872 },
-      { x: 'Twitter', y: 562 },
-    ],
-    browsers: [
-      { x: 'Chrome', y: 7250 },
-      { x: 'Safari', y: 3120 },
-      { x: 'Firefox', y: 1540 },
-      { x: 'Edge', y: 548 },
-    ],
-    os: [
-      { x: 'Windows', y: 5280 },
-      { x: 'Mac', y: 3870 },
-      { x: 'iOS', y: 2340 },
-      { x: 'Android', y: 968 },
-    ],
-    devices: [
-      { x: 'Desktop', y: 8420 },
-      { x: 'Mobile', y: 3562 },
-      { x: 'Tablet', y: 476 },
-    ],
-    countries: [
-      { x: 'France', y: 8256 },
-      { x: 'United States', y: 1452 },
-      { x: 'Germany', y: 865 },
-      { x: 'United Kingdom', y: 743 },
-      { x: 'Canada', y: 532 },
-      { x: 'Belgium', y: 410 },
-      { x: 'Switzerland', y: 200 },
-    ],
-  };
-}
+  const { startAt, endAt, unitForChart } = getPeriodTimestamps(period);
+  const token = await getUmamiToken(); // Obtenir le token une seule fois
 
-/**
- * Génère des données de démo pour les pages les plus visitées
- */
-export function generateDemoTopPages(): UmamiTopPage[] {
-  return [
-    { x: '/', y: 5428 },
-    { x: '/events', y: 3721 },
-    { x: '/music', y: 2865 },
-    { x: '/profile', y: 1532 },
-    { x: '/admin', y: 450 },
-  ];
-}
+  if (!token) {
+    console.error("Impossible d'obtenir le token Umami.");
+    return { umami: null };
+  }
 
-/**
- * Génère des données de démo pour les sources de trafic
- */
-export function generateDemoTrafficSources(): {
-  source: string;
-  percentage: number;
-  color: string;
-}[] {
-  return [
-    { source: 'Google', percentage: 52, color: 'from-purple-600 to-indigo-600' },
-    { source: 'Accès direct', percentage: 28, color: 'from-blue-600 to-teal-600' },
-    { source: 'Réseaux sociaux', percentage: 15, color: 'from-pink-600 to-purple-600' },
-    { source: 'Autres', percentage: 5, color: 'from-orange-600 to-yellow-600' },
-  ];
+  console.log(
+    `Récupération des statistiques Umami pour la période: ${period} (start: ${startAt}, end: ${endAt}, unit: ${unitForChart})`
+  );
+
+  try {
+    // Utiliser Promise.all pour lancer les requêtes en parallèle
+    const [metricsData, pageviewsChartData, pagesData, referrersData] = await Promise.all([
+      getUmamiMetrics(startAt, endAt, token), // Récupère les métriques globales
+      getUmamiStatData('pageviews', startAt, endAt, unitForChart, token), // Récupère les données pour le graphique
+      getTopPages(startAt, endAt), // Celle-ci utilise déjà /metrics
+      getTrafficSources(startAt, endAt), // Celle-ci utilise déjà /metrics
+    ]);
+
+    // On retourne un objet structuré pour faciliter l'accès
+    return {
+      umami: {
+        metrics: metricsData, // Métriques globales récupérées
+        pageviews: pageviewsChartData || [], // Données pour le graphique d'évolution
+        pages: pagesData || [], // Top pages
+        referrers: referrersData || [], // Sources de trafic déjà formatées
+        periodUnit: unitForChart, // Unité pour le formatage du graphique
+      },
+    };
+  } catch (error) {
+    console.error('Erreur lors de la récupération groupée des statistiques Umami:', error);
+    return { umami: null };
+  }
 }
