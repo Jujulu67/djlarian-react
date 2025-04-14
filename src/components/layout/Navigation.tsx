@@ -10,7 +10,7 @@ import Image from 'next/image';
 
 const Navigation = () => {
   const { data: session, status } = useSession();
-  const [isAuthMod< alOpen, setIsAuthModalOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
