@@ -1,8 +1,21 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { useState, useEffect } from 'react';
 
 const TwitchStream = () => {
+  const [showIframe, setShowIframe] = useState(false);
+
+  // Charger l'iframe de façon différée pour éviter trop de requêtes à l'API Twitch
+  useEffect(() => {
+    // Attendre 2 secondes avant de charger l'iframe
+    const timer = setTimeout(() => {
+      setShowIframe(true);
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <section className="py-20 bg-black">
       <div className="max-w-7xl mx-auto px-4">
@@ -58,13 +71,19 @@ const TwitchStream = () => {
             transition={{ duration: 0.6 }}
             className="aspect-video bg-gray-900 rounded-lg overflow-hidden"
           >
-            <iframe
-              src="https://player.twitch.tv/?channel=djlarian&parent=localhost"
-              frameBorder="0"
-              allowFullScreen
-              scrolling="no"
-              className="w-full h-full"
-            ></iframe>
+            {showIframe ? (
+              <iframe
+                src="https://player.twitch.tv/?channel=djlarian&parent=localhost&muted=true"
+                frameBorder="0"
+                allowFullScreen
+                scrolling="no"
+                className="w-full h-full"
+              ></iframe>
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="text-purple-500 animate-pulse">Chargement du stream...</div>
+              </div>
+            )}
           </motion.div>
         </div>
 

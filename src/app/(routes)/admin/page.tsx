@@ -376,13 +376,16 @@ export default async function AdminPage() {
               </div>
 
               <div className="flex justify-between items-center">
-                <button className="relative overflow-hidden px-6 py-2.5 rounded-lg bg-gradient-to-r from-teal-600 to-blue-600 text-white font-medium group">
+                <Link
+                  href="/admin/statistics"
+                  className="relative overflow-hidden px-6 py-2.5 rounded-lg bg-gradient-to-r from-teal-600 to-blue-600 text-white font-medium group"
+                >
                   <span className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-teal-600 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"></span>
                   <span className="relative flex items-center">
                     Voir
                     <Zap className="ml-2 h-4 w-4" />
                   </span>
-                </button>
+                </Link>
                 <span className="text-xs text-teal-300/70 flex items-center">
                   {adminCount > 0
                     ? `${adminCount} admin${adminCount > 1 ? 's' : ''}`
