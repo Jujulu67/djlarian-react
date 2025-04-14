@@ -4,6 +4,12 @@ import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { FaSpotify, FaApple, FaSoundcloud } from 'react-icons/fa';
 
+// Props pour le composant LatestReleases
+export interface LatestReleasesProps {
+  title?: string;
+  count?: number;
+}
+
 const releases = [
   {
     id: 1,
@@ -46,7 +52,13 @@ const releases = [
   },
 ];
 
-const LatestReleases = () => {
+export default function LatestReleases({
+  title = 'Latest Releases',
+  count = 3,
+}: LatestReleasesProps) {
+  // Filtrer les sorties en fonction du nombre demandé
+  const filteredReleases = releases.slice(0, count);
+
   return (
     <section className="py-20 bg-black/50 backdrop-blur-lg">
       <div className="max-w-7xl mx-auto px-4">
@@ -56,11 +68,11 @@ const LatestReleases = () => {
           viewport={{ once: true }}
           className="text-4xl font-bold text-center mb-12"
         >
-          Latest Releases
+          {title}
         </motion.h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {releases.map((release, index) => (
+          {filteredReleases.map((release, index) => (
             <motion.div
               key={release.title}
               initial={{ opacity: 0, y: 20 }}
@@ -119,6 +131,4 @@ const LatestReleases = () => {
       </div>
     </section>
   );
-};
-
-export default LatestReleases;
+}

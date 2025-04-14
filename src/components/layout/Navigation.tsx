@@ -37,6 +37,7 @@ const Navigation = () => {
 
   const links = [
     { href: '/', label: 'Home', icon: Home },
+    { href: '/oldHome', label: 'Old Home', icon: Home },
     { href: '/music', label: 'Music', icon: Music },
     { href: '/events', label: 'Events', icon: Calendar },
     { href: '/gallery', label: 'Gallery', icon: ImageIcon },
