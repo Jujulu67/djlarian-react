@@ -168,3 +168,36 @@ model VerificationToken {
 
   @@unique([identifier, token])
 }
+
+model SiteConfig {
+  id            String            @id @default(cuid())
+  section       String            // 'general', 'appearance', 'notifications', 'security', 'api'
+  key           String
+  value         String
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  ConfigHistory ConfigHistory[]
+
+  @@unique([section, key])
+}
+
+model ConfigHistory {
+  id            String            @id @default(cuid())
+  configId      String
+  previousValue String
+  newValue      String
+  createdAt     DateTime          @default(now())
+  createdBy     String?
+  description   String?
+  reverted      Boolean           @default(false)
+  config        SiteConfig        @relation(fields: [configId], references: [id], onDelete: Cascade)
+}
+
+model ConfigSnapshot {
+  id            String            @id @default(cuid())
+  name          String
+  description   String?
+  data          Json
+  createdAt     DateTime          @default(now())
+  createdBy     String?
+}

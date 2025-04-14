@@ -395,7 +395,7 @@ export default async function AdminPage() {
             </div>
           </div>
 
-          {/* Carte Configuration */}
+          {/* Nouvelle Carte Configuration */}
           <div className="glass rounded-xl backdrop-blur-md overflow-hidden group relative transition-all duration-300 hover:shadow-[0_0_30px_rgba(139,92,246,0.3)] border border-purple-500/20">
             <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/5 to-purple-600/5 opacity-70 group-hover:opacity-100 transition-opacity"></div>
             <div className="absolute -bottom-20 -right-20 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl group-hover:bg-indigo-500/20 transition-all duration-500"></div>
@@ -408,32 +408,35 @@ export default async function AdminPage() {
                 Configuration
               </h2>
               <p className="text-gray-400 mb-8">
-                Configurez les paramètres du site, les intégrations API et les options globales.
+                Gérez les paramètres du site, l'apparence, les notifications, la sécurité et les
+                intégrations API.
               </p>
 
               <div className="flex space-x-2 mb-6">
                 <span className="bg-indigo-900/30 text-indigo-300 text-xs px-2 py-1 rounded-full">
-                  Site
-                </span>
-                <span className="bg-purple-900/30 text-purple-300 text-xs px-2 py-1 rounded-full">
-                  API
+                  Général
                 </span>
                 <span className="bg-blue-900/30 text-blue-300 text-xs px-2 py-1 rounded-full">
-                  Email
+                  Apparence
+                </span>
+                <span className="bg-purple-900/30 text-purple-300 text-xs px-2 py-1 rounded-full">
+                  Sécurité
                 </span>
               </div>
 
               <div className="flex justify-between items-center">
-                <button className="relative overflow-hidden px-6 py-2.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium group">
+                <Link
+                  href="/admin/configuration"
+                  className="relative overflow-hidden px-6 py-2.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium group"
+                >
                   <span className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-indigo-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity"></span>
                   <span className="relative flex items-center">
                     Configurer
                     <Zap className="ml-2 h-4 w-4" />
                   </span>
-                </button>
+                </Link>
                 <span className="text-xs text-indigo-300/70 flex items-center">
-                  <Settings className="h-3 w-3 mr-1" /> Dernière:{' '}
-                  <span className="italic opacity-75">2j (placeholder)</span>
+                  <Clock className="h-3 w-3 mr-1" /> Dernière mise à jour: 1j
                 </span>
               </div>
             </div>
