@@ -1,7 +1,6 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
 
 interface Event {
   id: string;
@@ -22,65 +21,11 @@ interface Event {
   };
 }
 
-const UpcomingEvents = () => {
-  const [events, setEvents] = useState<Event[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+interface UpcomingEventsProps {
+  events: Event[];
+}
 
-  useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const response = await fetch('/api/events');
-        if (!response.ok) {
-          throw new Error('Erreur lors de la récupération des événements');
-        }
-        const data = await response.json();
-
-        // Vérifier si les données sont dans le format attendu
-        // La réponse contient { events: [...] } et non directement un tableau
-        if (data.events && Array.isArray(data.events)) {
-          setEvents(data.events);
-        } else if (Array.isArray(data)) {
-          // Si la réponse est directement un tableau
-          setEvents(data);
-        } else {
-          // Format inattendu, utiliser un tableau vide
-          console.error('Format de données inattendu:', data);
-          setEvents([]);
-        }
-      } catch (err) {
-        console.error('Erreur lors du chargement des événements:', err);
-        setError(err instanceof Error ? err.message : 'Une erreur est survenue');
-        setEvents([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchEvents();
-  }, []);
-
-  if (loading) {
-    return (
-      <section className="py-20 bg-gradient-to-b from-black to-purple-900/20">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <p className="text-gray-400">Chargement des événements...</p>
-        </div>
-      </section>
-    );
-  }
-
-  if (error) {
-    return (
-      <section className="py-20 bg-gradient-to-b from-black to-purple-900/20">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <p className="text-red-400">{error}</p>
-        </div>
-      </section>
-    );
-  }
-
-  // S'assurer que events est un tableau avant d'appeler map
+const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events }) => {
   const eventsToDisplay = Array.isArray(events) ? events : [];
 
   return (

@@ -9,8 +9,8 @@ import { Menu, User, LogOut, Music, Calendar, ImageIcon, Mail, Settings } from '
 import Image from 'next/image';
 
 const Navigation = () => {
-  const { data: session } = useSession();
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const { data: session, status } = useSession();
+  const [isAuthMod< alOpen, setIsAuthModalOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -91,7 +91,12 @@ const Navigation = () => {
               </Link>
             ))}
 
-            {session ? (
+            {/* Logique d'affichage conditionnel basée sur le statut de la session */}
+            {status === 'loading' ? (
+              // Placeholder pendant le chargement pour éviter le saut de layout
+              // Vous pouvez remplacer ceci par un Skeleton si vous en avez un
+              <div className="w-[120px] h-[40px] animate-pulse bg-gray-800/50 rounded-full"></div>
+            ) : session ? (
               <div className="relative user-menu">
                 {/* Debug: Afficher le rôle */}
                 <div className="absolute -top-6 left-0 text-xs text-purple-400">
@@ -102,8 +107,8 @@ const Navigation = () => {
                     e.stopPropagation();
                     setIsUserMenuOpen(!isUserMenuOpen);
                   }}
-                  className="flex items-center space-x-3 text-gray-300 hover:text-white transition-all duration-300 
-                    bg-gradient-to-r from-purple-500/10 to-blue-500/10 hover:from-purple-500/20 hover:to-blue-500/20 
+                  className="flex items-center space-x-3 text-gray-300 hover:text-white transition-all duration-300
+                    bg-gradient-to-r from-purple-500/10 to-blue-500/10 hover:from-purple-500/20 hover:to-blue-500/20
                     px-4 py-2 rounded-full border border-purple-500/20 hover:border-purple-500/40 hover:scale-105"
                 >
                   <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-purple-500/50 group-hover:border-purple-500">
@@ -162,8 +167,8 @@ const Navigation = () => {
             ) : (
               <button
                 onClick={() => setIsAuthModalOpen(true)}
-                className="text-gray-300 hover:text-white transition-all duration-300 
-                  bg-gradient-to-r from-purple-500/10 to-blue-500/10 hover:from-purple-500/20 hover:to-blue-500/20 
+                className="text-gray-300 hover:text-white transition-all duration-300
+                  bg-gradient-to-r from-purple-500/10 to-blue-500/10 hover:from-purple-500/20 hover:to-blue-500/20
                   px-4 py-2 rounded-full border border-purple-500/20 hover:border-purple-500/40 hover:scale-105"
               >
                 Connexion

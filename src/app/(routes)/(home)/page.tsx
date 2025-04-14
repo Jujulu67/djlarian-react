@@ -3,115 +3,87 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import gsap from 'gsap';
+import useSWR from 'swr';
 import LatestReleases from '@/components/sections/LatestReleases';
 import UpcomingEvents from '@/components/sections/UpcomingEvents';
 import TwitchStream from '@/components/sections/TwitchStream';
 import ParticleVisualizer from '@/components/3d/ParticleVisualizer';
 import RhythmCatcher from '@/components/RhythmCatcher';
-import { useGameManager } from '@/hooks/useGameManager';
+
+// Définir une classe d'erreur personnalisée pour le fetch
+class FetchError extends Error {
+  info?: any;
+  status?: number;
+
+  constructor(message: string) {
+    super(message);
+    this.name = 'FetchError';
+  }
+}
+
+// Définir la fonction fetcher pour SWR
+const fetcher = async (url: string) => {
+  const response = await fetch(url);
+  if (!response.ok) {
+    const error = new FetchError('An error occurred while fetching the data.');
+    // Attach extra info to the error object.
+    try {
+      error.info = await response.json();
+    } catch (e) {
+      // Ignore if response is not JSON
+    }
+    error.status = response.status;
+    throw error;
+  }
+  return response.json();
+};
 
 export default function HomePage() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isSoundActive, setIsSoundActive] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [gameAudio, setGameAudio] = useState<HTMLAudioElement | null>(null);
-  const [shouldStartGame, setShouldStartGame] = useState(false);
+
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ['start start', 'end start'],
   });
 
+  // Utiliser useSWR pour récupérer les événements
+  const {
+    data: eventsData,
+    error: eventsError,
+    isLoading: eventsLoading,
+  } = useSWR('/api/events', fetcher);
+
   const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
   const scale = useTransform(scrollYProgress, [0, 0.5], [1, 0.8]);
 
-  const { gameState, patterns, startGame, endGame, handleCollision, audioData } =
-    useGameManager(gameAudio);
-
   useEffect(() => {
     if (!containerRef.current) return;
-
     const tl = gsap.timeline({ repeat: -1 });
-
     tl.to('.waveform', {
       backgroundPositionX: '100%',
       duration: 10,
       ease: 'none',
     });
-
     return () => {
       tl.kill();
     };
   }, []);
 
-  // Effet pour démarrer le jeu quand l'audio est prêt
+  const handleExperienceClick = () => {
+    setIsSoundActive((prev) => !prev);
+  };
+
   useEffect(() => {
-    if (shouldStartGame && gameAudio) {
-      console.log('Starting game from useEffect with audio:', {
-        exists: !!gameAudio,
-        readyState: gameAudio.readyState,
-        src: gameAudio.src,
-        currentTime: gameAudio.currentTime,
-      });
-      startGame();
-      setShouldStartGame(false);
-    }
-  }, [shouldStartGame, gameAudio, startGame]);
-
-  const handleExperienceClick = async () => {
-    if (!isSoundActive) {
-      console.log('Initializing visual experience');
-      try {
-        // Initialise l'audio pour notre jeu rythmique
-        const audio = new Audio('/audio/easter-egg.mp3');
-        audio.preload = 'auto';
-        audio.volume = 0.8;
-        audioRef.current = audio;
-
-        setIsSoundActive(true);
-        document.documentElement.classList.add('custom-cursor-active', 'sound-active');
-      } catch (error) {
-        console.error('Error in handleExperienceClick:', error);
-      }
+    if (isSoundActive) {
+      document.documentElement.classList.add('custom-cursor-active', 'sound-active');
     } else {
-      console.log('Stopping experience');
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-      }
-      setGameAudio(null);
-      setIsSoundActive(false);
-      setIsPlaying(false);
       document.documentElement.classList.remove('custom-cursor-active', 'sound-active');
-      endGame();
     }
-  };
-
-  const handleVolumeClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (audioRef.current) {
-      if (!audioRef.current.paused) {
-        audioRef.current.pause();
-        setIsPlaying(false);
-      } else {
-        // Joue l'audio et informe l'utilisateur si une erreur survient
-        audioRef.current
-          .play()
-          .then(() => {
-            setIsPlaying(true);
-            // Déclenche l'animation avec l'audio actif
-            setGameAudio(audioRef.current);
-          })
-          .catch((error) => {
-            console.error('Erreur de lecture audio:', error);
-            // Informe l'utilisateur si le navigateur bloque la lecture auto
-            alert(
-              'Interaction utilisateur requise pour la lecture audio. Veuillez cliquer à nouveau.'
-            );
-          });
-      }
-    }
-  };
+    return () => {
+      document.documentElement.classList.remove('custom-cursor-active', 'sound-active');
+    };
+  }, [isSoundActive]);
 
   return (
     <>
@@ -223,56 +195,25 @@ export default function HomePage() {
               onClick={handleExperienceClick}
             >
               <span className="cursor-pointer hover:text-purple-400 transition-colors">
-                Experience the Sound
+                {isSoundActive ? 'Stop Experience' : 'Experience the Sound'}
               </span>
-              {isSoundActive && (
-                <>
-                  <motion.button
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    whileHover={{ scale: 1.1 }}
-                    className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-purple-600 hover:bg-purple-700 transition-colors"
-                    onClick={handleVolumeClick}
-                    aria-label={isPlaying ? 'Désactiver le son' : 'Activer le son'}
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="w-6 h-6 text-white"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d={
-                          isPlaying
-                            ? 'M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z'
-                            : 'M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2'
-                        }
-                      />
-                    </svg>
-                  </motion.button>
-                </>
-              )}
             </motion.h2>
           </div>
 
-          {/* Affiche ParticleVisualizer par défaut, RhythmCatcher si isSoundActive est true */}
           <div className="relative w-full aspect-[2/1] rounded-lg overflow-hidden border border-gray-800">
-            <AnimatePresence>
+            <AnimatePresence mode="wait">
               <motion.div
+                key={isSoundActive ? 'rhythm' : 'particles'}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.5 }}
-                className="w-full h-full"
+                className="w-full h-full absolute inset-0"
               >
-                {!isSoundActive ? (
-                  <ParticleVisualizer />
+                {isSoundActive ? (
+                  <RhythmCatcher onClose={handleExperienceClick} />
                 ) : (
-                  <RhythmCatcher audioSrc="/audio/easter-egg.mp3" onClose={handleExperienceClick} />
+                  <ParticleVisualizer />
                 )}
               </motion.div>
             </AnimatePresence>
@@ -280,8 +221,18 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Upcoming Events Section */}
-      <UpcomingEvents />
+      {/* Upcoming Events Section - Passer les données fetchées */}
+      <section className="py-20 bg-gradient-to-b from-black to-purple-900/20">
+        <div className="max-w-7xl mx-auto px-4">
+          {eventsLoading && (
+            <p className="text-center text-gray-400">Chargement des événements...</p>
+          )}
+          {eventsError && (
+            <p className="text-center text-red-400">Erreur lors du chargement des événements.</p>
+          )}
+          {eventsData && !eventsError && <UpcomingEvents events={eventsData?.events || []} />}
+        </div>
+      </section>
 
       {/* Twitch Stream Section */}
       <TwitchStream />
