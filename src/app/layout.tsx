@@ -4,6 +4,7 @@ import ClientLayout from '@/components/layout/ClientLayout';
 import './globals.css';
 import HydrationWrapper from '@/components/HydrationWrapper';
 import ClientOnly from '@/components/ClientOnly';
+import UmamiAnalytics from '@/components/analytics/UmamiScript';
 
 const audiowide = Audiowide({
   subsets: ['latin'],
@@ -22,6 +23,11 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const websiteId = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID || 'your-website-id-here';
+  const umamiUrl = process.env.NEXT_PUBLIC_UMAMI_URL
+    ? `${process.env.NEXT_PUBLIC_UMAMI_URL}/script.js`
+    : undefined;
+
   return (
     <html lang="en" className={`${audiowide.variable} ${montserrat.variable}`}>
       <head>
@@ -33,6 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <ClientLayout>{children}</ClientLayout>
           </ClientOnly>
         </HydrationWrapper>
+        <UmamiAnalytics websiteId={websiteId} umamiUrl={umamiUrl} />
       </body>
     </html>
   );
