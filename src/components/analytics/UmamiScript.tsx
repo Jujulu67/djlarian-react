@@ -14,13 +14,16 @@ export default function UmamiAnalytics({
   websiteId: string;
   umamiUrl?: string;
 }) {
-  // Si le websiteId est vide ou "your-website-id-here", on ne charge pas le script
+  // Check 1: Si le websiteId est vide ou la valeur par défaut, on ne charge pas
   if (!websiteId || websiteId === 'your-website-id-here') {
     return null;
   }
 
-  // Vérifier si l'URL est valide et ne contient pas localhost
-  if (umamiUrl.includes('localhost')) {
+  const isLocalhost = umamiUrl.includes('localhost');
+  const isDevelopment = process.env.NODE_ENV === 'development';
+
+  // Check 2: Si c'est localhost en prod, on n'affiche pas (ne devrait pas s'appliquer en dev)
+  if (isLocalhost && !isDevelopment) {
     console.warn(
       "L'URL Umami contient 'localhost', ce qui peut causer des problèmes de préchargement."
     );
@@ -30,11 +33,9 @@ export default function UmamiAnalytics({
   return (
     <Script
       async
-      defer
       data-website-id={websiteId}
       src={umamiUrl}
       data-do-not-track="true" // Active le respect de l'option "Do Not Track" des navigateurs
-      data-domains="djlarian.com" // Remplacez par votre domaine réel
       strategy="lazyOnload" // Chargement différé pour éviter les erreurs de préchargement
     />
   );

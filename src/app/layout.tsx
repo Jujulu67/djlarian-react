@@ -32,6 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${audiowide.variable} ${montserrat.variable}`}>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <UmamiAnalytics websiteId={websiteId} umamiUrl={umamiUrl} />
       </head>
       <body suppressHydrationWarning className="bg-black text-white antialiased">
         <HydrationWrapper>
@@ -39,7 +40,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <ClientLayout>{children}</ClientLayout>
           </ClientOnly>
         </HydrationWrapper>
-        <UmamiAnalytics websiteId={websiteId} umamiUrl={umamiUrl} />
       </body>
     </html>
   );
