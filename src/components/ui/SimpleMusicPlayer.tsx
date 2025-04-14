@@ -257,6 +257,16 @@ const SimpleMusicPlayer: React.FC<SimpleMusicPlayerProps> = ({
             />
           </div>
 
+          {/* Bouton muet visible sur mobile */}
+          <button
+            onClick={toggleMute}
+            aria-label={isMuted ? 'Réactiver le son' : 'Désactiver le son'}
+            className="md:hidden text-gray-400 hover:text-white transition-colors p-1.5 rounded-full hover:bg-gray-700/50 flex-shrink-0"
+            data-footer-control="true"
+          >
+            {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume className="w-5 h-5" />}
+          </button>
+
           <button
             onClick={handleClose}
             aria-label="Fermer le lecteur"

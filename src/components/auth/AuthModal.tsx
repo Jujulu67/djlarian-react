@@ -107,18 +107,50 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
           className="fixed inset-0 bg-black/80 backdrop-blur-lg z-50 flex items-center justify-center p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) onClose();
           }}
         >
           <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{
+              scale: 1,
+              opacity: 1,
+              y: 0,
+              transition: {
+                type: 'spring',
+                damping: 15,
+                stiffness: 300,
+                duration: 0.4,
+              },
+            }}
+            exit={{
+              scale: 0.95,
+              opacity: 0,
+              y: -10,
+              transition: {
+                duration: 0.25,
+              },
+            }}
             className="bg-gradient-to-br from-purple-900/50 to-black/50 backdrop-blur-xl p-8 rounded-2xl w-full max-w-md relative overflow-hidden border border-purple-500/20"
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-600/10 to-blue-600/10" />
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-br from-purple-600/10 to-blue-600/10"
+              animate={{
+                background: [
+                  'linear-gradient(to bottom right, rgba(147, 51, 234, 0.1), rgba(59, 130, 246, 0.1))',
+                  'linear-gradient(to bottom right, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1))',
+                  'linear-gradient(to bottom right, rgba(147, 51, 234, 0.1), rgba(59, 130, 246, 0.1))',
+                ],
+              }}
+              transition={{
+                duration: 10,
+                repeat: Infinity,
+                repeatType: 'reverse',
+              }}
+            />
 
             <h2 className="text-2xl font-audiowide mb-6 text-center relative z-10">
               {isLogin ? 'Connexion' : 'Inscription'}
