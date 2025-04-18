@@ -69,11 +69,39 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Modification non trouvée' }, { status: 404 });
       }
 
-      // Mettre à jour la configuration avec l'ancienne valeur
-      await prisma.siteConfig.update({
+      // Vérifier si la configuration existe toujours
+      const configExists = await prisma.siteConfig.findUnique({
         where: { id: historyItem.configId },
-        data: { value: historyItem.previousValue },
       });
+
+      if (!configExists) {
+        // Si la config n'existe plus (peut arriver après une réinitialisation), la recréer
+        try {
+          // Récupérer les infos de section/key à partir de l'historique
+          await prisma.siteConfig.create({
+            data: {
+              id: historyItem.configId,
+              section: historyItem.config.section,
+              key: historyItem.config.key,
+              value: historyItem.previousValue,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+          });
+        } catch (error) {
+          console.error('Erreur lors de la recréation de la configuration:', error);
+          return NextResponse.json(
+            { error: "La configuration n'existe plus et ne peut pas être recréée" },
+            { status: 500 }
+          );
+        }
+      } else {
+        // Mettre à jour la configuration avec l'ancienne valeur
+        await prisma.siteConfig.update({
+          where: { id: historyItem.configId },
+          data: { value: historyItem.previousValue },
+        });
+      }
 
       // Marquer cette modification comme annulée
       await prisma.configHistory.update({
@@ -89,6 +117,76 @@ export async function POST(req: NextRequest) {
           newValue: historyItem.previousValue,
           createdBy: session.user.email || undefined,
           description: `Annulation de la modification du ${new Date(historyItem.createdAt).toLocaleString()}`,
+        },
+      });
+
+      return NextResponse.json({ success: true }, { status: 200 });
+    } else if (action === 'restore-reverted') {
+      // Rétablir une modification qui a été annulée
+      const historyItem = await prisma.configHistory.findUnique({
+        where: { id },
+        include: { config: true },
+      });
+
+      if (!historyItem) {
+        return NextResponse.json({ error: 'Modification non trouvée' }, { status: 404 });
+      }
+
+      if (!historyItem.reverted) {
+        return NextResponse.json(
+          { error: "Cette modification n'est pas annulée" },
+          { status: 400 }
+        );
+      }
+
+      // Chercher si la configuration existe
+      const configExists = await prisma.siteConfig.findUnique({
+        where: { id: historyItem.configId },
+      });
+
+      // Créer ou mettre à jour la configuration avec la nouvelle valeur (qui était la valeur après la modif)
+      if (!configExists) {
+        try {
+          // Recréer la configuration si elle n'existe plus
+          await prisma.siteConfig.create({
+            data: {
+              id: historyItem.configId,
+              section: historyItem.config.section,
+              key: historyItem.config.key,
+              value: historyItem.newValue,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+          });
+        } catch (error) {
+          console.error('Erreur lors de la recréation de la configuration:', error);
+          return NextResponse.json(
+            { error: "La configuration n'existe plus et ne peut pas être recréée" },
+            { status: 500 }
+          );
+        }
+      } else {
+        // Mettre à jour la configuration avec la nouvelle valeur
+        await prisma.siteConfig.update({
+          where: { id: historyItem.configId },
+          data: { value: historyItem.newValue },
+        });
+      }
+
+      // Marquer cette modification comme non-annulée
+      await prisma.configHistory.update({
+        where: { id },
+        data: { reverted: false },
+      });
+
+      // Ajouter une nouvelle entrée dans l'historique pour ce rétablissement
+      await prisma.configHistory.create({
+        data: {
+          configId: historyItem.configId,
+          previousValue: historyItem.previousValue,
+          newValue: historyItem.newValue,
+          createdBy: session.user.email || undefined,
+          description: `Rétablissement de la modification du ${new Date(historyItem.createdAt).toLocaleString()}`,
         },
       });
 

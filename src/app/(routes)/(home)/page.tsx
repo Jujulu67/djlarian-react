@@ -170,44 +170,74 @@ export default function HomePage() {
           return config.visualizerEnabled ? renderVisualizerSection() : null;
         case 'events':
           return config.eventsEnabled ? (
-            <section className="py-20 bg-gradient-to-b from-black to-purple-900/20">
-              <div className="max-w-7xl mx-auto px-4">
-                {eventsLoading && (
-                  <p className="text-center text-gray-400">Chargement des événements...</p>
-                )}
-                {eventsError && (
-                  <p className="text-center text-red-400">
-                    Erreur lors du chargement des événements.
-                  </p>
-                )}
-                {eventsData && !eventsError && (
-                  <UpcomingEvents
-                    events={eventsData?.events || []}
-                    title={config.eventsTitle}
-                    viewAllText={config.eventsViewAllText}
-                    viewAllUrl={config.eventsViewAllUrl}
-                    count={config.eventsCount}
-                  />
-                )}
-              </div>
-            </section>
+            <AnimatePresence mode="wait">
+              {eventsLoading ? (
+                <motion.section
+                  key="events-loader"
+                  initial={{ opacity: 0, y: 40 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -40 }}
+                  transition={{ duration: 0.5, ease: 'easeOut' }}
+                  className="py-20 bg-gradient-to-b from-black to-purple-900/20"
+                  aria-live="polite"
+                >
+                  <div className="max-w-7xl mx-auto px-4">
+                    <div className="flex flex-col gap-6 animate-pulse">
+                      {[1, 2].map((i) => (
+                        <div
+                          key={i}
+                          className="bg-gray-900/40 rounded-lg p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-gray-800/40"
+                        >
+                          <div className="flex-1 w-full">
+                            <div className="h-6 bg-gray-700/40 rounded w-2/3 mb-4" />
+                            <div className="h-4 bg-gray-700/30 rounded w-1/3 mb-2" />
+                            <div className="h-4 bg-gray-700/30 rounded w-1/2" />
+                          </div>
+                          <div className="h-10 w-32 bg-purple-700/30 rounded-full" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </motion.section>
+              ) : eventsError ? (
+                <motion.section
+                  key="events-error"
+                  initial={{ opacity: 0, y: 40 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -40 }}
+                  transition={{ duration: 0.5, ease: 'easeOut' }}
+                  className="py-20 bg-gradient-to-b from-black to-purple-900/20"
+                  aria-live="polite"
+                >
+                  <div className="max-w-7xl mx-auto px-4">
+                    <p className="text-center text-red-400">
+                      Erreur lors du chargement des événements.
+                    </p>
+                  </div>
+                </motion.section>
+              ) : eventsData && !eventsError ? (
+                <motion.section
+                  key="events-section"
+                  initial={{ opacity: 0, y: 40 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -40 }}
+                  transition={{ duration: 0.7, ease: 'easeOut' }}
+                  className="py-20 bg-gradient-to-b from-black to-purple-900/20"
+                  aria-live="polite"
+                >
+                  <div className="max-w-7xl mx-auto px-4">
+                    <UpcomingEvents
+                      events={eventsData?.events || []}
+                      title={config.eventsTitle}
+                      count={config.eventsCount}
+                    />
+                  </div>
+                </motion.section>
+              ) : null}
+            </AnimatePresence>
           ) : null;
         case 'stream':
-          return config.streamEnabled ? (
-            <TwitchStream
-              title={config.streamTitle}
-              subtitle={config.streamSubtitle}
-              description={config.streamDescription}
-              username={config.twitchUsername}
-              followButtonText={config.twitchFollowButtonText}
-              followButtonUrl={config.twitchFollowButtonUrl}
-              notifyButtonText={config.streamNotifyButtonText}
-              showStats={config.streamStatsEnabled}
-              followers={config.streamFollowers}
-              hoursStreamed={config.streamHoursStreamed}
-              tracksPlayed={config.streamTracksPlayed}
-            />
-          ) : null;
+          return config.streamEnabled ? <TwitchStream /> : null;
         default:
           return null;
       }
