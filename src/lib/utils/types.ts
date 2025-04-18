@@ -29,6 +29,7 @@ export interface Track {
   featured?: boolean;
   type: MusicType;
   collection?: string; // ID d'un album ou EP parent
+  trackId?: string; // ID alternatif pour compatibilité avec les cartes LatestReleases
   platforms: {
     [key in MusicPlatform]?: {
       url: string;

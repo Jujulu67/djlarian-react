@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Track, MusicType } from '@/lib/utils/types';
 import MusicCard from '@/components/ui/MusicCard';
@@ -188,48 +188,122 @@ export default function MusicPage() {
     setFilteredTracks(filtered);
   }, [tracks, selectedType, searchTerm]);
 
-  // Fonction pour jouer un morceau avec gestion simplifiée
-  const playTrack = async (track: Track) => {
-    // Si la propriété close est définie, cela signifie que le bouton X de la carte a été cliqué
-    // Comportement identique au closePlayer pour fermer complètement le lecteur
-    if ('close' in track) {
-      closePlayer();
-      return;
-    }
+  // Déclarer closePlayer au-dessus de playTrack pour éviter les problèmes de déclaration
+  const closePlayer = () => {
+    withLock(
+      stateLockedRef,
+      () => {
+        console.log('Fermeture du lecteur demandée');
+        if (currentTrack) {
+          const activeYoutubeIframe = document.querySelector<HTMLIFrameElement>(
+            `iframe[id="youtube-iframe-${currentTrack.id}"]`
+          );
+          const activeSoundcloudIframe = document.querySelector<HTMLIFrameElement>(
+            `iframe[id="soundcloud-iframe-${currentTrack.id}"]`
+          );
 
-    // Si c'est le même morceau, on bascule l'état (pas besoin de withLock ici, géré par le debounce enfant)
-    if (currentTrack && currentTrack.id === track.id) {
-      setIsPlaying(!isPlaying);
-      // On ne touche plus à stateLockedRef ici
-    } else {
-      // Pour un nouveau morceau, on l'active avec withLock
-      // Réactivation du withLock
-      withLock(
-        stateLockedRef, // Use the main state lock
-        async () => {
-          console.log(`Sélection d'une nouvelle piste: ${track.title}`); // Garder ce log utile
-          // Arrêter l'ancien lecteur si existant
-          if (currentTrack) {
-            const oldYoutubeIframe = document.querySelector<HTMLIFrameElement>(
-              `iframe[id="youtube-iframe-${currentTrack.id}"]`
-            );
-            const oldSoundcloudIframe = document.querySelector<HTMLIFrameElement>(
-              `iframe[id="soundcloud-iframe-${currentTrack.id}"]`
-            );
-            if (oldYoutubeIframe) sendPlayerCommand(oldYoutubeIframe, 'youtube', 'pause');
-            if (oldSoundcloudIframe) sendPlayerCommand(oldSoundcloudIframe, 'soundcloud', 'pause');
+          if (activeYoutubeIframe) {
+            sendPlayerCommand(activeYoutubeIframe, 'youtube', 'pause');
           }
+          if (activeSoundcloudIframe) {
+            sendPlayerCommand(activeSoundcloudIframe, 'soundcloud', 'pause');
+          }
+        }
 
-          setCurrentTrack(track);
-          setIsPlaying(true);
-          // L'index sera mis à jour par l'effet si nécessaire, ou on peut le chercher ici
-          const newIndex = filteredTracks.findIndex((t) => t.id === track.id);
-          setActiveIndex(newIndex >= 0 ? newIndex : null);
-        },
-        150
-      ); // Lock delay 150ms for initiating play with state lock
-    }
+        setCurrentTrack(null);
+        setIsPlaying(false);
+        setActiveIndex(null);
+        setActiveCard(null);
+        console.log('Lecteur fermé, états réinitialisés.');
+      },
+      100
+    ); // Short lock delay 100ms
   };
+
+  // Fonction pour jouer un morceau avec gestion simplifiée
+  const playTrack = useCallback(
+    async (track: Track) => {
+      // Si la propriété close est définie, cela signifie que le bouton X de la carte a été cliqué
+      // Comportement identique au closePlayer pour fermer complètement le lecteur
+      if ('close' in track) {
+        closePlayer();
+        return;
+      }
+
+      // Si c'est le même morceau, on bascule l'état (pas besoin de withLock ici, géré par le debounce enfant)
+      if (currentTrack && currentTrack.id === track.id) {
+        setIsPlaying(!isPlaying);
+        // On ne touche plus à stateLockedRef ici
+      } else {
+        // Pour un nouveau morceau, on l'active avec withLock
+        // Réactivation du withLock
+        withLock(
+          stateLockedRef, // Use the main state lock
+          async () => {
+            console.log(`Sélection d'une nouvelle piste: ${track.title}`); // Garder ce log utile
+            // Arrêter l'ancien lecteur si existant
+            if (currentTrack) {
+              const oldYoutubeIframe = document.querySelector<HTMLIFrameElement>(
+                `iframe[id="youtube-iframe-${currentTrack.id}"]`
+              );
+              const oldSoundcloudIframe = document.querySelector<HTMLIFrameElement>(
+                `iframe[id="soundcloud-iframe-${currentTrack.id}"]`
+              );
+              if (oldYoutubeIframe) sendPlayerCommand(oldYoutubeIframe, 'youtube', 'pause');
+              if (oldSoundcloudIframe)
+                sendPlayerCommand(oldSoundcloudIframe, 'soundcloud', 'pause');
+            }
+
+            setCurrentTrack(track);
+            setIsPlaying(true);
+            // L'index sera mis à jour par l'effet si nécessaire, ou on peut le chercher ici
+            const newIndex = filteredTracks.findIndex((t) => t.id === track.id);
+            setActiveIndex(newIndex >= 0 ? newIndex : null);
+          },
+          150
+        ); // Lock delay 150ms for initiating play with state lock
+      }
+    },
+    [currentTrack, isPlaying, filteredTracks, closePlayer]
+  );
+
+  // Détecter le paramètre 'play' dans l'URL et lancer la lecture automatiquement
+  useEffect(() => {
+    if (tracks.length === 0 || isLoading) return;
+
+    // Fonction pour extraire les paramètres d'URL
+    const getUrlParams = () => {
+      if (typeof window === 'undefined') return {};
+      const params = new URLSearchParams(window.location.search);
+      return Object.fromEntries(params.entries());
+    };
+
+    const params = getUrlParams();
+    const trackIdToPlay = params.play;
+
+    if (trackIdToPlay) {
+      console.log(`Paramètre play détecté: ${trackIdToPlay}`);
+
+      // Rechercher la piste correspondante
+      const trackToPlay = tracks.find(
+        (track) => track.id === trackIdToPlay || track.trackId === trackIdToPlay // Pour compatibilité avec les ID du composant LatestReleases
+      );
+
+      if (trackToPlay) {
+        console.log(`Lecture automatique de la piste: ${trackToPlay.title}`);
+        playTrack(trackToPlay);
+
+        // Optionnel: nettoyer l'URL après avoir lancé la lecture
+        if (window.history && window.history.replaceState) {
+          const url = new URL(window.location.href);
+          url.searchParams.delete('play');
+          window.history.replaceState({}, document.title, url.toString());
+        }
+      } else {
+        console.warn(`Piste avec ID ${trackIdToPlay} non trouvée`);
+      }
+    }
+  }, [tracks, isLoading, playTrack]);
 
   // Contrôle de la lecture depuis le footer (sans withLock)
   const toggleFooterPlay = () => {
@@ -280,37 +354,6 @@ export default function MusicPage() {
       console.warn(`Aucun iframe actif trouvé pour ${currentTrack.title}`);
     }
     */
-  };
-
-  // Fermer le lecteur (garder withLock avec délai court)
-  const closePlayer = () => {
-    withLock(
-      stateLockedRef,
-      () => {
-        console.log('Fermeture du lecteur demandée');
-        if (currentTrack) {
-          const activeYoutubeIframe = document.querySelector<HTMLIFrameElement>(
-            `iframe[id="youtube-iframe-${currentTrack.id}"]`
-          );
-          const activeSoundcloudIframe = document.querySelector<HTMLIFrameElement>(
-            `iframe[id="soundcloud-iframe-${currentTrack.id}"]`
-          );
-
-          if (activeYoutubeIframe) {
-            sendPlayerCommand(activeYoutubeIframe, 'youtube', 'pause');
-          }
-          if (activeSoundcloudIframe) {
-            sendPlayerCommand(activeSoundcloudIframe, 'soundcloud', 'pause');
-          }
-        }
-        setCurrentTrack(null);
-        setIsPlaying(false);
-        setActiveIndex(null);
-        setActiveCard(null);
-        console.log('Lecteur fermé, états réinitialisés.');
-      },
-      100
-    );
   };
 
   // Trouver l'index du morceau actuel dans la liste filtrée

@@ -3,6 +3,38 @@
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { FaSpotify, FaApple, FaSoundcloud } from 'react-icons/fa';
+import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { Track } from '@/lib/utils/types';
+import { Loader } from 'lucide-react';
+import { Music } from 'lucide-react';
+
+// Keyframes pour l'animation du glow doré
+const glowAnimation = `
+  @keyframes shimmer {
+    0% {
+      box-shadow: 0 0 5px 2px #FFF3A3, 0 0 7px 4px #F6C26D;
+    }
+    50% {
+      box-shadow: 0 0 10px 2px #DAA520, 0 0 12px 4px #B8860B;
+    }
+    100% {
+      box-shadow: 0 0 5px 2px #FFF3A3, 0 0 7px 4px #F6C26D;
+    }
+  }
+
+  /* Style pour le contour doré avec box-shadow */
+  .golden-border {
+    position: relative;
+    background: #111827; /* bg-gray-900 */
+    transition: all 0.5s ease;
+  }
+  
+  .golden-border:hover {
+    box-shadow: 0 0 8px 2px #FFF3A3, 0 0 15px 5px #DAA520;
+    animation: shimmer 3s ease-in-out infinite;
+  }
+`;
 
 // Props pour le composant LatestReleases
 export interface LatestReleasesProps {
@@ -10,125 +42,213 @@ export interface LatestReleasesProps {
   count?: number;
 }
 
-const releases = [
-  {
-    id: 1,
-    title: 'Neon Dreams',
-    artist: 'DJ Larian',
-    cover: '/images/releases/neon-dreams.jpg',
-    date: 'March 2024',
-    type: 'EP',
-    links: {
-      spotify: '#',
-      apple: '#',
-      soundcloud: '#',
-    },
-  },
-  {
-    id: 2,
-    title: 'Digital Horizon',
-    artist: 'DJ Larian',
-    cover: '/images/releases/digital-horizon.jpg',
-    date: 'February 2024',
-    type: 'Single',
-    links: {
-      spotify: '#',
-      apple: '#',
-      soundcloud: '#',
-    },
-  },
-  {
-    id: 3,
-    title: 'Future Pulse',
-    artist: 'DJ Larian',
-    cover: '/images/releases/future-pulse.jpg',
-    date: 'January 2024',
-    type: 'Album',
-    links: {
-      spotify: '#',
-      apple: '#',
-      soundcloud: '#',
-    },
-  },
-];
-
 export default function LatestReleases({
   title = 'Latest Releases',
   count = 3,
 }: LatestReleasesProps) {
-  // Filtrer les sorties en fonction du nombre demandé
-  const filteredReleases = releases.slice(0, count);
+  const [releases, setReleases] = useState<Track[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+
+  // Charger les morceaux depuis l'API
+  useEffect(() => {
+    const fetchTracks = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch('/api/music');
+        if (!response.ok) {
+          throw new Error('Erreur lors de la récupération des morceaux');
+        }
+        const data = await response.json();
+
+        // Filtrer et trier: uniquement les singles, EPs et albums (pas les DJ sets ou videos)
+        // Et trier par date (du plus récent au plus ancien)
+        const filteredReleases = data
+          .filter((track: Track) => ['single', 'ep', 'album', 'remix'].includes(track.type))
+          .sort((a: Track, b: Track) => {
+            const dateA = new Date(a.releaseDate);
+            const dateB = new Date(b.releaseDate);
+            return dateB.getTime() - dateA.getTime();
+          })
+          .slice(0, count); // Limiter au nombre demandé
+
+        setReleases(filteredReleases);
+        setError(null);
+      } catch (err) {
+        console.error('Erreur:', err);
+        setError('Impossible de charger les dernières sorties');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTracks();
+  }, [count]);
+
+  // Fonction pour gérer le clic sur une carte
+  const handleCardClick = (trackId: string) => {
+    router.push(`/music?play=${trackId}`);
+  };
+
+  // Si en chargement, afficher un loader
+  if (isLoading) {
+    return (
+      <section className="py-20 bg-black/50 backdrop-blur-lg">
+        <div className="max-w-7xl mx-auto px-4">
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-4xl font-bold text-center mb-12"
+          >
+            {title}
+          </motion.h2>
+          <div className="flex justify-center items-center min-h-[300px]">
+            <Loader className="w-10 h-10 text-purple-500 animate-spin" />
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // Si erreur, afficher un message
+  if (error) {
+    return (
+      <section className="py-20 bg-black/50 backdrop-blur-lg">
+        <div className="max-w-7xl mx-auto px-4">
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-4xl font-bold text-center mb-12"
+          >
+            {title}
+          </motion.h2>
+          <div className="flex justify-center items-center min-h-[200px]">
+            <p className="text-red-400">{error}</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
-    <section className="py-20 bg-black/50 backdrop-blur-lg">
-      <div className="max-w-7xl mx-auto px-4">
-        <motion.h2
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-4xl font-bold text-center mb-12"
-        >
-          {title}
-        </motion.h2>
+    <>
+      {/* Injection des keyframes CSS pour l'animation du glow */}
+      <style jsx global>
+        {glowAnimation}
+      </style>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredReleases.map((release, index) => (
-            <motion.div
-              key={release.title}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
-            >
-              <div className="bg-gray-900 rounded-lg overflow-hidden">
-                <div className="relative aspect-square">
-                  <Image
-                    src={release.cover}
-                    alt={`${release.title} cover art`}
-                    fill
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    className="object-cover"
-                  />
-                </div>
-                <div className="p-6">
-                  <h3 className="text-xl font-bold mb-2">{release.title}</h3>
-                  <div className="flex items-center gap-2 text-gray-400 mb-4">
-                    <span>{release.artist}</span>
-                    <span>•</span>
-                    <span>{release.date}</span>
+      <section className="py-20 bg-black/50 backdrop-blur-lg">
+        <div className="max-w-7xl mx-auto px-4">
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-4xl font-bold text-center mb-12"
+          >
+            {title}
+          </motion.h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {releases.map((release, index) => (
+              <motion.div
+                key={release.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                onClick={() => handleCardClick(release.id)}
+                className="relative"
+              >
+                {/* Carte principale avec contour doré via box-shadow */}
+                <div className="cursor-pointer golden-border rounded-lg overflow-hidden shadow-xl transform-gpu transition-all duration-500 hover:scale-[1.05]">
+                  <div className="relative aspect-square">
+                    {release.coverUrl ? (
+                      <Image
+                        src={release.coverUrl}
+                        alt={`${release.title} cover art`}
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-r from-purple-900/30 to-blue-900/30 flex items-center justify-center">
+                        <Music className="w-16 h-16 text-gray-600" />
+                      </div>
+                    )}
+
+                    {/* Overlay léger */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent opacity-50 hover:opacity-30 transition-opacity duration-500" />
+
+                    {/* Badge type qui s'élève au survol */}
+                    <div className="absolute top-3 left-3 z-20">
+                      <span className="bg-purple-600/80 text-white text-xs font-semibold px-2.5 py-1 rounded-full transform transition-all duration-500 hover:-translate-y-1 hover:scale-110 hover:shadow-lg hover:shadow-purple-500/50">
+                        {release.type.toUpperCase()}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex gap-4">
-                    <a
-                      href={release.links.spotify}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-2xl text-gray-400 hover:text-green-500 transition-colors"
-                    >
-                      <FaSpotify />
-                    </a>
-                    <a
-                      href={release.links.apple}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-2xl text-gray-400 hover:text-pink-500 transition-colors"
-                    >
-                      <FaApple />
-                    </a>
-                    <a
-                      href={release.links.soundcloud}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-2xl text-gray-400 hover:text-orange-500 transition-colors"
-                    >
-                      <FaSoundcloud />
-                    </a>
+
+                  <div className="p-6 relative">
+                    {/* Texte qui change légèrement de couleur au survol */}
+                    <h3 className="text-xl font-bold mb-2 text-white hover:text-purple-300 transition-colors duration-300">
+                      {release.title}
+                    </h3>
+                    <div className="flex items-center gap-2 text-gray-400 mb-4">
+                      <span>{release.artist}</span>
+                      <span>•</span>
+                      <span>
+                        {new Date(release.releaseDate).toLocaleDateString('fr-FR', {
+                          year: 'numeric',
+                          month: 'long',
+                        })}
+                      </span>
+                    </div>
+
+                    {/* Icônes qui se soulèvent et s'illuminent au survol */}
+                    <div className="flex gap-4">
+                      {release.platforms.spotify?.url && (
+                        <a
+                          href={release.platforms.spotify.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-2xl text-gray-400 hover:text-green-500 transition-all duration-300 transform hover:scale-125 hover:-translate-y-1"
+                          onClick={(e) => e.stopPropagation()} // Empêcher le déclenchement du onClick parent
+                        >
+                          <FaSpotify />
+                        </a>
+                      )}
+                      {release.platforms.apple?.url && (
+                        <a
+                          href={release.platforms.apple.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-2xl text-gray-400 hover:text-pink-500 transition-all duration-300 transform hover:scale-125 hover:-translate-y-1"
+                          onClick={(e) => e.stopPropagation()} // Empêcher le déclenchement du onClick parent
+                        >
+                          <FaApple />
+                        </a>
+                      )}
+                      {release.platforms.soundcloud?.url && (
+                        <a
+                          href={release.platforms.soundcloud.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-2xl text-gray-400 hover:text-orange-500 transition-all duration-300 transform hover:scale-125 hover:-translate-y-1"
+                          onClick={(e) => e.stopPropagation()} // Empêcher le déclenchement du onClick parent
+                        >
+                          <FaSoundcloud />
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            ))}
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </>
   );
 }
