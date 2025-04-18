@@ -45,16 +45,51 @@ type ApiConfig = {
   umamiSiteId: string;
 };
 
+type HomepageConfig = {
+  heroTitle: string;
+  heroSubtitle: string;
+  heroExploreButtonText: string;
+  heroExploreButtonUrl: string;
+  heroEventsButtonText: string;
+  heroEventsButtonUrl: string;
+  heroBackgroundVideo: string;
+  heroPosterImage: string;
+  sectionsOrder: string;
+  releasesEnabled: string;
+  releasesTitle: string;
+  releasesCount: string;
+  visualizerEnabled: string;
+  visualizerTitle: string;
+  eventsEnabled: string;
+  eventsTitle: string;
+  eventsCount: string;
+  eventsViewAllText: string;
+  eventsViewAllUrl: string;
+  streamEnabled: string;
+  streamTitle: string;
+  streamSubtitle: string;
+  streamDescription: string;
+  twitchUsername: string;
+  twitchFollowButtonText: string;
+  twitchFollowButtonUrl: string;
+  streamNotifyButtonText: string;
+  streamStatsEnabled: string;
+  streamFollowers: string;
+  streamHoursStreamed: string;
+  streamTracksPlayed: string;
+};
+
 type DefaultConfigs = {
   general: GeneralConfig;
   appearance: AppearanceConfig;
   notifications: NotificationsConfig;
   security: SecurityConfig;
   api: ApiConfig;
+  homepage: HomepageConfig;
 };
 
 // Valeurs par défaut pour chaque section de configuration
-const defaultConfigs: DefaultConfigs = {
+export const defaultConfigs: DefaultConfigs = {
   general: {
     siteName: 'DJ Larian',
     siteDescription: 'Site officiel de DJ Larian - Musique électronique et événements.',
@@ -91,6 +126,40 @@ const defaultConfigs: DefaultConfigs = {
     umamiEnabled: 'true',
     umamiSiteId: 'your-umami-site-id',
   },
+  homepage: {
+    heroTitle: 'DJ LARIAN',
+    heroSubtitle: 'Electronic Music Producer & Innovative Performer',
+    heroExploreButtonText: 'Explore Music',
+    heroExploreButtonUrl: '/music',
+    heroEventsButtonText: 'Upcoming Events',
+    heroEventsButtonUrl: '/events',
+    heroBackgroundVideo: '/videos/hero-background.mp4',
+    heroPosterImage: '/images/hero-poster.jpg',
+    sectionsOrder: 'hero,releases,visualizer,events,stream',
+    releasesEnabled: 'true',
+    releasesTitle: 'Latest Releases',
+    releasesCount: '3',
+    visualizerEnabled: 'true',
+    visualizerTitle: 'Experience the Sound',
+    eventsEnabled: 'true',
+    eventsTitle: 'Upcoming Events',
+    eventsCount: '3',
+    eventsViewAllText: 'View All Events',
+    eventsViewAllUrl: '/events',
+    streamEnabled: 'true',
+    streamTitle: 'Live Stream',
+    streamSubtitle: 'Join the Live Experience',
+    streamDescription:
+      'Tune in to my live streams where I share my creative process, perform exclusive sets, and interact with the community in real-time.',
+    twitchUsername: 'djlarian',
+    twitchFollowButtonText: 'Follow on Twitch',
+    twitchFollowButtonUrl: 'https://twitch.tv/djlarian',
+    streamNotifyButtonText: 'Get Notified',
+    streamStatsEnabled: 'true',
+    streamFollowers: '24K+',
+    streamHoursStreamed: '150+',
+    streamTracksPlayed: '500+',
+  },
 };
 
 // Endpoint pour réinitialiser les configurations
@@ -124,8 +193,8 @@ export async function POST(req: NextRequest) {
           if (config.value !== value) {
             // Créer une entrée dans l'historique
             await prisma.$executeRaw`
-              INSERT INTO "ConfigHistory" ("configId", "previousValue", "newValue", "createdBy", "description", "createdAt")
-              VALUES (${config.id}, ${config.value}, ${value}, ${session.user.email || null}, 'Réinitialisation aux valeurs par défaut', NOW())
+              INSERT INTO "ConfigHistory" ("id", "configId", "previousValue", "newValue", "createdBy", "description", "createdAt")
+              VALUES (gen_random_uuid(), ${config.id}, ${config.value}, ${value}, ${session.user.email || null}, 'Réinitialisation aux valeurs par défaut', NOW())
             `;
 
             // Mettre à jour la configuration
@@ -147,16 +216,23 @@ export async function POST(req: NextRequest) {
 
     // Créer un snapshot automatique avant la réinitialisation
     const currentConfigs = await fetchCurrentConfigs();
-    await prisma.$executeRaw`
-      INSERT INTO "ConfigSnapshot" (name, description, data, "createdBy", "createdAt")
-      VALUES (
-        ${'Avant réinitialisation - ' + new Date().toLocaleString()}, 
-        ${'Snapshot automatique créé avant la réinitialisation aux valeurs par défaut'}, 
-        ${JSON.stringify(currentConfigs)}, 
-        ${session.user.email || null}, 
-        NOW()
-      )
-    `;
+    try {
+      // Utiliser prisma.configSnapshot.create au lieu de $executeRaw pour éviter les erreurs de type
+      await prisma.configSnapshot.create({
+        data: {
+          name: 'Avant réinitialisation - ' + new Date().toLocaleString(),
+          description: 'Snapshot automatique créé avant la réinitialisation aux valeurs par défaut',
+          data: currentConfigs,
+          createdBy: session.user.email || undefined,
+        },
+      });
+    } catch (snapshotError) {
+      console.error(
+        'Erreur lors de la création du snapshot avant réinitialisation:',
+        snapshotError
+      );
+      // Continuer même si la création du snapshot a échoué
+    }
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {

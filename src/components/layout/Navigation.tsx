@@ -28,11 +28,18 @@ const Navigation = () => {
 
   useEffect(() => {
     setMounted(true);
+    let timeout: NodeJS.Timeout | null = null;
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 0);
+      if (timeout) clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        setIsScrolled(window.scrollY > 10);
+      }, 30);
     };
     window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => {
+      if (timeout) clearTimeout(timeout);
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, []);
 
   const links = [
@@ -76,10 +83,10 @@ const Navigation = () => {
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        className={`fixed top-0 left-0 right-0 z-50 transition-colors transition-[border-opacity] duration-300 ${
           isScrolled
-            ? 'bg-black/95 backdrop-blur-lg border-b border-purple-500/10 shadow-lg shadow-purple-500/5'
-            : 'bg-gradient-to-b from-black/80 to-transparent'
+            ? 'bg-black/95 backdrop-blur-lg border-b border-purple-500/10 border-opacity-100 shadow-lg shadow-purple-500/5'
+            : 'bg-gradient-to-b from-black/80 to-transparent border-b border-purple-500/10 border-opacity-0 shadow-none'
         }`}
       >
         <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-transparent to-blue-500/5" />
