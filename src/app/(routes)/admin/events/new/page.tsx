@@ -80,7 +80,7 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
     status: 'UPCOMING' as const,
     isPublished: false,
     image: null,
-    currentImage: '',
+    imageId: null,
     tickets: {
       price: 0,
       currency: 'EUR',
@@ -91,7 +91,6 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
     },
     hasTickets: false,
     featured: false,
-    originalImage: '',
     recurrence: {
       isRecurring: false,
       frequency: 'weekly' as 'weekly' | 'monthly',
@@ -108,7 +107,6 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
   const previewRef = useRef<HTMLDivElement>(null);
 
   // Ajout des nouveaux states pour la gestion d'image
-  const [imageId, setImageId] = useState<string | null>(null);
   const [croppedImageBlob, setCroppedImageBlob] = useState<Blob | null>(null);
   const [originalImageFile, setOriginalImageFile] = useState<File | null>(null);
 
@@ -129,18 +127,12 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
         setLoading(false);
         return;
       }
-
-      console.log(`Fetching event data for ID: ${eventId}`);
-      setLoading(true);
       try {
         const response = await fetch(`/api/events/${eventId}`);
         if (!response.ok) {
           throw new Error("Erreur lors du chargement des données de l'événement");
         }
-
         const event = await response.json();
-
-        // Mettre à jour l'état du formulaire avec les données chargées
         setFormData({
           title: event.title,
           description: event.description || '',
@@ -151,19 +143,16 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
           endDate: event.endDate ? formatDateForInput(event.endDate) : '',
           status: event.status,
           isPublished: event.isPublished,
-          image: null, // Ne pas pré-remplir le champ File
-          currentImage: event.image, // Utiliser image (champ dans la base de données)
+          image: null,
+          imageId: event.imageId || null,
           tickets: event.tickets
             ? {
-                // Pré-remplir les détails des tickets
                 price: event.tickets.price ?? 0,
                 currency: event.tickets.currency || 'EUR',
                 buyUrl: event.tickets.buyUrl || '',
                 quantity: event.tickets.quantity ?? 0,
-                // Ajouter availableFrom/To si nécessaire
               }
             : {
-                // Fournir un objet par défaut si pas de tickets
                 price: 0,
                 currency: 'EUR',
                 buyUrl: '',
@@ -171,11 +160,8 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
               },
           hasTickets: !!event.tickets,
           featured: event.featured || false,
-          // Charger l'image originale depuis le backend
-          originalImage: event.originalImageUrl,
-          // Corriger la récupération des données de récurrence
           recurrence: {
-            isRecurring: !!event.recurrenceConfig, // Vrai si recurrenceConfig existe
+            isRecurring: !!event.recurrenceConfig,
             frequency: event.recurrenceConfig?.frequency || 'weekly',
             day:
               event.recurrenceConfig?.day !== undefined
@@ -187,23 +173,21 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
             excludedDates: event.recurrenceConfig?.excludedDates || [],
           },
         });
-
-        // Mettre à jour l'aperçu de l'image
-        if (event.image) {
-          setImagePreview(event.image);
+        if (event.imageId) {
+          setImagePreview(
+            `/uploads/${event.imageId}.jpg?t=${event.updatedAt ? new Date(event.updatedAt).getTime() : Date.now()}`
+          );
+        } else {
+          setImagePreview(null);
         }
       } catch (error) {
-        // ASCII log
-        console.error('Error loading event data:', error);
         setErrors({ submit: 'Erreur lors du chargement des données' });
       } finally {
         setLoading(false);
       }
     };
-
     fetchEvent();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [eventId, isEditMode]);
+  }, [isEditMode, eventId]);
 
   // Gérer les changements de valeur dans le formulaire
   const handleChange = (
@@ -322,20 +306,15 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
   };
 
   // Nouvelle fonction pour gérer la sélection/recadrage d'image depuis EventForm
-  const handleImageSelected = (file: File, previewUrl: string, originalImageUrl?: string) => {
+  const handleImageSelected = (file: File, previewUrl: string) => {
     // Générer un nouvel imageId à chaque nouvelle sélection
     const newImageId = uuidv4();
-    setImageId(newImageId);
-    setImagePreview(previewUrl);
-    setOriginalImageFile(file);
-    // On suppose que le crop sera fait via une modale ou un composant ReactCrop ailleurs
-    // Ici, on ne set pas encore le croppedImageBlob, il sera set après le crop effectif
     setFormData((prev) => ({
       ...prev,
       image: file,
-      originalImage: originalImageUrl || previewUrl,
-      currentImage: previewUrl,
+      imageId: newImageId,
     }));
+    setImagePreview(previewUrl);
   };
 
   // Supprimer l'image
@@ -343,8 +322,7 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
     setFormData((prev) => ({
       ...prev,
       image: null,
-      currentImage: undefined,
-      originalImage: undefined,
+      imageId: null,
     }));
     setImagePreview(null);
   };
@@ -383,18 +361,15 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
     e.preventDefault();
     setErrors({});
     if (!validateForm()) {
-      console.log('Validation errors:', errors);
       return;
     }
     setLoading(true);
     try {
-      let finalImageId = imageId;
-      let imageUrl = formData.currentImage;
-      let originalImageUrlToSave = formData.originalImage;
+      let finalImageId = formData.imageId;
       // Si on a un crop et un original à uploader
-      if (croppedImageBlob && originalImageFile && imageId) {
+      if (croppedImageBlob && originalImageFile && formData.imageId) {
         const imageFormData = new FormData();
-        imageFormData.append('imageId', imageId);
+        imageFormData.append('imageId', formData.imageId);
         imageFormData.append('croppedImage', croppedImageBlob, 'event-crop.jpg');
         imageFormData.append('originalImage', originalImageFile, originalImageFile.name);
         const uploadResponse = await fetch('/api/upload', {
@@ -403,18 +378,10 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
         });
         if (!uploadResponse.ok) {
           const errorText = await uploadResponse.text();
-          console.error('Upload failed:', errorText);
           throw new Error(`Erreur lors de l'upload de l'image: ${uploadResponse.statusText}`);
         }
         const uploadResult = await uploadResponse.json();
-        finalImageId = uploadResult.imageId || imageId;
-        imageUrl = `/uploads/${finalImageId}.jpg`;
-        originalImageUrlToSave = `/uploads/${finalImageId}-ori.jpg`;
-      } else if (imageUrl && !imageUrl.startsWith('data:image')) {
-        originalImageUrlToSave = formData.originalImage;
-      } else {
-        imageUrl = undefined;
-        originalImageUrlToSave = undefined;
+        finalImageId = uploadResult.imageId || formData.imageId;
       }
       const dataToSend: any = {
         title: formData.title,
@@ -426,8 +393,7 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
         status: formData.status,
         isPublished: formData.isPublished,
         featured: formData.featured || false,
-        imageUrl: imageUrl,
-        originalImageUrl: originalImageUrlToSave,
+        imageId: finalImageId,
         tickets: formData.hasTickets
           ? {
               price:
@@ -449,73 +415,25 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
             }
           : formData.recurrence,
       };
-      if (dataToSend.imageUrl === undefined) dataToSend.imageUrl = null;
-      if (dataToSend.originalImageUrl === undefined) dataToSend.originalImageUrl = null;
-
-      console.log(
-        'Data to send to /events (undefined replaced with null):',
-        JSON.stringify(dataToSend, null, 2)
-      );
-
       // Vérifier si l'ID est défini avant de faire une requête PATCH
       if (isEditMode && !eventId) {
         setLoading(false);
         throw new Error("ID de l'événement non défini pour la mise à jour");
       }
-
-      // Vérifier que l'URL utilisée est correcte
       const apiUrl = isEditMode ? `/api/events/${eventId}` : '/api/events';
-      console.log(`Sending ${isEditMode ? 'PATCH' : 'POST'} request to: ${apiUrl}`);
-      console.log('EventID:', eventId);
-      console.log('IsEditMode:', isEditMode);
-
-      // Vérifier d'abord que l'événement existe (pour PATCH)
-      if (isEditMode) {
-        const checkResponse = await fetch(`/api/events/${eventId}`);
-        if (!checkResponse.ok) {
-          const errorData = await checkResponse.json();
-          console.error('Event check failed:', errorData);
-          throw new Error(
-            `Impossible de trouver l'événement. ${errorData.error || 'Erreur inconnue'}`
-          );
-        }
-        console.log('Event exists, proceeding with update');
-      }
-
+      const method = isEditMode ? 'PATCH' : 'POST';
       const response = await fetch(apiUrl, {
-        method: isEditMode ? 'PATCH' : 'POST',
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(dataToSend),
       });
-
-      // Log la réponse brute pour le débogage
-      console.log(`Response status: ${response.status} ${response.statusText}`);
-
       if (!response.ok) {
-        let errorMessage = response.statusText;
-        try {
-          const errorData = await response.json();
-          console.error('API Error Response:', errorData);
-          errorMessage =
-            errorData.error || errorData.message || errorData.details || response.statusText;
-        } catch (parseError) {
-          console.error('Error parsing error response:', parseError);
-          errorMessage = `${response.status}: ${response.statusText} (Couldn't parse error)`;
-        }
-
-        setLoading(false);
-        throw new Error(`API Error ${response.status}: ${errorMessage}`);
+        throw new Error("Erreur lors de la sauvegarde de l'evenement");
       }
-
-      const result = await response.json();
-      console.log('API /events Success! Redirecting...', result);
-
       router.push('/admin/events');
-    } catch (error: any) {
-      console.error('Error during event creation/update:', error);
-      setErrors({
-        submit: `Une erreur est survenue: ${error.message || 'Erreur inconnue'}`,
-      });
+    } catch (error) {
+      setErrors({ submit: 'Erreur lors de la sauvegarde' });
+    } finally {
       setLoading(false);
     }
   };

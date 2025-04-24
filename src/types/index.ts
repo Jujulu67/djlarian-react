@@ -26,7 +26,7 @@ export interface Event {
   description: string;
   date: string;
   location: string;
-  imageUrl?: string;
+  imageId?: string | null;
   ticketUrl?: string;
   isVirtual: boolean;
 }

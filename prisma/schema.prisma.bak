@@ -33,12 +33,13 @@ model Event {
   address          String?
   startDate        DateTime
   endDate          DateTime?
-  imageId          String?
+  image            String?
   status           String            @default("UPCOMING")
   isPublished      Boolean           @default(false)
   createdAt        DateTime          @default(now())
   updatedAt        DateTime
   featured         Boolean           @default(false)
+  originalImageUrl String?
   isMasterEvent    Boolean           @default(false)
   masterId         String?
   userId           String?
