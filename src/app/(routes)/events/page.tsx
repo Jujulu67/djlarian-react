@@ -59,6 +59,8 @@ type Event = {
   isVirtualOccurrence?: boolean;
   virtualStartDate?: string;
   masterId?: string;
+  imageId?: string;
+  updatedAt?: string;
 };
 
 export default function EventsPage() {
@@ -577,16 +579,19 @@ export default function EventsPage() {
                   className="group relative bg-gray-800/30 backdrop-blur-sm rounded-xl overflow-hidden border border-gray-700/50 hover:border-purple-500/50 hover:shadow-lg hover:shadow-purple-500/10 transition-all transform hover:-translate-y-1 duration-300"
                 >
                   {/* Image avec effet de zoom au survol */}
-                  <div className="relative overflow-hidden" style={{ aspectRatio: '16/9' }}>
-                    {event.image ? (
+                  <div
+                    className="relative overflow-hidden rounded-t-2xl"
+                    style={{ aspectRatio: '16/9' }}
+                  >
+                    {event.imageId ? (
                       <img
-                        src={event.image}
+                        src={`/uploads/${event.imageId}.jpg?t=${event.updatedAt ? new Date(event.updatedAt).getTime() : Date.now()}`}
                         alt={event.title}
                         className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
                         style={{ objectPosition: '50% 25%' }}
                       />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-r from-purple-900/30 to-blue-900/30 flex items-center justify-center group-hover:scale-105 transition-transform duration-500">
+                      <div className="w-full h-full bg-gradient-to-r from-gray-800 to-gray-700 flex items-center justify-center">
                         <Music className="w-16 h-16 text-gray-600" />
                       </div>
                     )}

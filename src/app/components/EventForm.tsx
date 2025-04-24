@@ -39,10 +39,8 @@ export interface EventFormData {
   hasTickets?: boolean;
   featured?: boolean;
   image?: File | null;
-  currentImage?: string;
-  originalImage?: string;
+  imageId?: string | null;
   tickets: TicketInfo;
-  imageUrl?: string;
   recurrence?: RecurrenceConfig;
 }
 
@@ -65,7 +63,7 @@ type EventFormProps = {
   ) => void;
   handleCheckboxChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleRemoveImage: () => void;
-  onImageSelected: (file: File, previewUrl: string, originalImageUrl?: string) => void;
+  onImageSelected: (file: File, previewUrl: string) => void;
   isEditMode?: boolean;
   setFormData: React.Dispatch<React.SetStateAction<EventFormData>>;
 };
@@ -121,7 +119,7 @@ const EventForm: React.FC<EventFormProps> = ({
   React.useEffect(() => {
     const handleRecropImage = (e: CustomEvent) => {
       if (e.detail && e.detail.imageUrl) {
-        const imageToUse = formData.originalImage || e.detail.imageUrl;
+        const imageToUse = formData.imageId || e.detail.imageUrl;
         setIsImageLoaded(false);
         setDisplayCrop(undefined);
         setImageToEdit(imageToUse);
@@ -134,7 +132,7 @@ const EventForm: React.FC<EventFormProps> = ({
     return () => {
       document.removeEventListener('recrop-image', handleRecropImage as EventListener);
     };
-  }, [formData.originalImage]);
+  }, [formData.imageId]);
 
   // Fonction pour précharger l'image ET initialiser le recadrage
   const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -200,7 +198,7 @@ const EventForm: React.FC<EventFormProps> = ({
       (blob) => {
         if (blob) {
           const file = new File([blob], 'cropped-image.jpg', { type: 'image/jpeg' });
-          onImageSelected(file, croppedImageUrl, imageToEdit || undefined);
+          onImageSelected(file, croppedImageUrl);
           setShowCropper(false);
           setImageToEdit(null);
           setIsImageLoaded(false);
@@ -247,7 +245,7 @@ const EventForm: React.FC<EventFormProps> = ({
         setDisplayCrop(undefined);
         setImageToEdit(result);
         setShowCropper(true);
-        onImageSelected(file, result, result);
+        onImageSelected(file, result);
       };
       reader.readAsDataURL(file);
     }
@@ -770,7 +768,7 @@ const EventForm: React.FC<EventFormProps> = ({
                   <button
                     type="button"
                     onClick={() => {
-                      const imageToUse = formData.originalImage || imagePreview;
+                      const imageToUse = formData.imageId || imagePreview;
                       if (imageToUse) {
                         console.log(
                           "Relance du recadrage avec l'image:",

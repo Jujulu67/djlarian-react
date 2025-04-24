@@ -25,13 +25,12 @@ CREATE TABLE "Event" (
     "address" TEXT,
     "startDate" TIMESTAMP(3) NOT NULL,
     "endDate" TIMESTAMP(3),
-    "image" TEXT,
+    "imageId" TEXT,
     "status" TEXT NOT NULL DEFAULT 'UPCOMING',
     "isPublished" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "featured" BOOLEAN NOT NULL DEFAULT false,
-    "originalImageUrl" TEXT,
     "isMasterEvent" BOOLEAN NOT NULL DEFAULT false,
     "masterId" TEXT,
     "userId" TEXT,
@@ -115,7 +114,7 @@ CREATE TABLE "Track" (
     "id" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "artist" TEXT NOT NULL,
-    "coverUrl" TEXT,
+    "imageId" TEXT,
     "releaseDate" TIMESTAMP(3) NOT NULL,
     "bpm" INTEGER,
     "description" TEXT,
@@ -153,6 +152,8 @@ CREATE TABLE "User" (
     "hashedPassword" TEXT,
     "role" TEXT DEFAULT 'USER',
     "isVip" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
@@ -162,6 +163,44 @@ CREATE TABLE "VerificationToken" (
     "identifier" TEXT NOT NULL,
     "token" TEXT NOT NULL,
     "expires" TIMESTAMP(3) NOT NULL
+);
+
+-- CreateTable
+CREATE TABLE "SiteConfig" (
+    "id" TEXT NOT NULL,
+    "section" TEXT NOT NULL,
+    "key" TEXT NOT NULL,
+    "value" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "SiteConfig_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ConfigHistory" (
+    "id" TEXT NOT NULL,
+    "configId" TEXT NOT NULL,
+    "previousValue" TEXT NOT NULL,
+    "newValue" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdBy" TEXT,
+    "description" TEXT,
+    "reverted" BOOLEAN NOT NULL DEFAULT false,
+
+    CONSTRAINT "ConfigHistory_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ConfigSnapshot" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "description" TEXT,
+    "data" JSONB NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdBy" TEXT,
+
+    CONSTRAINT "ConfigSnapshot_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -187,6 +226,9 @@ CREATE UNIQUE INDEX "VerificationToken_token_key" ON "VerificationToken"("token"
 
 -- CreateIndex
 CREATE UNIQUE INDEX "VerificationToken_identifier_token_key" ON "VerificationToken"("identifier", "token");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "SiteConfig_section_key_key" ON "SiteConfig"("section", "key");
 
 -- AddForeignKey
 ALTER TABLE "Account" ADD CONSTRAINT "Account_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -221,3 +263,5 @@ ALTER TABLE "Track" ADD CONSTRAINT "Track_userId_fkey" FOREIGN KEY ("userId") RE
 -- AddForeignKey
 ALTER TABLE "TrackPlatform" ADD CONSTRAINT "TrackPlatform_trackId_fkey" FOREIGN KEY ("trackId") REFERENCES "Track"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
+-- AddForeignKey
+ALTER TABLE "ConfigHistory" ADD CONSTRAINT "ConfigHistory_configId_fkey" FOREIGN KEY ("configId") REFERENCES "SiteConfig"("id") ON DELETE CASCADE ON UPDATE CASCADE;

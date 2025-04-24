@@ -47,7 +47,7 @@ export interface Event {
   date: string;
   location: string;
   description: string;
-  imageUrl: string;
+  imageId?: string | null;
   ticketUrl?: string;
   isFeatured?: boolean;
 }
