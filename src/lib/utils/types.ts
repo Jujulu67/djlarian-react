@@ -18,8 +18,9 @@ export interface Track {
   id: string;
   title: string;
   artist: string;
-  coverUrl: string;
+  coverUrl?: string;
   originalImageUrl?: string;
+  imageId?: string;
   audioUrl?: string;
   duration?: number;
   releaseDate: string;
@@ -27,9 +28,11 @@ export interface Track {
   description?: string;
   bpm?: number;
   featured?: boolean;
+  isPublished?: boolean;
   type: MusicType;
-  collection?: string; // ID d'un album ou EP parent
-  trackId?: string; // ID alternatif pour compatibilité avec les cartes LatestReleases
+  collection?: { id: string; title: string } | null;
+  user?: { id: string; name: string | null } | null;
+  trackId?: string;
   platforms: {
     [key in MusicPlatform]?: {
       url: string;
@@ -37,7 +40,7 @@ export interface Track {
     };
   };
   createdAt?: string;
-  isPublished?: boolean;
+  updatedAt?: string;
 }
 
 export interface Event {

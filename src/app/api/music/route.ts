@@ -33,20 +33,7 @@ const trackCreateSchema = z.object({
   releaseDate: z.string().refine((date) => !isNaN(new Date(date).getTime()), {
     message: 'Invalid date format for releaseDate',
   }),
-  coverUrl: z
-    .string()
-    .refine((url) => url.startsWith('/uploads/') || z.string().url().safeParse(url).success, {
-      message: 'Invalid URL for coverUrl',
-    })
-    .optional()
-    .nullable(),
-  originalImageUrl: z
-    .string()
-    .refine((url) => url.startsWith('/uploads/') || z.string().url().safeParse(url).success, {
-      message: 'Invalid URL for originalImageUrl',
-    })
-    .optional()
-    .nullable(),
+  imageId: z.string().uuid().optional().nullable(),
   bpm: z.number().int().positive().optional().nullable(),
   description: z.string().optional().nullable(),
   type: z.enum(musicTypes),
@@ -71,25 +58,28 @@ type CreateTrackInput = z.infer<typeof trackCreateSchema>;
 export async function GET() {
   try {
     const tracks = await prisma.track.findMany({
-      include: {
-        TrackPlatform: true,
-        GenresOnTracks: {
-          include: {
-            Genre: true,
-          },
-        },
-        MusicCollection: true,
-        User: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
+      select: {
+        id: true,
+        title: true,
+        artist: true,
+        imageId: true,
+        releaseDate: true,
+        bpm: true,
+        description: true,
+        type: true,
+        featured: true,
+        isPublished: true,
+        createdAt: true,
+        updatedAt: true,
+        TrackPlatform: { select: { platform: true, url: true, embedId: true } },
+        GenresOnTracks: { include: { Genre: { select: { name: true } } } },
+        MusicCollection: { select: { id: true, title: true } },
+        User: { select: { id: true, name: true } },
       },
       orderBy: [{ featured: 'desc' }, { releaseDate: 'desc' }],
     });
 
-    const formattedTracks = tracks.map((track) => formatTrackData(track));
+    const formattedTracks = tracks.map((track) => formatTrackData(track as any));
 
     return NextResponse.json(formattedTracks);
   } catch (error) {
@@ -194,11 +184,12 @@ export async function POST(request: Request) {
           title: data.title,
           artist: data.artist,
           releaseDate: new Date(data.releaseDate),
-          coverUrl: data.coverUrl,
+          imageId: data.imageId,
           bpm: data.bpm,
           description: data.description,
           type: data.type,
           featured: data.featured || false,
+          isPublished: true,
           updatedAt: new Date(),
           ...userConnect,
           MusicCollection: data.collectionId ? { connect: { id: data.collectionId } } : undefined,

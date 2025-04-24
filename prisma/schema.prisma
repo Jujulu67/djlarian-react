@@ -116,8 +116,7 @@ model Track {
   id               String           @id @default(uuid())
   title            String
   artist           String
-  coverUrl         String?
-  originalImageUrl String?
+  imageId          String?
   releaseDate      DateTime
   bpm              Int?
   description      String?
