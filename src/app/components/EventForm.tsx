@@ -469,7 +469,7 @@ const EventForm: React.FC<EventFormProps> = ({
     if (formData.imageId) {
       (async () => {
         console.log("[CROP] Préchargement de l'originale pour imageId:", formData.imageId);
-        const url = await findOriginalImageUrl(formData.imageId);
+        const url = await findOriginalImageUrl(formData.imageId as string);
         console.log('[CROP] URL originale trouvée (ou null):', url);
         if (url && isMounted) {
           setCachedOriginalUrl(url);
@@ -503,30 +503,39 @@ const EventForm: React.FC<EventFormProps> = ({
 
   // Pour recrop, toujours utiliser l'originale du cache
   const handleRecropOriginal = async () => {
-    console.log('[CROP] handleRecropOriginal appelé');
-    console.log('[CROP] Etat du cache:', { cachedOriginalUrl, cachedOriginalFile });
+    // Ajout explicite de la distinction création/modification
+    if (!isEditMode) {
+      // Mode création : toujours utiliser le cache local
+      if (originalImageFile) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setImageToEdit(reader.result as string);
+          setShowCropper(true);
+        };
+        reader.readAsDataURL(originalImageFile);
+        return;
+      } else {
+        toast.error("Aucune image d'origine en mémoire pour recadrer.");
+        return;
+      }
+    }
+    // Mode édition : logique existante
     if (cachedOriginalFile) {
-      console.log('[CROP] Utilisation du File original du cache pour recrop');
       const reader = new FileReader();
       reader.onloadend = () => {
         setImageToEdit(reader.result as string);
         setShowCropper(true);
-        console.log('[CROP] ImageToEdit set depuis le cache');
       };
       reader.readAsDataURL(cachedOriginalFile);
       setOriginalImageFile(cachedOriginalFile);
       return;
     }
-    // fallback si jamais le cache est vide (rare)
     if (formData.imageId) {
-      console.warn('[CROP] Cache vide, tentative de refetch originale');
-      const url = await findOriginalImageUrl(formData.imageId);
-      console.log('[CROP] URL originale trouvée (fallback):', url);
+      const url = await findOriginalImageUrl(formData.imageId as string);
       if (url) {
         setCachedOriginalUrl(url);
         const ext = url.split('.').pop() || 'jpg';
         const res = await fetch(url);
-        console.log('[CROP] Résultat fetch originale (fallback):', res.status, res.statusText);
         if (res.ok) {
           const blob = await res.blob();
           const file = new File([blob], `original.${ext}`, { type: blob.type });
@@ -536,16 +545,13 @@ const EventForm: React.FC<EventFormProps> = ({
           reader.onloadend = () => {
             setImageToEdit(reader.result as string);
             setShowCropper(true);
-            console.log('[CROP] ImageToEdit set depuis le fallback');
           };
           reader.readAsDataURL(file);
         } else {
           toast.error("Impossible de charger l'image originale pour le recadrage.");
-          console.error('[CROP] Erreur fetch fallback originale');
         }
       } else {
         toast.error("Impossible de charger l'image originale pour le recadrage.");
-        console.error('[CROP] Aucune URL trouvée en fallback');
       }
     }
   };

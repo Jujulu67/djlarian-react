@@ -308,7 +308,7 @@ export default function AdminMusicPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [currentForm, setCurrentForm] = useState<
-    Omit<Track, 'id'> & { id?: string; imageId?: string }
+    Omit<Track, 'id'> & { id?: string; imageId?: string | null }
   >(
     emptyTrackForm // Assigner emptyTrackForm qui a maintenant imageId: undefined
   );
@@ -354,6 +354,7 @@ export default function AdminMusicPage() {
   const [cachedOriginalUrl, setCachedOriginalUrl] = useState<string | null>(null);
   const [cachedOriginalFile, setCachedOriginalFile] = useState<File | null>(null);
   const [pendingImageChange, setPendingImageChange] = useState(false);
+  const originalImageFileRef = useRef<File | null>(null);
 
   // Vérifier l'authentification
   useEffect(() => {
@@ -445,13 +446,9 @@ export default function AdminMusicPage() {
 
   // DRY: Précharger l'originale dès qu'on a un imageId, sauf si pendingImageChange
   useEffect(() => {
-    if (pendingImageChange) {
-      console.log('[MUSIC] pendingImageChange actif, cache conservé');
-      return;
-    }
+    if (pendingImageChange) return;
     if (currentForm.imageId) {
       (async () => {
-        console.log("[MUSIC] Préchargement de l'originale pour imageId:", currentForm.imageId);
         const url = await findOriginalImageUrl(currentForm.imageId ?? '');
         setCachedOriginalUrl(url);
         if (url) {
@@ -461,22 +458,22 @@ export default function AdminMusicPage() {
             const blob = await res.blob();
             const file = new File([blob], `original.${ext}`, { type: blob.type });
             setCachedOriginalFile(file);
-            console.log('[MUSIC] File originale préchargé:', file);
           } else {
             setCachedOriginalFile(null);
-            console.warn("[MUSIC] Impossible de fetch l'originale, fichier non trouvé");
           }
         } else {
           setCachedOriginalFile(null);
-          console.warn('[MUSIC] Aucune URL originale trouvée');
         }
       })();
+    } else if (originalImageFile) {
+      // On garde le cache local, ne rien faire
+      setCachedOriginalUrl(null);
+      setCachedOriginalFile(originalImageFile);
     } else {
       setCachedOriginalUrl(null);
       setCachedOriginalFile(null);
-      console.log("[MUSIC] Pas d'imageId, cache vidé");
     }
-  }, [currentForm.imageId, pendingImageChange]);
+  }, [currentForm.imageId, pendingImageChange, originalImageFile]);
 
   // Handler pour soumettre le formulaire
   const handleSubmit = async (e: FormEvent) => {
@@ -485,19 +482,33 @@ export default function AdminMusicPage() {
     try {
       let imageId = currentForm.imageId;
       // Log AVANT la condition d'upload
-      console.log('[FRONT] handleSubmit', { croppedImageBlob, imageToUploadId, originalImageFile });
+      const fileToSend = originalImageFile || originalImageFileRef.current;
+      console.log('[DEBUG] handleSubmit - originalImageFile:', fileToSend);
       // Si on a un crop en mémoire, on upload maintenant
-      if (croppedImageBlob && imageToUploadId) {
+      if (croppedImageBlob) {
+        if (!fileToSend) {
+          toast.error(
+            "Impossible d'uploader l'image : fichier original manquant. Merci de recharger ou re-uploader l'image."
+          );
+          setIsSubmitting(false);
+          return;
+        }
+        if (!imageToUploadId) {
+          toast.error(
+            "Impossible d'uploader l'image : imageId manquant. Merci de recharger ou re-uploader l'image."
+          );
+          setIsSubmitting(false);
+          return;
+        }
         console.log('[FRONT] Tentative upload image', {
           imageToUploadId,
           croppedImageBlob,
-          originalImageFile,
+          fileToSend,
         });
         const formData = new FormData();
         formData.append('imageId', imageToUploadId);
         formData.append('croppedImage', croppedImageBlob, 'cover.jpg');
-        if (originalImageFile)
-          formData.append('originalImage', originalImageFile, originalImageFile.name);
+        formData.append('originalImage', fileToSend, fileToSend.name);
         for (let [key, value] of formData.entries()) {
           console.log(`[FRONT] FormData: ${key}`, value);
         }
@@ -666,31 +677,20 @@ export default function AdminMusicPage() {
     setImageToUploadId(null);
   };
 
-  // Gérer l'upload d'image
+  // Handler pour upload d'image
   const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0];
-      if (!file.type.startsWith('image/')) {
-        toast.error('Veuillez sélectionner un fichier image.');
-        return;
-      }
-      // En modif, on réutilise l'imageId existant, sinon on en génère un nouveau
-      if (isEditing && currentForm.imageId) {
-        setImageToUploadId(currentForm.imageId);
-      } else {
-        setImageToUploadId(uuidv4());
-      }
-      setCurrentForm((prev) => ({ ...prev, imageId: undefined })); // reset l'id du form tant que pas upload
-      setImageFile(file);
-      // Lire le fichier pour l'afficher dans la modale de crop
-      const reader = new FileReader();
-      reader.addEventListener('load', () => {
-        setUploadedImage(reader.result as string);
-        setShowCropModal(true);
-        setIsImageLoaded(false);
-      });
-      reader.readAsDataURL(file);
-    }
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setOriginalImageFile(file);
+    originalImageFileRef.current = file; // Stockage persistant DRY
+    console.log('[DEBUG] handleImageUpload - originalImageFile:', file);
+    setCachedOriginalFile(file); // pour recrop infini en création
+    setCoverPreview(URL.createObjectURL(file));
+    setCurrentForm((prev) => ({ ...prev, imageId: undefined })); // pas d'ID tant que pas d'upload
+    setPendingImageChange(true);
+    setShowCropModal(true);
+    setUploadedImage(URL.createObjectURL(file));
+    setImageToUploadId(uuidv4()); // DRY : générer un nouvel ID à chaque upload direct
   };
 
   // Réinitialiser le champ input file pour permettre la re-sélection du même fichier
@@ -700,24 +700,33 @@ export default function AdminMusicPage() {
     }
   };
 
-  // DRY: Recrop toujours à partir du cache
+  // Recrop DRY : toujours repartir du cache local en création
   const handleReCrop = () => {
-    if (cachedOriginalFile) {
-      console.log('[MUSIC] Recrop depuis le cache local');
+    if (!currentForm.imageId && originalImageFile) {
       const reader = new FileReader();
       reader.onloadend = () => {
         setUploadedImage(reader.result as string);
         setShowCropModal(true);
         setIsImageLoaded(false);
         setPendingImageChange(true);
-        console.log('[MUSIC] pendingImageChange activé (recrop local)');
+      };
+      reader.readAsDataURL(originalImageFile);
+      return;
+    }
+    // Sinon, logique existante (modif)
+    if (cachedOriginalFile) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setUploadedImage(reader.result as string);
+        setShowCropModal(true);
+        setIsImageLoaded(false);
+        setPendingImageChange(true);
       };
       reader.readAsDataURL(cachedOriginalFile);
       return;
     }
-    // fallback si cache vide
+    // fallback fetch serveur si besoin (modif uniquement)
     if (currentForm.imageId) {
-      console.warn('[MUSIC] Cache vide, tentative de refetch originale');
       (async () => {
         const url = await findOriginalImageUrl(currentForm.imageId ?? '');
         if (url) {
@@ -734,20 +743,17 @@ export default function AdminMusicPage() {
               setShowCropModal(true);
               setIsImageLoaded(false);
               setPendingImageChange(true);
-              console.log('[MUSIC] pendingImageChange activé (recrop fallback)');
             };
             reader.readAsDataURL(file);
           } else {
             toast.error("Impossible de charger l'image originale pour le recadrage.");
             setShowCropModal(false);
             setIsImageLoaded(false);
-            console.error('[MUSIC] Erreur fetch fallback originale');
           }
         } else {
           toast.error("Impossible de charger l'image originale pour le recadrage.");
           setShowCropModal(false);
           setIsImageLoaded(false);
-          console.error('[MUSIC] Aucune URL trouvée en fallback');
         }
       })();
       return;
@@ -782,20 +788,27 @@ export default function AdminMusicPage() {
     }
     const imageElement = imageRef.current;
     try {
-      const { croppedBlob, originalFileToSend } = await getCroppedBlob(
+      const { croppedBlob } = await getCroppedBlob(
         imageElement,
         crop,
         'cover.jpg',
-        imageFile
+        imageFile || cachedOriginalFile // Toujours fournir un original pour le crop
       );
       if (!croppedBlob) throw new Error("Impossible de générer l'image recadrée.");
       setCroppedImageBlob(croppedBlob);
-      setOriginalImageFile(originalFileToSend);
+      // Correction DRY :
+      if (!isEditing && !currentForm.imageId) {
+        // En création, NE PAS toucher à originalImageFile (il reste celui de l'upload initial)
+      } else {
+        // En modification, garder la logique imageFile || cachedOriginalFile
+        setOriginalImageFile(imageFile || cachedOriginalFile);
+      }
       setCoverPreview(URL.createObjectURL(croppedBlob));
       setCurrentForm((prev) => ({ ...prev, imageId: undefined })); // pas d'ID tant que pas d'upload
       setShowCropModal(false);
       setCrop(undefined);
       resetFileInput();
+      console.log('[DEBUG] completeCrop - originalImageFile:', originalImageFile);
     } catch (error) {
       toast.error(
         `Erreur lors du recadrage: ${error instanceof Error ? error.message : 'Erreur inconnue'}`
@@ -1021,6 +1034,16 @@ export default function AdminMusicPage() {
       // Laisser l'aperçu tel quel si imageId est retiré (pour gérer les coverUrl externes)
     }
   }, [currentForm.imageId]);
+
+  // Nettoyage des states à la suppression d'image
+  const handleRemoveImage = () => {
+    setOriginalImageFile(null);
+    setCroppedImageBlob(null);
+    setCachedOriginalFile(null);
+    setCoverPreview('');
+    setCurrentForm((prev) => ({ ...prev, imageId: null }) as unknown as typeof prev);
+    // Ne rien faire d'autre ici (pas de PUT, pas de fetchTracks)
+  };
 
   if (isLoading) {
     return (
@@ -1248,13 +1271,13 @@ export default function AdminMusicPage() {
                       imageUrl={coverPreview}
                       onDrop={handleImageUpload}
                       onRecrop={handleReCrop}
-                      onRemove={() => {
-                        setCoverPreview('');
-                        setCurrentForm({ ...currentForm });
-                      }}
+                      onRemove={handleRemoveImage}
                       placeholderText="Glissez-déposez une image ici, ou cliquez pour sélectionner"
                       helpText="PNG, JPG, GIF ou WEBP - Max 5MB"
                       accept="image/*"
+                      recropDisabled={
+                        !originalImageFile && !cachedOriginalFile && !currentForm.imageId
+                      }
                     />
                   </div>
 
@@ -1739,6 +1762,7 @@ export default function AdminMusicPage() {
               setShowCropModal(false);
               setCrop(undefined);
               resetFileInput();
+              setImageToUploadId(uuidv4()); // DRY : générer un nouvel ID à chaque crop
             }}
             onCancel={() => {
               setShowCropModal(false);

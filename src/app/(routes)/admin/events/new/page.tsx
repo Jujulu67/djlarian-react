@@ -61,7 +61,6 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
 
     // Préférer l'ID des paramètres d'URL, puis des paramètres de requête
     const id = idFromParams || idFromQuery || undefined;
-    console.log('Event ID from route/query:', id);
 
     if (id) {
       setEventId(id);
@@ -231,7 +230,6 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
       if (previewRef.current && placeholderRef) {
         const scrollY = window.scrollY;
         const headerOffset = 100; // Offset pour tenir compte du header
-        const containerRect = placeholderRef.getBoundingClientRect();
         const initialTop = placeholderRef.offsetTop;
 
         if (scrollY > initialTop - headerOffset) {
@@ -313,6 +311,9 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
       ...prev,
       imageId: null,
     }));
+    setOriginalImageFile(null);
+    setCroppedImageFile(null);
+    setImagePreview(null);
   };
 
   // Valider le formulaire
