@@ -4,6 +4,7 @@ import { toast } from 'react-hot-toast';
 import { Track, MusicType } from '@/lib/utils/types';
 import { X, ExternalLink, RefreshCw, Save, Search, Plus, Check, AlertCircle } from 'lucide-react';
 import { extractInfoFromTitle, emptyTrackForm, MUSIC_TYPES } from '@/lib/utils/music-helpers';
+import Modal from '@/components/ui/Modal';
 
 /* -------------------------------------------------------------------------- */
 /*  Types locaux                                                              */
@@ -343,119 +344,100 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
         )}
         {/* Modale de vérification */}
         {showVerifyModal && currentVideoForImport && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-gray-800 rounded-lg border border-gray-700 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-              <div className="p-6">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-bold text-white">
-                    Vérifier ({verifyIndex + 1}/{selectedVideos.length})
-                  </h2>
-                  <button
-                    onClick={() => setShowVerifyModal(false)}
-                    className="p-2 text-gray-400 hover:text-white rounded-full"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* aperçu vidéo */}
-                  <div>
-                    <div className="aspect-video bg-black rounded-lg overflow-hidden mb-3">
-                      <img
-                        src={currentVideoForImport.thumbnail}
-                        alt={currentVideoForImport.title}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <a
-                      href={`https://www.youtube.com/watch?v=${currentVideoForImport.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-purple-400 hover:underline text-sm flex items-center gap-1"
-                    >
-                      Voir sur YouTube <ExternalLink className="w-3 h-3" />
-                    </a>
+          <Modal
+            maxWidth="max-w-3xl"
+            showLoader={false}
+            bgClass="bg-gray-800"
+            borderClass="border-gray-700"
+            onClose={() => setShowVerifyModal(false)}
+          >
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-white">
+                  Vérifier ({verifyIndex + 1}/{selectedVideos.length})
+                </h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* aperçu vidéo */}
+                <div>
+                  <div className="aspect-video bg-black rounded-lg overflow-hidden mb-3">
+                    <img
+                      src={currentVideoForImport.thumbnail}
+                      alt={currentVideoForImport.title}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
-                  {/* formulaire vérif */}
-                  <div className="md:col-span-2 space-y-4">
-                    {/* Titre */}
+                  <a
+                    href={`https://www.youtube.com/watch?v=${currentVideoForImport.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-purple-400 hover:underline text-sm flex items-center gap-1"
+                  >
+                    Voir sur YouTube <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+                {/* formulaire vérif */}
+                <div className="md:col-span-2 space-y-4">
+                  {/* Titre */}
+                  <div>
+                    <label className="block text-gray-300 font-medium mb-1">
+                      Titre <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      value={verifyFormData.title}
+                      onChange={(e) =>
+                        setVerifyFormData({ ...verifyFormData, title: e.target.value })
+                      }
+                      className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-purple-500"
+                    />
+                  </div>
+                  {/* Type + Date */}
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-gray-300 font-medium mb-1">
-                        Titre <span className="text-red-500">*</span>
+                        Type <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={verifyFormData.type}
+                        onChange={(e) =>
+                          setVerifyFormData({
+                            ...verifyFormData,
+                            type: e.target.value as MusicType,
+                          })
+                        }
+                        className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-purple-500"
+                      >
+                        {MUSIC_TYPES.map((t: MusicTypeOption) => (
+                          <option key={t.value} value={t.value}>
+                            {t.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-gray-300 font-medium mb-1">
+                        Date <span className="text-red-500">*</span>
                       </label>
                       <input
-                        value={verifyFormData.title}
+                        type="date"
+                        value={verifyFormData.releaseDate}
                         onChange={(e) =>
-                          setVerifyFormData({ ...verifyFormData, title: e.target.value })
+                          setVerifyFormData({ ...verifyFormData, releaseDate: e.target.value })
                         }
                         className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-purple-500"
                       />
                     </div>
-                    {/* Type + Date */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-gray-300 font-medium mb-1">
-                          Type <span className="text-red-500">*</span>
-                        </label>
-                        <select
-                          value={verifyFormData.type}
-                          onChange={(e) =>
-                            setVerifyFormData({
-                              ...verifyFormData,
-                              type: e.target.value as MusicType,
-                            })
-                          }
-                          className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-purple-500"
-                        >
-                          {MUSIC_TYPES.map((t: MusicTypeOption) => (
-                            <option key={t.value} value={t.value}>
-                              {t.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-gray-300 font-medium mb-1">
-                          Date <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="date"
-                          value={verifyFormData.releaseDate}
-                          onChange={(e) =>
-                            setVerifyFormData({ ...verifyFormData, releaseDate: e.target.value })
-                          }
-                          className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-purple-500"
-                        />
-                      </div>
-                    </div>
-                    {/* Genres */}
-                    <div>
-                      <label className="block text-gray-300 font-medium mb-1">Genres</label>
-                      <div className="flex gap-2 mb-2">
-                        <input
-                          value={genreInput}
-                          onChange={(e) => setGenreInput(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              if (
-                                genreInput.trim() &&
-                                !verifyFormData.genre.includes(genreInput.trim())
-                              ) {
-                                setVerifyFormData({
-                                  ...verifyFormData,
-                                  genre: [...verifyFormData.genre, genreInput.trim()],
-                                });
-                                setGenreInput('');
-                              }
-                            }
-                          }}
-                          className="flex-1 bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-purple-500"
-                          placeholder="Ajouter un genre"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
+                  </div>
+                  {/* Genres */}
+                  <div>
+                    <label className="block text-gray-300 font-medium mb-1">Genres</label>
+                    <div className="flex gap-2 mb-2">
+                      <input
+                        value={genreInput}
+                        onChange={(e) => setGenreInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
                             if (
                               genreInput.trim() &&
                               !verifyFormData.genre.includes(genreInput.trim())
@@ -466,98 +448,115 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
                               });
                               setGenreInput('');
                             }
-                          }}
-                          className="px-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg"
-                        >
-                          +
-                        </button>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {verifyFormData.genre.map((g) => (
-                          <span
-                            key={g}
-                            className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-purple-600/30 text-purple-200"
-                          >
-                            {g}
-                            <button
-                              onClick={() =>
-                                setVerifyFormData({
-                                  ...verifyFormData,
-                                  genre: verifyFormData.genre.filter((x) => x !== g),
-                                })
-                              }
-                            >
-                              <X className="w-3 h-3 ml-1" />
-                            </button>
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    {/* BPM */}
-                    <div>
-                      <label className="block text-gray-300 font-medium mb-1">BPM</label>
-                      <input
-                        type="number"
-                        value={verifyFormData.bpm || ''}
-                        onChange={(e) =>
-                          setVerifyFormData({
-                            ...verifyFormData,
-                            bpm: parseInt(e.target.value) || undefined,
-                          })
-                        }
-                        className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-purple-500"
-                        placeholder="Ex : 128"
+                          }
+                        }}
+                        className="flex-1 bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-purple-500"
+                        placeholder="Ajouter un genre"
                       />
-                    </div>
-                    {/* Description */}
-                    <div>
-                      <label className="block text-gray-300 font-medium mb-1">Description</label>
-                      <textarea
-                        value={verifyFormData.description || ''}
-                        onChange={(e) =>
-                          setVerifyFormData({ ...verifyFormData, description: e.target.value })
-                        }
-                        className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-purple-500 resize-none h-20"
-                      />
-                    </div>
-                    <div className="flex justify-between pt-4">
                       <button
-                        onClick={skipCurrentVideo}
-                        className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg"
+                        type="button"
+                        onClick={() => {
+                          if (
+                            genreInput.trim() &&
+                            !verifyFormData.genre.includes(genreInput.trim())
+                          ) {
+                            setVerifyFormData({
+                              ...verifyFormData,
+                              genre: [...verifyFormData.genre, genreInput.trim()],
+                            });
+                            setGenreInput('');
+                          }
+                        }}
+                        className="px-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg"
+                      >
+                        +
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {verifyFormData.genre.map((g) => (
+                        <span
+                          key={g}
+                          className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-purple-600/30 text-purple-200"
+                        >
+                          {g}
+                          <button
+                            onClick={() =>
+                              setVerifyFormData({
+                                ...verifyFormData,
+                                genre: verifyFormData.genre.filter((x) => x !== g),
+                              })
+                            }
+                          >
+                            <X className="w-3 h-3 ml-1" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  {/* BPM */}
+                  <div>
+                    <label className="block text-gray-300 font-medium mb-1">BPM</label>
+                    <input
+                      type="number"
+                      value={verifyFormData.bpm || ''}
+                      onChange={(e) =>
+                        setVerifyFormData({
+                          ...verifyFormData,
+                          bpm: parseInt(e.target.value) || undefined,
+                        })
+                      }
+                      className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-purple-500"
+                      placeholder="Ex : 128"
+                    />
+                  </div>
+                  {/* Description */}
+                  <div>
+                    <label className="block text-gray-300 font-medium mb-1">Description</label>
+                    <textarea
+                      value={verifyFormData.description || ''}
+                      onChange={(e) =>
+                        setVerifyFormData({ ...verifyFormData, description: e.target.value })
+                      }
+                      className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-purple-500 resize-none h-20"
+                    />
+                  </div>
+                  <div className="flex justify-between pt-4">
+                    <button
+                      onClick={skipCurrentVideo}
+                      className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg"
+                      disabled={isSubmitting}
+                    >
+                      Ignorer
+                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setShowVerifyModal(false)}
+                        className="px-4 py-2 bg-red-800/60 hover:bg-red-700/60 text-white rounded-lg"
                         disabled={isSubmitting}
                       >
-                        Ignorer
+                        Annuler
                       </button>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setShowVerifyModal(false)}
-                          className="px-4 py-2 bg-red-800/60 hover:bg-red-700/60 text-white rounded-lg"
-                          disabled={isSubmitting}
-                        >
-                          Annuler
-                        </button>
-                        <button
-                          onClick={confirmVideoImport}
-                          className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center gap-2 disabled:opacity-50"
-                          disabled={isSubmitting}
-                        >
-                          {isSubmitting ? (
-                            <>
-                              <RefreshCw className="w-4 h-4 animate-spin" /> Import…
-                            </>
-                          ) : (
-                            <>
-                              <Save className="w-4 h-4" /> Confirmer
-                            </>
-                          )}
-                        </button>
-                      </div>
+                      <button
+                        onClick={confirmVideoImport}
+                        className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center gap-2 disabled:opacity-50"
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 animate-spin" /> Import…
+                          </>
+                        ) : (
+                          <>
+                            <Save className="w-4 h-4" /> Confirmer
+                          </>
+                        )}
+                      </button>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+          </Modal>
         )}
       </div>
     </div>
