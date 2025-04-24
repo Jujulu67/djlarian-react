@@ -42,7 +42,6 @@ type Event = {
   address?: string;
   startDate: string;
   endDate?: string;
-  image?: string;
   status: string;
   isPublished: boolean;
   featured?: boolean;
@@ -585,7 +584,7 @@ export default function EventsPage() {
                   >
                     {event.imageId ? (
                       <img
-                        src={`/uploads/${event.imageId}.jpg?t=${event.updatedAt ? new Date(event.updatedAt).getTime() : Date.now()}`}
+                        src={`/uploads/${event.imageId}.jpg`}
                         alt={event.title}
                         className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
                         style={{ objectPosition: '50% 25%' }}

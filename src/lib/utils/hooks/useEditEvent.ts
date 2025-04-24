@@ -10,8 +10,7 @@ export interface EventData {
   endDate?: string;
   status: 'UPCOMING' | 'COMPLETED' | 'CANCELLED';
   isPublished?: boolean;
-  image?: File | null;
-  imageUrl?: string;
+  imageId?: string;
   tickets?: {
     price: number;
     currency: string;
@@ -97,7 +96,7 @@ export const useEditEvent = () => {
       }
 
       const result = await response.json();
-      return result.url;
+      return result.imageId;
     } catch (error: any) {
       console.error('Error uploading image:', error);
       throw error;

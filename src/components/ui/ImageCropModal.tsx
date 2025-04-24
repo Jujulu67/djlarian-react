@@ -1,0 +1,159 @@
+import React, { useState, useRef, useEffect } from 'react';
+import ReactCrop, { type Crop as CropType, centerCrop, makeAspectCrop } from 'react-image-crop';
+import 'react-image-crop/dist/ReactCrop.css';
+import { Button } from '@/components/ui';
+
+interface ImageCropModalProps {
+  imageToEdit: string | null;
+  aspect: number;
+  onCrop: (file: File, previewUrl: string) => void;
+  onCancel: () => void;
+  cropLabel?: string;
+  title?: string;
+  cancelLabel?: string;
+}
+
+const ImageCropModal: React.FC<ImageCropModalProps> = ({
+  imageToEdit,
+  aspect,
+  onCrop,
+  onCancel,
+  cropLabel = 'Appliquer le recadrage',
+  title,
+  cancelLabel = 'Annuler',
+}) => {
+  const [displayCrop, setDisplayCrop] = useState<CropType>();
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const imageRef = useRef<HTMLImageElement | null>(null);
+
+  // Centrer le crop à l'ouverture
+  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const { naturalWidth, naturalHeight } = e.currentTarget;
+    imageRef.current = e.currentTarget;
+    if (naturalWidth > 0 && naturalHeight > 0) {
+      const initialCrop = centerCrop(
+        makeAspectCrop(
+          {
+            unit: '%',
+            width: 100,
+          },
+          aspect,
+          naturalWidth,
+          naturalHeight
+        ),
+        naturalWidth,
+        naturalHeight
+      );
+      setDisplayCrop(initialCrop);
+      setIsImageLoaded(true);
+    } else {
+      setIsImageLoaded(false);
+    }
+  };
+
+  // Générer le fichier croppé et appeler le callback
+  const handleApplyCrop = () => {
+    if (!imageRef.current || !displayCrop?.width || !displayCrop?.height) return;
+    const image = imageRef.current;
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    // Calculer les dimensions du crop
+    const imageWidth = image.naturalWidth || image.width;
+    const imageHeight = image.naturalHeight || image.height;
+    let cropX, cropY, cropWidth, cropHeight;
+    if (displayCrop.unit === '%') {
+      cropX = (imageWidth * displayCrop.x) / 100;
+      cropY = (imageHeight * displayCrop.y) / 100;
+      cropWidth = (imageWidth * displayCrop.width) / 100;
+      cropHeight = (imageHeight * displayCrop.height) / 100;
+    } else {
+      cropX = displayCrop.x;
+      cropY = displayCrop.y;
+      cropWidth = displayCrop.width;
+      cropHeight = displayCrop.height;
+    }
+    canvas.width = cropWidth;
+    canvas.height = cropHeight;
+    ctx.drawImage(image, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+    const previewUrl = canvas.toDataURL('image/jpeg', 0.95);
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          const file = new File([blob], 'cropped-image.jpg', { type: 'image/jpeg' });
+          onCrop(file, previewUrl);
+        }
+      },
+      'image/jpeg',
+      0.95
+    );
+  };
+
+  if (!imageToEdit) return null;
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+      role="dialog"
+      aria-modal="true"
+      tabIndex={-1}
+    >
+      <div className="bg-gray-800 rounded-lg shadow-2xl max-w-3xl w-full overflow-hidden">
+        <div className="p-6 border-b border-gray-700 flex justify-between items-center">
+          <h3 className="text-lg font-semibold text-white">
+            {title ?? `Recadrer l'image (${aspect === 1 ? 'carré' : '16:9'})`}
+          </h3>
+          <button
+            onClick={onCancel}
+            className="text-gray-400 hover:text-red-500 transition-colors p-1"
+            aria-label="Fermer la modale"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="p-6 max-h-[70vh] overflow-auto flex justify-center items-center">
+          <img
+            src={imageToEdit}
+            onLoad={handleImageLoad}
+            alt="À recadrer"
+            style={{ display: 'none' }}
+          />
+          {isImageLoaded && displayCrop ? (
+            <ReactCrop
+              crop={displayCrop}
+              onChange={(_, percentCrop) => setDisplayCrop(percentCrop)}
+              aspect={aspect}
+              className="max-w-full max-h-[60vh]"
+            >
+              <img
+                ref={imageRef}
+                src={imageToEdit}
+                alt="Recadrage"
+                style={{ maxHeight: '60vh', objectFit: 'contain' }}
+              />
+            </ReactCrop>
+          ) : (
+            <div className="flex items-center justify-center h-40 text-gray-400">
+              Chargement de l'image...
+            </div>
+          )}
+        </div>
+        <div className="px-6 py-4 bg-gray-800/50 border-t border-gray-700 flex justify-end space-x-3">
+          <Button variant="ghost" onClick={onCancel} type="button">
+            {cancelLabel}
+          </Button>
+          <Button
+            type="button"
+            onClick={handleApplyCrop}
+            className="bg-purple-600 hover:bg-purple-700"
+            disabled={!isImageLoaded || !displayCrop?.width || !displayCrop?.height}
+          >
+            {cropLabel}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ImageCropModal;

@@ -334,7 +334,7 @@ export default function EventDetailPage() {
           <div className="relative overflow-hidden" style={{ aspectRatio: '16/9' }}>
             {event.imageId ? (
               <img
-                src={`/uploads/${event.imageId}.jpg?t=${event.updatedAt ? new Date(event.updatedAt).getTime() : Date.now()}`}
+                src={`/uploads/${event.imageId}.jpg`}
                 alt={event.title}
                 className="w-full h-full object-cover object-center"
                 style={{ objectPosition: '50% 25%' }}

@@ -2,7 +2,7 @@ import { Calendar, Clock, Euro, Eye, MapPin, Ticket, Star, Repeat } from 'lucide
 import { EventFormData } from './EventForm';
 
 interface EventPreviewProps {
-  event: EventFormData;
+  event: EventFormData & { currentImage?: string };
 }
 
 export default function EventPreview({ event }: EventPreviewProps) {
