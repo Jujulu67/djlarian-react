@@ -89,9 +89,9 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({ track, isPlaying, onClose, on
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 relative rounded-md overflow-hidden bg-gray-800">
-                  {track.coverUrl && !imageError ? (
+                  {track.imageId && !imageError ? (
                     <Image
-                      src={track.coverUrl}
+                      src={`/uploads/${track.imageId}.jpg`}
                       alt={track.title}
                       width={64}
                       height={64}

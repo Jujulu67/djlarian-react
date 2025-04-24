@@ -90,7 +90,7 @@ export async function createTrack(data: CreateTrackInput, userId?: string) {
       title: data.title,
       artist: data.artist,
       releaseDate: new Date(data.releaseDate),
-      imageId: data.imageId,
+      imageId: data.imageId as string | undefined,
       bpm: data.bpm,
       description: data.description,
       type: data.type,
@@ -110,7 +110,7 @@ export async function createTrack(data: CreateTrackInput, userId?: string) {
           url: platform.url,
           embedId: platform.embedId,
           updatedAt: new Date(),
-        })) as any,
+        })),
       },
       GenresOnTracks: {
         create: genres.map((genre: Genre) => ({
@@ -119,7 +119,7 @@ export async function createTrack(data: CreateTrackInput, userId?: string) {
           },
         })),
       },
-    },
+    } as any,
     include: {
       TrackPlatform: true,
       GenresOnTracks: {
@@ -136,8 +136,7 @@ export async function updateTrack(data: UpdateTrackInput) {
   const { id, genreNames, platforms, ...trackData } = data;
 
   // Mettre à jour les données de base de la piste
-  const { coverUrl, originalImageUrl, ...restTrackData } = trackData as any;
-  const trackUpdateData: any = { ...restTrackData };
+  const trackUpdateData: any = { ...trackData };
 
   if (trackUpdateData.releaseDate) {
     trackUpdateData.releaseDate = new Date(trackUpdateData.releaseDate);
@@ -254,8 +253,6 @@ export function formatTrackData(track: any) {
     isPublished: track.isPublished,
     createdAt: track.createdAt?.toISOString(),
     updatedAt: track.updatedAt?.toISOString(),
-    coverUrl: track.imageId ? `/uploads/${track.imageId}.jpg` : null,
-    originalImageUrl: track.imageId ? `/uploads/${track.imageId}-ori.jpg` : null,
     genre: track.GenresOnTracks?.map((gt: any) => gt.Genre?.name).filter(Boolean) || [],
     platforms: {},
     collection: track.MusicCollection

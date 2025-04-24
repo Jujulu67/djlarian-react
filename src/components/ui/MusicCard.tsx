@@ -769,9 +769,9 @@ export const MusicCard: React.FC<MusicCardProps> = ({
         {/* Image normale - visible quand aucun player n'est actif */}
         {!isYoutubeVisible && !isSoundcloudVisible && (
           <>
-            {track.coverUrl && !imageError ? (
-              <Image
-                src={track.coverUrl}
+            {track.imageId && !imageError ? (
+              <img
+                src={`/uploads/${track.imageId}.jpg?t=${track.updatedAt ? new Date(track.updatedAt).getTime() : Date.now()}`}
                 alt={track.title}
                 width={400}
                 height={400}

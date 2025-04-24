@@ -298,9 +298,9 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
               {/* Info du morceau */}
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div className="w-12 h-12 relative rounded-md overflow-hidden bg-gray-800 flex-shrink-0">
-                  {track.coverUrl && !imageError ? (
+                  {track.imageId && !imageError ? (
                     <Image
-                      src={track.coverUrl}
+                      src={`/uploads/${track.imageId}.jpg`}
                       alt={track.title}
                       width={48}
                       height={48}
@@ -308,7 +308,7 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
                       onError={() => setImageError(true)}
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center">
+                    <div className="w-full h-full bg-gradient-to-r from-purple-900/30 to-blue-900/30 flex items-center justify-center">
                       <Music className="w-6 h-6 text-gray-600" />
                     </div>
                   )}
@@ -439,9 +439,9 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
                 {/* Couverture et infos */}
                 <div className="flex flex-col items-center mb-8">
                   <div className="w-64 h-64 md:w-80 md:h-80 relative rounded-lg overflow-hidden bg-gray-800 mb-6 shadow-xl">
-                    {track.coverUrl && !imageError ? (
+                    {track.imageId && !imageError ? (
                       <Image
-                        src={track.coverUrl}
+                        src={`/uploads/${track.imageId}.jpg`}
                         alt={track.title}
                         width={320}
                         height={320}
@@ -449,7 +449,7 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
                         onError={() => setImageError(true)}
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center">
+                      <div className="w-full h-full bg-gradient-to-r from-purple-900/30 to-blue-900/30 flex items-center justify-center">
                         <Music className="w-20 h-20 text-gray-600" />
                       </div>
                     )}
