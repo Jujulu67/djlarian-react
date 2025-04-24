@@ -10,6 +10,7 @@ import { fr } from 'date-fns/locale';
 import ImageCropModal from '@/components/ui/ImageCropModal';
 import ImageDropzone from '@/components/ui/ImageDropzone';
 import { toast } from 'react-hot-toast';
+import { findOriginalImageUrl } from '@/lib/utils/findOriginalImageUrl';
 
 export interface TicketInfo {
   price?: number;
@@ -120,11 +121,14 @@ const EventForm: React.FC<EventFormProps> = ({
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [originalImageFile, setOriginalImageFile] = useState<File | null>(null);
   const [croppedImageFile, setCroppedImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(imagePreviewProp || null);
+  const [imagePreview, setImagePreview] = useState<string>(imagePreviewProp ?? '');
+  const [cachedOriginalUrl, setCachedOriginalUrl] = useState<string | null>(null);
+  const [cachedOriginalFile, setCachedOriginalFile] = useState<File | null>(null);
+  const [pendingImageChange, setPendingImageChange] = useState(false);
 
   // Synchroniser le state local avec la prop imagePreview
   useEffect(() => {
-    setImagePreview(imagePreviewProp || null);
+    setImagePreview(imagePreviewProp ?? '');
   }, [imagePreviewProp]);
 
   // Ajout de l'écouteur d'événement pour le recadrage
@@ -435,47 +439,126 @@ const EventForm: React.FC<EventFormProps> = ({
     );
   };
 
-  // Pour relancer le crop sur l'originale (en édition)
-  const handleRecropOriginal = () => {
-    if (formData.imageId) {
-      const tryExtensions = ['jpg', 'jpeg', 'png', 'webp'];
-      let found = false;
-      let tried = 0;
-      const tryNext = () => {
-        if (found || tried >= tryExtensions.length) {
-          if (!found) {
-            toast.error("Impossible de charger l'image originale pour le recadrage.");
-          }
-          return;
-        }
-        const ext = tryExtensions[tried];
-        const url = `/uploads/${formData.imageId}-ori.${ext}`;
-        fetch(url)
-          .then((res) => {
-            if (res.ok) {
-              res.blob().then((blob) => {
-                const file = new File([blob], `original.${ext}`, { type: blob.type });
-                setOriginalImageFile(file);
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                  setImageToEdit(reader.result as string);
-                  setShowCropper(true);
-                };
-                reader.readAsDataURL(file);
-              });
-              found = true;
-            } else {
-              tried++;
-              tryNext();
-            }
-          })
-          .catch(() => {
-            tried++;
-            tryNext();
-          });
-      };
-      tryNext();
+  // Lors d'un crop, activer le flag
+  const handleCrop = (file: File, previewUrl: string) => {
+    setCroppedImageFile(file);
+    setImagePreview(previewUrl);
+    onImageSelected(file);
+    setShowCropper(false);
+    setImageToEdit(null);
+    setIsImageLoaded(false);
+    setDisplayCrop(undefined);
+    setPendingImageChange(true);
+    console.log('[CROP] pendingImageChange activé (crop local)');
+  };
+
+  // Lors de la sauvegarde (submit), désactiver le flag et recharger le cache
+  const handleSubmitWithCache = async (e: React.FormEvent) => {
+    await handleSubmit(e);
+    setPendingImageChange(false);
+    console.log('[CROP] pendingImageChange désactivé (sauvegarde event)');
+  };
+
+  // Adapter le useEffect pour ne pas purger le cache si pendingImageChange est actif
+  useEffect(() => {
+    if (pendingImageChange) {
+      console.log('[CROP] pendingImageChange actif, cache conservé malgré changement imageId');
+      return;
     }
+    let isMounted = true;
+    if (formData.imageId) {
+      (async () => {
+        console.log("[CROP] Préchargement de l'originale pour imageId:", formData.imageId);
+        const url = await findOriginalImageUrl(formData.imageId);
+        console.log('[CROP] URL originale trouvée (ou null):', url);
+        if (url && isMounted) {
+          setCachedOriginalUrl(url);
+          const ext = url.split('.').pop() || 'jpg';
+          const res = await fetch(url);
+          console.log('[CROP] Résultat fetch originale:', res.status, res.statusText);
+          if (res.ok) {
+            const blob = await res.blob();
+            const file = new File([blob], `original.${ext}`, { type: blob.type });
+            setCachedOriginalFile(file);
+            console.log('[CROP] File originale préchargé:', file);
+          } else {
+            setCachedOriginalFile(null);
+            console.warn("[CROP] Impossible de fetch l'originale, fichier non trouvé");
+          }
+        } else if (isMounted) {
+          setCachedOriginalUrl(null);
+          setCachedOriginalFile(null);
+          console.warn('[CROP] Aucune URL originale trouvée');
+        }
+      })();
+    } else {
+      setCachedOriginalUrl(null);
+      setCachedOriginalFile(null);
+      console.log("[CROP] Pas d'imageId, cache vidé");
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [formData.imageId, pendingImageChange]);
+
+  // Pour recrop, toujours utiliser l'originale du cache
+  const handleRecropOriginal = async () => {
+    console.log('[CROP] handleRecropOriginal appelé');
+    console.log('[CROP] Etat du cache:', { cachedOriginalUrl, cachedOriginalFile });
+    if (cachedOriginalFile) {
+      console.log('[CROP] Utilisation du File original du cache pour recrop');
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImageToEdit(reader.result as string);
+        setShowCropper(true);
+        console.log('[CROP] ImageToEdit set depuis le cache');
+      };
+      reader.readAsDataURL(cachedOriginalFile);
+      setOriginalImageFile(cachedOriginalFile);
+      return;
+    }
+    // fallback si jamais le cache est vide (rare)
+    if (formData.imageId) {
+      console.warn('[CROP] Cache vide, tentative de refetch originale');
+      const url = await findOriginalImageUrl(formData.imageId);
+      console.log('[CROP] URL originale trouvée (fallback):', url);
+      if (url) {
+        setCachedOriginalUrl(url);
+        const ext = url.split('.').pop() || 'jpg';
+        const res = await fetch(url);
+        console.log('[CROP] Résultat fetch originale (fallback):', res.status, res.statusText);
+        if (res.ok) {
+          const blob = await res.blob();
+          const file = new File([blob], `original.${ext}`, { type: blob.type });
+          setCachedOriginalFile(file);
+          setOriginalImageFile(file);
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            setImageToEdit(reader.result as string);
+            setShowCropper(true);
+            console.log('[CROP] ImageToEdit set depuis le fallback');
+          };
+          reader.readAsDataURL(file);
+        } else {
+          toast.error("Impossible de charger l'image originale pour le recadrage.");
+          console.error('[CROP] Erreur fetch fallback originale');
+        }
+      } else {
+        toast.error("Impossible de charger l'image originale pour le recadrage.");
+        console.error('[CROP] Aucune URL trouvée en fallback');
+      }
+    }
+  };
+
+  // Lors de la suppression (poubelle), vider le cache et le state
+  const handleRemoveImageAndCache = () => {
+    setOriginalImageFile(null);
+    setCroppedImageFile(null);
+    setImagePreview('');
+    setCachedOriginalUrl(null);
+    setCachedOriginalFile(null);
+    handleRemoveImage();
+    console.log('[CROP] Image supprimée, cache vidé');
   };
 
   // À chaque changement de fichier, notifier le parent
@@ -547,7 +630,11 @@ const EventForm: React.FC<EventFormProps> = ({
         }
       `}</style>
 
-      <form onSubmit={handleSubmit} className="p-6 space-y-10 max-w-4xl mx-auto" ref={formRef}>
+      <form
+        onSubmit={handleSubmitWithCache}
+        className="p-6 space-y-10 max-w-4xl mx-auto"
+        ref={formRef}
+      >
         <h2 className="text-2xl font-bold mb-6">
           {isEditMode ? "Modifier l'événement" : 'Créer un nouvel événement'}
         </h2>
@@ -797,12 +884,7 @@ const EventForm: React.FC<EventFormProps> = ({
               imageUrl={imagePreview || undefined}
               onDrop={handleImageInputChange}
               onRecrop={handleRecropOriginal}
-              onRemove={() => {
-                setOriginalImageFile(null);
-                setCroppedImageFile(null);
-                setImagePreview(null);
-                handleRemoveImage();
-              }}
+              onRemove={handleRemoveImageAndCache}
               placeholderText="Glissez votre image ici ou cliquez pour parcourir"
               helpText="PNG, JPG, GIF, WEBP jusqu'à 5MB"
               accept="image/*"
@@ -947,15 +1029,7 @@ const EventForm: React.FC<EventFormProps> = ({
       <ImageCropModal
         imageToEdit={imageToEdit}
         aspect={16 / 9}
-        onCrop={(file, previewUrl) => {
-          setCroppedImageFile(file);
-          setImagePreview(previewUrl);
-          onImageSelected(file);
-          setShowCropper(false);
-          setImageToEdit(null);
-          setIsImageLoaded(false);
-          setDisplayCrop(undefined);
-        }}
+        onCrop={handleCrop}
         onCancel={() => {
           setShowCropper(false);
           setImageToEdit(null);
