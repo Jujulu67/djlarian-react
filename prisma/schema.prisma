@@ -51,10 +51,10 @@ model Event {
 }
 
 model Genre {
-  id             String           @id
+  id             String           @id @default(uuid())
   name           String           @unique
   createdAt      DateTime         @default(now())
-  updatedAt      DateTime
+  updatedAt      DateTime         @updatedAt
   GenresOnTracks GenresOnTracks[]
 }
 
@@ -113,24 +113,25 @@ model TicketInfo {
 }
 
 model Track {
-  id              String           @id
-  title           String
-  artist          String
-  coverUrl        String?
-  releaseDate     DateTime
-  bpm             Int?
-  description     String?
-  type            String
-  featured        Boolean          @default(false)
-  isPublished     Boolean          @default(true)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime
-  userId          String?
-  collectionId    String?
-  GenresOnTracks  GenresOnTracks[]
-  MusicCollection MusicCollection? @relation(fields: [collectionId], references: [id])
-  User            User?            @relation(fields: [userId], references: [id])
-  TrackPlatform   TrackPlatform[]
+  id               String           @id @default(uuid())
+  title            String
+  artist           String
+  coverUrl         String?
+  originalImageUrl String?
+  releaseDate      DateTime
+  bpm              Int?
+  description      String?
+  type             String
+  featured         Boolean          @default(false)
+  isPublished      Boolean          @default(true)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  userId           String?
+  collectionId     String?
+  GenresOnTracks   GenresOnTracks[]
+  MusicCollection  MusicCollection? @relation(fields: [collectionId], references: [id])
+  User             User?            @relation(fields: [userId], references: [id])
+  TrackPlatform    TrackPlatform[]
 }
 
 model TrackPlatform {
@@ -170,34 +171,34 @@ model VerificationToken {
 }
 
 model SiteConfig {
-  id            String            @id @default(cuid())
-  section       String            // 'general', 'appearance', 'notifications', 'security', 'api'
+  id            String          @id @default(cuid())
+  section       String // 'general', 'appearance', 'notifications', 'security', 'api'
   key           String
   value         String
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
   ConfigHistory ConfigHistory[]
 
   @@unique([section, key])
 }
 
 model ConfigHistory {
-  id            String            @id @default(cuid())
+  id            String     @id @default(cuid())
   configId      String
   previousValue String
   newValue      String
-  createdAt     DateTime          @default(now())
+  createdAt     DateTime   @default(now())
   createdBy     String?
   description   String?
-  reverted      Boolean           @default(false)
-  config        SiteConfig        @relation(fields: [configId], references: [id], onDelete: Cascade)
+  reverted      Boolean    @default(false)
+  config        SiteConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
 }
 
 model ConfigSnapshot {
-  id            String            @id @default(cuid())
-  name          String
-  description   String?
-  data          Json
-  createdAt     DateTime          @default(now())
-  createdBy     String?
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  data        Json
+  createdAt   DateTime @default(now())
+  createdBy   String?
 }

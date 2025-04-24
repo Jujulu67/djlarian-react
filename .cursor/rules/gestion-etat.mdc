@@ -1,0 +1,133 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Gestion de l'État
+
+## Approches de Gestion d'État
+
+Ce projet utilise plusieurs approches pour la gestion de l'état selon les besoins:
+
+### 1. État Local avec React Hooks
+
+Pour l'état local des composants, utiliser `useState` et `useReducer`:
+
+```tsx
+const Component = (): JSX.Element => {
+  const [count, setCount] = useState<number>(0);
+  
+  const handleIncrement = (): void => {
+    setCount((prev) => prev + 1);
+  };
+  
+  return (
+    <button onClick={handleIncrement}>
+      Count: {count}
+    </button>
+  );
+};
+```
+
+### 2. État Global avec Zustand
+
+Pour l'état global partagé entre composants, ce projet utilise [Zustand](mdc:package.json):
+
+```tsx
+// src/store/useUserStore.ts
+import { create } from 'zustand';
+
+interface UserState {
+  user: User | null;
+  isLoading: boolean;
+  error: string | null;
+  login: (credentials: Credentials) => Promise<void>;
+  logout: () => void;
+}
+
+export const useUserStore = create<UserState>((set) => ({
+  user: null,
+  isLoading: false,
+  error: null,
+  login: async (credentials) => {
+    set({ isLoading: true, error: null });
+    try {
+      const user = await loginUser(credentials);
+      set({ user, isLoading: false });
+    } catch (error) {
+      set({ error: error.message, isLoading: false });
+    }
+  },
+  logout: () => {
+    set({ user: null });
+  }
+}));
+```
+
+### 3. Contexte React
+
+Pour des états qui ne nécessitent pas la puissance de Zustand mais doivent être partagés dans un sous-arbre de composants:
+
+```tsx
+// src/contexts/ThemeContext.tsx
+import { createContext, useContext, useState } from 'react';
+
+type Theme = 'light' | 'dark';
+
+interface ThemeContextType {
+  theme: Theme;
+  toggleTheme: () => void;
+}
+
+const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+
+export const ThemeProvider = ({ children }: { children: React.ReactNode }): JSX.Element => {
+  const [theme, setTheme] = useState<Theme>('light');
+  
+  const toggleTheme = (): void => {
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+  };
+  
+  return (
+    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+};
+
+export const useTheme = (): ThemeContextType => {
+  const context = useContext(ThemeContext);
+  if (!context) {
+    throw new Error('useTheme must be used within a ThemeProvider');
+  }
+  return context;
+};
+```
+
+### 4. SWR pour la Gestion des Données Distantes
+
+Pour les données provenant d'API, ce projet utilise [SWR](mdc:package.json) pour le cache, la revalidation et la gestion d'état des requêtes:
+
+```tsx
+// Exemple d'utilisation de SWR
+import useSWR from 'swr';
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
+const UserProfile = ({ userId }: { userId: string }): JSX.Element => {
+  const { data, error, isLoading } = useSWR<User>(`/api/users/${userId}`, fetcher);
+  
+  if (isLoading) return <div>Chargement...</div>;
+  if (error) return <div>Erreur lors du chargement</div>;
+  
+  return <div>Bonjour, {data.name}</div>;
+};
+```
+
+## Bonnes Pratiques
+
+- Garder l'état le plus proche possible de l'endroit où il est utilisé
+- Éviter le prop drilling avec des contextes ou Zustand
+- Pour les formulaires complexes, utiliser des gestionnaires d'état spécialisés
+- Utiliser l'immuabilité lors de la mise à jour des états
+- Implémenter une gestion des erreurs robuste

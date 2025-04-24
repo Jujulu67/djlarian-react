@@ -1,0 +1,105 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Style et Conventions
+
+## TailwindCSS
+
+Ce projet utilise [TailwindCSS](mdc:tailwind.config.ts) pour tous les styles. Les classes Tailwind sont privilégiées par rapport au CSS personnalisé.
+
+### Bonnes Pratiques
+
+- Utiliser les classes Tailwind directement dans les composants
+- Utiliser `clsx` ou `tailwind-merge` pour les classes conditionnelles
+- Respecter la palette de couleurs définie dans la configuration Tailwind
+
+Exemple:
+
+```tsx
+import clsx from 'clsx';
+
+interface ButtonProps {
+  variant: 'primary' | 'secondary';
+  size: 'sm' | 'md' | 'lg';
+  isActive?: boolean;
+}
+
+const Button = ({ 
+  variant, 
+  size, 
+  isActive = false 
+}: ButtonProps): JSX.Element => {
+  return (
+    <button
+      className={clsx(
+        "rounded font-medium focus:outline-none focus:ring-2",
+        variant === 'primary' && "bg-primary-500 text-white",
+        variant === 'secondary' && "bg-gray-200 text-gray-800",
+        size === 'sm' && "px-2 py-1 text-sm",
+        size === 'md' && "px-4 py-2",
+        size === 'lg' && "px-6 py-3 text-lg",
+        isActive && "ring-2 ring-offset-2 ring-primary-300"
+      )}
+    >
+      {children}
+    </button>
+  );
+};
+```
+
+## Conventions de Nommage
+
+### Fichiers et Dossiers
+- Composants: **PascalCase** (Button.tsx)
+- Hooks: **camelCase** (useAuth.ts)
+- Utilitaires: **camelCase** (formatDate.ts)
+- Constantes: **SNAKE_CASE** (API_ENDPOINTS.ts)
+
+### Variables et Fonctions
+- Variables: **camelCase**
+- Constantes: **UPPER_SNAKE_CASE**
+- Types/Interfaces: **PascalCase**
+- Event Handlers: **handleEventName**
+
+## Accessibilité
+
+Tous les composants interactifs doivent inclure:
+- Des attributs `aria-*` appropriés
+- Support du clavier (focus et navigation)
+- Contraste suffisant pour la lisibilité
+- Support des lecteurs d'écran
+
+```tsx
+<button
+  aria-label="Fermer"
+  onClick={handleClose}
+  onKeyDown={handleKeyDown}
+  tabIndex={0}
+  className="p-2 rounded bg-primary-500 text-white focus:ring-2"
+>
+  <span className="sr-only">Fermer</span>
+  <XIcon className="h-5 w-5" />
+</button>
+```
+
+## Documentation
+
+Les interfaces et types complexes doivent être documentés avec JSDoc:
+
+```tsx
+/**
+ * Représente un utilisateur de l'application
+ * @property {string} id - Identifiant unique de l'utilisateur
+ * @property {string} name - Nom complet de l'utilisateur
+ * @property {string} email - Email de l'utilisateur
+ * @property {Role} role - Rôle de l'utilisateur dans l'application
+ */
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+}
+```

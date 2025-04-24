@@ -2,8 +2,70 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import prisma from '@/lib/prisma';
-import { CreateTrackInput, UpdateTrackInput, formatTrackData } from '@/lib/api/musicService';
-import { MusicType } from '@/lib/utils/types';
+import { formatTrackData } from '@/lib/api/musicService';
+import { MusicType, MusicPlatform } from '@/lib/utils/types';
+import { z } from 'zod';
+import { Prisma } from '@prisma/client';
+import { v4 as uuidv4 } from 'uuid';
+
+// Define actual arrays for Zod enums from types
+const musicTypes: [MusicType, ...MusicType[]] = [
+  'single',
+  'ep',
+  'album',
+  'remix',
+  'live',
+  'djset',
+  'video',
+];
+const musicPlatforms: [MusicPlatform, ...MusicPlatform[]] = [
+  'spotify',
+  'youtube',
+  'soundcloud',
+  'apple',
+  'deezer',
+];
+
+// Define Zod schema for validation
+const trackCreateSchema = z.object({
+  title: z.string().min(1, { message: 'Title is required' }),
+  artist: z.string().min(1, { message: 'Artist is required' }),
+  releaseDate: z.string().refine((date) => !isNaN(new Date(date).getTime()), {
+    message: 'Invalid date format for releaseDate',
+  }),
+  coverUrl: z
+    .string()
+    .refine((url) => url.startsWith('/uploads/') || z.string().url().safeParse(url).success, {
+      message: 'Invalid URL for coverUrl',
+    })
+    .optional()
+    .nullable(),
+  originalImageUrl: z
+    .string()
+    .refine((url) => url.startsWith('/uploads/') || z.string().url().safeParse(url).success, {
+      message: 'Invalid URL for originalImageUrl',
+    })
+    .optional()
+    .nullable(),
+  bpm: z.number().int().positive().optional().nullable(),
+  description: z.string().optional().nullable(),
+  type: z.enum(musicTypes),
+  featured: z.boolean().optional(),
+  genreNames: z.array(z.string().min(1)).optional(),
+  platforms: z
+    .array(
+      z.object({
+        platform: z.enum(musicPlatforms),
+        url: z.string().url({ message: 'Invalid URL for platform URL' }),
+        embedId: z.string().optional().nullable(),
+      })
+    )
+    .optional(),
+  collectionId: z.string().optional().nullable(),
+});
+
+// Re-define CreateTrackInput based on Zod schema if needed elsewhere, or use z.infer
+type CreateTrackInput = z.infer<typeof trackCreateSchema>;
 
 // GET /api/music - Récupérer toutes les pistes
 export async function GET() {
@@ -38,108 +100,149 @@ export async function GET() {
 
 // POST /api/music - Créer une nouvelle piste
 export async function POST(request: Request) {
+  const session = await getServerSession(authOptions);
+
+  // Vérifier l'authentification
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Vérifier le rôle d'admin
+  if (session.user.role !== 'ADMIN') {
+    return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+  }
+
+  let rawData;
   try {
-    const session = await getServerSession(authOptions);
+    rawData = await request.json();
+  } catch (error) {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
 
-    // Vérifier l'authentification
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  const validationResult = trackCreateSchema.safeParse(rawData);
 
-    // Vérifier le rôle d'admin
-    if (session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
-    }
+  if (!validationResult.success) {
+    console.error('Validation failed:', validationResult.error.format());
+    return NextResponse.json(
+      {
+        error: 'Invalid input data',
+        details: validationResult.error.flatten().fieldErrors,
+      },
+      { status: 400 }
+    );
+  }
 
-    const data: CreateTrackInput = await request.json();
+  const data: CreateTrackInput = validationResult.data;
 
-    // Créer ou récupérer les genres
-    const genrePromises = data.genreNames.map(async (name) => {
-      const normalizedName = name.trim().toLowerCase();
-      return prisma.genre.upsert({
-        where: { name: normalizedName },
-        update: {},
-        create: { name: normalizedName },
-      });
-    });
+  try {
+    const track = await prisma.$transaction(async (tx) => {
+      // Handle optional genreNames
+      const genres =
+        data.genreNames && data.genreNames.length > 0
+          ? await Promise.all(
+              data.genreNames.map(async (name: string) => {
+                const normalizedName = name.trim().toLowerCase();
+                return tx.genre.upsert({
+                  where: { name: normalizedName },
+                  update: {},
+                  create: {
+                    id: uuidv4(),
+                    name: normalizedName,
+                    updatedAt: new Date(),
+                  },
+                });
+              })
+            )
+          : [];
 
-    const genres = await Promise.all(genrePromises);
-
-    // Vérifier si l'utilisateur existe
-    let userConnect = {};
-    try {
-      const userExists = await prisma.user.findUnique({
-        where: { id: session.user.id },
-        select: { id: true },
-      });
-
-      if (userExists) {
-        userConnect = {
-          user: {
-            connect: { id: session.user.id },
-          },
-        };
-      } else {
-        console.log(`Utilisateur avec ID ${session.user.id} n'existe pas dans la base de données`);
+      let userConnect = {};
+      try {
+        const userExists = await prisma.user.findFirst({
+          where: { id: session.user.id },
+          select: { id: true },
+        });
+        if (userExists) {
+          userConnect = { User: { connect: { id: session.user.id } } };
+        }
+      } catch (userError) {
+        console.error('Erreur vérification utilisateur:', userError);
       }
-    } catch (error) {
-      console.error("Erreur lors de la vérification de l'utilisateur:", error);
-      // On continue sans établir la relation utilisateur
-    }
 
-    // Créer la piste avec ses relations
-    const track = await prisma.track.create({
-      data: {
-        title: data.title,
-        artist: data.artist,
-        releaseDate: new Date(data.releaseDate),
-        coverUrl: data.coverUrl,
-        bpm: data.bpm,
-        description: data.description,
-        type: data.type,
-        featured: data.featured || false,
-        ...userConnect,
-        MusicCollection: data.collectionId
-          ? {
-              connect: { id: data.collectionId },
-            }
-          : undefined,
-        TrackPlatform: {
-          create: data.platforms.map((platform) => ({
-            platform: platform.platform,
-            url: platform.url,
-            embedId: platform.embedId,
-          })),
+      // Handle optional genres connection
+      const genresToConnect =
+        genres.length > 0
+          ? genres.map((genre) => ({
+              Genre: { connect: { id: genre.id } },
+            }))
+          : undefined;
+
+      // Handle optional platforms creation
+      const platformsToCreate =
+        data.platforms && data.platforms.length > 0
+          ? data.platforms.map((platform) => ({
+              id: uuidv4(),
+              platform: platform.platform,
+              url: platform.url,
+              embedId: platform.embedId,
+              updatedAt: new Date(),
+            }))
+          : undefined;
+
+      const newTrack = await tx.track.create({
+        data: {
+          id: uuidv4(),
+          title: data.title,
+          artist: data.artist,
+          releaseDate: new Date(data.releaseDate),
+          coverUrl: data.coverUrl,
+          bpm: data.bpm,
+          description: data.description,
+          type: data.type,
+          featured: data.featured || false,
+          updatedAt: new Date(),
+          ...userConnect,
+          MusicCollection: data.collectionId ? { connect: { id: data.collectionId } } : undefined,
+          ...(platformsToCreate && { TrackPlatform: { create: platformsToCreate } }),
+          ...(genresToConnect && { GenresOnTracks: { create: genresToConnect } }),
         },
-        GenresOnTracks: {
-          create: genres.map((genre) => ({
-            Genre: {
-              connect: { id: genre.id },
-            },
-          })),
+      });
+
+      const fullTrack = await tx.track.findUniqueOrThrow({
+        where: { id: newTrack.id },
+        include: {
+          TrackPlatform: true,
+          GenresOnTracks: { include: { Genre: true } },
+          MusicCollection: true,
+          User: { select: { id: true, name: true } },
         },
-      },
-      include: {
-        TrackPlatform: true,
-        GenresOnTracks: {
-          include: {
-            Genre: true,
-          },
-        },
-        MusicCollection: true,
-        User: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
+      });
+
+      return fullTrack;
     });
 
     return NextResponse.json(formatTrackData(track), { status: 201 });
   } catch (error) {
-    console.error('Error creating track:', error);
-    return NextResponse.json({ error: 'Failed to create track' }, { status: 500 });
+    console.error('Error during track creation transaction:', error);
+
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2002') {
+        const fields = (error.meta?.target as string[]) ?? ['unknown field'];
+        return NextResponse.json(
+          { error: `Unique constraint failed on field(s): ${fields.join(', ')}` },
+          { status: 409 }
+        );
+      }
+      if (error.code === 'P2003') {
+        const field = (error.meta?.field_name as string) ?? 'unknown relation';
+        let userFriendlyMessage = `Relation constraint failed on field: ${field}`;
+        if (field.includes('collectionId')) {
+          userFriendlyMessage = 'The selected music collection does not exist.';
+        }
+        return NextResponse.json({ error: userFriendlyMessage }, { status: 400 });
+      }
+    }
+
+    return NextResponse.json({ error: 'Failed to save track to database' }, { status: 500 });
   }
 }
 

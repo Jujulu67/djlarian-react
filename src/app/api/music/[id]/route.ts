@@ -4,6 +4,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import prisma from '@/lib/prisma';
 import { UpdateTrackInput, formatTrackData } from '@/lib/api/musicService';
 import { MusicType } from '@/lib/utils/types';
+import crypto from 'crypto';
 
 // GET /api/music/[id] - Récupérer une piste spécifique
 export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
@@ -108,35 +109,24 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
         return prisma.genre.upsert({
           where: { name: normalizedName },
           update: {},
-          create: { name: normalizedName },
+          create: {
+            id: crypto.randomUUID(),
+            name: normalizedName,
+            updatedAt: new Date(),
+          },
           select: { id: true },
         });
       });
       const genres = await Promise.all(genrePromises);
       // Utiliser connectOrCreate ou set pour gérer les relations ManyToMany
       genresUpdate = {
-        genres: {
-          // Supprime les anciennes relations et crée les nouvelles
-          set: genres.map((genre) => ({ trackId_genreId: { trackId: id, genreId: genre.id } })),
-          // Alternativement, pour ajouter/supprimer sélectivement :
-          // disconnect: ...,
-          // connectOrCreate: genres.map(genre => ({
-          //   where: { trackId_genreId: { trackId: id, genreId: genre.id } },
-          //   create: { genre: { connect: { id: genre.id } } }
-          // }))
-        },
-      };
-      // NOTE: La gestion des relations ManyToMany (TrackGenre) avec 'set' est plus simple
-      // mais nécessite que le modèle TrackGenre ait un id composite ou unique (trackId_genreId).
-      // Si ce n'est pas le cas, il faudra d'abord supprimer les anciennes relations explicitement.
-      // Pour l'instant, on suppose que 'set' fonctionne avec la structure actuelle via Prisma magic.
-      // Si ça échoue, il faudra ajuster la relation TrackGenre dans schema.prisma ou le code ici.
-
-      // *** Correction Simplifiée pour la relation TrackGenre ***
-      // Prisma peut gérer ça plus simplement avec 'set' sur l'ID du genre directement si la relation est standard.
-      genresUpdate = {
-        genres: {
-          set: genres.map((genre) => ({ id: genre.id })), // Connecte aux genres par leur ID
+        GenresOnTracks: {
+          deleteMany: {}, // Supprimer toutes les anciennes relations
+          create: genres.map((genre) => ({
+            Genre: {
+              connect: { id: genre.id },
+            },
+          })),
         },
       };
     }
@@ -145,12 +135,14 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
     let platformsUpdate = {};
     if (platforms !== undefined) {
       platformsUpdate = {
-        platforms: {
+        TrackPlatform: {
           deleteMany: { trackId: id }, // Supprimer les anciennes plateformes
           create: (platforms || []).map((platform) => ({
+            id: crypto.randomUUID(), // Ajouter un ID
             platform: platform.platform,
             url: platform.url,
             embedId: platform.embedId,
+            updatedAt: new Date(), // Ajouter updatedAt
           })),
         },
       };
@@ -169,7 +161,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
           ...baseDataToUpdate,
           ...(genreNames !== undefined && genresUpdate), // Appliquer la mise à jour des genres
           ...(platforms !== undefined && platformsUpdate), // Appliquer la mise à jour des plateformes
-          collection:
+          MusicCollection:
             trackData.collectionId !== undefined
               ? { connect: { id: trackData.collectionId } }
               : trackData.hasOwnProperty('collectionId') && trackData.collectionId === null
