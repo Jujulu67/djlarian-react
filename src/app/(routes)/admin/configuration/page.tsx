@@ -36,8 +36,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import CreateSnapshotModal from './components/CreateSnapshotModal';
 import HistoryModal from './components/HistoryModal';
+import Modal from '@/components/ui/Modal';
 
 // Composant StrictModeDroppable pour résoudre le problème de compatibilité avec React 18 StrictMode
 const StrictModeDroppable = ({ children, ...props }: React.ComponentProps<typeof Droppable>) => {
@@ -108,16 +108,20 @@ const SaveConfigModal = ({ isOpen, onClose, onSave, changesSummary }: SaveConfig
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="glass bg-opacity-90 w-full max-w-2xl p-6 rounded-xl border border-purple-500/30 shadow-xl">
+    <Modal
+      maxWidth="max-w-2xl"
+      showLoader={false}
+      bgClass="glass bg-opacity-90"
+      borderClass="border-purple-500/30"
+      onClose={onClose}
+    >
+      <div className="w-full">
         <h2 className="text-2xl font-semibold text-white mb-4">Sauvegarder la configuration</h2>
-
         {error && (
           <div className="bg-red-500/20 border border-red-500/30 text-red-300 px-4 py-2 rounded-lg mb-4">
             {error}
           </div>
         )}
-
         <div className="mb-4">
           <h3 className="text-sm font-medium text-purple-300 mb-2">Résumé des modifications</h3>
           <div
@@ -125,7 +129,6 @@ const SaveConfigModal = ({ isOpen, onClose, onSave, changesSummary }: SaveConfig
             dangerouslySetInnerHTML={{ __html: changesSummary }}
           />
         </div>
-
         <form onSubmit={handleSubmit}>
           <div className="space-y-4">
             <div>
@@ -141,7 +144,6 @@ const SaveConfigModal = ({ isOpen, onClose, onSave, changesSummary }: SaveConfig
                 disabled={isSubmitting}
               />
             </div>
-
             <div>
               <Label htmlFor="snapshotDescription" className="text-gray-200 font-medium">
                 Description (optionnelle)
@@ -156,7 +158,6 @@ const SaveConfigModal = ({ isOpen, onClose, onSave, changesSummary }: SaveConfig
                 disabled={isSubmitting}
               />
             </div>
-
             <div className="flex justify-end space-x-3 pt-2">
               <Button
                 type="button"
@@ -185,7 +186,7 @@ const SaveConfigModal = ({ isOpen, onClose, onSave, changesSummary }: SaveConfig
           </div>
         </form>
       </div>
-    </div>
+    </Modal>
   );
 };
 

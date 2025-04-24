@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import ReactCrop, { type Crop as CropType, centerCrop, makeAspectCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import { Button } from '@/components/ui';
+import Modal from '@/components/ui/Modal';
 
 interface ImageCropModalProps {
   imageToEdit: string | null;
@@ -92,26 +93,14 @@ const ImageCropModal: React.FC<ImageCropModalProps> = ({
   if (!imageToEdit) return null;
 
   return (
-    <div
-      className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
-      role="dialog"
-      aria-modal="true"
-      tabIndex={-1}
-    >
-      <div className="bg-gray-800 rounded-lg shadow-2xl max-w-3xl w-full overflow-hidden">
-        <div className="p-6 border-b border-gray-700 flex justify-between items-center">
+    <Modal maxWidth="max-w-3xl" showLoader={false} bgClass="bg-gray-800" borderClass="border-none">
+      <div className="flex flex-col w-full">
+        <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold text-white">
             {title ?? `Recadrer l'image (${aspect === 1 ? 'carré' : '16:9'})`}
           </h3>
-          <button
-            onClick={onCancel}
-            className="text-gray-400 hover:text-red-500 transition-colors p-1"
-            aria-label="Fermer la modale"
-          >
-            ✕
-          </button>
         </div>
-        <div className="p-6 max-h-[70vh] overflow-auto flex justify-center items-center">
+        <div className="max-h-[70vh] overflow-auto flex justify-center items-center mb-4 pb-8">
           <img
             src={imageToEdit}
             onLoad={handleImageLoad}
@@ -138,7 +127,7 @@ const ImageCropModal: React.FC<ImageCropModalProps> = ({
             </div>
           )}
         </div>
-        <div className="px-6 py-4 bg-gray-800/50 border-t border-gray-700 flex justify-end space-x-3">
+        <div className="flex justify-end space-x-3 pt-2 border-t border-gray-700">
           <Button variant="ghost" onClick={onCancel} type="button">
             {cancelLabel}
           </Button>
@@ -152,7 +141,7 @@ const ImageCropModal: React.FC<ImageCropModalProps> = ({
           </Button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };
 

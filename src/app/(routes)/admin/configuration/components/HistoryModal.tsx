@@ -17,6 +17,7 @@ import { fr } from 'date-fns/locale';
 import { Button } from '@/components/ui/Button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
+import Modal from '@/components/ui/Modal';
 
 interface ConfigHistoryItem {
   id: string;
@@ -219,8 +220,14 @@ export default function HistoryModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
-      <div className="bg-gradient-to-br from-[#12121a] to-[#0c0117] rounded-xl border border-purple-500/20 w-full max-w-4xl max-h-[90vh] overflow-hidden">
+    <Modal
+      maxWidth="max-w-4xl"
+      showLoader={false}
+      bgClass="bg-gradient-to-br from-[#12121a] to-[#0c0117]"
+      borderClass="border-purple-500/20"
+      onClose={onClose}
+    >
+      <div className="flex flex-col w-full max-h-[90vh] overflow-hidden">
         <div className="p-4 border-b border-purple-500/20 flex justify-between items-center">
           <h3 className="text-xl font-audiowide text-white flex items-center">
             <HistoryIcon className="mr-2 h-5 w-5 text-purple-400" />
@@ -241,19 +248,9 @@ export default function HistoryModal({
               )}
               Réinitialiser
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-purple-500/20 rounded-md px-3 py-2 h-9 min-w-[110px]"
-              onClick={onClose}
-            >
-              <XCircle className="h-4 w-4 mr-1" />
-              Fermer
-            </Button>
           </div>
         </div>
-
-        <div className="p-4">
+        <div className="p-4 overflow-y-auto">
           <Tabs
             defaultValue="changes"
             value={activeTab}
@@ -555,6 +552,6 @@ export default function HistoryModal({
           }
         }
       `}</style>
-    </div>
+    </Modal>
   );
 }
