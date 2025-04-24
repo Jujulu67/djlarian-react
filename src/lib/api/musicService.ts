@@ -1,17 +1,18 @@
 import prisma from '@/lib/prisma';
 import { MusicPlatform, MusicType } from '@/lib/utils/types';
 import { Genre } from '@prisma/client';
+import { v4 as uuidv4 } from 'uuid';
 
 export type CreateTrackInput = {
   title: string;
   artist: string;
   releaseDate: string;
-  coverUrl?: string;
-  originalImageUrl?: string;
+  imageId?: string;
   bpm?: number;
   description?: string;
   type: MusicType;
   featured?: boolean;
+  isPublished?: boolean;
   genreNames: string[];
   platforms: {
     platform: MusicPlatform;
@@ -89,11 +90,13 @@ export async function createTrack(data: CreateTrackInput, userId?: string) {
       title: data.title,
       artist: data.artist,
       releaseDate: new Date(data.releaseDate),
-      coverUrl: data.coverUrl,
+      imageId: data.imageId,
       bpm: data.bpm,
       description: data.description,
       type: data.type,
       featured: data.featured || false,
+      updatedAt: new Date(),
+      id: uuidv4(),
       ...(userId ? { User: { connect: { id: userId } } } : {}),
       MusicCollection: data.collectionId
         ? {
@@ -102,9 +105,11 @@ export async function createTrack(data: CreateTrackInput, userId?: string) {
         : undefined,
       TrackPlatform: {
         create: data.platforms.map((platform) => ({
+          id: uuidv4(),
           platform: platform.platform,
           url: platform.url,
           embedId: platform.embedId,
+          updatedAt: new Date(),
         })) as any,
       },
       GenresOnTracks: {
@@ -131,48 +136,55 @@ export async function updateTrack(data: UpdateTrackInput) {
   const { id, genreNames, platforms, ...trackData } = data;
 
   // Mettre à jour les données de base de la piste
-  const trackUpdateData: any = { ...trackData };
-  if (trackData.releaseDate) {
-    trackUpdateData.releaseDate = new Date(trackData.releaseDate);
+  const { coverUrl, originalImageUrl, ...restTrackData } = trackData as any;
+  const trackUpdateData: any = { ...restTrackData };
+
+  if (trackUpdateData.releaseDate) {
+    trackUpdateData.releaseDate = new Date(trackUpdateData.releaseDate);
   }
 
   // Gérer les mises à jour des genres
-  let genreUpdates = {};
-  if (genreNames && genreNames.length > 0) {
-    await prisma.genresOnTracks.deleteMany({
-      where: { trackId: id },
-    });
-    const genrePromises = genreNames.map(async (name) => {
-      const normalizedName = name.trim().toLowerCase();
-      return prisma.genre.upsert({
-        where: { name: normalizedName },
-        update: {},
-        create: { name: normalizedName } as any,
+  let genreUpdates = undefined;
+  if (genreNames !== undefined) {
+    await prisma.genresOnTracks.deleteMany({ where: { trackId: id } });
+    if (genreNames.length > 0) {
+      const genrePromises = genreNames.map(async (name) => {
+        const normalizedName = name.trim().toLowerCase();
+        return prisma.genre.upsert({
+          where: { name: normalizedName },
+          update: {},
+          create: { id: uuidv4(), name: normalizedName, updatedAt: new Date() },
+          select: { id: true },
+        });
       });
-    });
-    const genres = await Promise.all(genrePromises);
-    genreUpdates = {
-      create: genres.map((genre: Genre) => ({
-        Genre: {
-          connect: { id: genre.id },
-        },
-      })),
-    };
+      const genres = await Promise.all(genrePromises);
+      genreUpdates = {
+        create: genres.map((genre: { id: string }) => ({
+          Genre: { connect: { id: genre.id } },
+        })),
+      };
+    } else {
+      genreUpdates = { create: [] };
+    }
   }
 
   // Gérer les mises à jour des plateformes
-  let platformUpdates = {};
-  if (platforms && platforms.length > 0) {
-    await prisma.trackPlatform.deleteMany({
-      where: { trackId: id },
-    });
-    platformUpdates = {
-      create: platforms.map((platform) => ({
-        platform: platform.platform,
-        url: platform.url,
-        embedId: platform.embedId,
-      })) as any,
-    };
+  let platformUpdates = undefined;
+  if (platforms !== undefined) {
+    await prisma.trackPlatform.deleteMany({ where: { trackId: id } });
+    if (platforms.length > 0) {
+      platformUpdates = {
+        create: platforms.map((platform) => ({
+          id: uuidv4(),
+          platform: platform.platform,
+          url: platform.url,
+          embedId: platform.embedId,
+          updatedAt: new Date(),
+        })),
+      };
+    } else {
+      platformUpdates = { create: [] };
+    }
   }
 
   // Effectuer la mise à jour
@@ -180,8 +192,14 @@ export async function updateTrack(data: UpdateTrackInput) {
     where: { id },
     data: {
       ...trackUpdateData,
-      GenresOnTracks: genreNames ? genreUpdates : undefined,
-      TrackPlatform: platforms ? platformUpdates : undefined,
+      updatedAt: new Date(),
+      ...(genreUpdates !== undefined && { GenresOnTracks: genreUpdates }),
+      ...(platformUpdates !== undefined && { TrackPlatform: platformUpdates }),
+      MusicCollection: trackData.hasOwnProperty('collectionId')
+        ? trackData.collectionId === null
+          ? { disconnect: true }
+          : { connect: { id: trackData.collectionId } }
+        : undefined,
     },
     include: {
       TrackPlatform: true,
@@ -221,47 +239,38 @@ export async function getAllGenres() {
 
 // Convertir les données Prisma au format attendu par le frontend
 export function formatTrackData(track: any) {
-  // Vérifications pour rendre la fonction plus robuste
-  const releaseDateStr = track.releaseDate ? track.releaseDate.toISOString().split('T')[0] : ''; // Fournir une valeur par défaut si releaseDate est null/undefined
+  if (!track) return null;
 
-  // Utiliser les clés PascalCase pour lire les données de Prisma
-  const genresList = Array.isArray(track.GenresOnTracks) // <-- Corrigé: genres -> GenresOnTracks
-    ? track.GenresOnTracks.map((g: any) => g?.Genre?.name).filter(Boolean) // <-- Corrigé: genre -> Genre
-    : []; // Tableau vide si track.GenresOnTracks n'est pas un tableau
-
-  const platformsMap = Array.isArray(track.TrackPlatform) // <-- Corrigé: platforms -> TrackPlatform
-    ? track.TrackPlatform.reduce((acc: any, platform: any) => {
-        if (platform?.platform) {
-          // Vérifier que platform et platform.platform existent
-          acc[platform.platform] = {
-            url: platform.url || '', // Fournir des valeurs par défaut
-            embedId: platform.embedId,
-          };
-        }
-        return acc;
-      }, {})
-    : {}; // Objet vide si track.TrackPlatform n'est pas un tableau
-
-  // Conserver les clés camelCase pour l'objet retourné si le frontend les attend
-  return {
+  const formattedTrack: any = {
     id: track.id,
     title: track.title,
     artist: track.artist,
-    coverUrl: track.coverUrl || '',
-    releaseDate: releaseDateStr,
-    genre: genresList, // Clé de retour 'genre'
-    bpm: track.bpm || undefined,
-    description: track.description || '',
-    type: track.type as MusicType,
-    featured: track.featured || false,
-    isPublished: track.isPublished !== undefined ? track.isPublished : true,
-    createdAt: track.createdAt?.toISOString(), // Formatter la date pour le JSON
-    platforms: platformsMap, // Clé de retour 'platforms'
-    collection: track.MusicCollection // Utiliser MusicCollection pour lire
+    imageId: track.imageId,
+    releaseDate: track.releaseDate?.toISOString(),
+    bpm: track.bpm,
+    description: track.description,
+    type: track.type,
+    featured: track.featured,
+    isPublished: track.isPublished,
+    createdAt: track.createdAt?.toISOString(),
+    updatedAt: track.updatedAt?.toISOString(),
+    coverUrl: track.imageId ? `/uploads/${track.imageId}.jpg` : null,
+    originalImageUrl: track.imageId ? `/uploads/${track.imageId}-ori.jpg` : null,
+    genre: track.GenresOnTracks?.map((gt: any) => gt.Genre?.name).filter(Boolean) || [],
+    platforms: {},
+    collection: track.MusicCollection
       ? { id: track.MusicCollection.id, title: track.MusicCollection.title }
       : null,
-    user: track.User // Utiliser User pour lire
-      ? { id: track.User.id, name: track.User.name }
-      : null,
+    user: track.User ? { id: track.User.id, name: track.User.name } : null,
   };
+
+  if (track.TrackPlatform && Array.isArray(track.TrackPlatform)) {
+    track.TrackPlatform.forEach((p: any) => {
+      if (p.platform) {
+        formattedTrack.platforms[p.platform] = { url: p.url, embedId: p.embedId };
+      }
+    });
+  }
+
+  return formattedTrack;
 }

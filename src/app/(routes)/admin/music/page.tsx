@@ -26,7 +26,7 @@ import {
   Check,
   Plus,
   AlertCircle,
-  Info, // Ajouter Info pour le bouton détail
+  Info,
 } from 'lucide-react';
 import { FaSpotify, FaYoutube, FaSoundcloud, FaApple, FaMusic } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
@@ -35,6 +35,7 @@ import ReactCrop, { type Crop as CropType, centerCrop, makeAspectCrop } from 're
 import 'react-image-crop/dist/ReactCrop.css';
 import Link from 'next/link';
 import { z } from 'zod';
+import { v4 as uuidv4 } from 'uuid';
 
 // Helper function to center the crop area with a specific aspect ratio
 function centerAspectCrop(mediaWidth: number, mediaHeight: number, aspect: number): CropType {
@@ -80,17 +81,25 @@ const MUSIC_TYPES: { label: string; value: MusicType }[] = [
   { label: 'Video', value: 'video' },
 ];
 
-// Formulaire vide par défaut
+// Formulaire vide par défaut (Utiliser imageId)
 const emptyTrackForm: Omit<Track, 'id'> & { id?: string } = {
   title: '',
   artist: 'DJ Larian',
-  coverUrl: '',
+  imageId: undefined, // Utiliser undefined ou null si optionnel
   releaseDate: new Date().toISOString().split('T')[0],
   genre: [],
   type: 'single',
   description: '',
   featured: false,
   platforms: {},
+  isPublished: true,
+  bpm: undefined,
+  coverUrl: undefined,
+  originalImageUrl: undefined,
+  collection: undefined,
+  user: undefined,
+  createdAt: undefined,
+  updatedAt: undefined,
 };
 
 // Interface pour les vidéos YouTube
@@ -204,6 +213,91 @@ function extractInfoFromTitle(title: string) {
   return result;
 }
 
+// Fonction pour créer le blob recadré depuis le canvas (restaurée à l'ancienne logique)
+async function getCroppedBlob(
+  image: HTMLImageElement,
+  crop: CropType,
+  fileName: string,
+  imageFileSource: File | null
+): Promise<{ croppedBlob: Blob | null; originalFileToSend: File | null }> {
+  const originalFileToSend = imageFileSource;
+  // Récupérer les dimensions de l'image
+  const imageWidth = image.naturalWidth || image.width;
+  const imageHeight = image.naturalHeight || image.height;
+
+  let cropX, cropY, cropWidth, cropHeight;
+  if (crop.unit === '%') {
+    cropX = (imageWidth * crop.x) / 100;
+    cropY = (imageHeight * crop.y) / 100;
+    cropWidth = (imageWidth * crop.width) / 100;
+    cropHeight = (imageHeight * crop.height) / 100;
+  } else {
+    cropX = crop.x;
+    cropY = crop.y;
+    cropWidth = crop.width;
+    cropHeight = crop.height;
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = cropWidth;
+  canvas.height = cropHeight;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    throw new Error('No 2d context');
+  }
+  ctx.drawImage(image, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          console.error('Canvas is empty');
+          resolve({ croppedBlob: null, originalFileToSend });
+          return;
+        }
+        resolve({ croppedBlob: blob, originalFileToSend });
+      },
+      'image/jpeg',
+      0.9
+    );
+  });
+}
+
+// Fonction pour charger une image et gérer les erreurs d'extension
+const loadImageWithFallback = (
+  baseSrcWithoutExt: string,
+  extensions: string[],
+  onLoad: (src: string, img: HTMLImageElement) => void,
+  onError: (err: string | Event) => void
+) => {
+  let currentExtIndex = 0;
+
+  const tryLoadNext = () => {
+    if (currentExtIndex >= extensions.length) {
+      onError("Impossible de charger l'image originale avec les extensions essayées.");
+      return;
+    }
+
+    const ext = extensions[currentExtIndex];
+    const src = `${baseSrcWithoutExt}.${ext}`;
+    const img = new window.Image();
+
+    img.onload = () => {
+      console.log(`Image chargée avec succès : ${src}`);
+      onLoad(src, img);
+    };
+    img.onerror = (err) => {
+      console.warn(`Échec chargement ${src}, essai extension suivante...`);
+      currentExtIndex++;
+      tryLoadNext();
+    };
+
+    console.log(`Essai chargement: ${src}`);
+    img.src = src;
+  };
+
+  tryLoadNext();
+};
+
 export default function AdminMusicPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -212,11 +306,13 @@ export default function AdminMusicPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [currentForm, setCurrentForm] = useState<Omit<Track, 'id'> & { id?: string }>(
-    emptyTrackForm
+  const [currentForm, setCurrentForm] = useState<
+    Omit<Track, 'id'> & { id?: string; imageId?: string }
+  >(
+    emptyTrackForm // Assigner emptyTrackForm qui a maintenant imageId: undefined
   );
   const [genreInput, setGenreInput] = useState('');
-  const [coverPreview, setCoverPreview] = useState('');
+  const [coverPreview, setCoverPreview] = useState<string | undefined>('');
   const [activeTab, setActiveTab] = useState<AdminMusicTab>('tracks');
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredTracks, setFilteredTracks] = useState<Track[]>([]);
@@ -228,9 +324,8 @@ export default function AdminMusicPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // État pour suivre le chargement de l'image dans le modal de recadrage
   const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [imageToUploadId, setImageToUploadId] = useState<string | null>(null);
 
   const [youtubeUsername, setYoutubeUsername] = useState('');
   const [youtubeVideos, setYoutubeVideos] = useState<YouTubeVideo[]>([]);
@@ -252,6 +347,10 @@ export default function AdminMusicPage() {
   );
   const [verifyIndex, setVerifyIndex] = useState(0);
 
+  // --- AJOUT DES NOUVEAUX STATES ---
+  const [croppedImageBlob, setCroppedImageBlob] = useState<Blob | null>(null);
+  const [originalImageFile, setOriginalImageFile] = useState<File | null>(null);
+
   // Vérifier l'authentification
   useEffect(() => {
     // Ne rien faire si on est en train de charger l'état d'authentification
@@ -270,39 +369,6 @@ export default function AdminMusicPage() {
       fetchTracks();
     }
   }, [status]);
-
-  // Ajouter un useEffect pour gérer le stockage local des URLs d'images originales
-  useEffect(() => {
-    if (tracks.length > 0) {
-      // Récupérer les URLs d'images originales stockées localement
-      let storedOriginalUrls: Record<string, string> = {};
-      try {
-        const stored = localStorage.getItem('originalImageUrls');
-        if (stored) {
-          storedOriginalUrls = JSON.parse(stored);
-        }
-      } catch (e) {
-        console.error('Erreur lors de la lecture du stockage local:', e);
-      }
-
-      // Mettre à jour les tracks avec les URLs d'images originales stockées localement
-      const updatedTracks = tracks.map((track) => {
-        if (!track.originalImageUrl && track.coverUrl && storedOriginalUrls[track.id]) {
-          return {
-            ...track,
-            originalImageUrl: storedOriginalUrls[track.id],
-          };
-        }
-        return track;
-      });
-
-      // Mettre à jour l'état si des modifications ont été apportées
-      if (JSON.stringify(updatedTracks) !== JSON.stringify(tracks)) {
-        console.log("Mise à jour des tracks avec les URLs d'images originales du stockage local");
-        setTracks(updatedTracks);
-      }
-    }
-  }, [tracks]);
 
   // Ajouter une fonction pour sauvegarder l'URL d'image originale dans le stockage local
   const saveOriginalImageUrl = (trackId: string, originalUrl: string) => {
@@ -415,66 +481,75 @@ export default function AdminMusicPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-
     try {
+      let imageId = currentForm.imageId;
+      // Log AVANT la condition d'upload
+      console.log('[FRONT] handleSubmit', { croppedImageBlob, imageToUploadId, originalImageFile });
+      // Si on a un crop en mémoire, on upload maintenant
+      if (croppedImageBlob && imageToUploadId) {
+        console.log('[FRONT] Tentative upload image', {
+          imageToUploadId,
+          croppedImageBlob,
+          originalImageFile,
+        });
+        const formData = new FormData();
+        formData.append('imageId', imageToUploadId);
+        formData.append('croppedImage', croppedImageBlob, 'cover.jpg');
+        if (originalImageFile)
+          formData.append('originalImage', originalImageFile, originalImageFile.name);
+        for (let [key, value] of formData.entries()) {
+          console.log(`[FRONT] FormData: ${key}`, value);
+        }
+        const response = await fetch('/api/upload', { method: 'POST', body: formData });
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Échec de l'upload de l'image.");
+        }
+        const data = await response.json();
+        imageId = data.imageId;
+      }
       // Préparer les données à envoyer à l'API
       const platformsArray = Object.entries(currentForm.platforms || {})
-        .filter(([_, value]) => value && value.url) // Ensure platform has a URL
+        .filter(([_, value]) => value && value.url)
         .map(([platform, data]) => ({
           platform: platform as MusicPlatform,
           url: data!.url,
           embedId: data!.embedId,
         }));
-
-      // --- Validation Frontend ---
       if (platformsArray.length === 0) {
         toast.error('Veuillez ajouter au moins une plateforme musicale (Spotify, YouTube, etc.).');
         setIsSubmitting(false);
-        return; // Stop submission
+        return;
       }
-
-      // Ensure URLs are valid or null/undefined
-      // Accepter les URLs relatives commençant par /uploads/ en plus des URLs complètes
       const isValidUrl = (url: string) => {
         return z.string().url().safeParse(url).success || url.startsWith('/uploads/');
       };
-
-      const coverUrlToSend =
-        currentForm.coverUrl && isValidUrl(currentForm.coverUrl) ? currentForm.coverUrl : null;
-
-      const originalImageUrlToSend =
-        currentForm.originalImageUrl && isValidUrl(currentForm.originalImageUrl)
+      const coverUrlToSend = imageId
+        ? `/uploads/${imageId}.jpg`
+        : currentForm.coverUrl && isValidUrl(currentForm.coverUrl)
+          ? currentForm.coverUrl
+          : null;
+      const originalImageUrlToSend = imageId
+        ? `/uploads/${imageId}-ori.jpg`
+        : currentForm.originalImageUrl && isValidUrl(currentForm.originalImageUrl)
           ? currentForm.originalImageUrl
-          : coverUrlToSend; // Fallback to coverUrlToSend if original is invalid/missing
-
+          : coverUrlToSend;
       const apiData = {
         ...currentForm,
+        imageId,
         genreNames: currentForm.genre,
         platforms: platformsArray,
-        coverUrl: coverUrlToSend, // Use sanitized URL or null
-        originalImageUrl: originalImageUrlToSend, // Use sanitized URL or fallback or null
+        coverUrl: coverUrlToSend,
+        originalImageUrl: originalImageUrlToSend,
       };
-
-      console.log("Envoi à l'API, données:", {
-        // Log the data being sent for debugging
-        ...apiData,
-      });
-
-      // Construire l'URL en fonction de si c'est une création ou une mise à jour
-      const apiUrl = isEditing
-        ? `/api/music/${currentForm.id}` // URL pour mise à jour (PUT)
-        : '/api/music'; // URL pour création (POST)
-
+      const apiUrl = isEditing ? `/api/music/${currentForm.id}` : '/api/music';
       const response = await fetch(apiUrl, {
         method: isEditing ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(apiData),
       });
-
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('API Error data:', errorData);
-        // Try to display more specific error details if available
         const detailedMessage = errorData.details
           ? Object.entries(errorData.details)
               .map(([field, errors]) => `${field}: ${(errors as string[]).join(', ')}`)
@@ -482,21 +557,16 @@ export default function AdminMusicPage() {
           : errorData.error;
         throw new Error(detailedMessage || `HTTP error! status: ${response.status}`);
       }
-
       const resultData = await response.json();
-      console.log('API Success data:', resultData);
-      const resultTrack: Track = resultData;
-
       toast.success(
-        `Morceau "${resultTrack.title}" ${isEditing ? 'mis à jour' : 'ajouté'} avec succès!`
+        `Morceau "${resultData.title}" ${isEditing ? 'mis à jour' : 'ajouté'} avec succès!`
       );
-
       fetchTracks();
       resetForm();
     } catch (error) {
       console.error('Error saving track:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-      toast.error(`Erreur sauvegarde: ${errorMessage}`); // Show more specific error
+      toast.error(`Erreur sauvegarde: ${errorMessage}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -504,39 +574,55 @@ export default function AdminMusicPage() {
 
   // Handler pour modifier un morceau
   const handleEdit = (track: Track) => {
-    console.log('Édition du morceau:', track.id, 'originalImageUrl:', track.originalImageUrl);
+    // S'assurer que les plateformes sont bien formatées pour le formulaire
+    const platformsForForm = Object.entries(track.platforms || {}).reduce(
+      (acc, [key, value]) => {
+        // Vérifier si value et value.url existent
+        if (value?.url) {
+          acc[key as MusicPlatform] = { url: value.url, embedId: value.embedId };
+        }
+        return acc;
+      },
+      {} as Track['platforms']
+    );
 
-    // Si le morceau a une coverUrl mais pas d'originalImageUrl, on définit l'original comme étant la même chose
-    // Cela garantit qu'on pourra recadrer même les morceaux créés avant l'implémentation de originalImageUrl
-    if (track.coverUrl && !track.originalImageUrl) {
-      console.log("Pas d'image originale trouvée, utilisation de coverUrl comme substitut");
-      track = {
-        ...track,
-        originalImageUrl: track.coverUrl,
-      };
-    }
+    // !! CORRECTION : Formater la date pour l'input type="date" !!
+    const formattedDate = track.releaseDate
+      ? new Date(track.releaseDate).toISOString().split('T')[0]
+      : ''; // Fournir une chaîne vide si la date est nulle/undefined
 
-    setCurrentForm(track);
-    setCoverPreview(track.coverUrl);
+    setCurrentForm({
+      ...track, // Garder les autres champs du track (y compris imageId, coverUrl, originalImageUrl venant de formatTrackData)
+      releaseDate: formattedDate, // Utiliser la date formatée YYYY-MM-DD
+      genre: track.genre || [],
+      platforms: platformsForForm,
+    });
     setIsEditing(true);
+    // L'aperçu sera mis à jour par le useEffect [currentForm.imageId] ou [currentForm.coverUrl]
+    // Si on utilise imageId, on s'assure que coverPreview est mis à jour
+    if (track.imageId) {
+      setCoverPreview(`/uploads/${track.imageId}.jpg`);
+    } else if (track.coverUrl) {
+      setCoverPreview(track.coverUrl);
+    } else {
+      setCoverPreview('');
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Handler pour supprimer un morceau
   const handleDelete = async (id: string) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer ce morceau ?')) {
       try {
-        const response = await fetch(`/api/music?id=${id}`, {
+        const response = await fetch(`/api/music/${id}`, {
           method: 'DELETE',
         });
-
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.error || 'Failed to delete track');
         }
-
         // Rafraîchir la liste
         await fetchTracks();
-
         // Afficher un message de succès
         toast.success('Track deleted successfully');
       } catch (error) {
@@ -554,26 +640,22 @@ export default function AdminMusicPage() {
         id: id,
         featured: !currentStatus,
       };
-
       console.log('Updating featured status:', apiData);
-
-      const response = await fetch('/api/music', {
+      // Correction ici : PUT sur /api/music/{id}
+      const response = await fetch(`/api/music/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(apiData),
       });
-
       if (!response.ok) {
         const errorData = await response.json();
         console.error('API Error data:', errorData);
         throw new Error(errorData.error || 'Failed to update track');
       }
-
       // Mettre à jour l'état local après succès de l'API
       setTracks(tracks.map((t) => (t.id === id ? { ...t, featured: !currentStatus } : t)));
-
       toast.success('Statut mis à jour avec succès');
     } catch (error) {
       console.error('Error updating featured status:', error);
@@ -588,282 +670,145 @@ export default function AdminMusicPage() {
     setCoverPreview('');
     setGenreInput('');
     setIsEditing(false);
+    setCroppedImageBlob(null);
+    setOriginalImageFile(null);
+    setUploadedImage(null);
+    setImageToUploadId(null);
   };
 
   // Gérer l'upload d'image
   const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Vérifier le type de fichier
-    if (!file.type.startsWith('image/')) {
-      toast.error('Le fichier doit être une image');
-      return;
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      if (!file.type.startsWith('image/')) {
+        toast.error('Veuillez sélectionner un fichier image.');
+        return;
+      }
+      // En modif, on réutilise l'imageId existant, sinon on en génère un nouveau
+      if (isEditing && currentForm.imageId) {
+        setImageToUploadId(currentForm.imageId);
+      } else {
+        setImageToUploadId(uuidv4());
+      }
+      setCurrentForm((prev) => ({ ...prev, imageId: undefined })); // reset l'id du form tant que pas upload
+      setImageFile(file);
+      // Lire le fichier pour l'afficher dans la modale de crop
+      const reader = new FileReader();
+      reader.addEventListener('load', () => {
+        setUploadedImage(reader.result as string);
+        setShowCropModal(true);
+        setIsImageLoaded(false);
+      });
+      reader.readAsDataURL(file);
     }
-
-    // Vérifier la taille du fichier (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("L'image ne doit pas dépasser 5MB");
-      return;
-    }
-
-    setImageFile(file);
-    const reader = new FileReader();
-    reader.onload = () => {
-      setUploadedImage(reader.result as string);
-      setShowCropModal(true);
-      setIsImageLoaded(false);
-      setCrop(undefined);
-    };
-    reader.readAsDataURL(file);
   };
 
-  // Réinitialiser l'input file
+  // Réinitialiser le champ input file pour permettre la re-sélection du même fichier
   const resetFileInput = () => {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
-  // Gérer le recadrage d'une image existante
+  // Gérer le recadrage d'une image existante (avec fallback extension)
   const handleReCrop = () => {
-    console.log('handleReCrop appelé:');
-    console.log('- originalImageUrl:', currentForm.originalImageUrl);
-    console.log('- coverUrl:', currentForm.coverUrl);
-
-    // Préférer originalImageUrl si disponible, sinon utiliser coverUrl
-    let imageUrl = null;
-
-    if (currentForm.originalImageUrl && currentForm.originalImageUrl.trim() !== '') {
-      console.log("Utilisation de l'image originale pour le recadrage");
-      imageUrl = currentForm.originalImageUrl;
-    } else if (currentForm.coverUrl) {
-      console.log("Pas d'image originale disponible, utilisation de l'image recadrée");
-      imageUrl = currentForm.coverUrl;
+    // Si une image originale est en mémoire (pas encore uploadée)
+    if (originalImageFile || uploadedImage) {
+      let fileOrDataUrl = uploadedImage;
+      if (!fileOrDataUrl && originalImageFile) {
+        fileOrDataUrl = URL.createObjectURL(originalImageFile);
+      }
+      if (fileOrDataUrl) {
+        setUploadedImage(fileOrDataUrl);
+        setShowCropModal(true);
+        setIsImageLoaded(false);
+        return;
+      }
     }
-
-    if (!imageUrl) {
-      // Si aucune image n'existe, utiliser l'uploadeur standard
-      console.log("Aucune URL d'image trouvée, ouverture du sélecteur de fichier");
-      fileInputRef.current?.click();
+    // Sinon, si une image existe déjà sur le serveur
+    const imageId = currentForm.imageId;
+    if (imageId) {
+      const baseOriginalSrc = `/uploads/${imageId}-ori`;
+      const possibleExtensions = ['jpg', 'png', 'jpeg', 'webp', 'gif'];
+      setIsImageLoaded(false);
+      setShowCropModal(true);
+      setUploadedImage(null);
+      setImageFile(null);
+      setImageToUploadId(imageId);
+      loadImageWithFallback(
+        baseOriginalSrc,
+        possibleExtensions,
+        (loadedSrc, loadedImg) => {
+          setUploadedImage(loadedSrc);
+        },
+        (error) => {
+          toast.error("Impossible de charger l'image originale pour le recadrage.");
+          setShowCropModal(false);
+          setIsImageLoaded(false);
+        }
+      );
       return;
     }
-
-    // Réinitialiser complètement les états pour éviter les problèmes
-    setIsImageLoaded(false);
-    setCrop(undefined);
-    setImageFile(null); // Ajout important : réinitialiser le fichier image
-
-    // Forcer la réinitialisation de la référence d'image
-    imageRef.current = null;
-
-    // Charger l'image pour le recadrage
-    const img = new window.Image();
-    img.onload = () => {
-      console.log('Image chargée:', img.naturalWidth, 'x', img.naturalHeight);
-
-      // Créer un objet File à partir de l'URL de l'image
-      fetch(imageUrl)
-        .then((res) => res.blob())
-        .then((blob) => {
-          const file = new File([blob], 'originalImage.jpg', {
-            type: 'image/jpeg',
-            lastModified: Date.now(),
-          });
-          console.log("Fichier créé depuis l'image:", file);
-          setImageFile(file);
-          setUploadedImage(imageUrl);
-          setShowCropModal(true);
-        })
-        .catch((err) => {
-          console.error('Erreur lors de la création du fichier:', err);
-          toast.error("Impossible de préparer l'image pour le recadrage");
-          fileInputRef.current?.click();
-        });
-    };
-    img.onerror = (err) => {
-      // En cas d'erreur, revenir à l'uploadeur standard
-      console.error("Erreur lors du chargement de l'image:", err);
-      toast.error("Impossible de charger l'image, merci d'en télécharger une nouvelle");
-      fileInputRef.current?.click();
-    };
-    img.src = imageUrl;
+    // Sinon, aucune image à recadrer
+    toast.error('Aucune image existante à recadrer.');
   };
 
   // Fonction pour précharger l'image ET initialiser le recadrage
   const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    // !! CORRECTION : Utiliser naturalWidth et naturalHeight !!
     const { naturalWidth, naturalHeight } = e.currentTarget;
-    console.log('handleImageLoad appelé:', naturalWidth, 'x', naturalHeight);
 
-    imageRef.current = e.currentTarget;
-    console.log('imageRef mis à jour:', imageRef.current !== null);
-
+    // Vérifier que les dimensions sont valides
     if (naturalWidth > 0 && naturalHeight > 0) {
-      // Utiliser aspect 1:1 pour un carré parfait
-      const initialCrop = centerAspectCrop(naturalWidth, naturalHeight, 1);
-      console.log('Crop initial calculé:', initialCrop);
-      setCrop(initialCrop);
-      setIsImageLoaded(true);
+      console.log(`Image chargée dans la modale: ${naturalWidth}x${naturalHeight}`);
+      // Centrer le crop avec un aspect ratio 1:1 en utilisant les dimensions naturelles
+      setCrop(centerAspectCrop(naturalWidth, naturalHeight, 1));
+      setIsImageLoaded(true); // Marquer l'image comme chargée et prête pour le crop
     } else {
-      console.error("L'image chargée n'a pas de dimensions.");
+      console.error("L'image chargée dans la modale n'a pas de dimensions valides.");
+      toast.error("Erreur lors du chargement de l'aperçu pour le recadrage.");
+      // Fermer la modale si l'image ne peut être chargée correctement
       cancelCrop();
     }
   };
 
   // Fonction pour dessiner l'image recadrée et appliquer l'image
   const completeCrop = async () => {
-    console.log('completeCrop appelé', {
-      imageRef: imageRef.current !== null,
-      uploadedImage: !!uploadedImage,
-      imageFile: !!imageFile,
-      crop: crop,
-    });
-
-    if (!imageRef.current || !uploadedImage || !imageFile || !crop?.width || !crop?.height) {
-      console.error('Impossible de compléter le recadrage : données manquantes', {
-        imageRef: imageRef.current ? 'ok' : 'null',
-        uploadedImage: uploadedImage ? 'ok' : 'null',
-        imageFile: imageFile ? 'ok' : 'null',
-        crop: crop ? 'ok' : 'null',
-      });
+    if (!imageRef.current || !crop || !crop.width || !crop.height) {
+      toast.error('Sélection de recadrage invalide.');
       return;
     }
-
-    const image = imageRef.current;
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-
-    if (!ctx) {
-      toast.error("Erreur lors du traitement de l'image");
-      return;
-    }
-
-    // Récupérer les dimensions de l'image
-    const imageWidth = image.naturalWidth || image.width;
-    const imageHeight = image.naturalHeight || image.height;
-    console.log("Dimensions de l'image pour le recadrage:", imageWidth, 'x', imageHeight);
-
-    // Calculer les dimensions du recadrage en pixels
-    let cropX, cropY, cropWidth, cropHeight;
-
-    if (crop.unit === '%') {
-      // Convertir les pourcentages en pixels
-      cropX = (imageWidth * crop.x) / 100;
-      cropY = (imageHeight * crop.y) / 100;
-      cropWidth = (imageWidth * crop.width) / 100;
-      cropHeight = (imageHeight * crop.height) / 100;
-    } else {
-      // Utiliser directement les valeurs en pixels
-      cropX = crop.x;
-      cropY = crop.y;
-      cropWidth = crop.width;
-      cropHeight = crop.height;
-    }
-
-    console.log('Dimensions du recadrage calculées:', cropX, cropY, cropWidth, cropHeight);
-
-    // Définir les dimensions du canvas pour le recadrage
-    canvas.width = cropWidth;
-    canvas.height = cropHeight;
-
-    // Dessiner la partie recadrée de l'image sur le canvas
+    const imageElement = imageRef.current;
     try {
-      ctx.drawImage(image, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
-      console.log('Image recadrée dessinée sur le canvas');
-    } catch (err) {
-      console.error('Erreur lors du dessin sur le canvas:', err);
-      toast.error("Erreur lors du recadrage de l'image");
-      return;
+      const { croppedBlob, originalFileToSend } = await getCroppedBlob(
+        imageElement,
+        crop,
+        'cover.jpg',
+        imageFile
+      );
+      if (!croppedBlob) throw new Error("Impossible de générer l'image recadrée.");
+      setCroppedImageBlob(croppedBlob);
+      setOriginalImageFile(originalFileToSend);
+      setCoverPreview(URL.createObjectURL(croppedBlob));
+      setCurrentForm((prev) => ({ ...prev, imageId: undefined })); // pas d'ID tant que pas d'upload
+      setShowCropModal(false);
+      setCrop(undefined);
+      resetFileInput();
+    } catch (error) {
+      toast.error(
+        `Erreur lors du recadrage: ${error instanceof Error ? error.message : 'Erreur inconnue'}`
+      );
+      console.error(error);
     }
-
-    // Convertir le canvas en Blob
-    canvas.toBlob(
-      async (blob) => {
-        if (!blob) {
-          console.error("Impossible d'obtenir un blob depuis le canvas");
-          toast.error("Erreur lors du traitement de l'image");
-          return;
-        }
-        console.log('Blob créé depuis le canvas:', blob.size, 'octets');
-
-        // Créer un nouveau fichier à partir du blob
-        const croppedFile = new File([blob], imageFile.name, {
-          type: imageFile.type,
-          lastModified: Date.now(),
-        });
-
-        try {
-          console.log("Envoi de l'image originale à l'API...");
-          // Envoyer l'image originale d'abord
-          const originalFormData = new FormData();
-          originalFormData.append('file', imageFile);
-          originalFormData.append('type', 'music-original');
-
-          const originalResponse = await fetch('/api/upload', {
-            method: 'POST',
-            body: originalFormData,
-          });
-
-          if (!originalResponse.ok) {
-            throw new Error("Erreur lors de l'upload de l'image originale");
-          }
-
-          const originalData = await originalResponse.json();
-          console.log('Image originale uploadée:', originalData.url);
-
-          console.log("Envoi de l'image recadrée à l'API...");
-          // Puis envoyer l'image recadrée
-          const croppedFormData = new FormData();
-          croppedFormData.append('file', croppedFile);
-          croppedFormData.append('type', 'music');
-
-          const croppedResponse = await fetch('/api/upload', {
-            method: 'POST',
-            body: croppedFormData,
-          });
-
-          if (!croppedResponse.ok) {
-            throw new Error("Erreur lors de l'upload de l'image recadrée");
-          }
-
-          const croppedData = await croppedResponse.json();
-          console.log('Image recadrée uploadée:', croppedData.url);
-
-          // Mettre à jour le formulaire avec les deux URLs
-          setCoverPreview(croppedData.url);
-          setCurrentForm({
-            ...currentForm,
-            coverUrl: croppedData.url,
-            originalImageUrl: originalData.url,
-          });
-
-          toast.success('Image téléchargée avec succès');
-        } catch (error) {
-          console.error('Erreur upload:', error);
-          toast.error("Erreur lors de l'upload de l'image");
-        } finally {
-          console.log('Nettoyage des états après upload');
-          // Important: nettoyer tous les états dans tous les cas
-          setShowCropModal(false);
-          setUploadedImage(null);
-          setImageFile(null);
-          setIsImageLoaded(false);
-          setCrop(undefined);
-          resetFileInput();
-        }
-      },
-      imageFile.type,
-      0.9
-    );
   };
 
   // Annuler le crop
   const cancelCrop = () => {
     setShowCropModal(false);
     setUploadedImage(null);
-    setImageFile(null);
-    setIsImageLoaded(false);
     setCrop(undefined);
+    setImageFile(null);
+    setImageToUploadId(null);
     resetFileInput();
   };
 
@@ -1053,6 +998,28 @@ export default function AdminMusicPage() {
       setSelectedVideos([...selectedVideos, videoId]);
     }
   };
+
+  // Filtrage des tracks pour la recherche
+  useEffect(() => {
+    const lowerCaseSearchTerm = searchTerm.toLowerCase();
+    const filtered = tracks.filter(
+      (track) =>
+        track.title.toLowerCase().includes(lowerCaseSearchTerm) ||
+        track.artist.toLowerCase().includes(lowerCaseSearchTerm) ||
+        track.genre?.some((g) => g.toLowerCase().includes(lowerCaseSearchTerm))
+    );
+    setFilteredTracks(filtered);
+  }, [searchTerm, tracks]);
+
+  // Mettre à jour l'aperçu quand imageId change dans le formulaire
+  useEffect(() => {
+    if (currentForm.imageId) {
+      // Ajouter un timestamp pour forcer le rechargement et éviter le cache
+      setCoverPreview(`/uploads/${currentForm.imageId}.jpg?t=${new Date().getTime()}`);
+    } else {
+      // Laisser l'aperçu tel quel si imageId est retiré (pour gérer les coverUrl externes)
+    }
+  }, [currentForm.imageId]);
 
   if (isLoading) {
     return (
@@ -1446,7 +1413,11 @@ export default function AdminMusicPage() {
                           <div className="w-16 h-16 flex-shrink-0 rounded-md overflow-hidden">
                             {track.coverUrl ? (
                               <img
-                                src={track.coverUrl}
+                                src={
+                                  track.coverUrl
+                                    ? `${track.coverUrl}?t=${track.updatedAt ? new Date(track.updatedAt).getTime() : Date.now()}`
+                                    : ''
+                                }
                                 alt={track.title}
                                 className="w-full h-full object-cover"
                               />
