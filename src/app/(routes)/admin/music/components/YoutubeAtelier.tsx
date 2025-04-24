@@ -18,6 +18,12 @@ interface YouTubeVideo {
 interface YoutubeAtelierProps {
   fetchTracks?: () => Promise<void>;
 }
+
+// Typage explicite pour les options de MUSIC_TYPES
+// Si tu veux, exporte ce type depuis music-helpers.ts
+// Sinon, on le définit ici pour le map
+type MusicTypeOption = { label: string; value: MusicType };
+
 /* -------------------------------------------------------------------------- */
 
 const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
@@ -77,7 +83,6 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
     setVerifyIndex(0);
     processNextVideo();
   };
-
   const processNextVideo = () => {
     if (verifyIndex >= selectedVideos.length) {
       setShowVerifyModal(false);
@@ -114,7 +119,6 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
     });
     setShowVerifyModal(true);
   };
-
   const confirmVideoImport = async () => {
     if (!currentVideoForImport) return;
     setIsSubmitting(true);
@@ -148,25 +152,19 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
     setVerifyIndex((i) => i + 1);
     processNextVideo();
   };
-  /* ----------------------------------------------------------------------- */
-
   const toggleVideoSelection = (id: string) =>
     setSelectedVideos((sel) => (sel.includes(id) ? sel.filter((x) => x !== id) : [...sel, id]));
+  /* ----------------------------------------------------------------------- */
 
   /* ------------------------------ RENDER --------------------------------- */
   return (
     <div className="grid grid-cols-1 gap-8">
-      {/* ------------------------------------------------------------------ */}
-      {/*  FORMULAIRE DE RECHERCHE YOUTUBE                                   */}
-      {/* ------------------------------------------------------------------ */}
       <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg border border-gray-700/50 p-6">
         <h2 className="text-xl font-bold mb-6 text-white">Atelier d'ajout intelligent YouTube</h2>
-
         <p className="text-gray-300 mb-6">
           Retrouvez vos vidéos YouTube et importez-les directement dans votre base de données
           musicale. Le système détecte automatiquement celles déjà présentes.
         </p>
-
         {/* zone de recherche */}
         <div className="flex items-end gap-4 mb-8">
           <div className="flex-1">
@@ -197,7 +195,6 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
             )}
           </button>
         </div>
-
         {/* Erreur éventuelle */}
         {youtubeError && (
           <div className="p-4 mb-6 bg-red-900/30 border border-red-700/50 rounded-lg text-red-200 flex gap-3">
@@ -205,7 +202,6 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
             <p>{youtubeError}</p>
           </div>
         )}
-
         {/* Options de filtrage */}
         {!!youtubeVideos.length && (
           <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -249,7 +245,7 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
                 onChange={(e) => setMaxResults(parseInt(e.target.value))}
                 className="bg-gray-700/50 border border-gray-600 rounded-lg px-3 py-1 text-white focus:ring-purple-500 text-sm"
               >
-                {[10, 25, 50, 100].map((v) => (
+                {[10, 25, 50, 100].map((v: number) => (
                   <option key={v} value={v}>
                     {v} vidéos
                   </option>
@@ -258,7 +254,6 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
             </div>
           </div>
         )}
-
         {/* Liste vidéos */}
         {!!youtubeVideos.length && (
           <div className="mb-6">
@@ -282,7 +277,6 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
                 )}
               </button>
             </div>
-
             <div className="space-y-4">
               {filteredYoutubeVideos.slice(0, maxResults).map((v) => (
                 <div
@@ -295,10 +289,17 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
                         : 'bg-gray-800/40 border-gray-700/30 hover:bg-gray-800/60'
                   }`}
                 >
+                  {/* Bouton de sélection vidéo, accessible clavier */}
                   {!v.exists && (
                     <button
                       onClick={() => toggleVideoSelection(v.id)}
                       className={`p-2 rounded-md ${selectedVideos.includes(v.id) ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+                      aria-label={
+                        selectedVideos.includes(v.id)
+                          ? 'Désélectionner la vidéo'
+                          : 'Sélectionner la vidéo'
+                      }
+                      tabIndex={0}
                     >
                       {selectedVideos.includes(v.id) ? (
                         <Check className="w-4 h-4" />
@@ -307,11 +308,9 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
                       )}
                     </button>
                   )}
-
                   <div className="w-20 h-16 flex-shrink-0 rounded-md overflow-hidden">
                     <img src={v.thumbnail} alt={v.title} className="w-full h-full object-cover" />
                   </div>
-
                   <div className="flex-1 min-w-0">
                     <h4
                       className="font-medium truncate"
@@ -328,7 +327,6 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
                       )}
                     </div>
                   </div>
-
                   <a
                     href={`https://youtube.com/watch?v=${v.id}`}
                     target="_blank"
@@ -343,7 +341,6 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
             </div>
           </div>
         )}
-
         {/* Modale de vérification */}
         {showVerifyModal && currentVideoForImport && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -360,7 +357,6 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
                     <X className="w-5 h-5" />
                   </button>
                 </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {/* aperçu vidéo */}
                   <div>
@@ -380,7 +376,6 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
                       Voir sur YouTube <ExternalLink className="w-3 h-3" />
                     </a>
                   </div>
-
                   {/* formulaire vérif */}
                   <div className="md:col-span-2 space-y-4">
                     {/* Titre */}
@@ -396,7 +391,6 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
                         className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-purple-500"
                       />
                     </div>
-
                     {/* Type + Date */}
                     <div className="grid grid-cols-2 gap-4">
                       <div>
@@ -413,7 +407,7 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
                           }
                           className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-purple-500"
                         >
-                          {MUSIC_TYPES.map((t) => (
+                          {MUSIC_TYPES.map((t: MusicTypeOption) => (
                             <option key={t.value} value={t.value}>
                               {t.label}
                             </option>
@@ -434,7 +428,6 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
                         />
                       </div>
                     </div>
-
                     {/* Genres */}
                     <div>
                       <label className="block text-gray-300 font-medium mb-1">Genres</label>
@@ -500,7 +493,6 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
                         ))}
                       </div>
                     </div>
-
                     {/* BPM */}
                     <div>
                       <label className="block text-gray-300 font-medium mb-1">BPM</label>
@@ -517,7 +509,6 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
                         placeholder="Ex : 128"
                       />
                     </div>
-
                     {/* Description */}
                     <div>
                       <label className="block text-gray-300 font-medium mb-1">Description</label>
@@ -529,12 +520,11 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
                         className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-purple-500 resize-none h-20"
                       />
                     </div>
-
-                    {/* Actions */}
                     <div className="flex justify-between pt-4">
                       <button
                         onClick={skipCurrentVideo}
                         className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg"
+                        disabled={isSubmitting}
                       >
                         Ignorer
                       </button>
@@ -542,13 +532,14 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
                         <button
                           onClick={() => setShowVerifyModal(false)}
                           className="px-4 py-2 bg-red-800/60 hover:bg-red-700/60 text-white rounded-lg"
+                          disabled={isSubmitting}
                         >
                           Annuler
                         </button>
                         <button
                           onClick={confirmVideoImport}
-                          disabled={isSubmitting}
                           className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center gap-2 disabled:opacity-50"
+                          disabled={isSubmitting}
                         >
                           {isSubmitting ? (
                             <>

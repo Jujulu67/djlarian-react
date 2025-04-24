@@ -147,6 +147,45 @@ export default function AdminMusicPage() {
     setShowCropModal(true);
   };
 
+  // *** AJOUTER ici ***
+  const handleReCrop = async () => {
+    // 1. Si on a déjà un fichier local (création ou upload récent)
+    if (originalImageFile) {
+      originalImageFileRef.current = originalImageFile; // ← ajoute cette ligne
+      const url = URL.createObjectURL(originalImageFile);
+      setUploadedImage(url);
+      setImageToUploadId(uuidv4());
+      setShowCropModal(true);
+      return;
+    }
+
+    // 2. Sinon on va chercher l'original depuis le serveur
+    if (currentForm.imageId) {
+      const originalUrl = await findOriginalImageUrl(currentForm.imageId);
+      if (!originalUrl) {
+        toast.error('Image originale introuvable');
+        return;
+      }
+
+      const res = await fetch(originalUrl);
+      if (!res.ok) {
+        toast.error("Impossible de charger l'image originale");
+        return;
+      }
+
+      const blob = await res.blob();
+      const file = new File([blob], 'original.jpg', { type: blob.type });
+      originalImageFileRef.current = file;
+      setOriginalImageFile(file);
+
+      const localUrl = URL.createObjectURL(file);
+      setUploadedImage(localUrl);
+      setImageToUploadId(uuidv4());
+      setShowCropModal(true);
+    }
+  };
+  // *** FIN ajout ***
+
   const resetFileInput = () => fileInputRef.current && (fileInputRef.current.value = '');
 
   const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -217,14 +256,15 @@ export default function AdminMusicPage() {
     setIsSubmitting(true);
     try {
       let imageId = currentForm.imageId;
-
+      // fichier original à utiliser pour l'upload (peut venir de 3 sources)
+      const fileToSend = originalImageFile || originalImageFileRef.current || cachedOriginalFile;
       // upload image si besoin
       if (croppedImageBlob) {
-        if (!imageToUploadId || !originalImageFileRef.current) throw new Error('Image manquante');
+        if (!imageToUploadId || !fileToSend) throw new Error('Image manquante');
         const fd = new FormData();
         fd.append('imageId', imageToUploadId);
         fd.append('croppedImage', croppedImageBlob, 'cover.jpg');
-        fd.append('originalImage', originalImageFileRef.current, originalImageFileRef.current.name);
+        fd.append('originalImage', fileToSend, fileToSend.name);
         const upRes = await fetch('/api/upload', { method: 'POST', body: fd });
         if (!upRes.ok) throw new Error('Upload image échoué');
         const { imageId: newId } = await upRes.json();
@@ -506,7 +546,7 @@ export default function AdminMusicPage() {
                       label="Image de couverture"
                       imageUrl={coverPreview}
                       onDrop={handleImageUpload}
-                      onRecrop={() => uploadedImage && setShowCropModal(true)}
+                      onRecrop={handleReCrop}
                       onRemove={() => {
                         setOriginalImageFile(null);
                         setCroppedImageBlob(null);
