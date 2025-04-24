@@ -18,8 +18,6 @@ export interface Track {
   id: string;
   title: string;
   artist: string;
-  coverUrl?: string;
-  originalImageUrl?: string;
   imageId?: string;
   audioUrl?: string;
   duration?: number;

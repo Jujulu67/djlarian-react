@@ -173,19 +173,18 @@ const SimpleMusicPlayer: React.FC<SimpleMusicPlayerProps> = ({
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 md:gap-6">
         <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0 md:flex-none md:w-1/4">
           <div className="relative flex-shrink-0 w-12 h-12 md:w-16 md:h-16 rounded-md overflow-hidden border border-gray-700/50 bg-gray-800">
-            {imageError || !track.coverUrl ? (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Music className="w-6 h-6 md:w-8 md:h-8 text-gray-500" />
+            {imageError || !track.imageId ? (
+              <div className="w-full h-full bg-gradient-to-r from-purple-900/30 to-blue-900/30 flex items-center justify-center">
+                <Music className="w-16 h-16 text-gray-600" />
               </div>
             ) : (
               <Image
-                src={track.coverUrl}
-                alt={track.title || 'Cover art'}
-                fill
-                sizes="(max-width: 768px) 48px, 64px"
-                className="object-cover"
+                src={`/uploads/${track.imageId}.jpg`}
+                alt={track.title}
+                width={400}
+                height={400}
+                className="w-full h-full object-cover object-center"
                 onError={handleImageError}
-                priority={true}
               />
             )}
           </div>

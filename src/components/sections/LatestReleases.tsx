@@ -165,16 +165,17 @@ export default function LatestReleases({
                 {/* Carte principale avec contour doré via box-shadow */}
                 <div className="cursor-pointer golden-border rounded-lg overflow-hidden shadow-xl transform-gpu transition-all duration-500 hover:scale-[1.05]">
                   <div className="relative aspect-square">
-                    {release.coverUrl ? (
+                    {release.imageId ? (
                       <Image
-                        src={release.coverUrl}
-                        alt={`${release.title} cover art`}
-                        fill
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        className="object-cover"
+                        src={`/uploads/${release.imageId}.jpg`}
+                        alt={release.title}
+                        width={400}
+                        height={400}
+                        className="w-full h-full object-cover object-center rounded-lg shadow-lg"
+                        onError={() => setImageError(true)}
                       />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-r from-purple-900/30 to-blue-900/30 flex items-center justify-center">
+                      <div className="w-full h-full bg-gradient-to-r from-purple-900/30 to-blue-900/30 flex items-center justify-center rounded-lg shadow-lg">
                         <Music className="w-16 h-16 text-gray-600" />
                       </div>
                     )}

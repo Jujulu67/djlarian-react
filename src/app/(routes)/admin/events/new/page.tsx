@@ -25,6 +25,7 @@ import EventPreview from '@/app/components/EventPreview';
 import EventForm, { EventFormData } from '@/app/components/EventForm';
 import type { Crop as CropType } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
+import { v4 as uuidv4 } from 'uuid';
 
 // Déplacer la fonction helper ici pour qu'elle soit accessible partout
 const formatDateForInput = (dateString: string | null | undefined): string => {
@@ -105,6 +106,11 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
   const [previewMode, setPreviewMode] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
+
+  // Ajout des nouveaux states pour la gestion d'image
+  const [imageId, setImageId] = useState<string | null>(null);
+  const [croppedImageBlob, setCroppedImageBlob] = useState<Blob | null>(null);
+  const [originalImageFile, setOriginalImageFile] = useState<File | null>(null);
 
   // Rediriger si l'utilisateur n'est pas un admin
   useEffect(() => {
@@ -273,25 +279,62 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Fonction utilitaire pour générer un crop 16/9 centré
+  const centerAspectCrop = (mediaWidth: number, mediaHeight: number, aspect: number) => {
+    const width = mediaWidth;
+    const height = width / aspect;
+    const x = 0;
+    const y = (mediaHeight - height) / 2;
+    return {
+      unit: 'px',
+      x,
+      y: Math.max(0, y),
+      width,
+      height: Math.min(height, mediaHeight),
+    };
+  };
+
+  // Fonction pour générer le blob recadré (16/9)
+  const getCroppedBlob = async (
+    image: HTMLImageElement,
+    crop: any,
+    fileName: string,
+    imageFileSource: File | null
+  ): Promise<{ croppedBlob: Blob | null; originalFileToSend: File | null }> => {
+    const originalFileToSend = imageFileSource;
+    const imageWidth = image.naturalWidth || image.width;
+    const imageHeight = image.naturalHeight || image.height;
+    const canvas = document.createElement('canvas');
+    canvas.width = crop.width;
+    canvas.height = crop.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('No 2d context');
+    ctx.drawImage(image, crop.x, crop.y, crop.width, crop.height, 0, 0, crop.width, crop.height);
+    return new Promise((resolve) => {
+      canvas.toBlob(
+        (blob) => {
+          resolve({ croppedBlob: blob, originalFileToSend });
+        },
+        'image/jpeg',
+        0.9
+      );
+    });
+  };
+
   // Nouvelle fonction pour gérer la sélection/recadrage d'image depuis EventForm
-  const handleImageSelected = (
-    file: File, // Fichier (recadré ou original)
-    previewUrl: string, // Data URL pour l'aperçu (recadré ou original)
-    originalImageUrl?: string // Data URL de l'originale (peut être undefined si original)
-  ) => {
-    // Toujours mettre à jour l'aperçu avec la previewUrl fournie
+  const handleImageSelected = (file: File, previewUrl: string, originalImageUrl?: string) => {
+    // Générer un nouvel imageId à chaque nouvelle sélection
+    const newImageId = uuidv4();
+    setImageId(newImageId);
     setImagePreview(previewUrl);
-
-    // Déterminer l'URL de l'originale à sauvegarder
-    // Si originalImageUrl est fourni (cas recadrage), l'utiliser.
-    // Sinon (cas original), utiliser previewUrl qui est l'originale.
-    const originalToSave = originalImageUrl || previewUrl;
-
+    setOriginalImageFile(file);
+    // On suppose que le crop sera fait via une modale ou un composant ReactCrop ailleurs
+    // Ici, on ne set pas encore le croppedImageBlob, il sera set après le crop effectif
     setFormData((prev) => ({
       ...prev,
-      image: file, // Fichier recadré ou original
-      originalImage: originalToSave, // Sauvegarder l'originale
-      currentImage: previewUrl, // Mettre à jour l'image courante affichée
+      image: file,
+      originalImage: originalImageUrl || previewUrl,
+      currentImage: previewUrl,
     }));
   };
 
@@ -339,46 +382,40 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
-
     if (!validateForm()) {
       console.log('Validation errors:', errors);
       return;
     }
-
     setLoading(true);
     try {
+      let finalImageId = imageId;
       let imageUrl = formData.currentImage;
-      let imageToUpload = formData.image;
       let originalImageUrlToSave = formData.originalImage;
-
-      if (imageToUpload instanceof File) {
-        console.log('Uploading image file...');
+      // Si on a un crop et un original à uploader
+      if (croppedImageBlob && originalImageFile && imageId) {
         const imageFormData = new FormData();
-        imageFormData.append('file', imageToUpload);
-
+        imageFormData.append('imageId', imageId);
+        imageFormData.append('croppedImage', croppedImageBlob, 'event-crop.jpg');
+        imageFormData.append('originalImage', originalImageFile, originalImageFile.name);
         const uploadResponse = await fetch('/api/upload', {
           method: 'POST',
           body: imageFormData,
         });
-
         if (!uploadResponse.ok) {
           const errorText = await uploadResponse.text();
           console.error('Upload failed:', errorText);
           throw new Error(`Erreur lors de l'upload de l'image: ${uploadResponse.statusText}`);
         }
-
         const uploadResult = await uploadResponse.json();
-        imageUrl = uploadResult.url;
-        console.log('Upload successful, final imageUrl:', imageUrl);
+        finalImageId = uploadResult.imageId || imageId;
+        imageUrl = `/uploads/${finalImageId}.jpg`;
+        originalImageUrlToSave = `/uploads/${finalImageId}-ori.jpg`;
       } else if (imageUrl && !imageUrl.startsWith('data:image')) {
-        console.log('No new image file to upload, using existing image URL:', imageUrl);
         originalImageUrlToSave = formData.originalImage;
       } else {
-        console.log('Image removed or never set. Variables will be undefined.');
         imageUrl = undefined;
         originalImageUrlToSave = undefined;
       }
-
       const dataToSend: any = {
         title: formData.title,
         description: formData.description,
@@ -404,22 +441,16 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
                   ? parseInt(String(formData.tickets.quantity), 10) || 0
                   : 0,
             }
-          : null, // Important: on envoie null et non undefined pour que le backend comprenne qu'il faut supprimer les tickets
+          : null,
         recurrence: isEditMode
           ? {
               ...formData.recurrence,
-              // Assurer que isRecurring est un booléen pour éviter des problèmes de type
               isRecurring: !!formData.recurrence?.isRecurring,
             }
           : formData.recurrence,
       };
-
-      if (dataToSend.imageUrl === undefined) {
-        dataToSend.imageUrl = null;
-      }
-      if (dataToSend.originalImageUrl === undefined) {
-        dataToSend.originalImageUrl = null;
-      }
+      if (dataToSend.imageUrl === undefined) dataToSend.imageUrl = null;
+      if (dataToSend.originalImageUrl === undefined) dataToSend.originalImageUrl = null;
 
       console.log(
         'Data to send to /events (undefined replaced with null):',

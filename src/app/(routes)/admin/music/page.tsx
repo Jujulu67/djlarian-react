@@ -94,8 +94,6 @@ const emptyTrackForm: Omit<Track, 'id'> & { id?: string } = {
   platforms: {},
   isPublished: true,
   bpm: undefined,
-  coverUrl: undefined,
-  originalImageUrl: undefined,
   collection: undefined,
   user: undefined,
   createdAt: undefined,
@@ -370,24 +368,6 @@ export default function AdminMusicPage() {
     }
   }, [status]);
 
-  // Ajouter une fonction pour sauvegarder l'URL d'image originale dans le stockage local
-  const saveOriginalImageUrl = (trackId: string, originalUrl: string) => {
-    try {
-      // Récupérer les données existantes
-      const stored = localStorage.getItem('originalImageUrls') || '{}';
-      const storedUrls: Record<string, string> = JSON.parse(stored);
-
-      // Ajouter/mettre à jour l'URL pour ce track
-      storedUrls[trackId] = originalUrl;
-
-      // Sauvegarder les données mises à jour
-      localStorage.setItem('originalImageUrls', JSON.stringify(storedUrls));
-      console.log("URL d'image originale sauvegardée dans le stockage local pour", trackId);
-    } catch (e) {
-      console.error('Erreur lors de la sauvegarde dans le stockage local:', e);
-    }
-  };
-
   // Filtrer les morceaux
   useEffect(() => {
     if (searchTerm.trim() === '') {
@@ -414,17 +394,6 @@ export default function AdminMusicPage() {
         throw new Error('Failed to fetch tracks');
       }
       const data = await response.json();
-
-      // Ajouter des logs pour vérifier les valeurs originalImageUrl
-      console.log(
-        'Morceaux récupérés:',
-        data.map((track: Track) => ({
-          id: track.id,
-          title: track.title,
-          coverUrl: track.coverUrl,
-          originalImageUrl: track.originalImageUrl,
-        }))
-      );
 
       setTracks(data);
     } catch (error) {
@@ -466,15 +435,6 @@ export default function AdminMusicPage() {
         [platform]: url ? { url, embedId: embedId || undefined } : undefined,
       },
     });
-
-    // Si c'est YouTube et qu'il n'y a pas de couverture, extraire la vignette
-    if (platform === 'youtube' && embedId && !currentForm.coverUrl) {
-      const thumbnail = getYouTubeThumbnail(url);
-      if (thumbnail) {
-        setCurrentForm((prev) => ({ ...prev, coverUrl: thumbnail }));
-        setCoverPreview(thumbnail);
-      }
-    }
   };
 
   // Handler pour soumettre le formulaire
@@ -521,26 +481,11 @@ export default function AdminMusicPage() {
         setIsSubmitting(false);
         return;
       }
-      const isValidUrl = (url: string) => {
-        return z.string().url().safeParse(url).success || url.startsWith('/uploads/');
-      };
-      const coverUrlToSend = imageId
-        ? `/uploads/${imageId}.jpg`
-        : currentForm.coverUrl && isValidUrl(currentForm.coverUrl)
-          ? currentForm.coverUrl
-          : null;
-      const originalImageUrlToSend = imageId
-        ? `/uploads/${imageId}-ori.jpg`
-        : currentForm.originalImageUrl && isValidUrl(currentForm.originalImageUrl)
-          ? currentForm.originalImageUrl
-          : coverUrlToSend;
       const apiData = {
         ...currentForm,
         imageId,
         genreNames: currentForm.genre,
         platforms: platformsArray,
-        coverUrl: coverUrlToSend,
-        originalImageUrl: originalImageUrlToSend,
       };
       const apiUrl = isEditing ? `/api/music/${currentForm.id}` : '/api/music';
       const response = await fetch(apiUrl, {
@@ -592,18 +537,15 @@ export default function AdminMusicPage() {
       : ''; // Fournir une chaîne vide si la date est nulle/undefined
 
     setCurrentForm({
-      ...track, // Garder les autres champs du track (y compris imageId, coverUrl, originalImageUrl venant de formatTrackData)
-      releaseDate: formattedDate, // Utiliser la date formatée YYYY-MM-DD
+      ...track,
+      releaseDate: formattedDate,
       genre: track.genre || [],
       platforms: platformsForForm,
     });
     setIsEditing(true);
-    // L'aperçu sera mis à jour par le useEffect [currentForm.imageId] ou [currentForm.coverUrl]
-    // Si on utilise imageId, on s'assure que coverPreview est mis à jour
+    // L'aperçu sera mis à jour par le useEffect [currentForm.imageId]
     if (track.imageId) {
       setCoverPreview(`/uploads/${track.imageId}.jpg`);
-    } else if (track.coverUrl) {
-      setCoverPreview(track.coverUrl);
     } else {
       setCoverPreview('');
     }
@@ -915,7 +857,6 @@ export default function AdminMusicPage() {
       title: video.title,
       artist: 'DJ Larian',
       releaseDate: video.publishedAt,
-      coverUrl: video.thumbnail,
       bpm: bpm,
       genre: genres,
       type: genres.includes('Live')
@@ -1267,8 +1208,6 @@ export default function AdminMusicPage() {
                                 setCoverPreview('');
                                 setCurrentForm({
                                   ...currentForm,
-                                  coverUrl: '',
-                                  originalImageUrl: '',
                                 });
                               }}
                               className="p-2 bg-red-600 hover:bg-red-700 rounded-full"
@@ -1411,13 +1350,9 @@ export default function AdminMusicPage() {
                         <div className="flex items-center gap-4 p-4">
                           {/* Image */}
                           <div className="w-16 h-16 flex-shrink-0 rounded-md overflow-hidden">
-                            {track.coverUrl ? (
+                            {track.imageId ? (
                               <img
-                                src={
-                                  track.coverUrl
-                                    ? `${track.coverUrl}?t=${track.updatedAt ? new Date(track.updatedAt).getTime() : Date.now()}`
-                                    : ''
-                                }
+                                src={`/uploads/${track.imageId}.jpg?t=${track.updatedAt ? new Date(track.updatedAt).getTime() : Date.now()}`}
                                 alt={track.title}
                                 className="w-full h-full object-cover"
                               />

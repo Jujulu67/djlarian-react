@@ -101,9 +101,9 @@ export default function TrackDetailView({ trackId, onClose }: TrackDetailViewPro
     <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-8">
       {/* Colonne Gauche: Image & Infos rapides */}
       <div className="md:col-span-1 flex flex-col items-center">
-        {track.coverUrl ? (
+        {track.imageId ? (
           <Image
-            src={track.coverUrl}
+            src={`/uploads/${track.imageId}.jpg?t=${track.updatedAt ? new Date(track.updatedAt).getTime() : Date.now()}`}
             alt={`Pochette de ${track.title}`}
             width={300}
             height={300}
