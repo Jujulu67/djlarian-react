@@ -6,15 +6,30 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 interface ModalProps {
   children: React.ReactNode;
+  maxWidth?: string; // ex: 'max-w-md', 'max-w-lg', etc.
+  showLoader?: boolean; // pour contrôler l'animation de fadeIn/fadeOut
+  isReady?: boolean; // nouveau
+  bgClass?: string; // nouveau
+  borderClass?: string; // nouveau
+  onClose?: () => void; // nouveau
 }
 
-export default function Modal({ children }: ModalProps) {
+export default function Modal({
+  children,
+  maxWidth = 'max-w-4xl',
+  showLoader = true,
+  isReady = true,
+  bgClass,
+  borderClass,
+  onClose,
+}: ModalProps) {
   const router = useRouter();
   const modalRef = useRef<HTMLDivElement>(null);
   const [isMouseDownOutside, setIsMouseDownOutside] = useState(false);
 
   const handleClose = () => {
-    router.back(); // Navigue en arrière pour fermer la modale
+    if (onClose) onClose();
+    else router.back();
   };
 
   // Utiliser useLayoutEffect pour appliquer les styles AVANT le premier rendu visuel
@@ -82,7 +97,7 @@ export default function Modal({ children }: ModalProps) {
 
         <div
           ref={modalRef}
-          className="relative transform overflow-hidden rounded-xl bg-gradient-to-br from-[#1a0f2a] via-[#0c0117] to-[#1a0f2a] border border-purple-500/30 w-full max-w-4xl text-left shadow-2xl transition-all sm:my-8 animate-fadeIn"
+          className={`relative transform overflow-hidden rounded-xl ${bgClass ?? 'bg-gradient-to-br from-[#1a0f2a] via-[#0c0117] to-[#1a0f2a]'} ${borderClass ?? 'border border-purple-500/30'} w-full ${maxWidth} text-left shadow-2xl transition-all sm:my-8 animate-fadeIn`}
           onClick={(e) => e.stopPropagation()}
         >
           <button
@@ -92,7 +107,15 @@ export default function Modal({ children }: ModalProps) {
           >
             <X className="w-5 h-5" />
           </button>
-          <div className="p-6 md:p-8 lg:p-10 max-h-[80vh] overflow-y-auto">{children}</div>
+          <div className="p-6 md:p-8 lg:p-10 max-h-[80vh] overflow-y-auto">
+            {isReady ? (
+              showLoader ? (
+                <div className="animate-fadeIn">{children}</div>
+              ) : (
+                children
+              )
+            ) : null}
+          </div>
         </div>
       </div>
     </div>
