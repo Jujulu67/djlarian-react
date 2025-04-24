@@ -79,7 +79,6 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
     endDate: '',
     status: 'UPCOMING' as const,
     isPublished: false,
-    image: null,
     imageId: null,
     tickets: {
       price: 0,
@@ -103,12 +102,10 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [previewMode, setPreviewMode] = useState(false);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
-
-  // Ajout des nouveaux states pour la gestion d'image
-  const [croppedImageBlob, setCroppedImageBlob] = useState<Blob | null>(null);
   const [originalImageFile, setOriginalImageFile] = useState<File | null>(null);
+  const [croppedImageFile, setCroppedImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   // Rediriger si l'utilisateur n'est pas un admin
   useEffect(() => {
@@ -143,7 +140,6 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
           endDate: event.endDate ? formatDateForInput(event.endDate) : '',
           status: event.status,
           isPublished: event.isPublished,
-          image: null,
           imageId: event.imageId || null,
           tickets: event.tickets
             ? {
@@ -173,12 +169,8 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
             excludedDates: event.recurrenceConfig?.excludedDates || [],
           },
         });
-        if (event.imageId) {
-          setImagePreview(
-            `/uploads/${event.imageId}.jpg?t=${event.updatedAt ? new Date(event.updatedAt).getTime() : Date.now()}`
-          );
-        } else {
-          setImagePreview(null);
+        if (isEditMode && event.imageId) {
+          setImagePreview(`/uploads/${event.imageId}.jpg?t=${Date.now()}`);
         }
       } catch (error) {
         setErrors({ submit: 'Erreur lors du chargement des données' });
@@ -306,25 +298,21 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
   };
 
   // Nouvelle fonction pour gérer la sélection/recadrage d'image depuis EventForm
-  const handleImageSelected = (file: File, previewUrl: string) => {
+  const handleImageSelected = (file: File) => {
     // Générer un nouvel imageId à chaque nouvelle sélection
     const newImageId = uuidv4();
     setFormData((prev) => ({
       ...prev,
-      image: file,
       imageId: newImageId,
     }));
-    setImagePreview(previewUrl);
   };
 
   // Supprimer l'image
   const handleRemoveImage = () => {
     setFormData((prev) => ({
       ...prev,
-      image: null,
       imageId: null,
     }));
-    setImagePreview(null);
   };
 
   // Valider le formulaire
@@ -365,23 +353,25 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
     }
     setLoading(true);
     try {
-      let finalImageId = formData.imageId;
-      // Si on a un crop et un original à uploader
-      if (croppedImageBlob && originalImageFile && formData.imageId) {
-        const imageFormData = new FormData();
-        imageFormData.append('imageId', formData.imageId);
-        imageFormData.append('croppedImage', croppedImageBlob, 'event-crop.jpg');
-        imageFormData.append('originalImage', originalImageFile, originalImageFile.name);
+      let imageId = formData.imageId;
+      // Générer un nouvel imageId si besoin
+      if (!imageId && (originalImageFile || croppedImageFile)) {
+        imageId = uuidv4();
+        setFormData((prev) => ({ ...prev, imageId }));
+      }
+      // Upload DRY des deux fichiers si présents
+      if (croppedImageFile && originalImageFile && imageId) {
+        const formDataUpload = new FormData();
+        formDataUpload.append('imageId', imageId);
+        formDataUpload.append('croppedImage', croppedImageFile, 'event-crop.jpg');
+        formDataUpload.append('originalImage', originalImageFile, originalImageFile.name);
         const uploadResponse = await fetch('/api/upload', {
           method: 'POST',
-          body: imageFormData,
+          body: formDataUpload,
         });
         if (!uploadResponse.ok) {
-          const errorText = await uploadResponse.text();
-          throw new Error(`Erreur lors de l'upload de l'image: ${uploadResponse.statusText}`);
+          throw new Error("Erreur lors de l'upload de l'image");
         }
-        const uploadResult = await uploadResponse.json();
-        finalImageId = uploadResult.imageId || formData.imageId;
       }
       const dataToSend: any = {
         title: formData.title,
@@ -393,7 +383,7 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
         status: formData.status,
         isPublished: formData.isPublished,
         featured: formData.featured || false,
-        imageId: finalImageId,
+        imageId: imageId,
         tickets: formData.hasTickets
           ? {
               price:
@@ -415,6 +405,10 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
             }
           : formData.recurrence,
       };
+      // Protection anti-bug : supprimer tout champ id du payload lors d'un POST (création)
+      if (!isEditMode && 'id' in dataToSend) {
+        delete dataToSend.id;
+      }
       // Vérifier si l'ID est défini avant de faire une requête PATCH
       if (isEditMode && !eventId) {
         setLoading(false);
@@ -479,7 +473,6 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
               <EventForm
                 formData={formData}
                 errors={errors}
-                imagePreview={imagePreview}
                 handleSubmit={handleSubmit}
                 handleChange={handleChange}
                 handleCheckboxChange={handleCheckboxChange}
@@ -487,6 +480,22 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
                 onImageSelected={handleImageSelected}
                 isEditMode={isEditMode}
                 setFormData={setFormData}
+                onImageFilesChange={(original, crop) => {
+                  setOriginalImageFile(original);
+                  setCroppedImageFile(crop);
+                  if (crop) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                      setImagePreview(reader.result as string);
+                    };
+                    reader.readAsDataURL(crop);
+                  } else if (formData.imageId) {
+                    setImagePreview(`/uploads/${formData.imageId}.jpg?t=${Date.now()}`);
+                  } else {
+                    setImagePreview(null);
+                  }
+                }}
+                imagePreview={imagePreview ?? undefined}
               />
             </div>
             {/* Conteneur d'espace réservé pour l'aperçu */}
@@ -494,14 +503,14 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
               <div ref={previewRef} className="w-full">
                 <div className="bg-gray-800/30 backdrop-blur-sm border border-gray-700/50 rounded-xl overflow-hidden shadow-lg">
                   <h3 className="text-lg font-bold p-4">Aperçu</h3>
-                  <EventPreview event={formData} />
+                  <EventPreview event={{ ...formData, currentImage: imagePreview ?? undefined }} />
                 </div>
               </div>
             </div>
           </div>
         ) : (
           <div className="max-w-[800px] mx-auto">
-            <EventPreview event={formData} />
+            <EventPreview event={{ ...formData, currentImage: imagePreview ?? undefined }} />
           </div>
         )}
       </div>

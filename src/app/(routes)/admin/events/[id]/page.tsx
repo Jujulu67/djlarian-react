@@ -39,7 +39,7 @@ type Event = {
   address?: string;
   startDate: string;
   endDate?: string;
-  image?: string;
+  imageId?: string;
   status: string;
   isPublished: boolean;
   createdAt: string;
@@ -375,9 +375,9 @@ export default function EventDetailsPage() {
         <div className="bg-gray-800/30 backdrop-blur-sm rounded-xl overflow-hidden border border-gray-700 shadow-xl">
           {/* Image de couverture */}
           <div className="relative overflow-hidden" style={{ aspectRatio: '16/9' }}>
-            {event.image ? (
+            {event.imageId ? (
               <img
-                src={event.image}
+                src={`/uploads/${event.imageId}.jpg?t=${event.updatedAt ? new Date(event.updatedAt).getTime() : Date.now()}`}
                 alt={event.title}
                 className="w-full h-full object-cover object-center"
                 style={{ objectPosition: '50% 25%' }}

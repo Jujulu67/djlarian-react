@@ -52,8 +52,7 @@ function generateRecurringDates(
 // GET - Récupérer un événement spécifique par son ID
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    // Corriger l'erreur en attendant que params soit résolu avant d'utiliser id
-    const id = await Promise.resolve(params.id);
+    const { id } = await params;
     console.log(`Fetching event with ID: ${id}`);
 
     const session = await getServerSession(authOptions);
@@ -186,7 +185,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
 // PATCH - Mettre à jour un événement existant
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
-  const id = params.id;
+  const id = await Promise.resolve(params.id);
   console.log(`--- PATCH /api/events/${id} ---`);
 
   try {
@@ -223,12 +222,12 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       startDate,
       endDate,
       imageUrl,
-      originalImageUrl,
       status,
       isPublished,
       featured,
       tickets,
       recurrence,
+      imageId,
     } = body;
 
     const dataToUpdate: any = {};
@@ -262,11 +261,8 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       // On continue sans établir la relation utilisateur
     }
 
-    if (imageUrl !== undefined) {
-      dataToUpdate.image = imageUrl;
-    }
-    if (originalImageUrl !== undefined) {
-      dataToUpdate.originalImageUrl = originalImageUrl;
+    if (imageId !== undefined) {
+      dataToUpdate.imageId = imageId;
     }
 
     // Mettre à jour les tickets si fournis

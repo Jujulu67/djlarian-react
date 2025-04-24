@@ -7,6 +7,9 @@ import ReactCrop, { type Crop as CropType, centerCrop, makeAspectCrop } from 're
 import 'react-image-crop/dist/ReactCrop.css';
 import { format, parseISO, addMonths, addWeeks, addDays, isBefore, endOfMonth } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import ImageCropModal from '@/components/ui/ImageCropModal';
+import ImageDropzone from '@/components/ui/ImageDropzone';
+import { toast } from 'react-hot-toast';
 
 export interface TicketInfo {
   price?: number;
@@ -38,7 +41,6 @@ export interface EventFormData {
   isPublished?: boolean;
   hasTickets?: boolean;
   featured?: boolean;
-  image?: File | null;
   imageId?: string | null;
   tickets: TicketInfo;
   recurrence?: RecurrenceConfig;
@@ -56,16 +58,17 @@ interface FormErrors extends Partial<Record<keyof EventFormData, string>> {
 type EventFormProps = {
   formData: EventFormData;
   errors: Record<string, string>;
-  imagePreview: string | null;
   handleSubmit: (e: React.FormEvent) => Promise<void>;
   handleChange: (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => void;
   handleCheckboxChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleRemoveImage: () => void;
-  onImageSelected: (file: File, previewUrl: string) => void;
+  onImageSelected: (file: File) => void;
   isEditMode?: boolean;
   setFormData: React.Dispatch<React.SetStateAction<EventFormData>>;
+  onImageFilesChange?: (original: File | null, crop: File | null) => void;
+  imagePreview?: string;
 };
 
 // Style global pour les inputs et labels
@@ -98,7 +101,6 @@ function centerAspectCrop(mediaWidth: number, mediaHeight: number, aspect: numbe
 const EventForm: React.FC<EventFormProps> = ({
   formData,
   errors,
-  imagePreview,
   handleSubmit,
   handleChange,
   handleRemoveImage,
@@ -106,6 +108,8 @@ const EventForm: React.FC<EventFormProps> = ({
   isEditMode,
   onImageSelected,
   setFormData,
+  onImageFilesChange,
+  imagePreview: imagePreviewProp,
 }) => {
   const [dragActive, setDragActive] = useState(false);
   const formRef = React.useRef<HTMLFormElement>(null);
@@ -114,17 +118,23 @@ const EventForm: React.FC<EventFormProps> = ({
   const [imageToEdit, setImageToEdit] = useState<string | null>(null);
   const imageRef = React.useRef<HTMLImageElement | null>(null);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [originalImageFile, setOriginalImageFile] = useState<File | null>(null);
+  const [croppedImageFile, setCroppedImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(imagePreviewProp || null);
+
+  // Synchroniser le state local avec la prop imagePreview
+  useEffect(() => {
+    setImagePreview(imagePreviewProp || null);
+  }, [imagePreviewProp]);
 
   // Ajout de l'écouteur d'événement pour le recadrage
   React.useEffect(() => {
     const handleRecropImage = (e: CustomEvent) => {
-      if (e.detail && e.detail.imageUrl) {
-        const imageToUse = formData.imageId || e.detail.imageUrl;
-        setIsImageLoaded(false);
-        setDisplayCrop(undefined);
-        setImageToEdit(imageToUse);
-        setShowCropper(true);
-      }
+      const imageToUse = formData.imageId;
+      setIsImageLoaded(false);
+      setDisplayCrop(undefined);
+      setImageToEdit(imageToUse ?? null);
+      setShowCropper(true);
     };
 
     document.addEventListener('recrop-image', handleRecropImage as EventListener);
@@ -198,11 +208,12 @@ const EventForm: React.FC<EventFormProps> = ({
       (blob) => {
         if (blob) {
           const file = new File([blob], 'cropped-image.jpg', { type: 'image/jpeg' });
-          onImageSelected(file, croppedImageUrl);
+          onImageSelected(file);
           setShowCropper(false);
           setImageToEdit(null);
           setIsImageLoaded(false);
           setDisplayCrop(undefined);
+          setCroppedImageFile(file);
         } else {
           console.error("Blob n'a pas pu être créé.");
           handleCancelRecrop();
@@ -237,18 +248,22 @@ const EventForm: React.FC<EventFormProps> = ({
   const handleNewImageDrop = (acceptedFiles: File[]) => {
     if (acceptedFiles && acceptedFiles.length > 0) {
       const file = acceptedFiles[0];
+      setOriginalImageFile(file);
       const reader = new FileReader();
-
       reader.onloadend = () => {
         const result = reader.result as string;
-        setIsImageLoaded(false);
-        setDisplayCrop(undefined);
         setImageToEdit(result);
         setShowCropper(true);
-        onImageSelected(file, result);
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  // Fonction pour gérer l'input file du dropzone
+  const handleImageInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    handleNewImageDrop([file]);
   };
 
   const { getRootProps, getInputProps } = useDropzone({
@@ -419,6 +434,56 @@ const EventForm: React.FC<EventFormProps> = ({
       </div>
     );
   };
+
+  // Pour relancer le crop sur l'originale (en édition)
+  const handleRecropOriginal = () => {
+    if (formData.imageId) {
+      const tryExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+      let found = false;
+      let tried = 0;
+      const tryNext = () => {
+        if (found || tried >= tryExtensions.length) {
+          if (!found) {
+            toast.error("Impossible de charger l'image originale pour le recadrage.");
+          }
+          return;
+        }
+        const ext = tryExtensions[tried];
+        const url = `/uploads/${formData.imageId}-ori.${ext}`;
+        fetch(url)
+          .then((res) => {
+            if (res.ok) {
+              res.blob().then((blob) => {
+                const file = new File([blob], `original.${ext}`, { type: blob.type });
+                setOriginalImageFile(file);
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                  setImageToEdit(reader.result as string);
+                  setShowCropper(true);
+                };
+                reader.readAsDataURL(file);
+              });
+              found = true;
+            } else {
+              tried++;
+              tryNext();
+            }
+          })
+          .catch(() => {
+            tried++;
+            tryNext();
+          });
+      };
+      tryNext();
+    }
+  };
+
+  // À chaque changement de fichier, notifier le parent
+  useEffect(() => {
+    if (typeof onImageFilesChange === 'function') {
+      onImageFilesChange(originalImageFile, croppedImageFile);
+    }
+  }, [originalImageFile, croppedImageFile]);
 
   return (
     <>
@@ -727,140 +792,22 @@ const EventForm: React.FC<EventFormProps> = ({
           </h2>
 
           <div className="mb-6">
-            <label htmlFor="image" className={labelBaseClass}>
-              Image
-            </label>
-            <div className="mt-2 relative">
-              <div
-                {...getRootProps()}
-                className={`image-upload-container p-8 border-2 border-dashed rounded-lg text-center ${
-                  dragActive ? 'border-purple-500 bg-purple-500/10' : 'border-gray-600'
-                } ${errors.image ? 'border-red-500 bg-red-900/10' : ''}`}
-              >
-                <input
-                  {...getInputProps()}
-                  type="file"
-                  id="image"
-                  name="image"
-                  className="hidden"
-                  accept="image/*"
-                />
-                <div className="flex flex-col items-center justify-center space-y-2 py-4">
-                  <Upload className="w-12 h-12 text-gray-400" />
-                  <p className="text-gray-300">Glissez votre image ici ou cliquez pour parcourir</p>
-                  <p className="text-gray-500 text-sm">PNG, JPG, GIF, WEBP jusqu'à 5MB</p>
-                </div>
-              </div>
-              {errors.image && <p className="mt-2 text-red-500 text-sm">{errors.image}</p>}
-            </div>
-
-            {imagePreview && (
-              <div className="mt-6 relative w-full" style={{ aspectRatio: '16/9' }}>
-                <div className="w-full h-full rounded-lg border border-gray-600 overflow-hidden">
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="w-full h-full object-cover"
-                    style={{ objectPosition: '50% 25%' }}
-                  />
-                </div>
-                <div className="absolute top-2 right-2 flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const imageToUse = formData.imageId || imagePreview;
-                      if (imageToUse) {
-                        console.log(
-                          "Relance du recadrage avec l'image:",
-                          imageToUse ? 'Source fournie' : 'Source manquante'
-                        );
-                        setIsImageLoaded(false);
-                        setDisplayCrop(undefined);
-                        setImageToEdit(imageToUse);
-                        setShowCropper(true);
-                      } else {
-                        console.error(
-                          "Impossible de relancer le recadrage: aucune source d'image valide."
-                        );
-                      }
-                    }}
-                    className="bg-black/60 text-white p-1 rounded-full hover:bg-black/80 transition-colors"
-                    title="Recadrer l'image"
-                  >
-                    <Crop size={18} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleRemoveImage}
-                    className="bg-black/60 text-white p-1 rounded-full hover:bg-black/80 transition-colors"
-                    title="Supprimer l'image"
-                  >
-                    <XCircle className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Interface de recadrage */}
-            {showCropper && imageToEdit && (
-              <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-                <div className="bg-gray-800 rounded-lg shadow-2xl max-w-3xl w-full overflow-hidden">
-                  <div className="p-6 border-b border-gray-700">
-                    <h3 className="text-lg font-semibold text-white">Recadrer l'image (16:9)</h3>
-                  </div>
-                  <div className="p-6 max-h-[70vh] overflow-auto flex justify-center items-center">
-                    {/* Image cachée pour déclencher onLoad */}
-                    <img
-                      src={imageToEdit}
-                      onLoad={handleImageLoad}
-                      alt=""
-                      style={{ display: 'none' }}
-                    />
-
-                    {/* Afficher ReactCrop seulement quand l'image est chargée et displayCrop défini */}
-                    {isImageLoaded && displayCrop ? (
-                      <ReactCrop
-                        crop={displayCrop}
-                        onChange={(_, percentCrop) => {
-                          setDisplayCrop(percentCrop);
-                        }}
-                        aspect={16 / 9}
-                        className="max-w-full max-h-[60vh]"
-                      >
-                        {/* Image visible à l'intérieur de ReactCrop */}
-                        <img
-                          ref={imageRef}
-                          src={imageToEdit}
-                          alt="Recadrage"
-                          style={{ maxHeight: '60vh', objectFit: 'contain' }}
-                        />
-                      </ReactCrop>
-                    ) : (
-                      <div className="flex items-center justify-center h-40 text-gray-400">
-                        Chargement de l'image...
-                      </div>
-                    )}
-                  </div>
-                  <div className="px-6 py-4 bg-gray-800/50 border-t border-gray-700 flex justify-end space-x-3">
-                    <Button variant="ghost" onClick={handleCancelRecrop} type="button">
-                      Annuler
-                    </Button>
-                    <Button
-                      type="button"
-                      onClick={() => {
-                        if (displayCrop) {
-                          drawCroppedImage(displayCrop);
-                        }
-                      }}
-                      className="bg-purple-600 hover:bg-purple-700"
-                      disabled={!isImageLoaded || !displayCrop?.width || !displayCrop?.height}
-                    >
-                      Appliquer le recadrage
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
+            <ImageDropzone
+              label="Image de l'événement"
+              imageUrl={imagePreview || undefined}
+              onDrop={handleImageInputChange}
+              onRecrop={handleRecropOriginal}
+              onRemove={() => {
+                setOriginalImageFile(null);
+                setCroppedImageFile(null);
+                setImagePreview(null);
+                handleRemoveImage();
+              }}
+              placeholderText="Glissez votre image ici ou cliquez pour parcourir"
+              helpText="PNG, JPG, GIF, WEBP jusqu'à 5MB"
+              accept="image/*"
+              aspectRatio="aspect-[16/9]"
+            />
           </div>
         </div>
 
@@ -996,6 +943,26 @@ const EventForm: React.FC<EventFormProps> = ({
           </button>
         </div>
       </form>
+
+      <ImageCropModal
+        imageToEdit={imageToEdit}
+        aspect={16 / 9}
+        onCrop={(file, previewUrl) => {
+          setCroppedImageFile(file);
+          setImagePreview(previewUrl);
+          onImageSelected(file);
+          setShowCropper(false);
+          setImageToEdit(null);
+          setIsImageLoaded(false);
+          setDisplayCrop(undefined);
+        }}
+        onCancel={() => {
+          setShowCropper(false);
+          setImageToEdit(null);
+          setIsImageLoaded(false);
+          setDisplayCrop(undefined);
+        }}
+      />
     </>
   );
 };

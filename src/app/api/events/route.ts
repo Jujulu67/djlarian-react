@@ -99,6 +99,14 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    // LOGS DEBUG EVENTS
+    console.log(`[API] GET /api/events - Nombre d'événements retournés : ${events.length}`);
+    events.forEach((ev) => {
+      console.log(
+        `[API] Event: id=${ev.id}, imageId=${'imageId' in ev ? ev.imageId : ev.image}, title=${ev.title}`
+      );
+    });
+
     // Compter le nombre total d'événements pour la pagination
     const total = await prisma.event.count({ where });
 
@@ -201,6 +209,9 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
+    // Log du body reçu pour debug
+    console.log('[API EVENTS] Body reçu:', JSON.stringify(body, null, 2));
+
     // Valider les données
     if (!body.title || !body.location || !body.startDate) {
       return NextResponse.json(
@@ -243,12 +254,18 @@ export async function POST(request: Request) {
       address: body.address || '',
       startDate: new Date(body.startDate),
       endDate: body.endDate ? new Date(body.endDate) : null,
-      imageId: body.imageId || body.imageUrl || null,
+      imageId: body.imageId || null,
       status: body.status || 'UPCOMING',
       isPublished: body.isPublished !== undefined ? body.isPublished : false,
       featured: body.featured !== undefined ? body.featured : false,
       ...userConnect, // Ajouter la relation utilisateur seulement si l'utilisateur existe
     };
+
+    // Log du commonEventData juste avant création
+    console.log(
+      '[API EVENTS] commonEventData avant create:',
+      JSON.stringify(commonEventData, null, 2)
+    );
 
     // Ajouter tickets si présents
     if (body.tickets) {

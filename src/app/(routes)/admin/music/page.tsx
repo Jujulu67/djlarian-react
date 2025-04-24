@@ -36,6 +36,8 @@ import 'react-image-crop/dist/ReactCrop.css';
 import Link from 'next/link';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
+import ImageCropModal from '@/components/ui/ImageCropModal';
+import ImageDropzone from '@/components/ui/ImageDropzone';
 
 // Helper function to center the crop area with a specific aspect ratio
 function centerAspectCrop(mediaWidth: number, mediaHeight: number, aspect: number): CropType {
@@ -1183,59 +1185,17 @@ export default function AdminMusicPage() {
 
                   {/* Cover URL */}
                   <div className="mt-4">
-                    <label className="block text-gray-300 font-medium mb-2">
-                      Image de couverture
-                    </label>
-                    {coverPreview ? (
-                      <div className="relative">
-                        <div className="w-full pb-[100%] relative overflow-hidden rounded-lg">
-                          <img
-                            src={coverPreview}
-                            alt="Cover preview"
-                            className="absolute inset-0 w-full h-full object-cover"
-                          />
-                          <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
-                            <button
-                              type="button"
-                              onClick={handleReCrop}
-                              className="p-2 bg-purple-600 hover:bg-purple-700 rounded-full"
-                            >
-                              <Crop className="w-5 h-5 text-white" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setCoverPreview('');
-                                setCurrentForm({
-                                  ...currentForm,
-                                });
-                              }}
-                              className="p-2 bg-red-600 hover:bg-red-700 rounded-full"
-                            >
-                              <Trash2 className="w-5 h-5 text-white" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div
-                        className="border-2 border-dashed border-gray-600 rounded-lg p-6 text-center hover:border-purple-500 transition-colors cursor-pointer"
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        <Upload className="w-10 h-10 text-purple-500 mx-auto mb-2" />
-                        <p className="text-gray-300">
-                          Glissez-déposez une image ici, ou cliquez pour sélectionner
-                        </p>
-                        <p className="text-xs text-gray-400 mt-1">
-                          PNG, JPG, GIF ou WEBP - Max 5MB
-                        </p>
-                      </div>
-                    )}
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleImageUpload}
-                      className="hidden"
+                    <ImageDropzone
+                      label="Image de couverture"
+                      imageUrl={coverPreview}
+                      onDrop={handleImageUpload}
+                      onRecrop={handleReCrop}
+                      onRemove={() => {
+                        setCoverPreview('');
+                        setCurrentForm({ ...currentForm });
+                      }}
+                      placeholderText="Glissez-déposez une image ici, ou cliquez pour sélectionner"
+                      helpText="PNG, JPG, GIF ou WEBP - Max 5MB"
                       accept="image/*"
                     />
                   </div>
@@ -1706,63 +1666,31 @@ export default function AdminMusicPage() {
 
         {/* Modal Crop */}
         {showCropModal && uploadedImage && (
-          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-800 rounded-lg shadow-2xl max-w-3xl w-full overflow-hidden">
-              <div className="p-6 border-b border-gray-700">
-                <h3 className="text-lg font-semibold text-white">Recadrer l'image (carré)</h3>
-              </div>
-              <div className="p-6 max-h-[70vh] overflow-auto flex justify-center items-center">
-                {/* Image cachée pour déclencher onLoad */}
-                <img
-                  src={uploadedImage}
-                  onLoad={handleImageLoad}
-                  alt=""
-                  style={{ display: 'none' }}
-                />
-
-                {/* Afficher ReactCrop seulement quand l'image est chargée et crop défini */}
-                {isImageLoaded && crop ? (
-                  <ReactCrop
-                    crop={crop}
-                    onChange={(_, percentCrop) => {
-                      setCrop(percentCrop);
-                    }}
-                    aspect={1}
-                    className="max-w-full max-h-[60vh]"
-                  >
-                    {/* Image visible à l'intérieur de ReactCrop */}
-                    <img
-                      ref={imageRef}
-                      src={uploadedImage}
-                      alt="Recadrage"
-                      style={{ maxHeight: '60vh', objectFit: 'contain' }}
-                    />
-                  </ReactCrop>
-                ) : (
-                  <div className="flex items-center justify-center h-40 text-gray-400">
-                    Chargement de l'image...
-                  </div>
-                )}
-              </div>
-              <div className="px-6 py-4 bg-gray-800/50 border-t border-gray-700 flex justify-end space-x-3">
-                <button
-                  type="button"
-                  onClick={cancelCrop}
-                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="button"
-                  onClick={completeCrop}
-                  className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
-                  disabled={!isImageLoaded || !crop?.width || !crop?.height}
-                >
-                  Appliquer le recadrage
-                </button>
-              </div>
-            </div>
-          </div>
+          <ImageCropModal
+            imageToEdit={uploadedImage}
+            aspect={1}
+            title="Recadrer l'image (carré)"
+            cropLabel="Appliquer le recadrage"
+            cancelLabel="Annuler"
+            onCrop={(file, previewUrl) => {
+              // Générer le blob à partir du File pour compatibilité avec l'existant
+              setCroppedImageBlob(file);
+              setOriginalImageFile(imageFile);
+              setCoverPreview(previewUrl);
+              setCurrentForm((prev) => ({ ...prev, imageId: undefined }));
+              setShowCropModal(false);
+              setCrop(undefined);
+              resetFileInput();
+            }}
+            onCancel={() => {
+              setShowCropModal(false);
+              setUploadedImage(null);
+              setCrop(undefined);
+              setImageFile(null);
+              setImageToUploadId(null);
+              resetFileInput();
+            }}
+          />
         )}
 
         {/* Modal de vérification avant import */}

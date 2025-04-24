@@ -38,7 +38,7 @@ type Event = {
   address?: string;
   startDate: string;
   endDate?: string;
-  image?: string;
+  imageId?: string;
   status: string;
   isPublished: boolean;
   tickets?: {
@@ -60,6 +60,7 @@ type Event = {
     day?: number;
     endDate?: string;
   };
+  updatedAt?: string;
 };
 
 export default function AdminEventsPage() {
@@ -449,9 +450,9 @@ export default function AdminEventsPage() {
                 <div className="flex flex-col h-full">
                   {/* Image de l'événement */}
                   <div className="relative overflow-hidden" style={{ aspectRatio: '16/9' }}>
-                    {event.image ? (
+                    {event.imageId ? (
                       <img
-                        src={event.image}
+                        src={`/uploads/${event.imageId}.jpg?t=${event.updatedAt ? new Date(event.updatedAt).getTime() : Date.now()}`}
                         alt={event.title}
                         className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
                         style={{ objectPosition: '50% 25%' }}

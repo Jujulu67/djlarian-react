@@ -26,7 +26,7 @@ model Account {
 }
 
 model Event {
-  id               String            @id
+  id               String            @id @default(uuid())
   title            String
   description      String?
   location         String
@@ -37,7 +37,7 @@ model Event {
   status           String            @default("UPCOMING")
   isPublished      Boolean           @default(false)
   createdAt        DateTime          @default(now())
-  updatedAt        DateTime
+  updatedAt        DateTime          @updatedAt
   featured         Boolean           @default(false)
   isMasterEvent    Boolean           @default(false)
   masterId         String?
