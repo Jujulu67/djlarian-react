@@ -11,6 +11,7 @@ interface ImageDropzoneProps {
   helpText?: string;
   accept?: string;
   aspectRatio?: string;
+  recropDisabled?: boolean;
 }
 
 const ImageDropzone: React.FC<ImageDropzoneProps> = ({
@@ -23,6 +24,7 @@ const ImageDropzone: React.FC<ImageDropzoneProps> = ({
   helpText = 'PNG, JPG, GIF ou WEBP - Max 5MB',
   accept = 'image/*',
   aspectRatio,
+  recropDisabled = false,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -43,8 +45,13 @@ const ImageDropzone: React.FC<ImageDropzoneProps> = ({
               <button
                 type="button"
                 onClick={onRecrop}
-                className="p-2 bg-purple-600 hover:bg-purple-700 rounded-full"
+                className="p-2 bg-purple-600 hover:bg-purple-700 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Recadrer l'image"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if ((e.key === 'Enter' || e.key === ' ') && !recropDisabled) onRecrop();
+                }}
+                disabled={recropDisabled}
               >
                 <Crop className="w-5 h-5 text-white" />
               </button>
