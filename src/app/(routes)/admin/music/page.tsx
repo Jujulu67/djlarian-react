@@ -38,6 +38,7 @@ import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import ImageCropModal from '@/components/ui/ImageCropModal';
 import ImageDropzone from '@/components/ui/ImageDropzone';
+import { findOriginalImageUrl } from '@/lib/utils/findOriginalImageUrl';
 
 // Helper function to center the crop area with a specific aspect ratio
 function centerAspectCrop(mediaWidth: number, mediaHeight: number, aspect: number): CropType {
@@ -350,6 +351,9 @@ export default function AdminMusicPage() {
   // --- AJOUT DES NOUVEAUX STATES ---
   const [croppedImageBlob, setCroppedImageBlob] = useState<Blob | null>(null);
   const [originalImageFile, setOriginalImageFile] = useState<File | null>(null);
+  const [cachedOriginalUrl, setCachedOriginalUrl] = useState<string | null>(null);
+  const [cachedOriginalFile, setCachedOriginalFile] = useState<File | null>(null);
+  const [pendingImageChange, setPendingImageChange] = useState(false);
 
   // Vérifier l'authentification
   useEffect(() => {
@@ -439,6 +443,41 @@ export default function AdminMusicPage() {
     });
   };
 
+  // DRY: Précharger l'originale dès qu'on a un imageId, sauf si pendingImageChange
+  useEffect(() => {
+    if (pendingImageChange) {
+      console.log('[MUSIC] pendingImageChange actif, cache conservé');
+      return;
+    }
+    if (currentForm.imageId) {
+      (async () => {
+        console.log("[MUSIC] Préchargement de l'originale pour imageId:", currentForm.imageId);
+        const url = await findOriginalImageUrl(currentForm.imageId ?? '');
+        setCachedOriginalUrl(url);
+        if (url) {
+          const ext = url.split('.').pop() || 'jpg';
+          const res = await fetch(url);
+          if (res.ok) {
+            const blob = await res.blob();
+            const file = new File([blob], `original.${ext}`, { type: blob.type });
+            setCachedOriginalFile(file);
+            console.log('[MUSIC] File originale préchargé:', file);
+          } else {
+            setCachedOriginalFile(null);
+            console.warn("[MUSIC] Impossible de fetch l'originale, fichier non trouvé");
+          }
+        } else {
+          setCachedOriginalFile(null);
+          console.warn('[MUSIC] Aucune URL originale trouvée');
+        }
+      })();
+    } else {
+      setCachedOriginalUrl(null);
+      setCachedOriginalFile(null);
+      console.log("[MUSIC] Pas d'imageId, cache vidé");
+    }
+  }, [currentForm.imageId, pendingImageChange]);
+
   // Handler pour soumettre le formulaire
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -517,6 +556,13 @@ export default function AdminMusicPage() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Lors de la sauvegarde (submit), désactiver le flag et recharger le cache
+  const handleSubmitWithCache = async (e: FormEvent) => {
+    await handleSubmit(e);
+    setPendingImageChange(false);
+    console.log('[MUSIC] pendingImageChange désactivé (sauvegarde track)');
   };
 
   // Handler pour modifier un morceau
@@ -654,46 +700,58 @@ export default function AdminMusicPage() {
     }
   };
 
-  // Gérer le recadrage d'une image existante (avec fallback extension)
+  // DRY: Recrop toujours à partir du cache
   const handleReCrop = () => {
-    // Si une image originale est en mémoire (pas encore uploadée)
-    if (originalImageFile || uploadedImage) {
-      let fileOrDataUrl = uploadedImage;
-      if (!fileOrDataUrl && originalImageFile) {
-        fileOrDataUrl = URL.createObjectURL(originalImageFile);
-      }
-      if (fileOrDataUrl) {
-        setUploadedImage(fileOrDataUrl);
+    if (cachedOriginalFile) {
+      console.log('[MUSIC] Recrop depuis le cache local');
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setUploadedImage(reader.result as string);
         setShowCropModal(true);
         setIsImageLoaded(false);
-        return;
-      }
+        setPendingImageChange(true);
+        console.log('[MUSIC] pendingImageChange activé (recrop local)');
+      };
+      reader.readAsDataURL(cachedOriginalFile);
+      return;
     }
-    // Sinon, si une image existe déjà sur le serveur
-    const imageId = currentForm.imageId;
-    if (imageId) {
-      const baseOriginalSrc = `/uploads/${imageId}-ori`;
-      const possibleExtensions = ['jpg', 'png', 'jpeg', 'webp', 'gif'];
-      setIsImageLoaded(false);
-      setShowCropModal(true);
-      setUploadedImage(null);
-      setImageFile(null);
-      setImageToUploadId(imageId);
-      loadImageWithFallback(
-        baseOriginalSrc,
-        possibleExtensions,
-        (loadedSrc, loadedImg) => {
-          setUploadedImage(loadedSrc);
-        },
-        (error) => {
+    // fallback si cache vide
+    if (currentForm.imageId) {
+      console.warn('[MUSIC] Cache vide, tentative de refetch originale');
+      (async () => {
+        const url = await findOriginalImageUrl(currentForm.imageId ?? '');
+        if (url) {
+          setCachedOriginalUrl(url);
+          const ext = url.split('.').pop() || 'jpg';
+          const res = await fetch(url);
+          if (res.ok) {
+            const blob = await res.blob();
+            const file = new File([blob], `original.${ext}`, { type: blob.type });
+            setCachedOriginalFile(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              setUploadedImage(reader.result as string);
+              setShowCropModal(true);
+              setIsImageLoaded(false);
+              setPendingImageChange(true);
+              console.log('[MUSIC] pendingImageChange activé (recrop fallback)');
+            };
+            reader.readAsDataURL(file);
+          } else {
+            toast.error("Impossible de charger l'image originale pour le recadrage.");
+            setShowCropModal(false);
+            setIsImageLoaded(false);
+            console.error('[MUSIC] Erreur fetch fallback originale');
+          }
+        } else {
           toast.error("Impossible de charger l'image originale pour le recadrage.");
           setShowCropModal(false);
           setIsImageLoaded(false);
+          console.error('[MUSIC] Aucune URL trouvée en fallback');
         }
-      );
+      })();
       return;
     }
-    // Sinon, aucune image à recadrer
     toast.error('Aucune image existante à recadrer.');
   };
 
@@ -1034,7 +1092,7 @@ export default function AdminMusicPage() {
                   )}
                 </h2>
 
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleSubmitWithCache}>
                   <div className="grid grid-cols-2 gap-4">
                     {/* Titre */}
                     <div className="col-span-2">

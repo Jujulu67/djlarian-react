@@ -80,12 +80,12 @@ model MusicCollection {
 }
 
 model RecurrenceConfig {
-  id            String    @id
+  id            String    @id @default(uuid())
   frequency     String    @default("weekly")
   day           Int?
   endDate       DateTime?
   createdAt     DateTime  @default(now())
-  updatedAt     DateTime
+  updatedAt     DateTime  @updatedAt
   eventId       String    @unique
   excludedDates Json?
   Event         Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
