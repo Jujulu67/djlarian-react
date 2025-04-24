@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { X } from 'lucide-react';
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import ReactDOM from 'react-dom';
 
 interface ModalProps {
   children: React.ReactNode;
@@ -78,7 +79,7 @@ export default function Modal({
     setIsMouseDownOutside(false);
   };
 
-  return (
+  const modalContent = (
     <div
       className="absolute inset-0 z-50 overflow-hidden"
       style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
@@ -94,7 +95,6 @@ export default function Modal({
           style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
           aria-hidden="true"
         />
-
         <div
           ref={modalRef}
           className={`relative transform overflow-hidden rounded-xl ${bgClass ?? 'bg-gradient-to-br from-[#1a0f2a] via-[#0c0117] to-[#1a0f2a]'} ${borderClass ?? 'border border-purple-500/30'} w-full ${maxWidth} text-left shadow-2xl transition-all sm:my-8 animate-fadeIn`}
@@ -120,6 +120,9 @@ export default function Modal({
       </div>
     </div>
   );
+
+  if (typeof window === 'undefined') return null;
+  return ReactDOM.createPortal(modalContent, document.body);
 }
 
 // Ajouter quelques keyframes pour l'animation dans un style global ou un fichier CSS séparé
