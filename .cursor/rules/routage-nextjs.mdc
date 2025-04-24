@@ -1,0 +1,81 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Routage Next.js (App Router)
+
+## Structure de Routage
+
+Ce projet utilise le système de routage App Router de Next.js. Les routes sont définies par la structure des dossiers dans [src/app/](mdc:src/app).
+
+### Organisation des Routes
+
+- Les dossiers dans `src/app/` représentent des segments d'URL
+- Les fichiers `page.tsx` définissent le contenu principal d'une route
+- Les fichiers `layout.tsx` définissent la mise en page partagée entre plusieurs routes
+- Les fichiers `loading.tsx` définissent l'état de chargement
+- Les fichiers `error.tsx` gèrent les erreurs
+- Les dossiers commençant par `(...)` sont des groupes de routes qui ne font pas partie de l'URL
+
+### Exemple de Structure
+
+```
+src/app/
+├── layout.tsx            # Layout racine de l'application
+├── page.tsx              # Page d'accueil (/)
+├── globals.css           # Styles globaux
+├── (auth)/               # Groupe de routes d'authentification
+│   ├── login/
+│   │   └── page.tsx      # Page de connexion (/login)
+│   └── register/
+│       └── page.tsx      # Page d'inscription (/register)
+├── (dashboard)/          # Groupe de routes du tableau de bord
+│   ├── layout.tsx        # Layout partagé pour le tableau de bord
+│   ├── page.tsx          # Page principale du tableau de bord (/dashboard)
+│   └── [id]/             # Route dynamique avec paramètre
+│       └── page.tsx      # Page de détail (/dashboard/123)
+└── api/                  # Routes API
+    └── ...
+```
+
+## Routes API
+
+Les API sont définies dans le dossier [src/app/api/](mdc:src/app/api) et suivent la même structure de dossiers que les routes de pages.
+
+### Exemple de Route API
+
+```tsx
+// src/app/api/users/route.ts
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+
+export async function GET() {
+  try {
+    const users = await prisma.user.findMany();
+    return NextResponse.json(users);
+  } catch (error) {
+    return NextResponse.json({ error: 'Erreur lors de la récupération des utilisateurs' }, { status: 500 });
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const data = await request.json();
+    const user = await prisma.user.create({ data });
+    return NextResponse.json(user, { status: 201 });
+  } catch (error) {
+    return NextResponse.json({ error: 'Erreur lors de la création de l\'utilisateur' }, { status: 500 });
+  }
+}
+```
+
+## Middleware
+
+Le [middleware](mdc:src/middleware.ts) est utilisé pour la gestion des sessions, la redirection, et l'autorisation.
+
+## Navigation
+
+- Utiliser `Link` de `next/link` pour la navigation côté client
+- Utiliser `useRouter` de `next/navigation` pour la navigation programmatique
+- Utiliser `usePathname` et `useSearchParams` de `next/navigation` pour accéder à l'URL actuelle

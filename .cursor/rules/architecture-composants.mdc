@@ -1,0 +1,69 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Architecture des Composants
+
+## Organisation des Composants
+
+Les composants sont organisés de manière hiérarchique pour faciliter la maintenance et la réutilisation:
+
+### Composants UI (Interface Utilisateur)
+
+Les composants UI de base se trouvent dans [src/components/ui/](mdc:src/components/ui) et suivent les principes de Shadcn/UI et Radix. Ces composants sont réutilisables et ne contiennent pas de logique métier.
+
+### Composants de Mise en Page
+
+Les composants de mise en page se trouvent dans [src/components/layout/](mdc:src/components/layout) et définissent la structure globale des pages.
+
+### Composants de Sections
+
+Les composants spécifiques à certaines sections de l'application se trouvent dans [src/components/sections/](mdc:src/components/sections).
+
+### Composants Spécifiques
+
+- [src/components/auth/](mdc:src/components/auth) - Composants liés à l'authentification
+- [src/components/admin/](mdc:src/components/admin) - Composants du tableau de bord administrateur
+- [src/components/RhythmCatcher/](mdc:src/components/RhythmCatcher) - Composants liés à la fonctionnalité RhythmCatcher
+
+## Convention de Structuration des Composants
+
+```tsx
+// 1. Imports
+import { useState } from 'react';
+import clsx from 'clsx';
+
+// 2. Types/Interfaces
+interface ComponentProps {
+  // props
+}
+
+// 3. Composant
+const Component = ({ prop1, prop2 }: ComponentProps): JSX.Element => {
+  // État et hooks
+  const [state, setState] = useState<boolean>(false);
+  
+  // Handlers
+  const handleClick = (): void => {
+    setState(!state);
+  };
+  
+  // Rendu
+  return (
+    <div className="...">
+      {/* Contenu */}
+    </div>
+  );
+};
+
+export default Component;
+```
+
+## Bonnes Pratiques
+
+- Utiliser des composants de petite taille et ciblés
+- Utiliser la composition plutôt que l'héritage
+- Extraire la logique complexe dans des hooks personnalisés
+- Implémenter les fonctionnalités d'accessibilité
+- Respecter le pattern des early returns

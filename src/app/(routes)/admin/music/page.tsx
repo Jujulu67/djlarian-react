@@ -34,6 +34,7 @@ import Image from 'next/image';
 import ReactCrop, { type Crop as CropType, centerCrop, makeAspectCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import Link from 'next/link';
+import { z } from 'zod';
 
 // Helper function to center the crop area with a specific aspect ratio
 function centerAspectCrop(mediaWidth: number, mediaHeight: number, aspect: number): CropType {
@@ -418,28 +419,53 @@ export default function AdminMusicPage() {
     try {
       // Préparer les données à envoyer à l'API
       const platformsArray = Object.entries(currentForm.platforms || {})
-        .filter(([_, value]) => value && value.url)
+        .filter(([_, value]) => value && value.url) // Ensure platform has a URL
         .map(([platform, data]) => ({
           platform: platform as MusicPlatform,
           url: data!.url,
           embedId: data!.embedId,
         }));
 
+      // --- Validation Frontend ---
+      if (platformsArray.length === 0) {
+        toast.error('Veuillez ajouter au moins une plateforme musicale (Spotify, YouTube, etc.).');
+        setIsSubmitting(false);
+        return; // Stop submission
+      }
+
+      // Ensure URLs are valid or null/undefined
+      // Accepter les URLs relatives commençant par /uploads/ en plus des URLs complètes
+      const isValidUrl = (url: string) => {
+        return z.string().url().safeParse(url).success || url.startsWith('/uploads/');
+      };
+
+      const coverUrlToSend =
+        currentForm.coverUrl && isValidUrl(currentForm.coverUrl) ? currentForm.coverUrl : null;
+
+      const originalImageUrlToSend =
+        currentForm.originalImageUrl && isValidUrl(currentForm.originalImageUrl)
+          ? currentForm.originalImageUrl
+          : coverUrlToSend; // Fallback to coverUrlToSend if original is invalid/missing
+
       const apiData = {
         ...currentForm,
         genreNames: currentForm.genre,
         platforms: platformsArray,
-        // S'assurer que originalImageUrl est bien envoyé et n'est pas null si on a un coverUrl
-        originalImageUrl:
-          currentForm.originalImageUrl || (currentForm.coverUrl ? currentForm.coverUrl : null),
+        coverUrl: coverUrlToSend, // Use sanitized URL or null
+        originalImageUrl: originalImageUrlToSend, // Use sanitized URL or fallback or null
       };
 
       console.log("Envoi à l'API, données:", {
-        coverUrl: apiData.coverUrl,
-        originalImageUrl: apiData.originalImageUrl,
+        // Log the data being sent for debugging
+        ...apiData,
       });
 
-      const response = await fetch('/api/music', {
+      // Construire l'URL en fonction de si c'est une création ou une mise à jour
+      const apiUrl = isEditing
+        ? `/api/music/${currentForm.id}` // URL pour mise à jour (PUT)
+        : '/api/music'; // URL pour création (POST)
+
+      const response = await fetch(apiUrl, {
         method: isEditing ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(apiData),
@@ -448,32 +474,29 @@ export default function AdminMusicPage() {
       if (!response.ok) {
         const errorData = await response.json();
         console.error('API Error data:', errorData);
-        // Conserver l'erreur originale pour le catch
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        // Try to display more specific error details if available
+        const detailedMessage = errorData.details
+          ? Object.entries(errorData.details)
+              .map(([field, errors]) => `${field}: ${(errors as string[]).join(', ')}`)
+              .join('; ')
+          : errorData.error;
+        throw new Error(detailedMessage || `HTTP error! status: ${response.status}`);
       }
 
       const resultData = await response.json();
-      // Log pour vérifier la réponse
       console.log('API Success data:', resultData);
-
-      // Supposons que resultData est déjà formaté comme une Track par formatTrackData dans l'API
       const resultTrack: Track = resultData;
 
-      // Afficher un message de succès avec le titre
       toast.success(
         `Morceau "${resultTrack.title}" ${isEditing ? 'mis à jour' : 'ajouté'} avec succès!`
       );
 
-      // Rafraîchir la liste des morceaux
       fetchTracks();
-
-      // Réinitialiser le formulaire après succès
       resetForm();
     } catch (error) {
       console.error('Error saving track:', error);
-      // Afficher le message d'erreur original dans le toast
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-      toast.error(`Error saving track: ${errorMessage}`);
+      toast.error(`Erreur sauvegarde: ${errorMessage}`); // Show more specific error
     } finally {
       setIsSubmitting(false);
     }
