@@ -64,7 +64,9 @@ export default function AdminMusicPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [currentForm, setCurrentForm] = useState<Omit<Track, 'id'> & { id?: string }>({
+  const [currentForm, setCurrentForm] = useState<
+    Omit<Track, 'id'> & { id?: string; imageId?: string | null }
+  >({
     ...emptyTrackForm,
   });
   const [genreInput, setGenreInput] = useState('');
@@ -142,50 +144,44 @@ export default function AdminMusicPage() {
     if (!file) return;
     originalImageFileRef.current = file;
     setOriginalImageFile(file);
-    setCoverPreview(URL.createObjectURL(file));
+    console.log('[handleImageUpload] setOriginalImageFile', file);
+    console.log('[handleImageUpload] originalImageFileRef.current', originalImageFileRef.current);
     setImageToUploadId(uuidv4());
     setUploadedImage(URL.createObjectURL(file));
     setShowCropModal(true);
   };
 
-  // *** AJOUTER ici ***
   const handleReCrop = async () => {
-    // 1. Si on a déjà un fichier local (création ou upload récent)
     if (originalImageFile) {
-      originalImageFileRef.current = originalImageFile; // ← ajoute cette ligne
+      originalImageFileRef.current = originalImageFile;
+      console.log('[handleReCrop] originalImageFileRef.current', originalImageFileRef.current);
       const url = URL.createObjectURL(originalImageFile);
       setUploadedImage(url);
       setImageToUploadId(uuidv4());
       setShowCropModal(true);
       return;
     }
-
-    // 2. Sinon on va chercher l'original depuis le serveur
     if (currentForm.imageId) {
-      const originalUrl = await findOriginalImageUrl(currentForm.imageId);
-      if (!originalUrl) {
-        toast.error('Image originale introuvable');
-        return;
-      }
-
-      const res = await fetch(originalUrl);
-      if (!res.ok) {
-        toast.error("Impossible de charger l'image originale");
-        return;
-      }
-
-      const blob = await res.blob();
-      const file = new File([blob], 'original.jpg', { type: blob.type });
-      originalImageFileRef.current = file;
-      setOriginalImageFile(file);
-
-      const localUrl = URL.createObjectURL(file);
-      setUploadedImage(localUrl);
-      setImageToUploadId(uuidv4());
-      setShowCropModal(true);
+      try {
+        const res = await fetch(`/uploads/${currentForm.imageId}-ori.jpg`);
+        if (res.ok) {
+          const blob = await res.blob();
+          const file = new File([blob], 'original.jpg', { type: blob.type });
+          originalImageFileRef.current = file;
+          setOriginalImageFile(file);
+          console.log('[handleReCrop] setOriginalImageFile (fetch)', file);
+          console.log(
+            '[handleReCrop] originalImageFileRef.current (fetch)',
+            originalImageFileRef.current
+          );
+          const localUrl = URL.createObjectURL(file);
+          setUploadedImage(localUrl);
+          setImageToUploadId(uuidv4());
+          setShowCropModal(true);
+        }
+      } catch {}
     }
   };
-  // *** FIN ajout ***
 
   const resetFileInput = () => fileInputRef.current && (fileInputRef.current.value = '');
 
@@ -228,20 +224,14 @@ export default function AdminMusicPage() {
     });
   };
 
-  const completeCrop = async () => {
-    if (!imageRef.current || !crop?.width || !crop.height) return toast.error('Crop invalide');
-    const { croppedBlob } = await getCroppedBlob(
-      imageRef.current,
-      crop,
-      'cover.jpg',
-      originalImageFile
-    );
-    if (!croppedBlob) return toast.error("Impossible de générer l'image");
-    setCroppedImageBlob(croppedBlob);
-    setCoverPreview(URL.createObjectURL(croppedBlob));
+  const handleCropValidated = (file: File, preview: string) => {
+    setCroppedImageBlob(file);
+    setCoverPreview(preview);
     setShowCropModal(false);
-    setCrop(undefined);
     resetFileInput();
+    console.log('[handleCropValidated] setCroppedImageBlob', file);
+    console.log('[handleCropValidated] coverPreview', preview);
+    console.log('[handleCropValidated] originalImageFile', originalImageFile);
   };
 
   const cancelCrop = () => {
@@ -249,6 +239,14 @@ export default function AdminMusicPage() {
     setUploadedImage(null);
     setCrop(undefined);
     resetFileInput();
+    // Si on annule le tout premier crop après upload (pas de crop validé, pas de preview), on flush tout
+    if (!croppedImageBlob && !coverPreview) {
+      setOriginalImageFile(null);
+      console.log('[cancelCrop] PURGE originalImageFile (premier crop annulé)', null);
+      setCoverPreview('');
+    }
+    // Sinon, on ne touche à rien (on garde le dernier crop validé et l'originale)
+    console.log('[cancelCrop] originalImageFile', originalImageFile);
   };
 
   /* ------------------------- CRUD Track ---------------------------------- */
@@ -302,7 +300,7 @@ export default function AdminMusicPage() {
     }
   };
 
-  const handleEdit = (t: Track) => {
+  const handleEdit = async (t: Track) => {
     const plat: Track['platforms'] = {};
     Object.entries(t.platforms).forEach(([k, v]) => v?.url && (plat[k as MusicPlatform] = v));
     setCurrentForm({
@@ -312,6 +310,19 @@ export default function AdminMusicPage() {
     });
     setCoverPreview(t.imageId ? `/uploads/${t.imageId}.jpg` : '');
     setIsEditing(true);
+    setCroppedImageBlob(null);
+    setUploadedImage(null);
+    setImageToUploadId(null);
+    setOriginalImageFile(null);
+    if (t.imageId) {
+      try {
+        const res = await fetch(`/uploads/${t.imageId}-ori.jpg`);
+        if (res.ok) {
+          const blob = await res.blob();
+          setOriginalImageFile(new File([blob], 'original.jpg', { type: blob.type }));
+        }
+      } catch {}
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -347,9 +358,10 @@ export default function AdminMusicPage() {
     setGenreInput('');
     setIsEditing(false);
     setCroppedImageBlob(null);
-    setOriginalImageFile(null);
     setUploadedImage(null);
     setImageToUploadId(null);
+    // Ne pas toucher à originalImageFile ici pour permettre le recrop tant qu'on n'a pas explicitement supprimé l'image
+    console.log('[resetForm] originalImageFile (should be kept)', originalImageFile);
   };
   /* ----------------------------------------------------------------------- */
 
@@ -552,11 +564,12 @@ export default function AdminMusicPage() {
                         setOriginalImageFile(null);
                         setCroppedImageBlob(null);
                         setCoverPreview('');
-                        setCurrentForm({ ...currentForm, imageId: undefined });
+                        setCurrentForm({ ...currentForm, imageId: null });
+                        console.log('[ImageDropzone onRemove] PURGE originalImageFile', null);
                       }}
                       placeholderText="Glissez-déposez une image…"
                       accept="image/*"
-                      recropDisabled={!uploadedImage && !currentForm.imageId}
+                      canRecrop={!!originalImageFile}
                     />
                   </div>
 
@@ -795,18 +808,8 @@ export default function AdminMusicPage() {
             title="Recadrer l'image"
             cropLabel="Appliquer"
             cancelLabel="Annuler"
-            onCrop={(file, preview) => {
-              setCroppedImageBlob(file);
-              setCoverPreview(preview);
-              setShowCropModal(false);
-              setCrop(undefined);
-              resetFileInput();
-            }}
+            onCrop={handleCropValidated}
             onCancel={cancelCrop}
-            onImageLoad={handleImageLoad}
-            refImage={imageRef}
-            crop={crop}
-            setCrop={setCrop}
           />
         )}
       </div>
