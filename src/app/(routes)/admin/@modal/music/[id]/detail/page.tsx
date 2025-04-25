@@ -17,7 +17,7 @@ export default function InterceptedMusicDetailPage() {
   }
 
   return (
-    <Modal>
+    <Modal zClass="z-[9999]">
       <TrackDetailView trackId={trackId} onClose={() => router.back()} />
     </Modal>
   );

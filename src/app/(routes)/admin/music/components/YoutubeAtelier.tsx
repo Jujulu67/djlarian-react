@@ -82,44 +82,48 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
   /* ---------------------- WORKFLOW D'IMPORT ------------------------------ */
   const startVerificationProcess = () => {
     setVerifyIndex(0);
-    processNextVideo();
-  };
-  const processNextVideo = () => {
-    if (verifyIndex >= selectedVideos.length) {
-      setShowVerifyModal(false);
-      fetchTracks?.();
-      youtubeUsername && fetchYouTubeVideos();
-      setSelectedVideos([]);
-      toast.success('Importation terminée');
-      return;
-    }
-    const id = selectedVideos[verifyIndex];
-    const video = youtubeVideos.find((v) => v.id === id);
-    if (!video) {
-      setVerifyIndex((i) => i + 1);
-      return processNextVideo();
-    }
-    const { bpm, genres } = extractInfoFromTitle(video.title);
-    setCurrentVideoForImport(video);
-    setVerifyFormData({
-      ...emptyTrackForm,
-      title: video.title,
-      releaseDate: video.publishedAt,
-      bpm,
-      genre: genres,
-      type: genres.includes('Live')
-        ? 'live'
-        : genres.includes('Remix')
-          ? 'remix'
-          : genres.includes('DJ Set')
-            ? 'djset'
-            : 'video',
-      platforms: {
-        youtube: { url: `https://www.youtube.com/watch?v=${video.id}`, embedId: video.id },
-      },
-    });
     setShowVerifyModal(true);
   };
+
+  useEffect(() => {
+    if (showVerifyModal && verifyIndex < selectedVideos.length) {
+      const id = selectedVideos[verifyIndex];
+      const video = youtubeVideos.find((v) => v.id === id);
+      if (!video) {
+        setVerifyIndex((i) => i + 1);
+        return;
+      }
+      const { bpm, genres } = extractInfoFromTitle(video.title);
+      setCurrentVideoForImport(video);
+      setVerifyFormData({
+        ...emptyTrackForm,
+        title: video.title,
+        releaseDate: video.publishedAt,
+        bpm,
+        genre: genres,
+        type: genres.includes('Live')
+          ? 'live'
+          : genres.includes('Remix')
+            ? 'remix'
+            : genres.includes('DJ Set')
+              ? 'djset'
+              : 'video',
+        platforms: {
+          youtube: { url: `https://www.youtube.com/watch?v=${video.id}`, embedId: video.id },
+        },
+      });
+    } else if (showVerifyModal && verifyIndex >= selectedVideos.length) {
+      setShowVerifyModal(false);
+      fetchTracks?.();
+      setYoutubeVideos((prev) =>
+        prev.map((v) => (selectedVideos.includes(v.id) ? { ...v, exists: true } : v))
+      );
+      setSelectedVideos([]);
+      toast.success('Importation terminée');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [verifyIndex, showVerifyModal]);
+
   const confirmVideoImport = async () => {
     if (!currentVideoForImport) return;
     setIsSubmitting(true);
@@ -137,27 +141,29 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
               embedId: currentVideoForImport.id,
             },
           ],
+          thumbnailUrl: currentVideoForImport.thumbnail,
         }),
       });
       if (!res.ok) throw new Error(res.statusText);
-      setVerifyIndex((i) => i + 1);
       setIsSubmitting(false);
-      processNextVideo();
+      setVerifyIndex((i) => i + 1);
     } catch (err) {
       console.error(err);
       toast.error("Erreur lors de l'ajout de la vidéo");
       setIsSubmitting(false);
     }
   };
+
   const skipCurrentVideo = () => {
     setVerifyIndex((i) => i + 1);
-    processNextVideo();
   };
+
   const toggleVideoSelection = (id: string) =>
     setSelectedVideos((sel) => (sel.includes(id) ? sel.filter((x) => x !== id) : [...sel, id]));
   /* ----------------------------------------------------------------------- */
 
   /* ------------------------------ RENDER --------------------------------- */
+  console.log('selectedVideos (render):', selectedVideos);
   return (
     <div className="grid grid-cols-1 gap-8">
       <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg border border-gray-700/50 p-6">
@@ -167,7 +173,13 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
           musicale. Le système détecte automatiquement celles déjà présentes.
         </p>
         {/* zone de recherche */}
-        <div className="flex items-end gap-4 mb-8">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            fetchYouTubeVideos();
+          }}
+          className="flex items-end gap-4 mb-8"
+        >
           <div className="flex-1">
             <label htmlFor="yt" className="block text-gray-300 font-medium mb-2">
               Nom d'utilisateur / URL de chaîne
@@ -181,7 +193,7 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
             />
           </div>
           <button
-            onClick={fetchYouTubeVideos}
+            type="submit"
             disabled={isLoadingVideos || !youtubeUsername}
             className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center gap-2 disabled:opacity-50"
           >
@@ -195,7 +207,7 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
               </>
             )}
           </button>
-        </div>
+        </form>
         {/* Erreur éventuelle */}
         {youtubeError && (
           <div className="p-4 mb-6 bg-red-900/30 border border-red-700/50 rounded-lg text-red-200 flex gap-3">
@@ -282,18 +294,40 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
               {filteredYoutubeVideos.slice(0, maxResults).map((v) => (
                 <div
                   key={v.id}
+                  onClick={() => {
+                    if (!v.exists) toggleVideoSelection(v.id);
+                  }}
+                  onKeyDown={(e) => {
+                    if (!v.exists && (e.key === 'Enter' || e.key === ' ')) {
+                      e.preventDefault();
+                      toggleVideoSelection(v.id);
+                    }
+                  }}
+                  tabIndex={0}
+                  aria-label={
+                    v.exists
+                      ? `Vidéo déjà importée : ${v.title}`
+                      : selectedVideos.includes(v.id)
+                        ? `Désélectionner la vidéo : ${v.title}`
+                        : `Sélectionner la vidéo : ${v.title}`
+                  }
                   className={`flex items-center gap-4 p-4 rounded-lg border transition-colors ${
                     v.exists
                       ? 'bg-green-900/20 border-green-700/50 text-green-200'
                       : selectedVideos.includes(v.id)
                         ? 'bg-purple-900/30 border-purple-700/50'
-                        : 'bg-gray-800/40 border-gray-700/30 hover:bg-gray-800/60'
-                  }`}
+                        : 'bg-gray-800/40 border-gray-700/30'
+                  }
+                    cursor-pointer
+                    hover:ring-2 hover:ring-purple-500`}
                 >
                   {/* Bouton de sélection vidéo, accessible clavier */}
                   {!v.exists && (
                     <button
-                      onClick={() => toggleVideoSelection(v.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleVideoSelection(v.id);
+                      }}
                       className={`p-2 rounded-md ${selectedVideos.includes(v.id) ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
                       aria-label={
                         selectedVideos.includes(v.id)
@@ -334,6 +368,7 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
                     rel="noopener noreferrer"
                     className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg"
                     title="Voir sur YouTube"
+                    onClick={(e) => e.stopPropagation()}
                   >
                     <ExternalLink className="w-5 h-5" />
                   </a>

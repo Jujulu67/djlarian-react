@@ -13,6 +13,7 @@ interface ModalProps {
   bgClass?: string; // nouveau
   borderClass?: string; // nouveau
   onClose?: () => void; // nouveau
+  zClass?: string; // nouveau, pour personnaliser le z-index
 }
 
 export default function Modal({
@@ -23,6 +24,7 @@ export default function Modal({
   bgClass,
   borderClass,
   onClose,
+  zClass,
 }: ModalProps) {
   const router = useRouter();
   const modalRef = useRef<HTMLDivElement>(null);
@@ -81,41 +83,37 @@ export default function Modal({
 
   const modalContent = (
     <div
-      className="absolute inset-0 z-50 overflow-hidden"
-      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+      className={`fixed inset-0 ${zClass ?? 'z-[9999]'} flex items-center justify-center overflow-hidden`}
       aria-labelledby="modal-title"
       role="dialog"
       aria-modal="true"
       onMouseDown={handleMouseDown}
       onMouseUp={handleMouseUp}
     >
-      <div className="flex min-h-screen items-center justify-center p-4 text-center sm:p-0">
-        <div
-          className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
-          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-          aria-hidden="true"
-        />
-        <div
-          ref={modalRef}
-          className={`relative transform overflow-hidden rounded-xl ${bgClass ?? 'bg-gradient-to-br from-[#1a0f2a] via-[#0c0117] to-[#1a0f2a]'} ${borderClass ?? 'border border-purple-500/30'} w-full ${maxWidth} text-left shadow-2xl transition-all sm:my-8 animate-fadeIn`}
-          onClick={(e) => e.stopPropagation()}
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+        aria-hidden="true"
+      />
+      <div
+        ref={modalRef}
+        className={`relative transform overflow-hidden rounded-xl ${bgClass ?? 'bg-gradient-to-br from-[#1a0f2a] via-[#0c0117] to-[#1a0f2a]'} ${borderClass ?? 'border border-purple-500/30'} w-full ${maxWidth} text-left shadow-2xl transition-all sm:my-8 animate-fadeIn`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={handleClose}
+          className="absolute top-3 right-3 p-2 text-gray-400 hover:text-white bg-black/20 hover:bg-black/40 rounded-full transition-colors z-10"
+          aria-label="Fermer la modale"
         >
-          <button
-            onClick={handleClose}
-            className="absolute top-3 right-3 p-2 text-gray-400 hover:text-white bg-black/20 hover:bg-black/40 rounded-full transition-colors z-10"
-            aria-label="Fermer la modale"
-          >
-            <X className="w-5 h-5" />
-          </button>
-          <div className="p-6 md:p-8 lg:p-10 max-h-[80vh] overflow-y-auto">
-            {isReady ? (
-              showLoader ? (
-                <div className="animate-fadeIn">{children}</div>
-              ) : (
-                children
-              )
-            ) : null}
-          </div>
+          <X className="w-5 h-5" />
+        </button>
+        <div className="p-6 md:p-8 lg:p-10 max-h-[80vh] overflow-y-auto">
+          {isReady ? (
+            showLoader ? (
+              <div className="animate-fadeIn">{children}</div>
+            ) : (
+              children
+            )
+          ) : null}
         </div>
       </div>
     </div>
