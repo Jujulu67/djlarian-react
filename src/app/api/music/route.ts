@@ -7,6 +7,8 @@ import { MusicType, MusicPlatform } from '@/lib/utils/types';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
+import { writeFile } from 'fs/promises';
+import path from 'path';
 
 // Define actual arrays for Zod enums from types
 const musicTypes: [MusicType, ...MusicType[]] = [
@@ -49,6 +51,7 @@ const trackCreateSchema = z.object({
     )
     .optional(),
   collectionId: z.string().optional().nullable(),
+  thumbnailUrl: z.string().url().optional(),
 });
 
 // Re-define CreateTrackInput based on Zod schema if needed elsewhere, or use z.infer
@@ -123,6 +126,23 @@ export async function POST(request: Request) {
   }
 
   const data: CreateTrackInput = validationResult.data;
+
+  let imageId = data.imageId;
+  if (!imageId && data.thumbnailUrl) {
+    try {
+      imageId = uuidv4();
+      const response = await fetch(data.thumbnailUrl);
+      if (!response.ok) throw new Error('Thumbnail fetch failed');
+      const buffer = Buffer.from(await response.arrayBuffer());
+      const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+      await writeFile(path.join(uploadsDir, `${imageId}.jpg`), buffer);
+      await writeFile(path.join(uploadsDir, `${imageId}-ori.jpg`), buffer);
+      data.imageId = imageId;
+    } catch (err) {
+      console.error('[API MUSIC] Erreur import thumbnail YouTube:', err);
+      // On continue sans image si erreur
+    }
+  }
 
   try {
     const track = await prisma.$transaction(async (tx) => {

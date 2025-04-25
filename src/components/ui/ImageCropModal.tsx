@@ -12,6 +12,7 @@ interface ImageCropModalProps {
   cropLabel?: string;
   title?: string;
   cancelLabel?: string;
+  zClass?: string;
 }
 
 const ImageCropModal: React.FC<ImageCropModalProps> = ({
@@ -22,6 +23,7 @@ const ImageCropModal: React.FC<ImageCropModalProps> = ({
   cropLabel = 'Appliquer le recadrage',
   title,
   cancelLabel = 'Annuler',
+  zClass,
 }) => {
   const [displayCrop, setDisplayCrop] = useState<CropType>();
   const [isImageLoaded, setIsImageLoaded] = useState(false);
@@ -93,7 +95,13 @@ const ImageCropModal: React.FC<ImageCropModalProps> = ({
   if (!imageToEdit) return null;
 
   return (
-    <Modal maxWidth="max-w-3xl" showLoader={false} bgClass="bg-gray-800" borderClass="border-none">
+    <Modal
+      maxWidth="max-w-3xl"
+      showLoader={false}
+      bgClass="bg-gray-800"
+      borderClass="border-none"
+      zClass={zClass}
+    >
       <div className="flex flex-col w-full">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold text-white">

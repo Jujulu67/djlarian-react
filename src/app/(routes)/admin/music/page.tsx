@@ -72,6 +72,7 @@ export default function AdminMusicPage() {
   const [activeTab, setActiveTab] = useState<AdminMusicTab>('tracks');
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredTracks, setFilteredTracks] = useState<Track[]>([]);
+  const [refreshingCoverId, setRefreshingCoverId] = useState<string | null>(null);
 
   /* ------ Image -------- */
   const [showCropModal, setShowCropModal] = useState(false);
@@ -724,6 +725,48 @@ export default function AdminMusicPage() {
                               className="p-2 text-gray-400 hover:text-red-500 hover:bg-gray-700 rounded-lg"
                             >
                               <Trash2 className="w-5 h-5" />
+                            </button>
+                            {/* Bouton refresh cover */}
+                            <button
+                              type="button"
+                              className={`p-2 rounded-lg hover:bg-purple-700/30 text-purple-400 hover:text-white transition-colors ${refreshingCoverId === t.id ? 'opacity-50 cursor-wait' : ''}`}
+                              title="Rafraîchir la cover"
+                              disabled={refreshingCoverId === t.id}
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                setRefreshingCoverId(t.id);
+                                try {
+                                  const res = await fetch(`/api/music/${t.id}/refresh-cover`, {
+                                    method: 'POST',
+                                  });
+                                  const data = await res.json();
+                                  if (!res.ok) throw new Error(data.error || 'Erreur API');
+                                  setTracks((arr) =>
+                                    arr.map((track) =>
+                                      track.id === t.id
+                                        ? {
+                                            ...track,
+                                            imageId: data.imageId,
+                                            updatedAt: new Date().toISOString(),
+                                          }
+                                        : track
+                                    )
+                                  );
+                                  toast.success('Cover rafraîchie !');
+                                } catch (err) {
+                                  toast.error(
+                                    (err as any).message || 'Erreur lors du refresh cover'
+                                  );
+                                } finally {
+                                  setRefreshingCoverId(null);
+                                }
+                              }}
+                            >
+                              {refreshingCoverId === t.id ? (
+                                <RefreshCw className="w-5 h-5 animate-spin" />
+                              ) : (
+                                <RefreshCw className="w-5 h-5" />
+                              )}
                             </button>
                           </div>
                         </div>
