@@ -18,7 +18,7 @@ export interface Track {
   id: string;
   title: string;
   artist: string;
-  imageId?: string;
+  imageId?: string | null;
   audioUrl?: string;
   duration?: number;
   releaseDate: string;

@@ -3,6 +3,7 @@ import ReactCrop, { type Crop as CropType, centerCrop, makeAspectCrop } from 're
 import 'react-image-crop/dist/ReactCrop.css';
 import { Button } from '@/components/ui';
 import Modal from '@/components/ui/Modal';
+import { X } from 'lucide-react';
 
 interface ImageCropModalProps {
   imageToEdit: string | null;
@@ -101,6 +102,7 @@ const ImageCropModal: React.FC<ImageCropModalProps> = ({
       bgClass="bg-gray-800"
       borderClass="border-none"
       zClass={zClass}
+      onClose={onCancel}
     >
       <div className="flex flex-col w-full">
         <div className="flex justify-between items-center mb-4">

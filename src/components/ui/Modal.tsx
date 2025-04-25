@@ -87,8 +87,6 @@ export default function Modal({
       aria-labelledby="modal-title"
       role="dialog"
       aria-modal="true"
-      onMouseDown={handleMouseDown}
-      onMouseUp={handleMouseUp}
     >
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"

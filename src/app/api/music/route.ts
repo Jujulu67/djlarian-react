@@ -9,6 +9,7 @@ import { Prisma } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import { writeFile } from 'fs/promises';
 import path from 'path';
+import sharp from 'sharp';
 
 // Define actual arrays for Zod enums from types
 const musicTypes: [MusicType, ...MusicType[]] = [
@@ -134,9 +135,23 @@ export async function POST(request: Request) {
       const response = await fetch(data.thumbnailUrl);
       if (!response.ok) throw new Error('Thumbnail fetch failed');
       const buffer = Buffer.from(await response.arrayBuffer());
+      // Traitement carré avec padding noir
+      const image = sharp(buffer);
+      const metadata = await image.metadata();
+      const size = Math.max(metadata.width || 0, metadata.height || 0, 800);
+      const padded = await image
+        .resize({
+          width: size,
+          height: size,
+          fit: 'contain',
+          background: { r: 0, g: 0, b: 0 },
+        })
+        .resize(800, 800)
+        .jpeg({ quality: 90 })
+        .toBuffer();
       const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-      await writeFile(path.join(uploadsDir, `${imageId}.jpg`), buffer);
-      await writeFile(path.join(uploadsDir, `${imageId}-ori.jpg`), buffer);
+      await writeFile(path.join(uploadsDir, `${imageId}.jpg`), padded);
+      await writeFile(path.join(uploadsDir, `${imageId}-ori.jpg`), padded);
       data.imageId = imageId;
     } catch (err) {
       console.error('[API MUSIC] Erreur import thumbnail YouTube:', err);
