@@ -238,8 +238,6 @@
   transition: transform 0.5s ease;
 }
 
-
-
 @layer base {
   * {
     @apply border-border;
@@ -247,4 +245,20 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Animation pour la surbrillance de la track en édition */
+@keyframes highlight-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(168, 85, 247, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(168, 85, 247, 0);
+  }
+}
+.animate-highlight-ring {
+  animation: highlight-ring 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }

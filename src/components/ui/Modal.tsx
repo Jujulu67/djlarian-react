@@ -14,6 +14,7 @@ interface ModalProps {
   borderClass?: string; // nouveau
   onClose?: () => void; // nouveau
   zClass?: string; // nouveau, pour personnaliser le z-index
+  fullscreenContent?: boolean; // Si true, désactive padding/margin/overflow pour un contenu 100% écran
 }
 
 export default function Modal({
@@ -25,6 +26,7 @@ export default function Modal({
   borderClass,
   onClose,
   zClass,
+  fullscreenContent = false,
 }: ModalProps) {
   const router = useRouter();
   const modalRef = useRef<HTMLDivElement>(null);
@@ -94,7 +96,7 @@ export default function Modal({
       />
       <div
         ref={modalRef}
-        className={`relative transform overflow-hidden rounded-xl ${bgClass ?? 'bg-gradient-to-br from-[#1a0f2a] via-[#0c0117] to-[#1a0f2a]'} ${borderClass ?? 'border border-purple-500/30'} w-full ${maxWidth} text-left shadow-2xl transition-all sm:my-8 animate-fadeIn`}
+        className={`relative transform overflow-hidden rounded-xl ${bgClass ?? 'bg-gradient-to-br from-[#1a0f2a] via-[#0c0117] to-[#1a0f2a]'} ${borderClass ?? 'border border-purple-500/30'} w-full ${maxWidth} text-left shadow-2xl transition-all ${fullscreenContent ? 'w-screen h-screen m-0 rounded-none' : 'sm:my-8'} animate-fadeIn`}
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -104,7 +106,13 @@ export default function Modal({
         >
           <X className="w-5 h-5" />
         </button>
-        <div className="p-6 md:p-8 lg:p-10 max-h-[80vh] overflow-y-auto">
+        <div
+          className={
+            fullscreenContent
+              ? 'w-full h-full p-0 m-0'
+              : 'p-6 md:p-8 lg:p-10 max-h-[80vh] overflow-y-auto'
+          }
+        >
           {isReady ? (
             showLoader ? (
               <div className="animate-fadeIn">{children}</div>
