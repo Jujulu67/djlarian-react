@@ -28,6 +28,9 @@ import {
   CalendarDays,
   Video,
   GripVertical,
+  Image as ImageIcon,
+  Download,
+  Trash2,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -38,6 +41,8 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import HistoryModal from './components/HistoryModal';
 import Modal from '@/components/ui/Modal';
+import { Select } from '@/components/ui/Select';
+import GestionImages from './GestionImages';
 
 // Composant StrictModeDroppable pour résoudre le problème de compatibilité avec React 18 StrictMode
 const StrictModeDroppable = ({ children, ...props }: React.ComponentProps<typeof Droppable>) => {
@@ -190,7 +195,14 @@ const SaveConfigModal = ({ isOpen, onClose, onSave, changesSummary }: SaveConfig
   );
 };
 
-type ConfigSection = 'general' | 'appearance' | 'homepage' | 'notifications' | 'security' | 'api';
+type ConfigSection =
+  | 'general'
+  | 'appearance'
+  | 'homepage'
+  | 'notifications'
+  | 'security'
+  | 'api'
+  | 'images';
 
 // Définir les types pour chaque section de configuration
 interface GeneralConfig {
@@ -356,27 +368,106 @@ const initialApiConfig: ApiConfig = {
 
 export default function ConfigurationPage() {
   const [activeSection, setActiveSection] = useState<ConfigSection>('general');
-  const [loading, setLoading] = useState(true);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [saveModalOpen, setSaveModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isSnapshotModalOpen, setIsSnapshotModalOpen] = useState(false);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
-  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
-  const [lastSavedConfig, setLastSavedConfig] = useState<AllConfigs | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [configurations, setConfigurations] = useState<AllConfigs>({
+    general: {
+      siteName: 'DJ Larian',
+      siteDescription: 'Site officiel de DJ Larian',
+      contactEmail: 'contact@djlarian.com',
+      timeZone: 'Europe/Paris',
+      dateFormat: 'DD/MM/YYYY',
+    },
+    appearance: {
+      primaryColor: '#9333EA',
+      secondaryColor: '#2563EB',
+      darkMode: true,
+      animationsEnabled: true,
+      logoUrl: '/logo-dj-larian.png',
+      faviconUrl: '/favicon.ico',
+    },
+    homepage: initialHomepageConfig,
+    notifications: initialNotificationsConfig,
+    security: initialSecurityConfig,
+    api: initialApiConfig,
+  });
 
-  // États pour stocker les configurations avec les types et valeurs initiales
-  const [generalConfig, setGeneralConfig] = useState<GeneralConfig>(initialGeneralConfig);
-  const [appearanceConfig, setAppearanceConfig] =
-    useState<AppearanceConfig>(initialAppearanceConfig);
-  const [homepageConfig, setHomepageConfig] = useState<HomepageConfig>(initialHomepageConfig);
-  const [notificationsConfig, setNotificationsConfig] = useState<NotificationsConfig>(
-    initialNotificationsConfig
-  );
-  const [securityConfig, setSecurityConfig] = useState<SecurityConfig>(initialSecurityConfig);
-  const [apiConfig, setApiConfig] = useState<ApiConfig>(initialApiConfig);
+  // --- MOCK IMAGES ---
+  const [images, setImages] = useState([
+    {
+      id: 'img1',
+      url: '/uploads/cover1.jpg',
+      name: 'cover1.jpg',
+      size: 234567,
+      date: '2024-04-21T20:30:24Z',
+      type: 'cover',
+      linkedTo: { type: 'track', id: 'track1', title: 'Track One' },
+      isDuplicate: false,
+    },
+    {
+      id: 'img2',
+      url: '/uploads/event1.jpg',
+      name: 'event1.jpg',
+      size: 345678,
+      date: '2024-04-20T18:10:00Z',
+      type: 'event',
+      linkedTo: { type: 'event', id: 'event1', title: 'Event Alpha' },
+      isDuplicate: true,
+    },
+    {
+      id: 'img3',
+      url: '/uploads/cover2.jpg',
+      name: 'cover2.jpg',
+      size: 234567,
+      date: '2024-04-19T15:00:00Z',
+      type: 'cover',
+      linkedTo: null,
+      isDuplicate: false,
+    },
+  ]);
+  const [selectedImage, setSelectedImage] = useState(null as null | (typeof images)[0]);
+  const [search, setSearch] = useState('');
+  const [filterType, setFilterType] = useState<'all' | 'cover' | 'event' | 'other'>('all');
+  const [showDuplicates, setShowDuplicates] = useState(false);
+  const [showOrphans, setShowOrphans] = useState(false);
+
+  const filteredImages = images.filter((img) => {
+    if (search && !img.name.toLowerCase().includes(search.toLowerCase())) return false;
+    if (filterType !== 'all' && img.type !== filterType) return false;
+    if (showDuplicates && !img.isDuplicate) return false;
+    if (showOrphans && img.linkedTo) return false;
+    return true;
+  });
+
+  // --- Actions ---
+  const handleRefresh = () => {
+    // TODO: brancher sur l'API réelle
+  };
+  const handleView = (img: (typeof images)[0]) => setSelectedImage(img);
+  const handleDownload = (img: (typeof images)[0]) => {
+    window.open(img.url, '_blank');
+  };
+  const handleDelete = (img: (typeof images)[0]) => {
+    if (window.confirm('Supprimer cette image ?')) {
+      setImages((arr) => arr.filter((i) => i.id !== img.id));
+      setSelectedImage(null);
+    }
+  };
+  const handleGoToLinked = (img: (typeof images)[0]) => {
+    if (!img.linkedTo) return;
+    if (img.linkedTo.type === 'track') {
+      window.open(`/admin/music/${img.linkedTo.id}/detail`, '_blank');
+    } else if (img.linkedTo.type === 'event') {
+      window.open(`/admin/events/${img.linkedTo.id}`, '_blank');
+    }
+  };
 
   // Fonction pour récupérer les configurations depuis l'API
   const fetchConfigurations = useCallback(async () => {
-    setLoading(true);
+    setIsLoading(true);
     setError(null);
     try {
       const response = await fetch('/api/admin/config');
@@ -389,15 +480,15 @@ export default function ConfigurationPage() {
 
       // Mettre à jour les états avec les données de l'API
       // S'assurer que les clés existent avant de les assigner
-      if (data.general) setGeneralConfig(data.general);
-      if (data.appearance) setAppearanceConfig(data.appearance);
-      if (data.homepage) setHomepageConfig(data.homepage);
-      if (data.notifications) setNotificationsConfig(data.notifications);
-      if (data.security) setSecurityConfig(data.security);
-      if (data.api) setApiConfig(data.api);
+      if (data.general) setConfigurations(data);
+      if (data.appearance) setConfigurations(data);
+      if (data.homepage) setConfigurations(data);
+      if (data.notifications) setConfigurations(data);
+      if (data.security) setConfigurations(data);
+      if (data.api) setConfigurations(data);
 
       // Stocker la configuration récupérée comme dernière configuration sauvegardée
-      setLastSavedConfig(data);
+      setConfigurations(data);
     } catch (e) {
       console.error('Erreur lors de la récupération des configurations:', e);
 
@@ -406,80 +497,77 @@ export default function ConfigurationPage() {
       console.log('Utilisation des valeurs par défaut (mode fallback)');
 
       // Valeurs par défaut pour chaque section - utilisées uniquement si l'API échoue
-      setGeneralConfig({
-        siteName: 'DJ Larian',
-        siteDescription: 'Site officiel de DJ Larian - Musique électronique et événements.',
-        contactEmail: 'contact@djlarian.com',
-        timeZone: 'Europe/Paris',
-        dateFormat: 'DD/MM/YYYY',
-      });
-
-      setAppearanceConfig({
-        primaryColor: '#8B5CF6',
-        secondaryColor: '#3B82F6',
-        darkMode: true,
-        animationsEnabled: true,
-        logoUrl: '/images/logo.png',
-        faviconUrl: '/favicon.ico',
-      });
-
-      setHomepageConfig({
-        heroTitle: 'DJ LARIAN',
-        heroSubtitle: 'Electronic Music Producer & Innovative Performer',
-        heroExploreButtonText: 'Explore Music',
-        heroExploreButtonUrl: '/music',
-        heroEventsButtonText: 'Upcoming Events',
-        heroEventsButtonUrl: '/events',
-        heroBackgroundVideo: '/videos/hero-background.mp4',
-        heroPosterImage: '/images/hero-poster.jpg',
-        sectionsOrder: 'hero,releases,visualizer,events,stream',
-        releasesEnabled: true,
-        releasesTitle: 'Latest Releases',
-        releasesCount: 3,
-        visualizerEnabled: true,
-        visualizerTitle: 'Experience the Sound',
-        eventsEnabled: true,
-        eventsTitle: 'Upcoming Events',
-        eventsCount: 3,
-        eventsViewAllText: 'View All Events',
-        eventsViewAllUrl: '/events',
-        streamEnabled: true,
-        streamTitle: 'Live Stream',
-        streamSubtitle: 'Join the Live Experience',
-        streamDescription:
-          'Tune in to my live streams where I share my creative process, perform exclusive sets, and interact with the community in real-time.',
-        twitchUsername: 'djlarian',
-        twitchFollowButtonText: 'Follow on Twitch',
-        twitchFollowButtonUrl: 'https://twitch.tv/djlarian',
-        streamNotifyButtonText: 'Get Notified',
-        streamStatsEnabled: true,
-        streamFollowers: '24K+',
-        streamHoursStreamed: '150+',
-        streamTracksPlayed: '500+',
-      });
-
-      setNotificationsConfig({
-        emailNotifications: true,
-        adminAlerts: true,
-        newUserNotifications: true,
-        eventReminders: true,
-        marketingEmails: false,
-      });
-
-      setSecurityConfig({
-        twoFactorAuth: false,
-        passwordExpiration: 90,
-        ipRestriction: false,
-        failedLoginLimit: 5,
-        sessionTimeout: 60,
-      });
-
-      setApiConfig({
-        apiEnabled: true,
-        rateLimit: 100,
-        webhookUrl: '',
-        umamiEnabled: true,
-        umamiSiteId: 'your-umami-site-id',
+      setConfigurations({
+        general: {
+          siteName: 'DJ Larian',
+          siteDescription: 'Site officiel de DJ Larian - Musique électronique et événements.',
+          contactEmail: 'contact@djlarian.com',
+          timeZone: 'Europe/Paris',
+          dateFormat: 'DD/MM/YYYY',
+        },
+        appearance: {
+          primaryColor: '#8B5CF6',
+          secondaryColor: '#3B82F6',
+          darkMode: true,
+          animationsEnabled: true,
+          logoUrl: '/images/logo.png',
+          faviconUrl: '/favicon.ico',
+        },
+        homepage: {
+          heroTitle: 'DJ LARIAN',
+          heroSubtitle: 'Electronic Music Producer & Innovative Performer',
+          heroExploreButtonText: 'Explore Music',
+          heroExploreButtonUrl: '/music',
+          heroEventsButtonText: 'Upcoming Events',
+          heroEventsButtonUrl: '/events',
+          heroBackgroundVideo: '/videos/hero-background.mp4',
+          heroPosterImage: '/images/hero-poster.jpg',
+          sectionsOrder: 'hero,releases,visualizer,events,stream',
+          releasesEnabled: true,
+          releasesTitle: 'Latest Releases',
+          releasesCount: 3,
+          visualizerEnabled: true,
+          visualizerTitle: 'Experience the Sound',
+          eventsEnabled: true,
+          eventsTitle: 'Upcoming Events',
+          eventsCount: 3,
+          eventsViewAllText: 'View All Events',
+          eventsViewAllUrl: '/events',
+          streamEnabled: true,
+          streamTitle: 'Live Stream',
+          streamSubtitle: 'Join the Live Experience',
+          streamDescription:
+            'Tune in to my live streams where I share my creative process, perform exclusive sets, and interact with the community in real-time.',
+          twitchUsername: 'djlarian',
+          twitchFollowButtonText: 'Follow on Twitch',
+          twitchFollowButtonUrl: 'https://twitch.tv/djlarian',
+          streamNotifyButtonText: 'Get Notified',
+          streamStatsEnabled: true,
+          streamFollowers: '24K+',
+          streamHoursStreamed: '150+',
+          streamTracksPlayed: '500+',
+        },
+        notifications: {
+          emailNotifications: true,
+          adminAlerts: true,
+          newUserNotifications: true,
+          eventReminders: true,
+          marketingEmails: false,
+        },
+        security: {
+          twoFactorAuth: false,
+          passwordExpiration: 90,
+          ipRestriction: false,
+          failedLoginLimit: 5,
+          sessionTimeout: 60,
+        },
+        api: {
+          apiEnabled: true,
+          rateLimit: 100,
+          webhookUrl: '',
+          umamiEnabled: true,
+          umamiSiteId: 'your-umami-site-id',
+        },
       });
 
       // Toujours afficher l'erreur pour le débogage, mais ne pas bloquer l'UI
@@ -487,7 +575,7 @@ export default function ConfigurationPage() {
         "Mode fallback activé - La connexion à l'API a échoué, mais l'interface reste fonctionnelle avec des valeurs par défaut."
       );
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   }, []);
 
@@ -498,20 +586,20 @@ export default function ConfigurationPage() {
 
   // Fonction pour sauvegarder les configurations
   const saveConfigurations = async () => {
-    setIsSaveModalOpen(true);
+    setSaveModalOpen(true);
   };
 
   // Fonction pour effectuer la sauvegarde avec un nom personnalisé
   const handleSaveWithName = async (name: string, description: string) => {
-    setLoading(true);
+    setIsLoading(true);
     setError(null);
     const allConfigs: AllConfigs = {
-      general: generalConfig,
-      appearance: appearanceConfig,
-      homepage: homepageConfig,
-      notifications: notificationsConfig,
-      security: securityConfig,
-      api: apiConfig,
+      general: configurations.general,
+      appearance: configurations.appearance,
+      homepage: configurations.homepage,
+      notifications: configurations.notifications,
+      security: configurations.security,
+      api: configurations.api,
     };
 
     try {
@@ -533,18 +621,18 @@ export default function ConfigurationPage() {
       }
 
       // Stocker la configuration qui vient d'être sauvegardée
-      setLastSavedConfig(allConfigs);
+      setConfigurations(allConfigs);
 
       // Afficher une notification de succès
       console.log('Configurations sauvegardées avec succès !');
-      alert('Configurations sauvegardées avec succès !');
+      setSuccessMessage('Configurations sauvegardées avec succès !');
     } catch (e) {
       console.error('Erreur lors de la sauvegarde des configurations:', e);
       setError('Impossible de sauvegarder les configurations. Veuillez réessayer.');
       alert('Erreur lors de la sauvegarde. Voir la console pour plus de détails.');
       throw e;
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -553,7 +641,7 @@ export default function ConfigurationPage() {
     if (
       confirm('Êtes-vous sûr de vouloir réinitialiser les configurations aux valeurs par défaut ?')
     ) {
-      setLoading(true);
+      setIsLoading(true);
       setError(null);
       try {
         const response = await fetch('/api/admin/config/reset', { method: 'POST' });
@@ -568,22 +656,22 @@ export default function ConfigurationPage() {
         console.error('Erreur lors de la réinitialisation des configurations:', e);
         setError('Impossible de réinitialiser les configurations. Veuillez réessayer.');
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     }
   };
 
   // Fonction pour créer un snapshot des configurations actuelles
   const createSnapshot = async (name: string, description: string) => {
-    setLoading(true);
+    setIsLoading(true);
     setError(null);
     const allConfigs: AllConfigs = {
-      general: generalConfig,
-      appearance: appearanceConfig,
-      homepage: homepageConfig,
-      notifications: notificationsConfig,
-      security: securityConfig,
-      api: apiConfig,
+      general: configurations.general,
+      appearance: configurations.appearance,
+      homepage: configurations.homepage,
+      notifications: configurations.notifications,
+      security: configurations.security,
+      api: configurations.api,
     };
 
     try {
@@ -613,13 +701,13 @@ export default function ConfigurationPage() {
       alert('Erreur lors de la création du snapshot. Voir la console pour plus de détails.');
       throw e; // Propager l'erreur pour que le modal puisse la gérer
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   // Fonction pour annuler une modification spécifique
   const handleRevertChange = async (historyItem: any) => {
-    setLoading(true);
+    setIsLoading(true);
     setError(null);
 
     try {
@@ -645,13 +733,13 @@ export default function ConfigurationPage() {
       console.error("Erreur lors de l'annulation de la modification:", e);
       setError("Impossible d'annuler la modification. Veuillez réessayer.");
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   // Fonction pour appliquer un snapshot
   const handleApplySnapshot = async (snapshot: any) => {
-    setLoading(true);
+    setIsLoading(true);
     setError(null);
 
     try {
@@ -679,13 +767,13 @@ export default function ConfigurationPage() {
       setError("Impossible d'appliquer le snapshot. Veuillez réessayer.");
       alert('Erreur lors de la restauration du snapshot. Voir la console pour plus de détails.');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   // Fonction pour générer un résumé des modifications apportées
   const getChangesSummary = () => {
-    if (!lastSavedConfig) return 'Aucune information sur la dernière configuration sauvegardée.';
+    if (!configurations) return 'Aucune information sur la dernière configuration sauvegardée.';
 
     const changes: string[] = [];
 
@@ -762,15 +850,15 @@ export default function ConfigurationPage() {
     };
 
     // Vérifier les modifications dans la section générale
-    const generalChanges = Object.keys(generalConfig)
+    const generalChanges = Object.keys(configurations.general)
       .filter(
         (key) =>
-          generalConfig[key as keyof GeneralConfig] !==
-          lastSavedConfig.general[key as keyof GeneralConfig]
+          configurations.general[key as keyof GeneralConfig] !==
+          configurations.general[key as keyof GeneralConfig]
       )
       .map((key) => {
-        const previousValue = lastSavedConfig.general[key as keyof GeneralConfig];
-        const newValue = generalConfig[key as keyof GeneralConfig];
+        const previousValue = configurations.general[key as keyof GeneralConfig];
+        const newValue = configurations.general[key as keyof GeneralConfig];
         const label = labelMappings[key] || key;
         return `    ${label}\n        <span class="text-gray-500">${previousValue}</span> <span class="text-cyan-300">→</span> <span class="text-white font-semibold">${newValue}</span>`;
       });
@@ -782,15 +870,15 @@ export default function ConfigurationPage() {
     }
 
     // Vérifier les modifications dans l'apparence
-    const appearanceChanges = Object.keys(appearanceConfig)
+    const appearanceChanges = Object.keys(configurations.appearance)
       .filter(
         (key) =>
-          appearanceConfig[key as keyof AppearanceConfig] !==
-          lastSavedConfig.appearance[key as keyof AppearanceConfig]
+          configurations.appearance[key as keyof AppearanceConfig] !==
+          configurations.appearance[key as keyof AppearanceConfig]
       )
       .map((key) => {
-        const previousValue = lastSavedConfig.appearance[key as keyof AppearanceConfig];
-        const newValue = appearanceConfig[key as keyof AppearanceConfig];
+        const previousValue = configurations.appearance[key as keyof AppearanceConfig];
+        const newValue = configurations.appearance[key as keyof AppearanceConfig];
         const label = labelMappings[key] || key;
         return `    ${label}\n        <span class="text-gray-500">${previousValue}</span> <span class="text-cyan-300">→</span> <span class="text-white font-semibold">${newValue}</span>`;
       });
@@ -802,15 +890,15 @@ export default function ConfigurationPage() {
     }
 
     // Vérifier les modifications dans la page d'accueil
-    const homepageChanges = Object.keys(homepageConfig)
+    const homepageChanges = Object.keys(configurations.homepage)
       .filter(
         (key) =>
-          homepageConfig[key as keyof HomepageConfig] !==
-          lastSavedConfig.homepage[key as keyof HomepageConfig]
+          configurations.homepage[key as keyof HomepageConfig] !==
+          configurations.homepage[key as keyof HomepageConfig]
       )
       .map((key) => {
-        const previousValue = lastSavedConfig.homepage[key as keyof HomepageConfig];
-        const newValue = homepageConfig[key as keyof HomepageConfig];
+        const previousValue = configurations.homepage[key as keyof HomepageConfig];
+        const newValue = configurations.homepage[key as keyof HomepageConfig];
         const label = labelMappings[key] || key;
         return `    ${label}\n        <span class="text-gray-500">${previousValue}</span> <span class="text-cyan-300">→</span> <span class="text-white font-semibold">${newValue}</span>`;
       });
@@ -822,15 +910,15 @@ export default function ConfigurationPage() {
     }
 
     // Vérifier les modifications dans les notifications
-    const notificationsChanges = Object.keys(notificationsConfig)
+    const notificationsChanges = Object.keys(configurations.notifications)
       .filter(
         (key) =>
-          notificationsConfig[key as keyof NotificationsConfig] !==
-          lastSavedConfig.notifications[key as keyof NotificationsConfig]
+          configurations.notifications[key as keyof NotificationsConfig] !==
+          configurations.notifications[key as keyof NotificationsConfig]
       )
       .map((key) => {
-        const previousValue = lastSavedConfig.notifications[key as keyof NotificationsConfig];
-        const newValue = notificationsConfig[key as keyof NotificationsConfig];
+        const previousValue = configurations.notifications[key as keyof NotificationsConfig];
+        const newValue = configurations.notifications[key as keyof NotificationsConfig];
         const label = labelMappings[key] || key;
         return `    ${label}\n        <span class="text-gray-500">${previousValue}</span> <span class="text-cyan-300">→</span> <span class="text-white font-semibold">${newValue}</span>`;
       });
@@ -842,15 +930,15 @@ export default function ConfigurationPage() {
     }
 
     // Vérifier les modifications dans la sécurité
-    const securityChanges = Object.keys(securityConfig)
+    const securityChanges = Object.keys(configurations.security)
       .filter(
         (key) =>
-          securityConfig[key as keyof SecurityConfig] !==
-          lastSavedConfig.security[key as keyof SecurityConfig]
+          configurations.security[key as keyof SecurityConfig] !==
+          configurations.security[key as keyof SecurityConfig]
       )
       .map((key) => {
-        const previousValue = lastSavedConfig.security[key as keyof SecurityConfig];
-        const newValue = securityConfig[key as keyof SecurityConfig];
+        const previousValue = configurations.security[key as keyof SecurityConfig];
+        const newValue = configurations.security[key as keyof SecurityConfig];
         const label = labelMappings[key] || key;
         return `    ${label}\n        <span class="text-gray-500">${previousValue}</span> <span class="text-cyan-300">→</span> <span class="text-white font-semibold">${newValue}</span>`;
       });
@@ -862,13 +950,14 @@ export default function ConfigurationPage() {
     }
 
     // Vérifier les modifications dans l'API
-    const apiChanges = Object.keys(apiConfig)
+    const apiChanges = Object.keys(configurations.api)
       .filter(
-        (key) => apiConfig[key as keyof ApiConfig] !== lastSavedConfig.api[key as keyof ApiConfig]
+        (key) =>
+          configurations.api[key as keyof ApiConfig] !== configurations.api[key as keyof ApiConfig]
       )
       .map((key) => {
-        const previousValue = lastSavedConfig.api[key as keyof ApiConfig];
-        const newValue = apiConfig[key as keyof ApiConfig];
+        const previousValue = configurations.api[key as keyof ApiConfig];
+        const newValue = configurations.api[key as keyof ApiConfig];
         const label = labelMappings[key] || key;
         return `    ${label}\n        <span class="text-gray-500">${previousValue}</span> <span class="text-cyan-300">→</span> <span class="text-white font-semibold">${newValue}</span>`;
       });
@@ -884,7 +973,7 @@ export default function ConfigurationPage() {
     return changes.join('\n\n');
   };
 
-  if (loading && !generalConfig.siteName) {
+  if (isLoading && !configurations.general.siteName) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-[#0c0117] to-black">
         <p className="text-white text-xl animate-pulse">Chargement des configurations...</p>
@@ -904,7 +993,7 @@ export default function ConfigurationPage() {
           <Button
             onClick={async () => {
               try {
-                setLoading(true);
+                setIsLoading(true);
                 const response = await fetch('/api/admin/setup-config');
                 if (!response.ok) {
                   throw new Error(`Erreur: ${response.status}`);
@@ -918,7 +1007,7 @@ export default function ConfigurationPage() {
                 console.error("Erreur lors de l'initialisation des configurations:", e);
                 alert("Erreur lors de l'initialisation. Voir la console pour plus de détails.");
               } finally {
-                setLoading(false);
+                setIsLoading(false);
               }
             }}
             className="bg-green-500/20 hover:bg-green-500/30"
@@ -932,7 +1021,7 @@ export default function ConfigurationPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-[#0c0117] to-black text-white">
-      {loading && (
+      {isLoading && (
         <div className="fixed top-4 right-4 z-50">
           <div className="flex items-center space-x-2 bg-purple-900/80 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1 rounded-full shadow-lg animate-pulse">
             <RefreshCcw className="h-3 w-3 animate-spin" />
@@ -957,9 +1046,9 @@ export default function ConfigurationPage() {
 
             <div className="flex space-x-3">
               <Button
-                className={`flex items-center bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`flex items-center bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                 onClick={saveConfigurations}
-                disabled={loading}
+                disabled={isLoading}
               >
                 <Save className="mr-2 h-4 w-4" />
                 Sauvegarder
@@ -967,9 +1056,9 @@ export default function ConfigurationPage() {
 
               <Button
                 variant="outline"
-                className={`flex items-center border border-blue-500/30 text-blue-400 hover:bg-blue-500/10 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                onClick={() => setIsHistoryModalOpen(true)}
-                disabled={loading}
+                className={`flex items-center border border-blue-500/30 text-blue-400 hover:bg-blue-500/10 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={() => setHistoryOpen(true)}
+                disabled={isLoading}
               >
                 <History className="mr-2 h-4 w-4" />
                 Historique
@@ -1054,6 +1143,18 @@ export default function ConfigurationPage() {
                   <Globe className="h-5 w-5 mr-3" />
                   API & Intégrations
                 </button>
+
+                <button
+                  onClick={() => setActiveSection('images')}
+                  className={`w-full flex items-center p-3 rounded-lg transition-all ${
+                    activeSection === 'images'
+                      ? 'bg-purple-500/20 text-purple-300'
+                      : 'hover:bg-purple-500/10 text-gray-300'
+                  }`}
+                >
+                  <ImageIcon className="h-5 w-5 mr-3" />
+                  Gérer les images
+                </button>
               </nav>
 
               <div className="mt-8 p-4 bg-purple-900/20 rounded-lg border border-purple-500/20">
@@ -1086,9 +1187,15 @@ export default function ConfigurationPage() {
                         <Label htmlFor="siteName">Nom du site</Label>
                         <Input
                           id="siteName"
-                          value={generalConfig.siteName}
+                          value={configurations.general.siteName}
                           onChange={(e) =>
-                            setGeneralConfig({ ...generalConfig, siteName: e.target.value })
+                            setConfigurations({
+                              ...configurations,
+                              general: {
+                                ...configurations.general,
+                                siteName: e.target.value,
+                              },
+                            })
                           }
                           className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
                         />
@@ -1099,9 +1206,15 @@ export default function ConfigurationPage() {
                         <Input
                           id="contactEmail"
                           type="email"
-                          value={generalConfig.contactEmail}
+                          value={configurations.general.contactEmail}
                           onChange={(e) =>
-                            setGeneralConfig({ ...generalConfig, contactEmail: e.target.value })
+                            setConfigurations({
+                              ...configurations,
+                              general: {
+                                ...configurations.general,
+                                contactEmail: e.target.value,
+                              },
+                            })
                           }
                           className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
                         />
@@ -1112,9 +1225,15 @@ export default function ConfigurationPage() {
                       <Label htmlFor="siteDescription">Description du site</Label>
                       <Textarea
                         id="siteDescription"
-                        value={generalConfig.siteDescription}
+                        value={configurations.general.siteDescription}
                         onChange={(e) =>
-                          setGeneralConfig({ ...generalConfig, siteDescription: e.target.value })
+                          setConfigurations({
+                            ...configurations,
+                            general: {
+                              ...configurations.general,
+                              siteDescription: e.target.value,
+                            },
+                          })
                         }
                         className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
                         rows={3}
@@ -1126,9 +1245,15 @@ export default function ConfigurationPage() {
                         <Label htmlFor="timeZone">Fuseau horaire</Label>
                         <select
                           id="timeZone"
-                          value={generalConfig.timeZone}
+                          value={configurations.general.timeZone}
                           onChange={(e) =>
-                            setGeneralConfig({ ...generalConfig, timeZone: e.target.value })
+                            setConfigurations({
+                              ...configurations,
+                              general: {
+                                ...configurations.general,
+                                timeZone: e.target.value,
+                              },
+                            })
                           }
                           className="w-full bg-purple-500/10 border border-purple-500/20 focus:border-purple-500/50 rounded-md p-2 text-white"
                         >
@@ -1143,9 +1268,15 @@ export default function ConfigurationPage() {
                         <Label htmlFor="dateFormat">Format de date</Label>
                         <select
                           id="dateFormat"
-                          value={generalConfig.dateFormat}
+                          value={configurations.general.dateFormat}
                           onChange={(e) =>
-                            setGeneralConfig({ ...generalConfig, dateFormat: e.target.value })
+                            setConfigurations({
+                              ...configurations,
+                              general: {
+                                ...configurations.general,
+                                dateFormat: e.target.value,
+                              },
+                            })
                           }
                           className="w-full bg-purple-500/10 border border-purple-500/20 focus:border-purple-500/50 rounded-md p-2 text-white"
                         >
@@ -1173,22 +1304,28 @@ export default function ConfigurationPage() {
                           <Input
                             id="primaryColor"
                             type="color"
-                            value={appearanceConfig.primaryColor}
+                            value={configurations.appearance.primaryColor}
                             onChange={(e) =>
-                              setAppearanceConfig({
-                                ...appearanceConfig,
-                                primaryColor: e.target.value,
+                              setConfigurations({
+                                ...configurations,
+                                appearance: {
+                                  ...configurations.appearance,
+                                  primaryColor: e.target.value,
+                                },
                               })
                             }
                             className="w-16 h-10 p-1 bg-transparent border border-purple-500/20"
                           />
                           <Input
                             type="text"
-                            value={appearanceConfig.primaryColor}
+                            value={configurations.appearance.primaryColor}
                             onChange={(e) =>
-                              setAppearanceConfig({
-                                ...appearanceConfig,
-                                primaryColor: e.target.value,
+                              setConfigurations({
+                                ...configurations,
+                                appearance: {
+                                  ...configurations.appearance,
+                                  primaryColor: e.target.value,
+                                },
                               })
                             }
                             className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
@@ -1202,22 +1339,28 @@ export default function ConfigurationPage() {
                           <Input
                             id="secondaryColor"
                             type="color"
-                            value={appearanceConfig.secondaryColor}
+                            value={configurations.appearance.secondaryColor}
                             onChange={(e) =>
-                              setAppearanceConfig({
-                                ...appearanceConfig,
-                                secondaryColor: e.target.value,
+                              setConfigurations({
+                                ...configurations,
+                                appearance: {
+                                  ...configurations.appearance,
+                                  secondaryColor: e.target.value,
+                                },
                               })
                             }
                             className="w-16 h-10 p-1 bg-transparent border border-purple-500/20"
                           />
                           <Input
                             type="text"
-                            value={appearanceConfig.secondaryColor}
+                            value={configurations.appearance.secondaryColor}
                             onChange={(e) =>
-                              setAppearanceConfig({
-                                ...appearanceConfig,
-                                secondaryColor: e.target.value,
+                              setConfigurations({
+                                ...configurations,
+                                appearance: {
+                                  ...configurations.appearance,
+                                  secondaryColor: e.target.value,
+                                },
                               })
                             }
                             className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
@@ -1231,9 +1374,15 @@ export default function ConfigurationPage() {
                         <Label htmlFor="logoUrl">URL du logo</Label>
                         <Input
                           id="logoUrl"
-                          value={appearanceConfig.logoUrl}
+                          value={configurations.appearance.logoUrl}
                           onChange={(e) =>
-                            setAppearanceConfig({ ...appearanceConfig, logoUrl: e.target.value })
+                            setConfigurations({
+                              ...configurations,
+                              appearance: {
+                                ...configurations.appearance,
+                                logoUrl: e.target.value,
+                              },
+                            })
                           }
                           className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
                         />
@@ -1243,9 +1392,15 @@ export default function ConfigurationPage() {
                         <Label htmlFor="faviconUrl">URL du favicon</Label>
                         <Input
                           id="faviconUrl"
-                          value={appearanceConfig.faviconUrl}
+                          value={configurations.appearance.faviconUrl}
                           onChange={(e) =>
-                            setAppearanceConfig({ ...appearanceConfig, faviconUrl: e.target.value })
+                            setConfigurations({
+                              ...configurations,
+                              appearance: {
+                                ...configurations.appearance,
+                                faviconUrl: e.target.value,
+                              },
+                            })
                           }
                           className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
                         />
@@ -1260,9 +1415,15 @@ export default function ConfigurationPage() {
                         </span>
                       </div>
                       <Switch
-                        checked={appearanceConfig.darkMode}
+                        checked={configurations.appearance.darkMode}
                         onCheckedChange={(checked) =>
-                          setAppearanceConfig({ ...appearanceConfig, darkMode: checked })
+                          setConfigurations({
+                            ...configurations,
+                            appearance: {
+                              ...configurations.appearance,
+                              darkMode: checked,
+                            },
+                          })
                         }
                         className="data-[state=checked]:bg-purple-600"
                       />
@@ -1276,9 +1437,15 @@ export default function ConfigurationPage() {
                         </span>
                       </div>
                       <Switch
-                        checked={appearanceConfig.animationsEnabled}
+                        checked={configurations.appearance.animationsEnabled}
                         onCheckedChange={(checked) =>
-                          setAppearanceConfig({ ...appearanceConfig, animationsEnabled: checked })
+                          setConfigurations({
+                            ...configurations,
+                            appearance: {
+                              ...configurations.appearance,
+                              animationsEnabled: checked,
+                            },
+                          })
                         }
                         className="data-[state=checked]:bg-purple-600"
                       />
@@ -1337,9 +1504,15 @@ export default function ConfigurationPage() {
                         <Label htmlFor="heroTitle">Titre principal</Label>
                         <Input
                           id="heroTitle"
-                          value={homepageConfig.heroTitle}
+                          value={configurations.homepage.heroTitle}
                           onChange={(e) =>
-                            setHomepageConfig({ ...homepageConfig, heroTitle: e.target.value })
+                            setConfigurations({
+                              ...configurations,
+                              homepage: {
+                                ...configurations.homepage,
+                                heroTitle: e.target.value,
+                              },
+                            })
                           }
                           className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
                         />
@@ -1349,9 +1522,15 @@ export default function ConfigurationPage() {
                         <Label htmlFor="heroSubtitle">Sous-titre</Label>
                         <Input
                           id="heroSubtitle"
-                          value={homepageConfig.heroSubtitle}
+                          value={configurations.homepage.heroSubtitle}
                           onChange={(e) =>
-                            setHomepageConfig({ ...homepageConfig, heroSubtitle: e.target.value })
+                            setConfigurations({
+                              ...configurations,
+                              homepage: {
+                                ...configurations.homepage,
+                                heroSubtitle: e.target.value,
+                              },
+                            })
                           }
                           className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
                         />
@@ -1362,11 +1541,14 @@ export default function ConfigurationPage() {
                           <Label htmlFor="heroExploreButtonText">Texte du bouton Explorer</Label>
                           <Input
                             id="heroExploreButtonText"
-                            value={homepageConfig.heroExploreButtonText}
+                            value={configurations.homepage.heroExploreButtonText}
                             onChange={(e) =>
-                              setHomepageConfig({
-                                ...homepageConfig,
-                                heroExploreButtonText: e.target.value,
+                              setConfigurations({
+                                ...configurations,
+                                homepage: {
+                                  ...configurations.homepage,
+                                  heroExploreButtonText: e.target.value,
+                                },
                               })
                             }
                             className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
@@ -1377,11 +1559,14 @@ export default function ConfigurationPage() {
                           <Label htmlFor="heroExploreButtonUrl">URL du bouton Explorer</Label>
                           <Input
                             id="heroExploreButtonUrl"
-                            value={homepageConfig.heroExploreButtonUrl}
+                            value={configurations.homepage.heroExploreButtonUrl}
                             onChange={(e) =>
-                              setHomepageConfig({
-                                ...homepageConfig,
-                                heroExploreButtonUrl: e.target.value,
+                              setConfigurations({
+                                ...configurations,
+                                homepage: {
+                                  ...configurations.homepage,
+                                  heroExploreButtonUrl: e.target.value,
+                                },
                               })
                             }
                             className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
@@ -1394,11 +1579,14 @@ export default function ConfigurationPage() {
                           <Label htmlFor="heroEventsButtonText">Texte du bouton Événements</Label>
                           <Input
                             id="heroEventsButtonText"
-                            value={homepageConfig.heroEventsButtonText}
+                            value={configurations.homepage.heroEventsButtonText}
                             onChange={(e) =>
-                              setHomepageConfig({
-                                ...homepageConfig,
-                                heroEventsButtonText: e.target.value,
+                              setConfigurations({
+                                ...configurations,
+                                homepage: {
+                                  ...configurations.homepage,
+                                  heroEventsButtonText: e.target.value,
+                                },
                               })
                             }
                             className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
@@ -1409,11 +1597,14 @@ export default function ConfigurationPage() {
                           <Label htmlFor="heroEventsButtonUrl">URL du bouton Événements</Label>
                           <Input
                             id="heroEventsButtonUrl"
-                            value={homepageConfig.heroEventsButtonUrl}
+                            value={configurations.homepage.heroEventsButtonUrl}
                             onChange={(e) =>
-                              setHomepageConfig({
-                                ...homepageConfig,
-                                heroEventsButtonUrl: e.target.value,
+                              setConfigurations({
+                                ...configurations,
+                                homepage: {
+                                  ...configurations.homepage,
+                                  heroEventsButtonUrl: e.target.value,
+                                },
                               })
                             }
                             className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
@@ -1425,11 +1616,14 @@ export default function ConfigurationPage() {
                         <Label htmlFor="heroBackgroundVideo">URL de la vidéo d'arrière-plan</Label>
                         <Input
                           id="heroBackgroundVideo"
-                          value={homepageConfig.heroBackgroundVideo}
+                          value={configurations.homepage.heroBackgroundVideo}
                           onChange={(e) =>
-                            setHomepageConfig({
-                              ...homepageConfig,
-                              heroBackgroundVideo: e.target.value,
+                            setConfigurations({
+                              ...configurations,
+                              homepage: {
+                                ...configurations.homepage,
+                                heroBackgroundVideo: e.target.value,
+                              },
                             })
                           }
                           className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
@@ -1442,11 +1636,14 @@ export default function ConfigurationPage() {
                         </Label>
                         <Input
                           id="heroPosterImage"
-                          value={homepageConfig.heroPosterImage}
+                          value={configurations.homepage.heroPosterImage}
                           onChange={(e) =>
-                            setHomepageConfig({
-                              ...homepageConfig,
-                              heroPosterImage: e.target.value,
+                            setConfigurations({
+                              ...configurations,
+                              homepage: {
+                                ...configurations.homepage,
+                                heroPosterImage: e.target.value,
+                              },
                             })
                           }
                           className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
@@ -1463,9 +1660,15 @@ export default function ConfigurationPage() {
                           </span>
                         </div>
                         <Switch
-                          checked={homepageConfig.releasesEnabled}
+                          checked={configurations.homepage.releasesEnabled}
                           onCheckedChange={(checked) =>
-                            setHomepageConfig({ ...homepageConfig, releasesEnabled: checked })
+                            setConfigurations({
+                              ...configurations,
+                              homepage: {
+                                ...configurations.homepage,
+                                releasesEnabled: checked,
+                              },
+                            })
                           }
                           className="data-[state=checked]:bg-purple-600"
                         />
@@ -1475,9 +1678,15 @@ export default function ConfigurationPage() {
                         <Label htmlFor="releasesTitle">Titre de la section</Label>
                         <Input
                           id="releasesTitle"
-                          value={homepageConfig.releasesTitle}
+                          value={configurations.homepage.releasesTitle}
                           onChange={(e) =>
-                            setHomepageConfig({ ...homepageConfig, releasesTitle: e.target.value })
+                            setConfigurations({
+                              ...configurations,
+                              homepage: {
+                                ...configurations.homepage,
+                                releasesTitle: e.target.value,
+                              },
+                            })
                           }
                           className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
                         />
@@ -1490,11 +1699,14 @@ export default function ConfigurationPage() {
                           type="number"
                           min="1"
                           max="6"
-                          value={homepageConfig.releasesCount}
+                          value={configurations.homepage.releasesCount}
                           onChange={(e) =>
-                            setHomepageConfig({
-                              ...homepageConfig,
-                              releasesCount: parseInt(e.target.value) || 3,
+                            setConfigurations({
+                              ...configurations,
+                              homepage: {
+                                ...configurations.homepage,
+                                releasesCount: parseInt(e.target.value) || 3,
+                              },
                             })
                           }
                           className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
@@ -1511,9 +1723,15 @@ export default function ConfigurationPage() {
                           </span>
                         </div>
                         <Switch
-                          checked={homepageConfig.visualizerEnabled}
+                          checked={configurations.homepage.visualizerEnabled}
                           onCheckedChange={(checked) =>
-                            setHomepageConfig({ ...homepageConfig, visualizerEnabled: checked })
+                            setConfigurations({
+                              ...configurations,
+                              homepage: {
+                                ...configurations.homepage,
+                                visualizerEnabled: checked,
+                              },
+                            })
                           }
                           className="data-[state=checked]:bg-purple-600"
                         />
@@ -1523,11 +1741,14 @@ export default function ConfigurationPage() {
                         <Label htmlFor="visualizerTitle">Titre de la section</Label>
                         <Input
                           id="visualizerTitle"
-                          value={homepageConfig.visualizerTitle}
+                          value={configurations.homepage.visualizerTitle}
                           onChange={(e) =>
-                            setHomepageConfig({
-                              ...homepageConfig,
-                              visualizerTitle: e.target.value,
+                            setConfigurations({
+                              ...configurations,
+                              homepage: {
+                                ...configurations.homepage,
+                                visualizerTitle: e.target.value,
+                              },
                             })
                           }
                           className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
@@ -1544,9 +1765,15 @@ export default function ConfigurationPage() {
                           </span>
                         </div>
                         <Switch
-                          checked={homepageConfig.eventsEnabled}
+                          checked={configurations.homepage.eventsEnabled}
                           onCheckedChange={(checked) =>
-                            setHomepageConfig({ ...homepageConfig, eventsEnabled: checked })
+                            setConfigurations({
+                              ...configurations,
+                              homepage: {
+                                ...configurations.homepage,
+                                eventsEnabled: checked,
+                              },
+                            })
                           }
                           className="data-[state=checked]:bg-purple-600"
                         />
@@ -1556,9 +1783,15 @@ export default function ConfigurationPage() {
                         <Label htmlFor="eventsTitle">Titre de la section</Label>
                         <Input
                           id="eventsTitle"
-                          value={homepageConfig.eventsTitle}
+                          value={configurations.homepage.eventsTitle}
                           onChange={(e) =>
-                            setHomepageConfig({ ...homepageConfig, eventsTitle: e.target.value })
+                            setConfigurations({
+                              ...configurations,
+                              homepage: {
+                                ...configurations.homepage,
+                                eventsTitle: e.target.value,
+                              },
+                            })
                           }
                           className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
                         />
@@ -1571,11 +1804,14 @@ export default function ConfigurationPage() {
                           type="number"
                           min="1"
                           max="10"
-                          value={homepageConfig.eventsCount}
+                          value={configurations.homepage.eventsCount}
                           onChange={(e) =>
-                            setHomepageConfig({
-                              ...homepageConfig,
-                              eventsCount: parseInt(e.target.value) || 3,
+                            setConfigurations({
+                              ...configurations,
+                              homepage: {
+                                ...configurations.homepage,
+                                eventsCount: parseInt(e.target.value) || 3,
+                              },
                             })
                           }
                           className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
@@ -1587,11 +1823,14 @@ export default function ConfigurationPage() {
                           <Label htmlFor="eventsViewAllText">Texte du lien "Voir tout"</Label>
                           <Input
                             id="eventsViewAllText"
-                            value={homepageConfig.eventsViewAllText}
+                            value={configurations.homepage.eventsViewAllText}
                             onChange={(e) =>
-                              setHomepageConfig({
-                                ...homepageConfig,
-                                eventsViewAllText: e.target.value,
+                              setConfigurations({
+                                ...configurations,
+                                homepage: {
+                                  ...configurations.homepage,
+                                  eventsViewAllText: e.target.value,
+                                },
                               })
                             }
                             className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
@@ -1602,11 +1841,14 @@ export default function ConfigurationPage() {
                           <Label htmlFor="eventsViewAllUrl">URL du lien "Voir tout"</Label>
                           <Input
                             id="eventsViewAllUrl"
-                            value={homepageConfig.eventsViewAllUrl}
+                            value={configurations.homepage.eventsViewAllUrl}
                             onChange={(e) =>
-                              setHomepageConfig({
-                                ...homepageConfig,
-                                eventsViewAllUrl: e.target.value,
+                              setConfigurations({
+                                ...configurations,
+                                homepage: {
+                                  ...configurations.homepage,
+                                  eventsViewAllUrl: e.target.value,
+                                },
                               })
                             }
                             className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
@@ -1624,9 +1866,15 @@ export default function ConfigurationPage() {
                           </span>
                         </div>
                         <Switch
-                          checked={homepageConfig.streamEnabled}
+                          checked={configurations.homepage.streamEnabled}
                           onCheckedChange={(checked) =>
-                            setHomepageConfig({ ...homepageConfig, streamEnabled: checked })
+                            setConfigurations({
+                              ...configurations,
+                              homepage: {
+                                ...configurations.homepage,
+                                streamEnabled: checked,
+                              },
+                            })
                           }
                           className="data-[state=checked]:bg-purple-600"
                         />
@@ -1636,9 +1884,15 @@ export default function ConfigurationPage() {
                         <Label htmlFor="streamTitle">Titre de la section</Label>
                         <Input
                           id="streamTitle"
-                          value={homepageConfig.streamTitle}
+                          value={configurations.homepage.streamTitle}
                           onChange={(e) =>
-                            setHomepageConfig({ ...homepageConfig, streamTitle: e.target.value })
+                            setConfigurations({
+                              ...configurations,
+                              homepage: {
+                                ...configurations.homepage,
+                                streamTitle: e.target.value,
+                              },
+                            })
                           }
                           className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
                         />
@@ -1648,9 +1902,15 @@ export default function ConfigurationPage() {
                         <Label htmlFor="streamSubtitle">Sous-titre</Label>
                         <Input
                           id="streamSubtitle"
-                          value={homepageConfig.streamSubtitle}
+                          value={configurations.homepage.streamSubtitle}
                           onChange={(e) =>
-                            setHomepageConfig({ ...homepageConfig, streamSubtitle: e.target.value })
+                            setConfigurations({
+                              ...configurations,
+                              homepage: {
+                                ...configurations.homepage,
+                                streamSubtitle: e.target.value,
+                              },
+                            })
                           }
                           className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
                         />
@@ -1660,11 +1920,14 @@ export default function ConfigurationPage() {
                         <Label htmlFor="streamDescription">Description</Label>
                         <Textarea
                           id="streamDescription"
-                          value={homepageConfig.streamDescription}
+                          value={configurations.homepage.streamDescription}
                           onChange={(e) =>
-                            setHomepageConfig({
-                              ...homepageConfig,
-                              streamDescription: e.target.value,
+                            setConfigurations({
+                              ...configurations,
+                              homepage: {
+                                ...configurations.homepage,
+                                streamDescription: e.target.value,
+                              },
                             })
                           }
                           className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
@@ -1676,9 +1939,15 @@ export default function ConfigurationPage() {
                         <Label htmlFor="twitchUsername">Nom d'utilisateur Twitch</Label>
                         <Input
                           id="twitchUsername"
-                          value={homepageConfig.twitchUsername}
+                          value={configurations.homepage.twitchUsername}
                           onChange={(e) =>
-                            setHomepageConfig({ ...homepageConfig, twitchUsername: e.target.value })
+                            setConfigurations({
+                              ...configurations,
+                              homepage: {
+                                ...configurations.homepage,
+                                twitchUsername: e.target.value,
+                              },
+                            })
                           }
                           className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
                         />
@@ -1689,11 +1958,14 @@ export default function ConfigurationPage() {
                           <Label htmlFor="twitchFollowButtonText">Texte du bouton Suivre</Label>
                           <Input
                             id="twitchFollowButtonText"
-                            value={homepageConfig.twitchFollowButtonText}
+                            value={configurations.homepage.twitchFollowButtonText}
                             onChange={(e) =>
-                              setHomepageConfig({
-                                ...homepageConfig,
-                                twitchFollowButtonText: e.target.value,
+                              setConfigurations({
+                                ...configurations,
+                                homepage: {
+                                  ...configurations.homepage,
+                                  twitchFollowButtonText: e.target.value,
+                                },
                               })
                             }
                             className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
@@ -1704,11 +1976,14 @@ export default function ConfigurationPage() {
                           <Label htmlFor="twitchFollowButtonUrl">URL du bouton Suivre</Label>
                           <Input
                             id="twitchFollowButtonUrl"
-                            value={homepageConfig.twitchFollowButtonUrl}
+                            value={configurations.homepage.twitchFollowButtonUrl}
                             onChange={(e) =>
-                              setHomepageConfig({
-                                ...homepageConfig,
-                                twitchFollowButtonUrl: e.target.value,
+                              setConfigurations({
+                                ...configurations,
+                                homepage: {
+                                  ...configurations.homepage,
+                                  twitchFollowButtonUrl: e.target.value,
+                                },
                               })
                             }
                             className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
@@ -1722,11 +1997,14 @@ export default function ConfigurationPage() {
                         </Label>
                         <Input
                           id="streamNotifyButtonText"
-                          value={homepageConfig.streamNotifyButtonText}
+                          value={configurations.homepage.streamNotifyButtonText}
                           onChange={(e) =>
-                            setHomepageConfig({
-                              ...homepageConfig,
-                              streamNotifyButtonText: e.target.value,
+                            setConfigurations({
+                              ...configurations,
+                              homepage: {
+                                ...configurations.homepage,
+                                streamNotifyButtonText: e.target.value,
+                              },
                             })
                           }
                           className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
@@ -1741,28 +2019,34 @@ export default function ConfigurationPage() {
                           </span>
                         </div>
                         <Switch
-                          checked={homepageConfig.streamStatsEnabled}
+                          checked={configurations.homepage.streamStatsEnabled}
                           onCheckedChange={(checked) =>
-                            setHomepageConfig({
-                              ...homepageConfig,
-                              streamStatsEnabled: checked,
+                            setConfigurations({
+                              ...configurations,
+                              homepage: {
+                                ...configurations.homepage,
+                                streamStatsEnabled: checked,
+                              },
                             })
                           }
                           className="data-[state=checked]:bg-purple-600"
                         />
                       </div>
 
-                      {homepageConfig.streamStatsEnabled && (
+                      {configurations.homepage.streamStatsEnabled && (
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                           <div className="space-y-2">
                             <Label htmlFor="streamFollowers">Nombre de followers</Label>
                             <Input
                               id="streamFollowers"
-                              value={homepageConfig.streamFollowers}
+                              value={configurations.homepage.streamFollowers}
                               onChange={(e) =>
-                                setHomepageConfig({
-                                  ...homepageConfig,
-                                  streamFollowers: e.target.value,
+                                setConfigurations({
+                                  ...configurations,
+                                  homepage: {
+                                    ...configurations.homepage,
+                                    streamFollowers: e.target.value,
+                                  },
                                 })
                               }
                               className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
@@ -1773,11 +2057,14 @@ export default function ConfigurationPage() {
                             <Label htmlFor="streamHoursStreamed">Heures de stream</Label>
                             <Input
                               id="streamHoursStreamed"
-                              value={homepageConfig.streamHoursStreamed}
+                              value={configurations.homepage.streamHoursStreamed}
                               onChange={(e) =>
-                                setHomepageConfig({
-                                  ...homepageConfig,
-                                  streamHoursStreamed: e.target.value,
+                                setConfigurations({
+                                  ...configurations,
+                                  homepage: {
+                                    ...configurations.homepage,
+                                    streamHoursStreamed: e.target.value,
+                                  },
                                 })
                               }
                               className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
@@ -1788,11 +2075,14 @@ export default function ConfigurationPage() {
                             <Label htmlFor="streamTracksPlayed">Pistes jouées</Label>
                             <Input
                               id="streamTracksPlayed"
-                              value={homepageConfig.streamTracksPlayed}
+                              value={configurations.homepage.streamTracksPlayed}
                               onChange={(e) =>
-                                setHomepageConfig({
-                                  ...homepageConfig,
-                                  streamTracksPlayed: e.target.value,
+                                setConfigurations({
+                                  ...configurations,
+                                  homepage: {
+                                    ...configurations.homepage,
+                                    streamTracksPlayed: e.target.value,
+                                  },
                                 })
                               }
                               className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
@@ -1821,7 +2111,7 @@ export default function ConfigurationPage() {
                             console.log('DragDropContext onDragEnd', result);
 
                             // Parse la chaîne actuelle en tableau
-                            const sections = homepageConfig.sectionsOrder
+                            const sections = configurations.homepage.sectionsOrder
                               .split(',')
                               .filter(Boolean);
 
@@ -1835,9 +2125,12 @@ export default function ConfigurationPage() {
                             console.log('Nouvel ordre:', sections.join(','));
 
                             // Mettre à jour la configuration avec la nouvelle chaîne
-                            setHomepageConfig({
-                              ...homepageConfig,
-                              sectionsOrder: sections.join(','),
+                            setConfigurations({
+                              ...configurations,
+                              homepage: {
+                                ...configurations.homepage,
+                                sectionsOrder: sections.join(','),
+                              },
                             });
                           }}
                           dragHandleUsageInstructions="Utilisez les poignées de glissement pour réorganiser les sections"
@@ -1853,7 +2146,7 @@ export default function ConfigurationPage() {
                                   position: 'relative',
                                 }}
                               >
-                                {homepageConfig.sectionsOrder
+                                {configurations.homepage.sectionsOrder
                                   .split(',')
                                   .filter(Boolean)
                                   .map((section, index) => {
@@ -1957,16 +2250,19 @@ export default function ConfigurationPage() {
                                                   if (section !== 'hero') {
                                                     const prop =
                                                       `${section}Enabled` as keyof HomepageConfig;
-                                                    setHomepageConfig({
-                                                      ...homepageConfig,
-                                                      [prop]: !homepageConfig[prop],
+                                                    setConfigurations({
+                                                      ...configurations,
+                                                      homepage: {
+                                                        ...configurations.homepage,
+                                                        [prop]: !configurations.homepage[prop],
+                                                      },
                                                     });
                                                   }
                                                 }}
                                                 className={`ml-auto px-2 py-1 text-xs rounded-full cursor-pointer ${
                                                   section === 'hero'
                                                     ? 'bg-blue-500/20 text-blue-300 cursor-default'
-                                                    : homepageConfig[
+                                                    : configurations.homepage[
                                                           `${section}Enabled` as keyof HomepageConfig
                                                         ]
                                                       ? 'bg-green-500/20 text-green-300 hover:bg-green-500/40'
@@ -1975,7 +2271,7 @@ export default function ConfigurationPage() {
                                               >
                                                 {section === 'hero'
                                                   ? 'Toujours actif'
-                                                  : homepageConfig[
+                                                  : configurations.homepage[
                                                         `${section}Enabled` as keyof HomepageConfig
                                                       ]
                                                     ? 'Actif'
@@ -2017,11 +2313,14 @@ export default function ConfigurationPage() {
                         </span>
                       </div>
                       <Switch
-                        checked={notificationsConfig.emailNotifications}
+                        checked={configurations.notifications.emailNotifications}
                         onCheckedChange={(checked) =>
-                          setNotificationsConfig({
-                            ...notificationsConfig,
-                            emailNotifications: checked,
+                          setConfigurations({
+                            ...configurations,
+                            notifications: {
+                              ...configurations.notifications,
+                              emailNotifications: checked,
+                            },
                           })
                         }
                         className="data-[state=checked]:bg-purple-600"
@@ -2036,9 +2335,15 @@ export default function ConfigurationPage() {
                         </span>
                       </div>
                       <Switch
-                        checked={notificationsConfig.adminAlerts}
+                        checked={configurations.notifications.adminAlerts}
                         onCheckedChange={(checked) =>
-                          setNotificationsConfig({ ...notificationsConfig, adminAlerts: checked })
+                          setConfigurations({
+                            ...configurations,
+                            notifications: {
+                              ...configurations.notifications,
+                              adminAlerts: checked,
+                            },
+                          })
                         }
                         className="data-[state=checked]:bg-purple-600"
                       />
@@ -2052,11 +2357,14 @@ export default function ConfigurationPage() {
                         </span>
                       </div>
                       <Switch
-                        checked={notificationsConfig.newUserNotifications}
+                        checked={configurations.notifications.newUserNotifications}
                         onCheckedChange={(checked) =>
-                          setNotificationsConfig({
-                            ...notificationsConfig,
-                            newUserNotifications: checked,
+                          setConfigurations({
+                            ...configurations,
+                            notifications: {
+                              ...configurations.notifications,
+                              newUserNotifications: checked,
+                            },
                           })
                         }
                         className="data-[state=checked]:bg-purple-600"
@@ -2071,11 +2379,14 @@ export default function ConfigurationPage() {
                         </span>
                       </div>
                       <Switch
-                        checked={notificationsConfig.eventReminders}
+                        checked={configurations.notifications.eventReminders}
                         onCheckedChange={(checked) =>
-                          setNotificationsConfig({
-                            ...notificationsConfig,
-                            eventReminders: checked,
+                          setConfigurations({
+                            ...configurations,
+                            notifications: {
+                              ...configurations.notifications,
+                              eventReminders: checked,
+                            },
                           })
                         }
                         className="data-[state=checked]:bg-purple-600"
@@ -2090,11 +2401,14 @@ export default function ConfigurationPage() {
                         </span>
                       </div>
                       <Switch
-                        checked={notificationsConfig.marketingEmails}
+                        checked={configurations.notifications.marketingEmails}
                         onCheckedChange={(checked) =>
-                          setNotificationsConfig({
-                            ...notificationsConfig,
-                            marketingEmails: checked,
+                          setConfigurations({
+                            ...configurations,
+                            notifications: {
+                              ...configurations.notifications,
+                              marketingEmails: checked,
+                            },
                           })
                         }
                         className="data-[state=checked]:bg-purple-600"
@@ -2121,9 +2435,15 @@ export default function ConfigurationPage() {
                         </span>
                       </div>
                       <Switch
-                        checked={securityConfig.twoFactorAuth}
+                        checked={configurations.security.twoFactorAuth}
                         onCheckedChange={(checked) =>
-                          setSecurityConfig({ ...securityConfig, twoFactorAuth: checked })
+                          setConfigurations({
+                            ...configurations,
+                            security: {
+                              ...configurations.security,
+                              twoFactorAuth: checked,
+                            },
+                          })
                         }
                         className="data-[state=checked]:bg-purple-600"
                       />
@@ -2137,11 +2457,14 @@ export default function ConfigurationPage() {
                         <Input
                           id="passwordExpiration"
                           type="number"
-                          value={securityConfig.passwordExpiration}
+                          value={configurations.security.passwordExpiration}
                           onChange={(e) =>
-                            setSecurityConfig({
-                              ...securityConfig,
-                              passwordExpiration: parseInt(e.target.value),
+                            setConfigurations({
+                              ...configurations,
+                              security: {
+                                ...configurations.security,
+                                passwordExpiration: parseInt(e.target.value),
+                              },
                             })
                           }
                           min="0"
@@ -2155,11 +2478,14 @@ export default function ConfigurationPage() {
                         <Input
                           id="failedLoginLimit"
                           type="number"
-                          value={securityConfig.failedLoginLimit}
+                          value={configurations.security.failedLoginLimit}
                           onChange={(e) =>
-                            setSecurityConfig({
-                              ...securityConfig,
-                              failedLoginLimit: parseInt(e.target.value),
+                            setConfigurations({
+                              ...configurations,
+                              security: {
+                                ...configurations.security,
+                                failedLoginLimit: parseInt(e.target.value),
+                              },
                             })
                           }
                           min="1"
@@ -2173,11 +2499,14 @@ export default function ConfigurationPage() {
                       <Input
                         id="sessionTimeout"
                         type="number"
-                        value={securityConfig.sessionTimeout}
+                        value={configurations.security.sessionTimeout}
                         onChange={(e) =>
-                          setSecurityConfig({
-                            ...securityConfig,
-                            sessionTimeout: parseInt(e.target.value),
+                          setConfigurations({
+                            ...configurations,
+                            security: {
+                              ...configurations.security,
+                              sessionTimeout: parseInt(e.target.value),
+                            },
                           })
                         }
                         min="5"
@@ -2193,9 +2522,15 @@ export default function ConfigurationPage() {
                         </span>
                       </div>
                       <Switch
-                        checked={securityConfig.ipRestriction}
+                        checked={configurations.security.ipRestriction}
                         onCheckedChange={(checked) =>
-                          setSecurityConfig({ ...securityConfig, ipRestriction: checked })
+                          setConfigurations({
+                            ...configurations,
+                            security: {
+                              ...configurations.security,
+                              ipRestriction: checked,
+                            },
+                          })
                         }
                         className="data-[state=checked]:bg-purple-600"
                       />
@@ -2228,9 +2563,15 @@ export default function ConfigurationPage() {
                         <span className="text-xs text-gray-400">Activer l'accès API</span>
                       </div>
                       <Switch
-                        checked={apiConfig.apiEnabled}
+                        checked={configurations.api.apiEnabled}
                         onCheckedChange={(checked) =>
-                          setApiConfig({ ...apiConfig, apiEnabled: checked })
+                          setConfigurations({
+                            ...configurations,
+                            api: {
+                              ...configurations.api,
+                              apiEnabled: checked,
+                            },
+                          })
                         }
                         className="data-[state=checked]:bg-purple-600"
                       />
@@ -2241,9 +2582,15 @@ export default function ConfigurationPage() {
                       <Input
                         id="rateLimit"
                         type="number"
-                        value={apiConfig.rateLimit}
+                        value={configurations.api.rateLimit}
                         onChange={(e) =>
-                          setApiConfig({ ...apiConfig, rateLimit: parseInt(e.target.value) })
+                          setConfigurations({
+                            ...configurations,
+                            api: {
+                              ...configurations.api,
+                              rateLimit: parseInt(e.target.value),
+                            },
+                          })
                         }
                         min="10"
                         className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
@@ -2255,8 +2602,13 @@ export default function ConfigurationPage() {
                       <Input
                         id="webhookUrl"
                         type="url"
-                        value={apiConfig.webhookUrl}
-                        onChange={(e) => setApiConfig({ ...apiConfig, webhookUrl: e.target.value })}
+                        value={configurations.api.webhookUrl}
+                        onChange={(e) =>
+                          setConfigurations({
+                            ...configurations,
+                            api: { ...configurations.api, webhookUrl: e.target.value },
+                          })
+                        }
                         placeholder="https://example.com/webhook"
                         className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
                       />
@@ -2268,22 +2620,34 @@ export default function ConfigurationPage() {
                         <span className="text-xs text-gray-400">Activer le suivi Umami</span>
                       </div>
                       <Switch
-                        checked={apiConfig.umamiEnabled}
+                        checked={configurations.api.umamiEnabled}
                         onCheckedChange={(checked) =>
-                          setApiConfig({ ...apiConfig, umamiEnabled: checked })
+                          setConfigurations({
+                            ...configurations,
+                            api: {
+                              ...configurations.api,
+                              umamiEnabled: checked,
+                            },
+                          })
                         }
                         className="data-[state=checked]:bg-purple-600"
                       />
                     </div>
 
-                    {apiConfig.umamiEnabled && (
+                    {configurations.api.umamiEnabled && (
                       <div className="space-y-2">
                         <Label htmlFor="umamiSiteId">ID du site Umami</Label>
                         <Input
                           id="umamiSiteId"
-                          value={apiConfig.umamiSiteId}
+                          value={configurations.api.umamiSiteId}
                           onChange={(e) =>
-                            setApiConfig({ ...apiConfig, umamiSiteId: e.target.value })
+                            setConfigurations({
+                              ...configurations,
+                              api: {
+                                ...configurations.api,
+                                umamiSiteId: e.target.value,
+                              },
+                            })
                           }
                           className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
                         />
@@ -2311,6 +2675,15 @@ export default function ConfigurationPage() {
                       </div>
                     </div>
                   </div>
+                </div>
+              )}
+
+              {activeSection === 'images' && (
+                <div className="p-6 relative z-10">
+                  <h2 className="text-2xl font-audiowide text-white mb-6 pb-2 border-b border-purple-500/20">
+                    Gestion des images uploadées
+                  </h2>
+                  <GestionImages showBackLink={false} showHeader={false} />
                 </div>
               )}
             </div>
@@ -2374,16 +2747,16 @@ export default function ConfigurationPage() {
 
       {/* Modal pour l'historique et les snapshots */}
       <HistoryModal
-        isOpen={isHistoryModalOpen}
-        onClose={() => setIsHistoryModalOpen(false)}
+        isOpen={historyOpen}
+        onClose={() => setHistoryOpen(false)}
         onRevertChange={handleRevertChange}
         onApplySnapshot={handleApplySnapshot}
       />
 
       {/* Modal pour la sauvegarde avec nom personnalisé */}
       <SaveConfigModal
-        isOpen={isSaveModalOpen}
-        onClose={() => setIsSaveModalOpen(false)}
+        isOpen={saveModalOpen}
+        onClose={() => setSaveModalOpen(false)}
         onSave={handleSaveWithName}
         changesSummary={getChangesSummary()}
       />
