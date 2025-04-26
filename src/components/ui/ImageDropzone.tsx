@@ -1,5 +1,6 @@
-import React, { useRef } from 'react';
-import { Upload, Crop, Trash2 } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { Upload, Crop, Trash2, Image as ImageIcon } from 'lucide-react';
+import ImageLibraryModal from './ImageLibraryModal';
 
 interface ImageDropzoneProps {
   label: string;
@@ -12,6 +13,7 @@ interface ImageDropzoneProps {
   accept?: string;
   aspectRatio?: string;
   canRecrop?: boolean;
+  onFileSelected?: (file: File) => void;
 }
 
 const ImageDropzone: React.FC<ImageDropzoneProps> = ({
@@ -25,12 +27,74 @@ const ImageDropzone: React.FC<ImageDropzoneProps> = ({
   accept = 'image/*',
   aspectRatio,
   canRecrop = false,
+  onFileSelected,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showLibrary, setShowLibrary] = useState(false);
+
+  // Handler pour sélection depuis la bibliothèque
+  const handleSelectFromLibrary = async (imgMeta: any) => {
+    try {
+      const exts = [
+        '', // extension du chemin fourni
+        '.png',
+        '.jpg',
+        '.jpeg',
+        '.webp',
+      ];
+      let file: File | null = null;
+      const baseUrl = imgMeta.url || imgMeta.path;
+      for (const ext of exts) {
+        let url = baseUrl;
+        if (ext && !baseUrl.endsWith(ext)) {
+          url = baseUrl.replace(/\.[a-zA-Z0-9]+$/, ext);
+        }
+        try {
+          const res = await fetch(url);
+          if (!res.ok) continue;
+          const blob = await res.blob();
+          if (!blob.type.startsWith('image/')) continue;
+          let mimeType = blob.type;
+          if (!mimeType.startsWith('image/')) {
+            if (url.endsWith('.png')) mimeType = 'image/png';
+            else if (url.endsWith('.jpg') || url.endsWith('.jpeg')) mimeType = 'image/jpeg';
+            else if (url.endsWith('.webp')) mimeType = 'image/webp';
+            else mimeType = 'image/png';
+          }
+          file = new File([blob], imgMeta.name, { type: mimeType });
+          break;
+        } catch {
+          continue;
+        }
+      }
+      if (!file) return;
+      if (typeof onFileSelected === 'function') {
+        onFileSelected(file);
+      } else {
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        const event = { target: { files: dt.files } } as React.ChangeEvent<HTMLInputElement>;
+        onDrop(event);
+      }
+      setShowLibrary(false);
+    } catch {
+      // fail silently
+    }
+  };
 
   return (
     <div className="mt-4">
       <label className="block text-gray-300 font-medium mb-2">{label}</label>
+      <div className="flex items-center gap-2 mb-2">
+        <button
+          type="button"
+          onClick={() => setShowLibrary(true)}
+          className="px-3 py-2 bg-purple-700 hover:bg-purple-800 text-white rounded flex items-center gap-2"
+        >
+          <ImageIcon className="w-5 h-5" />
+          Importer depuis la bibliothèque
+        </button>
+      </div>
       {imageUrl ? (
         <div className="relative">
           <div
@@ -88,6 +152,11 @@ const ImageDropzone: React.FC<ImageDropzoneProps> = ({
           />
         </div>
       )}
+      <ImageLibraryModal
+        open={showLibrary}
+        onClose={() => setShowLibrary(false)}
+        onSelect={handleSelectFromLibrary}
+      />
     </div>
   );
 };

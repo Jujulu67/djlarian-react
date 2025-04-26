@@ -249,3 +249,37 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
     return NextResponse.json({ error: 'Failed to delete track' }, { status: 500 });
   }
 }
+
+// PATCH /api/music/[id] - Mise à jour partielle (ex: imageId)
+export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await context.params;
+  const id = resolvedParams.id;
+
+  if (!id) {
+    return NextResponse.json({ error: 'Track ID is required' }, { status: 400 });
+  }
+
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const data = await request.json();
+    const { imageId } = data;
+
+    if (!imageId) {
+      return NextResponse.json({ error: 'imageId is required' }, { status: 400 });
+    }
+
+    const updatedTrack = await prisma.track.update({
+      where: { id },
+      data: { imageId },
+    });
+
+    return NextResponse.json({ success: true, track: updatedTrack });
+  } catch (error) {
+    console.error(`Error PATCH track ${id}:`, error);
+    return NextResponse.json({ error: 'Failed to patch track' }, { status: 500 });
+  }
+}

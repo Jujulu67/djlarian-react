@@ -97,6 +97,12 @@ export default function GestionImages({
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [selectedImageIds, setSelectedImageIds] = useState<string[]>([]);
   const [isGrouping, setIsGrouping] = useState(false);
+  const [fusionModal, setFusionModal] = useState<{
+    family: { signature: string; groups: GroupedImage[] };
+  } | null>(null);
+  const [selectedMasterId, setSelectedMasterId] = useState<string | null>(null);
+  const [ignoredIds, setIgnoredIds] = useState<string[]>([]);
+  const [isLoadingFusion, setIsLoadingFusion] = useState(false);
 
   // Charger les images depuis l'API au chargement du composant
   useEffect(() => {
@@ -160,7 +166,40 @@ export default function GestionImages({
       }
     });
 
-    setGroupedImages(Object.values(groups));
+    // 4. Détection des doublons d'originale (même taille d'ori)
+    const groupList = Object.values(groups);
+    const oriMap: Record<string, GroupedImage[]> = {};
+    groupList.forEach((group) => {
+      if (!group.ori) return;
+      const oriSig = `${group.ori.size}`;
+      if (!oriMap[oriSig]) oriMap[oriSig] = [];
+      oriMap[oriSig].push(group);
+    });
+    const duplicateOriSignatures = Object.entries(oriMap)
+      .filter(([_, groups]) => groups.length > 1)
+      .map(([signature]) => signature);
+    groupList.forEach((group) => {
+      if (!group.ori) return;
+      const oriSig = `${group.ori.size}`;
+      const isDuplicate = duplicateOriSignatures.includes(oriSig);
+      if (group.ori) group.ori.isDuplicate = isDuplicate;
+      if (group.crop) group.crop.isDuplicate = isDuplicate;
+    });
+    setGroupedImages(groupList);
+    // Synchroniser le state images pour le filtre doublons
+    setImages((prevImages) =>
+      prevImages.map((img) => {
+        const found = groupList.find(
+          (g) => (g.crop && g.crop.id === img.id) || (g.ori && g.ori.id === img.id)
+        );
+        if (!found) return img;
+        const isDuplicate =
+          (found.crop && found.crop.id === img.id && found.crop.isDuplicate) ||
+          (found.ori && found.ori.id === img.id && found.ori.isDuplicate) ||
+          false;
+        return { ...img, isDuplicate };
+      })
+    );
     setIsGrouping(false);
   }, []);
 
@@ -184,9 +223,19 @@ export default function GestionImages({
         linkedTo: null,
         isDuplicate: false,
       }));
-      setImages(formattedImages);
+      // Détection des doublons par nom de base
+      const nameMap: Record<string, number> = {};
+      formattedImages.forEach((img: ImageMeta) => {
+        const baseName = extractImageId(img.name);
+        nameMap[baseName] = (nameMap[baseName] || 0) + 1;
+      });
+      const imagesWithDuplicates = formattedImages.map((img: ImageMeta) => {
+        const baseName = extractImageId(img.name);
+        return { ...img, isDuplicate: nameMap[baseName] > 1 };
+      });
+      setImages(imagesWithDuplicates);
       // Appeler le regroupement et mapping
-      groupAndLinkImages(formattedImages);
+      groupAndLinkImages(imagesWithDuplicates);
     } catch (err) {
       console.error('Erreur de chargement des images:', err);
       setError('Impossible de charger les images. Veuillez réessayer.');
@@ -244,6 +293,15 @@ export default function GestionImages({
   useEffect(() => {
     let result = images;
 
+    // DEBUG LOGS
+    console.log('[DEBUG] Filtrage images:', {
+      total: images.length,
+      doublons: images.filter((img) => img.isDuplicate).length,
+      showDuplicates,
+      searchTerm,
+      filter,
+    });
+
     // Filtrer par type
     if (filter) {
       result = result.filter((img) => img.type.toLowerCase() === filter.toLowerCase());
@@ -260,6 +318,11 @@ export default function GestionImages({
       result = result.filter((img) => img.isDuplicate);
     }
 
+    console.log(
+      '[DEBUG] Images après filtrage:',
+      result.length,
+      result.map((i) => i.name)
+    );
     setFilteredImages(result);
   }, [images, searchTerm, filter, showDuplicates]);
 
@@ -286,8 +349,19 @@ export default function GestionImages({
   };
 
   // Fonction de tri
-  const getSortedGroups = () => {
-    const sorted = [...groupedImages];
+  const getSortedGroups = (groups: GroupedImage[]) => {
+    const sorted = [...groups];
+    if (showDuplicates) {
+      // Tri par signature d'originale (taille), puis par nom
+      sorted.sort((a, b) => {
+        const aSig = a.ori?.size || 0;
+        const bSig = b.ori?.size || 0;
+        if (aSig !== bSig) return bSig - aSig; // du plus gros au plus petit
+        return (a.crop?.name || a.ori?.name || '').localeCompare(b.crop?.name || b.ori?.name || '');
+      });
+      return sorted;
+    }
+    // Tri normal sinon
     switch (sortOption) {
       case 'date-desc':
         sorted.sort((a, b) => {
@@ -339,18 +413,45 @@ export default function GestionImages({
     return sorted;
   };
 
+  // Filtrage des groupes selon showDuplicates
+  const filteredGroups = useMemo(() => {
+    let result = groupedImages;
+    if (showDuplicates) {
+      result = result.filter(
+        (group) => (group.crop && group.crop.isDuplicate) || (group.ori && group.ori.isDuplicate)
+      );
+    }
+    // (Optionnel: autres filtres à ajouter ici)
+    return result;
+  }, [groupedImages, showDuplicates]);
+
   // Pagination + cache trié
   const paginatedGroups = useMemo(() => {
-    const sorted = getSortedGroups();
+    const sorted = getSortedGroups(filteredGroups);
     const start = (currentPage - 1) * itemsPerPage;
     const end = start + itemsPerPage;
     return sorted.slice(start, end);
-  }, [getSortedGroups, currentPage, itemsPerPage]);
+  }, [filteredGroups, getSortedGroups, currentPage, itemsPerPage]);
 
   const totalPages = useMemo(
-    () => Math.ceil(getSortedGroups().length / itemsPerPage),
-    [getSortedGroups, itemsPerPage]
+    () => Math.ceil(getSortedGroups(filteredGroups).length / itemsPerPage),
+    [getSortedGroups, filteredGroups, itemsPerPage]
   );
+
+  // Regroupement des familles de doublons (par taille d'ori)
+  const doublonFamilies = useMemo(() => {
+    if (!showDuplicates) return [];
+    const map: Record<string, GroupedImage[]> = {};
+    filteredGroups.forEach((group) => {
+      const oriSig = group.ori?.size ? `${group.ori.size}` : 'noori';
+      if (!map[oriSig]) map[oriSig] = [];
+      map[oriSig].push(group);
+    });
+    // On ne garde que les familles avec au moins 2 groupes (vrais doublons)
+    return Object.entries(map)
+      .filter(([_, groups]) => groups.length > 1)
+      .map(([signature, groups]) => ({ signature, groups }));
+  }, [filteredGroups, showDuplicates]);
 
   // 2. COMPOSANT DRY POUR LA BARRE DE FILTRES
   const FiltersBar = () => {
@@ -413,7 +514,10 @@ export default function GestionImages({
           <div className="flex items-center gap-3">
             <Checkbox
               checked={showDuplicates}
-              onCheckedChange={setShowDuplicates}
+              onCheckedChange={(checked) => {
+                setShowDuplicates(checked);
+                console.log('[DEBUG] Checkbox Doublons changé:', checked);
+              }}
               label="Doublons"
               aria-label="Afficher uniquement les doublons"
             />
@@ -437,24 +541,26 @@ export default function GestionImages({
           </div>
 
           <div className="flex gap-2">
-            <Button
-              variant={isMultiSelectMode ? 'secondary' : 'default'}
-              size="sm"
-              onClick={() => {
-                setIsMultiSelectMode((v) => !v);
-                setSelectedImageIds([]);
-              }}
-              aria-pressed={isMultiSelectMode}
-              aria-label="Activer le mode sélection multiple"
-              className={`whitespace-nowrap min-w-[140px] px-4 py-2 transition-all duration-200 ${
-                isMultiSelectMode
-                  ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20'
-                  : 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white'
-              }`}
-            >
-              {isMultiSelectMode ? '✓ Mode sélection' : '+ Sélection multiple'}
-            </Button>
-
+            {/* Bouton Sélection multiple : affiché seulement si le filtre doublons n'est PAS actif */}
+            {!showDuplicates && (
+              <Button
+                variant={isMultiSelectMode ? 'secondary' : 'default'}
+                size="sm"
+                onClick={() => {
+                  setIsMultiSelectMode((v) => !v);
+                  setSelectedImageIds([]);
+                }}
+                aria-pressed={isMultiSelectMode}
+                aria-label="Activer le mode sélection multiple"
+                className={`whitespace-nowrap min-w-[140px] px-4 py-2 transition-all duration-200 ${
+                  isMultiSelectMode
+                    ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20'
+                    : 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white'
+                }`}
+              >
+                {isMultiSelectMode ? '✓ Mode sélection' : '+ Sélection multiple'}
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -617,12 +723,201 @@ export default function GestionImages({
         <div className="flex justify-center items-center h-64">
           <ClipLoader size={40} color="#9042f5" />
         </div>
-      ) : getSortedGroups().length === 0 ? (
-        <div className="text-center py-10 text-gray-400">
-          {searchTerm || filter || showDuplicates
-            ? 'Aucune image ne correspond aux critères de recherche.'
-            : "Aucune image n'est disponible."}
-        </div>
+      ) : showDuplicates ? (
+        doublonFamilies.length === 0 ? (
+          <div className="text-center py-10 text-gray-400">Aucun doublon détecté.</div>
+        ) : (
+          <>
+            {doublonFamilies.map((family) => (
+              <div
+                key={family.signature}
+                className="mb-8 p-4 rounded-xl border-2 border-yellow-400 bg-yellow-50/10"
+              >
+                <div className="mb-4 font-bold text-yellow-400 flex items-center gap-2 justify-between">
+                  <span className="flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5" />
+                    Doublons potentiels (taille originale :{' '}
+                    {(Number(family.signature) / 1024).toFixed(1)} Ko)
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setFusionModal({ family })}
+                    className="bg-purple-600 text-white hover:bg-purple-700"
+                  >
+                    Fusionner
+                  </Button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                  {family.groups.map((group) => {
+                    const image = group.crop || group.ori;
+                    if (!image) return null;
+                    const isSelected = selectedImageIds.includes(image.id);
+                    return (
+                      <div
+                        key={group.imageId}
+                        className={`relative overflow-hidden flex flex-col rounded-xl shadow-lg transition-all duration-200 group hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 ${
+                          isMultiSelectMode && isSelected
+                            ? 'ring-2 ring-purple-500 border border-purple-500/40'
+                            : 'border border-gray-800'
+                        }`}
+                        onClick={(e) => {
+                          if (isMultiSelectMode) {
+                            // Sélectionner/désélectionner l'image
+                            if (isSelected) {
+                              setSelectedImageIds(selectedImageIds.filter((id) => id !== image.id));
+                            } else {
+                              setSelectedImageIds([...selectedImageIds, image.id]);
+                            }
+                            return;
+                          }
+                          if ((e.target as HTMLElement).closest('button, a, [role="button"]'))
+                            return;
+                          setSelectedGroup(group);
+                        }}
+                        tabIndex={0}
+                        aria-label={`Voir le détail de l'image ${image.name}`}
+                        onKeyDown={(e) => {
+                          if (isMultiSelectMode) {
+                            if (e.key === ' ' || e.key === 'Enter') {
+                              if (isSelected) {
+                                setSelectedImageIds(
+                                  selectedImageIds.filter((id) => id !== image.id)
+                                );
+                              } else {
+                                setSelectedImageIds([...selectedImageIds, image.id]);
+                              }
+                              e.preventDefault();
+                            }
+                            return;
+                          }
+                          if (e.key === 'Enter' || e.key === ' ') setSelectedGroup(group);
+                        }}
+                        style={{
+                          background:
+                            'linear-gradient(to bottom right, rgba(30, 30, 40, 0.8), rgba(20, 20, 25, 0.9))',
+                        }}
+                      >
+                        {isMultiSelectMode && (
+                          <div className="absolute top-3 left-3 z-20">
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={(checked) => {
+                                if (!checked) {
+                                  setSelectedImageIds(
+                                    selectedImageIds.filter((id) => id !== image.id)
+                                  );
+                                } else {
+                                  setSelectedImageIds([...selectedImageIds, image.id]);
+                                }
+                              }}
+                              className="bg-gray-900/80 border-gray-600"
+                              aria-label={`Sélectionner l'image ${image.name}`}
+                              onMouseDown={(e) => e.stopPropagation()}
+                            />
+                          </div>
+                        )}
+                        <div className="relative h-44 bg-gray-800/60 flex items-center justify-center overflow-hidden">
+                          <img
+                            src={image.url}
+                            alt={image.name}
+                            loading="lazy"
+                            className="h-full w-full object-cover transition-all duration-300 group-hover:scale-110"
+                          />
+                          {group.ori && group.crop && (
+                            <Badge
+                              variant="default"
+                              className="absolute top-2 right-2 gap-1"
+                              icon={<ImageIcon className="w-3 h-3" />}
+                            >
+                              Crop + Ori
+                            </Badge>
+                          )}
+                          {!group.crop && group.ori && (
+                            <Badge variant="secondary" className="absolute top-2 right-2">
+                              Originale seule
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="p-4 flex-grow flex flex-col">
+                          <h3
+                            className="font-semibold truncate text-gray-100 text-base mb-1"
+                            title={image.name}
+                          >
+                            {image.name}
+                          </h3>
+                          <div className="flex flex-wrap gap-2 items-center text-xs mb-2">
+                            {image.type !== 'Autre' && (
+                              <Badge
+                                variant={
+                                  image.type === 'Couverture'
+                                    ? 'default'
+                                    : image.type === 'Événement'
+                                      ? 'secondary'
+                                      : 'ghost'
+                                }
+                                size="sm"
+                              >
+                                {image.type}
+                              </Badge>
+                            )}
+                            <span className="text-purple-300 font-mono text-xs">
+                              {(image.size / 1024).toFixed(1)} Ko
+                            </span>
+                          </div>
+                          {group.linkedTo && (
+                            <div className="mt-2 w-full">
+                              <span
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm w-full ${
+                                  group.linkedTo.type === 'track'
+                                    ? 'bg-purple-700/30 text-purple-200'
+                                    : 'bg-blue-700/30 text-blue-200'
+                                } whitespace-nowrap overflow-hidden transition-colors duration-200 hover:bg-opacity-50`}
+                                title={group.linkedTo.title}
+                                style={{ minHeight: '2.5rem' }}
+                              >
+                                {group.linkedTo.type === 'track' ? (
+                                  <Music className="w-5 h-5 flex-shrink-0" />
+                                ) : (
+                                  <Calendar className="w-5 h-5 flex-shrink-0" />
+                                )}
+                                <span className="truncate">{group.linkedTo.title}</span>
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex flex-row gap-1 justify-center items-center py-3 px-2 bg-gray-900/40">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDownload(image!);
+                            }}
+                            className="hover:bg-purple-900/30 rounded-lg"
+                          >
+                            <Download className="w-5 h-5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-red-500 hover:bg-red-900/30 rounded-lg"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteTarget(image);
+                            }}
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </>
+        )
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
@@ -685,6 +980,7 @@ export default function GestionImages({
                         }}
                         className="bg-gray-900/80 border-gray-600"
                         aria-label={`Sélectionner l'image ${image.name}`}
+                        onMouseDown={(e) => e.stopPropagation()}
                       />
                     </div>
                   )}
@@ -732,7 +1028,9 @@ export default function GestionImages({
                           {image.type}
                         </Badge>
                       )}
-                      <span className="text-gray-400">{(image.size / 1024).toFixed(1)} Ko</span>
+                      <span className="text-purple-300 font-mono text-xs">
+                        {(image.size / 1024).toFixed(1)} Ko
+                      </span>
                     </div>
                     {group.linkedTo && (
                       <div className="mt-2 w-full">
@@ -1032,6 +1330,220 @@ export default function GestionImages({
                 }}
               >
                 Supprimer
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+      {/* Modale de fusion MVP */}
+      {fusionModal && (
+        <Modal
+          maxWidth="max-w-3xl"
+          onClose={() => {
+            setFusionModal(null);
+            setSelectedMasterId(null);
+            setIgnoredIds([]);
+          }}
+        >
+          <div className="flex flex-col gap-6">
+            <div className="font-bold text-lg text-yellow-500 flex items-center gap-2">
+              <AlertTriangle className="w-6 h-6" />
+              Fusionner les doublons (taille originale :{' '}
+              {(Number(fusionModal.family.signature) / 1024).toFixed(1)} Ko)
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+              {fusionModal.family.groups.map((group) => {
+                const image = group.crop || group.ori;
+                if (!image) return null;
+                const isIgnored = ignoredIds.includes(image.id);
+                const isMaster = selectedMasterId === image.id;
+                return (
+                  <div
+                    key={group.imageId}
+                    className={`flex flex-col items-center border rounded-lg p-4 bg-gray-900/60 transition-all duration-200 relative ${
+                      isMaster ? 'ring-2 ring-purple-500 bg-purple-900/30' : 'border-gray-700'
+                    } ${isIgnored ? 'opacity-50 grayscale' : ''}`}
+                    tabIndex={-1}
+                    aria-label={`Carte image ${image.name}`}
+                  >
+                    {/* Zone haute : sélection maître */}
+                    <div
+                      className={`w-full flex flex-col items-center cursor-pointer ${isIgnored ? 'pointer-events-none' : ''}`}
+                      onClick={() => {
+                        if (!isIgnored) setSelectedMasterId(image.id);
+                      }}
+                      onKeyDown={(e) => {
+                        if (!isIgnored && (e.key === 'Enter' || e.key === ' ')) {
+                          setSelectedMasterId(image.id);
+                          e.preventDefault();
+                        }
+                      }}
+                      tabIndex={0}
+                      aria-label={`Sélectionner comme maître ${image.name}`}
+                    >
+                      <img
+                        src={image.url}
+                        alt={image.name}
+                        className="w-full h-32 object-cover rounded mb-2"
+                      />
+                      <div className="text-xs text-gray-300 mb-1">{image.name}</div>
+                      <div className="text-purple-300 font-mono text-xs mb-1">
+                        {(image.size / 1024).toFixed(1)} Ko
+                      </div>
+                      {group.linkedTo ? (
+                        <div className="text-xs text-blue-400 mb-1">
+                          Lié à : {group.linkedTo.title} ({group.linkedTo.type})
+                        </div>
+                      ) : (
+                        <div className="text-xs text-gray-500 mb-1">Aucun lien</div>
+                      )}
+                      {isMaster && !isIgnored && (
+                        <div className="absolute top-2 right-2 bg-purple-600 text-white text-xs px-2 py-1 rounded shadow">
+                          Maître
+                        </div>
+                      )}
+                    </div>
+                    {/* Zone basse : checkbox Ignorer, toujours interactive */}
+                    <div className="mt-3 flex justify-center w-full">
+                      <Checkbox
+                        checked={isIgnored}
+                        onCheckedChange={(checked) => {
+                          console.log('[DEBUG] Checkbox Ignorer changée', {
+                            imageId: image.id,
+                            checked,
+                            prevIgnoredIds: ignoredIds,
+                            callStack: new Error().stack,
+                          });
+                          setIgnoredIds((prev) => {
+                            let next;
+                            if (checked) {
+                              next = Array.from(new Set([...prev, image.id]));
+                            } else {
+                              next = prev.filter((id) => id !== image.id);
+                            }
+                            console.log('[DEBUG] Nouvel état ignoredIds', next);
+                            return next;
+                          });
+                          if (checked && selectedMasterId === image.id) setSelectedMasterId(null);
+                        }}
+                        label="Ignorer"
+                        className="text-xs"
+                        onClick={() => {
+                          console.log('[DEBUG] Checkbox onClick déclenché', { imageId: image.id });
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {/* TODO: Résumé des actions, bouton Confirmer */}
+            <div className="flex justify-end gap-2 mt-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setFusionModal(null);
+                  setSelectedMasterId(null);
+                  setIgnoredIds([]);
+                }}
+              >
+                Annuler
+              </Button>
+              <Button
+                variant="outline"
+                className="bg-purple-600 text-white hover:bg-purple-700"
+                disabled={
+                  !selectedMasterId || ignoredIds.includes(selectedMasterId) || isLoadingFusion
+                }
+                onClick={async () => {
+                  setIsLoadingFusion(true);
+                  setError(null);
+                  try {
+                    // 1. Déterminer la carte maître
+                    const masterGroup = fusionModal.family.groups.find(
+                      (g) => (g.crop?.id || g.ori?.id) === selectedMasterId
+                    );
+                    if (!masterGroup) throw new Error('Carte maître introuvable');
+                    const masterImage = masterGroup.crop || masterGroup.ori;
+                    // 2. Déterminer les images ignorées
+                    const ignoredSet = new Set(ignoredIds);
+                    // 3. Déterminer les images à supprimer (tous les ids crop et ori sauf maître et ignorés)
+                    const protectedIds = [
+                      ...(masterGroup.crop ? [masterGroup.crop.id] : []),
+                      ...(masterGroup.ori ? [masterGroup.ori.id] : []),
+                      ...fusionModal.family.groups
+                        .filter((g) => {
+                          const id = g.crop?.id || g.ori?.id;
+                          return id && ignoredSet.has(id);
+                        })
+                        .flatMap((g) => [g.crop?.id, g.ori?.id].filter(Boolean)),
+                    ];
+                    const toDelete = fusionModal.family.groups
+                      .flatMap((g) => [g.crop?.id, g.ori?.id])
+                      .filter((id): id is string => !!id && !protectedIds.includes(id));
+                    // LOGS DEBUG FUSION
+                    console.log('[FUSION] masterGroup', masterGroup);
+                    console.log('[FUSION] masterIds utilisés pour update', protectedIds);
+                    console.log('[FUSION] ignoredIds', ignoredIds);
+                    console.log('[FUSION] toDelete (ids supprimés)', toDelete);
+                    // 4. Mettre à jour les entités liées (hors ignorées)
+                    const extractBaseId = (id: string) => id.replace(/\.[a-zA-Z0-9]+$/, '');
+                    for (const group of fusionModal.family.groups) {
+                      const imageId = group.crop?.id || group.ori?.id;
+                      if (!imageId || protectedIds.includes(imageId)) continue;
+                      if (group.linkedTo) {
+                        // On veut pointer vers le crop du maître si possible, sinon ori, SANS extension
+                        const newImageId = masterGroup.crop
+                          ? extractBaseId(masterGroup.crop.id)
+                          : masterGroup.ori
+                            ? extractBaseId(masterGroup.ori.id)
+                            : undefined;
+                        console.log(
+                          '[FUSION] PATCH entity',
+                          group.linkedTo,
+                          '-> imageId',
+                          newImageId
+                        );
+                        const endpoint =
+                          group.linkedTo.type === 'track'
+                            ? `/api/music/${group.linkedTo.id}`
+                            : `/api/events/${group.linkedTo.id}`;
+                        await fetch(endpoint, {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ imageId: newImageId }),
+                        });
+                      }
+                    }
+                    // 5. Supprimer les images à supprimer
+                    for (const id of toDelete) {
+                      await deleteImage(id);
+                    }
+                    // LOGS DEBUG POST-SUPPRESSION
+                    const imagesAfter = await (async () => {
+                      const response = await fetch('/api/images');
+                      if (!response.ok) return [];
+                      const data = await response.json();
+                      return data.images;
+                    })();
+                    console.log(
+                      '[FUSION] Images restantes après suppression',
+                      imagesAfter.map((img) => img.id)
+                    );
+                    setToast('Fusion réussie !');
+                    setFusionModal(null);
+                    setSelectedMasterId(null);
+                    setIgnoredIds([]);
+                    await fetchImages();
+                  } catch (err) {
+                    const message = err instanceof Error ? err.message : String(err);
+                    setError('Erreur lors de la fusion : ' + message);
+                  } finally {
+                    setIsLoadingFusion(false);
+                  }
+                }}
+              >
+                {isLoadingFusion ? 'Fusion en cours...' : 'Confirmer la fusion'}
               </Button>
             </div>
           </div>
