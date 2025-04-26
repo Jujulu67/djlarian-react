@@ -146,21 +146,33 @@ export async function POST(request: Request) {
 
   const data: CreateTrackInput = validationResult.data;
 
-  // Correction DRY publishAt
-  if (typeof data.publishAt === 'string') {
+  // Traitement de publishAt
+  let processedPublishAt: Date | undefined | null = undefined;
+  if (data.hasOwnProperty('publishAt') && typeof data.publishAt === 'string') {
     if (data.publishAt.trim() === '') {
-      data.publishAt = null;
+      processedPublishAt = null; // Mettre à null si string vide
     } else {
       const d = new Date(data.publishAt);
-      data.publishAt = isNaN(d.getTime()) ? null : d;
+      if (!isNaN(d.getTime())) {
+        processedPublishAt = d; // Utiliser la date valide
+      }
+      // Si invalide, on laisse processedPublishAt = undefined
     }
+  } else if (
+    data.hasOwnProperty('publishAt') &&
+    (data.publishAt === null || data.publishAt === undefined)
+  ) {
+    processedPublishAt = null;
   }
 
-  let imageId = data.imageId;
-  if (!imageId && data.thumbnailUrl) {
+  // Supprimer publishAt du DTO Zod car il est traité et sera passé séparément à Prisma
+  const { publishAt, ...dataForPrisma } = data;
+
+  let imageId = dataForPrisma.imageId;
+  if (!imageId && dataForPrisma.thumbnailUrl) {
     try {
       imageId = uuidv4();
-      const response = await fetch(data.thumbnailUrl);
+      const response = await fetch(dataForPrisma.thumbnailUrl);
       if (!response.ok) throw new Error('Thumbnail fetch failed');
       const buffer = Buffer.from(await response.arrayBuffer());
       // Traitement carré avec padding noir
@@ -180,7 +192,7 @@ export async function POST(request: Request) {
       const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
       await writeFile(path.join(uploadsDir, `${imageId}.jpg`), padded);
       await writeFile(path.join(uploadsDir, `${imageId}-ori.jpg`), padded);
-      data.imageId = imageId;
+      dataForPrisma.imageId = imageId;
     } catch (err) {
       console.error('[API MUSIC] Erreur import thumbnail YouTube:', err);
       // On continue sans image si erreur
@@ -191,9 +203,9 @@ export async function POST(request: Request) {
     const track = await prisma.$transaction(async (tx) => {
       // Handle optional genreNames
       const genres =
-        data.genreNames && data.genreNames.length > 0
+        dataForPrisma.genreNames && dataForPrisma.genreNames.length > 0
           ? await Promise.all(
-              data.genreNames.map(async (name: string) => {
+              dataForPrisma.genreNames.map(async (name: string) => {
                 const normalizedName = name.trim().toLowerCase();
                 return tx.genre.upsert({
                   where: { name: normalizedName },
@@ -231,8 +243,8 @@ export async function POST(request: Request) {
 
       // Handle optional platforms creation
       const platformsToCreate =
-        data.platforms && data.platforms.length > 0
-          ? data.platforms.map((platform) => ({
+        dataForPrisma.platforms && dataForPrisma.platforms.length > 0
+          ? dataForPrisma.platforms.map((platform) => ({
               id: uuidv4(),
               platform: platform.platform,
               url: platform.url,
@@ -244,19 +256,21 @@ export async function POST(request: Request) {
       const newTrack = await tx.track.create({
         data: {
           id: uuidv4(),
-          title: data.title,
-          artist: data.artist,
-          releaseDate: new Date(data.releaseDate),
-          imageId: data.imageId,
-          bpm: data.bpm,
-          description: data.description,
-          type: data.type,
-          featured: data.featured || false,
+          title: dataForPrisma.title,
+          artist: dataForPrisma.artist,
+          releaseDate: new Date(dataForPrisma.releaseDate),
+          imageId: dataForPrisma.imageId,
+          bpm: dataForPrisma.bpm,
+          description: dataForPrisma.description,
+          type: dataForPrisma.type,
+          featured: dataForPrisma.featured || false,
           isPublished: true,
-          publishAt: data.publishAt,
+          ...(processedPublishAt !== undefined && { publishAt: processedPublishAt }),
           updatedAt: new Date(),
           ...userConnect,
-          MusicCollection: data.collectionId ? { connect: { id: data.collectionId } } : undefined,
+          MusicCollection: dataForPrisma.collectionId
+            ? { connect: { id: dataForPrisma.collectionId } }
+            : undefined,
           ...(platformsToCreate && { TrackPlatform: { create: platformsToCreate } }),
           ...(genresToConnect && { GenresOnTracks: { create: genresToConnect } }),
         },
