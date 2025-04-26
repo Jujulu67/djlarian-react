@@ -1,8 +1,11 @@
 import React from 'react';
+import { ChevronDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface Option {
   value: string;
   label: string;
+  icon?: React.ReactNode;
 }
 
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
@@ -14,7 +17,15 @@ export const Select: React.FC<SelectProps> = ({ options, className = '', ...prop
   return (
     <div className="relative group">
       <select
-        className={`block w-full appearance-none rounded-md border px-4 py-2.5 pr-8 text-sm shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:bg-gray-800 dark:text-gray-100 ${className}`}
+        className={cn(
+          'block w-full appearance-none rounded-lg border text-sm transition-all duration-200 ease-in-out',
+          'px-4 py-2.5 pr-10',
+          'bg-gray-800/80 text-gray-100 border-gray-700',
+          'focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500',
+          'hover:bg-gray-800 hover:border-gray-600',
+          'disabled:opacity-50 disabled:pointer-events-none',
+          className
+        )}
         {...props}
       >
         {options.map((option) => (
@@ -23,18 +34,8 @@ export const Select: React.FC<SelectProps> = ({ options, className = '', ...prop
           </option>
         ))}
       </select>
-      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 transition-all group-hover:text-gray-200 dark:text-gray-400 dark:group-hover:text-gray-300">
-        <svg
-          className="h-4 w-4 fill-current transition-transform duration-300 ease-in-out group-focus-within:rotate-180"
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 20 20"
-        >
-          <path
-            fillRule="evenodd"
-            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-            clipRule="evenodd"
-          />
-        </svg>
+      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 transition-colors group-hover:text-gray-200">
+        <ChevronDown className="h-4 w-4 opacity-80 transition-transform duration-200 ease-in-out group-focus-within:rotate-180" />
       </div>
     </div>
   );
