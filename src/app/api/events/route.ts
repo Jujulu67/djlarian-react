@@ -99,12 +99,26 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    // LOGIQUE AUTO-PUBLICATION (copiée du GET unitaire)
+    for (const event of events) {
+      const eventAny = event as any;
+      if (
+        eventAny.publishAt &&
+        !eventAny.isPublished &&
+        new Date(eventAny.publishAt) <= new Date()
+      ) {
+        await prisma.event.update({
+          where: { id: eventAny.id },
+          data: { isPublished: true },
+        });
+        eventAny.isPublished = true;
+      }
+    }
+
     // LOGS DEBUG EVENTS
     console.log(`[API] GET /api/events - Nombre d'événements retournés : ${events.length}`);
     events.forEach((ev) => {
-      console.log(
-        `[API] Event: id=${ev.id}, imageId=${'imageId' in ev ? ev.imageId : ev.image}, title=${ev.title}`
-      );
+      console.log(`[API] Event: id=${ev.id}, imageId=${ev.imageId}, title=${ev.title}`);
     });
 
     // Compter le nombre total d'événements pour la pagination
@@ -260,6 +274,10 @@ export async function POST(request: Request) {
       featured: body.featured !== undefined ? body.featured : false,
       ...userConnect, // Ajouter la relation utilisateur seulement si l'utilisateur existe
     };
+    // Ajout de publishAt si présent
+    if (body.publishAt) {
+      commonEventData.publishAt = new Date(body.publishAt);
+    }
 
     // Log du commonEventData juste avant création
     console.log(

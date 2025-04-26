@@ -105,6 +105,18 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: 'Accès non autorisé' }, { status: 403 });
     }
 
+    // Publication automatique si la date est passée
+    const eventAny = event as any;
+    if (eventAny.publishAt && !eventAny.isPublished && new Date(eventAny.publishAt) <= new Date()) {
+      // Mettre à jour en base
+      await prisma.event.update({
+        where: { id: eventAny.id },
+        data: { isPublished: true },
+      });
+      // Recharger l'événement à jour
+      eventAny.isPublished = true;
+    }
+
     // Si c'est un événement virtuel avec une date valide, modifier les dates
     if (virtualStartDate) {
       try {
@@ -228,6 +240,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       tickets,
       recurrence,
       imageId,
+      publishAt,
     } = body;
 
     const dataToUpdate: any = {};
@@ -241,6 +254,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     if (status !== undefined) dataToUpdate.status = status;
     if (isPublished !== undefined) dataToUpdate.isPublished = isPublished;
     if (featured !== undefined) dataToUpdate.featured = featured;
+    if (publishAt !== undefined) dataToUpdate.publishAt = publishAt ? new Date(publishAt) : null;
 
     // Vérifier si l'utilisateur existe avant d'essayer d'établir la relation
     try {

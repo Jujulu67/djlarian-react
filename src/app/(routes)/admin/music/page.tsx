@@ -15,6 +15,8 @@ import {
   RefreshCw,
   Calendar,
   Star,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { FaSpotify, FaYoutube, FaSoundcloud, FaApple, FaMusic } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
@@ -27,6 +29,7 @@ import 'react-image-crop/dist/ReactCrop.css';
 import { findOriginalImageUrl } from '@/lib/utils/findOriginalImageUrl';
 import YoutubeAtelier from './components/YoutubeAtelier';
 import { MUSIC_TYPES, emptyTrackForm } from '@/lib/utils/music-helpers';
+import { PublicationStatusSelector } from '@/components/admin/PublicationStatusSelector';
 
 /* -------------------------------------------------------------------------- */
 /*       Constantes plateformes                                               */
@@ -314,6 +317,9 @@ export default function AdminMusicPage() {
         imageId,
         genreNames: currentForm.genre,
         platforms: platformsArray,
+        publishAt: currentForm.publishAt
+          ? new Date(currentForm.publishAt).toISOString()
+          : undefined,
       };
       const url = isEditing ? `/api/music/${currentForm.id}` : '/api/music';
       const res = await fetch(url, {
@@ -478,6 +484,22 @@ export default function AdminMusicPage() {
       })();
     }
   }, [currentForm.imageId]);
+
+  const togglePublish = async (id: string, current: boolean | undefined) => {
+    try {
+      const res = await fetch(`/api/music/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPublished: !current, publishAt: undefined }),
+      });
+      if (!res.ok) throw new Error();
+      setTracks((arr) =>
+        arr.map((t) => (t.id === id ? { ...t, isPublished: !current, publishAt: undefined } : t))
+      );
+    } catch {
+      toast.error('Erreur publication');
+    }
+  };
 
   if (isLoading)
     return (
@@ -730,6 +752,31 @@ export default function AdminMusicPage() {
                     </div>
                   </div>
 
+                  {/* publication status */}
+                  <div className="mt-4">
+                    <PublicationStatusSelector
+                      isPublished={currentForm.isPublished}
+                      publishAt={currentForm.publishAt}
+                      onChange={(status: 'published' | 'draft' | 'scheduled', date?: string) => {
+                        if (status === 'published') {
+                          setCurrentForm({
+                            ...currentForm,
+                            isPublished: true,
+                            publishAt: undefined,
+                          });
+                        } else if (status === 'draft') {
+                          setCurrentForm({
+                            ...currentForm,
+                            isPublished: false,
+                            publishAt: undefined,
+                          });
+                        } else if (status === 'scheduled' && date) {
+                          setCurrentForm({ ...currentForm, isPublished: false, publishAt: date });
+                        }
+                      }}
+                    />
+                  </div>
+
                   {/* boutons */}
                   <div className="flex gap-3 mt-6">
                     <Button
@@ -810,6 +857,25 @@ export default function AdminMusicPage() {
                             <Calendar className="w-3 h-3" />
                             {new Date(editingTrack.releaseDate).toLocaleDateString()}
                           </span>
+                          {editingTrack.isPublished ? (
+                            <span className="bg-green-900/40 text-green-300 px-2 py-0.5 rounded-full text-xs flex items-center gap-1 ml-2">
+                              Publié
+                              {editingTrack.publishAt && (
+                                <span className="flex items-center gap-1 ml-1 text-green-200">
+                                  <Calendar className="w-3 h-3" />
+                                  {new Date(editingTrack.publishAt).toLocaleDateString()}
+                                </span>
+                              )}
+                            </span>
+                          ) : editingTrack.publishAt ? (
+                            <span className="bg-blue-900/40 text-blue-300 px-2 py-0.5 rounded-full text-xs flex items-center gap-1 ml-2">
+                              À publier le {new Date(editingTrack.publishAt).toLocaleDateString()}
+                            </span>
+                          ) : (
+                            <span className="bg-yellow-900/40 text-yellow-300 px-2 py-0.5 rounded-full text-xs flex items-center gap-1 ml-2">
+                              Brouillon
+                            </span>
+                          )}
                         </div>
                         <div className="flex gap-1 mt-2">
                           {Object.entries(editingTrack.platforms).map(
@@ -981,6 +1047,25 @@ export default function AdminMusicPage() {
                                   <Calendar className="w-3 h-3" />
                                   {new Date(t.releaseDate).toLocaleDateString()}
                                 </span>
+                                {t.isPublished ? (
+                                  <span className="bg-green-900/40 text-green-300 px-2 py-0.5 rounded-full text-xs flex items-center gap-1 ml-2">
+                                    Publié
+                                    {t.publishAt && (
+                                      <span className="flex items-center gap-1 ml-1 text-green-200">
+                                        <Calendar className="w-3 h-3" />
+                                        {new Date(t.publishAt).toLocaleDateString()}
+                                      </span>
+                                    )}
+                                  </span>
+                                ) : t.publishAt ? (
+                                  <span className="bg-blue-900/40 text-blue-300 px-2 py-0.5 rounded-full text-xs flex items-center gap-1 ml-2">
+                                    À publier le {new Date(t.publishAt).toLocaleDateString()}
+                                  </span>
+                                ) : (
+                                  <span className="bg-yellow-900/40 text-yellow-300 px-2 py-0.5 rounded-full text-xs flex items-center gap-1 ml-2">
+                                    Brouillon
+                                  </span>
+                                )}
                               </div>
                               <div className="flex gap-1 mt-2">
                                 {Object.entries(t.platforms).map(
@@ -1041,6 +1126,25 @@ export default function AdminMusicPage() {
                                   <Calendar className="w-3 h-3" />
                                   {new Date(t.releaseDate).toLocaleDateString()}
                                 </span>
+                                {t.isPublished ? (
+                                  <span className="bg-green-900/40 text-green-300 px-2 py-0.5 rounded-full text-xs flex items-center gap-1 ml-2">
+                                    Publié
+                                    {t.publishAt && (
+                                      <span className="flex items-center gap-1 ml-1 text-green-200">
+                                        <Calendar className="w-3 h-3" />
+                                        {new Date(t.publishAt).toLocaleDateString()}
+                                      </span>
+                                    )}
+                                  </span>
+                                ) : t.publishAt ? (
+                                  <span className="bg-blue-900/40 text-blue-300 px-2 py-0.5 rounded-full text-xs flex items-center gap-1 ml-2">
+                                    À publier le {new Date(t.publishAt).toLocaleDateString()}
+                                  </span>
+                                ) : (
+                                  <span className="bg-yellow-900/40 text-yellow-300 px-2 py-0.5 rounded-full text-xs flex items-center gap-1 ml-2">
+                                    Brouillon
+                                  </span>
+                                )}
                               </div>
                               <div className="flex gap-1 mt-2">
                                 {Object.entries(t.platforms).map(
@@ -1129,6 +1233,27 @@ export default function AdminMusicPage() {
                                   <RefreshCw className="w-5 h-5 animate-spin" />
                                 ) : (
                                   <RefreshCw className="w-5 h-5" />
+                                )}
+                              </button>
+                              {/* Action rapide œil */}
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  await togglePublish(t.id, t.isPublished);
+                                }}
+                                className={`p-2 rounded-lg transition-colors border-none outline-none ring-0 focus:ring-0 focus:outline-none shadow-none focus:shadow-none ${
+                                  t.isPublished
+                                    ? 'bg-green-600/80 hover:bg-green-500/80 text-white'
+                                    : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                                }`}
+                                title={t.isPublished ? 'Dépublier' : 'Publier'}
+                                tabIndex={0}
+                                aria-label={t.isPublished ? 'Dépublier' : 'Publier'}
+                              >
+                                {t.isPublished ? (
+                                  <Eye className="w-4 h-4" />
+                                ) : (
+                                  <EyeOff className="w-4 h-4" />
                                 )}
                               </button>
                             </div>

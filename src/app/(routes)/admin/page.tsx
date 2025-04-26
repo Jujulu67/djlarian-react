@@ -160,6 +160,52 @@ export default async function AdminPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {/* Carte Musique */}
+          <div className="glass rounded-xl backdrop-blur-md overflow-hidden group relative transition-all duration-300 hover:shadow-[0_0_30px_rgba(139,92,246,0.3)] border border-purple-500/20">
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/5 to-blue-600/5 opacity-70 group-hover:opacity-100 transition-opacity"></div>
+            <div className="absolute -bottom-20 -right-20 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl group-hover:bg-indigo-500/20 transition-all duration-500"></div>
+
+            <div className="p-6 relative z-10">
+              <div className="bg-indigo-500/20 w-12 h-12 flex items-center justify-center rounded-lg mb-4">
+                <Music2 className="text-indigo-400 h-6 w-6" />
+              </div>
+              <h2 className="text-2xl font-audiowide text-white mb-2 group-hover:text-indigo-300 transition-colors">
+                Musique
+              </h2>
+              <p className="text-gray-400 mb-8">
+                Gérez les morceaux et playlists, intégrez du contenu depuis Spotify ou SoundCloud.
+              </p>
+
+              <div className="flex space-x-2 mb-6">
+                <span className="bg-indigo-900/30 text-indigo-300 text-xs px-2 py-1 rounded-full">
+                  Tracks
+                </span>
+                <span className="bg-blue-900/30 text-blue-300 text-xs px-2 py-1 rounded-full">
+                  Albums
+                </span>
+                <span className="bg-purple-900/30 text-purple-300 text-xs px-2 py-1 rounded-full">
+                  Playlists
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <Link
+                  href="/admin/music"
+                  className="relative overflow-hidden px-6 py-2.5 rounded-lg bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-medium group"
+                >
+                  <span className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-indigo-600 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                  <span className="relative flex items-center">
+                    Gérer
+                    <Zap className="ml-2 h-4 w-4" />
+                  </span>
+                </Link>
+                <span className="text-xs text-indigo-300/70 flex items-center">
+                  <Music2 className="h-3 w-3 mr-1" /> Total: {tracksCount}
+                </span>
+              </div>
+            </div>
+          </div>
+
           {/* Carte Événements */}
           <div className="glass rounded-xl backdrop-blur-md overflow-hidden group relative transition-all duration-300 hover:shadow-[0_0_30px_rgba(139,92,246,0.3)] border border-purple-500/20">
             <div className="absolute inset-0 bg-gradient-to-br from-purple-600/5 to-blue-600/5 opacity-70 group-hover:opacity-100 transition-opacity"></div>
@@ -249,52 +295,6 @@ export default async function AdminPage() {
                 </Link>
                 <span className="text-xs text-blue-300/70 flex items-center">
                   <ImageIcon className="h-3 w-3 mr-1" /> Total: N/A
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Carte Musique */}
-          <div className="glass rounded-xl backdrop-blur-md overflow-hidden group relative transition-all duration-300 hover:shadow-[0_0_30px_rgba(139,92,246,0.3)] border border-purple-500/20">
-            <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/5 to-blue-600/5 opacity-70 group-hover:opacity-100 transition-opacity"></div>
-            <div className="absolute -bottom-20 -right-20 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl group-hover:bg-indigo-500/20 transition-all duration-500"></div>
-
-            <div className="p-6 relative z-10">
-              <div className="bg-indigo-500/20 w-12 h-12 flex items-center justify-center rounded-lg mb-4">
-                <Music2 className="text-indigo-400 h-6 w-6" />
-              </div>
-              <h2 className="text-2xl font-audiowide text-white mb-2 group-hover:text-indigo-300 transition-colors">
-                Musique
-              </h2>
-              <p className="text-gray-400 mb-8">
-                Gérez les morceaux et playlists, intégrez du contenu depuis Spotify ou SoundCloud.
-              </p>
-
-              <div className="flex space-x-2 mb-6">
-                <span className="bg-indigo-900/30 text-indigo-300 text-xs px-2 py-1 rounded-full">
-                  Tracks
-                </span>
-                <span className="bg-blue-900/30 text-blue-300 text-xs px-2 py-1 rounded-full">
-                  Albums
-                </span>
-                <span className="bg-purple-900/30 text-purple-300 text-xs px-2 py-1 rounded-full">
-                  Playlists
-                </span>
-              </div>
-
-              <div className="flex justify-between items-center">
-                <Link
-                  href="/admin/music"
-                  className="relative overflow-hidden px-6 py-2.5 rounded-lg bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-medium group"
-                >
-                  <span className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-indigo-600 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"></span>
-                  <span className="relative flex items-center">
-                    Gérer
-                    <Zap className="ml-2 h-4 w-4" />
-                  </span>
-                </Link>
-                <span className="text-xs text-indigo-300/70 flex items-center">
-                  <Music2 className="h-3 w-3 mr-1" /> Total: {tracksCount}
                 </span>
               </div>
             </div>

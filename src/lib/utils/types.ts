@@ -27,6 +27,7 @@ export interface Track {
   bpm?: number;
   featured?: boolean;
   isPublished?: boolean;
+  publishAt?: string;
   type: MusicType;
   collection?: { id: string; title: string } | null;
   user?: { id: string; name: string | null } | null;

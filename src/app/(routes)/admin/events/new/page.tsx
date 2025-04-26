@@ -78,6 +78,7 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
     endDate: '',
     status: 'UPCOMING' as const,
     isPublished: false,
+    publishAt: '',
     imageId: null,
     tickets: {
       price: 0,
@@ -139,6 +140,7 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
           endDate: event.endDate ? formatDateForInput(event.endDate) : '',
           status: event.status,
           isPublished: event.isPublished,
+          publishAt: event.publishAt ? formatDateForInput(event.publishAt) : '',
           imageId: event.imageId || null,
           tickets: event.tickets
             ? {
@@ -387,6 +389,7 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
         endDate: formData.endDate || null,
         status: formData.status,
         isPublished: formData.isPublished,
+        publishAt: formData.publishAt || null,
         featured: formData.featured || false,
         imageId: imageId,
         tickets: formData.hasTickets

@@ -53,6 +53,7 @@ const trackCreateSchema = z.object({
     .optional(),
   collectionId: z.string().optional().nullable(),
   thumbnailUrl: z.string().url().optional(),
+  publishAt: z.string().optional(),
 });
 
 // Re-define CreateTrackInput based on Zod schema if needed elsewhere, or use z.infer
@@ -73,6 +74,7 @@ export async function GET() {
         type: true,
         featured: true,
         isPublished: true,
+        publishAt: true,
         createdAt: true,
         updatedAt: true,
         TrackPlatform: { select: { platform: true, url: true, embedId: true } },
@@ -82,6 +84,22 @@ export async function GET() {
       },
       orderBy: [{ featured: 'desc' }, { releaseDate: 'desc' }],
     });
+
+    // Logique d'auto-publication
+    for (const track of tracks) {
+      if (
+        'publishAt' in track &&
+        track.publishAt &&
+        !track.isPublished &&
+        new Date(track.publishAt) <= new Date()
+      ) {
+        await prisma.track.update({
+          where: { id: track.id },
+          data: { isPublished: true },
+        });
+        track.isPublished = true;
+      }
+    }
 
     const formattedTracks = tracks.map((track) => formatTrackData(track as any));
 
@@ -127,6 +145,16 @@ export async function POST(request: Request) {
   }
 
   const data: CreateTrackInput = validationResult.data;
+
+  // Correction DRY publishAt
+  if (typeof data.publishAt === 'string') {
+    if (data.publishAt.trim() === '') {
+      data.publishAt = null;
+    } else {
+      const d = new Date(data.publishAt);
+      data.publishAt = isNaN(d.getTime()) ? null : d;
+    }
+  }
 
   let imageId = data.imageId;
   if (!imageId && data.thumbnailUrl) {
@@ -225,6 +253,7 @@ export async function POST(request: Request) {
           type: data.type,
           featured: data.featured || false,
           isPublished: true,
+          publishAt: data.publishAt,
           updatedAt: new Date(),
           ...userConnect,
           MusicCollection: data.collectionId ? { connect: { id: data.collectionId } } : undefined,

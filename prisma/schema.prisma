@@ -36,6 +36,7 @@ model Event {
   imageId          String?
   status           String            @default("UPCOMING")
   isPublished      Boolean           @default(false)
+  publishAt        DateTime?
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   featured         Boolean           @default(false)
@@ -122,6 +123,7 @@ model Track {
   type             String
   featured         Boolean          @default(false)
   isPublished      Boolean          @default(true)
+  publishAt        DateTime?
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
   userId           String?
