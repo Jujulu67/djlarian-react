@@ -1,6 +1,7 @@
 import React from 'react';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { Button, Input, Label, Switch, Textarea } from '@/components/ui';
+import * as RadixPopover from '@radix-ui/react-popover';
 import { Upload, X, Image as ImageIcon, XCircle, Crop, Calendar, Plus, Trash2 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import ReactCrop, { type Crop as CropType, centerCrop, makeAspectCrop } from 'react-image-crop';
@@ -11,6 +12,8 @@ import ImageCropModal from '@/components/ui/ImageCropModal';
 import ImageDropzone from '@/components/ui/ImageDropzone';
 import { toast } from 'react-hot-toast';
 import { findOriginalImageUrl } from '@/lib/utils/findOriginalImageUrl';
+import { Calendar as CalendarIcon, CheckCircle, Clock, PauseCircle } from 'lucide-react';
+import { PublicationStatusSelector } from '@/components/admin/PublicationStatusSelector';
 
 export interface TicketInfo {
   price?: number;
@@ -40,6 +43,7 @@ export interface EventFormData {
   endDate?: string;
   status?: 'UPCOMING' | 'COMPLETED' | 'CANCELLED';
   isPublished?: boolean;
+  publishAt?: string;
   hasTickets?: boolean;
   featured?: boolean;
   imageId?: string | null;
@@ -884,6 +888,27 @@ const EventForm: React.FC<EventFormProps> = ({
             {errors.description && (
               <p className="mt-2 text-red-500 text-sm">{errors.description}</p>
             )}
+          </div>
+
+          <div className="mb-6">
+            <label className={labelBaseClass}>Statut de publication</label>
+            <PublicationStatusSelector
+              isPublished={formData.isPublished}
+              publishAt={formData.publishAt ?? undefined}
+              onChange={(status: 'published' | 'draft' | 'scheduled', date?: string) => {
+                if (status === 'published') {
+                  setFormData({ ...formData, isPublished: true, publishAt: undefined });
+                } else if (status === 'draft') {
+                  setFormData({ ...formData, isPublished: false, publishAt: undefined });
+                } else if (status === 'scheduled' && date) {
+                  setFormData({ ...formData, isPublished: false, publishAt: date });
+                }
+              }}
+            />
+            <p className="text-gray-400 text-sm mt-1">
+              Choisissez si l'événement doit être visible publiquement, rester en brouillon, ou être
+              publié automatiquement à une date précise.
+            </p>
           </div>
         </div>
 

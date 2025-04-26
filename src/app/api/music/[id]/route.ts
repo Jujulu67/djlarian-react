@@ -103,6 +103,14 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
     if (baseDataToUpdate.releaseDate) {
       baseDataToUpdate.releaseDate = new Date(baseDataToUpdate.releaseDate);
     }
+    if (typeof baseDataToUpdate.publishAt === 'string') {
+      if (baseDataToUpdate.publishAt.trim() === '') {
+        baseDataToUpdate.publishAt = null;
+      } else {
+        const d = new Date(baseDataToUpdate.publishAt);
+        baseDataToUpdate.publishAt = isNaN(d.getTime()) ? null : d;
+      }
+    }
     if (baseDataToUpdate.bpm) {
       baseDataToUpdate.bpm = parseInt(String(baseDataToUpdate.bpm), 10);
     } else if (baseDataToUpdate.hasOwnProperty('bpm') && baseDataToUpdate.bpm === null) {

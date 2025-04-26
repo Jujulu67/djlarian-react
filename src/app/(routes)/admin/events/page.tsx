@@ -61,6 +61,7 @@ type Event = {
     endDate?: string;
   };
   updatedAt?: string;
+  publishAt?: string;
 };
 
 export default function AdminEventsPage() {
@@ -192,6 +193,7 @@ export default function AdminEventsPage() {
         },
         body: JSON.stringify({
           isPublished: !currentStatus,
+          publishAt: null,
         }),
       });
 
@@ -204,7 +206,9 @@ export default function AdminEventsPage() {
       // Mettre à jour la liste des événements
       setEvents(
         events.map((event) =>
-          event.id === eventId ? { ...event, isPublished: updatedEvent.isPublished } : event
+          event.id === eventId
+            ? { ...event, isPublished: updatedEvent.isPublished, publishAt: null }
+            : event
         )
       );
     } catch (err) {
@@ -501,6 +505,7 @@ export default function AdminEventsPage() {
                       {event.title}
                     </h3>
 
+                    {/* Date de l'événement */}
                     <div className="flex items-center text-gray-400 mb-3 text-sm">
                       <Calendar className="w-4 h-4 mr-2 flex-shrink-0" />
                       <span>
@@ -508,23 +513,42 @@ export default function AdminEventsPage() {
                       </span>
                     </div>
 
+                    {/* Lieu de l'événement */}
                     <div className="flex items-start text-gray-400 mb-4 text-sm">
                       <MapPin className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" />
                       <span>{event.location}</span>
                     </div>
 
+                    {/* Description */}
                     <p className="text-gray-300 mb-5 line-clamp-2 text-sm flex-grow">
                       {event.description || 'Aucune description disponible.'}
                     </p>
 
-                    <div className="flex flex-wrap gap-2 mb-5">
+                    {/* Badges statut, récurrence, prix, etc. */}
+                    <div className="flex flex-wrap gap-2 mb-5 items-center">
                       {event.isPublished ? (
-                        <span className="bg-green-900/40 text-green-300 px-3 py-1 rounded-full text-xs border border-green-800/50">
+                        <span className="bg-green-900/40 text-green-300 px-3 py-1 rounded-full text-xs flex items-center gap-1">
                           Publié
+                          {event.publishAt && (
+                            <span className="flex items-center gap-1 ml-2 text-green-200">
+                              <Calendar className="w-3.5 h-3.5 mr-1" />
+                              {format(new Date(event.publishAt), 'dd MMM yyyy HH:mm', {
+                                locale: fr,
+                              })}
+                            </span>
+                          )}
                         </span>
                       ) : (
-                        <span className="bg-yellow-900/40 text-yellow-300 px-3 py-1 rounded-full text-xs border border-yellow-800/50">
+                        <span className="bg-yellow-900/40 text-yellow-300 px-3 py-1 rounded-full text-xs flex items-center gap-1">
                           Brouillon
+                          {event.publishAt && (
+                            <span className="flex items-center gap-1 ml-2 text-yellow-200">
+                              <Clock className="w-3.5 h-3.5 mr-1" />
+                              {format(new Date(event.publishAt), 'dd MMM yyyy HH:mm', {
+                                locale: fr,
+                              })}
+                            </span>
+                          )}
                         </span>
                       )}
 
@@ -574,17 +598,17 @@ export default function AdminEventsPage() {
                             e.stopPropagation();
                             togglePublishStatus(event.id, event.isPublished);
                           }}
-                          className={`p-2 rounded-lg transition-colors ${
+                          className={`p-2 rounded-lg transition-colors border-none outline-none ring-0 focus:ring-0 focus:outline-none shadow-none focus:shadow-none ${
                             event.isPublished
-                              ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-                              : 'bg-green-600/80 hover:bg-green-500/80 text-white'
+                              ? 'bg-green-600/80 hover:bg-green-500/80 text-white'
+                              : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
                           }`}
                           title={event.isPublished ? 'Dépublier' : 'Publier'}
                         >
                           {event.isPublished ? (
-                            <EyeOff className="w-4 h-4" />
-                          ) : (
                             <Eye className="w-4 h-4" />
+                          ) : (
+                            <EyeOff className="w-4 h-4" />
                           )}
                         </button>
 

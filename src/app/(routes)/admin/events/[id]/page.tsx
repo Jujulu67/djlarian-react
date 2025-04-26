@@ -66,6 +66,7 @@ type Event = {
     day?: number;
     endDate?: string;
   };
+  publishAt?: string;
 };
 
 export default function EventDetailsPage() {
@@ -149,6 +150,7 @@ export default function EventDetailsPage() {
         },
         body: JSON.stringify({
           isPublished: !event.isPublished,
+          publishAt: null,
         }),
       });
 
@@ -334,14 +336,14 @@ export default function EventDetailsPage() {
 
             <button
               onClick={togglePublishStatus}
-              className={`p-2 rounded-lg transition-colors flex items-center gap-1.5 ${
+              className={`p-2 rounded-lg transition-colors border-none outline-none ring-0 focus:ring-0 focus:outline-none shadow-none focus:shadow-none ${
                 event.isPublished
-                  ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-                  : 'bg-green-600/80 hover:bg-green-500/80 text-white'
+                  ? 'bg-green-600/80 hover:bg-green-500/80 text-white'
+                  : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
               }`}
               title={event.isPublished ? 'Dépublier' : 'Publier'}
             >
-              {event.isPublished ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              {event.isPublished ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
             </button>
 
             <Link
@@ -582,11 +584,41 @@ export default function EventDetailsPage() {
                         <span
                           className={`text-sm font-medium ${
                             event.isPublished ? 'text-green-400' : 'text-yellow-400'
-                          }`}
+                          } flex items-center gap-1`}
                         >
-                          {event.isPublished ? 'Publié' : 'Brouillon'}
+                          {event.isPublished ? (
+                            <>
+                              <Calendar className="w-4 h-4 mr-1 text-green-400" />
+                              Publié
+                            </>
+                          ) : (
+                            <>
+                              <Clock className="w-4 h-4 mr-1 text-yellow-400" />
+                              Brouillon
+                            </>
+                          )}
                         </span>
                       </div>
+                      {/* Date de publication planifiée ou réelle */}
+                      {event.publishAt && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-400 text-sm">
+                            {event.isPublished ? 'Publié le' : 'Publication prévue'}
+                          </span>
+                          <span
+                            className={`text-xs font-medium ${event.isPublished ? 'text-green-300' : 'text-yellow-300'} flex items-center gap-1`}
+                          >
+                            {event.isPublished ? (
+                              <Calendar className="w-3.5 h-3.5 mr-1" />
+                            ) : (
+                              <Clock className="w-3.5 h-3.5 mr-1" />
+                            )}
+                            {format(new Date(event.publishAt), 'dd MMMM yyyy à HH:mm', {
+                              locale: fr,
+                            })}
+                          </span>
+                        </div>
+                      )}
 
                       {event.tickets?.price && (
                         <div className="flex justify-between items-center">
