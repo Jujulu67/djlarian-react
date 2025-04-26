@@ -33,6 +33,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
         bpm: true,
         featured: true,
         isPublished: true,
+        publishAt: true,
         type: true,
         createdAt: true,
         updatedAt: true,
@@ -103,14 +104,28 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
     if (baseDataToUpdate.releaseDate) {
       baseDataToUpdate.releaseDate = new Date(baseDataToUpdate.releaseDate);
     }
-    if (typeof baseDataToUpdate.publishAt === 'string') {
-      if (baseDataToUpdate.publishAt.trim() === '') {
-        baseDataToUpdate.publishAt = null;
-      } else {
-        const d = new Date(baseDataToUpdate.publishAt);
-        baseDataToUpdate.publishAt = isNaN(d.getTime()) ? null : d;
+
+    // Traitement de publishAt
+    let processedPublishAt: Date | undefined | null = undefined; // undefined par défaut
+    if (baseDataToUpdate.hasOwnProperty('publishAt')) {
+      if (typeof baseDataToUpdate.publishAt === 'string') {
+        if (baseDataToUpdate.publishAt.trim() === '') {
+          processedPublishAt = null; // Explicitement mis à null si string vide
+        } else {
+          const d = new Date(baseDataToUpdate.publishAt);
+          if (!isNaN(d.getTime())) {
+            processedPublishAt = d; // Date valide
+          } else {
+            processedPublishAt = undefined; // Ignorer si invalide mais pas vide explicitement
+          }
+        }
+      } else if (baseDataToUpdate.publishAt === null || baseDataToUpdate.publishAt === undefined) {
+        processedPublishAt = null; // Permettre de mettre à null/undefined
       }
     }
+    // Supprimer publishAt du DTO de base car il est traité séparément
+    delete baseDataToUpdate.publishAt;
+
     if (baseDataToUpdate.bpm) {
       baseDataToUpdate.bpm = parseInt(String(baseDataToUpdate.bpm), 10);
     } else if (baseDataToUpdate.hasOwnProperty('bpm') && baseDataToUpdate.bpm === null) {
@@ -175,6 +190,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
         where: { id },
         data: {
           ...baseDataToUpdate, // Contient les champs scalaires nettoyés + updatedAt
+          ...(processedPublishAt !== undefined && { publishAt: processedPublishAt }), // Utiliser la date traitée (peut être Date ou null)
           ...(genresUpdate !== undefined && { GenresOnTracks: genresUpdate }),
           ...(platformsUpdate !== undefined && { TrackPlatform: platformsUpdate }),
           MusicCollection: trackData.hasOwnProperty('collectionId')

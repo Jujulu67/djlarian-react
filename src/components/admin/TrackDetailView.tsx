@@ -97,6 +97,30 @@ export default function TrackDetailView({ trackId, onClose }: TrackDetailViewPro
     : 'N/A';
   const genres = track.genre?.join(', ') || 'Aucun';
 
+  // Log debug pour publishAt et isPublished
+  console.log('[DETAIL][TRACK] isPublished:', track.isPublished, 'publishAt:', track.publishAt);
+
+  // Fonction utilitaire DRY pour l'état d'un morceau
+  const getTrackStatus = (track: Track) => {
+    const now = new Date();
+    if (track.isPublished && (!track.publishAt || new Date(track.publishAt) <= now)) {
+      return {
+        label: 'Publié',
+        icon: <CheckCircle className="w-4 h-4 mr-3 text-green-400 flex-shrink-0" />,
+      };
+    }
+    if (track.publishAt && new Date(track.publishAt) > now) {
+      return {
+        label: `À publier le ${format(new Date(track.publishAt), 'd MMM yyyy HH:mm', { locale: fr })}`,
+        icon: <Clock className="w-4 h-4 mr-3 text-blue-400 flex-shrink-0" />,
+      };
+    }
+    return {
+      label: 'Brouillon',
+      icon: <XCircle className="w-4 h-4 mr-3 text-yellow-400 flex-shrink-0" />,
+    };
+  };
+
   return (
     <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-8">
       {/* Colonne Gauche: Image & Infos rapides */}
@@ -153,22 +177,10 @@ export default function TrackDetailView({ trackId, onClose }: TrackDetailViewPro
             </div>
           )}
           <div className="flex items-center">
-            {track.isPublished === true ? (
-              <CheckCircle className="w-4 h-4 mr-3 text-green-400 flex-shrink-0" />
-            ) : track.isPublished === false ? (
-              <XCircle className="w-4 h-4 mr-3 text-red-400 flex-shrink-0" />
-            ) : (
-              <Info className="w-4 h-4 mr-3 text-gray-500 flex-shrink-0" />
-            )}
+            {getTrackStatus(track).icon}
             <span className="text-sm">
               <span className="font-semibold text-gray-200">Statut:</span>{' '}
-              <span className="text-gray-400">
-                {track.isPublished === true
-                  ? 'Publié'
-                  : track.isPublished === false
-                    ? 'Non publié'
-                    : 'Inconnu'}
-              </span>
+              <span className="text-gray-400">{getTrackStatus(track).label}</span>
             </span>
           </div>
           {track.featured && (

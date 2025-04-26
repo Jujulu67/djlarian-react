@@ -159,6 +159,12 @@ export default function MusicPage() {
   useEffect(() => {
     let filtered = [...tracks];
 
+    // Filtrer uniquement les morceaux publiés (isPublished && (pas de publishAt ou publishAt passée))
+    const now = new Date();
+    filtered = filtered.filter(
+      (track) => track.isPublished && (!track.publishAt || new Date(track.publishAt) <= now)
+    );
+
     // Filtre par type
     if (selectedType !== 'all') {
       filtered = filtered.filter((track) => track.type === selectedType);

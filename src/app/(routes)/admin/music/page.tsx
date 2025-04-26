@@ -122,22 +122,19 @@ export default function AdminMusicPage() {
     if (session?.user?.role !== 'ADMIN') return router.push('/');
   }, [status, session, router]);
 
-  useEffect(() => {
-    if (status === 'authenticated') fetchTracks();
-  }, [status]);
+  // Compteur local pour savoir si c'est le premier fetch
+  const fetchCountRef = useRef(0);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const editId = params.get('edit');
-    if (editId && tracks.some((t) => t.id === editId)) {
-      setHighlightedTrackId(editId);
-      handleEdit(tracks.find((t) => t.id === editId)!);
-    }
-  }, [tracks]);
+    if (status !== 'authenticated') return;
+    fetchTracks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
 
   const fetchTracks = async () => {
     setIsLoading(true);
     try {
+      fetchCountRef.current += 1;
       const res = await fetch('/api/music');
       if (!res.ok) throw new Error('Failed');
       const data = await res.json();
@@ -149,6 +146,15 @@ export default function AdminMusicPage() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const editId = params.get('edit');
+    if (editId && tracks.some((t) => t.id === editId)) {
+      setHighlightedTrackId(editId);
+      handleEdit(tracks.find((t) => t.id === editId)!);
+    }
+  }, [tracks]);
 
   /* ----------------------------------------------------------------------- */
   /*                          HANDLERS                                       */
@@ -443,13 +449,6 @@ export default function AdminMusicPage() {
     if (isEditing && successTrackId) setSuccessTrackId(null);
   }, [isEditing, successTrackId]);
 
-  // --- LOGS DEBUG ---
-  console.log('[RENDER][MUSIC] currentForm.imageId:', currentForm.imageId);
-  console.log('[RENDER][MUSIC] originalImageFile:', originalImageFile);
-  console.log('[RENDER][MUSIC] cachedOriginalFile:', cachedOriginalFile);
-  console.log('[RENDER][MUSIC] croppedImageBlob:', croppedImageBlob);
-  console.log('[RENDER][MUSIC] canRecrop:', !!originalImageFile || !!cachedOriginalFile);
-
   // Fonction utilitaire pour fetch l'originale avec plusieurs extensions
   const tryFetchOriginal = async (imageId: string) => {
     const exts = ['jpg', 'png', 'webp'];
@@ -499,6 +498,21 @@ export default function AdminMusicPage() {
     } catch {
       toast.error('Erreur publication');
     }
+  };
+
+  // Fonction utilitaire DRY pour l'état d'un morceau (priorité à la date planifiée future)
+  const getTrackStatus = (track: Track) => {
+    const now = new Date();
+    if (track.publishAt && new Date(track.publishAt) > now) {
+      return {
+        label: `À publier le ${new Date(track.publishAt).toLocaleDateString()}`,
+        className: 'bg-blue-900/40 text-blue-300',
+      };
+    }
+    if (track.isPublished && (!track.publishAt || new Date(track.publishAt) <= now)) {
+      return { label: 'Publié', className: 'bg-green-900/40 text-green-300' };
+    }
+    return { label: 'Brouillon', className: 'bg-yellow-900/40 text-yellow-300' };
   };
 
   if (isLoading)
@@ -857,25 +871,11 @@ export default function AdminMusicPage() {
                             <Calendar className="w-3 h-3" />
                             {new Date(editingTrack.releaseDate).toLocaleDateString()}
                           </span>
-                          {editingTrack.isPublished ? (
-                            <span className="bg-green-900/40 text-green-300 px-2 py-0.5 rounded-full text-xs flex items-center gap-1 ml-2">
-                              Publié
-                              {editingTrack.publishAt && (
-                                <span className="flex items-center gap-1 ml-1 text-green-200">
-                                  <Calendar className="w-3 h-3" />
-                                  {new Date(editingTrack.publishAt).toLocaleDateString()}
-                                </span>
-                              )}
-                            </span>
-                          ) : editingTrack.publishAt ? (
-                            <span className="bg-blue-900/40 text-blue-300 px-2 py-0.5 rounded-full text-xs flex items-center gap-1 ml-2">
-                              À publier le {new Date(editingTrack.publishAt).toLocaleDateString()}
-                            </span>
-                          ) : (
-                            <span className="bg-yellow-900/40 text-yellow-300 px-2 py-0.5 rounded-full text-xs flex items-center gap-1 ml-2">
-                              Brouillon
-                            </span>
-                          )}
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-xs flex items-center gap-1 ml-2 ${getTrackStatus(editingTrack).className}`}
+                          >
+                            {getTrackStatus(editingTrack).label}
+                          </span>
                         </div>
                         <div className="flex gap-1 mt-2">
                           {Object.entries(editingTrack.platforms).map(
@@ -1047,25 +1047,11 @@ export default function AdminMusicPage() {
                                   <Calendar className="w-3 h-3" />
                                   {new Date(t.releaseDate).toLocaleDateString()}
                                 </span>
-                                {t.isPublished ? (
-                                  <span className="bg-green-900/40 text-green-300 px-2 py-0.5 rounded-full text-xs flex items-center gap-1 ml-2">
-                                    Publié
-                                    {t.publishAt && (
-                                      <span className="flex items-center gap-1 ml-1 text-green-200">
-                                        <Calendar className="w-3 h-3" />
-                                        {new Date(t.publishAt).toLocaleDateString()}
-                                      </span>
-                                    )}
-                                  </span>
-                                ) : t.publishAt ? (
-                                  <span className="bg-blue-900/40 text-blue-300 px-2 py-0.5 rounded-full text-xs flex items-center gap-1 ml-2">
-                                    À publier le {new Date(t.publishAt).toLocaleDateString()}
-                                  </span>
-                                ) : (
-                                  <span className="bg-yellow-900/40 text-yellow-300 px-2 py-0.5 rounded-full text-xs flex items-center gap-1 ml-2">
-                                    Brouillon
-                                  </span>
-                                )}
+                                <span
+                                  className={`px-2 py-0.5 rounded-full text-xs flex items-center gap-1 ml-2 ${getTrackStatus(t).className}`}
+                                >
+                                  {getTrackStatus(t).label}
+                                </span>
                               </div>
                               <div className="flex gap-1 mt-2">
                                 {Object.entries(t.platforms).map(
@@ -1126,25 +1112,11 @@ export default function AdminMusicPage() {
                                   <Calendar className="w-3 h-3" />
                                   {new Date(t.releaseDate).toLocaleDateString()}
                                 </span>
-                                {t.isPublished ? (
-                                  <span className="bg-green-900/40 text-green-300 px-2 py-0.5 rounded-full text-xs flex items-center gap-1 ml-2">
-                                    Publié
-                                    {t.publishAt && (
-                                      <span className="flex items-center gap-1 ml-1 text-green-200">
-                                        <Calendar className="w-3 h-3" />
-                                        {new Date(t.publishAt).toLocaleDateString()}
-                                      </span>
-                                    )}
-                                  </span>
-                                ) : t.publishAt ? (
-                                  <span className="bg-blue-900/40 text-blue-300 px-2 py-0.5 rounded-full text-xs flex items-center gap-1 ml-2">
-                                    À publier le {new Date(t.publishAt).toLocaleDateString()}
-                                  </span>
-                                ) : (
-                                  <span className="bg-yellow-900/40 text-yellow-300 px-2 py-0.5 rounded-full text-xs flex items-center gap-1 ml-2">
-                                    Brouillon
-                                  </span>
-                                )}
+                                <span
+                                  className={`px-2 py-0.5 rounded-full text-xs flex items-center gap-1 ml-2 ${getTrackStatus(t).className}`}
+                                >
+                                  {getTrackStatus(t).label}
+                                </span>
                               </div>
                               <div className="flex gap-1 mt-2">
                                 {Object.entries(t.platforms).map(

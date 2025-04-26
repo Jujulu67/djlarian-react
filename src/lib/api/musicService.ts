@@ -251,6 +251,7 @@ export function formatTrackData(track: any) {
     type: track.type,
     featured: track.featured,
     isPublished: track.isPublished,
+    publishAt: track.publishAt?.toISOString(),
     createdAt: track.createdAt?.toISOString(),
     updatedAt: track.updatedAt?.toISOString(),
     genre: track.GenresOnTracks?.map((gt: any) => gt.Genre?.name).filter(Boolean) || [],
