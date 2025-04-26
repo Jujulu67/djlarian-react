@@ -8,3 +8,6 @@ export * from './Select';
 export * from './AudioPlayer';
 export * from './CustomCursor';
 export * from './LoadingSpinner';
+export * from './Checkbox';
+export * from './Badge';
+export * from './Pagination';

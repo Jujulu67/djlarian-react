@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import {
@@ -973,6 +973,38 @@ export default function ConfigurationPage() {
     return changes.join('\n\n');
   };
 
+  // Fonction utilitaire pour gérer l'ancre selon la section
+  const handleSectionClick = (section: ConfigSection) => {
+    setActiveSection(section);
+    if (typeof window !== 'undefined') {
+      if (section === 'general') {
+        window.history.replaceState(null, '', window.location.pathname);
+      } else {
+        window.history.replaceState(null, '', `#${section}`);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash.replace('#', '');
+      const validSections: ConfigSection[] = [
+        'general',
+        'appearance',
+        'homepage',
+        'notifications',
+        'security',
+        'api',
+        'images',
+      ];
+      if (validSections.includes(hash as ConfigSection)) {
+        setActiveSection(hash as ConfigSection);
+      } else if (window.location.pathname.endsWith('/images')) {
+        setActiveSection('images');
+      }
+    }
+  }, []);
+
   if (isLoading && !configurations.general.siteName) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-[#0c0117] to-black">
@@ -1073,7 +1105,7 @@ export default function ConfigurationPage() {
               <h2 className="text-xl font-semibold mb-4 text-purple-300">Sections</h2>
               <nav className="space-y-1">
                 <button
-                  onClick={() => setActiveSection('general')}
+                  onClick={() => handleSectionClick('general')}
                   className={`w-full flex items-center p-3 rounded-lg transition-all ${
                     activeSection === 'general'
                       ? 'bg-purple-500/20 text-purple-300'
@@ -1085,7 +1117,7 @@ export default function ConfigurationPage() {
                 </button>
 
                 <button
-                  onClick={() => setActiveSection('appearance')}
+                  onClick={() => handleSectionClick('appearance')}
                   className={`w-full flex items-center p-3 rounded-lg transition-all ${
                     activeSection === 'appearance'
                       ? 'bg-purple-500/20 text-purple-300'
@@ -1097,7 +1129,7 @@ export default function ConfigurationPage() {
                 </button>
 
                 <button
-                  onClick={() => setActiveSection('homepage')}
+                  onClick={() => handleSectionClick('homepage')}
                   className={`w-full flex items-center p-3 rounded-lg transition-all ${
                     activeSection === 'homepage'
                       ? 'bg-purple-500/20 text-purple-300'
@@ -1109,7 +1141,7 @@ export default function ConfigurationPage() {
                 </button>
 
                 <button
-                  onClick={() => setActiveSection('notifications')}
+                  onClick={() => handleSectionClick('notifications')}
                   className={`w-full flex items-center p-3 rounded-lg transition-all ${
                     activeSection === 'notifications'
                       ? 'bg-purple-500/20 text-purple-300'
@@ -1121,7 +1153,7 @@ export default function ConfigurationPage() {
                 </button>
 
                 <button
-                  onClick={() => setActiveSection('security')}
+                  onClick={() => handleSectionClick('security')}
                   className={`w-full flex items-center p-3 rounded-lg transition-all ${
                     activeSection === 'security'
                       ? 'bg-purple-500/20 text-purple-300'
@@ -1133,7 +1165,7 @@ export default function ConfigurationPage() {
                 </button>
 
                 <button
-                  onClick={() => setActiveSection('api')}
+                  onClick={() => handleSectionClick('api')}
                   className={`w-full flex items-center p-3 rounded-lg transition-all ${
                     activeSection === 'api'
                       ? 'bg-purple-500/20 text-purple-300'
@@ -1145,7 +1177,7 @@ export default function ConfigurationPage() {
                 </button>
 
                 <button
-                  onClick={() => setActiveSection('images')}
+                  onClick={() => handleSectionClick('images')}
                   className={`w-full flex items-center p-3 rounded-lg transition-all ${
                     activeSection === 'images'
                       ? 'bg-purple-500/20 text-purple-300'
