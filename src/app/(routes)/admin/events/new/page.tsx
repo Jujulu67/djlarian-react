@@ -168,6 +168,10 @@ export default function EventFormPage({ params }: { params: { id?: string } }) {
             excludedDates: event.recurrenceConfig?.excludedDates || [],
           },
         });
+        console.log('[DEBUG EventFormPage] formData après chargement:', {
+          imageId: event.imageId,
+          event,
+        });
         if (isEditMode && event.imageId) {
           setImagePreview(`/uploads/${event.imageId}.jpg?t=${Date.now()}`);
         }

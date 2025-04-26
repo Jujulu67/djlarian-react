@@ -574,6 +574,16 @@ const EventForm: React.FC<EventFormProps> = ({
     }
   }, [originalImageFile, croppedImageFile]);
 
+  // Calcul de l'activation du crop
+  const canRecrop = !!originalImageFile || !!cachedOriginalFile;
+  // Log ciblé à chaque render
+  console.log('[CROP][render]', {
+    imageId: formData.imageId,
+    originalImageFile,
+    cachedOriginalFile,
+    canRecrop,
+  });
+
   return (
     <>
       <style jsx global>{`
@@ -895,7 +905,13 @@ const EventForm: React.FC<EventFormProps> = ({
               helpText="PNG, JPG, GIF, WEBP jusqu'à 5MB"
               accept="image/*"
               aspectRatio="aspect-[16/9]"
+              canRecrop={canRecrop}
             />
+            {!canRecrop && (
+              <p className="text-amber-400 text-xs mt-2">
+                Aucune image originale trouvée pour recadrer.
+              </p>
+            )}
           </div>
         </div>
 

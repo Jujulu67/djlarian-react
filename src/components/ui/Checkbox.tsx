@@ -10,14 +10,14 @@ export interface CheckboxProps extends React.InputHTMLAttributes<HTMLInputElemen
 
 const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
   ({ className, onCheckedChange, checked, label, labelClassName, ...props }, ref) => {
-    const handleClick = () => {
-      onCheckedChange?.(!checked);
-    };
+    const inputId = React.useId();
 
     return (
-      <label className={cn('flex items-center gap-2 cursor-pointer select-none', labelClassName)}>
+      <label
+        className={cn('flex items-center gap-2 cursor-pointer select-none', labelClassName)}
+        htmlFor={inputId}
+      >
         <div
-          onClick={handleClick}
           className={cn(
             'flex items-center justify-center w-5 h-5 rounded-md border-2 transition-all',
             checked
@@ -29,6 +29,7 @@ const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
         >
           {checked && <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} />}
           <input
+            id={inputId}
             type="checkbox"
             ref={ref}
             checked={checked}

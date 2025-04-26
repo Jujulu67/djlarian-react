@@ -173,8 +173,6 @@ export default function AdminMusicPage() {
     if (!file) return;
     originalImageFileRef.current = file;
     setOriginalImageFile(file);
-    console.log('[handleImageUpload] setOriginalImageFile', file);
-    console.log('[handleImageUpload] originalImageFileRef.current', originalImageFileRef.current);
     setImageToUploadId(uuidv4());
     setUploadedImage(URL.createObjectURL(file));
     setShowCropModal(true);
@@ -183,9 +181,17 @@ export default function AdminMusicPage() {
   const handleReCrop = async () => {
     if (originalImageFile) {
       originalImageFileRef.current = originalImageFile;
-      console.log('[handleReCrop] originalImageFileRef.current', originalImageFileRef.current);
       const url = URL.createObjectURL(originalImageFile);
       setUploadedImage(url);
+      setImageToUploadId(uuidv4());
+      setShowCropModal(true);
+      return;
+    }
+    if (cachedOriginalFile) {
+      originalImageFileRef.current = cachedOriginalFile;
+      setOriginalImageFile(cachedOriginalFile);
+      const localUrl = URL.createObjectURL(cachedOriginalFile);
+      setUploadedImage(localUrl);
       setImageToUploadId(uuidv4());
       setShowCropModal(true);
       return;
@@ -198,11 +204,7 @@ export default function AdminMusicPage() {
           const file = new File([blob], 'original.jpg', { type: blob.type });
           originalImageFileRef.current = file;
           setOriginalImageFile(file);
-          console.log('[handleReCrop] setOriginalImageFile (fetch)', file);
-          console.log(
-            '[handleReCrop] originalImageFileRef.current (fetch)',
-            originalImageFileRef.current
-          );
+          setCachedOriginalFile(file);
           const localUrl = URL.createObjectURL(file);
           setUploadedImage(localUrl);
           setImageToUploadId(uuidv4());
@@ -258,9 +260,6 @@ export default function AdminMusicPage() {
     setCoverPreview(preview);
     setShowCropModal(false);
     resetFileInput();
-    console.log('[handleCropValidated] setCroppedImageBlob', file);
-    console.log('[handleCropValidated] coverPreview', preview);
-    console.log('[handleCropValidated] originalImageFile', originalImageFile);
   };
 
   const cancelCrop = () => {
@@ -268,14 +267,19 @@ export default function AdminMusicPage() {
     setUploadedImage(null);
     setCrop(undefined);
     resetFileInput();
-    // Si on annule le tout premier crop après upload (pas de crop validé, pas de preview), on flush tout
     if (!croppedImageBlob && !coverPreview) {
       setOriginalImageFile(null);
-      console.log('[cancelCrop] PURGE originalImageFile (premier crop annulé)', null);
       setCoverPreview('');
     }
-    // Sinon, on ne touche à rien (on garde le dernier crop validé et l'originale)
-    console.log('[cancelCrop] originalImageFile', originalImageFile);
+  };
+
+  const handleFileSelected = (file: File) => {
+    if (!file) return;
+    originalImageFileRef.current = file;
+    setOriginalImageFile(file);
+    setImageToUploadId(uuidv4());
+    setUploadedImage(URL.createObjectURL(file));
+    setShowCropModal(true);
   };
 
   /* ------------------------- CRUD Track ---------------------------------- */
@@ -348,19 +352,9 @@ export default function AdminMusicPage() {
     });
     setCoverPreview(t.imageId ? `/uploads/${t.imageId}.jpg` : '');
     setIsEditing(true);
-    setCroppedImageBlob(null);
     setUploadedImage(null);
     setImageToUploadId(null);
-    setOriginalImageFile(null);
-    if (t.imageId) {
-      try {
-        const res = await fetch(`/uploads/${t.imageId}-ori.jpg`);
-        if (res.ok) {
-          const blob = await res.blob();
-          setOriginalImageFile(new File([blob], 'original.jpg', { type: blob.type }));
-        }
-      } catch {}
-    }
+    setHighlightedTrackId(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -399,8 +393,6 @@ export default function AdminMusicPage() {
     setUploadedImage(null);
     setImageToUploadId(null);
     setHighlightedTrackId(null);
-    // Ne pas toucher à originalImageFile ici pour permettre le recrop tant qu'on n'a pas explicitement supprimé l'image
-    console.log('[resetForm] originalImageFile (should be kept)', originalImageFile);
   };
   /* ----------------------------------------------------------------------- */
 
@@ -445,6 +437,48 @@ export default function AdminMusicPage() {
     if (isEditing && successTrackId) setSuccessTrackId(null);
   }, [isEditing, successTrackId]);
 
+  // --- LOGS DEBUG ---
+  console.log('[RENDER][MUSIC] currentForm.imageId:', currentForm.imageId);
+  console.log('[RENDER][MUSIC] originalImageFile:', originalImageFile);
+  console.log('[RENDER][MUSIC] cachedOriginalFile:', cachedOriginalFile);
+  console.log('[RENDER][MUSIC] croppedImageBlob:', croppedImageBlob);
+  console.log('[RENDER][MUSIC] canRecrop:', !!originalImageFile || !!cachedOriginalFile);
+
+  // Fonction utilitaire pour fetch l'originale avec plusieurs extensions
+  const tryFetchOriginal = async (imageId: string) => {
+    const exts = ['jpg', 'png', 'webp'];
+    for (const ext of exts) {
+      const url = `/uploads/${imageId}-ori.${ext}`;
+      try {
+        const res = await fetch(url);
+        if (res.ok) {
+          const blob = await res.blob();
+          const file = new File([blob], `original.${ext}`, { type: blob.type });
+          return file;
+        }
+      } catch (err) {
+        // ignore
+      }
+    }
+    return null;
+  };
+
+  // Gestion du cache image originale synchronisée sur imageId
+  useEffect(() => {
+    setOriginalImageFile(null);
+    setCachedOriginalFile(null);
+    setCroppedImageBlob(null);
+    if (currentForm.imageId) {
+      (async () => {
+        const file = await tryFetchOriginal(currentForm.imageId as string);
+        if (file) {
+          setOriginalImageFile(file);
+          setCachedOriginalFile(file);
+        }
+      })();
+    }
+  }, [currentForm.imageId]);
+
   if (isLoading)
     return (
       <div className="min-h-screen pt-24 flex justify-center items-center">
@@ -474,7 +508,7 @@ export default function AdminMusicPage() {
           <div>
             <div className="font-bold text-lg">Succès !</div>
             <div className="text-sm">
-              Le morceau « {filteredTracks.find((t) => t.id === successTrackId)?.title || '...'} » a
+              Le morceau « {filteredTracks.find((t) => t.id === successTrackId)?.title || '...'} » a
               bien été {isEditing ? 'modifié' : 'ajouté'}.
             </div>
           </div>
@@ -647,7 +681,7 @@ export default function AdminMusicPage() {
                   {/* image */}
                   <div className="mt-4">
                     <ImageDropzone
-                      label="Image de couverture"
+                      label="Pochette (carrée)"
                       imageUrl={coverPreview}
                       onDrop={handleImageUpload}
                       onRecrop={handleReCrop}
@@ -656,11 +690,12 @@ export default function AdminMusicPage() {
                         setCroppedImageBlob(null);
                         setCoverPreview('');
                         setCurrentForm({ ...currentForm, imageId: null });
-                        console.log('[ImageDropzone onRemove] PURGE originalImageFile', null);
+                        setCachedOriginalFile(null);
                       }}
-                      placeholderText="Glissez-déposez une image…"
-                      accept="image/*"
-                      canRecrop={!!originalImageFile}
+                      onFileSelected={handleFileSelected}
+                      canRecrop={
+                        !!originalImageFile || !!cachedOriginalFile || !!currentForm.imageId
+                      }
                     />
                   </div>
 
@@ -882,6 +917,9 @@ export default function AdminMusicPage() {
                 ) : (
                   <div className="space-y-4">
                     {filteredTracks.map((t) => {
+                      if (!t.id) {
+                        return null;
+                      }
                       if (t.id === successTrackId) {
                         return (
                           <div
@@ -973,9 +1011,11 @@ export default function AdminMusicPage() {
                             trackRefs.current[t.id] = el;
                           }}
                           className={`bg-gray-800/40 hover:bg-gray-800/60 rounded-lg border border-gray-700/30 cursor-pointer transition-colors`}
-                          onClick={() =>
-                            router.push(`/admin/music/${t.id}/detail`, { scroll: false })
-                          }
+                          onClick={() => {
+                            if (t.id) {
+                              router.push(`/admin/music/${t.id}/detail`, { scroll: false });
+                            }
+                          }}
                         >
                           <div className="flex items-center gap-4 p-4">
                             <div className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
