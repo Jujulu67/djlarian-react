@@ -30,6 +30,7 @@ import { findOriginalImageUrl } from '@/lib/utils/findOriginalImageUrl';
 import YoutubeAtelier from './components/YoutubeAtelier';
 import { MUSIC_TYPES, emptyTrackForm } from '@/lib/utils/music-helpers';
 import { PublicationStatusSelector } from '@/components/admin/PublicationStatusSelector';
+import { DateTimeField } from '@/components/ui/DateTimeField';
 
 /* -------------------------------------------------------------------------- */
 /*       Constantes plateformes                                               */
@@ -630,14 +631,14 @@ export default function AdminMusicPage() {
                       <label className="block text-gray-300 font-medium mb-2">
                         Date <span className="text-red-500">*</span>
                       </label>
-                      <input
+                      <DateTimeField
                         type="date"
                         value={currentForm.releaseDate}
-                        onChange={(e) =>
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                           setCurrentForm({ ...currentForm, releaseDate: e.target.value })
                         }
-                        className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white focus:ring-purple-500"
                         required
+                        className="w-full"
                       />
                     </div>
                   </div>

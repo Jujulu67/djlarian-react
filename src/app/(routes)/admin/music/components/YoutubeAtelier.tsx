@@ -5,6 +5,7 @@ import { Track, MusicType } from '@/lib/utils/types';
 import { X, ExternalLink, RefreshCw, Save, Search, Plus, Check, AlertCircle } from 'lucide-react';
 import { extractInfoFromTitle, emptyTrackForm, MUSIC_TYPES } from '@/lib/utils/music-helpers';
 import Modal from '@/components/ui/Modal';
+import { DateTimeField } from '@/components/ui/DateTimeField';
 
 /* -------------------------------------------------------------------------- */
 /*  Types locaux                                                              */
@@ -352,9 +353,14 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
                       dangerouslySetInnerHTML={{ __html: v.title }}
                     />
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-gray-700/50 text-gray-300">
-                        {new Date(v.publishedAt).toLocaleDateString()}
-                      </span>
+                      <div className="relative">
+                        <DateTimeField
+                          type="date"
+                          value={v.publishedAt}
+                          onChange={() => {}} // Lecture seule
+                          className="!py-0.5 !px-2 text-xs !bg-gray-700/50 cursor-default"
+                        />
+                      </div>
                       {v.exists && (
                         <span className="text-xs px-2 py-0.5 rounded-full bg-green-700/50 text-green-200">
                           Déjà importé
@@ -453,13 +459,13 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
                       <label className="block text-gray-300 font-medium mb-1">
                         Date <span className="text-red-500">*</span>
                       </label>
-                      <input
+                      <DateTimeField
                         type="date"
                         value={verifyFormData.releaseDate}
                         onChange={(e) =>
                           setVerifyFormData({ ...verifyFormData, releaseDate: e.target.value })
                         }
-                        className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-purple-500"
+                        required
                       />
                     </div>
                   </div>
