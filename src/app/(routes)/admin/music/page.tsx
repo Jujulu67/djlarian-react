@@ -75,6 +75,8 @@ export default function AdminMusicPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredTracks, setFilteredTracks] = useState<Track[]>([]);
   const [refreshingCoverId, setRefreshingCoverId] = useState<string | null>(null);
+  const [highlightedTrackId, setHighlightedTrackId] = useState<string | null>(null);
+  const trackRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   /* ------ Image -------- */
   const [showCropModal, setShowCropModal] = useState(false);
@@ -89,6 +91,25 @@ export default function AdminMusicPage() {
   const originalImageFileRef = useRef<File | null>(null);
   /* ----------------------------------------------------------------------- */
 
+  const searchParams =
+    typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+  const successId = searchParams?.get('success');
+
+  const [showSuccess, setShowSuccess] = useState(!!successId);
+
+  useEffect(() => {
+    if (showSuccess) {
+      const timeout = setTimeout(() => setShowSuccess(false), 3000);
+      return () => clearTimeout(timeout);
+    }
+  }, [showSuccess]);
+
+  useEffect(() => {
+    if (isEditing && showSuccess) setShowSuccess(false);
+  }, [isEditing, showSuccess]);
+
+  const successTrackInList = successId && filteredTracks.some((t) => t.id === successId);
+
   /* ----------------------------------------------------------------------- */
   /*                AUTH / FETCH TRACKS                                      */
   /* ----------------------------------------------------------------------- */
@@ -101,6 +122,15 @@ export default function AdminMusicPage() {
   useEffect(() => {
     if (status === 'authenticated') fetchTracks();
   }, [status]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const editId = params.get('edit');
+    if (editId && tracks.some((t) => t.id === editId)) {
+      setHighlightedTrackId(editId);
+      handleEdit(tracks.find((t) => t.id === editId)!);
+    }
+  }, [tracks]);
 
   const fetchTracks = async () => {
     setIsLoading(true);
@@ -116,7 +146,6 @@ export default function AdminMusicPage() {
       setIsLoading(false);
     }
   };
-  /* ----------------------------------------------------------------------- */
 
   /* ----------------------------------------------------------------------- */
   /*                          HANDLERS                                       */
@@ -289,9 +318,18 @@ export default function AdminMusicPage() {
         body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error((await res.json()).error || 'Erreur API');
-      toast.success(isEditing ? 'Morceau mis à jour' : 'Morceau ajouté');
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      if (typeof window !== 'undefined' && window.location.search.includes('edit=')) {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('edit');
+        router.replace(url.pathname + url.search, { scroll: false });
+      }
       fetchTracks();
       resetForm();
+      setSuccessTrackId(currentForm.id ?? null);
+      setTimeout(() => setSuccessTrackId(null), 3000);
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || 'Erreur');
@@ -360,6 +398,7 @@ export default function AdminMusicPage() {
     setCroppedImageBlob(null);
     setUploadedImage(null);
     setImageToUploadId(null);
+    setHighlightedTrackId(null);
     // Ne pas toucher à originalImageFile ici pour permettre le recrop tant qu'on n'a pas explicitement supprimé l'image
     console.log('[resetForm] originalImageFile (should be kept)', originalImageFile);
   };
@@ -380,6 +419,32 @@ export default function AdminMusicPage() {
   /* ----------------------------------------------------------------------- */
 
   /* ---------------------------- RENDER ----------------------------------- */
+  const editingTrack = highlightedTrackId
+    ? filteredTracks.find((tr) => tr.id === highlightedTrackId)
+    : null;
+
+  const successTrack = successId ? filteredTracks.find((t) => t.id === successId) : null;
+
+  useEffect(() => {
+    if (!successId) return;
+    const timeout = setTimeout(() => {
+      const params = new URLSearchParams(window.location.search);
+      params.delete('success');
+      router.replace(
+        window.location.pathname + (params.toString() ? '?' + params.toString() : ''),
+        { scroll: false }
+      );
+    }, 4000);
+    return () => clearTimeout(timeout);
+  }, [successId]);
+
+  // --- Succès local ---
+  const [successTrackId, setSuccessTrackId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isEditing && successTrackId) setSuccessTrackId(null);
+  }, [isEditing, successTrackId]);
+
   if (isLoading)
     return (
       <div className="min-h-screen pt-24 flex justify-center items-center">
@@ -389,6 +454,32 @@ export default function AdminMusicPage() {
 
   return (
     <div className="min-h-screen pt-8 pb-16 px-4">
+      {/* Affichage du bandeau/toast global si succès mais track non visible */}
+      {successTrackId && !successTrackInList && (
+        <div className="fixed left-1/2 z-50 -translate-x-1/2 top-[80px] bg-green-600/90 text-white px-6 py-4 rounded-xl shadow-lg flex items-center gap-4 animate-highlight-ring transition-opacity duration-500">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="w-8 h-8 text-white animate-pulse"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M9 12l2 2l4 -4m5 2a9 9 0 11-18 0a9 9 0 0118 0z"
+            />
+          </svg>
+          <div>
+            <div className="font-bold text-lg">Succès !</div>
+            <div className="text-sm">
+              Le morceau « {filteredTracks.find((t) => t.id === successTrackId)?.title || '...'} » a
+              bien été {isEditing ? 'modifié' : 'ajouté'}.
+            </div>
+          </div>
+        </div>
+      )}
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold mb-6 text-white">Gestion de la musique</h1>
 
@@ -651,6 +742,136 @@ export default function AdminMusicPage() {
                   </div>
                 </div>
 
+                {/* Bloc flottant En édition */}
+                {editingTrack && (
+                  <div className="mb-6">
+                    <div
+                      className={`relative bg-gray-900/80 rounded-xl border-2 border-purple-500/80 p-4 flex items-center gap-4 shadow-lg ${highlightedTrackId === editingTrack.id ? 'animate-highlight-ring ring-4 ring-purple-500/80' : ''}`}
+                    >
+                      <div className="absolute top-2 right-2 bg-purple-700/90 text-white text-xs px-3 py-1 rounded-full shadow-lg z-10 animate-pulse">
+                        En édition
+                      </div>
+                      <div className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
+                        {editingTrack.imageId ? (
+                          <img
+                            src={`/uploads/${editingTrack.imageId}.jpg?t=${editingTrack.updatedAt ? new Date(editingTrack.updatedAt).getTime() : Date.now()}`}
+                            alt={editingTrack.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gray-700 flex items-center justify-center">
+                            <Music className="w-8 h-8 text-gray-500" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-white font-medium truncate">{editingTrack.title}</h3>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-purple-600/30 text-purple-300">
+                            {MUSIC_TYPES.find((x) => x.value === editingTrack.type)?.label ||
+                              editingTrack.type}
+                          </span>
+                          <span className="text-gray-400 text-sm flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            {new Date(editingTrack.releaseDate).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <div className="flex gap-1 mt-2">
+                          {Object.entries(editingTrack.platforms).map(
+                            ([p, v]) =>
+                              v?.url && (
+                                <a
+                                  key={p}
+                                  href={v.url}
+                                  target="_blank"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="p-1.5 bg-gray-700/60 hover:bg-gray-600 rounded-full text-gray-300 hover:text-white"
+                                  title={platformLabels[p as MusicPlatform]}
+                                >
+                                  {platformIcons[p as MusicPlatform]}
+                                </a>
+                              )
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleFeatured(editingTrack.id, editingTrack.featured || false);
+                          }}
+                          className={`p-2 rounded-lg ${editingTrack.featured ? 'bg-yellow-600/80 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+                        >
+                          <Star className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setHighlightedTrackId(editingTrack.id);
+                            handleEdit(editingTrack);
+                          }}
+                          className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg"
+                        >
+                          <Edit className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(editingTrack.id);
+                          }}
+                          className="p-2 text-gray-400 hover:text-red-500 hover:bg-gray-700 rounded-lg"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                        {/* Bouton refresh cover */}
+                        <button
+                          type="button"
+                          className={`p-2 rounded-lg hover:bg-purple-700/30 text-purple-400 hover:text-white transition-colors ${refreshingCoverId === editingTrack.id ? 'opacity-50 cursor-wait' : ''}`}
+                          title="Rafraîchir la cover"
+                          disabled={refreshingCoverId === editingTrack.id}
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            setRefreshingCoverId(editingTrack.id);
+                            try {
+                              const res = await fetch(
+                                `/api/music/${editingTrack.id}/refresh-cover`,
+                                {
+                                  method: 'POST',
+                                }
+                              );
+                              const data = await res.json();
+                              if (!res.ok) throw new Error(data.error || 'Erreur API');
+                              setTracks((arr) =>
+                                arr.map((track) =>
+                                  track.id === editingTrack.id
+                                    ? {
+                                        ...track,
+                                        imageId: data.imageId,
+                                        updatedAt: new Date().toISOString(),
+                                      }
+                                    : track
+                                )
+                              );
+                              toast.success('Cover rafraîchie !');
+                            } catch (err) {
+                              toast.error((err as any).message || 'Erreur lors du refresh cover');
+                            } finally {
+                              setRefreshingCoverId(null);
+                            }
+                          }}
+                        >
+                          {refreshingCoverId === editingTrack.id ? (
+                            <RefreshCw className="w-5 h-5 animate-spin" />
+                          ) : (
+                            <RefreshCw className="w-5 h-5" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Liste normale, sans suppression du morceau en édition */}
                 {!filteredTracks.length ? (
                   <div className="text-center py-12">
                     <Music className="w-12 h-12 mx-auto text-gray-600 mb-3" />
@@ -660,131 +881,221 @@ export default function AdminMusicPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {filteredTracks.map((t) => (
-                      <div
-                        key={t.id}
-                        onClick={() =>
-                          router.push(`/admin/music/${t.id}/detail`, { scroll: false })
-                        }
-                        className="bg-gray-800/40 hover:bg-gray-800/60 rounded-lg border border-gray-700/30 cursor-pointer transition-colors"
-                      >
-                        <div className="flex items-center gap-4 p-4">
-                          <div className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
-                            {t.imageId ? (
-                              <img
-                                src={`/uploads/${t.imageId}.jpg?t=${t.updatedAt ? new Date(t.updatedAt).getTime() : Date.now()}`}
-                                alt={t.title}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full bg-gray-700 flex items-center justify-center">
-                                <Music className="w-8 h-8 text-gray-500" />
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="text-white font-medium truncate">{t.title}</h3>
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-purple-600/30 text-purple-300">
-                                {MUSIC_TYPES.find((x) => x.value === t.type)?.label || t.type}
-                              </span>
-                              <span className="text-gray-400 text-sm flex items-center gap-1">
-                                <Calendar className="w-3 h-3" />
-                                {new Date(t.releaseDate).toLocaleDateString()}
-                              </span>
+                    {filteredTracks.map((t) => {
+                      if (t.id === successTrackId) {
+                        return (
+                          <div
+                            key={t.id}
+                            className="relative bg-green-900/80 rounded-xl border-2 border-green-500/80 p-4 flex items-center gap-4 animate-highlight-ring ring-4 ring-green-500/80 shadow-lg transition-all duration-500"
+                          >
+                            <div className="absolute top-2 right-2 bg-green-700/90 text-white text-xs px-3 py-1 rounded-full shadow-lg z-10 animate-pulse">
+                              Succès
                             </div>
-                            <div className="flex gap-1 mt-2">
-                              {Object.entries(t.platforms).map(
-                                ([p, v]) =>
-                                  v?.url && (
-                                    <a
-                                      key={p}
-                                      href={v.url}
-                                      target="_blank"
-                                      onClick={(e) => e.stopPropagation()}
-                                      className="p-1.5 bg-gray-700/60 hover:bg-gray-600 rounded-full text-gray-300 hover:text-white"
-                                      title={platformLabels[p as MusicPlatform]}
-                                    >
-                                      {platformIcons[p as MusicPlatform]}
-                                    </a>
-                                  )
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleFeatured(t.id, t.featured || false);
-                              }}
-                              className={`p-2 rounded-lg ${t.featured ? 'bg-yellow-600/80 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
-                            >
-                              <Star className="w-5 h-5" />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEdit(t);
-                              }}
-                              className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg"
-                            >
-                              <Edit className="w-5 h-5" />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDelete(t.id);
-                              }}
-                              className="p-2 text-gray-400 hover:text-red-500 hover:bg-gray-700 rounded-lg"
-                            >
-                              <Trash2 className="w-5 h-5" />
-                            </button>
-                            {/* Bouton refresh cover */}
-                            <button
-                              type="button"
-                              className={`p-2 rounded-lg hover:bg-purple-700/30 text-purple-400 hover:text-white transition-colors ${refreshingCoverId === t.id ? 'opacity-50 cursor-wait' : ''}`}
-                              title="Rafraîchir la cover"
-                              disabled={refreshingCoverId === t.id}
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                setRefreshingCoverId(t.id);
-                                try {
-                                  const res = await fetch(`/api/music/${t.id}/refresh-cover`, {
-                                    method: 'POST',
-                                  });
-                                  const data = await res.json();
-                                  if (!res.ok) throw new Error(data.error || 'Erreur API');
-                                  setTracks((arr) =>
-                                    arr.map((track) =>
-                                      track.id === t.id
-                                        ? {
-                                            ...track,
-                                            imageId: data.imageId,
-                                            updatedAt: new Date().toISOString(),
-                                          }
-                                        : track
-                                    )
-                                  );
-                                  toast.success('Cover rafraîchie !');
-                                } catch (err) {
-                                  toast.error(
-                                    (err as any).message || 'Erreur lors du refresh cover'
-                                  );
-                                } finally {
-                                  setRefreshingCoverId(null);
-                                }
-                              }}
-                            >
-                              {refreshingCoverId === t.id ? (
-                                <RefreshCw className="w-5 h-5 animate-spin" />
+                            <div className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
+                              {t.imageId ? (
+                                <img
+                                  src={`/uploads/${t.imageId}.jpg?t=${t.updatedAt ? new Date(t.updatedAt).getTime() : Date.now()}`}
+                                  alt={t.title}
+                                  className="w-full h-full object-cover"
+                                />
                               ) : (
-                                <RefreshCw className="w-5 h-5" />
+                                <div className="w-full h-full bg-gray-700 flex items-center justify-center">
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="w-8 h-8 text-green-400"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      d="M9 12l2 2l4 -4m5 2a9 9 0 11-18 0a9 9 0 0118 0z"
+                                    />
+                                  </svg>
+                                </div>
                               )}
-                            </button>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="text-white font-bold truncate flex items-center gap-2">
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="w-6 h-6 text-green-400"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M9 12l2 2l4 -4m5 2a9 9 0 11-18 0a9 9 0 0118 0z"
+                                  />
+                                </svg>
+                                {t.title}
+                              </h3>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-green-600/30 text-green-200">
+                                  {MUSIC_TYPES.find((x) => x.value === t.type)?.label || t.type}
+                                </span>
+                                <span className="text-gray-400 text-sm flex items-center gap-1">
+                                  <Calendar className="w-3 h-3" />
+                                  {new Date(t.releaseDate).toLocaleDateString()}
+                                </span>
+                              </div>
+                              <div className="flex gap-1 mt-2">
+                                {Object.entries(t.platforms).map(
+                                  ([p, v]) =>
+                                    v?.url && (
+                                      <a
+                                        key={p}
+                                        href={v.url}
+                                        target="_blank"
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="p-1.5 bg-green-700/60 hover:bg-green-600 rounded-full text-green-300 hover:text-white"
+                                        title={platformLabels[p as MusicPlatform]}
+                                      >
+                                        {platformIcons[p as MusicPlatform]}
+                                      </a>
+                                    )
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+                      // Ancienne card normale
+                      return (
+                        <div
+                          key={t.id}
+                          ref={(el) => {
+                            trackRefs.current[t.id] = el;
+                          }}
+                          className={`bg-gray-800/40 hover:bg-gray-800/60 rounded-lg border border-gray-700/30 cursor-pointer transition-colors`}
+                          onClick={() =>
+                            router.push(`/admin/music/${t.id}/detail`, { scroll: false })
+                          }
+                        >
+                          <div className="flex items-center gap-4 p-4">
+                            <div className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
+                              {t.imageId ? (
+                                <img
+                                  src={`/uploads/${t.imageId}.jpg?t=${t.updatedAt ? new Date(t.updatedAt).getTime() : Date.now()}`}
+                                  alt={t.title}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full bg-gray-700 flex items-center justify-center">
+                                  <Music className="w-8 h-8 text-gray-500" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="text-white font-medium truncate">{t.title}</h3>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-purple-600/30 text-purple-300">
+                                  {MUSIC_TYPES.find((x) => x.value === t.type)?.label || t.type}
+                                </span>
+                                <span className="text-gray-400 text-sm flex items-center gap-1">
+                                  <Calendar className="w-3 h-3" />
+                                  {new Date(t.releaseDate).toLocaleDateString()}
+                                </span>
+                              </div>
+                              <div className="flex gap-1 mt-2">
+                                {Object.entries(t.platforms).map(
+                                  ([p, v]) =>
+                                    v?.url && (
+                                      <a
+                                        key={p}
+                                        href={v.url}
+                                        target="_blank"
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="p-1.5 bg-gray-700/60 hover:bg-gray-600 rounded-full text-gray-300 hover:text-white"
+                                        title={platformLabels[p as MusicPlatform]}
+                                      >
+                                        {platformIcons[p as MusicPlatform]}
+                                      </a>
+                                    )
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleFeatured(t.id, t.featured || false);
+                                }}
+                                className={`p-2 rounded-lg ${t.featured ? 'bg-yellow-600/80 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+                              >
+                                <Star className="w-5 h-5" />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setHighlightedTrackId(t.id);
+                                  handleEdit(t);
+                                }}
+                                className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg"
+                              >
+                                <Edit className="w-5 h-5" />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDelete(t.id);
+                                }}
+                                className="p-2 text-gray-400 hover:text-red-500 hover:bg-gray-700 rounded-lg"
+                              >
+                                <Trash2 className="w-5 h-5" />
+                              </button>
+                              {/* Bouton refresh cover */}
+                              <button
+                                type="button"
+                                className={`p-2 rounded-lg hover:bg-purple-700/30 text-purple-400 hover:text-white transition-colors ${refreshingCoverId === t.id ? 'opacity-50 cursor-wait' : ''}`}
+                                title="Rafraîchir la cover"
+                                disabled={refreshingCoverId === t.id}
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  setRefreshingCoverId(t.id);
+                                  try {
+                                    const res = await fetch(`/api/music/${t.id}/refresh-cover`, {
+                                      method: 'POST',
+                                    });
+                                    const data = await res.json();
+                                    if (!res.ok) throw new Error(data.error || 'Erreur API');
+                                    setTracks((arr) =>
+                                      arr.map((track) =>
+                                        track.id === t.id
+                                          ? {
+                                              ...track,
+                                              imageId: data.imageId,
+                                              updatedAt: new Date().toISOString(),
+                                            }
+                                          : track
+                                      )
+                                    );
+                                    toast.success('Cover rafraîchie !');
+                                  } catch (err) {
+                                    toast.error(
+                                      (err as any).message || 'Erreur lors du refresh cover'
+                                    );
+                                  } finally {
+                                    setRefreshingCoverId(null);
+                                  }
+                                }}
+                              >
+                                {refreshingCoverId === t.id ? (
+                                  <RefreshCw className="w-5 h-5 animate-spin" />
+                                ) : (
+                                  <RefreshCw className="w-5 h-5" />
+                                )}
+                              </button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>

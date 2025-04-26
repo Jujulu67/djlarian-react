@@ -661,22 +661,66 @@ export default function GestionImages({
               </div>
             </div>
             {/* Badge de liaison */}
-            {selectedGroup.linkedTo && (
-              <div className="w-full flex justify-center mb-6">
-                <span
-                  className={`flex items-center gap-3 px-6 py-3 rounded-xl font-semibold text-lg w-full max-w-xl justify-center bg-${selectedGroup.linkedTo.type === 'track' ? 'purple' : 'blue'}-700/30 text-${selectedGroup.linkedTo.type === 'track' ? 'purple' : 'blue'}-200 whitespace-nowrap overflow-hidden`}
-                  title={selectedGroup.linkedTo.title}
-                  style={{ minHeight: '3rem' }}
-                >
-                  {selectedGroup.linkedTo.type === 'track' ? (
-                    <Music className="w-6 h-6 flex-shrink-0" />
-                  ) : (
-                    <Calendar className="w-6 h-6 flex-shrink-0" />
-                  )}
-                  <span className="truncate">{selectedGroup.linkedTo.title}</span>
-                </span>
-              </div>
-            )}
+            {selectedGroup.linkedTo &&
+              (() => {
+                const linked = selectedGroup.linkedTo;
+                return (
+                  <div className="w-full flex flex-col items-center mb-6 gap-3">
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Voir la page liée à ${linked.title}`}
+                      onClick={() => {
+                        if (linked.type === 'track') {
+                          window.open(`/admin/music?edit=${linked.id}`, '_blank');
+                        } else {
+                          window.open(`/admin/events/${linked.id}`, '_blank');
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          if (linked.type === 'track') {
+                            window.open(`/admin/music?edit=${linked.id}`, '_blank');
+                          } else {
+                            window.open(`/admin/events/${linked.id}`, '_blank');
+                          }
+                        }
+                      }}
+                      className={`flex items-center gap-3 px-6 py-3 rounded-xl font-semibold text-lg w-full max-w-xl justify-center transition-colors duration-150 cursor-pointer outline-none focus:outline-none focus:ring-2 ${linked.type === 'track' ? 'bg-purple-700/30 text-purple-200 hover:bg-purple-700/60 hover:text-white focus:ring-purple-400' : 'bg-blue-700/30 text-blue-200 hover:bg-blue-700/60 hover:text-white focus:ring-blue-400'}`}
+                      style={{ minHeight: '3rem' }}
+                      title={linked.title}
+                    >
+                      {linked.type === 'track' ? (
+                        <Music className="w-6 h-6 flex-shrink-0" />
+                      ) : (
+                        <Calendar className="w-6 h-6 flex-shrink-0" />
+                      )}
+                      <span className="truncate">{linked.title}</span>
+                    </span>
+                  </div>
+                );
+              })()}
+          </div>
+        </Modal>
+      )}
+      {/* Modale d'affichage de l'originale en grand */}
+      {showOriginalFull && selectedGroup?.ori && (
+        <Modal
+          maxWidth="max-w-none"
+          bgClass="bg-black/90"
+          borderClass="border-none"
+          zClass="z-[10000]"
+          onClose={() => setShowOriginalFull(false)}
+          fullscreenContent
+        >
+          <div className="w-screen h-screen flex items-center justify-center p-0 m-0">
+            <img
+              src={selectedGroup.ori.url}
+              alt={selectedGroup.ori.name}
+              className="max-w-full max-h-full object-contain"
+              style={{ display: 'block' }}
+              aria-label="Image originale en grand"
+            />
           </div>
         </Modal>
       )}
