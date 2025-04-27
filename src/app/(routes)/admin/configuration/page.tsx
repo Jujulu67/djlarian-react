@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import {
@@ -10,9 +10,7 @@ import {
   Layout,
   Bell,
   Shield,
-  Mail,
   Save,
-  RotateCcw,
   Zap,
   Clock,
   Calendar,
@@ -21,7 +19,6 @@ import {
   RefreshCcw,
   Lock,
   Home,
-  BookmarkPlus,
   History,
   Music,
   Eye,
@@ -29,8 +26,6 @@ import {
   Video,
   GripVertical,
   Image as ImageIcon,
-  Download,
-  Trash2,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -41,7 +36,6 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import HistoryModal from './components/HistoryModal';
 import Modal from '@/components/ui/Modal';
-import { Select } from '@/components/ui/Select';
 import GestionImages from './GestionImages';
 
 // Composant StrictModeDroppable pour résoudre le problème de compatibilité avec React 18 StrictMode
@@ -396,74 +390,12 @@ export default function ConfigurationPage() {
   });
 
   // --- MOCK IMAGES ---
-  const [images, setImages] = useState([
-    {
-      id: 'img1',
-      url: '/uploads/cover1.jpg',
-      name: 'cover1.jpg',
-      size: 234567,
-      date: '2024-04-21T20:30:24Z',
-      type: 'cover',
-      linkedTo: { type: 'track', id: 'track1', title: 'Track One' },
-      isDuplicate: false,
-    },
-    {
-      id: 'img2',
-      url: '/uploads/event1.jpg',
-      name: 'event1.jpg',
-      size: 345678,
-      date: '2024-04-20T18:10:00Z',
-      type: 'event',
-      linkedTo: { type: 'event', id: 'event1', title: 'Event Alpha' },
-      isDuplicate: true,
-    },
-    {
-      id: 'img3',
-      url: '/uploads/cover2.jpg',
-      name: 'cover2.jpg',
-      size: 234567,
-      date: '2024-04-19T15:00:00Z',
-      type: 'cover',
-      linkedTo: null,
-      isDuplicate: false,
-    },
-  ]);
-  const [selectedImage, setSelectedImage] = useState(null as null | (typeof images)[0]);
-  const [search, setSearch] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'cover' | 'event' | 'other'>('all');
-  const [showDuplicates, setShowDuplicates] = useState(false);
-  const [showOrphans, setShowOrphans] = useState(false);
-
-  const filteredImages = images.filter((img) => {
-    if (search && !img.name.toLowerCase().includes(search.toLowerCase())) return false;
-    if (filterType !== 'all' && img.type !== filterType) return false;
-    if (showDuplicates && !img.isDuplicate) return false;
-    if (showOrphans && img.linkedTo) return false;
-    return true;
-  });
+  // (SUPPRIMÉ : toute la gestion d'état et de logique images, car déléguée à GestionImages)
+  // ... existing code ...
 
   // --- Actions ---
-  const handleRefresh = () => {
-    // TODO: brancher sur l'API réelle
-  };
-  const handleView = (img: (typeof images)[0]) => setSelectedImage(img);
-  const handleDownload = (img: (typeof images)[0]) => {
-    window.open(img.url, '_blank');
-  };
-  const handleDelete = (img: (typeof images)[0]) => {
-    if (window.confirm('Supprimer cette image ?')) {
-      setImages((arr) => arr.filter((i) => i.id !== img.id));
-      setSelectedImage(null);
-    }
-  };
-  const handleGoToLinked = (img: (typeof images)[0]) => {
-    if (!img.linkedTo) return;
-    if (img.linkedTo.type === 'track') {
-      window.open(`/admin/music/${img.linkedTo.id}/detail`, '_blank');
-    } else if (img.linkedTo.type === 'event') {
-      window.open(`/admin/events/${img.linkedTo.id}`, '_blank');
-    }
-  };
+  // (SUPPRIMÉ : fonctions handleRefresh, handleView, handleDownload, handleDelete, handleGoToLinked inutiles)
+  // ... existing code ...
 
   // Fonction pour récupérer les configurations depuis l'API
   const fetchConfigurations = useCallback(async () => {
