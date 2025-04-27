@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth/options';
 import { PrismaClient } from '@prisma/client';
 
 // Initialiser Prisma
@@ -122,8 +122,14 @@ export async function GET(req: NextRequest) {
 
     // Initialiser les configurations par défaut
     for (const section in defaultConfigs) {
-      for (const key in defaultConfigs[section as keyof typeof defaultConfigs]) {
-        const value = defaultConfigs[section as keyof typeof defaultConfigs][key];
+      // Cast section pour accéder à l'objet de la section
+      const sectionKey = section as keyof typeof defaultConfigs;
+      const sectionObject = defaultConfigs[sectionKey];
+
+      for (const key in sectionObject) {
+        // Cast key pour accéder à la valeur
+        const valueKey = key as keyof typeof sectionObject;
+        const value = sectionObject[valueKey];
 
         try {
           // Utiliser des requêtes SQL brutes pour créer les entrées

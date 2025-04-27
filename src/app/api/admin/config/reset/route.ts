@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth/options';
 import prisma from '@/lib/prisma';
+import { defaultConfigs } from '@/config/defaults';
 
 // Types pour les sections de configuration
 type GeneralConfig = {
@@ -86,80 +87,6 @@ type DefaultConfigs = {
   security: SecurityConfig;
   api: ApiConfig;
   homepage: HomepageConfig;
-};
-
-// Valeurs par défaut pour chaque section de configuration
-export const defaultConfigs: DefaultConfigs = {
-  general: {
-    siteName: 'DJ Larian',
-    siteDescription: 'Site officiel de DJ Larian - Musique électronique et événements.',
-    contactEmail: 'contact@djlarian.com',
-    timeZone: 'Europe/Paris',
-    dateFormat: 'DD/MM/YYYY',
-  },
-  appearance: {
-    primaryColor: '#8B5CF6',
-    secondaryColor: '#3B82F6',
-    darkMode: 'true',
-    animationsEnabled: 'true',
-    logoUrl: '/images/logo.png',
-    faviconUrl: '/favicon.ico',
-  },
-  notifications: {
-    emailNotifications: 'true',
-    adminAlerts: 'true',
-    newUserNotifications: 'true',
-    eventReminders: 'true',
-    marketingEmails: 'false',
-  },
-  security: {
-    twoFactorAuth: 'false',
-    passwordExpiration: '90',
-    ipRestriction: 'false',
-    failedLoginLimit: '5',
-    sessionTimeout: '60',
-  },
-  api: {
-    apiEnabled: 'true',
-    rateLimit: '100',
-    webhookUrl: '',
-    umamiEnabled: 'true',
-    umamiSiteId: 'your-umami-site-id',
-  },
-  homepage: {
-    heroTitle: 'DJ LARIAN',
-    heroSubtitle: 'Electronic Music Producer & Innovative Performer',
-    heroExploreButtonText: 'Explore Music',
-    heroExploreButtonUrl: '/music',
-    heroEventsButtonText: 'Upcoming Events',
-    heroEventsButtonUrl: '/events',
-    heroBackgroundVideo: '/videos/hero-background.mp4',
-    heroPosterImage: '/images/hero-poster.jpg',
-    sectionsOrder: 'hero,releases,visualizer,events,stream',
-    releasesEnabled: 'true',
-    releasesTitle: 'Latest Releases',
-    releasesCount: '3',
-    visualizerEnabled: 'true',
-    visualizerTitle: 'Experience the Sound',
-    eventsEnabled: 'true',
-    eventsTitle: 'Upcoming Events',
-    eventsCount: '3',
-    eventsViewAllText: 'View All Events',
-    eventsViewAllUrl: '/events',
-    streamEnabled: 'true',
-    streamTitle: 'Live Stream',
-    streamSubtitle: 'Join the Live Experience',
-    streamDescription:
-      'Tune in to my live streams where I share my creative process, perform exclusive sets, and interact with the community in real-time.',
-    twitchUsername: 'djlarian',
-    twitchFollowButtonText: 'Follow on Twitch',
-    twitchFollowButtonUrl: 'https://twitch.tv/djlarian',
-    streamNotifyButtonText: 'Get Notified',
-    streamStatsEnabled: 'true',
-    streamFollowers: '24K+',
-    streamHoursStreamed: '150+',
-    streamTracksPlayed: '500+',
-  },
 };
 
 // Endpoint pour réinitialiser les configurations

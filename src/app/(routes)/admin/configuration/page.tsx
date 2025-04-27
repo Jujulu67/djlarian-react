@@ -31,7 +31,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import HistoryModal from './components/HistoryModal';
 import Modal from '@/components/ui/Modal';
-import GestionImages from './GestionImages';
 import {
   AllConfigs,
   initialConfigs,
@@ -60,6 +59,10 @@ const SecurityTab = dynamic(() => import('./tabs/SecurityTab'), {
   loading: () => <TabLoader />,
 });
 const ApiTab = dynamic(() => import('./tabs/ApiTab'), {
+  ssr: false,
+  loading: () => <TabLoader />,
+});
+const ImagesTab = dynamic(() => import('./tabs/ImagesTab'), {
   ssr: false,
   loading: () => <TabLoader />,
 });
@@ -931,15 +934,8 @@ export default function ConfigurationPage() {
               {/* --- Section API (placeholder) --- */}
               {activeSection === 'api' && <ApiTab />}
 
-              {/* --- Section Images (inchangée) --- */}
-              {activeSection === 'images' && (
-                <div className="p-6 relative z-10">
-                  <h2 className="text-2xl font-audiowide text-white mb-6 pb-2 border-b border-purple-500/20">
-                    Gestion des images uploadées
-                  </h2>
-                  <GestionImages showBackLink={false} showHeader={false} />
-                </div>
-              )}
+              {/* --- Section Images (maintenant un onglet dynamique) --- */}
+              {activeSection === 'images' && <ImagesTab />}
             </div>
           </div>
         </div>

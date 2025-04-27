@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth/options';
 import prisma from '@/lib/prisma';
+import { AllConfigs } from '@/types/config';
+import { defaultConfigs } from '@/config/defaults';
 
 // Valeurs par défaut pour les configurations (en cas d'erreur ou de première visite)
-const defaultConfigs = {
+/*
+const defaultConfigs: AllConfigs = {
   general: {
     siteName: 'DJ Larian',
     siteDescription: 'Site officiel de DJ Larian - Musique électronique et événements.',
@@ -76,6 +79,7 @@ const defaultConfigs = {
     umamiSiteId: 'your-umami-site-id',
   },
 };
+*/
 
 // Récupère toutes les configurations
 export async function GET(req: NextRequest) {
@@ -100,7 +104,7 @@ export async function GET(req: NextRequest) {
       areTablesReady = false;
     }
 
-    let configObject = {};
+    let configObject: Record<string, any> = {};
 
     if (areTablesReady) {
       // Tables prêtes, on récupère les données normalement
@@ -117,18 +121,18 @@ export async function GET(req: NextRequest) {
       }
 
       // Transformer les configurations en objet structuré
-      configObject = {};
+      // configObject = {};
 
       configs.forEach((config) => {
         if (!configObject[config.section]) {
           configObject[config.section] = {};
         }
         // Convertir les valeurs en types appropriés si nécessaire
-        let value = config.value;
-        if (value === 'true' || value === 'false') {
-          value = value === 'true';
-        } else if (!isNaN(Number(value)) && value !== '') {
-          value = Number(value);
+        let value: string | number | boolean | null = config.value;
+        if (config.value === 'true' || config.value === 'false') {
+          value = config.value === 'true';
+        } else if (config.value !== null && config.value !== '' && !isNaN(Number(config.value))) {
+          value = Number(config.value);
         }
         configObject[config.section][config.key] = value;
       });
@@ -150,7 +154,7 @@ export async function GET(req: NextRequest) {
 
     // En cas d'erreur, retourner les valeurs par défaut
     console.log('Erreur, utilisation des valeurs par défaut');
-    return NextResponse.json(defaultConfigs, { status: 200 });
+    return NextResponse.json(defaultConfigs as AllConfigs, { status: 200 });
   }
 }
 

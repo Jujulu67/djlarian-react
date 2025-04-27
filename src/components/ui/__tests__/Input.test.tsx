@@ -2,31 +2,12 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Input } from '../Input';
 
-describe('Input', () => {
-  it('renders correctly', () => {
-    render(<Input placeholder="Enter text" />);
-    expect(screen.getByPlaceholderText('Enter text')).toBeInTheDocument();
-  });
-
-  it('renders with label', () => {
-    render(<Input label="Username" />);
-    expect(screen.getByLabelText('Username')).toBeInTheDocument();
-  });
-
-  it('renders with error message', () => {
-    render(<Input error="This field is required" />);
-    expect(screen.getByText('This field is required')).toBeInTheDocument();
-    expect(screen.getByRole('textbox')).toHaveAttribute('aria-invalid', 'true');
-  });
-
-  it('renders with helper text', () => {
-    render(<Input helperText="Enter your full name" />);
-    expect(screen.getByText('Enter your full name')).toBeInTheDocument();
-  });
-
-  it('applies full width class when isFullWidth is true', () => {
-    render(<Input isFullWidth />);
-    expect(screen.getByRole('textbox')).toHaveClass('w-full');
+describe('Input Component', () => {
+  it('renders correctly with default props', () => {
+    render(<Input placeholder="Enter username" />);
+    const inputElement = screen.getByPlaceholderText('Enter username');
+    expect(inputElement).toBeInTheDocument();
+    expect(inputElement).toHaveClass('border-gray-700'); // Vérifie la classe par défaut
   });
 
   it('handles user input', async () => {

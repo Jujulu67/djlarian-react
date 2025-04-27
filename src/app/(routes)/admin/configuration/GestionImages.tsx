@@ -1528,7 +1528,7 @@ export default function GestionImages({
                     })();
                     console.log(
                       '[FUSION] Images restantes après suppression',
-                      imagesAfter.map((img) => img.id)
+                      imagesAfter.map((img: any) => img.id)
                     );
                     setToast('Fusion réussie !');
                     setFusionModal(null);

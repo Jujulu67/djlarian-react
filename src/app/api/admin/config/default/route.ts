@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import { defaultConfigs } from '@/app/api/admin/config/reset/route';
+import { authOptions } from '@/lib/auth/options';
+import { defaultConfigs } from '@/config/defaults';
+import prisma from '@/lib/prisma';
 
 // Endpoint pour récupérer les configurations par défaut
 export async function GET() {

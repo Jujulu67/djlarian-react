@@ -6,7 +6,7 @@ async function checkUsers() {
   try {
     const users = await prisma.user.findMany({
       include: {
-        accounts: true,
+        Account: true,
       },
     });
 
@@ -23,8 +23,8 @@ async function checkUsers() {
         console.log('- Rôle:', user.role);
         console.log(
           '- Méthode de connexion:',
-          user.accounts.length > 0
-            ? user.accounts.map((acc) => acc.provider).join(', ')
+          user.Account.length > 0
+            ? user.Account.map((acc) => acc.provider).join(', ')
             : 'Email/Mot de passe'
         );
       });

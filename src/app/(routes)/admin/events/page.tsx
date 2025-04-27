@@ -28,47 +28,21 @@ import Image from 'next/image';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { FaPlus, FaEdit, FaTrash, FaEye, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
+import { Event as PrismaEvent, TicketInfo as PrismaTicketInfo } from '@prisma/client';
 
-// Types
-type Event = {
-  id: string;
-  title: string;
-  description: string;
-  location: string;
-  address?: string;
-  startDate: string;
-  endDate?: string;
-  imageId?: string;
-  status: string;
-  isPublished: boolean;
-  tickets?: {
-    price?: number;
-    currency: string;
-    buyUrl?: string;
-  };
-  user?: {
-    name: string;
-  };
-  featured: boolean;
-  // Propriétés pour les événements récurrents
-  isMasterEvent?: boolean;
-  masterId?: string;
-  master?: { id: string };
-  occurrences?: { id: string; startDate: string }[];
-  recurrenceConfig?: {
-    frequency: 'weekly' | 'monthly';
-    day?: number;
-    endDate?: string;
-  };
-  updatedAt?: string;
-  publishAt?: string;
+// Créer un type local pour inclure les relations si nécessaire
+// (Alternative: utiliser Prisma.EventGetPayload avec include)
+type EventWithRelations = PrismaEvent & {
+  TicketInfo?: PrismaTicketInfo | null;
+  // Ajouter d'autres relations si besoin (User, master, occurrences)
 };
 
 export default function AdminEventsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  const [events, setEvents] = useState<Event[]>([]);
+  // Utiliser le type EventWithRelations pour l'état
+  const [events, setEvents] = useState<EventWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -79,7 +53,7 @@ export default function AdminEventsPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [eventToDelete, setEventToDelete] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [currentEvent, setCurrentEvent] = useState<Event | null>(null);
+  const [currentEvent, setCurrentEvent] = useState<EventWithRelations | null>(null);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [formMessage, setFormMessage] = useState<{
     type: 'success' | 'error';
@@ -133,26 +107,26 @@ export default function AdminEventsPage() {
         (event.description && event.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (event.location && event.location.toLowerCase().includes(searchTerm.toLowerCase()));
 
-      // Filtre de statut
+      // Filtre de statut (utiliser event.status)
       const matchesStatus = statusFilter === 'ALL' || event.status === statusFilter;
 
-      // Filtre de publication
+      // Filtre de publication (utiliser event.isPublished)
       const matchesPublish =
         publishFilter === 'ALL' ||
         (publishFilter === 'PUBLISHED' && event.isPublished) ||
         (publishFilter === 'DRAFT' && !event.isPublished);
 
-      // Filtre featured
+      // Filtre featured (utiliser event.featured)
       const matchesFeatured =
         featuredFilter === 'ALL' ||
         (featuredFilter === 'FEATURED' && event.featured) ||
         (featuredFilter === 'REGULAR' && !event.featured);
 
-      // Filtre événements récurrents
+      // Filtre événements récurrents (utiliser event.isMasterEvent)
       const matchesRecurrence =
         recurrenceFilter === 'ALL' ||
-        (recurrenceFilter === 'RECURRING' && event.isMasterEvent && event.recurrenceConfig) ||
-        (recurrenceFilter === 'SINGLE' && (!event.isMasterEvent || !event.recurrenceConfig));
+        (recurrenceFilter === 'RECURRING' && event.isMasterEvent) ||
+        (recurrenceFilter === 'SINGLE' && !event.isMasterEvent);
 
       return (
         matchesSearch && matchesStatus && matchesPublish && matchesFeatured && matchesRecurrence
@@ -193,7 +167,7 @@ export default function AdminEventsPage() {
         },
         body: JSON.stringify({
           isPublished: !currentStatus,
-          publishAt: null,
+          publishAt: !currentStatus ? new Date() : null, // Mettre à jour publishAt logiquement
         }),
       });
 
@@ -201,15 +175,22 @@ export default function AdminEventsPage() {
         throw new Error(`Erreur ${response.status}: ${response.statusText}`);
       }
 
-      const updatedEvent = await response.json();
+      const updatedEvent: EventWithRelations = await response.json(); // Utiliser le type correct
 
       // Mettre à jour la liste des événements
       setEvents(
-        events.map((event) =>
-          event.id === eventId
-            ? { ...event, isPublished: updatedEvent.isPublished, publishAt: null }
-            : event
-        )
+        (
+          prevEvents // Utiliser une fonction pour garantir l'état précédent
+        ) =>
+          prevEvents.map((event) =>
+            event.id === eventId
+              ? {
+                  ...event,
+                  isPublished: updatedEvent.isPublished,
+                  publishAt: updatedEvent.publishAt,
+                }
+              : event
+          )
       );
     } catch (err) {
       console.error('Erreur lors de la mise à jour:', err);
@@ -226,7 +207,7 @@ export default function AdminEventsPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          featured: !currentStatus,
+          featured: !currentStatus, // Utiliser featured
         }),
       });
 
@@ -234,13 +215,17 @@ export default function AdminEventsPage() {
         throw new Error(`Erreur ${response.status}: ${response.statusText}`);
       }
 
-      const updatedEvent = await response.json();
+      const updatedEvent: EventWithRelations = await response.json(); // Utiliser le type correct
 
       // Mettre à jour la liste des événements
       setEvents(
-        events.map((event) =>
-          event.id === eventId ? { ...event, featured: updatedEvent.featured } : event
-        )
+        (
+          prevEvents // Utiliser une fonction pour garantir l'état précédent
+        ) =>
+          prevEvents.map(
+            (event) =>
+              event.id === eventId ? { ...event, featured: updatedEvent.featured } : event // Utiliser featured
+          )
       );
     } catch (err) {
       console.error('Erreur lors de la mise à jour:', err);
@@ -249,16 +234,32 @@ export default function AdminEventsPage() {
   };
 
   // Gérer la création/modification d'un événement
-  const handleAddEditEvent = (event: Event | null, mode: 'create' | 'edit') => {
+  const handleAddEditEvent = (event: EventWithRelations | null, mode: 'create' | 'edit') => {
     setCurrentEvent(event);
     setFormMode(mode);
     setShowModal(true);
   };
 
   // Formatter la date
-  const formatEventDate = (dateString: string) => {
-    const date = parseISO(dateString);
-    return format(date, 'd MMMM yyyy', { locale: fr });
+  const formatEventDate = (dateString: string | Date | null) => {
+    // Accepter Date ou null
+    if (!dateString) return 'Date inconnue';
+    try {
+      const date = typeof dateString === 'string' ? parseISO(dateString) : dateString;
+      return format(date, 'dd MMMM yyyy à HH:mm', { locale: fr });
+    } catch (error) {
+      console.warn(`Date invalide: ${dateString}`);
+      return 'Date invalide';
+    }
+  };
+
+  // Réinitialiser les filtres
+  const resetFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('ALL');
+    setPublishFilter('ALL');
+    setFeaturedFilter('ALL');
+    setRecurrenceFilter('ALL');
   };
 
   // Obtenir la couleur du badge selon le statut
@@ -287,15 +288,6 @@ export default function AdminEventsPage() {
       default:
         return status;
     }
-  };
-
-  // Réinitialiser les filtres
-  const resetFilters = () => {
-    setSearchTerm('');
-    setStatusFilter('ALL');
-    setPublishFilter('ALL');
-    setFeaturedFilter('ALL');
-    setRecurrenceFilter('ALL');
   };
 
   // Afficher un état de chargement
@@ -387,18 +379,6 @@ export default function AdminEventsPage() {
 
             {/* Ligne 2: Filtres */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              {/* Filtre par statut */}
-              <select
-                className="px-3 py-2 bg-gray-900/50 text-white rounded-lg border border-gray-700/50 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-              >
-                <option value="ALL">Tous les statuts</option>
-                <option value="UPCOMING">À venir</option>
-                <option value="COMPLETED">Terminés</option>
-                <option value="CANCELLED">Annulés</option>
-              </select>
-
               {/* Filtre par publication */}
               <select
                 className="px-3 py-2 bg-gray-900/50 text-white rounded-lg border border-gray-700/50 focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -420,17 +400,6 @@ export default function AdminEventsPage() {
                 <option value="FEATURED">Mis en avant</option>
                 <option value="REGULAR">Standards</option>
               </select>
-
-              {/* Filtre événements récurrents */}
-              <select
-                className="px-3 py-2 bg-gray-900/50 text-white rounded-lg border border-gray-700/50 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                value={recurrenceFilter}
-                onChange={(e) => setRecurrenceFilter(e.target.value)}
-              >
-                <option value="ALL">Récurrence (oui/non)</option>
-                <option value="RECURRING">Événements récurrents</option>
-                <option value="SINGLE">Événements uniques</option>
-              </select>
             </div>
           </div>
         </div>
@@ -445,211 +414,167 @@ export default function AdminEventsPage() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {filteredEvents.map((event) => (
-              <div
-                key={event.id}
-                className="group relative bg-gray-800/50 backdrop-blur-sm rounded-xl overflow-hidden border border-gray-700/70 hover:border-purple-500/70 hover:shadow-lg hover:shadow-purple-500/10 transition-all"
-              >
-                <div className="flex flex-col h-full">
-                  {/* Image de l'événement */}
-                  <div className="relative overflow-hidden" style={{ aspectRatio: '16/9' }}>
-                    {event.imageId ? (
-                      <img
-                        src={`/uploads/${event.imageId}.jpg?t=${event.updatedAt ? new Date(event.updatedAt).getTime() : Date.now()}`}
-                        alt={event.title}
-                        className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
-                        style={{ objectPosition: '50% 25%' }}
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-r from-gray-800 to-gray-700 flex items-center justify-center">
-                        <ImageIcon className="w-16 h-16 text-gray-600" />
-                      </div>
-                    )}
-
-                    {/* Overlay sombre pour mieux voir les badges */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-transparent"></div>
-
-                    {/* Badge statut */}
-                    <div className="absolute top-3 left-3">
-                      {event.status === 'UPCOMING' && (
-                        <span className="bg-blue-600/90 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-xs font-medium shadow-lg">
-                          À venir
-                        </span>
-                      )}
-                      {event.status === 'COMPLETED' && (
-                        <span className="bg-gray-600/90 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-xs font-medium shadow-lg">
-                          Terminé
-                        </span>
-                      )}
-                      {event.status === 'CANCELLED' && (
-                        <span className="bg-red-600/90 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-xs font-medium shadow-lg">
-                          Annulé
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Badge featured */}
-                    {event.featured && (
-                      <div className="absolute top-3 right-3">
-                        <span className="bg-yellow-500/90 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 shadow-lg">
-                          <Star className="w-3.5 h-3.5" />
+          <div className="mt-8 flow-root">
+            <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+              <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+                <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
+                  <table className="min-w-full divide-y divide-gray-700">
+                    <thead className="bg-gray-800/50">
+                      <tr>
+                        <th
+                          scope="col"
+                          className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-300 sm:pl-6"
+                        >
+                          Événement
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-3 py-3.5 text-left text-sm font-semibold text-gray-300"
+                        >
+                          Date
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-3 py-3.5 text-left text-sm font-semibold text-gray-300"
+                        >
+                          Statut
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-3 py-3.5 text-center text-sm font-semibold text-gray-300"
+                        >
                           En avant
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="p-5 flex flex-col flex-grow">
-                    <h3 className="text-xl font-semibold text-white mb-2 group-hover:text-purple-300 transition-colors line-clamp-1">
-                      {event.title}
-                    </h3>
-
-                    {/* Date de l'événement */}
-                    <div className="flex items-center text-gray-400 mb-3 text-sm">
-                      <Calendar className="w-4 h-4 mr-2 flex-shrink-0" />
-                      <span>
-                        {format(new Date(event.startDate), 'dd MMMM yyyy à HH:mm', { locale: fr })}
-                      </span>
-                    </div>
-
-                    {/* Lieu de l'événement */}
-                    <div className="flex items-start text-gray-400 mb-4 text-sm">
-                      <MapPin className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" />
-                      <span>{event.location}</span>
-                    </div>
-
-                    {/* Description */}
-                    <p className="text-gray-300 mb-5 line-clamp-2 text-sm flex-grow">
-                      {event.description || 'Aucune description disponible.'}
-                    </p>
-
-                    {/* Badges statut, récurrence, prix, etc. */}
-                    <div className="flex flex-wrap gap-2 mb-5 items-center">
-                      {event.isPublished ? (
-                        <span className="bg-green-900/40 text-green-300 px-3 py-1 rounded-full text-xs flex items-center gap-1">
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-3 py-3.5 text-center text-sm font-semibold text-gray-300"
+                        >
                           Publié
-                          {event.publishAt && (
-                            <span className="flex items-center gap-1 ml-2 text-green-200">
-                              <Calendar className="w-3.5 h-3.5 mr-1" />
-                              {format(new Date(event.publishAt), 'dd MMM yyyy HH:mm', {
-                                locale: fr,
-                              })}
+                        </th>
+                        <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
+                          <span className="sr-only">Actions</span>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-800 bg-gray-900/70">
+                      {filteredEvents.map((event) => (
+                        <tr key={event.id} className="hover:bg-gray-800/40 transition-colors">
+                          <td className="py-4 pl-4 pr-3 text-sm sm:pl-6">
+                            <div className="flex items-center">
+                              <div className="flex-shrink-0 h-10 w-10 mr-3 relative">
+                                {event.imageId ? (
+                                  <Image
+                                    src={`/uploads/${event.imageId}_crop.jpg`}
+                                    alt={event.title}
+                                    width={40}
+                                    height={40}
+                                    className="rounded-md object-cover"
+                                  />
+                                ) : (
+                                  <div className="h-10 w-10 rounded-md bg-gray-700 flex items-center justify-center">
+                                    <MapPin className="h-5 w-5 text-gray-400" />
+                                  </div>
+                                )}
+                              </div>
+                              <div>
+                                <div className="font-medium text-white">{event.title}</div>
+                                <div className="text-gray-400">
+                                  {event.location} {event.address ? `(${event.address})` : ''}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-3 py-4 text-sm text-gray-300">
+                            {formatEventDate(event.startDate)}
+                          </td>
+                          <td className="px-3 py-4 whitespace-nowrap">
+                            <span
+                              className={`px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
+                                event.status
+                              )}`}
+                            >
+                              {getStatusLabel(event.status)}
                             </span>
-                          )}
-                        </span>
-                      ) : (
-                        <span className="bg-yellow-900/40 text-yellow-300 px-3 py-1 rounded-full text-xs flex items-center gap-1">
-                          Brouillon
-                          {event.publishAt && (
-                            <span className="flex items-center gap-1 ml-2 text-yellow-200">
-                              <Clock className="w-3.5 h-3.5 mr-1" />
-                              {format(new Date(event.publishAt), 'dd MMM yyyy HH:mm', {
-                                locale: fr,
-                              })}
-                            </span>
-                          )}
-                        </span>
-                      )}
-
-                      {/* Badge pour les événements récurrents */}
-                      {event.isMasterEvent && event.recurrenceConfig && (
-                        <span className="bg-indigo-900/40 text-indigo-300 px-3 py-1 rounded-full text-xs border border-indigo-800/50 flex items-center">
-                          <RefreshCcw className="w-3 h-3 mr-1" />
-                          Récurrent{' '}
-                          {event.recurrenceConfig.frequency === 'weekly' ? '(hebdo)' : '(mensuel)'}
-                        </span>
-                      )}
-
-                      {event.tickets?.price && (
-                        <span className="bg-purple-900/40 text-purple-300 px-3 py-1 rounded-full text-xs border border-purple-800/50 flex items-center">
-                          <Euro className="w-3 h-3 mr-1" />
-                          {event.tickets.price} {event.tickets.currency}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex justify-between items-center pt-3 border-t border-gray-700/50">
-                      <span className="text-purple-400 group-hover:text-purple-300 transition-colors text-sm font-medium flex items-center">
-                        <Eye className="w-4 h-4 mr-1.5" />
-                        Voir l'événement
-                      </span>
-
-                      <div className="flex gap-1.5 relative z-20">
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            toggleFeaturedStatus(event.id, event.featured);
-                          }}
-                          className={`p-2 rounded-lg transition-colors ${
-                            event.featured
-                              ? 'bg-yellow-600/80 hover:bg-yellow-500/80 text-white'
-                              : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-                          }`}
-                          title={event.featured ? 'Retirer de la mise en avant' : 'Mettre en avant'}
-                        >
-                          <Star className="w-4 h-4" />
-                        </button>
-
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            togglePublishStatus(event.id, event.isPublished);
-                          }}
-                          className={`p-2 rounded-lg transition-colors border-none outline-none ring-0 focus:ring-0 focus:outline-none shadow-none focus:shadow-none ${
-                            event.isPublished
-                              ? 'bg-green-600/80 hover:bg-green-500/80 text-white'
-                              : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-                          }`}
-                          title={event.isPublished ? 'Dépublier' : 'Publier'}
-                        >
-                          {event.isPublished ? (
-                            <Eye className="w-4 h-4" />
-                          ) : (
-                            <EyeOff className="w-4 h-4" />
-                          )}
-                        </button>
-
-                        <Link
-                          href={`/admin/events/${event.id}/edit`}
-                          className="p-2 bg-blue-600/80 hover:bg-blue-500/80 text-white rounded-lg transition-colors relative z-20"
-                          title="Modifier"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                          }}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Link>
-
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setEventToDelete(event.id);
-                            setShowDeleteModal(true);
-                          }}
-                          className="p-2 bg-red-600/80 hover:bg-red-500/80 text-white rounded-lg transition-colors"
-                          title="Supprimer"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+                          </td>
+                          <td className="px-3 py-4 text-center">
+                            <div className="flex items-center justify-center">
+                              {event.featured ? (
+                                <Star className="h-5 w-5 text-yellow-400" />
+                              ) : (
+                                <Star className="h-5 w-5 text-gray-600" />
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-3 py-4 text-center">
+                            <button
+                              onClick={() => togglePublishStatus(event.id, event.isPublished)}
+                              className={`p-1.5 rounded-full transition-colors ${event.isPublished ? 'bg-green-500/20 hover:bg-green-500/30' : 'bg-gray-500/20 hover:bg-gray-500/30'}`}
+                              aria-label={
+                                event.isPublished ? "Dépublier l'événement" : "Publier l'événement"
+                              }
+                            >
+                              {event.isPublished ? (
+                                <Eye className="h-4 w-4 text-green-400" />
+                              ) : (
+                                <EyeOff className="h-4 w-4 text-gray-400" />
+                              )}
+                            </button>
+                            {event.publishAt && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                {format(parseISO(event.publishAt.toString()), 'dd/MM HH:mm')}
+                              </div>
+                            )}
+                          </td>
+                          <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                            <div className="flex items-center justify-end space-x-2">
+                              {/* Actions: Modifier, Supprimer, Mettre en avant */}
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  toggleFeaturedStatus(event.id, event.featured);
+                                }}
+                                className={`p-2 rounded-lg transition-colors ${
+                                  event.featured
+                                    ? 'bg-yellow-500/20 hover:bg-yellow-500/30'
+                                    : 'bg-gray-600/20 hover:bg-gray-500/30'
+                                }`}
+                                aria-label={
+                                  event.featured ? 'Retirer de la mise en avant' : 'Mettre en avant'
+                                }
+                              >
+                                <Star
+                                  className={`h-4 w-4 ${
+                                    event.featured ? 'text-yellow-400' : 'text-gray-400'
+                                  }`}
+                                />
+                              </button>
+                              <button
+                                onClick={() => handleAddEditEvent(event, 'edit')}
+                                className="p-2 rounded-lg transition-colors text-blue-400 hover:bg-blue-500/20"
+                                aria-label="Modifier l'événement"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setEventToDelete(event.id);
+                                  setShowDeleteModal(true);
+                                }}
+                                className="p-2 rounded-lg transition-colors text-red-400 hover:bg-red-500/20"
+                                aria-label="Supprimer l'événement"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-
-                {/* Lien qui couvre toute la carte et qui réagit au clic */}
-                <Link
-                  href={`/admin/events/${event.id}`}
-                  className="absolute inset-0 z-10"
-                  aria-label={`Voir les détails de l'événement: ${event.title}`}
-                >
-                  <span className="sr-only">Voir l'événement</span>
-                </Link>
               </div>
-            ))}
+            </div>
           </div>
         )}
 

@@ -1,3 +1,5 @@
+/// <reference types="cypress" />
+
 describe('Accessibility Tests', () => {
   beforeEach(() => {
     cy.visit('/');
@@ -10,14 +12,14 @@ describe('Accessibility Tests', () => {
 
   it('should have proper alt text for images', () => {
     cy.get('img').each(($img) => {
-      expect($img.attr('alt')).to.not.be.undefined;
+      cy.wrap($img).should('have.attr', 'alt').and('not.be.empty');
     });
   });
 
   it('should have proper ARIA labels for interactive elements', () => {
     cy.get('button').each(($button) => {
       if (!$button.attr('aria-label')) {
-        expect($button.text()).to.not.be.empty;
+        cy.wrap($button).invoke('text').should('not.be.empty');
       }
     });
   });
