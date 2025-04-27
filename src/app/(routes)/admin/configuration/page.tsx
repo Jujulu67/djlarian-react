@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import dynamic from 'next/dynamic'; // Import pour le chargement dynamique
 import Link from 'next/link';
+import isEqual from 'lodash/isEqual'; // Import de isEqual
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import {
   ArrowLeft,
@@ -17,14 +19,8 @@ import {
   User,
   Database,
   RefreshCcw,
-  Lock,
   Home,
   History,
-  Music,
-  Eye,
-  CalendarDays,
-  Video,
-  GripVertical,
   Image as ImageIcon,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -32,32 +28,48 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import HistoryModal from './components/HistoryModal';
 import Modal from '@/components/ui/Modal';
 import GestionImages from './GestionImages';
+import {
+  AllConfigs,
+  initialConfigs,
+  GeneralConfig,
+  AppearanceConfig,
+  HomepageConfig,
+  NotificationsConfig,
+  SecurityConfig,
+  ApiConfig,
+  ConfigSection,
+} from '@/types/config'; // Import centralisé
+import { useConfigs } from '@/stores/useConfigs'; // Import du store Zustand
+import ToggleRow from '@/components/config/ToggleRow'; // Import du composant ToggleRow
 
-// Composant StrictModeDroppable pour résoudre le problème de compatibilité avec React 18 StrictMode
-const StrictModeDroppable = ({ children, ...props }: React.ComponentProps<typeof Droppable>) => {
-  const [enabled, setEnabled] = useState(false);
+// Chargement dynamique des composants d'onglet
+const HomepageTab = dynamic(() => import('./tabs/HomepageTab'), {
+  ssr: false,
+  loading: () => <TabLoader />,
+});
+const AppearanceTab = dynamic(() => import('./tabs/AppearanceTab'), {
+  ssr: false,
+  loading: () => <TabLoader />,
+});
+const SecurityTab = dynamic(() => import('./tabs/SecurityTab'), {
+  ssr: false,
+  loading: () => <TabLoader />,
+});
+const ApiTab = dynamic(() => import('./tabs/ApiTab'), {
+  ssr: false,
+  loading: () => <TabLoader />,
+});
 
-  useEffect(() => {
-    // Utilisation de requestAnimationFrame pour s'assurer que le composant est monté correctement
-    const animation = requestAnimationFrame(() => setEnabled(true));
-
-    return () => {
-      cancelAnimationFrame(animation);
-      setEnabled(false);
-    };
-  }, []);
-
-  if (!enabled) {
-    return null;
-  }
-
-  return <Droppable {...props}>{children}</Droppable>;
-};
+// Composant de chargement simple pour les onglets dynamiques
+const TabLoader = () => (
+  <div className="p-6 flex justify-center items-center min-h-[200px]">
+    <RefreshCcw className="h-6 w-6 animate-spin text-purple-400" />
+  </div>
+);
 
 // Modal de sauvegarde de configuration
 interface SaveConfigModalProps {
@@ -189,205 +201,30 @@ const SaveConfigModal = ({ isOpen, onClose, onSave, changesSummary }: SaveConfig
   );
 };
 
-type ConfigSection =
-  | 'general'
-  | 'appearance'
-  | 'homepage'
-  | 'notifications'
-  | 'security'
-  | 'api'
-  | 'images';
-
-// Définir les types pour chaque section de configuration
-interface GeneralConfig {
-  siteName: string;
-  siteDescription: string;
-  contactEmail: string;
-  timeZone: string;
-  dateFormat: string;
-}
-
-interface AppearanceConfig {
-  primaryColor: string;
-  secondaryColor: string;
-  darkMode: boolean;
-  animationsEnabled: boolean;
-  logoUrl: string;
-  faviconUrl: string;
-}
-
-interface HomepageConfig {
-  heroTitle: string;
-  heroSubtitle: string;
-  heroExploreButtonText: string;
-  heroExploreButtonUrl: string;
-  heroEventsButtonText: string;
-  heroEventsButtonUrl: string;
-  heroBackgroundVideo: string;
-  heroPosterImage: string;
-  sectionsOrder: string;
-  releasesEnabled: boolean;
-  releasesTitle: string;
-  releasesCount: number;
-  visualizerEnabled: boolean;
-  visualizerTitle: string;
-  eventsEnabled: boolean;
-  eventsTitle: string;
-  eventsCount: number;
-  eventsViewAllText: string;
-  eventsViewAllUrl: string;
-  streamEnabled: boolean;
-  streamTitle: string;
-  streamSubtitle: string;
-  streamDescription: string;
-  twitchUsername: string;
-  twitchFollowButtonText: string;
-  twitchFollowButtonUrl: string;
-  streamNotifyButtonText: string;
-  streamStatsEnabled: boolean;
-  streamFollowers: string;
-  streamHoursStreamed: string;
-  streamTracksPlayed: string;
-}
-
-interface NotificationsConfig {
-  emailNotifications: boolean;
-  adminAlerts: boolean;
-  newUserNotifications: boolean;
-  eventReminders: boolean;
-  marketingEmails: boolean;
-}
-
-interface SecurityConfig {
-  twoFactorAuth: boolean;
-  passwordExpiration: number;
-  ipRestriction: boolean;
-  failedLoginLimit: number;
-  sessionTimeout: number;
-}
-
-interface ApiConfig {
-  apiEnabled: boolean;
-  rateLimit: number;
-  webhookUrl: string;
-  umamiEnabled: boolean;
-  umamiSiteId: string;
-}
-
-// Type global pour toutes les configurations
-interface AllConfigs {
-  general: GeneralConfig;
-  appearance: AppearanceConfig;
-  homepage: HomepageConfig;
-  notifications: NotificationsConfig;
-  security: SecurityConfig;
-  api: ApiConfig;
-}
-
-const initialGeneralConfig: GeneralConfig = {
-  siteName: '',
-  siteDescription: '',
-  contactEmail: '',
-  timeZone: 'Europe/Paris',
-  dateFormat: 'DD/MM/YYYY',
-};
-
-const initialAppearanceConfig: AppearanceConfig = {
-  primaryColor: '#8B5CF6',
-  secondaryColor: '#3B82F6',
-  darkMode: true,
-  animationsEnabled: true,
-  logoUrl: '',
-  faviconUrl: '',
-};
-
-const initialHomepageConfig: HomepageConfig = {
-  heroTitle: 'DJ LARIAN',
-  heroSubtitle: 'Electronic Music Producer & Innovative Performer',
-  heroExploreButtonText: 'Explore Music',
-  heroExploreButtonUrl: '/music',
-  heroEventsButtonText: 'Upcoming Events',
-  heroEventsButtonUrl: '/events',
-  heroBackgroundVideo: '/videos/hero-background.mp4',
-  heroPosterImage: '/images/hero-poster.jpg',
-  sectionsOrder: 'hero,releases,visualizer,events,stream',
-  releasesEnabled: true,
-  releasesTitle: 'Latest Releases',
-  releasesCount: 3,
-  visualizerEnabled: true,
-  visualizerTitle: 'Experience the Sound',
-  eventsEnabled: true,
-  eventsTitle: 'Upcoming Events',
-  eventsCount: 3,
-  eventsViewAllText: 'View All Events',
-  eventsViewAllUrl: '/events',
-  streamEnabled: true,
-  streamTitle: 'Live Stream',
-  streamSubtitle: 'Join the Live Experience',
-  streamDescription:
-    'Tune in to my live streams where I share my creative process, perform exclusive sets, and interact with the community in real-time.',
-  twitchUsername: 'djlarian',
-  twitchFollowButtonText: 'Follow on Twitch',
-  twitchFollowButtonUrl: 'https://twitch.tv/djlarian',
-  streamNotifyButtonText: 'Get Notified',
-  streamStatsEnabled: true,
-  streamFollowers: '24K+',
-  streamHoursStreamed: '150+',
-  streamTracksPlayed: '500+',
-};
-
-const initialNotificationsConfig: NotificationsConfig = {
-  emailNotifications: true,
-  adminAlerts: true,
-  newUserNotifications: true,
-  eventReminders: true,
-  marketingEmails: false,
-};
-
-const initialSecurityConfig: SecurityConfig = {
-  twoFactorAuth: false,
-  passwordExpiration: 90,
-  ipRestriction: false,
-  failedLoginLimit: 5,
-  sessionTimeout: 60,
-};
-
-const initialApiConfig: ApiConfig = {
-  apiEnabled: true,
-  rateLimit: 100,
-  webhookUrl: '',
-  umamiEnabled: false,
-  umamiSiteId: '',
-};
-
 export default function ConfigurationPage() {
   const [activeSection, setActiveSection] = useState<ConfigSection>('general');
   const [historyOpen, setHistoryOpen] = useState(false);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Commence en chargement
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [configurations, setConfigurations] = useState<AllConfigs>({
-    general: {
-      siteName: 'DJ Larian',
-      siteDescription: 'Site officiel de DJ Larian',
-      contactEmail: 'contact@djlarian.com',
-      timeZone: 'Europe/Paris',
-      dateFormat: 'DD/MM/YYYY',
-    },
-    appearance: {
-      primaryColor: '#9333EA',
-      secondaryColor: '#2563EB',
-      darkMode: true,
-      animationsEnabled: true,
-      logoUrl: '/logo-dj-larian.png',
-      faviconUrl: '/favicon.ico',
-    },
-    homepage: initialHomepageConfig,
-    notifications: initialNotificationsConfig,
-    security: initialSecurityConfig,
-    api: initialApiConfig,
-  });
+
+  // Utilisation du store Zustand
+  const configurations = useConfigs();
+  const {
+    general,
+    appearance,
+    homepage,
+    notifications,
+    security,
+    api,
+    update,
+    setAllConfigs,
+    resetConfigs,
+  } = configurations;
+
+  // Ref pour stocker la configuration précédente pour le diff
+  const previousConfigs = useRef<AllConfigs | null>(null);
 
   // --- MOCK IMAGES ---
   // (SUPPRIMÉ : toute la gestion d'état et de logique images, car déléguée à GestionImages)
@@ -410,97 +247,16 @@ export default function ConfigurationPage() {
 
       const data: AllConfigs = await response.json();
 
-      // Mettre à jour les états avec les données de l'API
-      // S'assurer que les clés existent avant de les assigner
-      if (data.general) setConfigurations(data);
-      if (data.appearance) setConfigurations(data);
-      if (data.homepage) setConfigurations(data);
-      if (data.notifications) setConfigurations(data);
-      if (data.security) setConfigurations(data);
-      if (data.api) setConfigurations(data);
-
-      // Stocker la configuration récupérée comme dernière configuration sauvegardée
-      setConfigurations(data);
+      // Mettre à jour le store Zustand avec les données de l'API
+      setAllConfigs(data);
+      // Stocker la configuration chargée comme référence pour le diff
+      previousConfigs.current = JSON.parse(JSON.stringify(data)); // Copie profonde simple
     } catch (e) {
       console.error('Erreur lors de la récupération des configurations:', e);
-
-      // En cas d'erreur avec l'API, utiliser des valeurs par défaut pour pouvoir continuer
-      // Mode de secours (fallback) pour le développement
       console.log('Utilisation des valeurs par défaut (mode fallback)');
-
-      // Valeurs par défaut pour chaque section - utilisées uniquement si l'API échoue
-      setConfigurations({
-        general: {
-          siteName: 'DJ Larian',
-          siteDescription: 'Site officiel de DJ Larian - Musique électronique et événements.',
-          contactEmail: 'contact@djlarian.com',
-          timeZone: 'Europe/Paris',
-          dateFormat: 'DD/MM/YYYY',
-        },
-        appearance: {
-          primaryColor: '#8B5CF6',
-          secondaryColor: '#3B82F6',
-          darkMode: true,
-          animationsEnabled: true,
-          logoUrl: '/images/logo.png',
-          faviconUrl: '/favicon.ico',
-        },
-        homepage: {
-          heroTitle: 'DJ LARIAN',
-          heroSubtitle: 'Electronic Music Producer & Innovative Performer',
-          heroExploreButtonText: 'Explore Music',
-          heroExploreButtonUrl: '/music',
-          heroEventsButtonText: 'Upcoming Events',
-          heroEventsButtonUrl: '/events',
-          heroBackgroundVideo: '/videos/hero-background.mp4',
-          heroPosterImage: '/images/hero-poster.jpg',
-          sectionsOrder: 'hero,releases,visualizer,events,stream',
-          releasesEnabled: true,
-          releasesTitle: 'Latest Releases',
-          releasesCount: 3,
-          visualizerEnabled: true,
-          visualizerTitle: 'Experience the Sound',
-          eventsEnabled: true,
-          eventsTitle: 'Upcoming Events',
-          eventsCount: 3,
-          eventsViewAllText: 'View All Events',
-          eventsViewAllUrl: '/events',
-          streamEnabled: true,
-          streamTitle: 'Live Stream',
-          streamSubtitle: 'Join the Live Experience',
-          streamDescription:
-            'Tune in to my live streams where I share my creative process, perform exclusive sets, and interact with the community in real-time.',
-          twitchUsername: 'djlarian',
-          twitchFollowButtonText: 'Follow on Twitch',
-          twitchFollowButtonUrl: 'https://twitch.tv/djlarian',
-          streamNotifyButtonText: 'Get Notified',
-          streamStatsEnabled: true,
-          streamFollowers: '24K+',
-          streamHoursStreamed: '150+',
-          streamTracksPlayed: '500+',
-        },
-        notifications: {
-          emailNotifications: true,
-          adminAlerts: true,
-          newUserNotifications: true,
-          eventReminders: true,
-          marketingEmails: false,
-        },
-        security: {
-          twoFactorAuth: false,
-          passwordExpiration: 90,
-          ipRestriction: false,
-          failedLoginLimit: 5,
-          sessionTimeout: 60,
-        },
-        api: {
-          apiEnabled: true,
-          rateLimit: 100,
-          webhookUrl: '',
-          umamiEnabled: true,
-          umamiSiteId: 'your-umami-site-id',
-        },
-      });
+      // Utiliser les valeurs initiales du store en cas d'erreur
+      resetConfigs();
+      previousConfigs.current = JSON.parse(JSON.stringify(initialConfigs)); // Utiliser les initiales comme ref
 
       // Toujours afficher l'erreur pour le débogage, mais ne pas bloquer l'UI
       setError(
@@ -509,15 +265,15 @@ export default function ConfigurationPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [setAllConfigs, resetConfigs]); // Ajouter les dépendances du store
 
   // Charger les configurations au montage du composant
   useEffect(() => {
     fetchConfigurations();
   }, [fetchConfigurations]);
 
-  // Fonction pour sauvegarder les configurations
-  const saveConfigurations = async () => {
+  // Fonction pour ouvrir la modale de sauvegarde
+  const openSaveModal = () => {
     setSaveModalOpen(true);
   };
 
@@ -525,13 +281,16 @@ export default function ConfigurationPage() {
   const handleSaveWithName = async (name: string, description: string) => {
     setIsLoading(true);
     setError(null);
-    const allConfigs: AllConfigs = {
-      general: configurations.general,
-      appearance: configurations.appearance,
-      homepage: configurations.homepage,
-      notifications: configurations.notifications,
-      security: configurations.security,
-      api: configurations.api,
+    setSuccessMessage(null); // Réinitialiser le message de succès
+
+    // Lire les configurations actuelles depuis le store Zustand
+    const currentConfigs: AllConfigs = {
+      general,
+      appearance,
+      homepage,
+      notifications,
+      security,
+      api,
     };
 
     try {
@@ -541,7 +300,7 @@ export default function ConfigurationPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          configs: allConfigs,
+          configs: currentConfigs, // Utiliser les configs du store
           snapshot: true,
           snapshotName: name,
           snapshotDescription: description,
@@ -552,23 +311,25 @@ export default function ConfigurationPage() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      // Stocker la configuration qui vient d'être sauvegardée
-      setConfigurations(allConfigs);
+      // Mettre à jour la référence pour le diff après une sauvegarde réussie
+      previousConfigs.current = JSON.parse(JSON.stringify(currentConfigs));
 
+      // La config est déjà à jour dans le store, pas besoin de setAllConfigs ici
       // Afficher une notification de succès
       console.log('Configurations sauvegardées avec succès !');
       setSuccessMessage('Configurations sauvegardées avec succès !');
+      setTimeout(() => setSuccessMessage(null), 3000); // Cacher après 3s
     } catch (e) {
       console.error('Erreur lors de la sauvegarde des configurations:', e);
       setError('Impossible de sauvegarder les configurations. Veuillez réessayer.');
-      alert('Erreur lors de la sauvegarde. Voir la console pour plus de détails.');
-      throw e;
+      // Ne pas utiliser alert(), l'erreur est déjà affichée dans la modale
+      throw e; // Propager l'erreur pour la modale
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Fonction pour réinitialiser les configurations
+  // Fonction pour réinitialiser les configurations (utilise le store)
   const resetConfigurations = async () => {
     if (
       confirm('Êtes-vous sûr de vouloir réinitialiser les configurations aux valeurs par défaut ?')
@@ -583,7 +344,7 @@ export default function ConfigurationPage() {
         }
         console.log('Configurations réinitialisées avec succès !');
         // Recharger les configurations après la réinitialisation
-        await fetchConfigurations();
+        await fetchConfigurations(); // Ceci va reset le store et mettre à jour previousConfigs
       } catch (e) {
         console.error('Erreur lors de la réinitialisation des configurations:', e);
         setError('Impossible de réinitialiser les configurations. Veuillez réessayer.');
@@ -593,17 +354,18 @@ export default function ConfigurationPage() {
     }
   };
 
-  // Fonction pour créer un snapshot des configurations actuelles
+  // Fonction pour créer un snapshot des configurations actuelles (utilise le store)
   const createSnapshot = async (name: string, description: string) => {
     setIsLoading(true);
     setError(null);
-    const allConfigs: AllConfigs = {
-      general: configurations.general,
-      appearance: configurations.appearance,
-      homepage: configurations.homepage,
-      notifications: configurations.notifications,
-      security: configurations.security,
-      api: configurations.api,
+    // Lire les configurations actuelles depuis le store Zustand
+    const currentConfigs: AllConfigs = {
+      general,
+      appearance,
+      homepage,
+      notifications,
+      security,
+      api,
     };
 
     try {
@@ -613,7 +375,7 @@ export default function ConfigurationPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          configs: allConfigs,
+          configs: currentConfigs, // Utiliser les configs du store
           snapshot: true,
           snapshotName: name,
           snapshotDescription: description,
@@ -626,7 +388,8 @@ export default function ConfigurationPage() {
 
       // Afficher une notification de succès
       console.log('Snapshot créé avec succès !');
-      alert('Snapshot créé avec succès !');
+      alert('Snapshot créé avec succès !'); // Conserver l'alerte pour l'instant
+      // Pas besoin de màj previousConfigs ici car snapshot ne modifie pas l'état courant "sauvegardé"
     } catch (e) {
       console.error('Erreur lors de la création du snapshot:', e);
       setError('Impossible de créer le snapshot. Veuillez réessayer.');
@@ -637,7 +400,7 @@ export default function ConfigurationPage() {
     }
   };
 
-  // Fonction pour annuler une modification spécifique
+  // Fonction pour annuler une modification spécifique (recharge les configs)
   const handleRevertChange = async (historyItem: any) => {
     setIsLoading(true);
     setError(null);
@@ -659,7 +422,7 @@ export default function ConfigurationPage() {
       }
 
       console.log('Modification annulée avec succès !');
-      // Recharger les configurations après l'annulation
+      // Recharger les configurations après l'annulation (mettra à jour le store et previousConfigs)
       await fetchConfigurations();
     } catch (e) {
       console.error("Erreur lors de l'annulation de la modification:", e);
@@ -669,7 +432,7 @@ export default function ConfigurationPage() {
     }
   };
 
-  // Fonction pour appliquer un snapshot
+  // Fonction pour appliquer un snapshot (recharge les configs)
   const handleApplySnapshot = async (snapshot: any) => {
     setIsLoading(true);
     setError(null);
@@ -692,7 +455,7 @@ export default function ConfigurationPage() {
 
       console.log('Snapshot appliqué avec succès !');
       alert('Les configurations ont été restaurées depuis le snapshot.');
-      // Recharger les configurations après l'application du snapshot
+      // Recharger les configurations après l'application (mettra à jour le store et previousConfigs)
       await fetchConfigurations();
     } catch (e) {
       console.error("Erreur lors de l'application du snapshot:", e);
@@ -703,13 +466,23 @@ export default function ConfigurationPage() {
     }
   };
 
-  // Fonction pour générer un résumé des modifications apportées
+  // Fonction pour générer un résumé des modifications en utilisant lodash/isEqual
   const getChangesSummary = () => {
-    if (!configurations) return 'Aucune information sur la dernière configuration sauvegardée.';
+    if (!previousConfigs.current) {
+      return 'Chargement de la configuration initiale...';
+    }
 
+    const currentConfigs: AllConfigs = {
+      general,
+      appearance,
+      homepage,
+      notifications,
+      security,
+      api,
+    };
     const changes: string[] = [];
 
-    // Mappings des noms techniques vers des noms plus lisibles
+    // Mappings (inchangés)
     const labelMappings: Record<string, string> = {
       // Général
       siteName: 'Nom du site',
@@ -781,125 +554,45 @@ export default function ConfigurationPage() {
       umamiSiteId: 'ID du site Umami',
     };
 
-    // Vérifier les modifications dans la section générale
-    const generalChanges = Object.keys(configurations.general)
-      .filter(
-        (key) =>
-          configurations.general[key as keyof GeneralConfig] !==
-          configurations.general[key as keyof GeneralConfig]
-      )
-      .map((key) => {
-        const previousValue = configurations.general[key as keyof GeneralConfig];
-        const newValue = configurations.general[key as keyof GeneralConfig];
-        const label = labelMappings[key] || key;
-        return `    ${label}\n        <span class="text-gray-500">${previousValue}</span> <span class="text-cyan-300">→</span> <span class="text-white font-semibold">${newValue}</span>`;
+    // Fonction pour formater la valeur (simple pour l'instant)
+    const formatValue = (value: any): string => {
+      if (typeof value === 'boolean') return value ? 'Activé' : 'Désactivé';
+      if (value === null || value === undefined || value === '')
+        return '<span class="text-gray-500">[Vide]</span>';
+      // Tronquer les longues chaînes pour la lisibilité
+      if (typeof value === 'string' && value.length > 50) return `"${value.substring(0, 47)}..."`;
+      return JSON.stringify(value);
+    };
+
+    // Itérer sur chaque section et chaque clé
+    (Object.keys(currentConfigs) as Array<keyof AllConfigs>).forEach((section) => {
+      const sectionChanges: string[] = [];
+      const currentSection = currentConfigs[section];
+      const previousSection = previousConfigs.current![section];
+
+      (Object.keys(currentSection) as Array<keyof typeof currentSection>).forEach((key) => {
+        const currentValue = currentSection[key];
+        const previousValue = previousSection[key];
+
+        // Utiliser isEqual pour comparer les valeurs
+        if (!isEqual(currentValue, previousValue)) {
+          const label = labelMappings[`${section}.${key}`] || `${section}.${key}`;
+          sectionChanges.push(
+            `    ${label}\n        <span class="text-gray-500">${formatValue(previousValue)}</span> <span class="text-cyan-300">→</span> <span class="text-white font-semibold">${formatValue(currentValue)}</span>`
+          );
+        }
       });
 
-    if (generalChanges.length > 0) {
-      changes.push(
-        `<span class="text-cyan-300 font-bold">Général:</span>\n${generalChanges.join('\n')}`
-      );
-    }
-
-    // Vérifier les modifications dans l'apparence
-    const appearanceChanges = Object.keys(configurations.appearance)
-      .filter(
-        (key) =>
-          configurations.appearance[key as keyof AppearanceConfig] !==
-          configurations.appearance[key as keyof AppearanceConfig]
-      )
-      .map((key) => {
-        const previousValue = configurations.appearance[key as keyof AppearanceConfig];
-        const newValue = configurations.appearance[key as keyof AppearanceConfig];
-        const label = labelMappings[key] || key;
-        return `    ${label}\n        <span class="text-gray-500">${previousValue}</span> <span class="text-cyan-300">→</span> <span class="text-white font-semibold">${newValue}</span>`;
-      });
-
-    if (appearanceChanges.length > 0) {
-      changes.push(
-        `<span class="text-cyan-300 font-bold">Apparence:</span>\n${appearanceChanges.join('\n')}`
-      );
-    }
-
-    // Vérifier les modifications dans la page d'accueil
-    const homepageChanges = Object.keys(configurations.homepage)
-      .filter(
-        (key) =>
-          configurations.homepage[key as keyof HomepageConfig] !==
-          configurations.homepage[key as keyof HomepageConfig]
-      )
-      .map((key) => {
-        const previousValue = configurations.homepage[key as keyof HomepageConfig];
-        const newValue = configurations.homepage[key as keyof HomepageConfig];
-        const label = labelMappings[key] || key;
-        return `    ${label}\n        <span class="text-gray-500">${previousValue}</span> <span class="text-cyan-300">→</span> <span class="text-white font-semibold">${newValue}</span>`;
-      });
-
-    if (homepageChanges.length > 0) {
-      changes.push(
-        `<span class="text-cyan-300 font-bold">Page d'accueil:</span>\n${homepageChanges.join('\n')}`
-      );
-    }
-
-    // Vérifier les modifications dans les notifications
-    const notificationsChanges = Object.keys(configurations.notifications)
-      .filter(
-        (key) =>
-          configurations.notifications[key as keyof NotificationsConfig] !==
-          configurations.notifications[key as keyof NotificationsConfig]
-      )
-      .map((key) => {
-        const previousValue = configurations.notifications[key as keyof NotificationsConfig];
-        const newValue = configurations.notifications[key as keyof NotificationsConfig];
-        const label = labelMappings[key] || key;
-        return `    ${label}\n        <span class="text-gray-500">${previousValue}</span> <span class="text-cyan-300">→</span> <span class="text-white font-semibold">${newValue}</span>`;
-      });
-
-    if (notificationsChanges.length > 0) {
-      changes.push(
-        `<span class="text-cyan-300 font-bold">Notifications:</span>\n${notificationsChanges.join('\n')}`
-      );
-    }
-
-    // Vérifier les modifications dans la sécurité
-    const securityChanges = Object.keys(configurations.security)
-      .filter(
-        (key) =>
-          configurations.security[key as keyof SecurityConfig] !==
-          configurations.security[key as keyof SecurityConfig]
-      )
-      .map((key) => {
-        const previousValue = configurations.security[key as keyof SecurityConfig];
-        const newValue = configurations.security[key as keyof SecurityConfig];
-        const label = labelMappings[key] || key;
-        return `    ${label}\n        <span class="text-gray-500">${previousValue}</span> <span class="text-cyan-300">→</span> <span class="text-white font-semibold">${newValue}</span>`;
-      });
-
-    if (securityChanges.length > 0) {
-      changes.push(
-        `<span class="text-cyan-300 font-bold">Sécurité:</span>\n${securityChanges.join('\n')}`
-      );
-    }
-
-    // Vérifier les modifications dans l'API
-    const apiChanges = Object.keys(configurations.api)
-      .filter(
-        (key) =>
-          configurations.api[key as keyof ApiConfig] !== configurations.api[key as keyof ApiConfig]
-      )
-      .map((key) => {
-        const previousValue = configurations.api[key as keyof ApiConfig];
-        const newValue = configurations.api[key as keyof ApiConfig];
-        const label = labelMappings[key] || key;
-        return `    ${label}\n        <span class="text-gray-500">${previousValue}</span> <span class="text-cyan-300">→</span> <span class="text-white font-semibold">${newValue}</span>`;
-      });
-
-    if (apiChanges.length > 0) {
-      changes.push(`<span class="text-cyan-300 font-bold">API:</span>\n${apiChanges.join('\n')}`);
-    }
+      if (sectionChanges.length > 0) {
+        const sectionTitle = section.charAt(0).toUpperCase() + section.slice(1);
+        changes.push(
+          `<span class="text-cyan-300 font-bold">${sectionTitle}:</span>\n${sectionChanges.join('\n')}`
+        );
+      }
+    });
 
     if (changes.length === 0) {
-      return 'Aucune modification détectée.';
+      return 'Aucune modification détectée depuis la dernière sauvegarde.';
     }
 
     return changes.join('\n\n');
@@ -917,6 +610,7 @@ export default function ConfigurationPage() {
     }
   };
 
+  // useEffect pour lire le hash initial (inchangé)
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const hash = window.location.hash.replace('#', '');
@@ -937,7 +631,9 @@ export default function ConfigurationPage() {
     }
   }, []);
 
-  if (isLoading && !configurations.general.siteName) {
+  // Affichage pendant le chargement initial
+  if (isLoading && !general.siteName) {
+    // Vérifie une valeur pour éviter le flash
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-[#0c0117] to-black">
         <p className="text-white text-xl animate-pulse">Chargement des configurations...</p>
@@ -945,46 +641,23 @@ export default function ConfigurationPage() {
     );
   }
 
-  if (error) {
+  // Affichage en cas d'erreur de fetch initial
+  if (error && !general.siteName) {
+    // Affiche l'erreur seulement si le fallback n'a pas fonctionné
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-black via-[#0c0117] to-black text-red-400">
-        <p className="text-xl mb-4">{error}</p>
-        <div className="flex space-x-4">
-          <Button onClick={fetchConfigurations} className="bg-red-500/20 hover:bg-red-500/30">
-            Réessayer
-          </Button>
-
-          <Button
-            onClick={async () => {
-              try {
-                setIsLoading(true);
-                const response = await fetch('/api/admin/setup-config');
-                if (!response.ok) {
-                  throw new Error(`Erreur: ${response.status}`);
-                }
-                const data = await response.json();
-                console.log("Résultat de l'initialisation:", data);
-                alert('Tables de configuration initialisées. Veuillez rafraîchir la page.');
-                // Rafraîchir les configurations après l'initialisation
-                await fetchConfigurations();
-              } catch (e) {
-                console.error("Erreur lors de l'initialisation des configurations:", e);
-                alert("Erreur lors de l'initialisation. Voir la console pour plus de détails.");
-              } finally {
-                setIsLoading(false);
-              }
-            }}
-            className="bg-green-500/20 hover:bg-green-500/30"
-          >
-            Initialiser les tables de configuration
-          </Button>
-        </div>
+        <p className="text-xl mb-4">Erreur critique lors du chargement : {error}</p>
+        <Button onClick={fetchConfigurations} className="bg-red-500/20 hover:bg-red-500/30">
+          Réessayer
+        </Button>
+        {/* Bouton d'initialisation si nécessaire */}
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-[#0c0117] to-black text-white">
+      {/* Indicateurs de chargement, succès, erreur (inchangés) */}
       {isLoading && (
         <div className="fixed top-4 right-4 z-50">
           <div className="flex items-center space-x-2 bg-purple-900/80 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1 rounded-full shadow-lg animate-pulse">
@@ -993,7 +666,20 @@ export default function ConfigurationPage() {
           </div>
         </div>
       )}
+      {successMessage && (
+        <div className="fixed top-4 right-4 z-50 bg-green-600/80 backdrop-blur-sm text-white text-xs font-semibold px-4 py-2 rounded-full shadow-lg">
+          {successMessage}
+        </div>
+      )}
+      {/* Affichage de l'erreur non bloquante (mode fallback) */}
+      {error && general.siteName && (
+        <div className="fixed bottom-4 left-4 z-50 bg-yellow-600/80 backdrop-blur-sm text-white text-xs font-semibold px-4 py-2 rounded-full shadow-lg">
+          Attention : {error}
+        </div>
+      )}
+
       <div className="container mx-auto px-4 py-12">
+        {/* Header (inchangé) */}
         <div className="mb-8">
           <Link
             href="/admin"
@@ -1011,7 +697,7 @@ export default function ConfigurationPage() {
             <div className="flex space-x-3">
               <Button
                 className={`flex items-center bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                onClick={saveConfigurations}
+                onClick={openSaveModal} // Ouvre la modale de sauvegarde
                 disabled={isLoading}
               >
                 <Save className="mr-2 h-4 w-4" />
@@ -1032,29 +718,21 @@ export default function ConfigurationPage() {
         </div>
 
         <div className="grid grid-cols-12 gap-6">
+          {/* Navigation latérale (inchangée) */}
           <div className="col-span-12 lg:col-span-3">
             <div className="glass p-6 rounded-xl backdrop-blur-md border border-purple-500/20">
               <h2 className="text-xl font-semibold mb-4 text-purple-300">Sections</h2>
               <nav className="space-y-1">
                 <button
                   onClick={() => handleSectionClick('general')}
-                  className={`w-full flex items-center p-3 rounded-lg transition-all ${
-                    activeSection === 'general'
-                      ? 'bg-purple-500/20 text-purple-300'
-                      : 'hover:bg-purple-500/10 text-gray-300'
-                  }`}
+                  className={`w-full flex items-center p-3 rounded-lg transition-all ${activeSection === 'general' ? 'bg-purple-500/20 text-purple-300' : 'hover:bg-purple-500/10 text-gray-300'}`}
                 >
                   <Settings className="h-5 w-5 mr-3" />
                   Général
                 </button>
-
                 <button
                   onClick={() => handleSectionClick('appearance')}
-                  className={`w-full flex items-center p-3 rounded-lg transition-all ${
-                    activeSection === 'appearance'
-                      ? 'bg-purple-500/20 text-purple-300'
-                      : 'hover:bg-purple-500/10 text-gray-300'
-                  }`}
+                  className={`w-full flex items-center p-3 rounded-lg transition-all ${activeSection === 'appearance' ? 'bg-purple-500/20 text-purple-300' : 'hover:bg-purple-500/10 text-gray-300'}`}
                 >
                   <Layout className="h-5 w-5 mr-3" />
                   Apparence
@@ -1062,11 +740,7 @@ export default function ConfigurationPage() {
 
                 <button
                   onClick={() => handleSectionClick('homepage')}
-                  className={`w-full flex items-center p-3 rounded-lg transition-all ${
-                    activeSection === 'homepage'
-                      ? 'bg-purple-500/20 text-purple-300'
-                      : 'hover:bg-purple-500/10 text-gray-300'
-                  }`}
+                  className={`w-full flex items-center p-3 rounded-lg transition-all ${activeSection === 'homepage' ? 'bg-purple-500/20 text-purple-300' : 'hover:bg-purple-500/10 text-gray-300'}`}
                 >
                   <Home className="h-5 w-5 mr-3" />
                   Page d'accueil
@@ -1074,11 +748,7 @@ export default function ConfigurationPage() {
 
                 <button
                   onClick={() => handleSectionClick('notifications')}
-                  className={`w-full flex items-center p-3 rounded-lg transition-all ${
-                    activeSection === 'notifications'
-                      ? 'bg-purple-500/20 text-purple-300'
-                      : 'hover:bg-purple-500/10 text-gray-300'
-                  }`}
+                  className={`w-full flex items-center p-3 rounded-lg transition-all ${activeSection === 'notifications' ? 'bg-purple-500/20 text-purple-300' : 'hover:bg-purple-500/10 text-gray-300'}`}
                 >
                   <Bell className="h-5 w-5 mr-3" />
                   Notifications
@@ -1086,11 +756,7 @@ export default function ConfigurationPage() {
 
                 <button
                   onClick={() => handleSectionClick('security')}
-                  className={`w-full flex items-center p-3 rounded-lg transition-all ${
-                    activeSection === 'security'
-                      ? 'bg-purple-500/20 text-purple-300'
-                      : 'hover:bg-purple-500/10 text-gray-300'
-                  }`}
+                  className={`w-full flex items-center p-3 rounded-lg transition-all ${activeSection === 'security' ? 'bg-purple-500/20 text-purple-300' : 'hover:bg-purple-500/10 text-gray-300'}`}
                 >
                   <Shield className="h-5 w-5 mr-3" />
                   Sécurité
@@ -1098,11 +764,7 @@ export default function ConfigurationPage() {
 
                 <button
                   onClick={() => handleSectionClick('api')}
-                  className={`w-full flex items-center p-3 rounded-lg transition-all ${
-                    activeSection === 'api'
-                      ? 'bg-purple-500/20 text-purple-300'
-                      : 'hover:bg-purple-500/10 text-gray-300'
-                  }`}
+                  className={`w-full flex items-center p-3 rounded-lg transition-all ${activeSection === 'api' ? 'bg-purple-500/20 text-purple-300' : 'hover:bg-purple-500/10 text-gray-300'}`}
                 >
                   <Globe className="h-5 w-5 mr-3" />
                   API & Intégrations
@@ -1110,11 +772,7 @@ export default function ConfigurationPage() {
 
                 <button
                   onClick={() => handleSectionClick('images')}
-                  className={`w-full flex items-center p-3 rounded-lg transition-all ${
-                    activeSection === 'images'
-                      ? 'bg-purple-500/20 text-purple-300'
-                      : 'hover:bg-purple-500/10 text-gray-300'
-                  }`}
+                  className={`w-full flex items-center p-3 rounded-lg transition-all ${activeSection === 'images' ? 'bg-purple-500/20 text-purple-300' : 'hover:bg-purple-500/10 text-gray-300'}`}
                 >
                   <ImageIcon className="h-5 w-5 mr-3" />
                   Gérer les images
@@ -1137,8 +795,10 @@ export default function ConfigurationPage() {
 
           <div className="col-span-12 lg:col-span-9">
             <div className="glass rounded-xl backdrop-blur-md overflow-hidden border border-purple-500/20">
+              {/* Fond gradient (inchangé) */}
               <div className="absolute inset-0 bg-gradient-to-br from-purple-600/5 via-indigo-600/5 to-blue-600/5 opacity-70 transition-opacity"></div>
 
+              {/* --- Section Générale (refactorisée) --- */}
               {activeSection === 'general' && (
                 <div className="p-6 relative z-10">
                   <h2 className="text-2xl font-audiowide text-white mb-6 pb-2 border-b border-purple-500/20">
@@ -1151,16 +811,8 @@ export default function ConfigurationPage() {
                         <Label htmlFor="siteName">Nom du site</Label>
                         <Input
                           id="siteName"
-                          value={configurations.general.siteName}
-                          onChange={(e) =>
-                            setConfigurations({
-                              ...configurations,
-                              general: {
-                                ...configurations.general,
-                                siteName: e.target.value,
-                              },
-                            })
-                          }
+                          value={general.siteName} // Utilise le store
+                          onChange={(e) => update('general', 'siteName', e.target.value)} // Utilise update du store
                           className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
                         />
                       </div>
@@ -1170,16 +822,8 @@ export default function ConfigurationPage() {
                         <Input
                           id="contactEmail"
                           type="email"
-                          value={configurations.general.contactEmail}
-                          onChange={(e) =>
-                            setConfigurations({
-                              ...configurations,
-                              general: {
-                                ...configurations.general,
-                                contactEmail: e.target.value,
-                              },
-                            })
-                          }
+                          value={general.contactEmail} // Utilise le store
+                          onChange={(e) => update('general', 'contactEmail', e.target.value)} // Utilise update du store
                           className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
                         />
                       </div>
@@ -1189,16 +833,8 @@ export default function ConfigurationPage() {
                       <Label htmlFor="siteDescription">Description du site</Label>
                       <Textarea
                         id="siteDescription"
-                        value={configurations.general.siteDescription}
-                        onChange={(e) =>
-                          setConfigurations({
-                            ...configurations,
-                            general: {
-                              ...configurations.general,
-                              siteDescription: e.target.value,
-                            },
-                          })
-                        }
+                        value={general.siteDescription} // Utilise le store
+                        onChange={(e) => update('general', 'siteDescription', e.target.value)} // Utilise update du store
                         className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
                         rows={3}
                       />
@@ -1209,16 +845,8 @@ export default function ConfigurationPage() {
                         <Label htmlFor="timeZone">Fuseau horaire</Label>
                         <select
                           id="timeZone"
-                          value={configurations.general.timeZone}
-                          onChange={(e) =>
-                            setConfigurations({
-                              ...configurations,
-                              general: {
-                                ...configurations.general,
-                                timeZone: e.target.value,
-                              },
-                            })
-                          }
+                          value={general.timeZone} // Utilise le store
+                          onChange={(e) => update('general', 'timeZone', e.target.value)} // Utilise update du store
                           className="w-full bg-purple-500/10 border border-purple-500/20 focus:border-purple-500/50 rounded-md p-2 text-white"
                         >
                           <option value="Europe/Paris">Europe/Paris</option>
@@ -1232,16 +860,8 @@ export default function ConfigurationPage() {
                         <Label htmlFor="dateFormat">Format de date</Label>
                         <select
                           id="dateFormat"
-                          value={configurations.general.dateFormat}
-                          onChange={(e) =>
-                            setConfigurations({
-                              ...configurations,
-                              general: {
-                                ...configurations.general,
-                                dateFormat: e.target.value,
-                              },
-                            })
-                          }
+                          value={general.dateFormat} // Utilise le store
+                          onChange={(e) => update('general', 'dateFormat', e.target.value)} // Utilise update du store
                           className="w-full bg-purple-500/10 border border-purple-500/20 focus:border-purple-500/50 rounded-md p-2 text-white"
                         >
                           <option value="DD/MM/YYYY">DD/MM/YYYY</option>
@@ -1254,1014 +874,13 @@ export default function ConfigurationPage() {
                 </div>
               )}
 
-              {activeSection === 'appearance' && (
-                <div className="p-6 relative z-10">
-                  <h2 className="text-2xl font-audiowide text-white mb-6 pb-2 border-b border-purple-500/20">
-                    Apparence
-                  </h2>
+              {/* --- Section Apparence (placeholder) --- */}
+              {activeSection === 'appearance' && <AppearanceTab />}
 
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="primaryColor">Couleur primaire</Label>
-                        <div className="flex items-center space-x-2">
-                          <Input
-                            id="primaryColor"
-                            type="color"
-                            value={configurations.appearance.primaryColor}
-                            onChange={(e) =>
-                              setConfigurations({
-                                ...configurations,
-                                appearance: {
-                                  ...configurations.appearance,
-                                  primaryColor: e.target.value,
-                                },
-                              })
-                            }
-                            className="w-16 h-10 p-1 bg-transparent border border-purple-500/20"
-                          />
-                          <Input
-                            type="text"
-                            value={configurations.appearance.primaryColor}
-                            onChange={(e) =>
-                              setConfigurations({
-                                ...configurations,
-                                appearance: {
-                                  ...configurations.appearance,
-                                  primaryColor: e.target.value,
-                                },
-                              })
-                            }
-                            className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
-                          />
-                        </div>
-                      </div>
+              {/* --- Section Homepage (lazy loaded) --- */}
+              {activeSection === 'homepage' && <HomepageTab />}
 
-                      <div className="space-y-2">
-                        <Label htmlFor="secondaryColor">Couleur secondaire</Label>
-                        <div className="flex items-center space-x-2">
-                          <Input
-                            id="secondaryColor"
-                            type="color"
-                            value={configurations.appearance.secondaryColor}
-                            onChange={(e) =>
-                              setConfigurations({
-                                ...configurations,
-                                appearance: {
-                                  ...configurations.appearance,
-                                  secondaryColor: e.target.value,
-                                },
-                              })
-                            }
-                            className="w-16 h-10 p-1 bg-transparent border border-purple-500/20"
-                          />
-                          <Input
-                            type="text"
-                            value={configurations.appearance.secondaryColor}
-                            onChange={(e) =>
-                              setConfigurations({
-                                ...configurations,
-                                appearance: {
-                                  ...configurations.appearance,
-                                  secondaryColor: e.target.value,
-                                },
-                              })
-                            }
-                            className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="logoUrl">URL du logo</Label>
-                        <Input
-                          id="logoUrl"
-                          value={configurations.appearance.logoUrl}
-                          onChange={(e) =>
-                            setConfigurations({
-                              ...configurations,
-                              appearance: {
-                                ...configurations.appearance,
-                                logoUrl: e.target.value,
-                              },
-                            })
-                          }
-                          className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="faviconUrl">URL du favicon</Label>
-                        <Input
-                          id="faviconUrl"
-                          value={configurations.appearance.faviconUrl}
-                          onChange={(e) =>
-                            setConfigurations({
-                              ...configurations,
-                              appearance: {
-                                ...configurations.appearance,
-                                faviconUrl: e.target.value,
-                              },
-                            })
-                          }
-                          className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between p-4 bg-purple-500/10 rounded-lg border border-purple-500/20">
-                      <div className="flex items-center">
-                        <span className="text-white mr-3">Mode sombre</span>
-                        <span className="text-xs text-gray-400">
-                          Activer le thème sombre par défaut
-                        </span>
-                      </div>
-                      <Switch
-                        checked={configurations.appearance.darkMode}
-                        onCheckedChange={(checked) =>
-                          setConfigurations({
-                            ...configurations,
-                            appearance: {
-                              ...configurations.appearance,
-                              darkMode: checked,
-                            },
-                          })
-                        }
-                        className="data-[state=checked]:bg-purple-600"
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between p-4 bg-purple-500/10 rounded-lg border border-purple-500/20">
-                      <div className="flex items-center">
-                        <span className="text-white mr-3">Animations</span>
-                        <span className="text-xs text-gray-400">
-                          Activer les animations de l'interface
-                        </span>
-                      </div>
-                      <Switch
-                        checked={configurations.appearance.animationsEnabled}
-                        onCheckedChange={(checked) =>
-                          setConfigurations({
-                            ...configurations,
-                            appearance: {
-                              ...configurations.appearance,
-                              animationsEnabled: checked,
-                            },
-                          })
-                        }
-                        className="data-[state=checked]:bg-purple-600"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeSection === 'homepage' && (
-                <div className="p-6 relative z-10">
-                  <h2 className="text-2xl font-audiowide text-white mb-6 pb-2 border-b border-purple-500/20">
-                    Configuration de la page d'accueil
-                  </h2>
-
-                  <Tabs defaultValue="hero" className="w-full">
-                    <TabsList className="flex mb-6 p-1 bg-black/30 border border-purple-500/20 rounded-xl overflow-hidden">
-                      <TabsTrigger
-                        value="hero"
-                        className="flex-1 py-3 px-4 data-[state=active]:bg-purple-600/20 data-[state=active]:text-white data-[state=active]:shadow-[0_0_10px_rgba(139,92,246,0.3)] rounded-lg transition-all duration-200 data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-purple-300"
-                      >
-                        <Home className="w-4 h-4 mr-2" />
-                        Héro
-                      </TabsTrigger>
-                      <TabsTrigger
-                        value="releases"
-                        className="flex-1 py-3 px-4 data-[state=active]:bg-purple-600/20 data-[state=active]:text-white data-[state=active]:shadow-[0_0_10px_rgba(139,92,246,0.3)] rounded-lg transition-all duration-200 data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-purple-300"
-                      >
-                        <Music className="w-4 h-4 mr-2" />
-                        Sorties
-                      </TabsTrigger>
-                      <TabsTrigger
-                        value="visualizer"
-                        className="flex-1 py-3 px-4 data-[state=active]:bg-purple-600/20 data-[state=active]:text-white data-[state=active]:shadow-[0_0_10px_rgba(139,92,246,0.3)] rounded-lg transition-all duration-200 data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-purple-300"
-                      >
-                        <Eye className="w-4 h-4 mr-2" />
-                        Visualiseur
-                      </TabsTrigger>
-                      <TabsTrigger
-                        value="events"
-                        className="flex-1 py-3 px-4 data-[state=active]:bg-purple-600/20 data-[state=active]:text-white data-[state=active]:shadow-[0_0_10px_rgba(139,92,246,0.3)] rounded-lg transition-all duration-200 data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-purple-300"
-                      >
-                        <CalendarDays className="w-4 h-4 mr-2" />
-                        Événements
-                      </TabsTrigger>
-                      <TabsTrigger
-                        value="stream"
-                        className="flex-1 py-3 px-4 data-[state=active]:bg-purple-600/20 data-[state=active]:text-white data-[state=active]:shadow-[0_0_10px_rgba(139,92,246,0.3)] rounded-lg transition-all duration-200 data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-purple-300"
-                      >
-                        <Video className="w-4 h-4 mr-2" />
-                        Stream
-                      </TabsTrigger>
-                    </TabsList>
-
-                    <TabsContent value="hero" className="space-y-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="heroTitle">Titre principal</Label>
-                        <Input
-                          id="heroTitle"
-                          value={configurations.homepage.heroTitle}
-                          onChange={(e) =>
-                            setConfigurations({
-                              ...configurations,
-                              homepage: {
-                                ...configurations.homepage,
-                                heroTitle: e.target.value,
-                              },
-                            })
-                          }
-                          className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="heroSubtitle">Sous-titre</Label>
-                        <Input
-                          id="heroSubtitle"
-                          value={configurations.homepage.heroSubtitle}
-                          onChange={(e) =>
-                            setConfigurations({
-                              ...configurations,
-                              homepage: {
-                                ...configurations.homepage,
-                                heroSubtitle: e.target.value,
-                              },
-                            })
-                          }
-                          className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                          <Label htmlFor="heroExploreButtonText">Texte du bouton Explorer</Label>
-                          <Input
-                            id="heroExploreButtonText"
-                            value={configurations.homepage.heroExploreButtonText}
-                            onChange={(e) =>
-                              setConfigurations({
-                                ...configurations,
-                                homepage: {
-                                  ...configurations.homepage,
-                                  heroExploreButtonText: e.target.value,
-                                },
-                              })
-                            }
-                            className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="heroExploreButtonUrl">URL du bouton Explorer</Label>
-                          <Input
-                            id="heroExploreButtonUrl"
-                            value={configurations.homepage.heroExploreButtonUrl}
-                            onChange={(e) =>
-                              setConfigurations({
-                                ...configurations,
-                                homepage: {
-                                  ...configurations.homepage,
-                                  heroExploreButtonUrl: e.target.value,
-                                },
-                              })
-                            }
-                            className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                          <Label htmlFor="heroEventsButtonText">Texte du bouton Événements</Label>
-                          <Input
-                            id="heroEventsButtonText"
-                            value={configurations.homepage.heroEventsButtonText}
-                            onChange={(e) =>
-                              setConfigurations({
-                                ...configurations,
-                                homepage: {
-                                  ...configurations.homepage,
-                                  heroEventsButtonText: e.target.value,
-                                },
-                              })
-                            }
-                            className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="heroEventsButtonUrl">URL du bouton Événements</Label>
-                          <Input
-                            id="heroEventsButtonUrl"
-                            value={configurations.homepage.heroEventsButtonUrl}
-                            onChange={(e) =>
-                              setConfigurations({
-                                ...configurations,
-                                homepage: {
-                                  ...configurations.homepage,
-                                  heroEventsButtonUrl: e.target.value,
-                                },
-                              })
-                            }
-                            className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="heroBackgroundVideo">URL de la vidéo d'arrière-plan</Label>
-                        <Input
-                          id="heroBackgroundVideo"
-                          value={configurations.homepage.heroBackgroundVideo}
-                          onChange={(e) =>
-                            setConfigurations({
-                              ...configurations,
-                              homepage: {
-                                ...configurations.homepage,
-                                heroBackgroundVideo: e.target.value,
-                              },
-                            })
-                          }
-                          className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="heroPosterImage">
-                          URL de l'image poster (fallback vidéo)
-                        </Label>
-                        <Input
-                          id="heroPosterImage"
-                          value={configurations.homepage.heroPosterImage}
-                          onChange={(e) =>
-                            setConfigurations({
-                              ...configurations,
-                              homepage: {
-                                ...configurations.homepage,
-                                heroPosterImage: e.target.value,
-                              },
-                            })
-                          }
-                          className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
-                        />
-                      </div>
-                    </TabsContent>
-
-                    <TabsContent value="releases" className="space-y-6">
-                      <div className="flex items-center justify-between p-4 bg-purple-500/10 rounded-lg border border-purple-500/20">
-                        <div className="flex flex-col">
-                          <span className="text-white font-medium">Section Sorties</span>
-                          <span className="text-xs text-gray-400">
-                            Afficher la section des dernières sorties
-                          </span>
-                        </div>
-                        <Switch
-                          checked={configurations.homepage.releasesEnabled}
-                          onCheckedChange={(checked) =>
-                            setConfigurations({
-                              ...configurations,
-                              homepage: {
-                                ...configurations.homepage,
-                                releasesEnabled: checked,
-                              },
-                            })
-                          }
-                          className="data-[state=checked]:bg-purple-600"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="releasesTitle">Titre de la section</Label>
-                        <Input
-                          id="releasesTitle"
-                          value={configurations.homepage.releasesTitle}
-                          onChange={(e) =>
-                            setConfigurations({
-                              ...configurations,
-                              homepage: {
-                                ...configurations.homepage,
-                                releasesTitle: e.target.value,
-                              },
-                            })
-                          }
-                          className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="releasesCount">Nombre de sorties à afficher</Label>
-                        <Input
-                          id="releasesCount"
-                          type="number"
-                          min="1"
-                          max="6"
-                          value={configurations.homepage.releasesCount}
-                          onChange={(e) =>
-                            setConfigurations({
-                              ...configurations,
-                              homepage: {
-                                ...configurations.homepage,
-                                releasesCount: parseInt(e.target.value) || 3,
-                              },
-                            })
-                          }
-                          className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
-                        />
-                      </div>
-                    </TabsContent>
-
-                    <TabsContent value="visualizer" className="space-y-6">
-                      <div className="flex items-center justify-between p-4 bg-purple-500/10 rounded-lg border border-purple-500/20">
-                        <div className="flex flex-col">
-                          <span className="text-white font-medium">Section Visualiseur</span>
-                          <span className="text-xs text-gray-400">
-                            Afficher la section du visualiseur audio
-                          </span>
-                        </div>
-                        <Switch
-                          checked={configurations.homepage.visualizerEnabled}
-                          onCheckedChange={(checked) =>
-                            setConfigurations({
-                              ...configurations,
-                              homepage: {
-                                ...configurations.homepage,
-                                visualizerEnabled: checked,
-                              },
-                            })
-                          }
-                          className="data-[state=checked]:bg-purple-600"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="visualizerTitle">Titre de la section</Label>
-                        <Input
-                          id="visualizerTitle"
-                          value={configurations.homepage.visualizerTitle}
-                          onChange={(e) =>
-                            setConfigurations({
-                              ...configurations,
-                              homepage: {
-                                ...configurations.homepage,
-                                visualizerTitle: e.target.value,
-                              },
-                            })
-                          }
-                          className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
-                        />
-                      </div>
-                    </TabsContent>
-
-                    <TabsContent value="events" className="space-y-6">
-                      <div className="flex items-center justify-between p-4 bg-purple-500/10 rounded-lg border border-purple-500/20">
-                        <div className="flex flex-col">
-                          <span className="text-white font-medium">Section Événements</span>
-                          <span className="text-xs text-gray-400">
-                            Afficher la section des événements à venir
-                          </span>
-                        </div>
-                        <Switch
-                          checked={configurations.homepage.eventsEnabled}
-                          onCheckedChange={(checked) =>
-                            setConfigurations({
-                              ...configurations,
-                              homepage: {
-                                ...configurations.homepage,
-                                eventsEnabled: checked,
-                              },
-                            })
-                          }
-                          className="data-[state=checked]:bg-purple-600"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="eventsTitle">Titre de la section</Label>
-                        <Input
-                          id="eventsTitle"
-                          value={configurations.homepage.eventsTitle}
-                          onChange={(e) =>
-                            setConfigurations({
-                              ...configurations,
-                              homepage: {
-                                ...configurations.homepage,
-                                eventsTitle: e.target.value,
-                              },
-                            })
-                          }
-                          className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="eventsCount">Nombre d'événements à afficher</Label>
-                        <Input
-                          id="eventsCount"
-                          type="number"
-                          min="1"
-                          max="10"
-                          value={configurations.homepage.eventsCount}
-                          onChange={(e) =>
-                            setConfigurations({
-                              ...configurations,
-                              homepage: {
-                                ...configurations.homepage,
-                                eventsCount: parseInt(e.target.value) || 3,
-                              },
-                            })
-                          }
-                          className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                          <Label htmlFor="eventsViewAllText">Texte du lien "Voir tout"</Label>
-                          <Input
-                            id="eventsViewAllText"
-                            value={configurations.homepage.eventsViewAllText}
-                            onChange={(e) =>
-                              setConfigurations({
-                                ...configurations,
-                                homepage: {
-                                  ...configurations.homepage,
-                                  eventsViewAllText: e.target.value,
-                                },
-                              })
-                            }
-                            className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="eventsViewAllUrl">URL du lien "Voir tout"</Label>
-                          <Input
-                            id="eventsViewAllUrl"
-                            value={configurations.homepage.eventsViewAllUrl}
-                            onChange={(e) =>
-                              setConfigurations({
-                                ...configurations,
-                                homepage: {
-                                  ...configurations.homepage,
-                                  eventsViewAllUrl: e.target.value,
-                                },
-                              })
-                            }
-                            className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
-                          />
-                        </div>
-                      </div>
-                    </TabsContent>
-
-                    <TabsContent value="stream" className="space-y-6">
-                      <div className="flex items-center justify-between p-4 bg-purple-500/10 rounded-lg border border-purple-500/20">
-                        <div className="flex flex-col">
-                          <span className="text-white font-medium">Section Stream</span>
-                          <span className="text-xs text-gray-400">
-                            Afficher la section de diffusion en direct
-                          </span>
-                        </div>
-                        <Switch
-                          checked={configurations.homepage.streamEnabled}
-                          onCheckedChange={(checked) =>
-                            setConfigurations({
-                              ...configurations,
-                              homepage: {
-                                ...configurations.homepage,
-                                streamEnabled: checked,
-                              },
-                            })
-                          }
-                          className="data-[state=checked]:bg-purple-600"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="streamTitle">Titre de la section</Label>
-                        <Input
-                          id="streamTitle"
-                          value={configurations.homepage.streamTitle}
-                          onChange={(e) =>
-                            setConfigurations({
-                              ...configurations,
-                              homepage: {
-                                ...configurations.homepage,
-                                streamTitle: e.target.value,
-                              },
-                            })
-                          }
-                          className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="streamSubtitle">Sous-titre</Label>
-                        <Input
-                          id="streamSubtitle"
-                          value={configurations.homepage.streamSubtitle}
-                          onChange={(e) =>
-                            setConfigurations({
-                              ...configurations,
-                              homepage: {
-                                ...configurations.homepage,
-                                streamSubtitle: e.target.value,
-                              },
-                            })
-                          }
-                          className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="streamDescription">Description</Label>
-                        <Textarea
-                          id="streamDescription"
-                          value={configurations.homepage.streamDescription}
-                          onChange={(e) =>
-                            setConfigurations({
-                              ...configurations,
-                              homepage: {
-                                ...configurations.homepage,
-                                streamDescription: e.target.value,
-                              },
-                            })
-                          }
-                          className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
-                          rows={3}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="twitchUsername">Nom d'utilisateur Twitch</Label>
-                        <Input
-                          id="twitchUsername"
-                          value={configurations.homepage.twitchUsername}
-                          onChange={(e) =>
-                            setConfigurations({
-                              ...configurations,
-                              homepage: {
-                                ...configurations.homepage,
-                                twitchUsername: e.target.value,
-                              },
-                            })
-                          }
-                          className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                          <Label htmlFor="twitchFollowButtonText">Texte du bouton Suivre</Label>
-                          <Input
-                            id="twitchFollowButtonText"
-                            value={configurations.homepage.twitchFollowButtonText}
-                            onChange={(e) =>
-                              setConfigurations({
-                                ...configurations,
-                                homepage: {
-                                  ...configurations.homepage,
-                                  twitchFollowButtonText: e.target.value,
-                                },
-                              })
-                            }
-                            className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="twitchFollowButtonUrl">URL du bouton Suivre</Label>
-                          <Input
-                            id="twitchFollowButtonUrl"
-                            value={configurations.homepage.twitchFollowButtonUrl}
-                            onChange={(e) =>
-                              setConfigurations({
-                                ...configurations,
-                                homepage: {
-                                  ...configurations.homepage,
-                                  twitchFollowButtonUrl: e.target.value,
-                                },
-                              })
-                            }
-                            className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="streamNotifyButtonText">
-                          Texte du bouton de notification
-                        </Label>
-                        <Input
-                          id="streamNotifyButtonText"
-                          value={configurations.homepage.streamNotifyButtonText}
-                          onChange={(e) =>
-                            setConfigurations({
-                              ...configurations,
-                              homepage: {
-                                ...configurations.homepage,
-                                streamNotifyButtonText: e.target.value,
-                              },
-                            })
-                          }
-                          className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between p-4 bg-purple-500/10 rounded-lg border border-purple-500/20">
-                        <div className="flex flex-col">
-                          <span className="text-white font-medium">Statistiques de stream</span>
-                          <span className="text-xs text-gray-400">
-                            Afficher les statistiques de diffusion
-                          </span>
-                        </div>
-                        <Switch
-                          checked={configurations.homepage.streamStatsEnabled}
-                          onCheckedChange={(checked) =>
-                            setConfigurations({
-                              ...configurations,
-                              homepage: {
-                                ...configurations.homepage,
-                                streamStatsEnabled: checked,
-                              },
-                            })
-                          }
-                          className="data-[state=checked]:bg-purple-600"
-                        />
-                      </div>
-
-                      {configurations.homepage.streamStatsEnabled && (
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                          <div className="space-y-2">
-                            <Label htmlFor="streamFollowers">Nombre de followers</Label>
-                            <Input
-                              id="streamFollowers"
-                              value={configurations.homepage.streamFollowers}
-                              onChange={(e) =>
-                                setConfigurations({
-                                  ...configurations,
-                                  homepage: {
-                                    ...configurations.homepage,
-                                    streamFollowers: e.target.value,
-                                  },
-                                })
-                              }
-                              className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="streamHoursStreamed">Heures de stream</Label>
-                            <Input
-                              id="streamHoursStreamed"
-                              value={configurations.homepage.streamHoursStreamed}
-                              onChange={(e) =>
-                                setConfigurations({
-                                  ...configurations,
-                                  homepage: {
-                                    ...configurations.homepage,
-                                    streamHoursStreamed: e.target.value,
-                                  },
-                                })
-                              }
-                              className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="streamTracksPlayed">Pistes jouées</Label>
-                            <Input
-                              id="streamTracksPlayed"
-                              value={configurations.homepage.streamTracksPlayed}
-                              onChange={(e) =>
-                                setConfigurations({
-                                  ...configurations,
-                                  homepage: {
-                                    ...configurations.homepage,
-                                    streamTracksPlayed: e.target.value,
-                                  },
-                                })
-                              }
-                              className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </TabsContent>
-                  </Tabs>
-
-                  <div className="mt-8 space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="sectionsOrder" className="flex items-center justify-between">
-                        <span>Ordre des sections</span>
-                        <span className="text-xs text-gray-400">
-                          Glissez-déposez pour réorganiser
-                        </span>
-                      </Label>
-
-                      <div className="bg-black/30 p-1 rounded-lg border border-purple-500/20">
-                        <DragDropContext
-                          onDragEnd={(result) => {
-                            // Ignorer les drops en dehors de la zone
-                            if (!result.destination) return;
-
-                            console.log('DragDropContext onDragEnd', result);
-
-                            // Parse la chaîne actuelle en tableau
-                            const sections = configurations.homepage.sectionsOrder
-                              .split(',')
-                              .filter(Boolean);
-
-                            console.log('Sections avant réorganisation:', sections);
-
-                            // Réorganiser le tableau
-                            const [reorderedItem] = sections.splice(result.source.index, 1);
-                            sections.splice(result.destination.index, 0, reorderedItem);
-
-                            console.log('Sections après réorganisation:', sections);
-                            console.log('Nouvel ordre:', sections.join(','));
-
-                            // Mettre à jour la configuration avec la nouvelle chaîne
-                            setConfigurations({
-                              ...configurations,
-                              homepage: {
-                                ...configurations.homepage,
-                                sectionsOrder: sections.join(','),
-                              },
-                            });
-                          }}
-                          dragHandleUsageInstructions="Utilisez les poignées de glissement pour réorganiser les sections"
-                        >
-                          <Droppable droppableId="sections-list" direction="vertical">
-                            {(provided) => (
-                              <div
-                                {...provided.droppableProps}
-                                ref={provided.innerRef}
-                                className="space-y-2 p-2 min-h-[100px] rounded-md overflow-hidden"
-                                style={{
-                                  background: 'rgba(139, 92, 246, 0.05)',
-                                  position: 'relative',
-                                }}
-                              >
-                                {configurations.homepage.sectionsOrder
-                                  .split(',')
-                                  .filter(Boolean)
-                                  .map((section, index) => {
-                                    console.log(
-                                      'Rendering draggable for section:',
-                                      section,
-                                      'index:',
-                                      index
-                                    );
-
-                                    // Définir des icônes et des noms lisibles pour chaque section
-                                    const getSectionInfo = (id: string) => {
-                                      switch (id) {
-                                        case 'hero':
-                                          return {
-                                            icon: <Home className="h-4 w-4" />,
-                                            name: 'Héro',
-                                          };
-                                        case 'releases':
-                                          return {
-                                            icon: <Music className="h-4 w-4" />,
-                                            name: 'Sorties',
-                                          };
-                                        case 'visualizer':
-                                          return {
-                                            icon: <Eye className="h-4 w-4" />,
-                                            name: 'Visualiseur',
-                                          };
-                                        case 'events':
-                                          return {
-                                            icon: <CalendarDays className="h-4 w-4" />,
-                                            name: 'Événements',
-                                          };
-                                        case 'stream':
-                                          return {
-                                            icon: <Video className="h-4 w-4" />,
-                                            name: 'Stream',
-                                          };
-                                        default:
-                                          return {
-                                            icon: <div className="h-4 w-4" />,
-                                            name: section,
-                                          };
-                                      }
-                                    };
-
-                                    const { icon, name } = getSectionInfo(section);
-
-                                    return (
-                                      <Draggable key={section} draggableId={section} index={index}>
-                                        {(provided, snapshot) => {
-                                          // Définir les styles pour contrôler le positionnement
-                                          const draggableStyle = provided.draggableProps.style;
-                                          const style = {
-                                            ...draggableStyle,
-                                            width: snapshot.isDragging
-                                              ? 'calc(100% - 16px)'
-                                              : undefined,
-                                            boxSizing: 'border-box' as const,
-                                          };
-
-                                          return (
-                                            <div
-                                              ref={provided.innerRef}
-                                              {...provided.draggableProps}
-                                              {...provided.dragHandleProps}
-                                              className={`bg-purple-500/10 rounded-md border ${
-                                                snapshot.isDragging
-                                                  ? 'border-cyan-400 shadow-lg bg-purple-800/30 z-50'
-                                                  : 'border-purple-500/20 hover:bg-purple-500/20'
-                                              } flex items-center p-3 group transition-colors`}
-                                              style={style}
-                                            >
-                                              <div
-                                                className={`mr-3 ${snapshot.isDragging ? 'text-cyan-300' : 'text-gray-500'} hover:text-gray-300`}
-                                              >
-                                                <GripVertical className="h-5 w-5" />
-                                              </div>
-                                              <div className="flex items-center text-white">
-                                                <span
-                                                  className={`mr-2 ${snapshot.isDragging ? 'text-cyan-300' : 'text-purple-400'}`}
-                                                >
-                                                  {icon}
-                                                </span>
-                                                <span
-                                                  className={
-                                                    snapshot.isDragging
-                                                      ? 'font-medium text-white'
-                                                      : ''
-                                                  }
-                                                >
-                                                  {name}
-                                                </span>
-                                              </div>
-                                              <div
-                                                onClick={(e) => {
-                                                  // Empêcher la propagation pour éviter de déclencher le drag
-                                                  e.stopPropagation();
-
-                                                  // Ne pas modifier hero car il est toujours actif
-                                                  if (section !== 'hero') {
-                                                    const prop =
-                                                      `${section}Enabled` as keyof HomepageConfig;
-                                                    setConfigurations({
-                                                      ...configurations,
-                                                      homepage: {
-                                                        ...configurations.homepage,
-                                                        [prop]: !configurations.homepage[prop],
-                                                      },
-                                                    });
-                                                  }
-                                                }}
-                                                className={`ml-auto px-2 py-1 text-xs rounded-full cursor-pointer ${
-                                                  section === 'hero'
-                                                    ? 'bg-blue-500/20 text-blue-300 cursor-default'
-                                                    : configurations.homepage[
-                                                          `${section}Enabled` as keyof HomepageConfig
-                                                        ]
-                                                      ? 'bg-green-500/20 text-green-300 hover:bg-green-500/40'
-                                                      : 'bg-red-500/20 text-red-300 hover:bg-red-500/40'
-                                                }`}
-                                              >
-                                                {section === 'hero'
-                                                  ? 'Toujours actif'
-                                                  : configurations.homepage[
-                                                        `${section}Enabled` as keyof HomepageConfig
-                                                      ]
-                                                    ? 'Actif'
-                                                    : 'Inactif'}
-                                              </div>
-                                            </div>
-                                          );
-                                        }}
-                                      </Draggable>
-                                    );
-                                  })}
-                                {provided.placeholder}
-                              </div>
-                            )}
-                          </Droppable>
-                        </DragDropContext>
-                      </div>
-                      <p className="text-xs text-gray-400">
-                        L'ordre des sections détermine leur position sur la page d'accueil. Les
-                        sections désactivées ne seront pas affichées.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
+              {/* --- Section Notifications (refactorisée) --- */}
               {activeSection === 'notifications' && (
                 <div className="p-6 relative z-10">
                   <h2 className="text-2xl font-audiowide text-white mb-6 pb-2 border-b border-purple-500/20">
@@ -2269,379 +888,50 @@ export default function ConfigurationPage() {
                   </h2>
 
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 bg-purple-500/10 rounded-lg border border-purple-500/20">
-                      <div className="flex flex-col">
-                        <span className="text-white font-medium">Notifications par email</span>
-                        <span className="text-xs text-gray-400">
-                          Envoyer des notifications par email
-                        </span>
-                      </div>
-                      <Switch
-                        checked={configurations.notifications.emailNotifications}
-                        onCheckedChange={(checked) =>
-                          setConfigurations({
-                            ...configurations,
-                            notifications: {
-                              ...configurations.notifications,
-                              emailNotifications: checked,
-                            },
-                          })
-                        }
-                        className="data-[state=checked]:bg-purple-600"
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between p-4 bg-purple-500/10 rounded-lg border border-purple-500/20">
-                      <div className="flex flex-col">
-                        <span className="text-white font-medium">Alertes administrateur</span>
-                        <span className="text-xs text-gray-400">
-                          Recevoir des alertes pour les actions administratives
-                        </span>
-                      </div>
-                      <Switch
-                        checked={configurations.notifications.adminAlerts}
-                        onCheckedChange={(checked) =>
-                          setConfigurations({
-                            ...configurations,
-                            notifications: {
-                              ...configurations.notifications,
-                              adminAlerts: checked,
-                            },
-                          })
-                        }
-                        className="data-[state=checked]:bg-purple-600"
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between p-4 bg-purple-500/10 rounded-lg border border-purple-500/20">
-                      <div className="flex flex-col">
-                        <span className="text-white font-medium">Nouveaux utilisateurs</span>
-                        <span className="text-xs text-gray-400">
-                          Notifications lors de l'inscription de nouveaux utilisateurs
-                        </span>
-                      </div>
-                      <Switch
-                        checked={configurations.notifications.newUserNotifications}
-                        onCheckedChange={(checked) =>
-                          setConfigurations({
-                            ...configurations,
-                            notifications: {
-                              ...configurations.notifications,
-                              newUserNotifications: checked,
-                            },
-                          })
-                        }
-                        className="data-[state=checked]:bg-purple-600"
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between p-4 bg-purple-500/10 rounded-lg border border-purple-500/20">
-                      <div className="flex flex-col">
-                        <span className="text-white font-medium">Rappels d'événements</span>
-                        <span className="text-xs text-gray-400">
-                          Rappels automatiques avant les événements
-                        </span>
-                      </div>
-                      <Switch
-                        checked={configurations.notifications.eventReminders}
-                        onCheckedChange={(checked) =>
-                          setConfigurations({
-                            ...configurations,
-                            notifications: {
-                              ...configurations.notifications,
-                              eventReminders: checked,
-                            },
-                          })
-                        }
-                        className="data-[state=checked]:bg-purple-600"
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between p-4 bg-purple-500/10 rounded-lg border border-purple-500/20">
-                      <div className="flex flex-col">
-                        <span className="text-white font-medium">Emails marketing</span>
-                        <span className="text-xs text-gray-400">
-                          Envoyer des emails promotionnels aux utilisateurs
-                        </span>
-                      </div>
-                      <Switch
-                        checked={configurations.notifications.marketingEmails}
-                        onCheckedChange={(checked) =>
-                          setConfigurations({
-                            ...configurations,
-                            notifications: {
-                              ...configurations.notifications,
-                              marketingEmails: checked,
-                            },
-                          })
-                        }
-                        className="data-[state=checked]:bg-purple-600"
-                      />
-                    </div>
+                    {/* Utilisation de ToggleRow et du store */}
+                    <ToggleRow
+                      label="Notifications par email"
+                      desc="Envoyer des notifications par email"
+                      value={notifications.emailNotifications}
+                      onChange={(checked) => update('notifications', 'emailNotifications', checked)}
+                    />
+                    <ToggleRow
+                      label="Alertes administrateur"
+                      desc="Recevoir des alertes pour les actions administratives"
+                      value={notifications.adminAlerts}
+                      onChange={(checked) => update('notifications', 'adminAlerts', checked)}
+                    />
+                    <ToggleRow
+                      label="Nouveaux utilisateurs"
+                      desc="Notifications lors de l'inscription de nouveaux utilisateurs"
+                      value={notifications.newUserNotifications}
+                      onChange={(checked) =>
+                        update('notifications', 'newUserNotifications', checked)
+                      }
+                    />
+                    <ToggleRow
+                      label="Rappels d'événements"
+                      desc="Rappels automatiques avant les événements"
+                      value={notifications.eventReminders}
+                      onChange={(checked) => update('notifications', 'eventReminders', checked)}
+                    />
+                    <ToggleRow
+                      label="Emails marketing"
+                      desc="Envoyer des emails promotionnels aux utilisateurs"
+                      value={notifications.marketingEmails}
+                      onChange={(checked) => update('notifications', 'marketingEmails', checked)}
+                    />
                   </div>
                 </div>
               )}
 
-              {activeSection === 'security' && (
-                <div className="p-6 relative z-10">
-                  <h2 className="text-2xl font-audiowide text-white mb-6 pb-2 border-b border-purple-500/20">
-                    Sécurité
-                  </h2>
+              {/* --- Section Sécurité (placeholder) --- */}
+              {activeSection === 'security' && <SecurityTab />}
 
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between p-4 bg-purple-500/10 rounded-lg border border-purple-500/20">
-                      <div className="flex flex-col">
-                        <span className="text-white font-medium">
-                          Authentification à deux facteurs
-                        </span>
-                        <span className="text-xs text-gray-400">
-                          Exiger la 2FA pour les comptes administrateurs
-                        </span>
-                      </div>
-                      <Switch
-                        checked={configurations.security.twoFactorAuth}
-                        onCheckedChange={(checked) =>
-                          setConfigurations({
-                            ...configurations,
-                            security: {
-                              ...configurations.security,
-                              twoFactorAuth: checked,
-                            },
-                          })
-                        }
-                        className="data-[state=checked]:bg-purple-600"
-                      />
-                    </div>
+              {/* --- Section API (placeholder) --- */}
+              {activeSection === 'api' && <ApiTab />}
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="passwordExpiration">
-                          Expiration du mot de passe (jours)
-                        </Label>
-                        <Input
-                          id="passwordExpiration"
-                          type="number"
-                          value={configurations.security.passwordExpiration}
-                          onChange={(e) =>
-                            setConfigurations({
-                              ...configurations,
-                              security: {
-                                ...configurations.security,
-                                passwordExpiration: parseInt(e.target.value),
-                              },
-                            })
-                          }
-                          min="0"
-                          className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
-                        />
-                        <p className="text-xs text-gray-400">0 = pas d'expiration</p>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="failedLoginLimit">Limite de tentatives de connexion</Label>
-                        <Input
-                          id="failedLoginLimit"
-                          type="number"
-                          value={configurations.security.failedLoginLimit}
-                          onChange={(e) =>
-                            setConfigurations({
-                              ...configurations,
-                              security: {
-                                ...configurations.security,
-                                failedLoginLimit: parseInt(e.target.value),
-                              },
-                            })
-                          }
-                          min="1"
-                          className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="sessionTimeout">Timeout de session (minutes)</Label>
-                      <Input
-                        id="sessionTimeout"
-                        type="number"
-                        value={configurations.security.sessionTimeout}
-                        onChange={(e) =>
-                          setConfigurations({
-                            ...configurations,
-                            security: {
-                              ...configurations.security,
-                              sessionTimeout: parseInt(e.target.value),
-                            },
-                          })
-                        }
-                        min="5"
-                        className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between p-4 bg-purple-500/10 rounded-lg border border-purple-500/20">
-                      <div className="flex flex-col">
-                        <span className="text-white font-medium">Restriction IP</span>
-                        <span className="text-xs text-gray-400">
-                          Limiter l'accès admin à certaines adresses IP
-                        </span>
-                      </div>
-                      <Switch
-                        checked={configurations.security.ipRestriction}
-                        onCheckedChange={(checked) =>
-                          setConfigurations({
-                            ...configurations,
-                            security: {
-                              ...configurations.security,
-                              ipRestriction: checked,
-                            },
-                          })
-                        }
-                        className="data-[state=checked]:bg-purple-600"
-                      />
-                    </div>
-
-                    <div className="p-4 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
-                      <div className="flex items-start">
-                        <Lock className="h-5 w-5 text-yellow-400 mr-3 mt-0.5" />
-                        <p className="text-sm text-gray-300">
-                          Les paramètres de sécurité avancés tels que les politiques de mot de passe
-                          et les journaux d'audit peuvent être configurés via le panneau de sécurité
-                          dédié.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeSection === 'api' && (
-                <div className="p-6 relative z-10">
-                  <h2 className="text-2xl font-audiowide text-white mb-6 pb-2 border-b border-purple-500/20">
-                    API & Intégrations
-                  </h2>
-
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between p-4 bg-purple-500/10 rounded-lg border border-purple-500/20">
-                      <div className="flex flex-col">
-                        <span className="text-white font-medium">API activée</span>
-                        <span className="text-xs text-gray-400">Activer l'accès API</span>
-                      </div>
-                      <Switch
-                        checked={configurations.api.apiEnabled}
-                        onCheckedChange={(checked) =>
-                          setConfigurations({
-                            ...configurations,
-                            api: {
-                              ...configurations.api,
-                              apiEnabled: checked,
-                            },
-                          })
-                        }
-                        className="data-[state=checked]:bg-purple-600"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="rateLimit">Limite de requêtes API (par minute)</Label>
-                      <Input
-                        id="rateLimit"
-                        type="number"
-                        value={configurations.api.rateLimit}
-                        onChange={(e) =>
-                          setConfigurations({
-                            ...configurations,
-                            api: {
-                              ...configurations.api,
-                              rateLimit: parseInt(e.target.value),
-                            },
-                          })
-                        }
-                        min="10"
-                        className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="webhookUrl">URL de Webhook</Label>
-                      <Input
-                        id="webhookUrl"
-                        type="url"
-                        value={configurations.api.webhookUrl}
-                        onChange={(e) =>
-                          setConfigurations({
-                            ...configurations,
-                            api: { ...configurations.api, webhookUrl: e.target.value },
-                          })
-                        }
-                        placeholder="https://example.com/webhook"
-                        className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between p-4 bg-purple-500/10 rounded-lg border border-purple-500/20">
-                      <div className="flex flex-col">
-                        <span className="text-white font-medium">Umami Analytics</span>
-                        <span className="text-xs text-gray-400">Activer le suivi Umami</span>
-                      </div>
-                      <Switch
-                        checked={configurations.api.umamiEnabled}
-                        onCheckedChange={(checked) =>
-                          setConfigurations({
-                            ...configurations,
-                            api: {
-                              ...configurations.api,
-                              umamiEnabled: checked,
-                            },
-                          })
-                        }
-                        className="data-[state=checked]:bg-purple-600"
-                      />
-                    </div>
-
-                    {configurations.api.umamiEnabled && (
-                      <div className="space-y-2">
-                        <Label htmlFor="umamiSiteId">ID du site Umami</Label>
-                        <Input
-                          id="umamiSiteId"
-                          value={configurations.api.umamiSiteId}
-                          onChange={(e) =>
-                            setConfigurations({
-                              ...configurations,
-                              api: {
-                                ...configurations.api,
-                                umamiSiteId: e.target.value,
-                              },
-                            })
-                          }
-                          className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50"
-                        />
-                      </div>
-                    )}
-
-                    <div className="p-4 bg-purple-900/20 rounded-lg border border-purple-500/20">
-                      <div className="flex items-start">
-                        <RefreshCcw className="h-5 w-5 text-purple-400 mr-3 mt-0.5" />
-                        <div>
-                          <h3 className="text-purple-300 font-semibold mb-1">
-                            Régénérer les clés API
-                          </h3>
-                          <p className="text-xs text-gray-400 mb-3">
-                            Vous pouvez régénérer vos clés API si nécessaire. Toutes les
-                            applications utilisant actuellement ces clés devront être mises à jour.
-                          </p>
-                          <Button
-                            variant="outline"
-                            className="border border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
-                          >
-                            Régénérer les clés API
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
+              {/* --- Section Images (inchangée) --- */}
               {activeSection === 'images' && (
                 <div className="p-6 relative z-10">
                   <h2 className="text-2xl font-audiowide text-white mb-6 pb-2 border-b border-purple-500/20">
@@ -2654,6 +944,7 @@ export default function ConfigurationPage() {
           </div>
         </div>
 
+        {/* Cartes d'information (inchangées) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
           <Card className="glass border-purple-500/20 bg-transparent">
             <CardHeader className="pb-2">
@@ -2709,7 +1000,7 @@ export default function ConfigurationPage() {
         </div>
       </div>
 
-      {/* Modal pour l'historique et les snapshots */}
+      {/* Modales (inchangées) */}
       <HistoryModal
         isOpen={historyOpen}
         onClose={() => setHistoryOpen(false)}
@@ -2717,12 +1008,11 @@ export default function ConfigurationPage() {
         onApplySnapshot={handleApplySnapshot}
       />
 
-      {/* Modal pour la sauvegarde avec nom personnalisé */}
       <SaveConfigModal
         isOpen={saveModalOpen}
         onClose={() => setSaveModalOpen(false)}
         onSave={handleSaveWithName}
-        changesSummary={getChangesSummary()}
+        changesSummary={getChangesSummary()} // Utilise maintenant la logique de diff
       />
     </div>
   );
