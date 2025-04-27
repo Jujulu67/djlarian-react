@@ -34,6 +34,7 @@
     "date-fns": "^3.6.0",
     "framer-motion": "^12.4.7",
     "gsap": "^3.12.7",
+    "lodash": "^4.17.21",
     "lucide-react": "^0.476.0",
     "next": "latest",
     "next-auth": "^4.24.11",
