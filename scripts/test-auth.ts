@@ -9,7 +9,7 @@ async function testAuth() {
     const user = await prisma.user.findUnique({
       where: { email: 'juanzeiher@gmail.com' },
       include: {
-        accounts: true, // Inclure les comptes OAuth
+        Account: true, // Changement ici: accounts -> Account
       },
     });
 
@@ -23,8 +23,8 @@ async function testAuth() {
     // 2. Vérifier les méthodes de connexion disponibles
     console.log('\n2. Méthodes de connexion disponibles :');
     console.log('--------------------------------');
-    if (user?.accounts && user.accounts.length > 0) {
-      user.accounts.forEach((account) => {
+    if (user?.Account && user.Account.length > 0) {
+      user.Account.forEach((account) => {
         console.log(`- ${account.provider} (ID: ${account.providerAccountId})`);
       });
     } else {

@@ -9,6 +9,9 @@ import { Track } from '@/lib/utils/types';
 import { Loader } from 'lucide-react';
 import { Music } from 'lucide-react';
 
+// Ajouter un état pour gérer l'erreur d'une image spécifique
+type ImageErrorState = { [key: string]: boolean };
+
 // Keyframes pour l'animation du glow doré
 const glowAnimation = `
   @keyframes shimmer {
@@ -49,6 +52,7 @@ export default function LatestReleases({
   const [releases, setReleases] = useState<Track[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [imageErrors, setImageErrors] = useState<ImageErrorState>({}); // Initialiser l'état des erreurs d'image
   const router = useRouter();
 
   // Charger les morceaux depuis l'API
@@ -89,6 +93,11 @@ export default function LatestReleases({
   // Fonction pour gérer le clic sur une carte
   const handleCardClick = (trackId: string) => {
     router.push(`/music?play=${trackId}`);
+  };
+
+  // Fonction pour gérer l'erreur de chargement d'une image
+  const handleImageError = (trackId: string) => {
+    setImageErrors((prevErrors) => ({ ...prevErrors, [trackId]: true }));
   };
 
   // Si en chargement, afficher un loader
@@ -172,11 +181,13 @@ export default function LatestReleases({
                         width={400}
                         height={400}
                         className="w-full h-full object-cover object-center rounded-lg shadow-lg"
-                        onError={() => setImageError(true)}
+                        onError={() => handleImageError(release.id)}
                       />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-r from-purple-900/30 to-blue-900/30 flex items-center justify-center rounded-lg shadow-lg">
-                        <Music className="w-16 h-16 text-gray-600" />
+                        {(imageErrors[release.id] || !release.imageId) && (
+                          <Music className="w-16 h-16 text-gray-600" />
+                        )}
                       </div>
                     )}
 

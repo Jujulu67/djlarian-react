@@ -63,7 +63,7 @@ describe('Authentication Tests', () => {
         email: 'juanzeiher@gmail.com',
       },
       include: {
-        accounts: true, // Inclure les comptes liés (Google, Twitch, etc.)
+        Account: true,
       },
     });
 
@@ -74,9 +74,9 @@ describe('Authentication Tests', () => {
     expect(user?.id).not.toBeNull();
 
     // Afficher les méthodes de connexion disponibles
-    if (user?.accounts) {
+    if (user?.Account) {
       console.log('Available authentication methods:');
-      user.accounts.forEach((account) => {
+      user.Account.forEach((account) => {
         console.log(`- ${account.provider}`);
       });
     } else {

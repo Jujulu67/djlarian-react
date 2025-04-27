@@ -42,16 +42,21 @@ export interface Track {
   updatedAt?: string;
 }
 
+/*
+// NOTE: Cette définition manuelle de Event est obsolète.
+// Il est préférable d'utiliser le type Event généré par Prisma Client.
+// import { Event } from '@prisma/client';
 export interface Event {
   id: string;
   title: string;
-  date: string;
+  date: string; // Doit être startDate (DateTime)
   location: string;
   description: string;
   imageId?: string | null;
-  ticketUrl?: string;
-  isFeatured?: boolean;
+  ticketUrl?: string; // Doit être via TicketInfo relation
+  isFeatured?: boolean; // Doit être featured (Boolean)
 }
+*/
 
 export interface GalleryItem {
   id: string;

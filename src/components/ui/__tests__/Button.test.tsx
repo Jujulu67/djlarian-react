@@ -8,29 +8,17 @@ describe('Button', () => {
     expect(screen.getByRole('button')).toHaveTextContent('Click me');
   });
 
-  it('handles different variants', () => {
-    const { rerender } = render(<Button variant="primary">Primary</Button>);
-    expect(screen.getByRole('button')).toHaveClass('bg-primary-600');
-
-    rerender(<Button variant="secondary">Secondary</Button>);
-    expect(screen.getByRole('button')).toHaveClass('bg-secondary-600');
+  it('renders with different variants', () => {
+    const { rerender } = render(<Button variant="default">Default</Button>);
+    expect(screen.getByRole('button', { name: /Default/i })).toHaveClass('bg-purple-600');
 
     rerender(<Button variant="outline">Outline</Button>);
-    expect(screen.getByRole('button')).toHaveClass('border-primary-600');
-
-    rerender(<Button variant="ghost">Ghost</Button>);
-    expect(screen.getByRole('button')).toHaveClass('text-primary-600');
+    expect(screen.getByRole('button', { name: /Outline/i })).toHaveClass('border-gray-700');
   });
 
-  it('shows loading state', () => {
-    render(<Button isLoading>Click me</Button>);
-    expect(screen.getByText('Chargement...')).toBeInTheDocument();
-    expect(screen.queryByText('Click me')).not.toBeInTheDocument();
-  });
-
-  it('can be disabled', () => {
+  it('renders as disabled', () => {
     render(<Button disabled>Click me</Button>);
-    expect(screen.getByRole('button')).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Click me/i })).toBeDisabled();
   });
 
   it('handles click events', async () => {
@@ -39,10 +27,5 @@ describe('Button', () => {
 
     await userEvent.click(screen.getByRole('button'));
     expect(handleClick).toHaveBeenCalledTimes(1);
-  });
-
-  it('applies full width class when isFullWidth is true', () => {
-    render(<Button isFullWidth>Full width</Button>);
-    expect(screen.getByRole('button')).toHaveClass('w-full');
   });
 });

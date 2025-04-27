@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth/options';
 import prisma from '@/lib/prisma';
 import { ChevronLeft, UserPlus } from 'lucide-react';
 import Link from 'next/link';
@@ -9,12 +9,12 @@ import { UserTable } from './components/UserTable';
 import { UserPagination } from './components/UserPagination';
 import { UserFiltersServer } from './components/UserFiltersServer';
 
-// Type pour les utilisateurs
+// Type pour les utilisateurs (mis à jour)
 type UserData = {
   id: string;
   name?: string | null;
   email?: string | null;
-  role: string;
+  role: string | null; // Accepter null pour le rôle
   isVip?: boolean;
 };
 
@@ -90,7 +90,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
       email: true,
       role: true,
       isVip: true,
-    } as any,
+    },
   });
 
   const totalPages = Math.ceil(totalUsers / limitNum);
