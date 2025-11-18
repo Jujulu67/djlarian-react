@@ -57,3 +57,4 @@ Other websites/
 # Umami Docker data (volume géré par Docker)
 umami-analytics/
 umami-db-data/
+.secrets.local.md
