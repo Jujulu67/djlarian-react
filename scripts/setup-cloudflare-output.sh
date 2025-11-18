@@ -57,17 +57,54 @@ if [ -d "$CLOUDFLARE_DIR/assets/_next" ]; then
   cp -r "$CLOUDFLARE_DIR/assets/_next" "$CLOUDFLARE_DIR/" 2>/dev/null || true
 fi
 
-# Créer _routes.json si il n'existe pas
-if [ ! -f "$CLOUDFLARE_DIR/_routes.json" ]; then
-  echo "📝 Création de _routes.json..."
-  cat > "$CLOUDFLARE_DIR/_routes.json" << 'EOF'
+  # Créer _routes.json si il n'existe pas
+  if [ ! -f "$CLOUDFLARE_DIR/_routes.json" ]; then
+    echo "📝 Création de _routes.json..."
+    cat > "$CLOUDFLARE_DIR/_routes.json" << 'EOF'
 {
   "version": 1,
   "include": ["/*"],
-  "exclude": []
+  "exclude": ["/_next/static/*"]
 }
 EOF
-fi
+  else
+    # Mettre à jour _routes.json pour exclure les assets statiques
+    echo "📝 Mise à jour de _routes.json pour exclure les assets statiques..."
+    if ! grep -q '"/_next/static/\*"' "$CLOUDFLARE_DIR/_routes.json" 2>/dev/null; then
+      # Utiliser Python pour modifier le JSON de manière sûre
+      python3 << 'PYTHON_SCRIPT'
+import json
+import sys
+
+routes_file = sys.argv[1]
+try:
+    with open(routes_file, 'r') as f:
+        routes = json.load(f)
+    
+    if "exclude" not in routes:
+        routes["exclude"] = []
+    
+    if "/_next/static/*" not in routes["exclude"]:
+        routes["exclude"].append("/_next/static/*")
+    
+    with open(routes_file, 'w') as f:
+        json.dump(routes, f, indent=2)
+    
+    print("✅ _routes.json mis à jour")
+except Exception as e:
+    print(f"⚠️  Erreur lors de la mise à jour de _routes.json: {e}")
+    # Fallback: recréer le fichier
+    with open(routes_file, 'w') as f:
+        json.dump({
+            "version": 1,
+            "include": ["/*"],
+            "exclude": ["/_next/static/*"]
+        }, f, indent=2)
+    print("✅ _routes.json recréé")
+PYTHON_SCRIPT
+      "$CLOUDFLARE_DIR/_routes.json"
+    fi
+  fi
 
 echo "✅ Configuration Cloudflare Pages terminée !"
 
