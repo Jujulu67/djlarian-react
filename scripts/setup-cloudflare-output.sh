@@ -15,6 +15,7 @@ mkdir -p "$CLOUDFLARE_DIR/functions"
 # Copier le worker dans functions/_worker.js avec les bons imports
 if [ -f ".open-next/worker.js" ]; then
   echo "📝 Copie du worker dans functions/_worker.js..."
+  # Remplacer les imports pour pointer vers les bons chemins depuis functions/
   sed 's|\./cloudflare/|../cloudflare/|g; s|\./middleware/|../middleware/|g; s|\./server-functions/|../server-functions/|g; s|\./\.build/|../.build/|g' .open-next/worker.js > "$CLOUDFLARE_DIR/functions/_worker.js"
 fi
 
