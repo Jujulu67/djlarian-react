@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/options';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { existsSync } from 'fs';
 import { uploadToR2, isR2Configured, getR2PublicUrl } from '@/lib/r2';
+
+// Note: Pas de Edge Runtime car Next-Auth utilise crypto (Node.js)
+// TODO: Migrer vers Auth.js v5 pour supporter Edge Runtime
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,106 +47,53 @@ export async function POST(request: NextRequest) {
     const croppedBytes = await croppedImage.arrayBuffer();
     const croppedBuffer = Buffer.from(croppedBytes);
 
-    // Utiliser R2 si configuré, sinon système de fichiers local
-    if (isR2Configured) {
-      // Upload vers R2
-      try {
-        const croppedKey = `uploads/${imageId}.jpg`;
-        const croppedUrl = await uploadToR2(croppedKey, croppedBuffer, 'image/jpeg');
-        console.log(`[API UPLOAD] Image recadrée uploadée vers R2: ${croppedUrl}`);
+    // Utiliser R2 uniquement (Edge Runtime ne supporte pas fs)
+    if (!isR2Configured) {
+      return NextResponse.json(
+        { error: 'R2 not configured. Please configure Cloudflare R2.' },
+        { status: 503 }
+      );
+    }
 
-        // Upload de l'image originale si fournie
-        if (originalImage && originalImage.type.startsWith('image/')) {
-          if (originalImage.size <= 15 * 1024 * 1024) {
-            try {
-              const originalBytes = await originalImage.arrayBuffer();
-              const originalBuffer = Buffer.from(originalBytes);
-              const extension = originalImage.name.includes('.')
-                ? originalImage.name.split('.').pop()
-                : 'jpg';
-              const originalKey = `uploads/${imageId}-ori.${extension}`;
-              const contentType = originalImage.type || `image/${extension}`;
-              await uploadToR2(originalKey, originalBuffer, contentType);
-              console.log(`[API UPLOAD] Image originale uploadée vers R2: ${originalKey}`);
-            } catch (error) {
-              console.error(`[API UPLOAD] Erreur upload image originale vers R2:`, error);
-              // Ne pas bloquer si l'originale échoue
-            }
-          } else {
-            console.warn(
-              `[API UPLOAD] Fichier original trop volumineux: ${originalImage.size} bytes`
-            );
-          }
-        }
+    // Upload vers R2
+    try {
+      const croppedKey = `uploads/${imageId}.jpg`;
+      const croppedUrl = await uploadToR2(croppedKey, croppedBuffer, 'image/jpeg');
+      console.log(`[API UPLOAD] Image recadrée uploadée vers R2: ${croppedUrl}`);
 
-        console.log(`[API UPLOAD] Upload R2 terminé pour imageId: ${imageId}`);
-        return NextResponse.json({
-          success: true,
-          imageId: imageId,
-          url: croppedUrl,
-        });
-      } catch (error) {
-        console.error(`[API UPLOAD] Erreur upload R2 pour ${imageId}:`, error);
-        throw new Error("Impossible d'uploader l'image vers R2.");
-      }
-    } else {
-      // Système de fichiers local (développement)
-      const publicPath = join(process.cwd(), 'public', 'uploads');
-
-      // S'assurer que le dossier d'upload existe
-      if (!existsSync(publicPath)) {
-        await mkdir(publicPath, { recursive: true });
-        console.log('[API UPLOAD] Dossier uploads créé:', publicPath);
-      }
-
-      // 1. Sauvegarder l'image recadrée (<imageId>.jpg)
-      try {
-        const croppedFilename = `${imageId}.jpg`;
-        const croppedFilePath = join(publicPath, croppedFilename);
-        await writeFile(croppedFilePath, croppedBuffer);
-        console.log(`[API UPLOAD] Image recadrée sauvegardée: ${croppedFilePath}`);
-      } catch (error) {
-        console.error(`[API UPLOAD] Erreur sauvegarde image recadrée ${imageId}:`, error);
-        throw new Error("Impossible de sauvegarder l'image recadrée.");
-      }
-
-      // 2. Sauvegarder l'image originale si fournie (<imageId>-ori.<ext>)
-      if (originalImage) {
-        if (!originalImage.type.startsWith('image/')) {
-          console.warn(
-            `[API UPLOAD] Type de fichier original invalide pour ${imageId}: ${originalImage.type}`
-          );
-        } else if (originalImage.size > 15 * 1024 * 1024) {
-          console.warn(
-            `[API UPLOAD] Fichier original trop volumineux pour ${imageId}: ${originalImage.size}`
-          );
-        } else {
+      // Upload de l'image originale si fournie
+      if (originalImage && originalImage.type.startsWith('image/')) {
+        if (originalImage.size <= 15 * 1024 * 1024) {
           try {
             const originalBytes = await originalImage.arrayBuffer();
             const originalBuffer = Buffer.from(originalBytes);
             const extension = originalImage.name.includes('.')
               ? originalImage.name.split('.').pop()
               : 'jpg';
-            const originalFilename = `${imageId}-ori.${extension}`;
-            const originalFilePath = join(publicPath, originalFilename);
-            await writeFile(originalFilePath, originalBuffer);
-            console.log(`[API UPLOAD] Image originale sauvegardée: ${originalFilePath}`);
+            const originalKey = `uploads/${imageId}-ori.${extension}`;
+            const contentType = originalImage.type || `image/${extension}`;
+            await uploadToR2(originalKey, originalBuffer, contentType);
+            console.log(`[API UPLOAD] Image originale uploadée vers R2: ${originalKey}`);
           } catch (error) {
-            console.error(`[API UPLOAD] Erreur sauvegarde image originale ${imageId}:`, error);
-            // Ne pas bloquer la réponse si l'originale échoue
+            console.error(`[API UPLOAD] Erreur upload image originale vers R2:`, error);
+            // Ne pas bloquer si l'originale échoue
           }
+        } else {
+          console.warn(
+            `[API UPLOAD] Fichier original trop volumineux: ${originalImage.size} bytes`
+          );
         }
-      } else {
-        console.log(`[API UPLOAD] Pas de fichier original fourni pour ${imageId}`);
       }
 
-      // LOG SUCCÈS FINAL
-      console.log(`[API UPLOAD] Upload terminé pour imageId: ${imageId}`);
+      console.log(`[API UPLOAD] Upload R2 terminé pour imageId: ${imageId}`);
       return NextResponse.json({
         success: true,
         imageId: imageId,
-        url: `/uploads/${imageId}.jpg`,
+        url: croppedUrl,
       });
+    } catch (error) {
+      console.error(`[API UPLOAD] Erreur upload R2 pour ${imageId}:`, error);
+      throw new Error("Impossible d'uploader l'image vers R2.");
     }
   } catch (error) {
     console.error('[API UPLOAD] Erreur lors du téléchargement du fichier:', error);

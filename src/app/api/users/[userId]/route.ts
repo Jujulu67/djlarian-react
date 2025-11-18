@@ -1,3 +1,5 @@
+// Note: Pas de Edge Runtime car bcrypt nécessite Node.js
+// TODO: Utiliser une alternative à bcrypt compatible Edge ou garder Node.js runtime
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';

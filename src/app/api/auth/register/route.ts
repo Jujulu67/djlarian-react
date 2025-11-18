@@ -1,3 +1,5 @@
+// Note: Pas de Edge Runtime car Next-Auth utilise crypto (Node.js)
+// TODO: Migrer vers Auth.js v5 pour supporter Edge Runtime
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';

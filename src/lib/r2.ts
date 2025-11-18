@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 
 // Configuration R2
 const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
@@ -81,5 +81,61 @@ export const getR2PublicUrl = (key: string): string => {
   }
   // Fallback local
   return `/uploads/${key}`;
+};
+
+/**
+ * Lister tous les fichiers dans R2
+ */
+export const listR2Files = async (): Promise<Array<{
+  id: string;
+  name: string;
+  path: string;
+  type: string;
+  size: number;
+  lastModified: string;
+}>> => {
+  if (!r2Client) {
+    return [];
+  }
+
+  try {
+    const command = new ListObjectsV2Command({
+      Bucket: bucketName,
+    });
+
+    const response = await r2Client.send(command);
+    const files = response.Contents || [];
+
+    // Filtrer pour ne garder que les images
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    const imageFiles = files.filter((file) => {
+      if (!file.Key) return false;
+      const ext = file.Key.toLowerCase().substring(file.Key.lastIndexOf('.'));
+      return imageExtensions.includes(ext);
+    });
+
+    // Créer un objet pour chaque image avec des métadonnées
+    return imageFiles.map((file) => {
+      const filename = file.Key || '';
+      
+      // Déterminer le type d'image basé sur le nom du fichier
+      let type = 'Autre';
+      if (filename.includes('cover')) type = 'Couverture';
+      else if (filename.includes('event')) type = 'Événement';
+      else if (filename.includes('staff')) type = 'Staff';
+
+      return {
+        id: filename,
+        name: filename,
+        path: getR2PublicUrl(filename),
+        type,
+        size: file.Size || 0,
+        lastModified: file.LastModified?.toISOString() || new Date().toISOString(),
+      };
+    });
+  } catch (error) {
+    console.error('Erreur lors de la liste des fichiers R2:', error);
+    return [];
+  }
 };
 
