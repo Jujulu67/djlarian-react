@@ -1,3 +1,4 @@
+export const runtime = 'edge';
 import React from 'react';
 import Modal from '@/components/ui/Modal';
 import TrackDetailView from '@/components/admin/TrackDetailView';

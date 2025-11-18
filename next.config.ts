@@ -12,6 +12,9 @@ const nextConfig: NextConfig = {
   },
   // Exclure les fichiers de test du build
   pageExtensions: ['ts', 'tsx', 'js', 'jsx'],
+  // Configuration pour Cloudflare Pages
+  // Note: @cloudflare/next-on-pages exige Edge Runtime partout
+  // Certaines routes nécessitent Node.js (sharp, bcrypt) donc on garde la flexibilité
 };
 
 export default nextConfig;
