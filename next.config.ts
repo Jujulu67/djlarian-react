@@ -12,8 +12,6 @@ const nextConfig: NextConfig = {
   },
   // Exclure les fichiers de test du build
   pageExtensions: ['ts', 'tsx', 'js', 'jsx'],
-  // Configuration pour Cloudflare Pages
-  output: 'standalone',
 };
 
 export default nextConfig;
