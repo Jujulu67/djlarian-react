@@ -21,7 +21,27 @@ if [ -f ".open-next/worker.js" ]; then
   # AUSSI copier le worker à la racine pour Cloudflare Pages (fallback)
   # Les imports doivent être ajustés : les fichiers cloudflare sont à la racine, pas dans cloudflare/
   echo "📝 Copie du worker à la racine du build output..."
-  sed 's|\.\./cloudflare/|./|g; s|\./cloudflare/|./|g; s|\.\./middleware/|./middleware/|g; s|\.\./server-functions/|./server-functions/|g; s|\.\./\.build/|./.build/|g' "$CLOUDFLARE_DIR/functions/_worker.js" > "$CLOUDFLARE_DIR/_worker.js"
+  sed 's|\.\./cloudflare/|./|g; s|\./cloudflare/|./|g; s|\.\./middleware/|./middleware/|g; s|\.\./server-functions/|./server-functions/|g; s|\.\./\.build/|./.build/|g' "$CLOUDFLARE_DIR/functions/_worker.js" > "$CLOUDFLARE_DIR/_worker.js.tmp"
+  
+  # Ajouter la logique pour servir les assets statiques avant le middleware
+  echo "📝 Ajout de la logique pour servir les assets statiques..."
+  awk '
+    /const url = new URL\(request\.url\);/ {
+      print $0
+      print ""
+      print "            // Serve static assets (_next/static) directly from ASSETS"
+      print "            if (url.pathname.startsWith(\"/_next/static/\")) {"
+      print "                const assetResponse = await env.ASSETS?.fetch(request);"
+      print "                if (assetResponse && assetResponse.status !== 404) {"
+      print "                    return assetResponse;"
+      print "                }"
+      print "            }"
+      print ""
+      next
+    }
+    { print }
+  ' "$CLOUDFLARE_DIR/_worker.js.tmp" > "$CLOUDFLARE_DIR/_worker.js"
+  rm -f "$CLOUDFLARE_DIR/_worker.js.tmp"
 fi
 
 # Copier les dépendances nécessaires
