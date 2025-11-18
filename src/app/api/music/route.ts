@@ -7,11 +7,9 @@ import { MusicType, MusicPlatform } from '@/lib/utils/types';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
-import sharp from 'sharp';
 import { uploadToR2, isR2Configured, getR2PublicUrl } from '@/lib/r2';
 
-// Note: Pas de Edge Runtime car sharp nécessite des binaires natifs
-// TODO: Utiliser une alternative à sharp compatible Edge ou garder Node.js runtime
+// Note: Utilisation directe des images sans traitement sharp pour compatibilité Edge Runtime
 
 // Define actual arrays for Zod enums from types
 const musicTypes: [MusicType, ...MusicType[]] = [
@@ -176,27 +174,19 @@ export async function POST(request: Request) {
       imageId = uuidv4();
       const response = await fetch(dataForPrisma.thumbnailUrl);
       if (!response.ok) throw new Error('Thumbnail fetch failed');
-      const buffer = Buffer.from(await response.arrayBuffer());
-      // Traitement carré avec padding noir
-      const image = sharp(buffer);
-      const metadata = await image.metadata();
-      const size = Math.max(metadata.width || 0, metadata.height || 0, 800);
-      const padded = await image
-        .resize({
-          width: size,
-          height: size,
-          fit: 'contain',
-          background: { r: 0, g: 0, b: 0 },
-        })
-        .resize(800, 800)
-        .jpeg({ quality: 90 })
-        .toBuffer();
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      
+      // Déterminer le type MIME depuis l'URL ou la réponse
+      const contentType = response.headers.get('content-type') || 'image/jpeg';
+      const extension = contentType.includes('png') ? 'png' : 'jpg';
+      
       // Sauvegarder dans R2 si configuré
       if (isR2Configured) {
-        const key = `uploads/${imageId}.jpg`;
-        const originalKey = `uploads/${imageId}-ori.jpg`;
-        await uploadToR2(key, padded, 'image/jpeg');
-        await uploadToR2(originalKey, padded, 'image/jpeg');
+        const key = `uploads/${imageId}.${extension}`;
+        const originalKey = `uploads/${imageId}-ori.${extension}`;
+        await uploadToR2(key, buffer, contentType);
+        await uploadToR2(originalKey, buffer, contentType);
         dataForPrisma.imageId = imageId;
       } else {
         console.warn('[API MUSIC] R2 not configured, skipping image upload');
