@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth/options';
+import { auth } from '@/auth';
 import Link from 'next/link';
 import {
   CalendarDays,
@@ -111,7 +110,7 @@ export default async function AdminActivitiesPage({
     limit?: string;
   }>;
 }) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session?.user?.role || session.user.role !== 'ADMIN') {
     redirect('/');

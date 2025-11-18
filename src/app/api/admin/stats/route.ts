@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth/options';
+import { auth } from '@/auth';
+
 import { subDays, startOfDay, startOfWeek, startOfMonth } from 'date-fns';
 import { Prisma } from '@prisma/client';
 
@@ -11,7 +11,7 @@ type Period = 'daily' | 'weekly' | 'monthly';
 export async function GET(request: NextRequest) {
   try {
     // Vérifier l'authentification et les permissions administrateur
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session || session.user?.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }

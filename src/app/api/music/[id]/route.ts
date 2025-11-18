@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth/options';
+import { auth } from '@/auth';
+
 import prisma from '@/lib/prisma';
 import { UpdateTrackInput, formatTrackData } from '@/lib/api/musicService';
 import { MusicType } from '@/lib/utils/types';
@@ -67,7 +67,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
   }
 
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user || session.user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -239,7 +239,7 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
   }
 
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user || session.user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -284,7 +284,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   }
 
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user || session.user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
+import { auth } from '@/auth';
 import bcrypt from 'bcryptjs';
-import { authOptions } from '@/lib/auth/options';
+
 import prisma from '@/lib/prisma';
 
 // POST /api/users
 export async function POST(request: Request) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   // 1. Vérifier si l'utilisateur est admin
   if (!session?.user?.role || session.user.role !== 'ADMIN') {

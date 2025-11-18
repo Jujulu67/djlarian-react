@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth/options';
+import { auth } from '@/auth';
 import { uploadToR2, isR2Configured, getR2PublicUrl } from '@/lib/r2';
 
-// Note: Pas de Edge Runtime car Next-Auth utilise crypto (Node.js)
-// TODO: Migrer vers Auth.js v5 pour supporter Edge Runtime
+// Note: Pas de Edge Runtime car Auth.js v5 avec Prisma/bcrypt nécessite Node.js
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     // Vérifier l'authentification et les autorisations
     if (!session?.user || session.user.role !== 'ADMIN') {

@@ -1,8 +1,8 @@
 'use client';
 
 import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth/options';
+import { auth } from '@/auth';
+
 import Link from 'next/link';
 import {
   BarChart3,

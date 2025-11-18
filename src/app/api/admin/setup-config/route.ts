@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth/options';
+import { auth } from '@/auth';
+
 import { PrismaClient } from '@prisma/client';
 
 // Initialiser Prisma
@@ -84,7 +84,7 @@ const defaultConfigs = {
 export async function GET(req: NextRequest) {
   try {
     // Vérifier que l'utilisateur est admin
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.role || session.user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }

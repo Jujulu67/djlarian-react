@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth/options';
+import { auth } from '@/auth';
+
 import prisma from '@/lib/prisma';
 import { RecurrenceConfig } from '@/app/components/EventForm';
 import { Prisma } from '@prisma/client';
@@ -9,7 +9,7 @@ import { Prisma } from '@prisma/client';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     const isAdmin = session?.user?.role === 'ADMIN';
     const isAuthenticated = !!session;
 
@@ -213,7 +213,7 @@ function generateRecurringDates(
 
 // POST - Créer un nouvel événement
 export async function POST(request: Request) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   // Vérifier l'authentification et les autorisations
   if (!session?.user || session.user.role !== 'ADMIN') {

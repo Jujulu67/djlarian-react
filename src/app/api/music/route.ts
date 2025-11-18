@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth/options';
+import { auth } from '@/auth';
+
 import prisma from '@/lib/prisma';
 import { formatTrackData } from '@/lib/api/musicService';
 import { MusicType, MusicPlatform } from '@/lib/utils/types';
@@ -114,7 +114,7 @@ export async function GET() {
 
 // POST /api/music - Créer une nouvelle piste
 export async function POST(request: Request) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   // Vérifier l'authentification
   if (!session?.user) {
