@@ -17,6 +17,10 @@ if [ -f ".open-next/worker.js" ]; then
   echo "📝 Copie du worker dans functions/_worker.js..."
   # Remplacer les imports pour pointer vers les bons chemins depuis functions/
   sed 's|\./cloudflare/|../cloudflare/|g; s|\./middleware/|../middleware/|g; s|\./server-functions/|../server-functions/|g; s|\./\.build/|../.build/|g' .open-next/worker.js > "$CLOUDFLARE_DIR/functions/_worker.js"
+  
+  # AUSSI copier le worker à la racine pour Cloudflare Pages (fallback)
+  echo "📝 Copie du worker à la racine du build output..."
+  cp "$CLOUDFLARE_DIR/functions/_worker.js" "$CLOUDFLARE_DIR/_worker.js"
 fi
 
 # Copier les dépendances nécessaires
