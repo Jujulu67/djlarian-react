@@ -1,12 +1,7 @@
 name = "djlarian-react"
-type = "javascript"
 account_id = "8183c3c4f59a7b1747827300bdb46c9d"
-workers_dev = true
 compatibility_date = "2024-11-18"
 compatibility_flags = ["nodejs_compat"]
 
-[env.production]
-routes = [
-  { pattern = "djlarian-react.pages.dev", zone_name = "djlarian-react.pages.dev" }
-]
-
+# Configuration pour Cloudflare Pages
+pages_build_output_dir = ".open-next/cloudflare"
