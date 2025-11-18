@@ -68,7 +68,7 @@ Ou utiliser la valeur déjà générée (si vous l'avez sauvegardée).
 
 **Nom** : `CLOUDFLARE_ACCOUNT_ID`
 
-**Valeur** : `8183c3c4f59a7b1747827300bdb46c9d`
+**Valeur** : *(à obtenir depuis Cloudflare Dashboard → Overview)*
 
 **❌ Ne PAS cocher "Encrypt"** (mais vous pouvez si vous voulez)
 
@@ -78,7 +78,7 @@ Ou utiliser la valeur déjà générée (si vous l'avez sauvegardée).
 
 **Nom** : `R2_ACCESS_KEY_ID`
 
-**Valeur** : `12d97c70d712e29f81eb2ec1775981b8`
+**Valeur** : *(à obtenir depuis R2 → Manage R2 API Tokens → votre token)*
 
 **⚠️ Optionnel** : Cocher "Encrypt" par précaution
 
@@ -88,7 +88,7 @@ Ou utiliser la valeur déjà générée (si vous l'avez sauvegardée).
 
 **Nom** : `R2_SECRET_ACCESS_KEY`
 
-**Valeur** : `056dd9c59e88e5de2795e06aac47a05b725732f23406e87bdce8a01436fd1022`
+**Valeur** : *(à obtenir depuis R2 → Manage R2 API Tokens → votre token)*
 
 **✅ Cocher "Encrypt"**
 
