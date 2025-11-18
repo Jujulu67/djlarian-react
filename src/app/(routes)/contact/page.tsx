@@ -221,7 +221,7 @@ export default function ContactPage() {
             <div>
               <h2 className="text-2xl font-audiowide mb-4">Booking</h2>
               <p className="text-gray-300">
-                Pour les réservations d'événements et les performances live :
+                Pour les réservations d&apos;événements et les performances live :
               </p>
               <a
                 href="mailto:booking@djlarian.com"

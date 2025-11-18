@@ -69,3 +69,38 @@ Les contributions sont les bienvenues ! N'hésitez pas à ouvrir une issue ou un
 ## 📜 License
 
 Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
+
+# Stratégie de linting
+
+## Objectif
+
+Avoir une base de code lisible, robuste et maintenable, sans viser la perfection immédiate ni perdre du temps sur des détails non critiques.
+
+## Dossiers ignorés
+
+- `.next/`, `node_modules/`, `public/`, `dist/`, `coverage/` sont exclus du lint pour éviter les faux positifs.
+
+## Règles assouplies
+
+- Certaines règles bruyantes sont en warning (voir `.eslintrc.json`) :
+  - `@next/next/no-img-element` (usage de `<img>` parfois volontaire)
+  - `react-hooks/exhaustive-deps` (bruit sur les hooks)
+  - `react/no-unescaped-entities` (guillemets/apostrophes dans le JSX)
+
+## Correction automatique
+
+- Utiliser `npm run lint:fix` pour corriger automatiquement un maximum d’erreurs.
+- Les erreurs critiques (accessibilité, typage, conventions majeures) doivent être corrigées en priorité.
+- Les warnings sont traités progressivement, au fil de l’eau.
+
+## Processus d’amélioration continue
+
+- Le lint est exécuté à chaque commit via `lint-staged` et `husky`.
+- L’objectif est de réduire le nombre d’erreurs/warnings à chaque itération, sans bloquer l’équipe.
+- Toute nouvelle fonctionnalité doit respecter les règles existantes.
+
+## Philosophie
+
+- Pragmatisme : on ne vise pas le "lint 0" immédiat, mais une amélioration continue.
+- Communication : toute règle assouplie ou désactivée est documentée et justifiée.
+- Évolution : la configuration est réévaluée régulièrement selon la maturité du projet.

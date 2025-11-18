@@ -31,6 +31,7 @@ import YoutubeAtelier from './components/YoutubeAtelier';
 import { MUSIC_TYPES, emptyTrackForm } from '@/lib/utils/music-helpers';
 import { PublicationStatusSelector } from '@/components/admin/PublicationStatusSelector';
 import { DateTimeField } from '@/components/ui/DateTimeField';
+import Image from 'next/image';
 
 /* -------------------------------------------------------------------------- */
 /*       Constantes plateformes                                               */
@@ -848,12 +849,14 @@ export default function AdminMusicPage() {
                       <div className="absolute top-2 right-2 bg-purple-700/90 text-white text-xs px-3 py-1 rounded-full shadow-lg z-10 animate-pulse">
                         En édition
                       </div>
-                      <div className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
+                      <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
                         {editingTrack.imageId ? (
-                          <img
+                          <Image
                             src={`/uploads/${editingTrack.imageId}.jpg?t=${editingTrack.updatedAt ? new Date(editingTrack.updatedAt).getTime() : Date.now()}`}
                             alt={editingTrack.title}
+                            fill
                             className="w-full h-full object-cover"
+                            unoptimized
                           />
                         ) : (
                           <div className="w-full h-full bg-gray-700 flex items-center justify-center">
@@ -996,29 +999,18 @@ export default function AdminMusicPage() {
                             <div className="absolute top-2 right-2 bg-green-700/90 text-white text-xs px-3 py-1 rounded-full shadow-lg z-10 animate-pulse">
                               Succès
                             </div>
-                            <div className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
+                            <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
                               {t.imageId ? (
-                                <img
+                                <Image
                                   src={`/uploads/${t.imageId}.jpg?t=${t.updatedAt ? new Date(t.updatedAt).getTime() : Date.now()}`}
                                   alt={t.title}
+                                  fill
                                   className="w-full h-full object-cover"
+                                  unoptimized
                                 />
                               ) : (
                                 <div className="w-full h-full bg-gray-700 flex items-center justify-center">
-                                  <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    className="w-8 h-8 text-green-400"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      d="M9 12l2 2l4 -4m5 2a9 9 0 11-18 0a9 9 0 0118 0z"
-                                    />
-                                  </svg>
+                                  <Music className="w-8 h-8 text-gray-500" />
                                 </div>
                               )}
                             </div>
@@ -1090,12 +1082,14 @@ export default function AdminMusicPage() {
                           }}
                         >
                           <div className="flex items-center gap-4 p-4">
-                            <div className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
+                            <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
                               {t.imageId ? (
-                                <img
+                                <Image
                                   src={`/uploads/${t.imageId}.jpg?t=${t.updatedAt ? new Date(t.updatedAt).getTime() : Date.now()}`}
                                   alt={t.title}
+                                  fill
                                   className="w-full h-full object-cover"
+                                  unoptimized
                                 />
                               ) : (
                                 <div className="w-full h-full bg-gray-700 flex items-center justify-center">

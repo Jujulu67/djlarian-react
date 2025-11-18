@@ -746,7 +746,7 @@ export default function ConfigurationPage() {
                   className={`w-full flex items-center p-3 rounded-lg transition-all ${activeSection === 'homepage' ? 'bg-purple-500/20 text-purple-300' : 'hover:bg-purple-500/10 text-gray-300'}`}
                 >
                   <Home className="h-5 w-5 mr-3" />
-                  Page d'accueil
+                  Page d&apos;accueil
                 </button>
 
                 <button

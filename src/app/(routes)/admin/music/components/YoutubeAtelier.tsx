@@ -6,6 +6,7 @@ import { X, ExternalLink, RefreshCw, Save, Search, Plus, Check, AlertCircle } fr
 import { extractInfoFromTitle, emptyTrackForm, MUSIC_TYPES } from '@/lib/utils/music-helpers';
 import Modal from '@/components/ui/Modal';
 import { DateTimeField } from '@/components/ui/DateTimeField';
+import Image from 'next/image';
 
 /* -------------------------------------------------------------------------- */
 /*  Types locaux                                                              */
@@ -168,7 +169,9 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
   return (
     <div className="grid grid-cols-1 gap-8">
       <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg border border-gray-700/50 p-6">
-        <h2 className="text-xl font-bold mb-6 text-white">Atelier d'ajout intelligent YouTube</h2>
+        <h2 className="text-xl font-bold mb-6 text-white">
+          Atelier d&apos;ajout intelligent YouTube
+        </h2>
         <p className="text-gray-300 mb-6">
           Retrouvez vos vidéos YouTube et importez-les directement dans votre base de données
           musicale. Le système détecte automatiquement celles déjà présentes.
@@ -183,7 +186,7 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
         >
           <div className="flex-1">
             <label htmlFor="yt" className="block text-gray-300 font-medium mb-2">
-              Nom d'utilisateur / URL de chaîne
+              Nom d&apos;utilisateur / URL de chaîne
             </label>
             <input
               id="yt"
@@ -344,8 +347,14 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
                       )}
                     </button>
                   )}
-                  <div className="w-20 h-16 flex-shrink-0 rounded-md overflow-hidden">
-                    <img src={v.thumbnail} alt={v.title} className="w-full h-full object-cover" />
+                  <div className="relative w-20 h-16 flex-shrink-0 rounded-md overflow-hidden">
+                    <Image
+                      src={v.thumbnail}
+                      alt={v.title}
+                      fill
+                      className="w-full h-full object-cover"
+                      unoptimized
+                    />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4
@@ -401,11 +410,13 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* aperçu vidéo */}
                 <div>
-                  <div className="aspect-video bg-black rounded-lg overflow-hidden mb-3">
-                    <img
+                  <div className="relative aspect-video bg-black rounded-lg overflow-hidden mb-3">
+                    <Image
                       src={currentVideoForImport.thumbnail}
                       alt={currentVideoForImport.title}
+                      fill
                       className="w-full h-full object-cover"
+                      unoptimized
                     />
                   </div>
                   <a

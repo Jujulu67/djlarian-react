@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/options';
+import Image from 'next/image';
 
 export default async function AdminGalleryPage() {
   const session = await getServerSession(authOptions);
@@ -25,10 +26,12 @@ export default async function AdminGalleryPage() {
           {/* Exemple de carte d'image */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
             <div className="relative aspect-square">
-              <img
+              <Image
                 src="/images/gallery/event1.jpg"
                 alt="Event 1"
+                fill
                 className="object-cover w-full h-full"
+                unoptimized
               />
               <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
                 <div className="flex space-x-2">
@@ -61,7 +64,9 @@ export default async function AdminGalleryPage() {
             </div>
             <div className="p-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Event 1</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Description de l'image...</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                Description de l&apos;image...
+              </p>
             </div>
           </div>
 

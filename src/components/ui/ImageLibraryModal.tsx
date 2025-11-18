@@ -55,7 +55,7 @@ const ImageLibraryModal: React.FC<ImageLibraryModalProps> = ({ open, onClose, on
   return (
     <Modal maxWidth="max-w-3xl" onClose={onClose} showLoader={false}>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-white">Bibliothèque d'images originales</h2>
+        <h2 className="text-xl font-bold text-white">Bibliothèque d&apos;images originales</h2>
       </div>
       <input
         value={search}

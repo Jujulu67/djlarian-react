@@ -1,4 +1,5 @@
 import { Calendar, Clock, Euro, Eye, MapPin, Ticket, Star, Repeat } from 'lucide-react';
+import Image from 'next/image';
 import { EventFormData } from './EventForm';
 
 interface EventPreviewProps {
@@ -16,11 +17,12 @@ export default function EventPreview({ event }: EventPreviewProps) {
         style={{ aspectRatio: '16/9' }}
       >
         {imageToShow ? (
-          <img
+          <Image
             src={imageToShow}
             alt={event.title}
-            className="w-full h-full object-cover object-center"
-            style={{ objectPosition: '50% 25%' }}
+            fill
+            unoptimized
+            className="w-full h-full object-cover object-[50%_25%]"
           />
         ) : (
           <Calendar className="w-16 h-16 text-gray-600" />

@@ -46,7 +46,7 @@ export default function HomepageTab() {
   return (
     <div className="p-6 relative z-10">
       <h2 className="text-2xl font-audiowide text-white mb-6 pb-2 border-b border-purple-500/20">
-        Configuration de la page d'accueil
+        Configuration de la page d&apos;accueil
       </h2>
 
       <Tabs defaultValue="hero" className="w-full">
@@ -129,7 +129,7 @@ export default function HomepageTab() {
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="heroBackgroundVideo">URL de la vidéo d'arrière-plan</Label>
+            <Label htmlFor="heroBackgroundVideo">URL de la vidéo d&apos;arrière-plan</Label>
             <Input
               id="heroBackgroundVideo"
               value={homepage.heroBackgroundVideo}
@@ -138,7 +138,7 @@ export default function HomepageTab() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="heroPosterImage">URL de l'image poster (fallback vidéo)</Label>
+            <Label htmlFor="heroPosterImage">URL de l&apos;image poster (fallback vidéo)</Label>
             <Input
               id="heroPosterImage"
               value={homepage.heroPosterImage}
@@ -228,7 +228,7 @@ export default function HomepageTab() {
           />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="eventsViewAllText">Texte du lien "Voir tout"</Label>
+              <Label htmlFor="eventsViewAllText">Texte du lien &quot;Voir tout&quot;</Label>
               <Input
                 id="eventsViewAllText"
                 value={homepage.eventsViewAllText}
@@ -238,7 +238,7 @@ export default function HomepageTab() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="eventsViewAllUrl">URL du lien "Voir tout"</Label>
+              <Label htmlFor="eventsViewAllUrl">URL du lien &quot;Voir tout&quot;</Label>
               <Input
                 id="eventsViewAllUrl"
                 value={homepage.eventsViewAllUrl}
@@ -290,7 +290,7 @@ export default function HomepageTab() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="twitchUsername">Nom d'utilisateur Twitch</Label>
+            <Label htmlFor="twitchUsername">Nom d&apos;utilisateur Twitch</Label>
             <Input
               id="twitchUsername"
               value={homepage.twitchUsername}
@@ -455,8 +455,8 @@ export default function HomepageTab() {
             </DragDropContext>
           </div>
           <p className="text-xs text-gray-400">
-            L'ordre des sections détermine leur position sur la page d'accueil. Les sections
-            désactivées ne seront pas affichées.
+            L&apos;ordre des sections détermine leur position sur la page d&apos;accueil. Les
+            sections désactivées ne seront pas affichées.
           </p>
         </div>
       </div>

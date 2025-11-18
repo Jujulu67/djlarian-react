@@ -3,6 +3,7 @@
 import Modal from '@/components/ui/Modal';
 import { useRouter } from 'next/navigation'; // Importer useRouter
 import { AlertTriangle, Home, ArrowLeft } from 'lucide-react'; // Ajouter ArrowLeft
+import Image from 'next/image';
 
 interface ErrorModalProps {
   title?: string;
@@ -39,9 +40,12 @@ export default function ErrorModal({
         <p className="text-gray-300 mb-6">{message}</p>
 
         {imageUrl && (
-          <img
+          <Image
             src={imageUrl}
             alt="Illustration d'erreur humoristique"
+            width={300}
+            height={200}
+            unoptimized
             className="max-w-xs rounded-md mb-6 shadow-lg"
           />
         )}

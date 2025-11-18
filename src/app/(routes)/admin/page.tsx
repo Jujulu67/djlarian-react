@@ -313,7 +313,7 @@ export default async function AdminPage() {
                 Utilisateurs
               </h2>
               <p className="text-gray-400 mb-8">
-                Gérez les comptes utilisateurs, les rôles et les permissions d'accès au site.
+                Gérez les comptes utilisateurs, les rôles et les permissions d&apos;accès au site.
               </p>
 
               <div className="flex space-x-2 mb-6">
@@ -359,7 +359,7 @@ export default async function AdminPage() {
                 Statistiques
               </h2>
               <p className="text-gray-400 mb-8">
-                Consultez les statistiques du site, analysez le trafic et l'engagement des
+                Consultez les statistiques du site, analysez le trafic et l&apos;engagement des
                 visiteurs.
               </p>
 
@@ -408,8 +408,8 @@ export default async function AdminPage() {
                 Configuration
               </h2>
               <p className="text-gray-400 mb-8">
-                Gérez les paramètres du site, l'apparence, les notifications, la sécurité et les
-                intégrations API.
+                Gérez les paramètres du site, l&apos;apparence, les notifications, la sécurité et
+                les intégrations API.
               </p>
 
               <div className="flex space-x-2 mb-6">

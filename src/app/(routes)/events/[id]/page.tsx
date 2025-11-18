@@ -246,7 +246,9 @@ export default function EventDetailPage() {
           <div className="flex justify-center items-center min-h-[40vh]">
             <div className="animate-pulse flex flex-col items-center">
               <Loader2 className="w-12 h-12 text-purple-500 mb-4 animate-spin" />
-              <h2 className="text-2xl font-semibold text-white">Chargement de l'événement...</h2>
+              <h2 className="text-2xl font-semibold text-white">
+                Chargement de l&apos;événement...
+              </h2>
             </div>
           </div>
         </div>
@@ -269,7 +271,7 @@ export default function EventDetailPage() {
               </h2>
               <p className="text-gray-300 mb-6">
                 {error === 'Événement non trouvé'
-                  ? "L'événement que vous recherchez n'existe pas ou a été supprimé."
+                  ? 'L&apos;événement que vous recherchez n&apos;existe pas ou a été supprimé.'
                   : error}
               </p>
               <Link
@@ -296,7 +298,7 @@ export default function EventDetailPage() {
               <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
               <h2 className="text-2xl font-semibold text-white mb-2">Événement non disponible</h2>
               <p className="text-gray-300 mb-6">
-                Désolé, cet événement n'est pas disponible pour le moment.
+                Désolé, cet événement n&apos;est pas disponible pour le moment.
               </p>
               <Link
                 href="/events"
@@ -333,11 +335,12 @@ export default function EventDetailPage() {
           {/* Image de couverture */}
           <div className="relative overflow-hidden" style={{ aspectRatio: '16/9' }}>
             {event.imageId ? (
-              <img
+              <Image
                 src={`/uploads/${event.imageId}.jpg`}
                 alt={event.title}
-                className="w-full h-full object-cover object-center"
-                style={{ objectPosition: '50% 25%' }}
+                fill
+                className="w-full h-full object-cover object-[50%_25%]"
+                unoptimized
               />
             ) : (
               <div className="bg-gradient-to-r from-purple-900/50 to-blue-900/50 w-full h-full flex items-center justify-center">
@@ -408,7 +411,7 @@ export default function EventDetailPage() {
                       <p className="text-gray-300 text-sm">{formatEventDate(event)}</p>
                       {event.endDate && (
                         <p className="text-gray-400 text-sm mt-1">
-                          Jusqu'à {formatDate(event.endDate)}
+                          Jusqu&apos;à {formatDate(event.endDate)}
                         </p>
                       )}
                     </div>
@@ -486,7 +489,7 @@ export default function EventDetailPage() {
                     </div>
                   )}
 
-                  {/* Status de l'événement */}
+                  {/* Status de l&apos;événement */}
                   <div className="mb-6">
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-gray-300">Statut</span>

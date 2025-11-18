@@ -50,7 +50,7 @@ class ErrorBoundary extends Component<Props, State> {
       return (
         this.props.fallback || (
           <div className="p-4 bg-gray-900 text-white">
-            <h2 className="text-xl mb-2">Une erreur s'est produite</h2>
+            <h2 className="text-xl mb-2">Une erreur s&apos;est produite</h2>
             <button
               onClick={() => this.setState({ hasError: false })}
               className="px-4 py-2 bg-purple-600 rounded hover:bg-purple-700"

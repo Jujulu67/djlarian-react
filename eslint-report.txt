@@ -1,0 +1,169 @@
+
+/Users/juanzeiher/Visual Code/djlarian-react/.next/server/edge-runtime-webpack.js
+   25:12  error  Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no-assign-module-variable  @next/next/no-assign-module-variable
+  235:13  error  Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no-assign-module-variable  @next/next/no-assign-module-variable
+  685:15  error  Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no-assign-module-variable  @next/next/no-assign-module-variable
+  848:14  error  Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no-assign-module-variable  @next/next/no-assign-module-variable
+  878:16  error  Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no-assign-module-variable  @next/next/no-assign-module-variable
+  943:17  error  Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no-assign-module-variable  @next/next/no-assign-module-variable
+
+/Users/juanzeiher/Visual Code/djlarian-react/.next/server/webpack-runtime.js
+  24:12  error  Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no-assign-module-variable  @next/next/no-assign-module-variable
+
+/Users/juanzeiher/Visual Code/djlarian-react/.next/static/chunks/webpack.js
+    25:12  error  Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no-assign-module-variable  @next/next/no-assign-module-variable
+   331:13  error  Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no-assign-module-variable  @next/next/no-assign-module-variable
+   945:15  error  Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no-assign-module-variable  @next/next/no-assign-module-variable
+  1108:14  error  Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no-assign-module-variable  @next/next/no-assign-module-variable
+  1138:16  error  Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no-assign-module-variable  @next/next/no-assign-module-variable
+  1203:17  error  Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no-assign-module-variable  @next/next/no-assign-module-variable
+
+/Users/juanzeiher/Visual Code/djlarian-react/jest.setup.js
+  12:12  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/configuration/GestionImages.tsx
+   110:6   warning  React Hook useEffect has a missing dependency: 'fetchImages'. Either include it or remove the dependency array                                                                                                                                                  react-hooks/exhaustive-deps
+   352:9   warning  The 'getSortedGroups' function makes the dependencies of useMemo Hook (at line 434) change on every render. To fix this, wrap the definition of 'getSortedGroups' in its own useCallback() Hook                                                                 react-hooks/exhaustive-deps
+   352:9   warning  The 'getSortedGroups' function makes the dependencies of useMemo Hook (at line 438) change on every render. To fix this, wrap the definition of 'getSortedGroups' in its own useCallback() Hook                                                                 react-hooks/exhaustive-deps
+   821:27  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+   988:21  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  1112:21  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  1142:21  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  1254:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  1384:23  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/configuration/components/HistoryModal.tsx
+  80:6  warning  React Hook useEffect has a missing dependency: 'fetchHistoryData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/configuration/page.tsx
+  749:25  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/configuration/tabs/HomepageTab.tsx
+   49:35  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  132:67  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  141:54  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  231:64  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  231:74  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  241:61  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  241:71  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  293:50  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  458:14  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  458:71  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/configuration/tabs/SecurityTab.tsx
+  72:25  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/events/[id]/page.tsx
+  242:32  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                                 react/no-unescaped-entities
+  290:18  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                                 react/no-unescaped-entities
+  290:50  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                                 react/no-unescaped-entities
+  381:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  430:32  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                                 react/no-unescaped-entities
+  489:35  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                                 react/no-unescaped-entities
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/gallery/page.tsx
+  28:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  64:87  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                                 react/no-unescaped-entities
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/music/components/YoutubeAtelier.tsx
+  171:68  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                                 react/no-unescaped-entities
+  186:20  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                                 react/no-unescaped-entities
+  348:21  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  405:21  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/music/page.tsx
+   444:6   warning  React Hook useEffect has a missing dependency: 'router'. Either include it or remove the dependency array                                                                                                                                                       react-hooks/exhaustive-deps
+   853:27  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  1001:33  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  1095:33  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/page.tsx
+  316:79  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  362:76  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  411:48  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/users/components/UserFiltersServer.tsx
+  50:27  warning  React Hook useCallback received a function whose dependencies are unknown. Pass an inline function instead  react-hooks/exhaustive-deps
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/contact/page.tsx
+  224:40  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/events/[id]/page.tsx
+  249:80  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                                 react/no-unescaped-entities
+  299:40  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                                 react/no-unescaped-entities
+  336:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  411:32  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                                 react/no-unescaped-entities
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/events/page.tsx
+  261:6   warning  React Hook useEffect has a missing dependency: 'generateVirtualOccurrences'. Either include it or remove the dependency array                                                                                                                                   react-hooks/exhaustive-deps
+  586:23  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  661:31  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                                 react/no-unescaped-entities
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/music/page.tsx
+  198:9  warning  The 'closePlayer' function makes the dependencies of useCallback Hook (at line 273) change on every render. To fix this, wrap the definition of 'closePlayer' in its own useCallback() Hook  react-hooks/exhaustive-deps
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/components/EventForm.tsx
+  406:56  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                      react/no-unescaped-entities
+  441:36  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                      react/no-unescaped-entities
+  580:6   warning  React Hook useEffect has a missing dependency: 'onImageFilesChange'. Either include it or remove the dependency array. If 'onImageFilesChange' changes too often, find the parent component that defines it and wrap that definition in useCallback  react-hooks/exhaustive-deps
+  689:71  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                      react/no-unescaped-entities
+  693:25  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                      react/no-unescaped-entities
+  736:42  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                      react/no-unescaped-entities
+  836:58  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                      react/no-unescaped-entities
+  927:30  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                      react/no-unescaped-entities
+  937:23  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                      react/no-unescaped-entities
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/components/EventPreview.tsx
+  19:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/3d/GameVisualizer.tsx
+  834:6  warning  React Hook useEffect has a missing dependency: 'gameData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  847:6  warning  React Hook useEffect has a missing dependency: 'gameData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/ErrorBoundary.tsx
+  53:54  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/admin/AddUserForm.tsx
+   55:6   warning  React Hook useEffect has a missing dependency: 'isEditMode'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  136:73  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                react/no-unescaped-entities
+  335:57  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                react/no-unescaped-entities
+  339:60  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                react/no-unescaped-entities
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/auth/AuthModal.tsx
+  141:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  149:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/ui/ErrorModal.tsx
+  42:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/ui/ImageCropModal.tsx
+  114:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  127:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  136:30  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                                 react/no-unescaped-entities
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/ui/ImageDropzone.tsx
+  103:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/ui/ImageLibraryModal.tsx
+  58:68  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                                 react/no-unescaped-entities
+  89:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/ui/MusicCard.tsx
+  227:6   warning  React Hook useEffect has a missing dependency: 'track.id'. Either include it or remove the dependency array                                                                                                                                                     react-hooks/exhaustive-deps
+  347:6   warning  React Hook useEffect has a missing dependency: 'pauseAndHideYoutube'. Either include it or remove the dependency array                                                                                                                                          react-hooks/exhaustive-deps
+  773:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/ui/MusicPlayerSystem.tsx
+  129:6  warning  React Hook useEffect has a missing dependency: 'startProgressInterval'. Either include it or remove the dependency array    react-hooks/exhaustive-deps
+  159:6  warning  React Hook useEffect has a missing dependency: 'restartProgressInterval'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  168:6  warning  React Hook useEffect has a missing dependency: 'startProgressInterval'. Either include it or remove the dependency array    react-hooks/exhaustive-deps
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/ui/SimpleMusicPlayer.tsx
+  54:6  warning  React Hook useEffect has a missing dependency: 'track'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/hooks/useGameManager.ts
+  1134:6  warning  React Hook useCallback has missing dependencies: 'gameState.isActive' and 'simpleUpdateGame'. Either include them or remove the dependency array      react-hooks/exhaustive-deps
+  1161:6  warning  React Hook useCallback has unnecessary dependencies: 'gameState.isActive' and 'simpleUpdateGame'. Either exclude them or remove the dependency array  react-hooks/exhaustive-deps
+
+✖ 100 problems (55 errors, 45 warnings)
+

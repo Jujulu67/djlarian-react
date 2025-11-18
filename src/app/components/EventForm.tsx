@@ -403,7 +403,7 @@ const EventForm: React.FC<EventFormProps> = ({
             </select>
             {futureOccurrences.length === 0 && formData.date && (
               <p className="text-amber-400 text-xs mt-1">
-                Pour voir les occurrences, définissez d'abord la date de première occurrence.
+                Pour voir les occurrences, définissez d&apos;abord la date de première occurrence.
               </p>
             )}
           </div>
@@ -438,7 +438,7 @@ const EventForm: React.FC<EventFormProps> = ({
           </Button>
         </div>
         <p className="text-gray-400 text-xs italic mt-2">
-          Les occurrences exclues n'apparaîtront pas dans le calendrier des événements.
+          Les occurrences exclues n&apos;apparaîtront pas dans le calendrier des événements.
         </p>
       </div>
     );
@@ -682,15 +682,15 @@ const EventForm: React.FC<EventFormProps> = ({
         ref={formRef}
       >
         <h2 className="text-2xl font-bold mb-6">
-          {isEditMode ? "Modifier l'événement" : 'Créer un nouvel événement'}
+          {isEditMode ? 'Modifier l&apos;événement' : 'Créer un nouvel événement'}
         </h2>
 
         <div>
-          <h3 className="text-xl font-semibold mb-4">Informations de l'événement</h3>
+          <h3 className="text-xl font-semibold mb-4">Informations de l&apos;événement</h3>
 
           <div className="input-group">
             <label htmlFor="title" className={labelBaseClass}>
-              Titre de l'événement <span className="text-red-500">*</span>
+              Titre de l&apos;événement <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -733,7 +733,7 @@ const EventForm: React.FC<EventFormProps> = ({
               />
             </div>
             <p className="text-gray-400 text-sm mt-1">
-              En activant cette option, l'événement sera automatiquement répété selon la
+              En activant cette option, l&apos;événement sera automatiquement répété selon la
               configuration définie ci-dessous.
             </p>
           </div>
@@ -833,7 +833,7 @@ const EventForm: React.FC<EventFormProps> = ({
               <div className="mt-6">
                 <label className={labelBaseClass}>Dates à exclure de la récurrence</label>
                 <p className="text-gray-400 text-sm mb-3">
-                  Sélectionnez les dates spécifiques où l'événement ne doit pas avoir lieu.
+                  Sélectionnez les dates spécifiques où l&apos;événement ne doit pas avoir lieu.
                 </p>
 
                 <RecurringDates formData={formData} setFormData={setFormData} />
@@ -924,8 +924,8 @@ const EventForm: React.FC<EventFormProps> = ({
               }}
             />
             <p className="text-gray-400 text-sm mt-1">
-              Choisissez si l'événement doit être visible publiquement, rester en brouillon, ou être
-              publié automatiquement à une date précise.
+              Choisissez si l&apos;événement doit être visible publiquement, rester en brouillon, ou
+              être publié automatiquement à une date précise.
             </p>
           </div>
         </div>
@@ -934,7 +934,7 @@ const EventForm: React.FC<EventFormProps> = ({
         <div className="space-y-6 pt-2">
           <h2 className={sectionHeaderClass}>
             <span className={sectionNumberClass}>2</span>
-            Image de l'événement
+            Image de l&apos;événement
           </h2>
 
           <div className="mb-6">
@@ -1086,7 +1086,7 @@ const EventForm: React.FC<EventFormProps> = ({
             type="submit"
             className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 shadow-lg shadow-purple-600/20 hover:shadow-purple-600/40"
           >
-            {isEditMode ? 'Mettre à jour' : "Créer l'événement"}
+            {isEditMode ? 'Mettre à jour' : 'Créer l&apos;événement'}
           </button>
         </div>
       </form>

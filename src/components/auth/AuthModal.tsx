@@ -7,6 +7,7 @@ import { signIn } from 'next-auth/react';
 import toast from 'react-hot-toast';
 import { Loader2 } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
+import Image from 'next/image';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -138,7 +139,13 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             disabled={isLoading}
             className="w-full py-3 px-4 bg-white text-gray-900 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <img src="/icons/google.svg" alt="Google" className="w-5 h-5" />
+            <Image
+              src="/icons/google.svg"
+              alt="Google"
+              width={20}
+              height={20}
+              className="w-5 h-5"
+            />
             Continuer avec Google
           </button>
           <button
@@ -146,7 +153,13 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             disabled={isLoading}
             className="w-full py-3 px-4 bg-[#9146FF] text-white rounded-lg flex items-center justify-center gap-2 hover:bg-[#7c2cff] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <img src="/icons/twitch.svg" alt="Twitch" className="w-5 h-5" />
+            <Image
+              src="/icons/twitch.svg"
+              alt="Twitch"
+              width={20}
+              height={20}
+              className="w-5 h-5"
+            />
             Continuer avec Twitch
           </button>
           <div className="relative">

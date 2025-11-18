@@ -583,11 +583,12 @@ export default function EventsPage() {
                     style={{ aspectRatio: '16/9' }}
                   >
                     {event.imageId ? (
-                      <img
+                      <Image
                         src={`/uploads/${event.imageId}.jpg`}
                         alt={event.title}
-                        className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
-                        style={{ objectPosition: '50% 25%' }}
+                        fill
+                        className="w-full h-full object-cover object-[50%_25%] group-hover:scale-105 transition-transform duration-500"
+                        unoptimized
                       />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-r from-gray-800 to-gray-700 flex items-center justify-center">
@@ -658,7 +659,7 @@ export default function EventsPage() {
                     <div className="flex justify-between items-center">
                       <span className="text-purple-400 group-hover:text-purple-300 transition-colors text-sm font-medium flex items-center">
                         <Eye className="w-4 h-4 mr-1.5" />
-                        Voir l'événement
+                        Voir l&apos;événement
                       </span>
 
                       {event.tickets?.buyUrl && !isPastEvent(event.startDate) && (

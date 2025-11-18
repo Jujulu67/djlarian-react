@@ -34,6 +34,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import ReactDOM from 'react-dom';
+import Image from 'next/image';
 // Utiliser un spinner temporaire en attendant l'installation du package
 // import { ClipLoader } from 'react-spinners';
 
@@ -818,11 +819,12 @@ export default function GestionImages({
                           </div>
                         )}
                         <div className="relative h-44 bg-gray-800/60 flex items-center justify-center overflow-hidden">
-                          <img
+                          <Image
                             src={image.url}
                             alt={image.name}
-                            loading="lazy"
+                            fill
                             className="h-full w-full object-cover transition-all duration-300 group-hover:scale-110"
+                            unoptimized
                           />
                           {group.ori && group.crop && (
                             <Badge
@@ -985,11 +987,12 @@ export default function GestionImages({
                     </div>
                   )}
                   <div className="relative h-44 bg-gray-800/60 flex items-center justify-center overflow-hidden">
-                    <img
+                    <Image
                       src={image.url}
                       alt={image.name}
-                      loading="lazy"
+                      fill
                       className="h-full w-full object-cover transition-all duration-300 group-hover:scale-110"
+                      unoptimized
                     />
                     {group.ori && group.crop && (
                       <Badge
@@ -1109,10 +1112,12 @@ export default function GestionImages({
                     className="relative w-full"
                     style={{ aspectRatio: '1 / 1', maxWidth: 400, height: 'auto' }}
                   >
-                    <img
+                    <Image
                       src={selectedGroup.crop.url}
                       alt={selectedGroup.crop.name}
+                      fill
                       className="absolute inset-0 w-full h-full rounded-lg object-cover border-2 border-purple-700 shadow-lg"
+                      unoptimized
                     />
                     <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2 bg-black/60 rounded-lg px-3 py-1 opacity-90 group-hover:opacity-100 transition-all z-10">
                       <Button
@@ -1139,20 +1144,15 @@ export default function GestionImages({
                     className="relative w-full flex items-center justify-center"
                     style={{ aspectRatio: '1 / 1', maxWidth: 400, height: 'auto' }}
                   >
-                    <img
+                    <Image
                       src={selectedGroup.ori.url}
                       alt={selectedGroup.ori.name}
-                      className="rounded-lg object-contain border-2 border-blue-700 shadow-lg cursor-zoom-in mx-auto"
-                      style={{
-                        maxHeight: '100%',
-                        maxWidth: '100%',
-                        height: '100%',
-                        width: 'auto',
-                        display: 'block',
-                      }}
+                      fill
+                      className="rounded-lg object-contain border-2 border-blue-700 shadow-lg cursor-zoom-in"
                       onClick={() => setShowOriginalFull(true)}
                       tabIndex={0}
                       aria-label="Afficher l'originale en grand"
+                      unoptimized
                     />
                     <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2 bg-black/60 rounded-lg px-3 py-1 opacity-90 group-hover:opacity-100 transition-all z-10">
                       <Button
@@ -1251,12 +1251,14 @@ export default function GestionImages({
           fullscreenContent
         >
           <div className="w-screen h-screen flex items-center justify-center p-0 m-0">
-            <img
+            <Image
               src={selectedGroup.ori.url}
               alt={selectedGroup.ori.name}
+              fill
               className="max-w-full max-h-full object-contain"
               style={{ display: 'block' }}
               aria-label="Image originale en grand"
+              unoptimized
             />
           </div>
         </Modal>
@@ -1381,10 +1383,13 @@ export default function GestionImages({
                       tabIndex={0}
                       aria-label={`Sélectionner comme maître ${image.name}`}
                     >
-                      <img
+                      <Image
                         src={image.url}
                         alt={image.name}
+                        width={400}
+                        height={128}
                         className="w-full h-32 object-cover rounded mb-2"
+                        unoptimized
                       />
                       <div className="text-xs text-gray-300 mb-1">{image.name}</div>
                       <div className="text-purple-300 font-mono text-xs mb-1">
