@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { listR2Files, deleteFromR2, isR2Configured } from '@/lib/r2';
 
-export const runtime = 'edge';
 
 // GET - Récupérer toutes les images
 export async function GET() {
