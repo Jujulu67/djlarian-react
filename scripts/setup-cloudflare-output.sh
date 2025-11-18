@@ -31,6 +31,12 @@ echo "📦 Copie des dépendances..."
 [ -d ".open-next/middleware" ] && cp -r .open-next/middleware "$CLOUDFLARE_DIR/" 2>/dev/null || true
 [ -d ".open-next/.build" ] && cp -r .open-next/.build "$CLOUDFLARE_DIR/" 2>/dev/null || true
 
+# Déplacer les assets _next à la racine pour que Cloudflare Pages les serve correctement
+if [ -d "$CLOUDFLARE_DIR/assets/_next" ]; then
+  echo "📦 Déplacement de _next à la racine pour servir les assets statiques..."
+  cp -r "$CLOUDFLARE_DIR/assets/_next" "$CLOUDFLARE_DIR/" 2>/dev/null || true
+fi
+
 # Créer _routes.json si il n'existe pas
 if [ ! -f "$CLOUDFLARE_DIR/_routes.json" ]; then
   echo "📝 Création de _routes.json..."
