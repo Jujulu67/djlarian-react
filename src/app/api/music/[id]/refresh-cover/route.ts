@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { v4 as uuidv4 } from 'uuid';
-import { writeFile } from 'fs/promises';
-import path from 'path';
 import * as cheerio from 'cheerio';
 import sharp from 'sharp';
+import { uploadToR2, isR2Configured, getR2PublicUrl } from '@/lib/r2';
+
+// Note: Pas de Edge Runtime car sharp nécessite des binaires natifs
+// TODO: Utiliser une alternative à sharp compatible Edge ou garder Node.js runtime
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -116,16 +118,29 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       .resize(800, 800)
       .jpeg({ quality: 90 })
       .toBuffer();
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-    await writeFile(path.join(uploadsDir, `${imageId}.jpg`), padded);
-    await writeFile(path.join(uploadsDir, `${imageId}-ori.jpg`), padded);
+    
+    // Sauvegarder dans R2 si configuré, sinon erreur
+    if (!isR2Configured) {
+      return NextResponse.json(
+        { error: 'R2 not configured. Please configure Cloudflare R2.' },
+        { status: 503 }
+      );
+    }
+
+    const key = `uploads/${imageId}.jpg`;
+    const originalKey = `uploads/${imageId}-ori.jpg`;
+    await uploadToR2(key, padded, 'image/jpeg');
+    await uploadToR2(originalKey, padded, 'image/jpeg');
+    
     // 4. Mettre à jour la track
     await prisma.track.update({ where: { id }, data: { imageId } });
+    
     // 5. Retourner la nouvelle cover
+    const r2CoverUrl = getR2PublicUrl(key);
     return NextResponse.json({
       success: true,
       imageId,
-      coverUrl: `/uploads/${imageId}.jpg`,
+      coverUrl: r2CoverUrl,
       source,
     });
   } catch (err) {

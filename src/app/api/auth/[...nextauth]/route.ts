@@ -1,22 +1,6 @@
-import NextAuth from 'next-auth';
-// Importer seulement authOptions
-import { authOptions } from '@/lib/auth/options';
+import { handlers } from '@/auth';
 
-// Supprimer les imports et la définition locale de authOptions
-/*
-import GoogleProvider from 'next-auth/providers/google';
-import TwitchProvider from 'next-auth/providers/twitch';
-import { PrismaAdapter } from '@auth/prisma-adapter';
-import { PrismaClient } from '@prisma/client';
-import CredentialsProvider from 'next-auth/providers/credentials';
-import bcrypt from 'bcryptjs';
+export const { GET, POST } = handlers;
 
-const globalForPrisma = ...;
-const prisma = ...;
-
-export const authOptions: AuthOptions = { ... };
-*/
-
-const handler = NextAuth(authOptions);
-
-export { handler as GET, handler as POST };
+// Note: Pas de Edge Runtime car Auth.js v5 avec Prisma/bcrypt nécessite Node.js
+// TODO: Migrer complètement vers Edge Runtime une fois que Auth.js v5 supporte mieux Edge

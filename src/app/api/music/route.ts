@@ -7,9 +7,11 @@ import { MusicType, MusicPlatform } from '@/lib/utils/types';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
-import { writeFile } from 'fs/promises';
-import path from 'path';
 import sharp from 'sharp';
+import { uploadToR2, isR2Configured, getR2PublicUrl } from '@/lib/r2';
+
+// Note: Pas de Edge Runtime car sharp nécessite des binaires natifs
+// TODO: Utiliser une alternative à sharp compatible Edge ou garder Node.js runtime
 
 // Define actual arrays for Zod enums from types
 const musicTypes: [MusicType, ...MusicType[]] = [
@@ -189,10 +191,17 @@ export async function POST(request: Request) {
         .resize(800, 800)
         .jpeg({ quality: 90 })
         .toBuffer();
-      const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-      await writeFile(path.join(uploadsDir, `${imageId}.jpg`), padded);
-      await writeFile(path.join(uploadsDir, `${imageId}-ori.jpg`), padded);
-      dataForPrisma.imageId = imageId;
+      // Sauvegarder dans R2 si configuré
+      if (isR2Configured) {
+        const key = `uploads/${imageId}.jpg`;
+        const originalKey = `uploads/${imageId}-ori.jpg`;
+        await uploadToR2(key, padded, 'image/jpeg');
+        await uploadToR2(originalKey, padded, 'image/jpeg');
+        dataForPrisma.imageId = imageId;
+      } else {
+        console.warn('[API MUSIC] R2 not configured, skipping image upload');
+        // On continue sans image si R2 n'est pas configuré
+      }
     } catch (err) {
       console.error('[API MUSIC] Erreur import thumbnail YouTube:', err);
       // On continue sans image si erreur
