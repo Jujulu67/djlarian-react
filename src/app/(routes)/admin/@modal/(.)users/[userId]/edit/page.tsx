@@ -4,9 +4,9 @@ import prisma from '@/lib/prisma';
 import { User } from '@prisma/client';
 
 interface EditUserModalPageProps {
-  params: {
+  params: Promise<{
     userId: string;
-  };
+  }>;
 }
 
 async function getUserData(userId: string): Promise<User | null> {

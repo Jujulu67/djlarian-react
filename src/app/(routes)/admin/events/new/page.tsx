@@ -44,7 +44,7 @@ const formatDateForInput = (dateString: string | null | undefined): string => {
   }
 };
 
-export default function EventFormPage({ params }: { params: { id?: string } }) {
+export default function EventFormPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const routeParams = useParams();

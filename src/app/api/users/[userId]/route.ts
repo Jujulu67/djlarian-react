@@ -15,10 +15,11 @@ const updateUserSchema = z
   })
   .strict();
 
-export async function PUT(request: Request, { params }: { params: { userId: string } }) {
-  console.log(`PUT /api/users/${params.userId} - Requête reçue`);
+export async function PUT(request: Request, { params }: { params: Promise<{ userId: string }> }) {
+  const resolvedParams = await params;
+  console.log(`PUT /api/users/${resolvedParams.userId} - Requête reçue`);
 
-  const userId = params.userId;
+  const userId = resolvedParams.userId;
   if (!userId) {
     console.error('PUT /api/users - userId manquant dans les params');
     return NextResponse.json({ error: 'ID utilisateur manquant.' }, { status: 400 });
@@ -106,9 +107,10 @@ export async function PUT(request: Request, { params }: { params: { userId: stri
 // Remplacer l'appel à fallback par la vraie logique DELETE
 export async function DELETE(
   request: Request, // request n'est pas utilisé mais requis par la signature
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
-  const userId = params.userId;
+  const resolvedParams = await params;
+  const userId = resolvedParams.userId;
   console.log(`DELETE /api/users/${userId} - Requête reçue`);
 
   if (!userId) {
@@ -150,10 +152,9 @@ export async function DELETE(
   }
 }
 
-// Fonction fallback pour gérer les autres méthodes
-export async function fallback(request: Request) {
-  console.log(`Fallback API Route ${request.method} ${request.url} - Méthode non autorisée`);
-  // La fallback ne doit plus gérer PUT ou DELETE
+// Fonction helper pour gérer les autres méthodes
+async function handleUnsupportedMethod(request: Request) {
+  console.log(`Unsupported API Route ${request.method} ${request.url} - Méthode non autorisée`);
   if (request.method !== 'GET' && request.method !== 'POST' && request.method !== 'PATCH') {
      return NextResponse.json(
        { error: `Méthode ${request.method} non autorisée.` },
@@ -163,9 +164,7 @@ export async function fallback(request: Request) {
   return NextResponse.json({ error: `Requête non gérée.` }, { status: 400 });
 }
 
-// Les exports pour GET, POST, PATCH appellent toujours fallback
-export async function GET(request: Request, { params }: { params: { userId: string } }) { return fallback(request); }
-export async function POST(request: Request, { params }: { params: { userId: string } }) { return fallback(request); }
-// Ne plus exporter DELETE explicitement puisqu'elle est définie au-dessus
-// export async function DELETE(request: Request, { params }: { params: { userId: string } }) { return fallback(request); }
-export async function PATCH(request: Request, { params }: { params: { userId: string } }) { return fallback(request); }
+// Les exports pour GET, POST, PATCH
+export async function GET(request: Request, { params }: { params: Promise<{ userId: string }> }) { return handleUnsupportedMethod(request); }
+export async function POST(request: Request, { params }: { params: Promise<{ userId: string }> }) { return handleUnsupportedMethod(request); }
+export async function PATCH(request: Request, { params }: { params: Promise<{ userId: string }> }) { return handleUnsupportedMethod(request); }

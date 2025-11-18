@@ -50,9 +50,10 @@ function generateRecurringDates(
 }
 
 // GET - Récupérer un événement spécifique par son ID
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = await params;
+    const resolvedParams = await params;
+    const { id } = resolvedParams;
     console.log(`Fetching event with ID: ${id}`);
 
     const session = await getServerSession(authOptions);
@@ -196,8 +197,9 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 }
 
 // PATCH - Mettre à jour un événement existant
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
-  const id = await Promise.resolve(params.id);
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
+    const id = resolvedParams.id;
   console.log(`--- PATCH /api/events/${id} ---`);
 
   try {
@@ -418,9 +420,10 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 }
 
 // DELETE - Supprimer un événement
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
   try {
-    const id = params.id;
+    const id = resolvedParams.id;
     const session = await getServerSession(authOptions);
 
     // Vérifier l'authentification et les autorisations

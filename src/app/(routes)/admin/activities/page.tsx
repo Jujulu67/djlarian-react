@@ -104,12 +104,12 @@ function ModernPagination({
 export default async function AdminActivitiesPage({
   searchParams,
 }: {
-  searchParams?: {
+  searchParams?: Promise<{
     // Rendre optionnel et objet standard
     type?: string;
     page?: string;
     limit?: string;
-  };
+  }>;
 }) {
   const session = await getServerSession(authOptions);
 
@@ -118,7 +118,7 @@ export default async function AdminActivitiesPage({
   }
 
   // Attendre d'abord searchParams lui-même avant d'accéder à ses propriétés
-  const resolvedSearchParams = await searchParams;
+  const resolvedSearchParams = searchParams ? await searchParams : {};
 
   // Utiliser les valeurs depuis l'objet résolu
   const filterType = resolvedSearchParams?.type;

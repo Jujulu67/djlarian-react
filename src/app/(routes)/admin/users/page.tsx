@@ -20,13 +20,13 @@ type UserData = {
 
 // Définir un type pour les paramètres
 type PageProps = {
-  searchParams?: {
+  searchParams?: Promise<{
     page?: string;
     limit?: string;
     search?: string;
     role?: string;
     isVip?: string;
-  };
+  }>;
 };
 
 export default async function AdminUsersPage({ searchParams }: PageProps) {
@@ -37,7 +37,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
   }
 
   // Suivre l'approche recommandée par Next.js pour résoudre searchParams
-  const resolvedParams = await Promise.resolve(searchParams || {});
+  const resolvedParams = searchParams ? await searchParams : {};
 
   // Extraire les valeurs de manière sûre à partir des params résolus
   const page = resolvedParams.page || '1';

@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth/options';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
+import { uploadToR2, isR2Configured, getR2PublicUrl } from '@/lib/r2';
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,6 +23,7 @@ export async function POST(request: NextRequest) {
     // LOGS DEBUG
     console.log('--- [API UPLOAD] ---');
     console.log('imageId:', imageId);
+    console.log('R2 configured:', isR2Configured);
     console.log(
       'croppedImage:',
       croppedImage ? `${croppedImage.size} bytes, type: ${croppedImage.type}` : croppedImage
@@ -42,66 +44,110 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Image recadrée manquante' }, { status: 400 });
     }
 
-    // Chemin de base pour les uploads
-    const publicPath = join(process.cwd(), 'public', 'uploads');
+    const croppedBytes = await croppedImage.arrayBuffer();
+    const croppedBuffer = Buffer.from(croppedBytes);
 
-    // S'assurer que le dossier d'upload existe
-    if (!existsSync(publicPath)) {
-      await mkdir(publicPath, { recursive: true });
-      console.log('[API UPLOAD] Dossier uploads créé:', publicPath);
-    }
+    // Utiliser R2 si configuré, sinon système de fichiers local
+    if (isR2Configured) {
+      // Upload vers R2
+      try {
+        const croppedKey = `uploads/${imageId}.jpg`;
+        const croppedUrl = await uploadToR2(croppedKey, croppedBuffer, 'image/jpeg');
+        console.log(`[API UPLOAD] Image recadrée uploadée vers R2: ${croppedUrl}`);
 
-    // 1. Sauvegarder l'image recadrée (<imageId>.jpg)
-    try {
-      const croppedBytes = await croppedImage.arrayBuffer();
-      const croppedBuffer = Buffer.from(croppedBytes);
-      const croppedFilename = `${imageId}.jpg`;
-      const croppedFilePath = join(publicPath, croppedFilename);
-      await writeFile(croppedFilePath, croppedBuffer);
-      console.log(`[API UPLOAD] Image recadrée sauvegardée: ${croppedFilePath}`);
-    } catch (error) {
-      console.error(`[API UPLOAD] Erreur sauvegarde image recadrée ${imageId}:`, error);
-      // Si le recadrage échoue, on considère l'upload comme échoué
-      throw new Error("Impossible de sauvegarder l'image recadrée.");
-    }
-
-    // 2. Sauvegarder l'image originale si fournie (<imageId>-ori.<ext>)
-    if (originalImage) {
-      // Vérifier type et taille de l'originale
-      if (!originalImage.type.startsWith('image/')) {
-        console.warn(
-          `[API UPLOAD] Type de fichier original invalide pour ${imageId}: ${originalImage.type}`
-        );
-      } else if (originalImage.size > 15 * 1024 * 1024) {
-        // Limite taille originale (ex: 15MB)
-        console.warn(
-          `[API UPLOAD] Fichier original trop volumineux pour ${imageId}: ${originalImage.size}`
-        );
-      } else {
-        try {
-          const originalBytes = await originalImage.arrayBuffer();
-          const originalBuffer = Buffer.from(originalBytes);
-          // Extraire l'extension du nom original, fallback sur .jpg
-          const extension = originalImage.name.includes('.')
-            ? originalImage.name.split('.').pop()
-            : 'jpg';
-          const originalFilename = `${imageId}-ori.${extension}`;
-          const originalFilePath = join(publicPath, originalFilename);
-          await writeFile(originalFilePath, originalBuffer);
-          console.log(`[API UPLOAD] Image originale sauvegardée: ${originalFilePath}`);
-        } catch (error) {
-          console.error(`[API UPLOAD] Erreur sauvegarde image originale ${imageId}:`, error);
-          // Ne pas bloquer la réponse si l'originale échoue mais le crop réussit
-          // Mais peut-être loguer plus spécifiquement ou informer l'admin
+        // Upload de l'image originale si fournie
+        if (originalImage && originalImage.type.startsWith('image/')) {
+          if (originalImage.size <= 15 * 1024 * 1024) {
+            try {
+              const originalBytes = await originalImage.arrayBuffer();
+              const originalBuffer = Buffer.from(originalBytes);
+              const extension = originalImage.name.includes('.')
+                ? originalImage.name.split('.').pop()
+                : 'jpg';
+              const originalKey = `uploads/${imageId}-ori.${extension}`;
+              const contentType = originalImage.type || `image/${extension}`;
+              await uploadToR2(originalKey, originalBuffer, contentType);
+              console.log(`[API UPLOAD] Image originale uploadée vers R2: ${originalKey}`);
+            } catch (error) {
+              console.error(`[API UPLOAD] Erreur upload image originale vers R2:`, error);
+              // Ne pas bloquer si l'originale échoue
+            }
+          } else {
+            console.warn(
+              `[API UPLOAD] Fichier original trop volumineux: ${originalImage.size} bytes`
+            );
+          }
         }
+
+        console.log(`[API UPLOAD] Upload R2 terminé pour imageId: ${imageId}`);
+        return NextResponse.json({
+          success: true,
+          imageId: imageId,
+          url: croppedUrl,
+        });
+      } catch (error) {
+        console.error(`[API UPLOAD] Erreur upload R2 pour ${imageId}:`, error);
+        throw new Error("Impossible d'uploader l'image vers R2.");
       }
     } else {
-      console.log(`[API UPLOAD] Pas de fichier original fourni pour ${imageId}`);
-    }
+      // Système de fichiers local (développement)
+      const publicPath = join(process.cwd(), 'public', 'uploads');
 
-    // LOG SUCCÈS FINAL
-    console.log(`[API UPLOAD] Upload terminé pour imageId: ${imageId}`);
-    return NextResponse.json({ success: true, imageId: imageId });
+      // S'assurer que le dossier d'upload existe
+      if (!existsSync(publicPath)) {
+        await mkdir(publicPath, { recursive: true });
+        console.log('[API UPLOAD] Dossier uploads créé:', publicPath);
+      }
+
+      // 1. Sauvegarder l'image recadrée (<imageId>.jpg)
+      try {
+        const croppedFilename = `${imageId}.jpg`;
+        const croppedFilePath = join(publicPath, croppedFilename);
+        await writeFile(croppedFilePath, croppedBuffer);
+        console.log(`[API UPLOAD] Image recadrée sauvegardée: ${croppedFilePath}`);
+      } catch (error) {
+        console.error(`[API UPLOAD] Erreur sauvegarde image recadrée ${imageId}:`, error);
+        throw new Error("Impossible de sauvegarder l'image recadrée.");
+      }
+
+      // 2. Sauvegarder l'image originale si fournie (<imageId>-ori.<ext>)
+      if (originalImage) {
+        if (!originalImage.type.startsWith('image/')) {
+          console.warn(
+            `[API UPLOAD] Type de fichier original invalide pour ${imageId}: ${originalImage.type}`
+          );
+        } else if (originalImage.size > 15 * 1024 * 1024) {
+          console.warn(
+            `[API UPLOAD] Fichier original trop volumineux pour ${imageId}: ${originalImage.size}`
+          );
+        } else {
+          try {
+            const originalBytes = await originalImage.arrayBuffer();
+            const originalBuffer = Buffer.from(originalBytes);
+            const extension = originalImage.name.includes('.')
+              ? originalImage.name.split('.').pop()
+              : 'jpg';
+            const originalFilename = `${imageId}-ori.${extension}`;
+            const originalFilePath = join(publicPath, originalFilename);
+            await writeFile(originalFilePath, originalBuffer);
+            console.log(`[API UPLOAD] Image originale sauvegardée: ${originalFilePath}`);
+          } catch (error) {
+            console.error(`[API UPLOAD] Erreur sauvegarde image originale ${imageId}:`, error);
+            // Ne pas bloquer la réponse si l'originale échoue
+          }
+        }
+      } else {
+        console.log(`[API UPLOAD] Pas de fichier original fourni pour ${imageId}`);
+      }
+
+      // LOG SUCCÈS FINAL
+      console.log(`[API UPLOAD] Upload terminé pour imageId: ${imageId}`);
+      return NextResponse.json({
+        success: true,
+        imageId: imageId,
+        url: `/uploads/${imageId}.jpg`,
+      });
+    }
   } catch (error) {
     console.error('[API UPLOAD] Erreur lors du téléchargement du fichier:', error);
     const message =
