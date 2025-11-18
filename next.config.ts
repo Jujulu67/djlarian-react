@@ -10,6 +10,8 @@ const nextConfig: NextConfig = {
     // Ignorer les erreurs TypeScript pendant le build (temporaire pour Cloudflare)
     ignoreBuildErrors: true,
   },
+  // Exclure les fichiers de test du build
+  pageExtensions: ['ts', 'tsx', 'js', 'jsx'],
 };
 
 export default nextConfig;
