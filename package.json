@@ -5,9 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "rm -rf .next/cache && next build && ./scripts/clean-cache.sh",
-    "pages:build": "rm -rf .next/cache .vercel && next build && npx opennextjs-cloudflare build && ./scripts/clean-cache.sh",
-    "pages:preview": "opennextjs-cloudflare preview",
-    "pages:deploy": "opennextjs-cloudflare deploy",
+    "pages:build": "rm -rf .next/cache .vercel && next build && npx @opennextjs/cloudflare build && ./scripts/clean-cache.sh",
+    "pages:preview": "npx @opennextjs/cloudflare preview",
+    "pages:deploy": "npx @opennextjs/cloudflare deploy",
     "build:clean": "rm -rf .next && npm run build",
     "start": "next start",
     "lint": "next lint",
