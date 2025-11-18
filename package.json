@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "rm -rf .next/cache && next build && npx @cloudflare/next-on-pages && ./scripts/clean-cache.sh",
+    "build": "rm -rf .next/cache && next build && npx @cloudflare/next-on-pages --skip-build && ./scripts/clean-cache.sh",
     "build:clean": "rm -rf .next && npm run build",
     "start": "next start",
     "lint": "next lint",
