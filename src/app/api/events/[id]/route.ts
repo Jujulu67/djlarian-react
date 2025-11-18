@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth/options';
+import { auth } from '@/auth';
+
 import prisma from '@/lib/prisma';
 // Réimporter Prisma pour JsonNull
 import { Prisma } from '@prisma/client';
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const { id } = resolvedParams;
     console.log(`Fetching event with ID: ${id}`);
 
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     const isAdmin = session?.user?.role === 'ADMIN';
 
     // Récupérer la date virtuelle depuis le paramètre de requête au lieu de l'ID
@@ -216,7 +216,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     console.log(`[API] Event with ID ${id} found, proceeding with update`);
 
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session?.user || session.user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
@@ -424,7 +424,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   const resolvedParams = await params;
   try {
     const id = resolvedParams.id;
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     // Vérifier l'authentification et les autorisations
     if (!session?.user || session.user.role !== 'ADMIN') {

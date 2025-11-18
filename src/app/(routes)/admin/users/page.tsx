@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth/options';
+import { auth } from '@/auth';
+
 import prisma from '@/lib/prisma';
 import { ChevronLeft, UserPlus } from 'lucide-react';
 import Link from 'next/link';
@@ -30,7 +30,7 @@ type PageProps = {
 };
 
 export default async function AdminUsersPage({ searchParams }: PageProps) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session?.user?.role || session.user.role !== 'ADMIN') {
     redirect('/');

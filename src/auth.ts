@@ -55,7 +55,9 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       },
     }),
   ],
-  ...authConfig,
+  callbacks: authConfig.callbacks,
+  session: authConfig.session,
+  pages: authConfig.pages,
   secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET,
   debug: false,
 });

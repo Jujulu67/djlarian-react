@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth/options';
+import { auth } from '@/auth';
+
 import { NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
@@ -30,7 +30,7 @@ function decodeHtmlEntities(text: string): string {
 
 // Fonction pour obtenir l'utilisateur connecté
 async function getUser() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   return session?.user;
 }
 

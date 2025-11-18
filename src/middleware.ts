@@ -1,22 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
 import { NextRequest } from 'next/server';
 
 export async function middleware(request: NextRequest) {
-  const token = await getToken({ req: request });
-  const isAdminRoute = request.nextUrl.pathname.startsWith('/admin');
-  const isApiRoute = request.nextUrl.pathname.startsWith('/api');
-
-  if (isAdminRoute && !isApiRoute) {
-    if (!token) {
-      return NextResponse.redirect(new URL('/', request.url));
-    }
-
-    if (token.role !== 'ADMIN') {
-      return NextResponse.redirect(new URL('/', request.url));
-    }
-  }
-
+  // Le middleware Edge ne peut pas utiliser auth() car il nécessite Prisma
+  // La vérification d'authentification se fait dans les pages/API routes
+  // qui utilisent auth() depuis @/auth
   return NextResponse.next();
 }
 
