@@ -22,11 +22,9 @@
 
 ### 🔗 Connection String
 
-```
-postgresql://neondb_owner:xxxxx@ep-quiet-glade-agrwubg6-pooler.c-2.eu-central-1.aws.neon.tech/neondb?channel_binding=require&sslmode=require
-```
+**⚠️ IMPORTANT** : La connection string est sauvegardée dans `.env.local` (non commité) et doit être configurée dans Cloudflare Pages.
 
-**⚠️ IMPORTANT** : Cette connection string est sauvegardée dans `.env.local` et sera utilisée pour Cloudflare Pages.
+**Où la trouver** : Neon Dashboard → votre projet → Connection String
 
 ---
 
