@@ -1,3 +1,4 @@
+export const runtime = 'edge';
 import AddUserModal from '@/components/admin/AddUserModal';
 import ErrorModal from '@/components/ui/ErrorModal';
 import prisma from '@/lib/prisma';
