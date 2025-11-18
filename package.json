@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "rm -rf .next/cache && next build && ./scripts/clean-cache.sh",
+    "build:clean": "rm -rf .next && npm run build",
     "start": "next start",
     "lint": "next lint",
     "lint:fix": "next lint --fix",
