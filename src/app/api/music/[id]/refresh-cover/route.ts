@@ -2,9 +2,9 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { v4 as uuidv4 } from 'uuid';
 import * as cheerio from 'cheerio';
-import { uploadToR2, isR2Configured, getR2PublicUrl } from '@/lib/r2';
+import { uploadToBlob, isBlobConfigured, getBlobPublicUrl } from '@/lib/blob';
 
-// Note: Utilisation directe des images sans traitement sharp pour compatibilité Edge Runtime
+// Refresh cover endpoint - Vercel (Node.js runtime natif)
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -96,7 +96,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     );
   }
 
-  // 3. Télécharger et sauvegarder l'image (sans traitement pour compatibilité Edge)
+  // 3. Télécharger et sauvegarder l'image
   try {
     const imageId = uuidv4();
     const response = await fetch(coverUrl);
@@ -108,28 +108,27 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const contentType = response.headers.get('content-type') || 'image/jpeg';
     const extension = contentType.includes('png') ? 'png' : 'jpg';
     
-    // Sauvegarder dans R2 si configuré, sinon erreur
-    if (!isR2Configured) {
+    // Sauvegarder dans Vercel Blob si configuré, sinon erreur
+    if (!isBlobConfigured) {
       return NextResponse.json(
-        { error: 'R2 not configured. Please configure Cloudflare R2.' },
+        { error: 'Vercel Blob not configured. Please configure BLOB_READ_WRITE_TOKEN in Vercel.' },
         { status: 503 }
       );
     }
 
     const key = `uploads/${imageId}.${extension}`;
     const originalKey = `uploads/${imageId}-ori.${extension}`;
-    await uploadToR2(key, buffer, contentType);
-    await uploadToR2(originalKey, buffer, contentType);
+    const blobUrl = await uploadToBlob(key, buffer, contentType);
+    await uploadToBlob(originalKey, buffer, contentType);
     
     // 4. Mettre à jour la track
     await prisma.track.update({ where: { id }, data: { imageId } });
     
-    // 5. Retourner la nouvelle cover
-    const r2CoverUrl = getR2PublicUrl(key);
+    // 5. Retourner la nouvelle cover (Vercel Blob retourne directement l'URL)
     return NextResponse.json({
       success: true,
       imageId,
-      coverUrl: r2CoverUrl,
+      coverUrl: blobUrl,
       source,
     });
   } catch (err) {

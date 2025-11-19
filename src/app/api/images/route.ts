@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { listR2Files, deleteFromR2, isR2Configured } from '@/lib/r2';
+import { listBlobFiles, deleteFromBlob, isBlobConfigured } from '@/lib/blob';
 
 
 // GET - Récupérer toutes les images
 export async function GET() {
   try {
-    // Utiliser R2 uniquement (Edge Runtime ne supporte pas fs)
-    if (!isR2Configured) {
-      console.warn('R2 not configured, returning empty images list');
+    // Utiliser Vercel Blob pour le stockage des fichiers
+    if (!isBlobConfigured) {
+      console.warn('Vercel Blob not configured, returning empty images list');
       return NextResponse.json({ images: [] }, { status: 200 });
     }
 
-    const images = await listR2Files();
+    const images = await listBlobFiles();
     return NextResponse.json({ images }, { status: 200 });
   } catch (error) {
     console.error('Erreur API:', error);
@@ -25,22 +25,22 @@ export async function GET() {
 // DELETE - Supprimer une image spécifique
 export async function DELETE(request: NextRequest) {
   try {
-    if (!isR2Configured) {
+    if (!isBlobConfigured) {
       return NextResponse.json(
-        { error: 'R2 not configured' },
+        { error: 'Vercel Blob not configured' },
         { status: 503 }
       );
     }
 
     const { searchParams } = new URL(request.url);
-    const filename = searchParams.get('filename');
+    const url = searchParams.get('url'); // Avec Vercel Blob, on utilise l'URL complète
 
-    if (!filename) {
-      return NextResponse.json({ error: 'Nom de fichier requis' }, { status: 400 });
+    if (!url) {
+      return NextResponse.json({ error: 'URL du fichier requise' }, { status: 400 });
     }
 
-    // Supprimer le fichier de R2
-    await deleteFromR2(filename);
+    // Supprimer le fichier de Vercel Blob
+    await deleteFromBlob(url);
 
     return NextResponse.json(
       { success: true, message: 'Image supprimée avec succès' },

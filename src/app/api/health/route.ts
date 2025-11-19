@@ -1,16 +1,14 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { isR2Configured } from '@/lib/r2';
+import { isBlobConfigured } from '@/lib/blob';
 
-// Note: Pas de Edge Runtime car Prisma nécessite Node.js
-// Le runtime sera automatiquement détecté par OpenNext
+// Health check endpoint - Vercel (Node.js runtime)
 
 export async function GET() {
   console.log('[HEALTH CHECK] Début du health check');
   console.log('[HEALTH CHECK] Environment:', {
     NODE_ENV: process.env.NODE_ENV,
     NEXT_RUNTIME: process.env.NEXT_RUNTIME,
-    CF_PAGES: process.env.CF_PAGES,
     DATABASE_URL: process.env.DATABASE_URL ? `set (${process.env.DATABASE_URL.length} chars)` : 'not_set',
   });
 
@@ -22,14 +20,13 @@ export async function GET() {
         status: 'unknown',
         message: '',
       },
-      r2: {
-        status: isR2Configured ? 'configured' : 'not_configured',
-        message: isR2Configured ? 'R2 is configured' : 'R2 is not configured',
+      blob: {
+        status: isBlobConfigured ? 'configured' : 'not_configured',
+        message: isBlobConfigured ? 'Vercel Blob is configured' : 'Vercel Blob is not configured',
       },
       environment: {
         nodeEnv: process.env.NODE_ENV || 'not_set',
-        runtime: process.env.NEXT_RUNTIME || 'unknown',
-        cfPages: process.env.CF_PAGES || 'not_set',
+        runtime: process.env.NEXT_RUNTIME || 'nodejs',
       },
     },
   };
@@ -68,24 +65,18 @@ export async function GET() {
       fullError: JSON.stringify(error, Object.getOwnPropertyNames(error)),
     });
     
-    // Vérifier si l'erreur vient de fs.readdir
-    if (errorMessage.includes('fs.readdir') || errorMessage.includes('readdir')) {
-      console.error('[HEALTH CHECK] ⚠️ Erreur fs.readdir détectée !');
-      console.error('[HEALTH CHECK] Cela indique que Prisma essaie d\'utiliser fs.readdir');
-      console.error('[HEALTH CHECK] Vérifier que Prisma est correctement externalisé dans le build');
-    }
   }
 
-  // Test R2 connection (if configured)
-  if (isR2Configured) {
+  // Test Vercel Blob connection (if configured)
+  if (isBlobConfigured) {
     try {
-      // Just check if R2 client is available, don't make actual request
-      health.checks.r2.status = 'available';
-      health.checks.r2.message = 'R2 client is available';
+      // Just check if Blob is configured, don't make actual request
+      health.checks.blob.status = 'available';
+      health.checks.blob.message = 'Vercel Blob is available';
     } catch (error) {
-      health.checks.r2.status = 'error';
-      health.checks.r2.message =
-        error instanceof Error ? error.message : 'Unknown R2 error';
+      health.checks.blob.status = 'error';
+      health.checks.blob.message =
+        error instanceof Error ? error.message : 'Unknown Blob error';
       health.status = 'degraded';
     }
   }

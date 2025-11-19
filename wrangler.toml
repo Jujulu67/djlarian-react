@@ -1,9 +1,0 @@
-name = "djlarian-react"
-compatibility_date = "2024-11-18"
-compatibility_flags = ["nodejs_compat"]
-
-# Configuration pour Cloudflare Pages
-pages_build_output_dir = ".open-next/cloudflare"
-
-# Configuration pour les polyfills Node.js
-# Note: nodejs_compat fournit déjà certains polyfills, mais pas tous

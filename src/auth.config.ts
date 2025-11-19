@@ -2,7 +2,7 @@ import type { NextAuthConfig } from 'next-auth';
 import Google from 'next-auth/providers/google';
 import Twitch from 'next-auth/providers/twitch';
 
-// Configuration compatible Edge Runtime (sans bcrypt/prisma)
+// Auth.js configuration - Vercel (Node.js runtime natif)
 export const authConfig = {
   providers: [
     Google({

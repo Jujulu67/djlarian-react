@@ -1,0 +1,146 @@
+// Vercel Blob Storage - Remplacement de R2
+// Plan gratuit : 5 GB de stockage, 100 GB de bande passante/mois
+import { put, del, list, head } from '@vercel/blob';
+
+// Vérifier si Vercel Blob est configuré
+// Sur Vercel, BLOB_READ_WRITE_TOKEN est automatiquement disponible
+const isBlobConfigured = !!process.env.BLOB_READ_WRITE_TOKEN;
+
+export { isBlobConfigured };
+
+/**
+ * Upload un fichier vers Vercel Blob
+ */
+export const uploadToBlob = async (
+  key: string,
+  buffer: Buffer,
+  contentType: string = 'image/jpeg'
+): Promise<string> => {
+  if (!isBlobConfigured) {
+    throw new Error('Vercel Blob not configured. BLOB_READ_WRITE_TOKEN is required.');
+  }
+
+  try {
+    const blob = await put(key, buffer, {
+      access: 'public',
+      contentType,
+    });
+
+    return blob.url;
+  } catch (error) {
+    console.error('[BLOB] Erreur lors de l\'upload:', error);
+    throw error;
+  }
+};
+
+/**
+ * Supprimer un fichier de Vercel Blob
+ */
+export const deleteFromBlob = async (url: string): Promise<void> => {
+  if (!isBlobConfigured) {
+    throw new Error('Vercel Blob not configured. BLOB_READ_WRITE_TOKEN is required.');
+  }
+
+  try {
+    await del(url);
+  } catch (error) {
+    console.error('[BLOB] Erreur lors de la suppression:', error);
+    throw error;
+  }
+};
+
+/**
+ * Obtenir l'URL publique d'un fichier Blob
+ * Note: Avec Vercel Blob, l'URL est retournée directement par put()
+ * Cette fonction est gardée pour compatibilité avec l'ancien code
+ */
+export const getBlobPublicUrl = (url: string): string => {
+  // Si c'est déjà une URL complète, la retourner telle quelle
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  // Sinon, c'est probablement une clé, on retourne une URL relative
+  // (normalement ça ne devrait pas arriver avec Vercel Blob)
+  return url;
+};
+
+/**
+ * Lister tous les fichiers dans Vercel Blob
+ * Note: Vercel Blob ne supporte pas directement le listing par préfixe
+ * On utilise une approche différente si nécessaire
+ */
+export const listBlobFiles = async (prefix: string = 'uploads/'): Promise<Array<{
+  id: string;
+  name: string;
+  path: string;
+  type: string;
+  size: number;
+  lastModified: string;
+}>> => {
+  if (!isBlobConfigured) {
+    return [];
+  }
+
+  try {
+    // Vercel Blob list() retourne tous les blobs avec pagination
+    const { blobs } = await list({
+      prefix,
+    });
+
+    // Filtrer pour ne garder que les images
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    const imageFiles = blobs.filter((blob) => {
+      const ext = blob.pathname.toLowerCase().substring(blob.pathname.lastIndexOf('.'));
+      return imageExtensions.includes(ext);
+    });
+
+    // Créer un objet pour chaque image avec des métadonnées
+    return imageFiles.map((blob) => {
+      const filename = blob.pathname;
+      
+      // Déterminer le type d'image basé sur le nom du fichier
+      let type = 'Autre';
+      if (filename.includes('cover')) type = 'Couverture';
+      else if (filename.includes('event')) type = 'Événement';
+      else if (filename.includes('staff')) type = 'Staff';
+
+      return {
+        id: filename,
+        name: filename,
+        path: blob.url,
+        type,
+        size: blob.size || 0,
+        lastModified: blob.uploadedAt?.toISOString() || new Date().toISOString(),
+      };
+    });
+  } catch (error) {
+    console.error('[BLOB] Erreur lors de la liste des fichiers:', error);
+    return [];
+  }
+};
+
+/**
+ * Obtenir les métadonnées d'un fichier Blob
+ */
+export const getBlobMetadata = async (url: string): Promise<{
+  size: number;
+  uploadedAt: Date;
+  contentType: string;
+} | null> => {
+  if (!isBlobConfigured) {
+    return null;
+  }
+
+  try {
+    const blob = await head(url);
+    return {
+      size: blob.size,
+      uploadedAt: blob.uploadedAt,
+      contentType: blob.contentType || 'application/octet-stream',
+    };
+  } catch (error) {
+    console.error('[BLOB] Erreur lors de la récupération des métadonnées:', error);
+    return null;
+  }
+};
+
