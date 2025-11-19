@@ -93,8 +93,9 @@ if (typeof globalThis !== "undefined") {
       return original(name);
     };
   }
+}
 
-  // Polyfill pour node:os
+// Polyfill pour node:os
 `;
     
     // Injecter les polyfills au début
