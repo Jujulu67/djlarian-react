@@ -250,6 +250,52 @@ if (isCloudflare && typeof globalThis !== 'undefined') {
     console.log('[POLYFILLS] Impossible de créer un proxy pour fs:', e);
   }
 
+  // SOLUTION ULTIME: Intercepter require() pour patcher node:fs AVANT qu'il ne soit chargé
+  // Cela intercepte les imports de node:fs avant qu'unenv ne les transforme
+  try {
+    // @ts-ignore
+    if (typeof require !== 'undefined' && typeof Module !== 'undefined') {
+      // @ts-ignore
+      const Module = require('module');
+      // @ts-ignore
+      const originalRequire = Module._load;
+      // @ts-ignore
+      Module._load = function(id: string, parent: any) {
+        // Intercepter les imports de node:fs ou fs
+        if (id === 'node:fs' || id === 'fs') {
+          console.log('[POLYFILLS] Interception de require("' + id + '")');
+          return fsWrapper;
+        }
+        // @ts-ignore
+        return originalRequire.apply(this, arguments);
+      };
+      console.log('[POLYFILLS] Module._load patché pour intercepter node:fs');
+    }
+  } catch (e) {
+    console.log('[POLYFILLS] Impossible de patcher Module._load:', e);
+  }
+
+  // SOLUTION ULTIME 2: Patcher Object.defineProperty pour intercepter les définitions de fs.readdir
+  try {
+    const originalDefineProperty = Object.defineProperty;
+    // @ts-ignore - On patche Object.defineProperty pour intercepter fs.readdir
+    Object.defineProperty = function(obj: any, prop: string | symbol, descriptor: PropertyDescriptor): any {
+      // Si on essaie de définir fs.readdir, utiliser notre polyfill
+      if (prop === 'readdir' && (obj === (globalThis as any).fs || obj?.constructor?.name === 'fs')) {
+        console.log('[POLYFILLS] Interception de Object.defineProperty pour fs.readdir');
+        return originalDefineProperty.call(this, obj, prop, {
+          ...descriptor,
+          value: fsReaddirPolyfill,
+          get: () => fsReaddirPolyfill,
+        });
+      }
+      return originalDefineProperty.apply(this, arguments as any);
+    };
+    console.log('[POLYFILLS] Object.defineProperty patché pour intercepter fs.readdir');
+  } catch (e) {
+    console.log('[POLYFILLS] Impossible de patcher Object.defineProperty:', e);
+  }
+
   console.log('[POLYFILLS] Polyfills Cloudflare initialisés pour node:os et fs.readdir');
 }
 

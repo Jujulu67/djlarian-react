@@ -8,6 +8,7 @@
     "pages:build": "rm -rf .next/cache .vercel && next build && npx @opennextjs/cloudflare build && ./scripts/setup-cloudflare-output.sh && ./scripts/clean-cache.sh",
     "pages:preview": "npx @opennextjs/cloudflare preview",
     "pages:deploy": "npx @opennextjs/cloudflare deploy",
+    "pages:test": "./scripts/test-cloudflare-local.sh",
     "build:clean": "rm -rf .next && npm run build",
     "start": "next start",
     "lint": "next lint",
