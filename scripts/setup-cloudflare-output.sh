@@ -59,7 +59,7 @@ if [ -f ".open-next/worker.js" ]; then
     
     const content = fs.readFileSync(workerFile, 'utf8');
     
-    // Polyfills à injecter au début
+    // Polyfills à injecter au début - TOUT dans un seul bloc
     const polyfills = `// ========================================
 // Polyfills pour Prisma Client dans Cloudflare Workers
 // Ces polyfills doivent être chargés AVANT Prisma
@@ -93,9 +93,79 @@ if (typeof globalThis !== "undefined") {
       return original(name);
     };
   }
-}
 
-// Polyfill pour node:os
+  // Polyfill pour node:os
+  if (!globalThis.os) {
+    globalThis.os = {
+      platform: () => "cloudflare",
+      arch: () => "wasm32",
+      type: () => "Cloudflare Workers",
+      release: () => "",
+      homedir: () => "/",
+      tmpdir: () => "/tmp",
+      hostname: () => "cloudflare-worker",
+      cpus: () => [],
+      totalmem: () => 0,
+      freemem: () => 0,
+      networkInterfaces: () => ({}),
+      getPriority: () => 0,
+      setPriority: () => {},
+      userInfo: () => ({ username: "", uid: 0, gid: 0, shell: "" }),
+      loadavg: () => [0, 0, 0],
+      uptime: () => 0,
+      endianness: () => "LE",
+      EOL: "\\n",
+      constants: {}
+    };
+  }
+
+  // Polyfill pour fs.readdir (retourne un tableau vide)
+  // IMPORTANT: Ce polyfill doit être disponible avant que Prisma ne soit chargé
+  if (!globalThis.fs) {
+    globalThis.fs = {};
+  }
+  const fsReaddirImpl = (path, options, callback) => {
+    if (typeof options === "function") {
+      callback = options;
+      options = {};
+    }
+    if (callback) {
+      callback(null, []);
+    } else {
+      return Promise.resolve([]);
+    }
+  };
+  globalThis.fs.readdir = fsReaddirImpl;
+  if (!globalThis.fs.promises) {
+    globalThis.fs.promises = {};
+  }
+  globalThis.fs.promises.readdir = () => Promise.resolve([]);
+
+  // SOLUTION CRITIQUE: Patcher unenv de manière agressive
+  // unenv est le système de polyfills utilisé par Cloudflare Workers
+  // Il faut patcher fs.readdir AVANT que Prisma ne soit chargé
+  const patchUnenv = () => {
+    try {
+      if (globalThis.unenv && typeof globalThis.unenv === "object") {
+        if (!globalThis.unenv.fs) {
+          globalThis.unenv.fs = globalThis.fs;
+        } else {
+          globalThis.unenv.fs.readdir = fsReaddirImpl;
+          if (!globalThis.unenv.fs.promises) {
+            globalThis.unenv.fs.promises = {};
+          }
+          globalThis.unenv.fs.promises.readdir = () => Promise.resolve([]);
+        }
+        if (!globalThis.unenv.os) {
+          globalThis.unenv.os = globalThis.os;
+        }
+      }
+    } catch (e) {
+      // Ignorer
+    }
+  };
+  patchUnenv();
+}
 `;
     
     // Injecter les polyfills au début
@@ -104,85 +174,8 @@ if (typeof globalThis !== "undefined") {
     console.log('✅ Polyfills injectés avec Node.js');
 NODE_INJECT
   
-  # Continuer avec awk pour le reste
-  awk '
-    BEGIN {
-      # Polyfill pour node:os (suite)
-      print "  if (!globalThis.os) {"
-      print "    globalThis.os = {"
-      print "      platform: () => \"cloudflare\","
-      print "      arch: () => \"wasm32\","
-      print "      type: () => \"Cloudflare Workers\","
-      print "      release: () => \"\","
-      print "      homedir: () => \"/\","
-      print "      tmpdir: () => \"/tmp\","
-      print "      hostname: () => \"cloudflare-worker\","
-      print "      cpus: () => [],"
-      print "      totalmem: () => 0,"
-      print "      freemem: () => 0,"
-      print "      networkInterfaces: () => ({}),"
-      print "      getPriority: () => 0,"
-      print "      setPriority: () => {},"
-      print "      userInfo: () => ({ username: \"\", uid: 0, gid: 0, shell: \"\" }),"
-      print "      loadavg: () => [0, 0, 0],"
-      print "      uptime: () => 0,"
-      print "      endianness: () => \"LE\","
-      print "      EOL: \"\\n\","
-      print "      constants: {}"
-      print "    };"
-      print "  }"
-      print ""
-      print "  // Polyfill pour fs.readdir (retourne un tableau vide)"
-      print "  // IMPORTANT: Ce polyfill doit être disponible avant que Prisma ne soit chargé"
-      print "  if (!globalThis.fs) {"
-      print "    globalThis.fs = {};"
-      print "  }"
-      print "  const fsReaddirImpl = (path, options, callback) => {"
-      print "    if (typeof options === \"function\") {"
-      print "      callback = options;"
-      print "      options = {};"
-      print "    }"
-      print "    if (callback) {"
-      print "      callback(null, []);"
-      print "    } else {"
-      print "      return Promise.resolve([]);"
-      print "    }"
-      print "  };"
-      print "  globalThis.fs.readdir = fsReaddirImpl;"
-      print "  if (!globalThis.fs.promises) {"
-      print "    globalThis.fs.promises = {};"
-      print "  }"
-      print "  globalThis.fs.promises.readdir = () => Promise.resolve([]);"
-      print ""
-      print "  // SOLUTION CRITIQUE: Patcher unenv de manière agressive"
-      print "  // unenv est le système de polyfills utilisé par Cloudflare Workers"
-      print "  // Il faut patcher fs.readdir AVANT que Prisma ne soit chargé"
-      print "  const patchUnenv = () => {"
-      print "    try {"
-      print "      if (globalThis.unenv && typeof globalThis.unenv === \"object\") {"
-      print "        if (!globalThis.unenv.fs) {"
-      print "          globalThis.unenv.fs = globalThis.fs;"
-      print "        } else {"
-      print "          globalThis.unenv.fs.readdir = fsReaddirImpl;"
-      print "          if (!globalThis.unenv.fs.promises) {"
-      print "            globalThis.unenv.fs.promises = {};"
-      print "          }"
-      print "          globalThis.unenv.fs.promises.readdir = () => Promise.resolve([]);"
-      print "        }"
-      print "        if (!globalThis.unenv.os) {"
-      print "          globalThis.unenv.os = globalThis.os;"
-      print "        }"
-      print "      }"
-      print "    } catch (e) {"
-      print "      // Ignorer"
-      print "    }"
-      print "  };"
-      print "  patchUnenv();"
-      print "}"
-      print ""
-    }
-    { print }
-  ' "$CLOUDFLARE_DIR/_worker.js.tmp2" > "$CLOUDFLARE_DIR/_worker.js"
+  # Copier le fichier directement (plus besoin d'awk)
+  cp "$CLOUDFLARE_DIR/_worker.js.tmp2" "$CLOUDFLARE_DIR/_worker.js"
   rm -f "$CLOUDFLARE_DIR/_worker.js.tmp" "$CLOUDFLARE_DIR/_worker.js.tmp2"
   
   # SOLUTION RADICALE: Patcher directement le code bundlé pour remplacer createNotImplementedError
