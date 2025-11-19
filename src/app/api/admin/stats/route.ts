@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Lire la période depuis les paramètres de requête, défaut sur 'daily'
-    const searchParams = request.nextUrl.searchParams;
+    const { searchParams } = request.nextUrl;
     const period = (searchParams.get('period') as Period) || 'daily';
 
     // Calculer la date de début en fonction de la période
@@ -35,43 +35,39 @@ export async function GET(request: NextRequest) {
         startDate = subDays(now, 30); // 30 derniers jours (ou startOfMonth(now) si préféré)
         break;
     }
-    const formattedStartDate = startDate.toISOString();
+    // Paralléliser toutes les requêtes pour améliorer les performances
+    const [usersCount, recentUsersResult, eventsCount, recentEvents, tracksCount, recentTracks] =
+      await Promise.all([
+        // Nombre total d'utilisateurs
+        prisma.user.count(),
+        // Utilisateurs créés depuis startDate (requête SQL optimisée)
+        prisma.$queryRaw<Array<{ count: bigint }>>`
+        SELECT COUNT(*) as count FROM "User" 
+        WHERE "createdAt" >= ${startDate} 
+      `,
+        // Nombre total d'événements
+        prisma.event.count(),
+        // Événements créés depuis startDate
+        prisma.event.count({
+          where: {
+            createdAt: {
+              gte: startDate,
+            },
+          },
+        }),
+        // Nombre total de morceaux
+        prisma.track.count(),
+        // Morceaux créés depuis startDate
+        prisma.track.count({
+          where: {
+            createdAt: {
+              gte: startDate,
+            },
+          },
+        }),
+      ]);
 
-    // Obtenir le nombre total d'utilisateurs
-    const usersCount = await prisma.user.count();
-
-    // Utilisateurs créés depuis startDate
-    // Utiliser $queryRaw pour exécuter une requête SQL directe
-    // Passer l'objet Date directement, Prisma le gère
-    const recentUsersResult = await prisma.$queryRaw`
-      SELECT COUNT(*) as count FROM "User" 
-      WHERE "createdAt" >= ${startDate} 
-    `;
-    const recentUsers = Number((recentUsersResult as any)[0]?.count || 0);
-
-    // Obtenir le nombre total d'événements
-    const eventsCount = await prisma.event.count();
-
-    // Événements créés depuis startDate
-    const recentEvents = await prisma.event.count({
-      where: {
-        createdAt: {
-          gte: startDate, // Utiliser l'objet Date ici
-        },
-      },
-    });
-
-    // Obtenir le nombre total de morceaux
-    const tracksCount = await prisma.track.count();
-
-    // Morceaux créés depuis startDate
-    const recentTracks = await prisma.track.count({
-      where: {
-        createdAt: {
-          gte: startDate, // Utiliser l'objet Date ici
-        },
-      },
-    });
+    const recentUsers = Number(recentUsersResult[0]?.count || 0);
 
     // Retourner les statistiques
     return NextResponse.json({

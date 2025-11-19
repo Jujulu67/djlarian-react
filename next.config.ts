@@ -33,6 +33,9 @@ const nextConfig: NextConfig = {
         hostname: '*.public.blob.vercel-storage.com', // Vercel Blob Storage
       },
     ],
+    // Optimisations d'images pour la production
+    formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 60,
   },
   // Configuration Turbopack pour Next.js 16
   // Turbopack est activé par défaut, on ajoute une config vide pour éviter les conflits
@@ -46,6 +49,11 @@ const nextConfig: NextConfig = {
   },
   // Déplacé de experimental à la racine de la configuration
   skipTrailingSlashRedirect: true,
+  // Optimisations de production
+  poweredByHeader: false, // Retirer le header X-Powered-By pour la sécurité
+  compress: true, // Activer la compression gzip
+  // Optimisations de build
+  swcMinify: true, // Utiliser SWC pour la minification (plus rapide)
 };
 
 export default nextConfig;
