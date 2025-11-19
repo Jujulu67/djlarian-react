@@ -1,23 +1,39 @@
 # 📊 Comment Voir les Logs Cloudflare Pages
 
-## 🔍 Méthode 1 : Dashboard Cloudflare Pages (Realtime Logs)
+## 🔍 Méthode 1 : Via "View details" d'un Déploiement (Le Plus Simple)
 
 ### Étapes :
 
-1. **Aller sur Cloudflare Dashboard**
-   - URL : https://dash.cloudflare.com/
-   - Se connecter avec votre compte
+1. **Dans la liste des déploiements** (onglet "Deployments")
+2. **Cliquer sur "View details"** d'un déploiement récent (celui avec le checkmark vert)
+3. **Dans la page de détails**, vous verrez les logs de build et runtime
 
-2. **Naviguer vers Pages**
-   - Dans le menu de gauche, cliquer sur **"Workers & Pages"**
-   - Puis cliquer sur **"Pages"**
+## 🔍 Méthode 2 : Via Wrangler CLI (Recommandé pour les Logs Runtime)
 
-3. **Sélectionner votre projet**
-   - Cliquer sur **"djlarian-react"**
+### Étapes :
 
-4. **Accéder aux Logs**
-   - Cliquer sur l'onglet **"Logs"** ou **"Real-time Logs"**
-   - Vous verrez les logs en temps réel des requêtes
+1. **Installer Wrangler** (si pas déjà fait) :
+   ```bash
+   npm install -g wrangler
+   ```
+
+2. **Se connecter** :
+   ```bash
+   wrangler login
+   ```
+
+3. **Voir les logs en temps réel** :
+   ```bash
+   wrangler pages deployment tail --project-name=djlarian-react
+   ```
+
+Cette méthode affichera **tous les logs en temps réel** dans votre terminal, y compris les `console.log()` et `console.error()`.
+
+## 🔍 Méthode 3 : Via "Analytics & logs" dans le Menu de Gauche
+
+1. **Dans le menu de gauche**, chercher **"Analytics & logs"** (sous "BUILD")
+2. Cliquer dessus
+3. Sélectionner votre projet Pages
 
 ### Ce que vous verrez :
 

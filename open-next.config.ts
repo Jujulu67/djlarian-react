@@ -16,7 +16,7 @@ export default {
       '@neondatabase/serverless',
     ],
   },
-  edgeExternals: ['node:crypto'],
+  edgeExternals: ['node:crypto', 'node:os', 'node:fs', 'node:path'],
   middleware: {
     external: true,
     override: {
