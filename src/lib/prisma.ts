@@ -39,6 +39,27 @@ function createPrismaClient() {
     console.log('[PRISMA INIT] Utilisation de Prisma Client avec adaptateur Neon pour Edge Runtime');
     
     try {
+      // SOLUTION CRITIQUE: Patcher getCurrentBinaryTarget AVANT de charger Prisma
+      // Prisma essaie d'utiliser fs.readdir pour détecter les binaires même avec engineType = "library"
+      // Il faut patcher cette fonction AVANT qu'elle ne soit appelée
+      try {
+        // @ts-ignore
+        const prismaRuntime = require('@prisma/client/runtime/library');
+        if (prismaRuntime && prismaRuntime.getCurrentBinaryTarget) {
+          const originalGetCurrentBinaryTarget = prismaRuntime.getCurrentBinaryTarget;
+          // @ts-ignore
+          prismaRuntime.getCurrentBinaryTarget = async () => {
+            // Retourner un target qui n'existe pas pour forcer l'utilisation de l'adaptateur
+            // et éviter l'appel à fs.readdir
+            console.log('[PRISMA INIT] getCurrentBinaryTarget patché pour éviter fs.readdir');
+            return 'unknown';
+          };
+          console.log('[PRISMA INIT] getCurrentBinaryTarget patché AVANT la création du client');
+        }
+      } catch (patchError) {
+        console.log('[PRISMA INIT] Impossible de patcher getCurrentBinaryTarget (peut-être déjà bundlé):', patchError);
+      }
+      
       // Utiliser require pour les imports synchrones (compatible avec Next.js et Cloudflare)
       const { Pool, neonConfig } = require('@neondatabase/serverless');
       const { PrismaNeon } = require('@prisma/adapter-neon');
