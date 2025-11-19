@@ -2,9 +2,10 @@
 
 import React from 'react';
 import RhythmCatcher from '@/components/RhythmCatcher';
+import { logger } from '@/lib/logger';
 
 const MusicVisualizer: React.FC = () => {
-  console.log('Redirecting to RhythmCatcher game');
+  logger.debug('Redirecting to RhythmCatcher game');
 
   return (
     <div className="music-visualizer w-full h-full">

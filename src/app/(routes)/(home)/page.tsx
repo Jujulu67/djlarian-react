@@ -109,6 +109,7 @@ export default function HomePage() {
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ['start start', 'end start'],
+    layoutEffect: false, // Désactiver le layout effect pour éviter les warnings
   });
 
   const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
@@ -262,7 +263,7 @@ export default function HomePage() {
     const currentConfig = config || defaultConfigs.homepage;
 
     return (
-      <div ref={containerRef} className="min-h-screen relative">
+      <div ref={containerRef} className="min-h-screen relative" style={{ position: 'relative' }}>
         {/* Background Video */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black z-10" />

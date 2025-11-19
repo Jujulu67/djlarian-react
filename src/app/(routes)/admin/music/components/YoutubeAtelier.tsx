@@ -7,6 +7,7 @@ import { extractInfoFromTitle, emptyTrackForm, MUSIC_TYPES } from '@/lib/utils/m
 import Modal from '@/components/ui/Modal';
 import { DateTimeField } from '@/components/ui/DateTimeField';
 import Image from 'next/image';
+import { logger } from '@/lib/logger';
 
 /* -------------------------------------------------------------------------- */
 /*  Types locaux                                                              */
@@ -63,7 +64,7 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
       if (res.ok) setYoutubeVideos(data.videos || []);
       else setYoutubeError(`Erreur: ${data.error || 'Impossible de récupérer les vidéos'}`);
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       setYoutubeError("Une erreur s'est produite lors de la récupération des vidéos");
     } finally {
       setIsLoadingVideos(false);
@@ -150,7 +151,7 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
       setIsSubmitting(false);
       setVerifyIndex((i) => i + 1);
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       toast.error("Erreur lors de l'ajout de la vidéo");
       setIsSubmitting(false);
     }
@@ -165,7 +166,7 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
   /* ----------------------------------------------------------------------- */
 
   /* ------------------------------ RENDER --------------------------------- */
-  console.log('selectedVideos (render):', selectedVideos);
+  logger.debug('selectedVideos (render):', selectedVideos);
   return (
     <div className="grid grid-cols-1 gap-8">
       <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg border border-gray-700/50 p-6">

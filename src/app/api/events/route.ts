@@ -4,6 +4,7 @@ import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { RecurrenceConfig } from '@/app/components/EventForm';
 import { Prisma } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 // GET - Récupérer tous les événements avec filtres optionnels
 export async function GET(request: NextRequest) {
@@ -116,9 +117,9 @@ export async function GET(request: NextRequest) {
     }
 
     // LOGS DEBUG EVENTS
-    console.log(`[API] GET /api/events - Nombre d'événements retournés : ${events.length}`);
+    logger.debug(`[API] GET /api/events - Nombre d'événements retournés : ${events.length}`);
     events.forEach((ev) => {
-      console.log(`[API] Event: id=${ev.id}, imageId=${ev.imageId}, title=${ev.title}`);
+      logger.debug(`[API] Event: id=${ev.id}, imageId=${ev.imageId}, title=${ev.title}`);
     });
 
     // Compter le nombre total d'événements pour la pagination
@@ -158,7 +159,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Erreur lors de la récupération des événements:', error);
+    logger.error('Erreur lors de la récupération des événements', error);
     return NextResponse.json(
       {
         error: 'Erreur lors de la récupération des événements',
@@ -224,7 +225,7 @@ export async function POST(request: Request) {
     const body = await request.json();
 
     // Log du body reçu pour debug
-    console.log('[API EVENTS] Body reçu:', JSON.stringify(body, null, 2));
+    logger.debug('API EVENTS - Body reçu', JSON.stringify(body, null, 2));
 
     // Valider les données
     if (!body.title || !body.location || !body.startDate) {
@@ -235,7 +236,7 @@ export async function POST(request: Request) {
     }
 
     // Afficher les informations de session pour debug
-    console.log('Session user info:', JSON.stringify(session.user, null, 2));
+    logger.debug('Session user info', JSON.stringify(session.user, null, 2));
 
     // Vérifier si l'utilisateur existe avant d'essayer d'établir la relation
     let userConnect = {};
@@ -253,10 +254,10 @@ export async function POST(request: Request) {
           },
         };
       } else {
-        console.log(`Utilisateur avec ID ${session.user.id} n'existe pas dans la base de données`);
+        logger.warn(`Utilisateur avec ID ${session.user.id} n'existe pas dans la base de données`);
       }
     } catch (error) {
-      console.error("Erreur lors de la vérification de l'utilisateur:", error);
+      logger.error("Erreur lors de la vérification de l'utilisateur", error);
       // On continue sans établir la relation utilisateur
     }
 
@@ -280,7 +281,7 @@ export async function POST(request: Request) {
     }
 
     // Log du commonEventData juste avant création
-    console.log(
+    logger.debug(
       '[API EVENTS] commonEventData avant create:',
       JSON.stringify(commonEventData, null, 2)
     );
@@ -302,7 +303,7 @@ export async function POST(request: Request) {
     // Vérifier si c'est un événement récurrent
     if (body.recurrence?.isRecurring) {
       try {
-        console.log("Création d'un événement récurrent:", {
+        logger.debug("Création d'un événement récurrent:", {
           title: body.title,
           startDate: body.startDate,
           recurrence: body.recurrence,
@@ -310,7 +311,7 @@ export async function POST(request: Request) {
 
         // Valider les données de récurrence
         if (!body.recurrence.frequency) {
-          console.error('Fréquence de récurrence manquante');
+          logger.error('Fréquence de récurrence manquante');
           return NextResponse.json(
             { error: 'La fréquence de récurrence est requise' },
             { status: 400 }
@@ -337,7 +338,7 @@ export async function POST(request: Request) {
           },
         });
 
-        console.log('✅ Événement maître créé:', masterEvent.id);
+        logger.debug('✅ Événement maître créé:', masterEvent.id);
 
         // Calculer virtuellement combien d'occurrences seraient générées
         const recurringDates = generateRecurringDates(
@@ -346,10 +347,10 @@ export async function POST(request: Request) {
           body.recurrence.excludedDates || []
         );
 
-        console.log(
+        logger.debug(
           `${recurringDates.length} dates seraient générées pour cet événement récurrent`
         );
-        console.log("Les occurrences seront générées virtuellement lors de l'affichage");
+        logger.debug("Les occurrences seront générées virtuellement lors de l'affichage");
 
         return NextResponse.json(
           {
@@ -360,7 +361,7 @@ export async function POST(request: Request) {
           { status: 201 }
         );
       } catch (recurrenceError) {
-        console.error("Erreur lors de la création d'événement récurrent:", recurrenceError);
+        logger.error("Erreur lors de la création d'événement récurrent:", recurrenceError);
         return NextResponse.json(
           {
             error: "Erreur lors de la création d'événement récurrent",
@@ -372,7 +373,7 @@ export async function POST(request: Request) {
       }
     } else {
       // Événement non récurrent - créer un seul événement
-      console.log("Création d'un événement simple (non récurrent)");
+      logger.debug("Création d'un événement simple (non récurrent)");
       const event = await prisma.event.create({
         data: commonEventData,
       });
@@ -380,7 +381,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, event }, { status: 201 });
     }
   } catch (error) {
-    console.error("Erreur lors de la création de l'événement:", error);
+    logger.error("Erreur lors de la création de l'événement:", error);
     return NextResponse.json(
       { error: "Erreur lors de la création de l'événement" },
       { status: 500 }

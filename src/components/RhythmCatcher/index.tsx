@@ -15,6 +15,7 @@ import {
   detectBPM,
 } from './gameEngine';
 import styles from './styles.module.css';
+import { logger } from '@/lib/logger';
 
 interface RhythmCatcherProps {
   audioSrc?: string;
@@ -94,7 +95,7 @@ const RhythmCatcher: React.FC<RhythmCatcherProps> = ({ audioSrc, onClose }) => {
           frequencyData,
         }));
       } catch (error) {
-        console.error("Erreur lors de l'initialisation de l'audio:", error);
+        logger.error("Erreur lors de l'initialisation de l'audio:", error);
       }
     };
 
@@ -109,7 +110,7 @@ const RhythmCatcher: React.FC<RhythmCatcherProps> = ({ audioSrc, onClose }) => {
     // Nettoyage
     return () => {
       if (audioContextRef.current) {
-        audioContextRef.current.close().catch(console.error);
+        audioContextRef.current.close().catch((err) => logger.error('Erreur lors de la fermeture de AudioContext', err));
       }
 
       if (audioRef.current) {
@@ -133,8 +134,8 @@ const RhythmCatcher: React.FC<RhythmCatcherProps> = ({ audioSrc, onClose }) => {
 
     if (audio.paused) {
       // Activation de l'audio et du jeu
-      audioContextRef.current?.resume().catch(console.error);
-      audio.play().catch(console.error);
+      audioContextRef.current?.resume().catch((err) => logger.error('Erreur lors de la reprise de AudioContext', err));
+      audio.play().catch((err) => logger.error('Erreur lors de la lecture audio', err));
       setIsAudioActive(true);
 
       // Attendre un court instant pour que l'audio commence avant d'activer le jeu
@@ -225,14 +226,14 @@ const RhythmCatcher: React.FC<RhythmCatcherProps> = ({ audioSrc, onClose }) => {
   useEffect(() => {
     // Démarrer automatiquement le jeu après chargement
     if (isAudioLoaded && !isAudioActive) {
-      console.log('RhythmCatcher: démarrage automatique du jeu');
+      logger.debug('RhythmCatcher: démarrage automatique du jeu');
       toggleAudio();
     }
   }, [isAudioLoaded, isAudioActive, toggleAudio]);
 
   // Ajouter un message de débogage pour le suivi
   useEffect(() => {
-    console.log('RhythmCatcher: état de chargement:', {
+    logger.debug('RhythmCatcher: état de chargement:', {
       isAudioLoaded,
       isAudioActive,
       audioRef: !!audioRef.current,
