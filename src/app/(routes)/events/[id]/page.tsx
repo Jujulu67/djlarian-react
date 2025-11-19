@@ -21,7 +21,6 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import {
-import { logger } from '@/lib/logger';
   FaCalendarAlt,
   FaMapMarkerAlt,
   FaTicketAlt,
@@ -30,6 +29,7 @@ import { logger } from '@/lib/logger';
   FaTwitter,
   FaCopy,
 } from 'react-icons/fa';
+import { logger } from '@/lib/logger';
 
 // Types
 type Event = {
