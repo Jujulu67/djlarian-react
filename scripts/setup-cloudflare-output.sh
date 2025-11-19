@@ -132,29 +132,75 @@ if [ -f ".open-next/worker.js" ]; then
   rm -f "$CLOUDFLARE_DIR/_worker.js.tmp" "$CLOUDFLARE_DIR/_worker.js.tmp2"
   
   # SOLUTION RADICALE: Patcher directement le code bundlé pour remplacer createNotImplementedError
-  # unenv crée cette fonction dans le code bundlé, il faut la remplacer
+  # unenv crée cette fonction dans le code bundlé minifié, il faut la remplacer
   echo "📝 Patch du code bundlé pour intercepter createNotImplementedError..."
   if [ -f "$CLOUDFLARE_DIR/_worker.js" ]; then
-    # Remplacer les appels à createNotImplementedError pour fs.readdir
-    # Utiliser une approche compatible macOS/Linux
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-      # macOS
-      sed -i '' \
-        -e 's/createNotImplementedError("fs\.readdir")/function() { return []; }/g' \
-        -e "s/createNotImplementedError('fs\.readdir')/function() { return []; }/g" \
-        -e 's/createNotImplementedError("\[unenv\] fs\.readdir")/function() { return []; }/g' \
-        -e "s/createNotImplementedError('\[unenv\] fs\.readdir')/function() { return []; }/g" \
-        "$CLOUDFLARE_DIR/_worker.js" 2>/dev/null || true
-    else
-      # Linux
-      sed -i \
-        -e 's/createNotImplementedError("fs\.readdir")/function() { return []; }/g' \
-        -e "s/createNotImplementedError('fs\.readdir')/function() { return []; }/g" \
-        -e 's/createNotImplementedError("\[unenv\] fs\.readdir")/function() { return []; }/g' \
-        -e "s/createNotImplementedError('\[unenv\] fs\.readdir')/function() { return []; }/g" \
-        "$CLOUDFLARE_DIR/_worker.js" 2>/dev/null || true
-    fi
-    echo "✅ Code bundlé patché pour intercepter createNotImplementedError"
+    # Utiliser Node.js pour patcher de manière plus précise (le code est minifié)
+    WORKER_PATH="$CLOUDFLARE_DIR/_worker.js" node << 'NODE_PATCH'
+      const fs = require('fs');
+      const path = process.env.WORKER_PATH;
+      
+      if (!fs.existsSync(path)) {
+        process.exit(0);
+      }
+      
+      let content = fs.readFileSync(path, 'utf8');
+      let modified = false;
+      const originalLength = content.length;
+      
+      // Pattern 1: Remplacer Object.fn[as readdir] = createNotImplementedError(...)
+      // Format minifié possible: Object.fn[as readdir]=createNotImplementedError("fs.readdir")
+      const pattern1 = /Object\.fn\[as\s+readdir\]\s*=\s*createNotImplementedError\([^)]+\)/g;
+      if (pattern1.test(content)) {
+        content = content.replace(pattern1, 'Object.fn[as readdir]=function(){return Promise.resolve([])}');
+        modified = true;
+        console.log('✅ Pattern 1 trouvé et remplacé: Object.fn[as readdir]');
+      }
+      
+      // Pattern 2: Remplacer fn[as readdir] = createNotImplementedError(...)
+      const pattern2 = /fn\[as\s+readdir\]\s*=\s*createNotImplementedError\([^)]+\)/g;
+      if (pattern2.test(content)) {
+        content = content.replace(pattern2, 'fn[as readdir]=function(){return Promise.resolve([])}');
+        modified = true;
+        console.log('✅ Pattern 2 trouvé et remplacé: fn[as readdir]');
+      }
+      
+      // Pattern 3: Patcher la fonction createNotImplementedError elle-même
+      // Chercher la définition de la fonction et la modifier pour intercepter fs.readdir
+      const pattern3 = /function\s+createNotImplementedError\s*\([^)]*\)\s*\{[^}]*\}/g;
+      const matches = content.match(pattern3);
+      if (matches && matches.length > 0) {
+        // Remplacer la fonction pour qu'elle retourne notre polyfill pour readdir
+        content = content.replace(pattern3, (match) => {
+          // Si la fonction ne contient pas déjà notre patch, l'ajouter
+          if (!match.includes('readdir')) {
+            return match.replace(
+              /throw\s+new\s+Error\(/,
+              'if(n&&(typeof n==="string")&&(n.includes("readdir")||n.includes("fs.readdir"))){return function(){return Promise.resolve([])}}throw new Error('
+            );
+          }
+          return match;
+        });
+        modified = true;
+        console.log('✅ Pattern 3 trouvé et remplacé: createNotImplementedError function');
+      }
+      
+      // Pattern 4: Chercher les appels directs à createNotImplementedError avec "readdir"
+      const pattern4 = /createNotImplementedError\([^)]*["\']readdir["\'][^)]*\)/g;
+      if (pattern4.test(content)) {
+        content = content.replace(pattern4, 'function(){return Promise.resolve([])}');
+        modified = true;
+        console.log('✅ Pattern 4 trouvé et remplacé: createNotImplementedError("readdir")');
+      }
+      
+      if (modified) {
+        fs.writeFileSync(path, content, 'utf8');
+        console.log(`✅ Code bundlé patché: ${originalLength} -> ${content.length} caractères`);
+      } else {
+        console.log('ℹ️  Aucun pattern trouvé (peut-être déjà patché ou format différent)');
+      }
+NODE_PATCH
+    echo "✅ Patch du code bundlé terminé"
   fi
 fi
 
@@ -260,25 +306,56 @@ if [ -f "$SERVER_FUNCTIONS_INDEX" ]; then
   # SOLUTION RADICALE: Patcher directement le code bundlé pour remplacer createNotImplementedError
   echo "📝 Patch du code bundlé server-functions pour intercepter createNotImplementedError..."
   if [ -f "$SERVER_FUNCTIONS_INDEX" ]; then
-    # Remplacer les appels à createNotImplementedError pour fs.readdir
-    # Utiliser une approche compatible macOS/Linux
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-      # macOS
-      sed -i '' \
-        -e 's/createNotImplementedError("fs\.readdir")/function() { return []; }/g' \
-        -e "s/createNotImplementedError('fs\.readdir')/function() { return []; }/g" \
-        -e 's/createNotImplementedError("\[unenv\] fs\.readdir")/function() { return []; }/g' \
-        -e "s/createNotImplementedError('\[unenv\] fs\.readdir')/function() { return []; }/g" \
-        "$SERVER_FUNCTIONS_INDEX" 2>/dev/null || true
-    else
-      # Linux
-      sed -i \
-        -e 's/createNotImplementedError("fs\.readdir")/function() { return []; }/g' \
-        -e "s/createNotImplementedError('fs\.readdir')/function() { return []; }/g" \
-        -e 's/createNotImplementedError("\[unenv\] fs\.readdir")/function() { return []; }/g' \
-        -e "s/createNotImplementedError('\[unenv\] fs\.readdir')/function() { return []; }/g" \
-        "$SERVER_FUNCTIONS_INDEX" 2>/dev/null || true
-    fi
+    # Utiliser Node.js pour patcher de manière plus précise
+    SERVER_FUNCTIONS_PATH="$SERVER_FUNCTIONS_INDEX" node << 'NODE_PATCH'
+      const fs = require('fs');
+      const path = process.env.SERVER_FUNCTIONS_PATH;
+      
+      if (!fs.existsSync(path)) {
+        process.exit(0);
+      }
+      
+      let content = fs.readFileSync(path, 'utf8');
+      let modified = false;
+      
+      // Mêmes patterns que pour _worker.js
+      const pattern1 = /Object\.fn\[as\s+readdir\]\s*=\s*createNotImplementedError\([^)]+\)/g;
+      if (pattern1.test(content)) {
+        content = content.replace(pattern1, 'Object.fn[as readdir]=function(){return Promise.resolve([])}');
+        modified = true;
+      }
+      
+      const pattern2 = /fn\[as\s+readdir\]\s*=\s*createNotImplementedError\([^)]+\)/g;
+      if (pattern2.test(content)) {
+        content = content.replace(pattern2, 'fn[as readdir]=function(){return Promise.resolve([])}');
+        modified = true;
+      }
+      
+      const pattern3 = /function\s+createNotImplementedError\s*\([^)]*\)\s*\{[^}]*\}/g;
+      if (pattern3.test(content)) {
+        content = content.replace(pattern3, (match) => {
+          if (!match.includes('readdir')) {
+            return match.replace(
+              /throw\s+new\s+Error\(/,
+              'if(n&&(typeof n==="string")&&(n.includes("readdir")||n.includes("fs.readdir"))){return function(){return Promise.resolve([])}}throw new Error('
+            );
+          }
+          return match;
+        });
+        modified = true;
+      }
+      
+      const pattern4 = /createNotImplementedError\([^)]*["\']readdir["\'][^)]*\)/g;
+      if (pattern4.test(content)) {
+        content = content.replace(pattern4, 'function(){return Promise.resolve([])}');
+        modified = true;
+      }
+      
+      if (modified) {
+        fs.writeFileSync(path, content, 'utf8');
+        console.log('✅ Server-functions patché');
+      }
+NODE_PATCH
     echo "✅ Code bundlé server-functions patché"
   fi
 fi
