@@ -86,3 +86,4 @@ Souhaitez-vous que je prépare le projet pour une **migration vers Vercel** (Sol
 
 *Je vais supposer pour l'instant que vous voulez réparer la solution actuelle (Cloudflare) comme demandé, mais je vous laisse l'option ouverte.*
 
+
