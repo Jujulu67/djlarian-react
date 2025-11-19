@@ -1,7 +1,15 @@
 import { PrismaClient } from '@prisma/client';
+import { Pool, neonConfig } from '@neondatabase/serverless';
+import { PrismaNeon } from '@prisma/adapter-neon';
 
 declare global {
   var prisma: PrismaClient | undefined;
+}
+
+// Configurer Neon pour Cloudflare
+// Désactiver WebSocket qui n'est pas supporté dans Cloudflare Workers
+if (typeof globalThis !== 'undefined') {
+  neonConfig.webSocketConstructor = null as any;
 }
 
 // Créer le client Prisma avec adaptateur Neon pour Edge Runtime
@@ -20,23 +28,33 @@ function createPrismaClient() {
 
   if (isEdgeRuntime) {
     // Utiliser l'adaptateur Neon pour Edge Runtime
-    // Import synchrones - les modules seront chargés dynamiquement au runtime
+    // IMPORTANT: Utiliser des imports dynamiques pour éviter les problèmes de bundling
     try {
-      const { Pool } = require('@neondatabase/serverless');
-      const { PrismaNeon } = require('@prisma/adapter-neon');
+      // Créer le pool avec la configuration appropriée pour Cloudflare
+      const pool = new Pool({ 
+        connectionString,
+        // Désactiver les fonctionnalités qui nécessitent fs
+        max: 1, // Limiter les connexions pour Cloudflare
+      });
       
-      const pool = new Pool({ connectionString });
-      const adapter = new PrismaNeon(pool);
-      return new PrismaClient({ adapter } as any);
+      const adapter = new PrismaNeon(pool as any);
+      
+      // Créer Prisma Client avec l'adaptateur
+      // IMPORTANT: Ne pas utiliser de chemins relatifs qui nécessitent fs
+      return new PrismaClient({ 
+        adapter,
+        log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+      } as any);
     } catch (error) {
-      // Fallback si les modules ne sont pas disponibles
-      console.warn('Neon adapter not available, using standard Prisma Client');
-      return new PrismaClient();
+      console.error('Erreur lors de la création du client Prisma avec adaptateur Neon:', error);
+      throw error;
     }
   }
 
   // En Node.js runtime (développement local), utiliser le client standard
-  return new PrismaClient();
+  return new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  });
 }
 
 const prisma = global.prisma || createPrismaClient();
