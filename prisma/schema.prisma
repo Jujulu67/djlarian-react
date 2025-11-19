@@ -1,6 +1,7 @@
 generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["driverAdapters"]
+  engineType      = "library" // Utilise la bibliothèque JS au lieu des binaires Rust pour Edge
 }
 
 datasource db {
