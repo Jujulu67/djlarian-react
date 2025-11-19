@@ -211,12 +211,8 @@ if (isCloudflare && typeof globalThis !== 'undefined') {
     // Exécuter immédiatement
     patchUnenv();
     
-    // Aussi patcher après un court délai au cas où unenv serait chargé plus tard
-    if (typeof setTimeout !== 'undefined') {
-      setTimeout(patchUnenv, 0);
-      setTimeout(patchUnenv, 10);
-      setTimeout(patchUnenv, 100);
-    }
+    // Note: On ne peut pas utiliser setTimeout dans le scope global de Cloudflare Workers
+    // Le patch doit être fait de manière synchrone
   } catch (e) {
     console.log('[POLYFILLS] Erreur lors de la configuration du patch unenv:', e);
   }
