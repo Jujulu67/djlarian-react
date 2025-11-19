@@ -56,11 +56,11 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
   const filters: Prisma.UserWhereInput[] = [];
 
   if (search) {
+    // SQLite ne supporte pas 'mode: insensitive', utiliser toLowerCase() côté client
+    // ou une recherche case-insensitive via Prisma selon le provider
+    const searchLower = search.toLowerCase();
     filters.push({
-      OR: [
-        { email: { contains: search, mode: 'insensitive' } },
-        { name: { contains: search, mode: 'insensitive' } },
-      ],
+      OR: [{ email: { contains: searchLower } }, { name: { contains: searchLower } }],
     });
   }
 

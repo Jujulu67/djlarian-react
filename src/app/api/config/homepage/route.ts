@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { defaultConfigs } from '@/config/defaults';
 import { HomepageConfig } from '@/types/config';
+import { logger } from '@/lib/logger';
 
 // API publique pour récupérer la configuration de la page d'accueil
 // Accessible sans authentification pour permettre le chargement de la page d'accueil
