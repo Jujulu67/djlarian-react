@@ -124,14 +124,38 @@ if [ -f ".open-next/worker.js" ]; then
       print "    }"
       print "  };"
       print "  patchUnenv();"
-      print "  // Note: On ne peut pas utiliser setTimeout dans le scope global de Cloudflare Workers"
-      print "  // Le patch doit être fait de manière synchrone"
       print "}"
       print ""
     }
     { print }
   ' "$CLOUDFLARE_DIR/_worker.js.tmp2" > "$CLOUDFLARE_DIR/_worker.js"
   rm -f "$CLOUDFLARE_DIR/_worker.js.tmp" "$CLOUDFLARE_DIR/_worker.js.tmp2"
+  
+  # SOLUTION RADICALE: Patcher directement le code bundlé pour remplacer createNotImplementedError
+  # unenv crée cette fonction dans le code bundlé, il faut la remplacer
+  echo "📝 Patch du code bundlé pour intercepter createNotImplementedError..."
+  if [ -f "$CLOUDFLARE_DIR/_worker.js" ]; then
+    # Remplacer les appels à createNotImplementedError pour fs.readdir
+    # Utiliser une approche compatible macOS/Linux
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+      # macOS
+      sed -i '' \
+        -e 's/createNotImplementedError("fs\.readdir")/function() { return []; }/g' \
+        -e "s/createNotImplementedError('fs\.readdir')/function() { return []; }/g" \
+        -e 's/createNotImplementedError("\[unenv\] fs\.readdir")/function() { return []; }/g' \
+        -e "s/createNotImplementedError('\[unenv\] fs\.readdir')/function() { return []; }/g" \
+        "$CLOUDFLARE_DIR/_worker.js" 2>/dev/null || true
+    else
+      # Linux
+      sed -i \
+        -e 's/createNotImplementedError("fs\.readdir")/function() { return []; }/g' \
+        -e "s/createNotImplementedError('fs\.readdir')/function() { return []; }/g" \
+        -e 's/createNotImplementedError("\[unenv\] fs\.readdir")/function() { return []; }/g' \
+        -e "s/createNotImplementedError('\[unenv\] fs\.readdir')/function() { return []; }/g" \
+        "$CLOUDFLARE_DIR/_worker.js" 2>/dev/null || true
+    fi
+    echo "✅ Code bundlé patché pour intercepter createNotImplementedError"
+  fi
 fi
 
 # Copier les dépendances nécessaires
@@ -225,8 +249,6 @@ if [ -f "$SERVER_FUNCTIONS_INDEX" ]; then
       print "    }"
       print "  };"
       print "  patchUnenv();"
-      print "  // Note: On ne peut pas utiliser setTimeout dans le scope global de Cloudflare Workers"
-      print "  // Le patch doit être fait de manière synchrone"
       print "}"
       print ""
     }
@@ -234,6 +256,31 @@ if [ -f "$SERVER_FUNCTIONS_INDEX" ]; then
   ' "$SERVER_FUNCTIONS_INDEX" > "$SERVER_FUNCTIONS_INDEX.tmp"
   mv "$SERVER_FUNCTIONS_INDEX.tmp" "$SERVER_FUNCTIONS_INDEX"
   echo "✅ Polyfills injectés dans server-functions/default/index.mjs"
+  
+  # SOLUTION RADICALE: Patcher directement le code bundlé pour remplacer createNotImplementedError
+  echo "📝 Patch du code bundlé server-functions pour intercepter createNotImplementedError..."
+  if [ -f "$SERVER_FUNCTIONS_INDEX" ]; then
+    # Remplacer les appels à createNotImplementedError pour fs.readdir
+    # Utiliser une approche compatible macOS/Linux
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+      # macOS
+      sed -i '' \
+        -e 's/createNotImplementedError("fs\.readdir")/function() { return []; }/g' \
+        -e "s/createNotImplementedError('fs\.readdir')/function() { return []; }/g" \
+        -e 's/createNotImplementedError("\[unenv\] fs\.readdir")/function() { return []; }/g' \
+        -e "s/createNotImplementedError('\[unenv\] fs\.readdir')/function() { return []; }/g" \
+        "$SERVER_FUNCTIONS_INDEX" 2>/dev/null || true
+    else
+      # Linux
+      sed -i \
+        -e 's/createNotImplementedError("fs\.readdir")/function() { return []; }/g' \
+        -e "s/createNotImplementedError('fs\.readdir')/function() { return []; }/g" \
+        -e 's/createNotImplementedError("\[unenv\] fs\.readdir")/function() { return []; }/g' \
+        -e "s/createNotImplementedError('\[unenv\] fs\.readdir')/function() { return []; }/g" \
+        "$SERVER_FUNCTIONS_INDEX" 2>/dev/null || true
+    fi
+    echo "✅ Code bundlé server-functions patché"
+  fi
 fi
 
 # Déplacer les assets _next à la racine pour que Cloudflare Pages les serve correctement
