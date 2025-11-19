@@ -9,6 +9,7 @@ import UpcomingEvents from '@/components/sections/UpcomingEvents';
 import TwitchStream from '@/components/sections/TwitchStream';
 import ParticleVisualizer from '@/components/3d/ParticleVisualizer';
 import RhythmCatcher from '@/components/RhythmCatcher';
+import { defaultConfigs } from '@/config/defaults';
 
 // Type pour les configurations de la page d'accueil
 interface HomepageConfig {
@@ -60,6 +61,10 @@ class FetchError extends Error {
 const fetcher = async (url: string) => {
   const response = await fetch(url);
   if (!response.ok) {
+    // Pour la config homepage, on retourne les valeurs par défaut en cas d'erreur
+    if (url === '/api/config/homepage') {
+      return defaultConfigs.homepage;
+    }
     const error = new FetchError('An error occurred while fetching the data.');
     // Attach extra info to the error object.
     try {
@@ -87,12 +92,12 @@ export default function HomePage() {
     'stream',
   ]);
 
-  // Charger les configurations de la page d'accueil
+  // Charger les configurations de la page d'accueil (API publique)
   const {
     data: configData,
     error: configError,
     isLoading: configLoading,
-  } = useSWR('/api/admin/config', fetcher);
+  } = useSWR('/api/config/homepage', fetcher);
 
   // Utiliser useSWR pour récupérer les événements
   const {
@@ -125,15 +130,20 @@ export default function HomePage() {
 
   // Extraire les configurations de la page d'accueil lors du chargement des données
   useEffect(() => {
-    if (configData && configData.homepage) {
-      setConfig(configData.homepage);
+    if (configData) {
+      // configData est directement la homepage config depuis la nouvelle API
+      setConfig(configData);
 
       // Définir l'ordre des sections si disponible
-      if (configData.homepage.sectionsOrder) {
-        setSectionOrder(configData.homepage.sectionsOrder.split(','));
+      if (configData.sectionsOrder) {
+        setSectionOrder(configData.sectionsOrder.split(','));
       }
+    } else if (!configLoading && !configError) {
+      // Si pas de données mais pas d'erreur, utiliser les valeurs par défaut
+      setConfig(defaultConfigs.homepage);
+      setSectionOrder(defaultConfigs.homepage.sectionsOrder.split(','));
     }
-  }, [configData]);
+  }, [configData, configLoading, configError]);
 
   const handleExperienceClick = () => {
     setIsSoundActive((prev) => !prev);
@@ -152,10 +162,8 @@ export default function HomePage() {
 
   // Rendu des sections selon l'ordre configuré
   const renderSections = () => {
-    // Si les configurations ne sont pas encore chargées, attendre
-    if (!config || configLoading) {
-      return null;
-    }
+    // Utiliser les valeurs par défaut si la config n'est pas encore chargée
+    const currentConfig = config || defaultConfigs.homepage;
 
     // Fonction auxiliaire pour rendre chaque section en fonction de son type
     const renderSection = (sectionType: string) => {
@@ -163,13 +171,13 @@ export default function HomePage() {
         case 'hero':
           return renderHeroSection();
         case 'releases':
-          return config.releasesEnabled ? (
-            <LatestReleases title={config.releasesTitle} count={config.releasesCount} />
+          return currentConfig.releasesEnabled ? (
+            <LatestReleases title={currentConfig.releasesTitle} count={currentConfig.releasesCount} />
           ) : null;
         case 'visualizer':
-          return config.visualizerEnabled ? renderVisualizerSection() : null;
+          return currentConfig.visualizerEnabled ? renderVisualizerSection() : null;
         case 'events':
-          return config.eventsEnabled ? (
+          return currentConfig.eventsEnabled ? (
             <AnimatePresence mode="wait">
               {eventsLoading ? (
                 <motion.section
@@ -228,8 +236,8 @@ export default function HomePage() {
                   <div className="max-w-7xl mx-auto px-4">
                     <UpcomingEvents
                       events={eventsData?.events || []}
-                      title={config.eventsTitle}
-                      count={config.eventsCount}
+                      title={currentConfig.eventsTitle}
+                      count={currentConfig.eventsCount}
                     />
                   </div>
                 </motion.section>
@@ -237,7 +245,7 @@ export default function HomePage() {
             </AnimatePresence>
           ) : null;
         case 'stream':
-          return config.streamEnabled ? <TwitchStream /> : null;
+          return currentConfig.streamEnabled ? <TwitchStream /> : null;
         default:
           return null;
       }
@@ -251,7 +259,7 @@ export default function HomePage() {
 
   // Rendu de la section héro
   const renderHeroSection = () => {
-    if (!config) return null;
+    const currentConfig = config || defaultConfigs.homepage;
 
     return (
       <div ref={containerRef} className="min-h-screen relative">
@@ -264,9 +272,9 @@ export default function HomePage() {
             loop
             playsInline
             className="w-full h-full object-cover"
-            poster={config.heroPosterImage}
+            poster={currentConfig.heroPosterImage}
           >
-            <source src={config.heroBackgroundVideo} type="video/mp4" />
+            <source src={currentConfig.heroBackgroundVideo} type="video/mp4" />
           </video>
         </div>
 
@@ -281,7 +289,7 @@ export default function HomePage() {
             transition={{ duration: 0.8, ease: 'easeOut' }}
             className="text-5xl md:text-7xl lg:text-8xl font-audiowide text-white mb-6"
           >
-            {config.heroTitle}
+            {currentConfig.heroTitle}
           </motion.h1>
 
           <motion.p
@@ -290,7 +298,7 @@ export default function HomePage() {
             transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
             className="text-xl md:text-2xl text-gray-300 font-montserrat mb-8 max-w-2xl"
           >
-            {config.heroSubtitle}
+            {currentConfig.heroSubtitle}
           </motion.p>
 
           {/* Animated Waveform */}
@@ -309,16 +317,16 @@ export default function HomePage() {
             className="flex flex-col sm:flex-row gap-4 mt-12"
           >
             <a
-              href={config.heroExploreButtonUrl}
+              href={currentConfig.heroExploreButtonUrl}
               className="px-8 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-full font-montserrat transition-colors duration-200"
             >
-              {config.heroExploreButtonText}
+              {currentConfig.heroExploreButtonText}
             </a>
             <a
-              href={config.heroEventsButtonUrl}
+              href={currentConfig.heroEventsButtonUrl}
               className="px-8 py-3 border-2 border-white hover:bg-white hover:text-black text-white rounded-full font-montserrat transition-colors duration-200"
             >
-              {config.heroEventsButtonText}
+              {currentConfig.heroEventsButtonText}
             </a>
           </motion.div>
         </motion.div>
@@ -351,7 +359,7 @@ export default function HomePage() {
 
   // Rendu de la section visualizer
   const renderVisualizerSection = () => {
-    if (!config) return null;
+    const currentConfig = config || defaultConfigs.homepage;
 
     return (
       <section className="py-20">
@@ -365,7 +373,7 @@ export default function HomePage() {
               onClick={handleExperienceClick}
             >
               <span className="cursor-pointer hover:text-purple-400 transition-colors">
-                {isSoundActive ? `Stop ${config.visualizerTitle}` : config.visualizerTitle}
+                {isSoundActive ? `Stop ${currentConfig.visualizerTitle}` : currentConfig.visualizerTitle}
               </span>
             </motion.h2>
           </div>
