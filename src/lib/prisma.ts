@@ -1,3 +1,7 @@
+// IMPORTANT: Importer les polyfills AVANT Prisma pour qu'ils soient disponibles
+// au moment du chargement de Prisma Client
+import '@/lib/polyfills';
+
 import { PrismaClient } from '@prisma/client';
 
 declare global {

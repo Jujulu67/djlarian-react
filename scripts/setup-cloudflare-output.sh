@@ -111,6 +111,73 @@ echo "📦 Copie des dépendances..."
 [ -d ".open-next/middleware" ] && cp -r .open-next/middleware "$CLOUDFLARE_DIR/" 2>/dev/null || true
 [ -d ".open-next/.build" ] && cp -r .open-next/.build "$CLOUDFLARE_DIR/" 2>/dev/null || true
 
+# Injecter les polyfills dans les server-functions
+echo "📝 Injection des polyfills dans les server-functions..."
+SERVER_FUNCTIONS_INDEX="$CLOUDFLARE_DIR/server-functions/default/index.mjs"
+if [ -f "$SERVER_FUNCTIONS_INDEX" ]; then
+  echo "📝 Ajout des polyfills au début de index.mjs..."
+  awk '
+    BEGIN {
+      # Polyfills pour fs.readdir et node:os
+      print "// Polyfills pour Prisma Client dans Cloudflare Workers"
+      print "// Ces polyfills doivent être chargés AVANT Prisma"
+      print "if (typeof globalThis !== \"undefined\") {"
+      print "  // Polyfill pour node:os"
+      print "  if (!globalThis.os) {"
+      print "    globalThis.os = {"
+      print "      platform: () => \"cloudflare\","
+      print "      arch: () => \"wasm32\","
+      print "      type: () => \"Cloudflare Workers\","
+      print "      release: () => \"\","
+      print "      homedir: () => \"/\","
+      print "      tmpdir: () => \"/tmp\","
+      print "      hostname: () => \"cloudflare-worker\","
+      print "      cpus: () => [],"
+      print "      totalmem: () => 0,"
+      print "      freemem: () => 0,"
+      print "      networkInterfaces: () => ({}),"
+      print "      getPriority: () => 0,"
+      print "      setPriority: () => {},"
+      print "      userInfo: () => ({ username: \"\", uid: 0, gid: 0, shell: \"\" }),"
+      print "      loadavg: () => [0, 0, 0],"
+      print "      uptime: () => 0,"
+      print "      endianness: () => \"LE\","
+      print "      EOL: \"\\n\","
+      print "      constants: {}"
+      print "    };"
+      print "  }"
+      print ""
+      print "  // Polyfill pour fs.readdir (retourne un tableau vide)"
+      print "  if (!globalThis.fs) {"
+      print "    globalThis.fs = {};"
+      print "  }"
+      print "  if (!globalThis.fs.readdir) {"
+      print "    globalThis.fs.readdir = (path, options, callback) => {"
+      print "      if (typeof options === \"function\") {"
+      print "        callback = options;"
+      print "        options = {};"
+      print "      }"
+      print "      if (callback) {"
+      print "        callback(null, []);"
+      print "      } else {"
+      print "        return Promise.resolve([]);"
+      print "      }"
+      print "    };"
+      print "  }"
+      print "  if (!globalThis.fs.promises) {"
+      print "    globalThis.fs.promises = {"
+      print "      readdir: () => Promise.resolve([])"
+      print "    };"
+      print "  }"
+      print "}"
+      print ""
+    }
+    { print }
+  ' "$SERVER_FUNCTIONS_INDEX" > "$SERVER_FUNCTIONS_INDEX.tmp"
+  mv "$SERVER_FUNCTIONS_INDEX.tmp" "$SERVER_FUNCTIONS_INDEX"
+  echo "✅ Polyfills injectés dans server-functions/default/index.mjs"
+fi
+
 # Déplacer les assets _next à la racine pour que Cloudflare Pages les serve correctement
 if [ -d "$CLOUDFLARE_DIR/assets/_next" ]; then
   echo "📦 Déplacement de _next à la racine pour servir les assets statiques..."
