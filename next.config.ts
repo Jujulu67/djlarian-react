@@ -13,7 +13,27 @@ const nextConfig: NextConfig = {
   // Exclure les fichiers de test du build
   pageExtensions: ['ts', 'tsx', 'js', 'jsx'],
   // Configuration pour Cloudflare Pages avec Prisma
-  serverExternalPackages: ['@prisma/client', '.prisma/client'],
+  // Externaliser Prisma pour éviter les problèmes avec fs dans Cloudflare
+  serverExternalPackages: [
+    '@prisma/client',
+    '.prisma/client',
+    '@prisma/adapter-neon',
+    '@neondatabase/serverless',
+  ],
+  // Configuration webpack pour externaliser Prisma
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      // Externaliser Prisma pour éviter qu'il soit bundlé
+      config.externals = config.externals || [];
+      config.externals.push({
+        '@prisma/client': 'commonjs @prisma/client',
+        '.prisma/client': 'commonjs .prisma/client',
+        '@prisma/adapter-neon': 'commonjs @prisma/adapter-neon',
+        '@neondatabase/serverless': 'commonjs @neondatabase/serverless',
+      });
+    }
+    return config;
+  },
 };
 
 export default nextConfig;

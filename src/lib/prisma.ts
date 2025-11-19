@@ -1,15 +1,7 @@
 import { PrismaClient } from '@prisma/client';
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { PrismaNeon } from '@prisma/adapter-neon';
 
 declare global {
   var prisma: PrismaClient | undefined;
-}
-
-// Configurer Neon pour Cloudflare
-// Désactiver WebSocket qui n'est pas supporté dans Cloudflare Workers
-if (typeof globalThis !== 'undefined') {
-  neonConfig.webSocketConstructor = null as any;
 }
 
 // Créer le client Prisma avec adaptateur Neon pour Edge Runtime
@@ -29,15 +21,27 @@ function createPrismaClient() {
   if (isEdgeRuntime) {
     // Utiliser l'adaptateur Neon pour Edge Runtime
     // IMPORTANT: Utiliser des imports dynamiques pour éviter les problèmes de bundling
+    // et pour que les modules soient chargés uniquement quand nécessaire
     try {
+      // Imports dynamiques pour éviter que Prisma soit bundlé avec fs
+      const { Pool, neonConfig } = require('@neondatabase/serverless');
+      const { PrismaNeon } = require('@prisma/adapter-neon');
+      
+      // Configurer Neon pour Cloudflare
+      // Désactiver WebSocket qui n'est pas supporté dans Cloudflare Workers
+      if (typeof globalThis !== 'undefined') {
+        neonConfig.webSocketConstructor = null;
+      }
+      
       // Créer le pool avec la configuration appropriée pour Cloudflare
       const pool = new Pool({ 
         connectionString,
-        // Désactiver les fonctionnalités qui nécessitent fs
         max: 1, // Limiter les connexions pour Cloudflare
       });
       
-      const adapter = new PrismaNeon(pool as any);
+      // Utiliser PrismaNeon avec connectionString directement (plus simple)
+      // Selon la doc Neon, on peut passer connectionString directement
+      const adapter = new PrismaNeon({ connectionString });
       
       // Créer Prisma Client avec l'adaptateur
       // IMPORTANT: Ne pas utiliser de chemins relatifs qui nécessitent fs
