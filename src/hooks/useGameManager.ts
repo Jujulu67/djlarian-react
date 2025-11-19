@@ -1,5 +1,6 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { GameState, AudioAnalyser, GamePattern, FrequencyBand } from '@/types/game';
+import { logger } from '@/lib/logger';
 
 // Constantes de jeu
 const SCORE_INCREMENT = 25;
@@ -127,13 +128,13 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
   // Fonction pour reconnecter l'audio en cas de problème
   const reconnectAudio = useCallback(async () => {
     if (!audioElement || reconnectAttempts.current >= maxReconnectAttempts) {
-      console.error('Max reconnection attempts reached or no audio element');
+      logger.error('Max reconnection attempts reached or no audio element');
       return false;
     }
 
     try {
       reconnectAttempts.current++;
-      console.log(`Attempting to reconnect audio (attempt ${reconnectAttempts.current})`);
+      logger.debug(`Attempting to reconnect audio (attempt ${reconnectAttempts.current})`);
 
       // Nettoyer les anciennes connexions
       if (sourceNode.current) {
@@ -165,11 +166,11 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
         bufferLength,
       };
 
-      console.log('Audio reconnected successfully');
+      logger.debug('Audio reconnected successfully');
       reconnectAttempts.current = 0;
       return true;
     } catch (error) {
-      console.error('Error reconnecting audio:', error);
+      logger.error('Error reconnecting audio:', error);
       return false;
     }
   }, [audioElement]);
@@ -182,14 +183,14 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
         try {
           sourceNode.current.disconnect();
         } catch (error) {
-          console.warn('Error disconnecting source node:', error);
+          logger.warn('Error disconnecting source node:', error);
         }
       }
       if (audioContext.current && audioContext.current.state !== 'closed') {
         try {
           audioContext.current.close();
         } catch (error) {
-          console.warn('Error closing audio context:', error);
+          logger.warn('Error closing audio context:', error);
         }
       }
       if (animationFrame.current) {
@@ -208,7 +209,7 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
 
   const setupAudioAnalyser = useCallback(async () => {
     if (!audioElement) {
-      console.error("Pas d'élément audio fourni");
+      logger.error("Pas d'élément audio fourni");
       return false;
     }
 
@@ -218,7 +219,7 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
         try {
           sourceNode.current.disconnect();
         } catch (e) {
-          console.warn('Erreur lors de la déconnexion du nœud source:', e);
+          logger.warn('Erreur lors de la déconnexion du nœud source:', e);
         }
         sourceNode.current = null;
       }
@@ -227,7 +228,7 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
         try {
           audioAnalyser.current.analyser.disconnect();
         } catch (e) {
-          console.warn("Erreur lors de la déconnexion de l'analyseur:", e);
+          logger.warn("Erreur lors de la déconnexion de l'analyseur:", e);
         }
       }
 
@@ -237,7 +238,7 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
             await audioContext.current.close();
           }
         } catch (e) {
-          console.warn('Erreur lors de la fermeture du contexte audio:', e);
+          logger.warn('Erreur lors de la fermeture du contexte audio:', e);
         }
         audioContext.current = null;
       }
@@ -247,7 +248,7 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
 
       // Créer un nouveau contexte
       audioContext.current = new AudioContext();
-      console.log('Nouveau contexte audio créé');
+      logger.debug('Nouveau contexte audio créé');
 
       // Créer un nouveau nœud source
       sourceNode.current = audioContext.current.createMediaElementSource(audioElement);
@@ -267,7 +268,7 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
         bufferLength,
       };
 
-      console.log('Audio initialisé avec succès');
+      logger.debug('Audio initialisé avec succès');
       reconnectAttempts.current = 0;
 
       // Réinitialiser l'historique des beats et BPM
@@ -278,7 +279,7 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
 
       return true;
     } catch (error) {
-      console.error("Erreur lors de l'initialisation de l'audio:", error);
+      logger.error("Erreur lors de l'initialisation de l'audio:", error);
       return false;
     }
   }, [audioElement]);
@@ -459,12 +460,12 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
 
       // Si le premier sélecteur échoue, essayer des alternatives
       if (!canvas) {
-        console.log('Premier sélecteur de canvas échoué, essai de sélecteurs alternatifs');
+        logger.debug('Premier sélecteur de canvas échoué, essai de sélecteurs alternatifs');
         canvas = document.querySelector('.music-visualizer canvas, canvas') as HTMLCanvasElement;
       }
 
       if (!canvas) {
-        console.warn(
+        logger.warn(
           'Canvas non trouvé pour la génération des patterns, utilisant des dimensions par défaut'
         );
         // Utiliser des dimensions par défaut si aucun canvas n'est trouvé
@@ -496,7 +497,7 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
       const isBeat = detectBeat(timestamp, audioData);
 
       if (isBeat) {
-        console.log(
+        logger.debug(
           `Beat détecté! BPM estimé: ${bpm.current.toFixed(1)}, Confiance: ${(beatConfidence.current * 100).toFixed(1)}%`
         );
 
@@ -545,12 +546,12 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
 
   const updateGame = useCallback(() => {
     if (!audioAnalyser.current) {
-      console.warn('Analyseur audio non disponible');
+      logger.warn('Analyseur audio non disponible');
       return;
     }
 
     if (!isActive.current) {
-      console.log('Jeu non actif, arrêt de la boucle de jeu');
+      logger.debug('Jeu non actif, arrêt de la boucle de jeu');
       if (animationFrame.current) {
         cancelAnimationFrame(animationFrame.current);
         animationFrame.current = undefined;
@@ -571,10 +572,10 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
           audioDataRef.current = dataArray;
           lastAudioUpdate.current = now;
         } catch (error) {
-          console.warn("Problème avec l'analyse audio, tentative de reconnexion...");
+          logger.warn("Problème avec l'analyse audio, tentative de reconnexion...");
           reconnectAudio().then((success) => {
             if (!success && reconnectAttempts.current < maxReconnectAttempts) {
-              console.error("Impossible de reconnecter l'audio");
+              logger.error("Impossible de reconnecter l'audio");
             }
           });
         }
@@ -632,7 +633,7 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
 
       animationFrame.current = requestAnimationFrame(updateGame);
     } catch (error) {
-      console.error('Erreur dans la boucle de jeu:', error);
+      logger.error('Erreur dans la boucle de jeu:', error);
       if (isActive.current) {
         animationFrame.current = requestAnimationFrame(updateGame);
       }
@@ -741,7 +742,7 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
           setTimeout(() => audioCtx.close(), type === 'golden' ? 300 : 200);
         }
       } catch (error) {
-        console.warn('Erreur lors de la lecture du son:', error);
+        logger.warn('Erreur lors de la lecture du son:', error);
       }
 
       // Marquer le pattern pour décomposition
@@ -859,7 +860,7 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
 
     // Vérifier si nous avons des patterns à mettre à jour
     if (patterns.length === 0 && patternsRef.current.length === 0) {
-      console.log("Aucun pattern trouvé - Génération d'urgence");
+      logger.debug("Aucun pattern trouvé - Génération d'urgence");
 
       // Toujours générer des patterns d'urgence, même si le jeu n'est pas actif
       const emergencyPatterns = PRE_MAPPED_PATTERNS.slice(0, 15).map((pattern, index) => {
@@ -883,12 +884,12 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
       // Mettre à jour l'état ET la référence immédiatement
       setPatterns(emergencyPatterns);
       patternsRef.current = emergencyPatterns;
-      console.log(`${emergencyPatterns.length} patterns d'urgence générés`);
+      logger.debug(`${emergencyPatterns.length} patterns d'urgence générés`);
 
       // IMPORTANT: Utiliser setTimeout(0) pour permettre à React de mettre à jour le DOM
       // avant de continuer l'animation, ce qui aide à résoudre les problèmes de synchronisation
       setTimeout(() => {
-        console.log(
+        logger.debug(
           'Après génération - vérification:',
           patternsRef.current.length,
           'patterns disponibles'
@@ -928,12 +929,12 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
     const existingPatterns = patterns.length > 0;
 
     if (!existingPatterns) {
-      console.log("Aucun pattern trouvé dans l'état, vérification de patternsRef...");
+      logger.debug("Aucun pattern trouvé dans l'état, vérification de patternsRef...");
       const refPatterns = patternsRef.current.length > 0;
-      console.log(`patternsRef contient ${patternsRef.current.length} patterns`);
+      logger.debug(`patternsRef contient ${patternsRef.current.length} patterns`);
 
       if (!refPatterns && isActive.current) {
-        console.log('Tentative de régénération des patterns depuis simpleUpdateGame');
+        logger.debug('Tentative de régénération des patterns depuis simpleUpdateGame');
         // Utiliser les patterns prémappés comme solution de secours
         const emergencyPatterns = PRE_MAPPED_PATTERNS.map((pattern, index) => {
           const x = Math.min(pattern.x, 800);
@@ -956,10 +957,10 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
         // Mettre à jour l'état ET la référence immédiatement
         setPatterns(emergencyPatterns);
         patternsRef.current = emergencyPatterns; // Mise à jour immédiate de la référence
-        console.log(`${emergencyPatterns.length} patterns d'urgence générés`);
+        logger.debug(`${emergencyPatterns.length} patterns d'urgence générés`);
       }
     } else {
-      console.log(`Mise à jour de ${patterns.length} patterns existants`);
+      logger.debug(`Mise à jour de ${patterns.length} patterns existants`);
     }
 
     // Mettre à jour les patterns existants
@@ -983,7 +984,7 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
 
     // Vérifier si nous avons besoin de générer de nouveaux patterns
     if (updatedPatterns.length < 5 && isActive.current) {
-      console.log('Peu de patterns restants, génération de patterns supplémentaires');
+      logger.debug('Peu de patterns restants, génération de patterns supplémentaires');
       // Créer des patterns supplémentaires
       const additionalPatterns = PRE_MAPPED_PATTERNS.slice(0, 5).map((pattern, index) => {
         const x = 1100; // Placer hors écran à droite
@@ -1020,7 +1021,7 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
   // NOUVEAU: Initialiser les patterns au chargement du composant (maintenant APRÈS simpleUpdateGame)
   useEffect(() => {
     if (patterns.length === 0 && !isActive.current) {
-      console.log('Initialisation proactive des patterns au chargement');
+      logger.debug('Initialisation proactive des patterns au chargement');
 
       // Créer des patterns initiaux avec un délai pour qu'ils apparaissent progressivement
       const now = Date.now();
@@ -1042,7 +1043,7 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
         };
       });
 
-      console.log(`${initialPatterns.length} patterns initiaux générés proactivement`);
+      logger.debug(`${initialPatterns.length} patterns initiaux générés proactivement`);
 
       // Mettre à jour l'état et la référence immédiatement
       setPatterns(initialPatterns);
@@ -1050,7 +1051,7 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
 
       // Démarrer immédiatement la boucle d'animation pour que les patterns soient visibles
       requestAnimationFrame(() => {
-        console.log('Démarrage immédiat de simpleUpdateGame pour rendre les patterns visibles');
+        logger.debug('Démarrage immédiat de simpleUpdateGame pour rendre les patterns visibles');
         requestAnimationFrame(() => simpleUpdateGame()); // Appel correct maintenant
       });
     }
@@ -1059,7 +1060,7 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
   // Implémentation des fonctions startGame et endGame (peut rester après)
   const startGame = useCallback(() => {
     try {
-      console.log('Démarrage du jeu avec patterns prémappés');
+      logger.debug('Démarrage du jeu avec patterns prémappés');
 
       // S'assurer que la boucle d'animation précédente est arrêtée
       if (animationFrame.current) {
@@ -1094,7 +1095,7 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
         const timestamp = now + pattern.time;
         const targetTime = timestamp + (pattern.speed ? 5000 / pattern.speed : 5000);
 
-        console.log(
+        logger.debug(
           `Création du pattern #${index + 1}: ${pattern.type} sur la lane ${pattern.lane} à ${pattern.time}ms`
         );
 
@@ -1111,14 +1112,14 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
         };
       });
 
-      console.log(`${preMappedPatterns.length} patterns prémappés générés`);
+      logger.debug(`${preMappedPatterns.length} patterns prémappés générés`);
 
       // Mettre à jour l'état ET la référence immédiatement
       setPatterns(preMappedPatterns);
       patternsRef.current = preMappedPatterns; // Mise à jour immédiate de la référence
 
       // Vérification post-initialisation
-      console.log('Vérification post-initialisation:', {
+      logger.debug('Vérification post-initialisation:', {
         patternsLength: preMappedPatterns.length,
         patternsRefLength: patternsRef.current.length,
         isActive: isActive.current,
@@ -1126,15 +1127,15 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
       });
 
       // Démarrer la boucle de mise à jour immédiatement
-      console.log('Le jeu est actif - Vérification de la génération de patterns...');
+      logger.debug('Le jeu est actif - Vérification de la génération de patterns...');
       animationFrame.current = requestAnimationFrame(simpleUpdateGame);
     } catch (error) {
-      console.error('Erreur lors du démarrage du jeu:', error);
+      logger.error('Erreur lors du démarrage du jeu:', error);
     }
   }, []);
 
   const endGame = useCallback(() => {
-    console.log('Fin du jeu');
+    logger.debug('Fin du jeu');
     // Mettre à jour l'état du jeu
     setGameState((prev) => {
       // Sauvegarder le meilleur score si nécessaire
@@ -1163,7 +1164,7 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
   // Mettre à jour la référence patternsRef lorsque patterns change
   useEffect(() => {
     patternsRef.current = patterns;
-    console.log(`Synchronisation de patternsRef avec patterns: ${patterns.length} patterns`);
+    logger.debug(`Synchronisation de patternsRef avec patterns: ${patterns.length} patterns`);
   }, [patterns]);
 
   // Export des méthodes et états mis à jour

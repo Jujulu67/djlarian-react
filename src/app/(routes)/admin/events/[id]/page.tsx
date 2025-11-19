@@ -30,6 +30,7 @@ import {
   User,
 } from 'lucide-react';
 import Image from 'next/image';
+import { logger } from '@/lib/logger';
 
 // Types
 type Event = {
@@ -107,7 +108,7 @@ export default function EventDetailsPage() {
         const data = await response.json();
         setEvent(data);
       } catch (err) {
-        console.error("Erreur lors du chargement de l'événement:", err);
+        logger.error("Erreur lors du chargement de l'événement:", err);
         setError(err instanceof Error ? err.message : 'Erreur inconnue');
       } finally {
         setLoading(false);
@@ -133,7 +134,7 @@ export default function EventDetailsPage() {
       // Rediriger vers la liste des événements
       router.push('/admin/events');
     } catch (err) {
-      console.error('Erreur lors de la suppression:', err);
+      logger.error('Erreur lors de la suppression:', err);
       setError("Erreur lors de la suppression de l'événement");
       setShowDeleteModal(false);
     }
@@ -162,7 +163,7 @@ export default function EventDetailsPage() {
       const updatedEvent = await response.json();
       setEvent(updatedEvent);
     } catch (err) {
-      console.error('Erreur lors de la mise à jour:', err);
+      logger.error('Erreur lors de la mise à jour:', err);
       setError("Erreur lors de la mise à jour de l'événement");
     }
   };
@@ -189,7 +190,7 @@ export default function EventDetailsPage() {
       const updatedEvent = await response.json();
       setEvent(updatedEvent);
     } catch (err) {
-      console.error('Erreur lors de la mise à jour:', err);
+      logger.error('Erreur lors de la mise à jour:', err);
       setError("Erreur lors de la mise à jour de l'événement");
     }
   };
@@ -381,6 +382,10 @@ export default function EventDetailsPage() {
             {event.imageId ? (
               <Image
                 src={`/uploads/${event.imageId}.jpg?t=${event.updatedAt ? new Date(event.updatedAt).getTime() : Date.now()}`}
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                }}
                 alt={event.title}
                 fill
                 className="w-full h-full object-cover object-[50%_25%]"

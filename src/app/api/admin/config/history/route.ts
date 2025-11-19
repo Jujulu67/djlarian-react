@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 
 import prisma from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 // Récupère l'historique des modifications
 export async function GET(req: NextRequest) {
@@ -38,7 +39,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ error: 'Type non valide' }, { status: 400 });
   } catch (error) {
-    console.error("Erreur lors de la récupération de l'historique:", error);
+    logger.error("Erreur lors de la récupération de l'historique:", error);
     return NextResponse.json(
       { error: "Erreur serveur lors de la récupération de l'historique" },
       { status: 500 }
@@ -89,7 +90,7 @@ export async function POST(req: NextRequest) {
             },
           });
         } catch (error) {
-          console.error('Erreur lors de la recréation de la configuration:', error);
+          logger.error('Erreur lors de la recréation de la configuration:', error);
           return NextResponse.json(
             { error: "La configuration n'existe plus et ne peut pas être recréée" },
             { status: 500 }
@@ -159,7 +160,7 @@ export async function POST(req: NextRequest) {
             },
           });
         } catch (error) {
-          console.error('Erreur lors de la recréation de la configuration:', error);
+          logger.error('Erreur lors de la recréation de la configuration:', error);
           return NextResponse.json(
             { error: "La configuration n'existe plus et ne peut pas être recréée" },
             { status: 500 }
@@ -260,7 +261,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ error: 'Action non valide' }, { status: 400 });
   } catch (error) {
-    console.error('Erreur lors de la restauration de la configuration:', error);
+    logger.error('Erreur lors de la restauration de la configuration:', error);
     return NextResponse.json(
       { error: 'Erreur serveur lors de la restauration de la configuration' },
       { status: 500 }

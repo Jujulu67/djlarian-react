@@ -66,3 +66,16 @@ Other websites/
 umami-analytics/
 umami-db-data/
 .secrets.local.md
+
+# Backup env files
+.env.bak
+
+# Local SQLite database
+prisma/dev.db
+prisma/dev.db.backup
+prisma/*.db
+prisma/*.sqlite
+prisma/schema.prisma.postgresql.backup
+
+# Database switch config
+.db-switch.json

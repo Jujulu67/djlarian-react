@@ -3,9 +3,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Track } from '@/lib/utils/types';
 import { motion } from 'framer-motion';
-import Image from 'next/image';
 import { X, Music, Play, Pause, SkipBack, SkipForward, Volume, VolumeX } from 'lucide-react';
 import { getInitialVolume, applyVolumeToAllPlayers } from '@/lib/utils/audioUtils';
+import { logger } from '@/lib/logger';
 
 interface SimpleMusicPlayerProps {
   track: Track | null;
@@ -39,15 +39,15 @@ const SimpleMusicPlayer: React.FC<SimpleMusicPlayerProps> = ({
 
   useEffect(() => {
     setInternalIsPlaying(isPlaying);
-    console.log(`SimpleMusicPlayer: état de lecture mis à jour à ${isPlaying ? 'play' : 'pause'}`);
+    logger.debug(`SimpleMusicPlayer: état de lecture mis à jour à ${isPlaying ? 'play' : 'pause'}`);
     isProcessingFooterToggle.current = false;
-    console.log('SimpleMusicPlayer: Footer toggle lock released (immediately on prop update).');
+    logger.debug('SimpleMusicPlayer: Footer toggle lock released (immediately on prop update).');
   }, [isPlaying]);
 
   useEffect(() => {
     if (track) {
       setImageError(false);
-      console.log(
+      logger.debug(
         `SimpleMusicPlayer: Réinitialisation de l\'erreur d\'image pour la piste ${track.id}`
       );
     }
@@ -55,7 +55,7 @@ const SimpleMusicPlayer: React.FC<SimpleMusicPlayerProps> = ({
 
   useEffect(() => {
     try {
-      console.log('Initialisation du lecteur musical et chargement du volume...');
+      logger.debug('Initialisation du lecteur musical et chargement du volume...');
       const initialVolume = getInitialVolume();
       setVolume(initialVolume * 100);
       setIsMuted(initialVolume === 0);
@@ -70,9 +70,9 @@ const SimpleMusicPlayer: React.FC<SimpleMusicPlayerProps> = ({
           previousVolumeRef.current = 0.5;
         }
       }
-      console.log(`Volume initialisé et appliqué: ${initialVolume * 100}%`);
+      logger.debug(`Volume initialisé et appliqué: ${initialVolume * 100}%`);
     } catch (error) {
-      console.error("Erreur lors de l'initialisation du volume:", error);
+      logger.error("Erreur lors de l'initialisation du volume:", error);
     }
   }, []);
 
@@ -80,24 +80,24 @@ const SimpleMusicPlayer: React.FC<SimpleMusicPlayerProps> = ({
     try {
       const newVolumeValue = parseInt(e.target.value);
       const newVolumeNormalized = newVolumeValue / 100;
-      console.log(`Volume slider changed to ${newVolumeValue}%`);
+      logger.debug(`Volume slider changed to ${newVolumeValue}%`);
 
       setVolume(newVolumeValue);
       setIsMuted(newVolumeNormalized === 0);
 
       const appliedVolume = applyVolumeToAllPlayers(newVolumeNormalized);
-      console.log(`Volume appliqué à tous les lecteurs: ${appliedVolume * 100}%`);
+      logger.debug(`Volume appliqué à tous les lecteurs: ${appliedVolume * 100}%`);
 
       if (appliedVolume > 0) {
         previousVolumeRef.current = appliedVolume;
         try {
           localStorage.setItem('prev-volume', String(appliedVolume));
         } catch (error) {
-          console.error('Could not save previous volume to localStorage', error);
+          logger.error('Could not save previous volume to localStorage', error);
         }
       }
     } catch (error) {
-      console.error('Erreur lors du changement de volume:', error);
+      logger.error('Erreur lors du changement de volume:', error);
     }
   };
 
@@ -105,7 +105,7 @@ const SimpleMusicPlayer: React.FC<SimpleMusicPlayerProps> = ({
     try {
       const currentVolume = previousVolumeRef.current;
       const newMuted = !isMuted;
-      console.log(newMuted ? 'Activation du mute' : 'Désactivation du mute');
+      logger.debug(newMuted ? 'Activation du mute' : 'Désactivation du mute');
 
       setIsMuted(newMuted);
 
@@ -114,24 +114,24 @@ const SimpleMusicPlayer: React.FC<SimpleMusicPlayerProps> = ({
           previousVolumeRef.current = currentVolume;
           try {
             localStorage.setItem('prev-volume', currentVolume.toString());
-            console.log(`Sauvegarde du volume précédent: ${currentVolume * 100}%`);
+            logger.debug(`Sauvegarde du volume précédent: ${currentVolume * 100}%`);
           } catch (error) {
-            console.error('Could not save previous volume to localStorage', error);
+            logger.error('Could not save previous volume to localStorage', error);
           }
         }
         setVolume(0);
         applyVolumeToAllPlayers(0);
-        console.log('Volume mis à zéro et appliqué');
+        logger.debug('Volume mis à zéro et appliqué');
       } else {
         const volumeToRestore = previousVolumeRef.current > 0 ? previousVolumeRef.current : 0.5;
-        console.log(`Restauration du volume précédent: ${volumeToRestore * 100}%`);
+        logger.debug(`Restauration du volume précédent: ${volumeToRestore * 100}%`);
 
         setVolume(volumeToRestore * 100);
         applyVolumeToAllPlayers(volumeToRestore);
-        console.log(`Volume restauré à ${volumeToRestore * 100}% et appliqué`);
+        logger.debug(`Volume restauré à ${volumeToRestore * 100}% et appliqué`);
       }
     } catch (error) {
-      console.error("Erreur lors du changement de l'état muet:", error);
+      logger.error("Erreur lors du changement de l'état muet:", error);
     }
     onFooterToggle();
   };
@@ -142,11 +142,11 @@ const SimpleMusicPlayer: React.FC<SimpleMusicPlayerProps> = ({
     e.nativeEvent.stopImmediatePropagation();
 
     if (isProcessingFooterToggle.current) {
-      console.log('Footer toggle ignoré (traitement en cours)');
+      logger.debug('Footer toggle ignoré (traitement en cours)');
       return;
     }
     isProcessingFooterToggle.current = true;
-    console.log('SimpleMusicPlayer: Footer toggle lock acquired, calling onFooterToggle');
+    logger.debug('SimpleMusicPlayer: Footer toggle lock acquired, calling onFooterToggle');
     onFooterToggle();
   };
 
@@ -178,13 +178,12 @@ const SimpleMusicPlayer: React.FC<SimpleMusicPlayerProps> = ({
                 <Music className="w-16 h-16 text-gray-600" />
               </div>
             ) : (
-              <Image
+              <img
                 src={`/uploads/${track.imageId}.jpg`}
                 alt={track.title}
-                width={400}
-                height={400}
                 className="w-full h-full object-cover object-center"
                 onError={handleImageError}
+                onLoad={() => setImageError(false)}
               />
             )}
           </div>

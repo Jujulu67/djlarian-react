@@ -8,6 +8,7 @@ import { useSession, signOut } from 'next-auth/react';
 import AuthModal from '../auth/AuthModal';
 import { Menu, User, LogOut, Music, Calendar, ImageIcon, Mail, Settings, Home } from 'lucide-react';
 import Image from 'next/image';
+import { logger } from '@/lib/logger';
 
 const Navigation = () => {
   const { data: session, status } = useSession();
@@ -18,13 +19,13 @@ const Navigation = () => {
   const [mounted, setMounted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
 
-  // Debug: Afficher les informations de session
-  useEffect(() => {
-    if (session) {
-      console.log('Session:', session);
-      console.log('User role:', session?.user?.role);
-    }
-  }, [session]);
+  // Debug: Afficher les informations de session (désactivé pour réduire les logs)
+  // useEffect(() => {
+  //   if (session) {
+  //     logger.debug('Session:', session);
+  //     logger.debug('User role:', session?.user?.role);
+  //   }
+  // }, [session]);
 
   useEffect(() => {
     setMounted(true);
@@ -44,7 +45,6 @@ const Navigation = () => {
 
   const links = [
     { href: '/', label: 'Home', icon: Home },
-    { href: '/oldHome', label: 'Old Home', icon: Home },
     { href: '/music', label: 'Music', icon: Music },
     { href: '/events', label: 'Events', icon: Calendar },
     { href: '/gallery', label: 'Gallery', icon: ImageIcon },

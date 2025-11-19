@@ -15,6 +15,7 @@ import { findOriginalImageUrl } from '@/lib/utils/findOriginalImageUrl';
 import { Calendar as CalendarIcon, CheckCircle, Clock, PauseCircle } from 'lucide-react';
 import { PublicationStatusSelector } from '@/components/admin/PublicationStatusSelector';
 import { DateTimeField } from '@/components/ui/DateTimeField';
+import { logger } from '@/lib/logger';
 
 export interface TicketInfo {
   price?: number;
@@ -163,7 +164,7 @@ const EventForm: React.FC<EventFormProps> = ({
       setDisplayCrop(initialCrop);
       setIsImageLoaded(true);
     } else {
-      console.error("L'image chargée n'a pas de dimensions.");
+      logger.error("L'image chargée n'a pas de dimensions.");
       handleCancelRecrop();
     }
   };
@@ -177,7 +178,7 @@ const EventForm: React.FC<EventFormProps> = ({
     const ctx = canvas.getContext('2d');
 
     if (!ctx) {
-      console.error('Impossible de créer le contexte 2D');
+      logger.error('Impossible de créer le contexte 2D');
       return;
     }
 
@@ -224,7 +225,7 @@ const EventForm: React.FC<EventFormProps> = ({
           setDisplayCrop(undefined);
           setCroppedImageFile(file);
         } else {
-          console.error("Blob n'a pas pu être créé.");
+          logger.error("Blob n'a pas pu être créé.");
           handleCancelRecrop();
         }
       },
@@ -454,52 +455,52 @@ const EventForm: React.FC<EventFormProps> = ({
     setIsImageLoaded(false);
     setDisplayCrop(undefined);
     setPendingImageChange(true);
-    console.log('[CROP] pendingImageChange activé (crop local)');
+    logger.debug('[CROP] pendingImageChange activé (crop local)');
   };
 
   // Lors de la sauvegarde (submit), désactiver le flag et recharger le cache
   const handleSubmitWithCache = async (e: React.FormEvent) => {
     await handleSubmit(e);
     setPendingImageChange(false);
-    console.log('[CROP] pendingImageChange désactivé (sauvegarde event)');
+    logger.debug('[CROP] pendingImageChange désactivé (sauvegarde event)');
   };
 
   // Adapter le useEffect pour ne pas purger le cache si pendingImageChange est actif
   useEffect(() => {
     if (pendingImageChange) {
-      console.log('[CROP] pendingImageChange actif, cache conservé malgré changement imageId');
+      logger.debug('[CROP] pendingImageChange actif, cache conservé malgré changement imageId');
       return;
     }
     let isMounted = true;
     if (formData.imageId) {
       (async () => {
-        console.log("[CROP] Préchargement de l'originale pour imageId:", formData.imageId);
+        logger.debug("[CROP] Préchargement de l'originale pour imageId:", formData.imageId);
         const url = await findOriginalImageUrl(formData.imageId as string);
-        console.log('[CROP] URL originale trouvée (ou null):', url);
+        logger.debug('[CROP] URL originale trouvée (ou null):', url);
         if (url && isMounted) {
           setCachedOriginalUrl(url);
           const ext = url.split('.').pop() || 'jpg';
           const res = await fetch(url);
-          console.log('[CROP] Résultat fetch originale:', res.status, res.statusText);
+          logger.debug('[CROP] Résultat fetch originale:', res.status, res.statusText);
           if (res.ok) {
             const blob = await res.blob();
             const file = new File([blob], `original.${ext}`, { type: blob.type });
             setCachedOriginalFile(file);
-            console.log('[CROP] File originale préchargé:', file);
+            logger.debug('[CROP] File originale préchargé:', file);
           } else {
             setCachedOriginalFile(null);
-            console.warn("[CROP] Impossible de fetch l'originale, fichier non trouvé");
+            logger.warn("[CROP] Impossible de fetch l'originale, fichier non trouvé");
           }
         } else if (isMounted) {
           setCachedOriginalUrl(null);
           setCachedOriginalFile(null);
-          console.warn('[CROP] Aucune URL originale trouvée');
+          logger.warn('[CROP] Aucune URL originale trouvée');
         }
       })();
     } else {
       setCachedOriginalUrl(null);
       setCachedOriginalFile(null);
-      console.log("[CROP] Pas d'imageId, cache vidé");
+      logger.debug("[CROP] Pas d'imageId, cache vidé");
     }
     return () => {
       isMounted = false;
@@ -569,7 +570,7 @@ const EventForm: React.FC<EventFormProps> = ({
     setCachedOriginalUrl(null);
     setCachedOriginalFile(null);
     handleRemoveImage();
-    console.log('[CROP] Image supprimée, cache vidé');
+    logger.debug('[CROP] Image supprimée, cache vidé');
   };
 
   // À chaque changement de fichier, notifier le parent
@@ -582,7 +583,7 @@ const EventForm: React.FC<EventFormProps> = ({
   // Calcul de l'activation du crop
   const canRecrop = !!originalImageFile || !!cachedOriginalFile;
   // Log ciblé à chaque render
-  console.log('[CROP][render]', {
+  logger.debug('[CROP][render]', {
     imageId: formData.imageId,
     originalImageFile,
     cachedOriginalFile,

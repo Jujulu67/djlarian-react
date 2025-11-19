@@ -1,6 +1,7 @@
 'use client';
 
 import Script from 'next/script';
+import { logger } from '@/lib/logger';
 
 /**
  * Composant pour intégrer Umami Analytics, une solution d'analyse web légère et respectueuse de la vie privée.
@@ -24,7 +25,7 @@ export default function UmamiAnalytics({
 
   // Check 2: Si c'est localhost en prod, on n'affiche pas (ne devrait pas s'appliquer en dev)
   if (isLocalhost && !isDevelopment) {
-    console.warn(
+    logger.warn(
       "L'URL Umami contient 'localhost', ce qui peut causer des problèmes de préchargement."
     );
     return null;

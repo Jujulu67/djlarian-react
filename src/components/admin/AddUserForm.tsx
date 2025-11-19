@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { UserPlus, Loader2, Edit, Star } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 // Rétablir l'interface locale
 interface User {
@@ -66,7 +67,7 @@ export default function AddUserForm({ onSuccess, userToEdit }: AddUserFormProps)
     if (isEditMode) {
       // Vérification explicite pour rassurer TypeScript et gérer un cas improbable
       if (!userToEdit) {
-        console.error('Erreur: Mode édition actif mais userToEdit non défini.');
+        logger.error('Erreur: Mode édition actif mais userToEdit non défini.');
         setError(
           'Une erreur interne est survenue. Impossible de déterminer l&apos;utilisateur à modifier.'
         );
@@ -114,13 +115,13 @@ export default function AddUserForm({ onSuccess, userToEdit }: AddUserFormProps)
       }
 
       // Succès
-      console.log(`Utilisateur ${isEditMode ? 'modifié' : 'créé'}:`, data);
+      logger.debug(`Utilisateur ${isEditMode ? 'modifié' : 'créé'}:`, data);
       if (onSuccess) {
         onSuccess(); // Appeler le callback (ex: pour fermer la modale et rafraîchir)
       }
       // Idéalement, afficher un toast/notification de succès
     } catch (err: any) {
-      console.error(`Erreur lors de ${isEditMode ? 'la modification' : "l'ajout"}:`, err);
+      logger.error(`Erreur lors de ${isEditMode ? 'la modification' : "l'ajout"}:`, err);
       setError(err.message || 'Une erreur est survenue.');
     } finally {
       setIsLoading(false);

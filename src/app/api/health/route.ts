@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 import { isBlobConfigured } from '@/lib/blob';
 
 // Health check endpoint - Vercel (Node.js runtime)
 
 export async function GET() {
-  console.log('[HEALTH CHECK] Début du health check');
-  console.log('[HEALTH CHECK] Environment:', {
+  logger.debug('HEALTH CHECK - Début du health check');
+  logger.debug('HEALTH CHECK - Environment', {
     NODE_ENV: process.env.NODE_ENV,
     NEXT_RUNTIME: process.env.NEXT_RUNTIME,
     DATABASE_URL: process.env.DATABASE_URL ? `set (${process.env.DATABASE_URL.length} chars)` : 'not_set',
@@ -32,28 +33,28 @@ export async function GET() {
   };
 
   // Test database connection
-  console.log('[HEALTH CHECK] Test de la connexion à la base de données...');
+  logger.debug('HEALTH CHECK - Test de la connexion à la base de données...');
   try {
-    console.log('[HEALTH CHECK] Prisma client type:', typeof prisma);
-    console.log('[HEALTH CHECK] Prisma client methods:', Object.keys(prisma).slice(0, 10));
+    logger.debug('HEALTH CHECK - Prisma client type', typeof prisma);
+    logger.debug('HEALTH CHECK - Prisma client methods', Object.keys(prisma).slice(0, 10));
     
-    console.log('[HEALTH CHECK] Exécution de $queryRaw...');
+    logger.debug('HEALTH CHECK - Exécution de $queryRaw...');
     // Utiliser une requête simple qui ne nécessite pas fs
     const result = await prisma.$queryRaw`SELECT 1 as test`;
-    console.log('[HEALTH CHECK] $queryRaw réussi, résultat:', result);
+    logger.debug('HEALTH CHECK - $queryRaw réussi', result);
     
     health.checks.database.status = 'connected';
     health.checks.database.message = 'Database connection successful';
-    console.log('[HEALTH CHECK] Connexion à la base de données réussie');
+    logger.debug('HEALTH CHECK - Connexion à la base de données réussie');
   } catch (error) {
-    console.error('[HEALTH CHECK] Erreur lors du test de connexion à la base de données');
+    logger.error('HEALTH CHECK - Erreur lors du test de connexion à la base de données');
     health.checks.database.status = 'error';
     const errorMessage = error instanceof Error ? error.message : String(error);
     health.checks.database.message = errorMessage;
     health.status = 'degraded';
     
     // Log détaillé pour debug
-    console.error('[HEALTH CHECK] Database error details:', {
+    logger.error('HEALTH CHECK - Database error details', {
       message: errorMessage,
       stack: error instanceof Error ? error.stack : undefined,
       errorType: error?.constructor?.name,
