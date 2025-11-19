@@ -75,40 +75,108 @@ if (isCloudflare && typeof globalThis !== 'undefined') {
     };
   }
 
-  // Dans Cloudflare Workers avec OpenNext, les modules node:os et node:fs sont externalisés
-  // et doivent être fournis via les polyfills globaux.
-  // Le problème est que Prisma utilise require() qui peut ne pas être interceptable.
-  // 
-  // Solution: S'assurer que les polyfills sont disponibles dans globalThis
-  // et que Prisma peut les trouver via les chemins de modules standard.
+  // Dans Cloudflare Workers, Prisma utilise 'unenv' qui n'a pas implémenté fs.readdir
+  // Nous devons patcher le système de modules pour intercepter les appels avant qu'ils n'atteignent unenv
   
-  // Créer des alias de modules dans globalThis pour que require() puisse les trouver
-  // @ts-ignore
-  if (typeof globalThis.require !== 'undefined') {
-    // Créer un cache de modules pour intercepter les require
+  // Patcher le système de résolution de modules pour intercepter fs et os
+  try {
+    // Intercepter require() si disponible
     // @ts-ignore
-    const moduleCache: Record<string, any> = {};
-    // @ts-ignore
-    moduleCache['node:os'] = (globalThis as any).os;
-    // @ts-ignore
-    moduleCache['os'] = (globalThis as any).os;
-    // @ts-ignore
-    moduleCache['node:fs'] = (globalThis as any).fs;
-    // @ts-ignore
-    moduleCache['fs'] = (globalThis as any).fs;
-    
-    // Stocker le cache dans globalThis pour qu'il soit accessible
-    // @ts-ignore
-    globalThis.__polyfillModuleCache = moduleCache;
+    if (typeof require !== 'undefined') {
+      // @ts-ignore
+      const originalRequire = require;
+      // Créer un wrapper pour intercepter les appels
+      const interceptedRequire = (id: string) => {
+        if (id === 'node:os' || id === 'os') {
+          return (globalThis as any).os;
+        }
+        if (id === 'node:fs' || id === 'fs') {
+          return (globalThis as any).fs;
+        }
+        // Pour les autres modules, utiliser le require original
+        try {
+          return originalRequire(id);
+        } catch (e) {
+          // Si le module n'existe pas, essayer nos polyfills
+          if (id === 'node:os' || id === 'os') {
+            return (globalThis as any).os;
+          }
+          if (id === 'node:fs' || id === 'fs') {
+            return (globalThis as any).fs;
+          }
+          throw e;
+        }
+      };
+      
+      // Remplacer require dans le contexte global si possible
+      // @ts-ignore
+      if (typeof globalThis.require === 'undefined') {
+        // @ts-ignore
+        globalThis.require = interceptedRequire;
+      }
+    }
+  } catch (e) {
+    console.log('[POLYFILLS] Impossible de patcher require:', e);
   }
-  
-  // Note: Dans Cloudflare Workers, les modules externalisés sont résolus différemment.
-  // Les polyfills globaux (globalThis.os et globalThis.fs) devraient être suffisants
-  // si OpenNext/Cloudflare résout correctement les modules externalisés.
 
-  // Intercepter les imports dynamiques de node:os
-  // Note: Les imports ES modules ne peuvent pas être interceptés de cette manière,
-  // mais Prisma utilise généralement require() pour ces modules
+  // Patcher le système unenv si disponible
+  // unenv est utilisé par Cloudflare Workers pour fournir des polyfills
+  try {
+    // @ts-ignore
+    if (typeof globalThis !== 'undefined' && globalThis.unenv) {
+      // @ts-ignore
+      const unenv = globalThis.unenv;
+      if (unenv && typeof unenv === 'object') {
+        // Patcher fs dans unenv
+        if (!unenv.fs) {
+          unenv.fs = (globalThis as any).fs;
+        } else {
+          // Si fs existe déjà, patcher readdir
+          if (!unenv.fs.readdir) {
+            unenv.fs.readdir = (globalThis as any).fs.readdir;
+          }
+        }
+        // Patcher os dans unenv
+        if (!unenv.os) {
+          unenv.os = (globalThis as any).os;
+        }
+      }
+    }
+  } catch (e) {
+    // Ignorer si unenv n'est pas disponible
+  }
+
+  // Créer un proxy pour intercepter les accès aux propriétés de fs
+  // Cela peut aider à intercepter les appels même si require() n'est pas patchable
+  try {
+    const fsPolyfill = (globalThis as any).fs;
+    if (fsPolyfill && !fsPolyfill._patched) {
+      // Créer un proxy pour intercepter tous les accès
+      const fsProxy = new Proxy(fsPolyfill, {
+        get(target: any, prop: string | symbol) {
+          if (prop === 'readdir') {
+            return target.readdir || ((path: any, options?: any, callback?: any) => {
+              if (typeof options === 'function') {
+                callback = options;
+                options = {};
+              }
+              if (callback) {
+                callback(null, []);
+              } else {
+                return Promise.resolve([]);
+              }
+            });
+          }
+          return target[prop];
+        }
+      });
+      (globalThis as any).fs = fsProxy;
+      (globalThis as any).fs._patched = true;
+    }
+  } catch (e) {
+    console.log('[POLYFILLS] Impossible de créer un proxy pour fs:', e);
+  }
+
   console.log('[POLYFILLS] Polyfills Cloudflare initialisés pour node:os et fs.readdir');
 }
 
