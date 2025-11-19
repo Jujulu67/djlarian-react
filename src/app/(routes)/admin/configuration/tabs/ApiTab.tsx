@@ -7,12 +7,13 @@ import { Button } from '@/components/ui/Button';
 import ToggleRow from '@/components/config/ToggleRow';
 import NumberInput from '@/components/config/NumberInput';
 import { RefreshCcw } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 export default function ApiTab() {
   const { api, update } = useConfigs();
 
   const handleRegenerateApiKeys = () => {
-    console.log('Regenerating API Keys...');
+    logger.debug('Regenerating API Keys...');
     alert('Logique de régénération des clés API non implémentée.');
   };
 

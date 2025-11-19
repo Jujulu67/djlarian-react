@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { hash as bcryptHash } from '@/lib/bcrypt-edge';
 import prisma from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: Request) {
   try {
@@ -36,7 +37,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ message: 'Utilisateur créé avec succès' }, { status: 201 });
   } catch (error) {
-    console.error("Erreur lors de l'inscription:", error);
+    logger.error("Erreur lors de l'inscription:", error);
     return NextResponse.json(
       { error: "Une erreur est survenue lors de l'inscription" },
       { status: 500 }

@@ -4,6 +4,7 @@ import Modal from '@/components/ui/Modal';
 import TrackDetailView from '@/components/admin/TrackDetailView';
 import { useRouter, useParams } from 'next/navigation';
 import React from 'react';
+import { logger } from '@/lib/logger';
 
 export default function InterceptedMusicDetailPage() {
   const router = useRouter();
@@ -12,7 +13,7 @@ export default function InterceptedMusicDetailPage() {
   const trackId = params.id;
 
   if (!trackId) {
-    console.error('Track ID not found in params');
+    logger.error('Track ID not found in params');
     return null;
   }
 

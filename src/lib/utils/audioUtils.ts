@@ -1,5 +1,7 @@
 'use client';
 
+import { logger } from '@/lib/logger';
+
 // ======================================================================
 // Volume Management
 // ======================================================================
@@ -14,16 +16,16 @@ export const getInitialVolume = (): number => {
       const savedVolume = localStorage.getItem('global-music-volume');
       if (savedVolume !== null) {
         const volume = Number(savedVolume);
-        console.log(`Retrieved initial volume from localStorage: ${volume}`);
+        logger.debug(`Retrieved initial volume from localStorage: ${volume}`);
         // Ensure the retrieved volume is within the valid range [0, 1]
         return Math.max(0, Math.min(1, volume));
       }
     }
   } catch (error) {
-    console.error('Error reading volume from localStorage:', error);
+    logger.error('Error reading volume from localStorage:', error);
   }
 
-  console.log('Using default initial volume: 0.8');
+  logger.debug('Using default initial volume: 0.8');
   return 0.8; // Default value
 };
 
@@ -35,10 +37,10 @@ const saveVolumeToLocalStorage = (volume: number): void => {
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
       localStorage.setItem('global-music-volume', String(volume));
-      console.log(`Volume saved to localStorage: ${volume}`);
+      logger.debug(`Volume saved to localStorage: ${volume}`);
     }
   } catch (error) {
-    console.error('Error saving volume to localStorage:', error);
+    logger.error('Error saving volume to localStorage:', error);
   }
 };
 
@@ -64,7 +66,7 @@ export const sendPlayerCommand = (
   value?: number
 ): void => {
   if (!iframe || !iframe.contentWindow || !platform) {
-    // console.warn(`Cannot send command: Iframe for ${platform} not ready or accessible.`);
+    // logger.warn(`Cannot send command: Iframe for ${platform} not ready or accessible.`);
     return;
   }
 
@@ -93,12 +95,12 @@ export const sendPlayerCommand = (
           args = [value !== undefined ? value : 0, true]; // time in seconds, allowSeekAhead=true
           break;
         default:
-          console.error(`Unsupported YouTube command: ${command}`);
+          logger.error(`Unsupported YouTube command: ${command}`);
           return;
       }
       message = JSON.stringify({ event: 'command', func, args });
       iframe.contentWindow.postMessage(message, '*'); // Consider using specific target origin in production
-      // console.log(`Sent command to YouTube: ${message}`);
+      // logger.debug(`Sent command to YouTube: ${message}`);
     } else if (platform === 'soundcloud') {
       let method: string;
       let methodValue: string | number | undefined = value;
@@ -120,15 +122,15 @@ export const sendPlayerCommand = (
           methodValue = value !== undefined ? value * 1000 : 0; // time in milliseconds
           break;
         default:
-          console.error(`Unsupported SoundCloud command: ${command}`);
+          logger.error(`Unsupported SoundCloud command: ${command}`);
           return;
       }
       message = JSON.stringify({ method, value: methodValue });
       iframe.contentWindow.postMessage(message, '*'); // Consider using specific target origin
-      // console.log(`Sent command to SoundCloud: ${message}`);
+      // logger.debug(`Sent command to SoundCloud: ${message}`);
     }
   } catch (error) {
-    console.error(`Error sending command to ${platform} iframe:`, error);
+    logger.error(`Error sending command to ${platform} iframe:`, error);
   }
 };
 
@@ -149,9 +151,9 @@ const getOrCreateGlobalGainNode = (): GainNode | null => {
       (window as any).globalGainNode = (window as any).globalAudioContext.createGain();
       // Initial volume will be set by applyVolumeToAllPlayers
       (window as any).globalGainNode.connect((window as any).globalAudioContext.destination);
-      console.log('Global AudioContext and GainNode created.');
+      logger.debug('Global AudioContext and GainNode created.');
     } catch (error) {
-      console.error('Error creating global audio context:', error);
+      logger.error('Error creating global audio context:', error);
       return null;
     }
   }
@@ -175,7 +177,7 @@ export const applyVolumeToAllPlayers = (
 ): number => {
   try {
     const safeVolume = Math.max(0, Math.min(1, newVolume));
-    console.log(`Applying global volume: ${safeVolume}`);
+    logger.debug(`Applying global volume: ${safeVolume}`);
 
     // 1. Save to localStorage
     saveVolumeToLocalStorage(safeVolume);
@@ -192,10 +194,10 @@ export const applyVolumeToAllPlayers = (
       // Ensure audio context is running (might be suspended by browser policy)
       const audioContext = (window as any).globalAudioContext as AudioContext;
       if (audioContext && audioContext.state === 'suspended') {
-        audioContext.resume().catch((err) => console.error('Error resuming AudioContext:', err));
+        audioContext.resume().catch((err) => logger.error('Error resuming AudioContext:', err));
       }
       gainNode.gain.value = safeVolume;
-      console.log(`Applied volume ${safeVolume} to GainNode`);
+      logger.debug(`Applied volume ${safeVolume} to GainNode`);
     }
 
     // 4. Apply to iframes (conditionally)
@@ -206,7 +208,7 @@ export const applyVolumeToAllPlayers = (
       youtubeIframes.forEach((iframe) => {
         const youtubeVolume = safeVolume;
         sendPlayerCommand(iframe, 'youtube', 'setVolume', youtubeVolume);
-        console.log(
+        logger.debug(
           `Sent volume command (${youtubeVolume}) to YouTube iframe: ${iframe.id || 'no id'}`
         );
       });
@@ -217,17 +219,17 @@ export const applyVolumeToAllPlayers = (
       soundcloudIframes.forEach((iframe) => {
         const soundcloudVolume = safeVolume;
         sendPlayerCommand(iframe, 'soundcloud', 'setVolume', soundcloudVolume);
-        console.log(
+        logger.debug(
           `Sent volume command (${soundcloudVolume}) to SoundCloud iframe: ${iframe.id || 'no id'}`
         );
       });
     } else {
-      console.log('Skipping volume application to iframes.');
+      logger.debug('Skipping volume application to iframes.');
     }
 
     return safeVolume;
   } catch (error) {
-    console.error('Error setting global volume:', error);
+    logger.error('Error setting global volume:', error);
     // Attempt to return the last known good volume from localStorage in case of error
     return getInitialVolume();
   }

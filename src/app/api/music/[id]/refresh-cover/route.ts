@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { v4 as uuidv4 } from 'uuid';
 import * as cheerio from 'cheerio';
 import { uploadToBlob, isBlobConfigured, getBlobPublicUrl } from '@/lib/blob';
+import { logger } from '@/lib/logger';
 
 // Refresh cover endpoint - Vercel (Node.js runtime natif)
 
@@ -37,7 +38,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       }
       if (coverUrl) source = 'soundcloud';
     } catch (err) {
-      console.error('[REFRESH COVER] Erreur scrap SoundCloud:', err);
+      logger.error('REFRESH COVER - Erreur scrap SoundCloud', err);
     }
   }
 
@@ -47,14 +48,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       // Extraire l'ID de la vidéo depuis l'URL de la vidéo ou embedId
       const videoIdMatch = yt.url.match(/[?&]v=([^&]+)/);
       const videoId = videoIdMatch ? videoIdMatch[1] : yt.embedId;
-      console.log('[YOUTUBE SCRAP] yt.url:', yt.url);
-      console.log('[YOUTUBE SCRAP] videoId extrait:', videoId);
+      logger.debug('YOUTUBE SCRAP - yt.url', yt.url);
+      logger.debug('YOUTUBE SCRAP - videoId extrait', videoId);
       if (videoId) {
         // Essayer d'abord maxresdefault.jpg
         let testCoverUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
         let testRes = await fetch(testCoverUrl, { method: 'HEAD' });
-        console.log(
-          '[YOUTUBE SCRAP] Test maxresdefault.jpg:',
+        logger.debug(
+          'YOUTUBE SCRAP - Test maxresdefault.jpg',
           testCoverUrl,
           'status:',
           testRes.status
@@ -65,8 +66,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
           // Fallback sur hqdefault.jpg
           testCoverUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
           testRes = await fetch(testCoverUrl, { method: 'HEAD' });
-          console.log(
-            '[YOUTUBE SCRAP] Test hqdefault.jpg:',
+          logger.debug(
+            'YOUTUBE SCRAP - Test hqdefault.jpg',
             testCoverUrl,
             'status:',
             testRes.status
@@ -74,18 +75,18 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
           if (testRes.ok) {
             coverUrl = testCoverUrl;
           } else {
-            console.warn('[YOUTUBE SCRAP] Aucune miniature trouvée pour videoId:', videoId);
+            logger.warn('YOUTUBE SCRAP - Aucune miniature trouvée pour videoId', videoId);
           }
         }
         if (coverUrl) {
           source = 'youtube';
-          console.log('[YOUTUBE SCRAP] coverUrl finale:', coverUrl);
+          logger.debug('YOUTUBE SCRAP - coverUrl finale', coverUrl);
         }
       } else {
-        console.warn("[YOUTUBE SCRAP] Impossible d'extraire l'ID vidéo pour yt.url:", yt.url);
+        logger.warn("YOUTUBE SCRAP - Impossible d'extraire l'ID vidéo pour yt.url", yt.url);
       }
     } catch (err) {
-      console.error('[REFRESH COVER] Erreur scrap YouTube:', err);
+      logger.error('REFRESH COVER - Erreur scrap YouTube', err);
     }
   }
 
@@ -132,7 +133,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       source,
     });
   } catch (err) {
-    console.error('[REFRESH COVER] Erreur téléchargement/sauvegarde:', err);
+    logger.error('REFRESH COVER - Erreur téléchargement/sauvegarde', err);
     return NextResponse.json(
       { error: 'Erreur lors du téléchargement ou de la sauvegarde de la cover.' },
       { status: 500 }

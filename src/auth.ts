@@ -6,6 +6,8 @@ import prisma from '@/lib/prisma';
 import { authConfig } from './auth.config';
 
 // Configuration principale avec adaptateur Prisma et Credentials
+const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
+
 export const { auth, handlers, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   providers: [
@@ -18,7 +20,8 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error('Informations de connexion manquantes');
+          // Retourner null au lieu de throw pour que NextAuth retourne CredentialsSignin
+          return null;
         }
 
         const user = await prisma.user.findUnique({
@@ -36,7 +39,8 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         });
 
         if (!user || !user.hashedPassword) {
-          throw new Error('Utilisateur non trouvé');
+          // Retourner null pour que NextAuth retourne CredentialsSignin
+          return null;
         }
 
         const isPasswordValid = await bcryptCompare(
@@ -45,7 +49,8 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         );
 
         if (!isPasswordValid) {
-          throw new Error('Mot de passe incorrect');
+          // Retourner null pour que NextAuth retourne CredentialsSignin
+          return null;
         }
 
         return {
@@ -58,7 +63,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
   callbacks: authConfig.callbacks,
   session: authConfig.session,
   pages: authConfig.pages,
-  secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET,
-  debug: false,
+  secret: secret,
+  debug: false, // Désactiver le debug pour éviter les erreurs "Configuration"
 });
 

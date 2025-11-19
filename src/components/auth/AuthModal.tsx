@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import { Loader2 } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import Image from 'next/image';
+import { logger } from '@/lib/logger';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -35,9 +36,18 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         });
 
         if (result?.error) {
-          toast.error(
-            result.error === 'CredentialsSignin' ? 'Email ou mot de passe incorrect' : result.error
-          );
+          // NextAuth v5 retourne CredentialsSignin quand authorize retourne null
+          // Configuration peut apparaître si NEXTAUTH_URL est manquant
+          let errorMessage = 'Email ou mot de passe incorrect';
+
+          if (result.error === 'Configuration') {
+            errorMessage = 'Erreur de configuration. Vérifiez NEXTAUTH_URL et NEXTAUTH_SECRET.';
+          } else if (result.error === 'CredentialsSignin') {
+            errorMessage = 'Email ou mot de passe incorrect';
+          }
+
+          toast.error(errorMessage);
+          setIsLoading(false);
           return;
         }
 
@@ -81,7 +91,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       }
     } catch (error) {
       toast.error('Une erreur est survenue');
-      console.error('Erreur:', error);
+      logger.error('Erreur lors de la connexion', error);
     } finally {
       setIsLoading(false);
     }
@@ -96,7 +106,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       }
     } catch (error) {
       toast.error('Une erreur est survenue');
-      console.error('Erreur:', error);
+      logger.error('Erreur lors de la connexion', error);
     } finally {
       setIsLoading(false);
     }

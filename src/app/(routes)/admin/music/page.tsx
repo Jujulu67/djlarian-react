@@ -32,6 +32,7 @@ import { MUSIC_TYPES, emptyTrackForm } from '@/lib/utils/music-helpers';
 import { PublicationStatusSelector } from '@/components/admin/PublicationStatusSelector';
 import { DateTimeField } from '@/components/ui/DateTimeField';
 import Image from 'next/image';
+import { logger } from '@/lib/logger';
 
 /* -------------------------------------------------------------------------- */
 /*       Constantes plateformes                                               */
@@ -142,7 +143,7 @@ export default function AdminMusicPage() {
       const data = await res.json();
       setTracks(data);
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       toast.error('Erreur de chargement');
     } finally {
       setIsLoading(false);
@@ -349,7 +350,7 @@ export default function AdminMusicPage() {
       setSuccessTrackId(currentForm.id ?? null);
       setTimeout(() => setSuccessTrackId(null), 3000);
     } catch (err: any) {
-      console.error(err);
+      logger.error(err);
       toast.error(err.message || 'Erreur');
     } finally {
       setIsSubmitting(false);

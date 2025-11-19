@@ -29,6 +29,7 @@ import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { FaPlus, FaEdit, FaTrash, FaEye, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 import { Event as PrismaEvent, TicketInfo as PrismaTicketInfo } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 // Créer un type local pour inclure les relations si nécessaire
 // (Alternative: utiliser Prisma.EventGetPayload avec include)
@@ -86,7 +87,7 @@ export default function AdminEventsPage() {
         setEvents(Array.isArray(data.events) ? data.events : []);
       } catch (err) {
         setError('Erreur lors du chargement des événements');
-        console.error(err);
+        logger.error(err);
       } finally {
         setLoading(false);
       }
@@ -152,7 +153,7 @@ export default function AdminEventsPage() {
       setShowDeleteModal(false);
       setEventToDelete(null);
     } catch (err) {
-      console.error('Erreur lors de la suppression:', err);
+      logger.error('Erreur lors de la suppression:', err);
       setError("Erreur lors de la suppression de l'événement");
     }
   };
@@ -193,7 +194,7 @@ export default function AdminEventsPage() {
           )
       );
     } catch (err) {
-      console.error('Erreur lors de la mise à jour:', err);
+      logger.error('Erreur lors de la mise à jour:', err);
       setError("Erreur lors de la mise à jour de l'événement");
     }
   };
@@ -228,7 +229,7 @@ export default function AdminEventsPage() {
           )
       );
     } catch (err) {
-      console.error('Erreur lors de la mise à jour:', err);
+      logger.error('Erreur lors de la mise à jour:', err);
       setError("Erreur lors de la mise à jour de l'événement");
     }
   };
@@ -248,7 +249,7 @@ export default function AdminEventsPage() {
       const date = typeof dateString === 'string' ? parseISO(dateString) : dateString;
       return format(date, 'dd MMMM yyyy à HH:mm', { locale: fr });
     } catch (error) {
-      console.warn(`Date invalide: ${dateString}`);
+      logger.warn(`Date invalide: ${dateString}`);
       return 'Date invalide';
     }
   };
@@ -465,6 +466,10 @@ export default function AdminEventsPage() {
                                 {event.imageId ? (
                                   <Image
                                     src={`/uploads/${event.imageId}_crop.jpg`}
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.style.display = 'none';
+                                    }}
                                     alt={event.title}
                                     width={40}
                                     height={40}

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { hash as bcryptHash } from '@/lib/bcrypt-edge';
 import prisma from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 // POST /api/users
 export async function POST(request: Request) {
@@ -78,7 +79,7 @@ export async function POST(request: Request) {
       },
     });
 
-    console.log(`Admin ${session.user.email} created user ${newUser.email} with isVip=${!!isVip}`);
+    logger.debug(`Admin ${session.user.email} created user ${newUser.email} with isVip=${!!isVip}`);
 
     // 6. Renvoyer l'utilisateur créé directement (plus besoin d'ajouter isVip manuellement)
     return new NextResponse(JSON.stringify(newUser), {
@@ -86,7 +87,7 @@ export async function POST(request: Request) {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error: any) {
-    console.error("Erreur lors de la création de l'utilisateur:", error);
+    logger.error("Erreur lors de la création de l'utilisateur:", error);
     return new NextResponse(JSON.stringify({ error: 'Erreur interne du serveur' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },

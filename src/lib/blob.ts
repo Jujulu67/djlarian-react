@@ -1,6 +1,7 @@
 // Vercel Blob Storage - Remplacement de R2
 // Plan gratuit : 5 GB de stockage, 100 GB de bande passante/mois
 import { put, del, list, head } from '@vercel/blob';
+import { logger } from '@/lib/logger';
 
 // Vérifier si Vercel Blob est configuré
 // Sur Vercel, BLOB_READ_WRITE_TOKEN est automatiquement disponible
@@ -28,7 +29,7 @@ export const uploadToBlob = async (
 
     return blob.url;
   } catch (error) {
-    console.error('[BLOB] Erreur lors de l\'upload:', error);
+    logger.error('[BLOB] Erreur lors de l\'upload:', error);
     throw error;
   }
 };
@@ -44,7 +45,7 @@ export const deleteFromBlob = async (url: string): Promise<void> => {
   try {
     await del(url);
   } catch (error) {
-    console.error('[BLOB] Erreur lors de la suppression:', error);
+    logger.error('[BLOB] Erreur lors de la suppression:', error);
     throw error;
   }
 };
@@ -114,7 +115,7 @@ export const listBlobFiles = async (prefix: string = 'uploads/'): Promise<Array<
       };
     });
   } catch (error) {
-    console.error('[BLOB] Erreur lors de la liste des fichiers:', error);
+    logger.error('[BLOB] Erreur lors de la liste des fichiers:', error);
     return [];
   }
 };
@@ -139,7 +140,7 @@ export const getBlobMetadata = async (url: string): Promise<{
       contentType: blob.contentType || 'application/octet-stream',
     };
   } catch (error) {
-    console.error('[BLOB] Erreur lors de la récupération des métadonnées:', error);
+    logger.error('[BLOB] Erreur lors de la récupération des métadonnées:', error);
     return null;
   }
 };

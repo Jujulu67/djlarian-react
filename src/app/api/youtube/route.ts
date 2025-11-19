@@ -4,6 +4,7 @@ import { auth } from '@/auth';
 import { NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 // Fonction pour décoder les entités HTML
 function decodeHtmlEntities(text: string): string {
@@ -79,11 +80,11 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const apiKey = process.env.YOUTUBE_API_KEY;
 
     if (!apiKey) {
-      console.error('YouTube API key not available');
+      logger.error('YouTube API key not available');
       return NextResponse.json({ error: 'YouTube API key not configured' }, { status: 500 });
     }
 
-    console.log('Using YouTube API key:', apiKey ? 'Available' : 'Not available');
+    logger.debug('Using YouTube API key:', apiKey ? 'Available' : 'Not available');
 
     // Vérifier le cache
     const cacheKey = `youtube_videos_${searchQuery}`;
@@ -98,13 +99,13 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       searchQuery
     )}&type=video&maxResults=${maxResults}&key=${apiKey}`;
 
-    console.log('Fetching YouTube data with URL:', youtubeUrl.replace(apiKey || '', '[REDACTED]'));
+    logger.debug('Fetching YouTube data with URL:', youtubeUrl.replace(apiKey || '', '[REDACTED]'));
 
     const response = await fetch(youtubeUrl);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('YouTube API error:', response.status, errorText);
+      logger.error('YouTube API error:', response.status, errorText);
 
       if (response.status === 403) {
         return NextResponse.json(
@@ -155,7 +156,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error('Error in YouTube API route:', error);
+    logger.error('Error in YouTube API route:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

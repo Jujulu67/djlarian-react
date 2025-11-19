@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { logger } from '@/lib/logger';
 
 export interface EventData {
   title: string;
@@ -41,7 +42,7 @@ export const useEditEvent = () => {
     const method = isCreate ? 'POST' : 'PATCH';
 
     try {
-      console.log(`Sending ${method} request to ${url} with data:`, data);
+      logger.debug(`Sending ${method} request to ${url} with data:`, data);
 
       const response = await fetch(url, {
         method,
@@ -51,28 +52,28 @@ export const useEditEvent = () => {
         body: JSON.stringify(data),
       });
 
-      console.log(`Response status: ${response.status} ${response.statusText}`);
+      logger.debug(`Response status: ${response.status} ${response.statusText}`);
 
       if (!response.ok) {
         let errorMessage;
         try {
           const errorData = await response.json();
-          console.error('API Error Response:', errorData);
+          logger.error('API Error Response:', errorData);
           errorMessage =
             errorData.error || errorData.message || errorData.details || response.statusText;
         } catch (parseError) {
-          console.error('Error parsing error response:', parseError);
+          logger.error('Error parsing error response:', parseError);
           errorMessage = `${response.status}: ${response.statusText} (Couldn't parse error)`;
         }
         throw new Error(errorMessage);
       }
 
       const result = await response.json();
-      console.log(`Event ${isCreate ? 'created' : 'updated'} successfully:`, result);
+      logger.debug(`Event ${isCreate ? 'created' : 'updated'} successfully:`, result);
       setLoading(false);
       return result;
     } catch (err: any) {
-      console.error('Error saving event:', err);
+      logger.error('Error saving event:', err);
       setError(err.message || 'Une erreur est survenue lors de la sauvegarde');
       setLoading(false);
       throw err;
@@ -91,14 +92,14 @@ export const useEditEvent = () => {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Upload failed:', errorText);
+        logger.error('Upload failed:', errorText);
         throw new Error(`Erreur lors de l'upload de l'image: ${response.statusText}`);
       }
 
       const result = await response.json();
       return result.imageId;
     } catch (error: any) {
-      console.error('Error uploading image:', error);
+      logger.error('Error uploading image:', error);
       throw error;
     }
   };

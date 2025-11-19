@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Trash2, Edit } from 'lucide-react'; // Importer les icônes nécessaires
 import Link from 'next/link'; // Importer Link
+import { logger } from '@/lib/logger';
 
 interface UserActionsProps {
   userId: string;
@@ -43,9 +44,9 @@ export default function UserActions({ userId, userName }: UserActionsProps) {
       // Succès : Rafraîchir les données de la page
       router.refresh();
       // Optionnel : Afficher une notification de succès (peut être fait avec une librairie de toasts)
-      console.log('Utilisateur supprimé avec succès');
+      logger.debug('Utilisateur supprimé avec succès');
     } catch (err: any) {
-      console.error('Erreur lors de la suppression:', err);
+      logger.error('Erreur lors de la suppression:', err);
       setError(err.message || 'Une erreur est survenue.');
       // Optionnel : Afficher une notification d'erreur
     } finally {

@@ -7,6 +7,7 @@ import { MusicType } from '@/lib/utils/types';
 import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { Prisma } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 // GET /api/music/[id] - Récupérer une piste spécifique
 export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
@@ -14,7 +15,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
   const resolvedParams = await context.params;
   const id = resolvedParams.id; // Accéder à l'ID sur l'objet résolu
 
-  console.log('API Route GET - Resolved params:', resolvedParams); // Log optionnel pour confirmer
+  logger.debug('API Route GET - Resolved params', resolvedParams);
 
   if (!id) {
     return NextResponse.json({ error: 'Track ID is required or invalid' }, { status: 400 });
@@ -45,13 +46,13 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     });
 
     if (!track) {
-      console.error(`Track not found with ID: ${id}`);
+      logger.error(`Track not found with ID: ${id}`);
       return NextResponse.json({ error: 'Track not found' }, { status: 404 });
     }
 
     return NextResponse.json(formatTrackData(track as any));
   } catch (error) {
-    console.error(`Error fetching track ${id}:`, error);
+    logger.error(`Error fetching track ${id}`, error);
     return NextResponse.json({ error: 'Failed to fetch track' }, { status: 500 });
   }
 }
@@ -216,7 +217,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
 
     return NextResponse.json(formatTrackData(updatedTrack));
   } catch (error) {
-    console.error(`Error updating track ${id}:`, error);
+    logger.error(`Error updating track ${id}:`, error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to update track';
     // Renvoyer l'erreur Prisma brute si disponible pour le débogage
     const prismaError =
@@ -269,7 +270,7 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
 
     return NextResponse.json({ message: 'Track deleted successfully' }, { status: 200 }); // Utiliser 200 ou 204
   } catch (error) {
-    console.error(`Error deleting track ${id}:`, error);
+    logger.error(`Error deleting track ${id}:`, error);
     return NextResponse.json({ error: 'Failed to delete track' }, { status: 500 });
   }
 }
@@ -303,7 +304,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 
     return NextResponse.json({ success: true, track: updatedTrack });
   } catch (error) {
-    console.error(`Error PATCH track ${id}:`, error);
+    logger.error(`Error PATCH track ${id}:`, error);
     return NextResponse.json({ error: 'Failed to patch track' }, { status: 500 });
   }
 }

@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/Button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import Modal from '@/components/ui/Modal';
+import { logger } from '@/lib/logger';
 
 interface ConfigHistoryItem {
   id: string;
@@ -89,7 +90,7 @@ export default function HistoryModal({
           setDefaultConfigsData(data);
         }
       } catch (error) {
-        console.error('Erreur lors du chargement des configurations par défaut:', error);
+        logger.error('Erreur lors du chargement des configurations par défaut:', error);
       }
     };
 
@@ -111,7 +112,7 @@ export default function HistoryModal({
         }
       }
     } catch (error) {
-      console.error(`Erreur lors de la récupération des ${activeTab}:`, error);
+      logger.error(`Erreur lors de la récupération des ${activeTab}:`, error);
     } finally {
       setLoading(false);
     }
@@ -127,7 +128,7 @@ export default function HistoryModal({
       // Actualiser l'historique après l'annulation
       fetchHistoryData();
     } catch (error) {
-      console.error("Erreur lors de l'annulation de la modification:", error);
+      logger.error("Erreur lors de l'annulation de la modification:", error);
     } finally {
       setRevertingId(null);
     }
@@ -153,7 +154,7 @@ export default function HistoryModal({
       fetchHistoryData();
       toast.success('Modification rétablie avec succès');
     } catch (error) {
-      console.error('Erreur lors du rétablissement de la modification:', error);
+      logger.error('Erreur lors du rétablissement de la modification:', error);
       toast.error('Erreur lors du rétablissement');
     } finally {
       setRevertingId(null);
@@ -168,7 +169,7 @@ export default function HistoryModal({
       // Fermer le modal après l'application d'un snapshot
       onClose();
     } catch (error) {
-      console.error("Erreur lors de l'application du snapshot:", error);
+      logger.error("Erreur lors de l'application du snapshot:", error);
       setApplyingId(null);
     }
   };
