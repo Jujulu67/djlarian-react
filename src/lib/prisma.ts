@@ -39,9 +39,8 @@ function createPrismaClient() {
         max: 1, // Limiter les connexions pour Cloudflare
       });
       
-      // Utiliser PrismaNeon avec connectionString directement (plus simple)
-      // Selon la doc Neon, on peut passer connectionString directement
-      const adapter = new PrismaNeon({ connectionString });
+      // Utiliser PrismaNeon avec le pool
+      const adapter = new PrismaNeon(pool);
       
       // Créer Prisma Client avec l'adaptateur
       // IMPORTANT: Ne pas utiliser de chemins relatifs qui nécessitent fs
