@@ -60,10 +60,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
     // ou une recherche case-insensitive via Prisma selon le provider
     const searchLower = search.toLowerCase();
     filters.push({
-      OR: [
-        { email: { contains: searchLower } },
-        { name: { contains: searchLower } },
-      ],
+      OR: [{ email: { contains: searchLower } }, { name: { contains: searchLower } }],
     });
   }
 
