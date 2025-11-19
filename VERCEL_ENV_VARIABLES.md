@@ -83,11 +83,13 @@ Ces variables sont **automatiquement gérées par Vercel** :
 ## 📝 Notes Importantes
 
 1. **NEXTAUTH_SECRET** : Générer un **nouveau secret** pour la production (ne pas réutiliser celui du dev)
+
    ```bash
    openssl rand -base64 32
    ```
 
 2. **NEXTAUTH_URL** : Doit correspondre exactement à l'URL de votre site Vercel
+
    - Format : `https://votre-projet.vercel.app`
    - Sans slash final
 
@@ -119,4 +121,3 @@ Ces variables sont **automatiquement gérées par Vercel** :
 ---
 
 **Note** : Ce fichier contient des valeurs de développement. Pour la production, utilisez des secrets différents et plus sécurisés.
-
