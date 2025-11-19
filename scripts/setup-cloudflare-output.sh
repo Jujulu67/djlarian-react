@@ -315,7 +315,10 @@ if (typeof globalThis !== "undefined") {
       return original(name);
     };
   }
+}
 
+// Polyfill pour node:os
+if (typeof globalThis !== "undefined") {
   // Polyfill pour node:os
   if (!globalThis.os) {
     globalThis.os = {
@@ -507,4 +510,3 @@ PYTHON_SCRIPT
   fi
 
 echo "✅ Configuration Cloudflare Pages terminée !"
-
