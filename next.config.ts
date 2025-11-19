@@ -1,5 +1,4 @@
 import type { NextConfig } from 'next';
-import path from 'path';
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -13,21 +12,9 @@ const nextConfig: NextConfig = {
   },
   // Exclure les fichiers de test du build
   pageExtensions: ['ts', 'tsx', 'js', 'jsx'],
-  // Configuration pour Cloudflare Pages avec Prisma
-  // On n'externalise PAS Prisma pour permettre au bundler d'appliquer les polyfills (fs)
+  // Configuration pour Cloudflare Pages avec Prisma Edge
+  // Le client Edge n'a pas besoin d'être externalisé car il n'utilise pas de binaires natifs
   serverExternalPackages: [],
-  // Configuration webpack pour remplacer fs par notre polyfill
-  webpack: (config, { isServer }) => {
-    if (isServer) {
-      // Remplacer fs et node:fs par notre polyfill qui retourne des tableaux vides pour readdir
-      config.resolve.alias = {
-        ...config.resolve.alias,
-        fs: path.resolve(__dirname, 'src/lib/fs-polyfill.js'),
-        'node:fs': path.resolve(__dirname, 'src/lib/fs-polyfill.js'),
-      };
-    }
-    return config;
-  },
 };
 
 export default nextConfig;
