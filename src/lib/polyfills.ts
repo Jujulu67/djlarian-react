@@ -8,6 +8,61 @@
  * pour que les polyfills soient disponibles au moment du chargement.
  */
 
+// SOLUTION CRITIQUE: Intercepter createNotImplementedError AVANT TOUT
+// Cette fonction est créée par unenv et utilisée par Prisma bundlé
+// Il faut la patcher AVANT que Prisma ne soit chargé
+if (typeof globalThis !== 'undefined') {
+  // Patcher createNotImplementedError si elle existe déjà
+  try {
+    // @ts-ignore
+    if (typeof globalThis.createNotImplementedError !== 'undefined') {
+      // @ts-ignore
+      const original = globalThis.createNotImplementedError;
+      // @ts-ignore
+      globalThis.createNotImplementedError = function(name: string) {
+        if (name && (typeof name === 'string') && (name.includes('readdir') || name.includes('fs.readdir'))) {
+          console.log('[POLYFILLS] Interception de createNotImplementedError pour:', name);
+          // Retourner une fonction qui retourne un tableau vide au lieu d'une erreur
+          return function() {
+            return Promise.resolve([]);
+          };
+        }
+        return original(name);
+      };
+      console.log('[POLYFILLS] createNotImplementedError patché AVANT les autres polyfills');
+    }
+  } catch (e) {
+    // Ignorer si createNotImplementedError n'existe pas encore
+  }
+  
+  // Créer un Proxy pour intercepter la création de createNotImplementedError
+  try {
+    const originalDefineProperty = Object.defineProperty;
+    // @ts-ignore
+    Object.defineProperty = function(obj: any, prop: string | symbol, descriptor: PropertyDescriptor): any {
+      // Si on essaie de définir createNotImplementedError, la patcher
+      if (prop === 'createNotImplementedError' && obj === globalThis) {
+        const originalValue = descriptor.value;
+        if (typeof originalValue === 'function') {
+          descriptor.value = function(name: string) {
+            if (name && (typeof name === 'string') && (name.includes('readdir') || name.includes('fs.readdir'))) {
+              console.log('[POLYFILLS] Interception via defineProperty de createNotImplementedError pour:', name);
+              return function() {
+                return Promise.resolve([]);
+              };
+            }
+            return originalValue(name);
+          };
+        }
+      }
+      return originalDefineProperty.apply(this, arguments as any);
+    };
+    console.log('[POLYFILLS] Object.defineProperty patché pour intercepter createNotImplementedError');
+  } catch (e) {
+    console.log('[POLYFILLS] Impossible de patcher Object.defineProperty pour createNotImplementedError:', e);
+  }
+}
+
 // Détecter si on est dans un environnement Cloudflare
 const isCloudflare = 
   typeof globalThis !== 'undefined' &&

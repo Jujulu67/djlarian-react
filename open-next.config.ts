@@ -8,15 +8,10 @@ export default {
       tagCache: 'dummy',
       queue: 'dummy',
     },
-    // Externaliser Prisma pour éviter les problèmes avec fs
-    external: [
-      '@prisma/client',
-      '.prisma/client',
-      '@prisma/adapter-neon',
-      '@neondatabase/serverless',
-    ],
+    // Ne pas externaliser Prisma pour que le bundling fonctionne avec nos alias/polyfills
+    external: [],
   },
-  edgeExternals: ['node:crypto', 'node:os', 'node:fs', 'node:path'],
+  edgeExternals: ['node:crypto', 'node:os', 'node:path'], // Retrait de node:fs pour forcer l'usage de notre polyfill
   middleware: {
     external: true,
     override: {

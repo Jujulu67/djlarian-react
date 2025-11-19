@@ -1,6 +1,6 @@
 // IMPORTANT: Importer les polyfills AVANT Prisma pour qu'ils soient disponibles
 // au moment du chargement de Prisma Client
-import '@/lib/polyfills';
+// import '@/lib/polyfills'; // DÉSACTIVÉ: Nous utilisons maintenant un polyfill fs au niveau du build (Webpack)
 
 import { PrismaClient } from '@prisma/client';
 
