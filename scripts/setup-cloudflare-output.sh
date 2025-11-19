@@ -45,15 +45,68 @@ if [ -f ".open-next/worker.js" ]; then
   # Ajouter les polyfills pour fs.readdir et node:os au début du fichier
   # IMPORTANT: Ces polyfills doivent être chargés AVANT tout autre code
   echo "📝 Ajout des polyfills pour fs.readdir et node:os..."
+  
+  # Utiliser Node.js pour injecter les polyfills (plus fiable que awk avec des parenthèses)
+  WORKER_FILE="$CLOUDFLARE_DIR/_worker.js.tmp2"
+  node << 'NODE_INJECT'
+    const fs = require('fs');
+    const workerFile = process.env.WORKER_FILE || '.open-next/cloudflare/_worker.js.tmp2';
+    
+    if (!fs.existsSync(workerFile)) {
+      console.error('Fichier worker non trouvé:', workerFile);
+      process.exit(1);
+    }
+    
+    const content = fs.readFileSync(workerFile, 'utf8');
+    
+    // Polyfills à injecter au début
+    const polyfills = `// ========================================
+// Polyfills pour Prisma Client dans Cloudflare Workers
+// Ces polyfills doivent être chargés AVANT Prisma
+// ========================================
+if (typeof globalThis !== "undefined") {
+  // SOLUTION CRITIQUE: Intercepter createNotImplementedError AVANT TOUT
+  // Cette fonction est créée par unenv dans le code bundlé de Prisma
+  // Il faut la patcher AVANT qu'elle ne soit utilisée
+  const originalDefineProperty = Object.defineProperty;
+  Object.defineProperty = function(obj, prop, descriptor) {
+    if (prop === "createNotImplementedError" && obj === globalThis) {
+      const originalValue = descriptor.value;
+      if (typeof originalValue === "function") {
+        descriptor.value = function(name) {
+          if (name && typeof name === "string" && (name.includes("readdir") || name.includes("fs.readdir"))) {
+            return function() { return Promise.resolve([]); };
+          }
+          return originalValue(name);
+        };
+      }
+    }
+    return originalDefineProperty.apply(this, arguments);
+  };
+  // Aussi patcher si createNotImplementedError existe déjà
+  if (typeof globalThis.createNotImplementedError !== "undefined") {
+    const original = globalThis.createNotImplementedError;
+    globalThis.createNotImplementedError = function(name) {
+      if (name && typeof name === "string" && (name.includes("readdir") || name.includes("fs.readdir"))) {
+        return function() { return Promise.resolve([]); };
+      }
+      return original(name);
+    };
+  }
+
+  // Polyfill pour node:os
+`;
+    
+    // Injecter les polyfills au début
+    const newContent = polyfills + content;
+    fs.writeFileSync(workerFile, newContent, 'utf8');
+    console.log('✅ Polyfills injectés avec Node.js');
+NODE_INJECT
+  
+  # Continuer avec awk pour le reste
   awk '
     BEGIN {
-      # Polyfills pour fs.readdir et node:os
-      print "// ========================================"
-      print "// Polyfills pour Prisma Client dans Cloudflare Workers"
-      print "// Ces polyfills doivent être chargés AVANT Prisma"
-      print "// ========================================"
-      print "if (typeof globalThis !== \"undefined\") {"
-      print "  // Polyfill pour node:os"
+      # Polyfill pour node:os (suite)
       print "  if (!globalThis.os) {"
       print "    globalThis.os = {"
       print "      platform: () => \"cloudflare\","
@@ -216,91 +269,128 @@ echo "📝 Injection des polyfills dans les server-functions..."
 SERVER_FUNCTIONS_INDEX="$CLOUDFLARE_DIR/server-functions/default/index.mjs"
 if [ -f "$SERVER_FUNCTIONS_INDEX" ]; then
   echo "📝 Ajout des polyfills au début de index.mjs..."
-  awk '
-    BEGIN {
-      # Polyfills pour fs.readdir et node:os
-      print "// ========================================"
-      print "// Polyfills pour Prisma Client dans Cloudflare Workers"
-      print "// Ces polyfills doivent être chargés AVANT Prisma"
-      print "// ========================================"
-      print "if (typeof globalThis !== \"undefined\") {"
-      print "  // Polyfill pour node:os"
-      print "  if (!globalThis.os) {"
-      print "    globalThis.os = {"
-      print "      platform: () => \"cloudflare\","
-      print "      arch: () => \"wasm32\","
-      print "      type: () => \"Cloudflare Workers\","
-      print "      release: () => \"\","
-      print "      homedir: () => \"/\","
-      print "      tmpdir: () => \"/tmp\","
-      print "      hostname: () => \"cloudflare-worker\","
-      print "      cpus: () => [],"
-      print "      totalmem: () => 0,"
-      print "      freemem: () => 0,"
-      print "      networkInterfaces: () => ({}),"
-      print "      getPriority: () => 0,"
-      print "      setPriority: () => {},"
-      print "      userInfo: () => ({ username: \"\", uid: 0, gid: 0, shell: \"\" }),"
-      print "      loadavg: () => [0, 0, 0],"
-      print "      uptime: () => 0,"
-      print "      endianness: () => \"LE\","
-      print "      EOL: \"\\n\","
-      print "      constants: {}"
-      print "    };"
-      print "  }"
-      print ""
-      print "  // Polyfill pour fs.readdir (retourne un tableau vide)"
-      print "  // IMPORTANT: Ce polyfill doit être disponible avant que Prisma ne soit chargé"
-      print "  if (!globalThis.fs) {"
-      print "    globalThis.fs = {};"
-      print "  }"
-      print "  const fsReaddirImpl = (path, options, callback) => {"
-      print "    if (typeof options === \"function\") {"
-      print "      callback = options;"
-      print "      options = {};"
-      print "    }"
-      print "    if (callback) {"
-      print "      callback(null, []);"
-      print "    } else {"
-      print "      return Promise.resolve([]);"
-      print "    }"
-      print "  };"
-      print "  globalThis.fs.readdir = fsReaddirImpl;"
-      print "  if (!globalThis.fs.promises) {"
-      print "    globalThis.fs.promises = {};"
-      print "  }"
-      print "  globalThis.fs.promises.readdir = () => Promise.resolve([]);"
-      print ""
-      print "  // SOLUTION CRITIQUE: Patcher unenv de manière agressive"
-      print "  // unenv est le système de polyfills utilisé par Cloudflare Workers"
-      print "  // Il faut patcher fs.readdir AVANT que Prisma ne soit chargé"
-      print "  const patchUnenv = () => {"
-      print "    try {"
-      print "      if (globalThis.unenv && typeof globalThis.unenv === \"object\") {"
-      print "        if (!globalThis.unenv.fs) {"
-      print "          globalThis.unenv.fs = globalThis.fs;"
-      print "        } else {"
-      print "          globalThis.unenv.fs.readdir = fsReaddirImpl;"
-      print "          if (!globalThis.unenv.fs.promises) {"
-      print "            globalThis.unenv.fs.promises = {};"
-      print "          }"
-      print "          globalThis.unenv.fs.promises.readdir = () => Promise.resolve([]);"
-      print "        }"
-      print "        if (!globalThis.unenv.os) {"
-      print "          globalThis.unenv.os = globalThis.os;"
-      print "        }"
-      print "      }"
-      print "    } catch (e) {"
-      print "      // Ignorer"
-      print "    }"
-      print "  };"
-      print "  patchUnenv();"
-      print "}"
-      print ""
+  # Utiliser Node.js pour injecter les polyfills (même code que pour _worker.js)
+  SERVER_FUNCTIONS_FILE="$SERVER_FUNCTIONS_INDEX"
+  node << 'NODE_INJECT_SF'
+    const fs = require('fs');
+    const serverFunctionsFile = process.env.SERVER_FUNCTIONS_FILE || '.open-next/cloudflare/server-functions/default/index.mjs';
+    
+    if (!fs.existsSync(serverFunctionsFile)) {
+      console.error('Fichier server-functions non trouvé:', serverFunctionsFile);
+      process.exit(1);
     }
-    { print }
-  ' "$SERVER_FUNCTIONS_INDEX" > "$SERVER_FUNCTIONS_INDEX.tmp"
-  mv "$SERVER_FUNCTIONS_INDEX.tmp" "$SERVER_FUNCTIONS_INDEX"
+    
+    const content = fs.readFileSync(serverFunctionsFile, 'utf8');
+    
+    // Mêmes polyfills que pour _worker.js
+    const polyfills = `// ========================================
+// Polyfills pour Prisma Client dans Cloudflare Workers
+// Ces polyfills doivent être chargés AVANT Prisma
+// ========================================
+if (typeof globalThis !== "undefined") {
+  // SOLUTION CRITIQUE: Intercepter createNotImplementedError AVANT TOUT
+  const originalDefineProperty = Object.defineProperty;
+  Object.defineProperty = function(obj, prop, descriptor) {
+    if (prop === "createNotImplementedError" && obj === globalThis) {
+      const originalValue = descriptor.value;
+      if (typeof originalValue === "function") {
+        descriptor.value = function(name) {
+          if (name && typeof name === "string" && (name.includes("readdir") || name.includes("fs.readdir"))) {
+            return function() { return Promise.resolve([]); };
+          }
+          return originalValue(name);
+        };
+      }
+    }
+    return originalDefineProperty.apply(this, arguments);
+  };
+  // Aussi patcher si createNotImplementedError existe déjà
+  if (typeof globalThis.createNotImplementedError !== "undefined") {
+    const original = globalThis.createNotImplementedError;
+    globalThis.createNotImplementedError = function(name) {
+      if (name && typeof name === "string" && (name.includes("readdir") || name.includes("fs.readdir"))) {
+        return function() { return Promise.resolve([]); };
+      }
+      return original(name);
+    };
+  }
+
+  // Polyfill pour node:os
+  if (!globalThis.os) {
+    globalThis.os = {
+      platform: () => "cloudflare",
+      arch: () => "wasm32",
+      type: () => "Cloudflare Workers",
+      release: () => "",
+      homedir: () => "/",
+      tmpdir: () => "/tmp",
+      hostname: () => "cloudflare-worker",
+      cpus: () => [],
+      totalmem: () => 0,
+      freemem: () => 0,
+      networkInterfaces: () => ({}),
+      getPriority: () => 0,
+      setPriority: () => {},
+      userInfo: () => ({ username: "", uid: 0, gid: 0, shell: "" }),
+      loadavg: () => [0, 0, 0],
+      uptime: () => 0,
+      endianness: () => "LE",
+      EOL: "\\n",
+      constants: {}
+    };
+  }
+
+  // Polyfill pour fs.readdir
+  if (!globalThis.fs) {
+    globalThis.fs = {};
+  }
+  const fsReaddirImpl = (path, options, callback) => {
+    if (typeof options === "function") {
+      callback = options;
+      options = {};
+    }
+    if (callback) {
+      callback(null, []);
+    } else {
+      return Promise.resolve([]);
+    }
+  };
+  globalThis.fs.readdir = fsReaddirImpl;
+  if (!globalThis.fs.promises) {
+    globalThis.fs.promises = {};
+  }
+  globalThis.fs.promises.readdir = () => Promise.resolve([]);
+
+  // Patcher unenv
+  const patchUnenv = () => {
+    try {
+      if (globalThis.unenv && typeof globalThis.unenv === "object") {
+        if (!globalThis.unenv.fs) {
+          globalThis.unenv.fs = globalThis.fs;
+        } else {
+          globalThis.unenv.fs.readdir = fsReaddirImpl;
+          if (!globalThis.unenv.fs.promises) {
+            globalThis.unenv.fs.promises = {};
+          }
+          globalThis.unenv.fs.promises.readdir = () => Promise.resolve([]);
+        }
+        if (!globalThis.unenv.os) {
+          globalThis.unenv.os = globalThis.os;
+        }
+      }
+    } catch (e) {
+      // Ignorer
+    }
+  };
+  patchUnenv();
+}
+`;
+    
+    // Injecter les polyfills au début
+    const newContent = polyfills + content;
+    fs.writeFileSync(serverFunctionsFile, newContent, 'utf8');
+    console.log('✅ Polyfills server-functions injectés avec Node.js');
+NODE_INJECT_SF
   echo "✅ Polyfills injectés dans server-functions/default/index.mjs"
   
   # SOLUTION RADICALE: Patcher directement le code bundlé pour remplacer createNotImplementedError
