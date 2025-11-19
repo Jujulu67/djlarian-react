@@ -146,16 +146,24 @@ if (isCloudflare && typeof globalThis !== 'undefined') {
     // Ignorer si unenv n'est pas disponible
   }
 
-  // Créer un proxy pour intercepter les accès aux propriétés de fs
-  // Cela peut aider à intercepter les appels même si require() n'est pas patchable
+  // SOLUTION CRITIQUE: Patcher unenv AVANT que Prisma ne soit chargé
+  // unenv est le système de polyfills utilisé par Cloudflare Workers
+  // Il faut patcher fs.readdir dans unenv pour que Prisma puisse l'utiliser
   try {
-    const fsPolyfill = (globalThis as any).fs;
-    if (fsPolyfill && !fsPolyfill._patched) {
-      // Créer un proxy pour intercepter tous les accès
-      const fsProxy = new Proxy(fsPolyfill, {
-        get(target: any, prop: string | symbol) {
-          if (prop === 'readdir') {
-            return target.readdir || ((path: any, options?: any, callback?: any) => {
+    // Attendre que unenv soit disponible (il est chargé de manière asynchrone)
+    // On va créer un hook qui patche unenv dès qu'il est disponible
+    const patchUnenv = () => {
+      try {
+        // @ts-ignore
+        if (typeof globalThis !== 'undefined') {
+          // Patcher directement dans le système de modules
+          // @ts-ignore
+          const originalRequire = typeof require !== 'undefined' ? require : null;
+          
+          // Créer un wrapper pour fs qui intercepte readdir
+          const fsWrapper = {
+            ...(globalThis as any).fs,
+            readdir: (path: any, options?: any, callback?: any) => {
               if (typeof options === 'function') {
                 callback = options;
                 options = {};
@@ -165,16 +173,52 @@ if (isCloudflare && typeof globalThis !== 'undefined') {
               } else {
                 return Promise.resolve([]);
               }
-            });
+            },
+            promises: {
+              ...((globalThis as any).fs?.promises || {}),
+              readdir: () => Promise.resolve([]),
+            },
+          };
+          
+          // Patcher unenv si disponible
+          // @ts-ignore
+          if (globalThis.unenv) {
+            // @ts-ignore
+            if (!globalThis.unenv.fs) {
+              // @ts-ignore
+              globalThis.unenv.fs = fsWrapper;
+            } else {
+              // @ts-ignore
+              globalThis.unenv.fs.readdir = fsWrapper.readdir;
+              // @ts-ignore
+              if (!globalThis.unenv.fs.promises) {
+                // @ts-ignore
+                globalThis.unenv.fs.promises = {};
+              }
+              // @ts-ignore
+              globalThis.unenv.fs.promises.readdir = fsWrapper.promises.readdir;
+            }
           }
-          return target[prop];
+          
+          // Patcher aussi dans globalThis.fs pour être sûr
+          (globalThis as any).fs = fsWrapper;
         }
-      });
-      (globalThis as any).fs = fsProxy;
-      (globalThis as any).fs._patched = true;
+      } catch (e) {
+        console.log('[POLYFILLS] Erreur lors du patch de unenv:', e);
+      }
+    };
+    
+    // Exécuter immédiatement
+    patchUnenv();
+    
+    // Aussi patcher après un court délai au cas où unenv serait chargé plus tard
+    if (typeof setTimeout !== 'undefined') {
+      setTimeout(patchUnenv, 0);
+      setTimeout(patchUnenv, 10);
+      setTimeout(patchUnenv, 100);
     }
   } catch (e) {
-    console.log('[POLYFILLS] Impossible de créer un proxy pour fs:', e);
+    console.log('[POLYFILLS] Erreur lors de la configuration du patch unenv:', e);
   }
 
   console.log('[POLYFILLS] Polyfills Cloudflare initialisés pour node:os et fs.readdir');

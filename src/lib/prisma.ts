@@ -73,6 +73,26 @@ function createPrismaClient() {
       console.log('[PRISMA INIT] Adaptateur PrismaNeon créé avec succès');
       
       console.log('[PRISMA INIT] Création du PrismaClient avec adaptateur...');
+      
+      // SOLUTION: Patcher Prisma pour empêcher la détection des binaires natifs
+      // Prisma essaie d'utiliser fs.readdir pour détecter les binaires même avec l'adaptateur
+      // On doit patcher getCurrentBinaryTarget pour qu'il ne cherche pas les binaires
+      try {
+        // @ts-ignore
+        const prismaModule = require('@prisma/client/runtime/library');
+        if (prismaModule && prismaModule.getCurrentBinaryTarget) {
+          const originalGetCurrentBinaryTarget = prismaModule.getCurrentBinaryTarget;
+          // @ts-ignore
+          prismaModule.getCurrentBinaryTarget = async () => {
+            // Retourner un target qui n'existe pas pour forcer l'utilisation de l'adaptateur
+            return 'unknown';
+          };
+          console.log('[PRISMA INIT] getCurrentBinaryTarget patché pour éviter fs.readdir');
+        }
+      } catch (e) {
+        console.log('[PRISMA INIT] Impossible de patcher getCurrentBinaryTarget:', e);
+      }
+      
       // Créer Prisma Client avec l'adaptateur
       // IMPORTANT: Ne pas utiliser de chemins relatifs qui nécessitent fs
       const client = new PrismaClient({ 
