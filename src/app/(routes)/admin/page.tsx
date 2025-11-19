@@ -18,6 +18,9 @@ import prisma from '@/lib/prisma';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
+// Métadonnées de cache pour améliorer les performances
+export const revalidate = 60; // Revalider toutes les 60 secondes
+
 export default async function AdminPage() {
   const session = await auth();
 
@@ -25,64 +28,81 @@ export default async function AdminPage() {
     redirect('/');
   }
 
-  // Récupérer les statistiques des événements
-  const eventsCount = await prisma.event.count();
-  const recentEvents = await prisma.event.count({
-    where: {
-      createdAt: {
-        gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 derniers jours
+  // Paralléliser toutes les requêtes Prisma pour améliorer les performances
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+  const [
+    eventsCount,
+    recentEvents,
+    tracksCount,
+    usersCount,
+    adminCount,
+    latestEvents,
+    latestTrack,
+    latestTickets,
+  ] = await Promise.all([
+    // Statistiques événements
+    prisma.event.count(),
+    prisma.event.count({
+      where: {
+        createdAt: {
+          gte: sevenDaysAgo,
+        },
       },
-    },
-  });
+    }),
+    // Statistiques musique
+    prisma.track.count(),
+    // Statistiques utilisateurs
+    prisma.user.count(),
+    prisma.user.count({
+      where: { role: 'ADMIN' },
+    }),
+    // Activités récentes - optimiser avec select pour ne récupérer que les champs nécessaires
+    prisma.event.findFirst({
+      select: {
+        title: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.track.findFirst({
+      select: {
+        title: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.ticketInfo.findFirst({
+      select: {
+        id: true,
+        Event: {
+          select: {
+            title: true,
+            createdAt: true,
+          },
+        },
+      },
+      orderBy: { id: 'desc' },
+    }),
+  ]);
 
-  // Récupérer les statistiques de la musique
-  const tracksCount = await prisma.track.count();
+  // Construire les activités récentes
+  const recentActivities = [];
 
-  // Récupérer les statistiques des utilisateurs
-  const usersCount = await prisma.user.count();
-  const adminCount = await prisma.user.count({
-    where: { role: 'ADMIN' },
-  });
-
-  // Récupérer les activités récentes
-  let recentActivities = [];
-
-  // Récupérer les événements récents
-  const latestEvents = await prisma.event.findMany({
-    take: 1,
-    orderBy: { createdAt: 'desc' },
-  });
-
-  if (latestEvents.length > 0) {
-    // Vérifier que le premier événement existe et a toutes les propriétés requises
-    if (latestEvents[0] && latestEvents[0].title && latestEvents[0].createdAt) {
-      recentActivities.push({
-        type: 'event',
-        title: 'Nouvel événement créé',
-        description: `L'événement "${latestEvents[0].title}" a été créé`,
-        date: latestEvents[0].createdAt,
-        icon: CalendarDays,
-        isPlaceholder: false,
-      });
-    } else {
-      // Fallback si l'événement existe mais est malformé
-      recentActivities.push({
-        type: 'event',
-        title: 'Nouvel événement créé',
-        description: 'Un nouvel événement a été créé',
-        date: new Date(),
-        icon: CalendarDays,
-        isPlaceholder: false,
-      });
-    }
+  // Événement récent
+  if (latestEvents?.title && latestEvents?.createdAt) {
+    recentActivities.push({
+      type: 'event',
+      title: 'Nouvel événement créé',
+      description: `L'événement "${latestEvents.title}" a été créé`,
+      date: latestEvents.createdAt,
+      icon: CalendarDays,
+      isPlaceholder: false,
+    });
   }
 
-  // Récupérer le dernier morceau ajouté
-  const latestTrack = await prisma.track.findFirst({
-    orderBy: { createdAt: 'desc' }, // Assure que le modèle Track a bien createdAt
-  });
-
-  if (latestTrack) {
+  // Morceau récent
+  if (latestTrack?.title && latestTrack?.createdAt) {
     recentActivities.push({
       type: 'track',
       title: 'Nouveau morceau ajouté',
@@ -92,62 +112,41 @@ export default async function AdminPage() {
       isPlaceholder: false,
     });
   } else {
-    // Placeholder si aucune musique n'existe encore
     recentActivities.push({
       type: 'track',
       title: 'Aucun morceau ajouté récemment',
       description: 'Ajoutez votre premier morceau via la gestion de musique.',
-      date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // Date arbitraire
+      date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
       icon: Music2,
-      isPlaceholder: true, // Indique que c'est un placeholder informatif
+      isPlaceholder: true,
     });
   }
 
-  // Récupérer les ventes de billets récentes si disponible
-  const latestTickets = await prisma.ticketInfo.findMany({
-    take: 1,
-    orderBy: { id: 'desc' },
-    include: { Event: true },
-  });
-
-  if (latestTickets.length > 0 && latestTickets[0]?.Event) {
-    // Vérifier que le event associé est valide
-    if (latestTickets[0].Event.title && latestTickets[0].Event.createdAt) {
-      recentActivities.push({
-        type: 'ticket',
-        title: 'Configuration Billets',
-        description: `Configuration des billets ajoutée pour "${latestTickets[0].Event.title}"`,
-        date: latestTickets[0].Event.createdAt, // Utiliser une date pertinente si possible
-        icon: Ticket,
-        isPlaceholder: false,
-      });
-    } else {
-      // Fallback si l'événement associé existe mais est malformé
-      recentActivities.push({
-        type: 'ticket',
-        title: 'Configuration Billets',
-        description: 'Configuration des billets ajoutée pour un événement',
-        date: new Date(),
-        icon: Ticket,
-        isPlaceholder: false,
-      });
-    }
+  // Configuration billets
+  if (latestTickets?.Event?.title && latestTickets?.Event?.createdAt) {
+    recentActivities.push({
+      type: 'ticket',
+      title: 'Configuration Billets',
+      description: `Configuration des billets ajoutée pour "${latestTickets.Event.title}"`,
+      date: latestTickets.Event.createdAt,
+      icon: Ticket,
+      isPlaceholder: false,
+    });
   } else {
-    // Placeholder si aucune configuration de billet n'existe encore
     recentActivities.push({
       type: 'ticket',
       title: 'Aucune configuration de billet récente',
       description: 'Configurez la billetterie pour un événement.',
-      date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // Date arbitraire
+      date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
       icon: Ticket,
       isPlaceholder: true,
     });
   }
 
-  // Trier les activités par date (plus récent en premier)
-  recentActivities.sort((a, b) => b.date.getTime() - a.date.getTime());
-  // Garder seulement les 5 plus récentes pour l'affichage
-  recentActivities = recentActivities.slice(0, 5);
+  // Trier les activités par date (plus récent en premier) et garder seulement les 5 plus récentes
+  const sortedActivities = recentActivities
+    .sort((a, b) => b.date.getTime() - a.date.getTime())
+    .slice(0, 5);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-[#0c0117] to-black">
@@ -459,8 +458,8 @@ export default async function AdminPage() {
               </div>
 
               <div className="space-y-3">
-                {recentActivities.length > 0 ? (
-                  recentActivities.map((activity, index) => (
+                {sortedActivities.length > 0 ? (
+                  sortedActivities.map((activity, index) => (
                     <div
                       key={index}
                       className="bg-black/30 p-3 rounded-lg flex items-center justify-between"

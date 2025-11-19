@@ -192,16 +192,18 @@ export default async function AdminActivitiesPage({
     // Pas besoin de trier ici, Prisma l'a déjà fait
   } else {
     // --- CAS: Aucun Filtre ("Tous") ---
-    // Récupérer *toutes* les données pertinentes d'abord
-    const allEvents = await prisma.event.findMany({
-      select: { id: true, title: true, createdAt: true },
-    });
-    const allTracks = await prisma.track.findMany({
-      select: { id: true, title: true, createdAt: true },
-    });
-    const allTickets = await prisma.ticketInfo.findMany({
-      include: { Event: { select: { id: true, title: true, createdAt: true } } },
-    });
+    // Paralléliser les requêtes pour améliorer les performances
+    const [allEvents, allTracks, allTickets] = await Promise.all([
+      prisma.event.findMany({
+        select: { id: true, title: true, createdAt: true },
+      }),
+      prisma.track.findMany({
+        select: { id: true, title: true, createdAt: true },
+      }),
+      prisma.ticketInfo.findMany({
+        include: { Event: { select: { id: true, title: true, createdAt: true } } },
+      }),
+    ]);
 
     // Combiner et mapper
     let combinedData = [
