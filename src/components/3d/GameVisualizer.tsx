@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { GamePattern, FrequencyBand } from '@/types/game';
 import ScoreDisplay from './ScoreDisplay';
 import ParticleSystem, { Particle } from './ParticleSystem';
+import { logger } from '@/lib/logger';
 
 const PATTERN_LIFETIME = 3000; // Durée de vie des patterns en ms
 const PLAYER_SIZE = 12;
@@ -384,7 +385,7 @@ const GameVisualizer: React.FC<GameVisualizerProps> = ({ gameData, audioElement 
           : 2000; // Valeur par défaut élevée pour forcer le log la première fois
 
       if (warningTimeElapsed > 1000) {
-        console.warn('Aucun pattern à afficher');
+        logger.warn('Aucun pattern à afficher');
         lastPatternWarningTimeRef.current = now;
       }
 
@@ -401,7 +402,7 @@ const GameVisualizer: React.FC<GameVisualizerProps> = ({ gameData, audioElement 
 
       // Tenter de régénérer les patterns
       if (!patternRegenerationAttempted.current) {
-        console.log('Tentative de régénération des patterns...');
+        logger.debug('Tentative de régénération des patterns...');
         patternRegenerationAttempted.current = true;
 
         // Déclencher un événement personnalisé pour régénérer les patterns
@@ -410,19 +411,19 @@ const GameVisualizer: React.FC<GameVisualizerProps> = ({ gameData, audioElement 
 
         // Appeler directement startGame si disponible
         if (gameData.startGame) {
-          console.log('Appel direct de startGame pour générer des patterns');
+          logger.debug('Appel direct de startGame pour générer des patterns');
           gameData.startGame();
         }
 
         // En dernier recours, appeler simpleUpdateGame si disponible dans gameData
         if (typeof gameData.simpleUpdateGame === 'function') {
-          console.log('Appel de secours de simpleUpdateGame');
+          logger.debug('Appel de secours de simpleUpdateGame');
           gameData.simpleUpdateGame();
 
           // Faire une deuxième tentative après un court délai
           setTimeout(() => {
             if (!gameData.patterns || gameData.patterns.length === 0) {
-              console.log('Deuxième tentative via simpleUpdateGame');
+              logger.debug('Deuxième tentative via simpleUpdateGame');
               if (typeof gameData.simpleUpdateGame === 'function') {
                 gameData.simpleUpdateGame();
               }
@@ -447,7 +448,7 @@ const GameVisualizer: React.FC<GameVisualizerProps> = ({ gameData, audioElement 
     if (!gameData.gameState.isActive && hasPatterns) {
       // Log uniquement lors des changements d'état pour éviter les logs répétitifs
       if (!hasLoggedInactiveWithPatternsRef.current) {
-        console.log(
+        logger.debug(
           "Jeu marqué comme inactif mais des patterns sont disponibles - Forcer l'affichage"
         );
         hasLoggedInactiveWithPatternsRef.current = true;
@@ -470,7 +471,7 @@ const GameVisualizer: React.FC<GameVisualizerProps> = ({ gameData, audioElement 
 
     // Log du nombre de patterns à dessiner (uniquement une fois par seconde pour éviter la pollution de console)
     if (now - lastPatternLogTimeRef.current > 1000) {
-      console.log(`Dessin de ${gameData.patterns?.length || 0} patterns`, gameData.patterns);
+      logger.debug(`Dessin de ${gameData.patterns?.length || 0} patterns`, gameData.patterns);
       lastPatternLogTimeRef.current = now;
 
       // Réinitialiser les compteurs de warning
@@ -481,7 +482,7 @@ const GameVisualizer: React.FC<GameVisualizerProps> = ({ gameData, audioElement 
     if (!gameData.patterns || gameData.patterns.length === 0) {
       // Limiter la fréquence des warnings
       if (now - lastPatternWarningTimeRef.current > 1000) {
-        console.warn('Aucun pattern à dessiner, vérification supplémentaire requise');
+        logger.warn('Aucun pattern à dessiner, vérification supplémentaire requise');
         lastPatternWarningTimeRef.current = now;
       }
 
@@ -506,13 +507,13 @@ const GameVisualizer: React.FC<GameVisualizerProps> = ({ gameData, audioElement 
         typeof pattern.position.x !== 'number' ||
         typeof pattern.position.y !== 'number'
       ) {
-        console.error('Pattern avec position invalide:', pattern);
+        logger.error('Pattern avec position invalide:', pattern);
         return;
       }
 
       // Vérifier que le pattern est dans les limites du canvas
       if (pattern.position.x < -50 || pattern.position.x > canvasRef.current!.width + 50) {
-        console.log(`Pattern hors limites horizontales: ${pattern.id} à x=${pattern.position.x}`);
+        logger.debug(`Pattern hors limites horizontales: ${pattern.id} à x=${pattern.position.x}`);
         return;
       }
 
@@ -794,7 +795,7 @@ const GameVisualizer: React.FC<GameVisualizerProps> = ({ gameData, audioElement 
     if (!canvasRef.current) return;
     ctx.current = canvasRef.current.getContext('2d');
     if (!ctx.current) {
-      console.error("Impossible d'obtenir le contexte 2D");
+      logger.error("Impossible d'obtenir le contexte 2D");
       return;
     }
 
@@ -809,7 +810,7 @@ const GameVisualizer: React.FC<GameVisualizerProps> = ({ gameData, audioElement 
       canvasRef.current.width = Math.max(container.clientWidth, minWidth);
       canvasRef.current.height = Math.max(container.clientHeight, minHeight);
 
-      console.log(`Canvas redimensionné: ${canvasRef.current.width}x${canvasRef.current.height}`);
+      logger.debug(`Canvas redimensionné: ${canvasRef.current.width}x${canvasRef.current.height}`);
     };
 
     resizeCanvas();
@@ -822,7 +823,7 @@ const GameVisualizer: React.FC<GameVisualizerProps> = ({ gameData, audioElement 
       }
     }
 
-    console.log("Démarrage de la boucle d'animation du canvas");
+    logger.debug("Démarrage de la boucle d'animation du canvas");
     animationFrameRef.current = requestAnimationFrame(animate);
 
     return () => {
@@ -836,19 +837,19 @@ const GameVisualizer: React.FC<GameVisualizerProps> = ({ gameData, audioElement 
   // Effet pour surveiller les changements dans gameData.patterns
   useEffect(() => {
     if (gameData.patterns && gameData.patterns.length > 0) {
-      console.log(
+      logger.debug(
         `GameVisualizer: patterns mis à jour, ${gameData.patterns.length} patterns disponibles`
       );
-      console.log('Premier pattern:', gameData.patterns[0]);
+      logger.debug('Premier pattern:', gameData.patterns[0]);
     } else {
-      console.log('GameVisualizer: aucun pattern disponible dans gameData.patterns');
-      console.log('État complet de gameData:', gameData);
+      logger.debug('GameVisualizer: aucun pattern disponible dans gameData.patterns');
+      logger.debug('État complet de gameData:', gameData);
     }
   }, [gameData.patterns]);
 
   // Effet pour surveiller l'état du jeu
   useEffect(() => {
-    console.log(`GameVisualizer: état du jeu mis à jour, isActive=${gameData.gameState.isActive}`);
+    logger.debug(`GameVisualizer: état du jeu mis à jour, isActive=${gameData.gameState.isActive}`);
   }, [gameData.gameState.isActive]);
 
   // === Fonctions de rendu et gestionnaires d'événements ===
@@ -886,11 +887,11 @@ const GameVisualizer: React.FC<GameVisualizerProps> = ({ gameData, audioElement 
   };
 
   const handlePlayClick = () => {
-    console.log('Bouton "Appuyez pour jouer" cliqué - Approche directe');
+    logger.debug('Bouton "Appuyez pour jouer" cliqué - Approche directe');
 
     // S'assurer que l'élément audio est correctement initialisé
     if (audioElement) {
-      console.log("État initial de l'audio avant le clic:", {
+      logger.debug("État initial de l'audio avant le clic:", {
         paused: audioElement.paused,
         readyState: audioElement.readyState,
         currentTime: audioElement.currentTime,
@@ -899,7 +900,7 @@ const GameVisualizer: React.FC<GameVisualizerProps> = ({ gameData, audioElement 
 
       // Forcer le préchargement si nécessaire
       if (audioElement.readyState < 2) {
-        console.log('Audio pas encore prêt, forçage du chargement');
+        logger.debug('Audio pas encore prêt, forçage du chargement');
         audioElement.load();
       }
 
@@ -907,32 +908,32 @@ const GameVisualizer: React.FC<GameVisualizerProps> = ({ gameData, audioElement 
       audioElement
         .play()
         .then(() => {
-          console.log('Audio démarré avec succès depuis le clic du bouton');
+          logger.debug('Audio démarré avec succès depuis le clic du bouton');
 
           // Utiliser directement la fonction startGame si disponible
           if (gameData.startGame && typeof gameData.startGame === 'function') {
-            console.log('Fonction startGame disponible, appel direct');
+            logger.debug('Fonction startGame disponible, appel direct');
             try {
               gameData.startGame();
-              console.log('Jeu démarré via gameData.startGame');
+              logger.debug('Jeu démarré via gameData.startGame');
             } catch (e) {
-              console.error('Erreur lors du démarrage direct du jeu:', e);
+              logger.error('Erreur lors du démarrage direct du jeu:', e);
               // Fallback sur événement personnalisé
               window.dispatchEvent(new CustomEvent('game-force-start'));
             }
           } else {
             // Si startGame n'est pas disponible, utiliser l'approche par événement
-            console.log("Fonction startGame non disponible, utilisation de l'événement");
+            logger.debug("Fonction startGame non disponible, utilisation de l'événement");
             window.dispatchEvent(new CustomEvent('game-start'));
           }
         })
         .catch((error) => {
-          console.error('Erreur lors du démarrage audio depuis le clic du bouton:', error);
+          logger.error('Erreur lors du démarrage audio depuis le clic du bouton:', error);
           // Tenter de démarrer le jeu quand même
           if (gameData.startGame && typeof gameData.startGame === 'function') {
             try {
               gameData.startGame();
-              console.log('Tentative de démarrage du jeu malgré échec audio');
+              logger.debug('Tentative de démarrage du jeu malgré échec audio');
             } catch (e) {
               window.dispatchEvent(new CustomEvent('game-force-start'));
             }
@@ -941,12 +942,12 @@ const GameVisualizer: React.FC<GameVisualizerProps> = ({ gameData, audioElement 
           }
         });
     } else {
-      console.error('Élément audio non disponible pour démarrer le jeu');
+      logger.error('Élément audio non disponible pour démarrer le jeu');
       // Même sans audio, tenter de démarrer le jeu
       if (gameData.startGame && typeof gameData.startGame === 'function') {
         try {
           gameData.startGame();
-          console.log('Démarrage du jeu sans audio via gameData.startGame');
+          logger.debug('Démarrage du jeu sans audio via gameData.startGame');
         } catch (e) {
           window.dispatchEvent(new CustomEvent('game-force-start'));
         }

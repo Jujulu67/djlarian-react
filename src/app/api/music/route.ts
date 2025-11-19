@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import { uploadToBlob, isBlobConfigured, getBlobPublicUrl } from '@/lib/blob';
+import { logger } from '@/lib/logger';
 
 // Music API endpoint - Vercel (Node.js runtime natif)
 
@@ -105,7 +106,7 @@ export async function GET() {
 
     return NextResponse.json(formattedTracks);
   } catch (error) {
-    console.error('Error fetching tracks:', error);
+    logger.error('Error fetching tracks', error);
     return NextResponse.json({ error: 'Failed to fetch tracks' }, { status: 500 });
   }
 }
@@ -134,7 +135,7 @@ export async function POST(request: Request) {
   const validationResult = trackCreateSchema.safeParse(rawData);
 
   if (!validationResult.success) {
-    console.error('Validation failed:', validationResult.error.format());
+    logger.error('Validation failed', validationResult.error.format());
     return NextResponse.json(
       {
         error: 'Invalid input data',
@@ -189,11 +190,11 @@ export async function POST(request: Request) {
         await uploadToBlob(originalKey, buffer, contentType);
         dataForPrisma.imageId = imageId;
       } else {
-        console.warn('[API MUSIC] Vercel Blob not configured, skipping image upload');
+        logger.warn('API MUSIC - Vercel Blob not configured, skipping image upload');
         // On continue sans image si Blob n'est pas configuré
       }
     } catch (err) {
-      console.error('[API MUSIC] Erreur import thumbnail YouTube:', err);
+      logger.error('API MUSIC - Erreur import thumbnail YouTube', err);
       // On continue sans image si erreur
     }
   }
@@ -229,7 +230,7 @@ export async function POST(request: Request) {
           userConnect = { User: { connect: { id: session.user.id } } };
         }
       } catch (userError) {
-        console.error('Erreur vérification utilisateur:', userError);
+        logger.error('Erreur vérification utilisateur', userError);
       }
 
       // Handle optional genres connection
@@ -290,7 +291,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(formatTrackData(track), { status: 201 });
   } catch (error) {
-    console.error('Error during track creation transaction:', error);
+    logger.error('Error during track creation transaction', error);
 
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       if (error.code === 'P2002') {

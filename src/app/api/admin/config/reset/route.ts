@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 
 import prisma from '@/lib/prisma';
 import { defaultConfigs } from '@/config/defaults';
+import { logger } from '@/lib/logger';
 
 // Types pour les sections de configuration
 type GeneralConfig = {
@@ -154,7 +155,7 @@ export async function POST(req: NextRequest) {
         },
       });
     } catch (snapshotError) {
-      console.error(
+      logger.error(
         'Erreur lors de la création du snapshot avant réinitialisation:',
         snapshotError
       );
@@ -163,7 +164,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
-    console.error('Erreur lors de la réinitialisation des configurations:', error);
+    logger.error('Erreur lors de la réinitialisation des configurations:', error);
     return NextResponse.json(
       { error: 'Erreur serveur lors de la réinitialisation des configurations' },
       { status: 500 }

@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 export default function EditEventRedirect() {
   const params = useParams();
@@ -10,18 +11,18 @@ export default function EditEventRedirect() {
   const eventId = params.id as string;
 
   useEffect(() => {
-    console.log('Edit redirect - Event ID from params:', eventId);
+    logger.debug('Edit redirect - Event ID from params:', eventId);
 
     // Vérifier que l'ID est valide
     if (!eventId) {
-      console.error('Invalid event ID for edit redirection');
+      logger.error('Invalid event ID for edit redirection');
       router.push('/admin/events');
       return;
     }
 
     // Rediriger vers la page de création d'événement avec l'ID
     const redirectUrl = `/admin/events/new?id=${encodeURIComponent(eventId)}`;
-    console.log('Redirecting to:', redirectUrl);
+    logger.debug('Redirecting to:', redirectUrl);
     router.push(redirectUrl);
   }, [eventId, router]);
 

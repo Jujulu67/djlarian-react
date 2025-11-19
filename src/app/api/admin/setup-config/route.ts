@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 // Valeurs par défaut pour les configurations
 const defaultConfigs = {
@@ -102,7 +103,7 @@ export async function GET(req: NextRequest) {
       )`;
       tablesExist = true;
     } catch (error) {
-      console.error('Erreur lors de la vérification des tables:', error);
+      logger.error('Erreur lors de la vérification des tables:', error);
       results.errors.push('Impossible de vérifier si les tables existent');
     }
 
@@ -135,7 +136,7 @@ export async function GET(req: NextRequest) {
             ON CONFLICT (section, key) DO NOTHING
           `;
         } catch (error) {
-          console.error(`Erreur lors de l'insertion de ${section}.${key}:`, error);
+          logger.error(`Erreur lors de l'insertion de ${section}.${key}:`, error);
           results.errors.push(`Échec de l'insertion de ${section}.${key}`);
         }
       }
@@ -151,7 +152,7 @@ export async function GET(req: NextRequest) {
       { status: 200 }
     );
   } catch (error) {
-    console.error("Erreur lors de l'initialisation des configurations:", error);
+    logger.error("Erreur lors de l'initialisation des configurations:", error);
     return NextResponse.json(
       {
         error: "Erreur serveur lors de l'initialisation des configurations",

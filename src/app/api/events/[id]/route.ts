@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma';
 // Réimporter Prisma pour JsonNull
 import { Prisma } from '@prisma/client';
 import { RecurrenceConfig } from '@/app/components/EventForm';
+import { logger } from '@/lib/logger';
 // Ne pas importer Prisma pour l'instant, testons avec null standard
 // import { Prisma } from '@prisma/client';
 
@@ -54,7 +55,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   try {
     const resolvedParams = await params;
     const { id } = resolvedParams;
-    console.log(`Fetching event with ID: ${id}`);
+    logger.debug(`Fetching event with ID: ${id}`);
 
     const session = await auth();
     const isAdmin = session?.user?.role === 'ADMIN';
@@ -64,7 +65,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const virtualStartDate = searchParams.get('date');
 
     if (virtualStartDate) {
-      console.log(`Virtual date from query parameter: ${virtualStartDate}`);
+      logger.debug(`Virtual date from query parameter: ${virtualStartDate}`);
     }
 
     // Récupérer l'événement avec ses tickets associés
@@ -97,7 +98,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // Si l'événement n'existe pas
     if (!event) {
-      console.log(`Event not found with ID: ${id}`);
+      logger.debug(`Event not found with ID: ${id}`);
       return NextResponse.json({ error: 'Événement non trouvé' }, { status: 404 });
     }
 
@@ -121,7 +122,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     // Si c'est un événement virtuel avec une date valide, modifier les dates
     if (virtualStartDate) {
       try {
-        console.log(
+        logger.debug(
           `Creating virtual event based on master event ${id} with date ${virtualStartDate}`
         );
 
@@ -129,7 +130,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         let duration = 0;
         if (event.endDate) {
           duration = new Date(event.endDate).getTime() - new Date(event.startDate).getTime();
-          console.log(`Original event duration: ${duration}ms`);
+          logger.debug(`Original event duration: ${duration}ms`);
         }
 
         // Convertir la date virtuelle en objet Date puis en chaîne ISO pour assurer la cohérence
@@ -150,18 +151,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           masterId: id,
         };
 
-        console.log(`Returning virtual event with date: ${virtualEvent.startDate}`);
+        logger.debug(`Returning virtual event with date: ${virtualEvent.startDate}`);
         // Assurons-nous que la date virtuelle est bien appliquée
-        console.log(
+        logger.debug(
           `Date comparison - Original: ${event.startDate}, Virtual: ${virtualEvent.startDate}`
         );
         return NextResponse.json(virtualEvent);
       } catch (error) {
-        console.error(`Error creating virtual event:`, error);
+        logger.error(`Error creating virtual event:`, error);
       }
     }
 
-    console.log(`Returning regular event with date: ${event.startDate}`);
+    logger.debug(`Returning regular event with date: ${event.startDate}`);
 
     // Formater l'événement pour correspondre à ce qu'attend le client
     const formattedEvent = { ...event } as any;
@@ -184,7 +185,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     return NextResponse.json(formattedEvent);
   } catch (error) {
-    console.error("Erreur lors de la récupération de l'événement:", error);
+    logger.error("Erreur lors de la récupération de l'événement:", error);
     return NextResponse.json(
       {
         error: "Erreur lors de la récupération de l'événement",
@@ -200,7 +201,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
     const id = resolvedParams.id;
-  console.log(`--- PATCH /api/events/${id} ---`);
+  logger.debug(`--- PATCH /api/events/${id} ---`);
 
   try {
     // Vérifier d'abord si l'événement existe
@@ -210,11 +211,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     });
 
     if (!eventExists) {
-      console.error(`[API] Event with ID ${id} not found`);
+      logger.error(`[API] Event with ID ${id} not found`);
       return NextResponse.json({ error: 'Événement non trouvé' }, { status: 404 });
     }
 
-    console.log(`[API] Event with ID ${id} found, proceeding with update`);
+    logger.debug(`[API] Event with ID ${id} found, proceeding with update`);
 
     const session = await auth();
 
@@ -223,10 +224,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     // Afficher les informations de session pour debug
-    console.log('Session user info for update:', JSON.stringify(session.user, null, 2));
+    logger.debug('Session user info for update:', JSON.stringify(session.user, null, 2));
 
     const body = await request.json();
-    console.log(`Request body for PATCH ${id}:`, body);
+    logger.debug(`Request body for PATCH ${id}:`, body);
 
     const {
       title,
@@ -270,10 +271,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
           connect: { id: session.user.id },
         };
       } else {
-        console.log(`Utilisateur avec ID ${session.user.id} n'existe pas dans la base de données`);
+        logger.debug(`Utilisateur avec ID ${session.user.id} n'existe pas dans la base de données`);
       }
     } catch (error) {
-      console.error("Erreur lors de la vérification de l'utilisateur:", error);
+      logger.error("Erreur lors de la vérification de l'utilisateur:", error);
       // On continue sans établir la relation utilisateur
     }
 
@@ -315,7 +316,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
           };
         }
       } catch (error) {
-        console.error('Erreur lors de la mise à jour des tickets:', error);
+        logger.error('Erreur lors de la mise à jour des tickets:', error);
       }
     }
 
@@ -349,11 +350,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
           };
         }
       } catch (error) {
-        console.error('Erreur lors de la mise à jour de la récurrence:', error);
+        logger.error('Erreur lors de la mise à jour de la récurrence:', error);
       }
     }
 
-    console.log(
+    logger.debug(
       `Attempting prisma.event.update for ${id} with data:`,
       JSON.stringify(dataToUpdate, null, 2)
     );
@@ -373,7 +374,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       },
     });
 
-    console.log(`Event ${id} updated successfully.`);
+    logger.debug(`Event ${id} updated successfully.`);
 
     // Formater l'événement pour correspondre à ce qu'attend le client
     const formattedEvent = { ...updatedEvent } as any;
@@ -396,11 +397,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     return NextResponse.json(formattedEvent);
   } catch (error: any) {
-    console.error(`--- ERROR in PATCH /api/events/${id} ---`);
-    console.error('Error details:', error);
-    console.error('Error code:', error.code);
-    console.error('Error meta:', error.meta);
-    console.error('Stack trace:', error.stack);
+    logger.error(`--- ERROR in PATCH /api/events/${id} ---`);
+    logger.error('Error details:', error);
+    logger.error('Error code:', error.code);
+    logger.error('Error meta:', error.meta);
+    logger.error('Stack trace:', error.stack);
 
     // Renvoi d'une réponse d'erreur plus détaillée pour le débogage
     if (error.code === 'P2025') {
@@ -447,7 +448,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     return NextResponse.json({ message: 'Événement supprimé avec succès' });
   } catch (error) {
-    console.error("Erreur lors de la suppression de l'événement:", error);
+    logger.error("Erreur lors de la suppression de l'événement:", error);
     return NextResponse.json(
       { error: "Erreur lors de la suppression de l'événement" },
       { status: 500 }

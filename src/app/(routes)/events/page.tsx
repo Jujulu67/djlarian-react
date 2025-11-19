@@ -25,6 +25,7 @@ import {
   Eye,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { logger } from '@/lib/logger';
 
 // Types
 type RecurrenceConfig = {
@@ -109,7 +110,7 @@ export default function EventsPage() {
           // Nous séparons l'ID et la date avec "___VIRTUAL___" pour éviter toute ambiguïté
           const occurrenceDate = occurrence.toISOString();
           const virtualEventId = `${masterEvent.id}___VIRTUAL___${occurrenceDate}`;
-          console.log(`Generated virtual event ID: ${virtualEventId}`);
+          logger.debug(`Generated virtual event ID: ${virtualEventId}`);
 
           const virtualEvent: Event = {
             ...masterEvent,
@@ -250,7 +251,7 @@ export default function EventsPage() {
 
         setEvents(sortedEvents);
       } catch (err) {
-        console.error('Erreur:', err);
+        logger.error('Erreur:', err);
         setError('Impossible de charger les événements. Veuillez réessayer plus tard.');
       } finally {
         setLoading(false);
@@ -589,10 +590,15 @@ export default function EventsPage() {
                         fill
                         className="w-full h-full object-cover object-[50%_25%] group-hover:scale-105 transition-transform duration-500"
                         unoptimized
+                        onError={(e) => {
+                          // Éviter la boucle infinie en masquant l'image si elle n'existe pas
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                        }}
                       />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-r from-gray-800 to-gray-700 flex items-center justify-center">
-                        <Music className="w-16 h-16 text-gray-600" />
+                        <Calendar className="w-16 h-16 text-gray-600" />
                       </div>
                     )}
 

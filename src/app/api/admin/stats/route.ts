@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 
 import { subDays, startOfDay, startOfWeek, startOfMonth } from 'date-fns';
 import { Prisma } from '@prisma/client';
@@ -79,7 +80,7 @@ export async function GET(request: NextRequest) {
       recentTracks,
     });
   } catch (error) {
-    console.error('Erreur lors de la récupération des statistiques:', error);
+    logger.error('Erreur lors de la récupération des statistiques', error);
 
     // Pas besoin de bloc fallback complexe ici, juste retourner une erreur 500
     return NextResponse.json(

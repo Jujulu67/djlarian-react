@@ -54,7 +54,7 @@ export async function GET() {
 
     return NextResponse.json(homepageConfig, { status: 200 });
   } catch (error) {
-    console.error('Erreur lors de la récupération de la configuration homepage:', error);
+    logger.error('Erreur lors de la récupération de la configuration homepage', error);
     // En cas d'erreur, retourner les valeurs par défaut
     return NextResponse.json(defaultConfigs.homepage, { status: 200 });
   }
