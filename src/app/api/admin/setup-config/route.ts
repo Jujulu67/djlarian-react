@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-
-import { PrismaClient } from '@prisma/client';
-
-// Initialiser Prisma
-const prisma = new PrismaClient();
+import prisma from '@/lib/prisma';
 
 // Valeurs par défaut pour les configurations
 const defaultConfigs = {
