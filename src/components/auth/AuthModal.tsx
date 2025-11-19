@@ -35,9 +35,18 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         });
 
         if (result?.error) {
-          toast.error(
-            result.error === 'CredentialsSignin' ? 'Email ou mot de passe incorrect' : result.error
-          );
+          // NextAuth v5 retourne CredentialsSignin quand authorize retourne null
+          // Configuration peut apparaître si NEXTAUTH_URL est manquant
+          let errorMessage = 'Email ou mot de passe incorrect';
+
+          if (result.error === 'Configuration') {
+            errorMessage = 'Erreur de configuration. Vérifiez NEXTAUTH_URL et NEXTAUTH_SECRET.';
+          } else if (result.error === 'CredentialsSignin') {
+            errorMessage = 'Email ou mot de passe incorrect';
+          }
+
+          toast.error(errorMessage);
+          setIsLoading(false);
           return;
         }
 

@@ -66,3 +66,6 @@ Other websites/
 umami-analytics/
 umami-db-data/
 .secrets.local.md
+
+# Backup env files
+.env.bak
