@@ -1,7 +1,6 @@
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
-  engineType      = "library" // Utilise la bibliothèque JS au lieu des binaires Rust pour Edge Runtime
+  provider = "prisma-client-js"
+  // Configuration standard pour Vercel (Node.js runtime)
 }
 
 datasource db {

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { uploadToR2, isR2Configured, getR2PublicUrl } from '@/lib/r2';
+import { uploadToBlob, isBlobConfigured, getBlobPublicUrl } from '@/lib/blob';
 
-// Note: Pas de Edge Runtime car Auth.js v5 avec Prisma/bcrypt nécessite Node.js
+// Upload endpoint - Vercel (Node.js runtime natif)
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     // LOGS DEBUG
     console.log('--- [API UPLOAD] ---');
     console.log('imageId:', imageId);
-    console.log('R2 configured:', isR2Configured);
+    console.log('Blob configured:', isBlobConfigured);
     console.log(
       'croppedImage:',
       croppedImage ? `${croppedImage.size} bytes, type: ${croppedImage.type}` : croppedImage
@@ -45,19 +45,19 @@ export async function POST(request: NextRequest) {
     const croppedBytes = await croppedImage.arrayBuffer();
     const croppedBuffer = Buffer.from(croppedBytes);
 
-    // Utiliser R2 uniquement (Edge Runtime ne supporte pas fs)
-    if (!isR2Configured) {
+    // Utiliser Vercel Blob pour le stockage des fichiers
+    if (!isBlobConfigured) {
       return NextResponse.json(
-        { error: 'R2 not configured. Please configure Cloudflare R2.' },
+        { error: 'Vercel Blob not configured. Please configure BLOB_READ_WRITE_TOKEN in Vercel.' },
         { status: 503 }
       );
     }
 
-    // Upload vers R2
+    // Upload vers Vercel Blob
     try {
       const croppedKey = `uploads/${imageId}.jpg`;
-      const croppedUrl = await uploadToR2(croppedKey, croppedBuffer, 'image/jpeg');
-      console.log(`[API UPLOAD] Image recadrée uploadée vers R2: ${croppedUrl}`);
+      const croppedUrl = await uploadToBlob(croppedKey, croppedBuffer, 'image/jpeg');
+      console.log(`[API UPLOAD] Image recadrée uploadée vers Vercel Blob: ${croppedUrl}`);
 
       // Upload de l'image originale si fournie
       if (originalImage && originalImage.type.startsWith('image/')) {
@@ -70,10 +70,10 @@ export async function POST(request: NextRequest) {
               : 'jpg';
             const originalKey = `uploads/${imageId}-ori.${extension}`;
             const contentType = originalImage.type || `image/${extension}`;
-            await uploadToR2(originalKey, originalBuffer, contentType);
-            console.log(`[API UPLOAD] Image originale uploadée vers R2: ${originalKey}`);
+            await uploadToBlob(originalKey, originalBuffer, contentType);
+            console.log(`[API UPLOAD] Image originale uploadée vers Vercel Blob: ${originalKey}`);
           } catch (error) {
-            console.error(`[API UPLOAD] Erreur upload image originale vers R2:`, error);
+            console.error(`[API UPLOAD] Erreur upload image originale vers Blob:`, error);
             // Ne pas bloquer si l'originale échoue
           }
         } else {
@@ -83,15 +83,15 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      console.log(`[API UPLOAD] Upload R2 terminé pour imageId: ${imageId}`);
+      console.log(`[API UPLOAD] Upload Vercel Blob terminé pour imageId: ${imageId}`);
       return NextResponse.json({
         success: true,
         imageId: imageId,
         url: croppedUrl,
       });
     } catch (error) {
-      console.error(`[API UPLOAD] Erreur upload R2 pour ${imageId}:`, error);
-      throw new Error("Impossible d'uploader l'image vers R2.");
+      console.error(`[API UPLOAD] Erreur upload Blob pour ${imageId}:`, error);
+      throw new Error("Impossible d'uploader l'image vers Vercel Blob.");
     }
   } catch (error) {
     console.error('[API UPLOAD] Erreur lors du téléchargement du fichier:', error);

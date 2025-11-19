@@ -7,9 +7,9 @@ import { MusicType, MusicPlatform } from '@/lib/utils/types';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
-import { uploadToR2, isR2Configured, getR2PublicUrl } from '@/lib/r2';
+import { uploadToBlob, isBlobConfigured, getBlobPublicUrl } from '@/lib/blob';
 
-// Note: Utilisation directe des images sans traitement sharp pour compatibilité Edge Runtime
+// Music API endpoint - Vercel (Node.js runtime natif)
 
 // Define actual arrays for Zod enums from types
 const musicTypes: [MusicType, ...MusicType[]] = [
@@ -181,16 +181,16 @@ export async function POST(request: Request) {
       const contentType = response.headers.get('content-type') || 'image/jpeg';
       const extension = contentType.includes('png') ? 'png' : 'jpg';
       
-      // Sauvegarder dans R2 si configuré
-      if (isR2Configured) {
+      // Sauvegarder dans Vercel Blob si configuré
+      if (isBlobConfigured) {
         const key = `uploads/${imageId}.${extension}`;
         const originalKey = `uploads/${imageId}-ori.${extension}`;
-        await uploadToR2(key, buffer, contentType);
-        await uploadToR2(originalKey, buffer, contentType);
+        await uploadToBlob(key, buffer, contentType);
+        await uploadToBlob(originalKey, buffer, contentType);
         dataForPrisma.imageId = imageId;
       } else {
-        console.warn('[API MUSIC] R2 not configured, skipping image upload');
-        // On continue sans image si R2 n'est pas configuré
+        console.warn('[API MUSIC] Vercel Blob not configured, skipping image upload');
+        // On continue sans image si Blob n'est pas configuré
       }
     } catch (err) {
       console.error('[API MUSIC] Erreur import thumbnail YouTube:', err);
