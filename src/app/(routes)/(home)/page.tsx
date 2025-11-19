@@ -109,7 +109,6 @@ export default function HomePage() {
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ['start start', 'end start'],
-    layoutEffect: false, // Désactiver le layout effect pour éviter les warnings
   });
 
   const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
