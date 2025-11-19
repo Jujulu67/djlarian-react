@@ -64,7 +64,7 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
       if (res.ok) setYoutubeVideos(data.videos || []);
       else setYoutubeError(`Erreur: ${data.error || 'Impossible de récupérer les vidéos'}`);
     } catch (err) {
-      logger.error(err);
+      logger.error('Erreur:', err instanceof Error ? err.message : String(err));
       setYoutubeError("Une erreur s'est produite lors de la récupération des vidéos");
     } finally {
       setIsLoadingVideos(false);
@@ -151,7 +151,7 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
       setIsSubmitting(false);
       setVerifyIndex((i) => i + 1);
     } catch (err) {
-      logger.error(err);
+      logger.error('Erreur:', err instanceof Error ? err.message : String(err));
       toast.error("Erreur lors de l'ajout de la vidéo");
       setIsSubmitting(false);
     }

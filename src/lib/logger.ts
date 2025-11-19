@@ -48,9 +48,17 @@ class Logger {
 
   /**
    * Log d'erreur
+   * Accepte un message et des arguments supplémentaires (peut être une erreur)
    */
   error(message: string, ...args: any[]): void {
-    console.error(`[ERROR] ${message}`, ...args);
+    // Convertir les erreurs en format lisible
+    const formattedArgs = args.map((arg) => {
+      if (arg instanceof Error) {
+        return arg.message;
+      }
+      return arg;
+    });
+    console.error(`[ERROR] ${message}`, ...formattedArgs);
   }
 
   /**

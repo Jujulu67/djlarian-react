@@ -115,7 +115,7 @@ const SaveConfigModal = ({ isOpen, onClose, onSave, changesSummary }: SaveConfig
       onClose();
     } catch (err) {
       setError('Une erreur est survenue lors de la sauvegarde. Veuillez réessayer.');
-      logger.error(err);
+      logger.error('Erreur lors de la sauvegarde:', err instanceof Error ? err.message : String(err));
     } finally {
       setIsSubmitting(false);
     }
@@ -257,7 +257,7 @@ export default function ConfigurationPage() {
       // Stocker la configuration chargée comme référence pour le diff
       previousConfigs.current = JSON.parse(JSON.stringify(data)); // Copie profonde simple
     } catch (e) {
-      logger.error('Erreur lors de la récupération des configurations:', e);
+      logger.error('Erreur lors de la récupération des configurations:', e instanceof Error ? e.message : String(e));
       logger.debug('Utilisation des valeurs par défaut (mode fallback)');
       // Utiliser les valeurs initiales du store en cas d'erreur
       resetConfigs();
@@ -325,7 +325,7 @@ export default function ConfigurationPage() {
       setSuccessMessage('Configurations sauvegardées avec succès !');
       setTimeout(() => setSuccessMessage(null), 3000); // Cacher après 3s
     } catch (e) {
-      logger.error('Erreur lors de la sauvegarde des configurations:', e);
+      logger.error('Erreur lors de la sauvegarde des configurations:', e instanceof Error ? e.message : String(e));
       setError('Impossible de sauvegarder les configurations. Veuillez réessayer.');
       // Ne pas utiliser alert(), l'erreur est déjà affichée dans la modale
       throw e; // Propager l'erreur pour la modale
@@ -351,7 +351,7 @@ export default function ConfigurationPage() {
         // Recharger les configurations après la réinitialisation
         await fetchConfigurations(); // Ceci va reset le store et mettre à jour previousConfigs
       } catch (e) {
-        logger.error('Erreur lors de la réinitialisation des configurations:', e);
+        logger.error('Erreur lors de la réinitialisation des configurations:', e instanceof Error ? e.message : String(e));
         setError('Impossible de réinitialiser les configurations. Veuillez réessayer.');
       } finally {
         setIsLoading(false);
@@ -396,7 +396,7 @@ export default function ConfigurationPage() {
       alert('Snapshot créé avec succès !'); // Conserver l'alerte pour l'instant
       // Pas besoin de màj previousConfigs ici car snapshot ne modifie pas l'état courant "sauvegardé"
     } catch (e) {
-      logger.error('Erreur lors de la création du snapshot:', e);
+      logger.error('Erreur lors de la création du snapshot:', e instanceof Error ? e.message : String(e));
       setError('Impossible de créer le snapshot. Veuillez réessayer.');
       alert('Erreur lors de la création du snapshot. Voir la console pour plus de détails.');
       throw e; // Propager l'erreur pour que le modal puisse la gérer
@@ -430,7 +430,7 @@ export default function ConfigurationPage() {
       // Recharger les configurations après l'annulation (mettra à jour le store et previousConfigs)
       await fetchConfigurations();
     } catch (e) {
-      logger.error("Erreur lors de l'annulation de la modification:", e);
+      logger.error("Erreur lors de l'annulation de la modification:", e instanceof Error ? e.message : String(e));
       setError("Impossible d'annuler la modification. Veuillez réessayer.");
     } finally {
       setIsLoading(false);
@@ -463,7 +463,7 @@ export default function ConfigurationPage() {
       // Recharger les configurations après l'application (mettra à jour le store et previousConfigs)
       await fetchConfigurations();
     } catch (e) {
-      logger.error("Erreur lors de l'application du snapshot:", e);
+      logger.error("Erreur lors de l'application du snapshot:", e instanceof Error ? e.message : String(e));
       setError("Impossible d'appliquer le snapshot. Veuillez réessayer.");
       alert('Erreur lors de la restauration du snapshot. Voir la console pour plus de détails.');
     } finally {

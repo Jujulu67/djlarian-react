@@ -87,7 +87,7 @@ export default function AdminEventsPage() {
         setEvents(Array.isArray(data.events) ? data.events : []);
       } catch (err) {
         setError('Erreur lors du chargement des événements');
-        logger.error(err);
+        logger.error('Erreur:', err instanceof Error ? err.message : String(err));
       } finally {
         setLoading(false);
       }

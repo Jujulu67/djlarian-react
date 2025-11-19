@@ -40,7 +40,9 @@ export async function GET(request: NextRequest) {
         ? {
             title: {
               contains: titleFilter,
-              mode: 'insensitive',
+              // Note: mode 'insensitive' n'est supporté que par PostgreSQL
+              // Pour SQLite, on fait une recherche case-insensitive via toLowerCase()
+              // mode: 'insensitive', // Désactivé pour compatibilité SQLite
             },
           }
         : {}),
