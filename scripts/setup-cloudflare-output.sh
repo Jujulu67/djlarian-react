@@ -40,8 +40,68 @@ if [ -f ".open-next/worker.js" ]; then
       next
     }
     { print }
-  ' "$CLOUDFLARE_DIR/_worker.js.tmp" > "$CLOUDFLARE_DIR/_worker.js"
-  rm -f "$CLOUDFLARE_DIR/_worker.js.tmp"
+  ' "$CLOUDFLARE_DIR/_worker.js.tmp" > "$CLOUDFLARE_DIR/_worker.js.tmp2"
+  
+  # Ajouter les polyfills pour fs.readdir et node:os au début du fichier
+  echo "📝 Ajout des polyfills pour fs.readdir et node:os..."
+  awk '
+    BEGIN {
+      # Polyfills pour fs.readdir et node:os
+      print "// Polyfills pour Prisma Client dans Cloudflare Workers"
+      print "if (typeof globalThis !== \"undefined\") {"
+      print "  // Polyfill pour node:os"
+      print "  if (!globalThis.os) {"
+      print "    globalThis.os = {"
+      print "      platform: () => \"cloudflare\","
+      print "      arch: () => \"wasm32\","
+      print "      type: () => \"Cloudflare Workers\","
+      print "      release: () => \"\","
+      print "      homedir: () => \"/\","
+      print "      tmpdir: () => \"/tmp\","
+      print "      hostname: () => \"cloudflare-worker\","
+      print "      cpus: () => [],"
+      print "      totalmem: () => 0,"
+      print "      freemem: () => 0,"
+      print "      networkInterfaces: () => ({}),"
+      print "      getPriority: () => 0,"
+      print "      setPriority: () => {},"
+      print "      userInfo: () => ({ username: \"\", uid: 0, gid: 0, shell: \"\" }),"
+      print "      loadavg: () => [0, 0, 0],"
+      print "      uptime: () => 0,"
+      print "      endianness: () => \"LE\","
+      print "      EOL: \"\\n\","
+      print "      constants: {}"
+      print "    };"
+      print "  }"
+      print ""
+      print "  // Polyfill pour fs.readdir (retourne un tableau vide)"
+      print "  if (!globalThis.fs) {"
+      print "    globalThis.fs = {};"
+      print "  }"
+      print "  if (!globalThis.fs.readdir) {"
+      print "    globalThis.fs.readdir = (path, options, callback) => {"
+      print "      if (typeof options === \"function\") {"
+      print "        callback = options;"
+      print "        options = {};"
+      print "      }"
+      print "      if (callback) {"
+      print "        callback(null, []);"
+      print "      } else {"
+      print "        return Promise.resolve([]);"
+      print "      }"
+      print "    };"
+      print "  }"
+      print "  if (!globalThis.fs.promises) {"
+      print "    globalThis.fs.promises = {"
+      print "      readdir: () => Promise.resolve([])"
+      print "    };"
+      print "  }"
+      print "}"
+      print ""
+    }
+    { print }
+  ' "$CLOUDFLARE_DIR/_worker.js.tmp2" > "$CLOUDFLARE_DIR/_worker.js"
+  rm -f "$CLOUDFLARE_DIR/_worker.js.tmp" "$CLOUDFLARE_DIR/_worker.js.tmp2"
 fi
 
 # Copier les dépendances nécessaires
