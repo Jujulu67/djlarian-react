@@ -28,14 +28,22 @@ export async function GET() {
 
   // Test database connection
   try {
-    await prisma.$queryRaw`SELECT 1`;
+    // Utiliser une requête simple qui ne nécessite pas fs
+    await prisma.$queryRaw`SELECT 1 as test`;
     health.checks.database.status = 'connected';
     health.checks.database.message = 'Database connection successful';
   } catch (error) {
     health.checks.database.status = 'error';
-    health.checks.database.message =
-      error instanceof Error ? error.message : 'Unknown database error';
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    health.checks.database.message = errorMessage;
     health.status = 'degraded';
+    
+    // Log détaillé pour debug
+    console.error('[HEALTH CHECK] Database error:', {
+      message: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
+      errorType: error?.constructor?.name,
+    });
   }
 
   // Test R2 connection (if configured)
