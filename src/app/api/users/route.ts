@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import bcrypt from 'bcryptjs';
-
+import { hash as bcryptHash } from '@/lib/bcrypt-edge';
 import prisma from '@/lib/prisma';
 
 // POST /api/users
@@ -57,7 +56,7 @@ export async function POST(request: Request) {
     }
 
     // 4. Hasher le mot de passe
-    const hashedPassword = await bcrypt.hash(password, 10); // 10 est le nombre de tours de salage
+    const hashedPassword = await bcryptHash(password, 10); // 10 est le nombre de tours de salage
 
     // 5. Créer l'utilisateur en base de données
     const newUser = await prisma.user.create({

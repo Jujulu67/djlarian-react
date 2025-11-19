@@ -1,7 +1,5 @@
-// Note: Pas de Edge Runtime car Next-Auth utilise crypto (Node.js)
-// TODO: Migrer vers Auth.js v5 pour supporter Edge Runtime
 import { NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
+import { hash as bcryptHash } from '@/lib/bcrypt-edge';
 import prisma from '@/lib/prisma';
 
 export async function POST(request: Request) {
@@ -25,7 +23,7 @@ export async function POST(request: Request) {
     }
 
     // Hasher le mot de passe
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const hashedPassword = await bcryptHash(password, 12);
 
     // Créer l'utilisateur
     const user = await prisma.user.create({

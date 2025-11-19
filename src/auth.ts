@@ -1,7 +1,7 @@
 import NextAuth from 'next-auth';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import Credentials from 'next-auth/providers/credentials';
-import bcrypt from 'bcryptjs';
+import { compare as bcryptCompare } from '@/lib/bcrypt-edge';
 import prisma from '@/lib/prisma';
 import { authConfig } from './auth.config';
 
@@ -39,7 +39,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           throw new Error('Utilisateur non trouvé');
         }
 
-        const isPasswordValid = await bcrypt.compare(
+        const isPasswordValid = await bcryptCompare(
           credentials.password as string,
           user.hashedPassword
         );

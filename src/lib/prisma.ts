@@ -1,6 +1,7 @@
-// Utiliser Prisma Client Edge pour Cloudflare Pages
-// Le client Edge est conçu pour les environnements Edge et n'utilise pas de binaires natifs
-import { PrismaClient } from '@prisma/client/edge';
+// Utiliser Prisma Client standard avec adaptateur Neon pour Cloudflare Pages
+// Quand on utilise un adaptateur, on doit utiliser @prisma/client (pas /edge)
+// Le client standard avec adaptateur fonctionne en Edge Runtime grâce à engineType = "library"
+import { PrismaClient } from '@prisma/client';
 
 declare global {
   var prisma: PrismaClient | undefined;
@@ -35,7 +36,7 @@ function createPrismaClient() {
   console.log('[PRISMA INIT] isEdgeRuntime:', isEdgeRuntime);
 
   if (isEdgeRuntime) {
-    console.log('[PRISMA INIT] Utilisation de Prisma Client Edge avec adaptateur Neon');
+    console.log('[PRISMA INIT] Utilisation de Prisma Client avec adaptateur Neon pour Edge Runtime');
     
     try {
       // Utiliser require pour les imports synchrones (compatible avec Next.js et Cloudflare)
@@ -56,23 +57,23 @@ function createPrismaClient() {
       // Créer l'adaptateur Prisma pour Neon
       const adapter = new PrismaNeon(pool);
       
-      // Créer Prisma Client Edge avec l'adaptateur
-      // Le client Edge n'utilise pas de binaires natifs, donc pas besoin de fs.readdir
+      // Créer Prisma Client avec l'adaptateur
+      // Avec engineType = "library" dans schema.prisma, le client n'utilise pas de binaires natifs
       const client = new PrismaClient({ 
         adapter,
         log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
       });
       
-      console.log('[PRISMA INIT] PrismaClient Edge créé avec succès');
+      console.log('[PRISMA INIT] PrismaClient avec adaptateur Neon créé avec succès');
       return client;
     } catch (error) {
-      console.error('[PRISMA INIT] Erreur lors de la création du client Prisma Edge:', error);
+      console.error('[PRISMA INIT] Erreur lors de la création du client Prisma avec adaptateur:', error);
       throw error;
     }
   }
 
-  console.log('[PRISMA INIT] Utilisation du PrismaClient Edge (Node.js runtime - développement)');
-  // En Node.js runtime (développement local), utiliser aussi le client Edge pour la cohérence
+  console.log('[PRISMA INIT] Utilisation du PrismaClient standard (Node.js runtime - développement)');
+  // En Node.js runtime (développement local), utiliser le client standard
   return new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
   });
