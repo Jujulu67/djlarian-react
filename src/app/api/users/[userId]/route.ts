@@ -1,8 +1,6 @@
-// Note: Pas de Edge Runtime car bcrypt nécessite Node.js
-// TODO: Utiliser une alternative à bcrypt compatible Edge ou garder Node.js runtime
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import bcrypt from 'bcryptjs';
+import { hash as bcryptHash } from '@/lib/bcrypt-edge';
 import { z } from 'zod';
 import { User as PrismaUser } from '@prisma/client';
 
@@ -56,7 +54,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ user
   if (password) {
     try {
       // Assurez-vous que le champ dans Prisma s'appelle bien hashedPassword
-      const hashedPassword = await bcrypt.hash(password, 10);
+      const hashedPassword = await bcryptHash(password, 10);
       dataToUpdate.hashedPassword = hashedPassword;
       console.log(`PUT /api/users/${userId} - Hashage du mot de passe effectué.`);
     } catch (hashError) {
