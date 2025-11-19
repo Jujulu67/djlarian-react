@@ -52,8 +52,7 @@ const nextConfig: NextConfig = {
   // Optimisations de production
   poweredByHeader: false, // Retirer le header X-Powered-By pour la sécurité
   compress: true, // Activer la compression gzip
-  // Optimisations de build
-  swcMinify: true, // Utiliser SWC pour la minification (plus rapide)
+  // Note: swcMinify est activé par défaut avec Turbopack dans Next.js 16
 };
 
 export default nextConfig;
