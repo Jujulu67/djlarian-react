@@ -31,6 +31,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+# Cloudflare Pages / OpenNext (build artifacts - ne pas commiter)
+.open-next/
+.open-next
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
@@ -50,6 +54,10 @@ Thumbs.db
 # Large binary files
 *.node
 mongod-*
+
+# Database backups (trop volumineux pour git)
+*.sql
+backup.sql
 
 # Other websites folder
 Other websites/
