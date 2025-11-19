@@ -147,74 +147,107 @@ if (isCloudflare && typeof globalThis !== 'undefined') {
   }
 
   // SOLUTION CRITIQUE: Patcher unenv AVANT que Prisma ne soit chargé
-  // unenv est le système de polyfills utilisé par Cloudflare Workers
-  // Il faut patcher fs.readdir dans unenv pour que Prisma puisse l'utiliser
+  // Le problème est que unenv crée createNotImplementedError qui est appelé pour fs.readdir
+  // Il faut intercepter cette fonction ou patcher fs.readdir directement dans unenv
+  
+  // Créer un wrapper pour fs qui intercepte readdir
+  const fsReaddirPolyfill = (path: any, options?: any, callback?: any) => {
+    if (typeof options === 'function') {
+      callback = options;
+      options = {};
+    }
+    if (callback) {
+      callback(null, []);
+    } else {
+      return Promise.resolve([]);
+    }
+  };
+  
+  const fsWrapper = {
+    ...((globalThis as any).fs || {}),
+    readdir: fsReaddirPolyfill,
+    promises: {
+      ...((globalThis as any).fs?.promises || {}),
+      readdir: () => Promise.resolve([]),
+    },
+  };
+  
+  // Patcher globalThis.fs
+  (globalThis as any).fs = fsWrapper;
+  
+  // SOLUTION RADICALE: Intercepter createNotImplementedError si disponible
+  // unenv utilise cette fonction pour créer des erreurs pour les fonctions non implémentées
   try {
-    // Attendre que unenv soit disponible (il est chargé de manière asynchrone)
-    // On va créer un hook qui patche unenv dès qu'il est disponible
-    const patchUnenv = () => {
-      try {
-        // @ts-ignore
-        if (typeof globalThis !== 'undefined') {
-          // Patcher directement dans le système de modules
-          // @ts-ignore
-          const originalRequire = typeof require !== 'undefined' ? require : null;
-          
-          // Créer un wrapper pour fs qui intercepte readdir
-          const fsWrapper = {
-            ...(globalThis as any).fs,
-            readdir: (path: any, options?: any, callback?: any) => {
-              if (typeof options === 'function') {
-                callback = options;
-                options = {};
-              }
-              if (callback) {
-                callback(null, []);
-              } else {
-                return Promise.resolve([]);
-              }
-            },
-            promises: {
-              ...((globalThis as any).fs?.promises || {}),
-              readdir: () => Promise.resolve([]),
-            },
-          };
-          
-          // Patcher unenv si disponible
-          // @ts-ignore
-          if (globalThis.unenv) {
-            // @ts-ignore
-            if (!globalThis.unenv.fs) {
-              // @ts-ignore
-              globalThis.unenv.fs = fsWrapper;
-            } else {
-              // @ts-ignore
-              globalThis.unenv.fs.readdir = fsWrapper.readdir;
-              // @ts-ignore
-              if (!globalThis.unenv.fs.promises) {
-                // @ts-ignore
-                globalThis.unenv.fs.promises = {};
-              }
-              // @ts-ignore
-              globalThis.unenv.fs.promises.readdir = fsWrapper.promises.readdir;
-            }
-          }
-          
-          // Patcher aussi dans globalThis.fs pour être sûr
-          (globalThis as any).fs = fsWrapper;
+    // @ts-ignore
+    if (typeof globalThis !== 'undefined' && globalThis.createNotImplementedError) {
+      // @ts-ignore
+      const originalCreateNotImplementedError = globalThis.createNotImplementedError;
+      // @ts-ignore
+      globalThis.createNotImplementedError = (name: string) => {
+        // Si c'est pour fs.readdir, retourner notre polyfill au lieu d'une erreur
+        if (name === 'fs.readdir' || name.includes('readdir')) {
+          console.log('[POLYFILLS] Interception de createNotImplementedError pour', name);
+          return fsReaddirPolyfill;
         }
-      } catch (e) {
-        console.log('[POLYFILLS] Erreur lors du patch de unenv:', e);
-      }
-    };
-    
-    // Exécuter immédiatement
-    patchUnenv();
-    
-    // Note: On ne peut pas utiliser setTimeout dans le scope global de Cloudflare Workers
-    // Le patch doit être fait de manière synchrone
+        // Pour les autres fonctions, utiliser l'original
+        return originalCreateNotImplementedError(name);
+      };
+    }
   } catch (e) {
-    console.log('[POLYFILLS] Erreur lors de la configuration du patch unenv:', e);
+    console.log('[POLYFILLS] Impossible de patcher createNotImplementedError:', e);
+  }
+  
+  // Patcher unenv si disponible
+  try {
+    // @ts-ignore
+    if (globalThis.unenv && typeof globalThis.unenv === 'object') {
+      // @ts-ignore
+      if (!globalThis.unenv.fs) {
+        // @ts-ignore
+        globalThis.unenv.fs = fsWrapper;
+      } else {
+        // @ts-ignore
+        globalThis.unenv.fs.readdir = fsReaddirPolyfill;
+        // @ts-ignore
+        if (!globalThis.unenv.fs.promises) {
+          // @ts-ignore
+          globalThis.unenv.fs.promises = {};
+        }
+        // @ts-ignore
+        globalThis.unenv.fs.promises.readdir = () => Promise.resolve([]);
+      }
+      // @ts-ignore
+      if (!globalThis.unenv.os) {
+        // @ts-ignore
+        globalThis.unenv.os = (globalThis as any).os;
+      }
+      console.log('[POLYFILLS] unenv.fs patché avec succès');
+    }
+  } catch (e) {
+    console.log('[POLYFILLS] Erreur lors du patch de unenv:', e);
+  }
+  
+  // SOLUTION ALTERNATIVE: Utiliser un Proxy pour intercepter tous les accès à fs
+  // Cela peut aider même si unenv n'est pas directement accessible
+  try {
+    const fsProxy = new Proxy(fsWrapper, {
+      get(target: any, prop: string | symbol) {
+        if (prop === 'readdir') {
+          return fsReaddirPolyfill;
+        }
+        if (prop === 'promises') {
+          return {
+            readdir: () => Promise.resolve([]),
+            ...target.promises,
+          };
+        }
+        return target[prop];
+      },
+    });
+    (globalThis as any).fs = fsProxy;
+    console.log('[POLYFILLS] Proxy fs créé pour intercepter readdir');
+  } catch (e) {
+    console.log('[POLYFILLS] Impossible de créer un proxy pour fs:', e);
   }
 
   console.log('[POLYFILLS] Polyfills Cloudflare initialisés pour node:os et fs.readdir');
