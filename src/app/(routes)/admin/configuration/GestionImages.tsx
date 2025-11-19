@@ -35,6 +35,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import ReactDOM from 'react-dom';
 import Image from 'next/image';
+import { logger } from '@/lib/logger';
 // Utiliser un spinner temporaire en attendant l'installation du package
 // import { ClipLoader } from 'react-spinners';
 
@@ -238,7 +239,7 @@ export default function GestionImages({
       // Appeler le regroupement et mapping
       groupAndLinkImages(imagesWithDuplicates);
     } catch (err) {
-      console.error('Erreur de chargement des images:', err);
+      logger.error('Erreur de chargement des images:', err);
       setError('Impossible de charger les images. Veuillez réessayer.');
     } finally {
       setIsLoading(false);
@@ -285,7 +286,7 @@ export default function GestionImages({
       // Afficher un message de succès
       setToast('Image supprimée avec succès');
     } catch (err: any) {
-      console.error('Erreur de suppression:', err);
+      logger.error('Erreur de suppression:', err);
       setError(err.message || "Impossible de supprimer l'image. Veuillez réessayer.");
     }
   };
@@ -295,7 +296,7 @@ export default function GestionImages({
     let result = images;
 
     // DEBUG LOGS
-    console.log('[DEBUG] Filtrage images:', {
+    logger.debug('[DEBUG] Filtrage images:', {
       total: images.length,
       doublons: images.filter((img) => img.isDuplicate).length,
       showDuplicates,
@@ -319,7 +320,7 @@ export default function GestionImages({
       result = result.filter((img) => img.isDuplicate);
     }
 
-    console.log(
+    logger.debug(
       '[DEBUG] Images après filtrage:',
       result.length,
       result.map((i) => i.name)
@@ -517,7 +518,7 @@ export default function GestionImages({
               checked={showDuplicates}
               onCheckedChange={(checked) => {
                 setShowDuplicates(checked);
-                console.log('[DEBUG] Checkbox Doublons changé:', checked);
+                logger.debug('[DEBUG] Checkbox Doublons changé:', checked);
               }}
               label="Doublons"
               aria-label="Afficher uniquement les doublons"
@@ -1413,7 +1414,7 @@ export default function GestionImages({
                       <Checkbox
                         checked={isIgnored}
                         onCheckedChange={(checked) => {
-                          console.log('[DEBUG] Checkbox Ignorer changée', {
+                          logger.debug('[DEBUG] Checkbox Ignorer changée', {
                             imageId: image.id,
                             checked,
                             prevIgnoredIds: ignoredIds,
@@ -1426,7 +1427,7 @@ export default function GestionImages({
                             } else {
                               next = prev.filter((id) => id !== image.id);
                             }
-                            console.log('[DEBUG] Nouvel état ignoredIds', next);
+                            logger.debug('[DEBUG] Nouvel état ignoredIds', next);
                             return next;
                           });
                           if (checked && selectedMasterId === image.id) setSelectedMasterId(null);
@@ -1434,7 +1435,7 @@ export default function GestionImages({
                         label="Ignorer"
                         className="text-xs"
                         onClick={() => {
-                          console.log('[DEBUG] Checkbox onClick déclenché', { imageId: image.id });
+                          logger.debug('[DEBUG] Checkbox onClick déclenché', { imageId: image.id });
                         }}
                       />
                     </div>
@@ -1487,10 +1488,10 @@ export default function GestionImages({
                       .flatMap((g) => [g.crop?.id, g.ori?.id])
                       .filter((id): id is string => !!id && !protectedIds.includes(id));
                     // LOGS DEBUG FUSION
-                    console.log('[FUSION] masterGroup', masterGroup);
-                    console.log('[FUSION] masterIds utilisés pour update', protectedIds);
-                    console.log('[FUSION] ignoredIds', ignoredIds);
-                    console.log('[FUSION] toDelete (ids supprimés)', toDelete);
+                    logger.debug('[FUSION] masterGroup', masterGroup);
+                    logger.debug('[FUSION] masterIds utilisés pour update', protectedIds);
+                    logger.debug('[FUSION] ignoredIds', ignoredIds);
+                    logger.debug('[FUSION] toDelete (ids supprimés)', toDelete);
                     // 4. Mettre à jour les entités liées (hors ignorées)
                     const extractBaseId = (id: string) => id.replace(/\.[a-zA-Z0-9]+$/, '');
                     for (const group of fusionModal.family.groups) {
@@ -1503,7 +1504,7 @@ export default function GestionImages({
                           : masterGroup.ori
                             ? extractBaseId(masterGroup.ori.id)
                             : undefined;
-                        console.log(
+                        logger.debug(
                           '[FUSION] PATCH entity',
                           group.linkedTo,
                           '-> imageId',
@@ -1531,7 +1532,7 @@ export default function GestionImages({
                       const data = await response.json();
                       return data.images;
                     })();
-                    console.log(
+                    logger.debug(
                       '[FUSION] Images restantes après suppression',
                       imagesAfter.map((img: any) => img.id)
                     );

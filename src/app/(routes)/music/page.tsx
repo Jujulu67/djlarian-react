@@ -8,6 +8,7 @@ import SimpleMusicPlayer from '@/components/ui/SimpleMusicPlayer';
 import { Filter, Search, Zap, ChevronDown, Music, Loader, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { sendPlayerCommand } from '@/lib/utils/audioUtils';
+import { logger } from '@/lib/logger';
 
 // Helper function for locking mechanism
 const withLock = async (
@@ -16,19 +17,19 @@ const withLock = async (
   delay: number = 500 // Default delay
 ) => {
   if (lockRef.current) {
-    console.log('Action bloquée: Verrou actif.');
+    logger.debug('Action bloquée: Verrou actif.');
     return;
   }
   lockRef.current = true;
-  console.log('Verrou activé.');
+  logger.debug('Verrou activé.');
   try {
     await action();
   } catch (error) {
-    console.error("Erreur pendant l'action verrouillée:", error);
+    logger.error("Erreur pendant l'action verrouillée:", error);
   } finally {
     setTimeout(() => {
       lockRef.current = false;
-      console.log('Verrou désactivé après délai.');
+      logger.debug('Verrou désactivé après délai.');
     }, delay);
   }
 };
@@ -44,15 +45,15 @@ const findIframeWithRetry = async (
   for (let i = 0; i < retries; i++) {
     const iframe = document.querySelector<HTMLIFrameElement>(selector);
     if (iframe) {
-      console.log(`findIframeWithRetry: Iframe ${selector} trouvé après ${i + 1} tentatives.`);
+      logger.debug(`findIframeWithRetry: Iframe ${selector} trouvé après ${i + 1} tentatives.`);
       return iframe;
     }
-    console.log(
+    logger.debug(
       `findIframeWithRetry: Tentative ${i + 1}/${retries} pour trouver ${selector}, attente ${delay}ms...`
     );
     await new Promise((resolve) => setTimeout(resolve, delay));
   }
-  console.warn(`findIframeWithRetry: Iframe ${selector} non trouvé après ${retries} tentatives.`);
+  logger.warn(`findIframeWithRetry: Iframe ${selector} non trouvé après ${retries} tentatives.`);
   return null;
 };
 
@@ -96,7 +97,7 @@ export default function MusicPage() {
 
       // Protection globale pour tout le footer player (prioritaire)
       if (target.closest('[data-footer-player="true"]')) {
-        console.log('Clic protégé: footer player');
+        logger.debug('Clic protégé: footer player');
         return;
       }
 
@@ -145,7 +146,7 @@ export default function MusicPage() {
         setTracks(data);
         setError(null);
       } catch (err) {
-        console.error('Erreur:', err);
+        logger.error('Erreur:', err);
         setError('Impossible de charger les morceaux');
       } finally {
         setIsLoading(false);
@@ -199,7 +200,7 @@ export default function MusicPage() {
     withLock(
       stateLockedRef,
       () => {
-        console.log('Fermeture du lecteur demandée');
+        logger.debug('Fermeture du lecteur demandée');
         if (currentTrack) {
           const activeYoutubeIframe = document.querySelector<HTMLIFrameElement>(
             `iframe[id="youtube-iframe-${currentTrack.id}"]`
@@ -220,7 +221,7 @@ export default function MusicPage() {
         setIsPlaying(false);
         setActiveIndex(null);
         setActiveCard(null);
-        console.log('Lecteur fermé, états réinitialisés.');
+        logger.debug('Lecteur fermé, états réinitialisés.');
       },
       100
     ); // Short lock delay 100ms
@@ -246,7 +247,7 @@ export default function MusicPage() {
         withLock(
           stateLockedRef, // Use the main state lock
           async () => {
-            console.log(`Sélection d'une nouvelle piste: ${track.title}`); // Garder ce log utile
+            logger.debug(`Sélection d'une nouvelle piste: ${track.title}`); // Garder ce log utile
             // Arrêter l'ancien lecteur si existant
             if (currentTrack) {
               const oldYoutubeIframe = document.querySelector<HTMLIFrameElement>(
@@ -288,7 +289,7 @@ export default function MusicPage() {
     const trackIdToPlay = params.play;
 
     if (trackIdToPlay) {
-      console.log(`Paramètre play détecté: ${trackIdToPlay}`);
+      logger.debug(`Paramètre play détecté: ${trackIdToPlay}`);
 
       // Rechercher la piste correspondante
       const trackToPlay = tracks.find(
@@ -296,7 +297,7 @@ export default function MusicPage() {
       );
 
       if (trackToPlay) {
-        console.log(`Lecture automatique de la piste: ${trackToPlay.title}`);
+        logger.debug(`Lecture automatique de la piste: ${trackToPlay.title}`);
         playTrack(trackToPlay);
 
         // Optionnel: nettoyer l'URL après avoir lancé la lecture
@@ -306,7 +307,7 @@ export default function MusicPage() {
           window.history.replaceState({}, document.title, url.toString());
         }
       } else {
-        console.warn(`Piste avec ID ${trackIdToPlay} non trouvée`);
+        logger.warn(`Piste avec ID ${trackIdToPlay} non trouvée`);
       }
     }
   }, [tracks, isLoading, playTrack]);
@@ -317,12 +318,12 @@ export default function MusicPage() {
 
     // On se fie au debounce dans SimpleMusicPlayer
     const willPlay = !isPlaying;
-    console.log(
+    logger.debug(
       `ToggleFooterPlay: Basculement de lecture: ${isPlaying ? 'lecture → pause' : 'pause → lecture'}`
     );
 
     // Mettre à jour l'état React IMMÉDIATEMENT
-    console.log(`Setting isPlaying to ${willPlay}`);
+    logger.debug(`Setting isPlaying to ${willPlay}`);
     setIsPlaying(willPlay);
 
     // Trouver le lecteur actif - NO LONGER NEEDED HERE, MusicCard handles it
@@ -350,14 +351,14 @@ export default function MusicPage() {
 
       // Envoyer la commande
       const action = willPlay ? 'play' : 'pause';
-      console.log(
+      logger.debug(
         `Envoi de la commande ${action} à l'iframe ${playerType} pour: ${currentTrack.title}`
       );
       // Envoyer la commande immédiatement, sans verrou ici
       // !!! SUPPRESSION DE L'APPEL DIRECT !!!
       // sendPlayerCommand(iframe, playerType, action);
     } else {
-      console.warn(`Aucun iframe actif trouvé pour ${currentTrack.title}`);
+      logger.warn(`Aucun iframe actif trouvé pour ${currentTrack.title}`);
     }
     */
   };
@@ -371,7 +372,7 @@ export default function MusicPage() {
   // Jouer le morceau suivant
   const playNextTrack = () => {
     if (stateLockedRef.current) {
-      console.log('Changement de piste (suivant) bloqué: Verrou actif.');
+      logger.debug('Changement de piste (suivant) bloqué: Verrou actif.');
       return;
     }
 
@@ -380,14 +381,14 @@ export default function MusicPage() {
       async () => {
         const currentIndex = getCurrentTrackIndex();
         if (currentIndex === null || currentIndex >= filteredTracks.length - 1) {
-          console.log('Dernière piste atteinte ou index invalide.');
+          logger.debug('Dernière piste atteinte ou index invalide.');
           return; // Ne rien faire si c'est la dernière piste ou si l'index est invalide
         }
 
         const nextIndex = currentIndex + 1;
         const nextTrack = filteredTracks[nextIndex];
 
-        console.log(`Passage à la piste suivante: ${nextTrack.title}`);
+        logger.debug(`Passage à la piste suivante: ${nextTrack.title}`);
 
         // Arrêter l'ancien lecteur (si nécessaire)
         if (currentTrack) {
@@ -416,18 +417,18 @@ export default function MusicPage() {
         if (nextPlatform) {
           const nextIframe = await findIframeWithRetry(nextTrack.id, nextPlatform);
           if (nextIframe) {
-            console.log(
+            logger.debug(
               `Envoi de la commande play à l'iframe ${nextPlatform} trouvé pour ${nextTrack.title}`
             );
             // !!! SUPPRESSION DE L'APPEL DIRECT !!!
             // sendPlayerCommand(nextIframe, nextPlatform, 'play');
           } else {
-            console.warn(
+            logger.warn(
               `Nouvel iframe ${nextPlatform} non trouvé pour ${nextTrack.title} après changement (suivant).`
             );
           }
         } else {
-          console.warn(
+          logger.warn(
             `Aucune plateforme de lecteur trouvée pour démarrer la lecture de ${nextTrack.title}`
           );
         }
@@ -440,7 +441,7 @@ export default function MusicPage() {
   // Jouer le morceau précédent
   const playPrevTrack = () => {
     if (stateLockedRef.current) {
-      console.log('Changement de piste (précédent) bloqué: Verrou actif.');
+      logger.debug('Changement de piste (précédent) bloqué: Verrou actif.');
       return;
     }
     withLock(
@@ -448,14 +449,14 @@ export default function MusicPage() {
       async () => {
         const currentIndex = getCurrentTrackIndex();
         if (currentIndex === null || currentIndex <= 0) {
-          console.log('Première piste atteinte ou index invalide.');
+          logger.debug('Première piste atteinte ou index invalide.');
           return; // Ne rien faire si c'est la première piste ou si l'index est invalide
         }
 
         const prevIndex = currentIndex - 1;
         const prevTrack = filteredTracks[prevIndex];
 
-        console.log(`Passage à la piste précédente: ${prevTrack.title}`);
+        logger.debug(`Passage à la piste précédente: ${prevTrack.title}`);
 
         // Arrêter l'ancien lecteur
         if (currentTrack) {
@@ -484,18 +485,18 @@ export default function MusicPage() {
         if (prevPlatform) {
           const prevIframe = await findIframeWithRetry(prevTrack.id, prevPlatform);
           if (prevIframe) {
-            console.log(
+            logger.debug(
               `Envoi de la commande play à l'iframe ${prevPlatform} trouvé pour ${prevTrack.title}`
             );
              // !!! SUPPRESSION DE L'APPEL DIRECT !!!
             // sendPlayerCommand(prevIframe, prevPlatform, 'play');
           } else {
-            console.warn(
+            logger.warn(
               `Nouvel iframe ${prevPlatform} non trouvé pour ${prevTrack.title} après changement (précédent).`
             );
           }
         } else {
-          console.warn(
+          logger.warn(
             `Aucune plateforme de lecteur trouvée pour démarrer la lecture de ${prevTrack.title}`
           );
         }

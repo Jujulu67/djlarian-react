@@ -26,6 +26,7 @@ import EventForm, { EventFormData } from '@/app/components/EventForm';
 import type { Crop as CropType } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import { v4 as uuidv4 } from 'uuid';
+import { logger } from '@/lib/logger';
 
 // Déplacer la fonction helper ici pour qu'elle soit accessible partout
 const formatDateForInput = (dateString: string | null | undefined): string => {
@@ -39,7 +40,7 @@ const formatDateForInput = (dateString: string | null | undefined): string => {
     // Format ISO avec timezone locale
     return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
   } catch (e) {
-    console.error('Erreur de formatage de date:', e);
+    logger.error('Erreur de formatage de date:', e);
     return '';
   }
 };
@@ -170,7 +171,7 @@ export default function EventFormPage() {
             excludedDates: event.recurrenceConfig?.excludedDates || [],
           },
         });
-        console.log('[DEBUG EventFormPage] formData après chargement:', {
+        logger.debug('[DEBUG EventFormPage] formData après chargement:', {
           imageId: event.imageId,
           event,
         });

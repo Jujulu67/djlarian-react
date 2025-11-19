@@ -44,6 +44,8 @@ import {
 } from '@/types/config'; // Import centralisé
 import { useConfigs } from '@/stores/useConfigs'; // Import du store Zustand
 import ToggleRow from '@/components/config/ToggleRow'; // Import du composant ToggleRow
+import DatabaseSwitch from '@/components/admin/DatabaseSwitch'; // Import du switch de base de données
+import { logger } from '@/lib/logger';
 
 // Chargement dynamique des composants d'onglet
 const HomepageTab = dynamic(() => import('./tabs/HomepageTab'), {
@@ -113,7 +115,7 @@ const SaveConfigModal = ({ isOpen, onClose, onSave, changesSummary }: SaveConfig
       onClose();
     } catch (err) {
       setError('Une erreur est survenue lors de la sauvegarde. Veuillez réessayer.');
-      console.error(err);
+      logger.error(err);
     } finally {
       setIsSubmitting(false);
     }
@@ -255,8 +257,8 @@ export default function ConfigurationPage() {
       // Stocker la configuration chargée comme référence pour le diff
       previousConfigs.current = JSON.parse(JSON.stringify(data)); // Copie profonde simple
     } catch (e) {
-      console.error('Erreur lors de la récupération des configurations:', e);
-      console.log('Utilisation des valeurs par défaut (mode fallback)');
+      logger.error('Erreur lors de la récupération des configurations:', e);
+      logger.debug('Utilisation des valeurs par défaut (mode fallback)');
       // Utiliser les valeurs initiales du store en cas d'erreur
       resetConfigs();
       previousConfigs.current = JSON.parse(JSON.stringify(initialConfigs)); // Utiliser les initiales comme ref
@@ -319,11 +321,11 @@ export default function ConfigurationPage() {
 
       // La config est déjà à jour dans le store, pas besoin de setAllConfigs ici
       // Afficher une notification de succès
-      console.log('Configurations sauvegardées avec succès !');
+      logger.debug('Configurations sauvegardées avec succès !');
       setSuccessMessage('Configurations sauvegardées avec succès !');
       setTimeout(() => setSuccessMessage(null), 3000); // Cacher après 3s
     } catch (e) {
-      console.error('Erreur lors de la sauvegarde des configurations:', e);
+      logger.error('Erreur lors de la sauvegarde des configurations:', e);
       setError('Impossible de sauvegarder les configurations. Veuillez réessayer.');
       // Ne pas utiliser alert(), l'erreur est déjà affichée dans la modale
       throw e; // Propager l'erreur pour la modale
@@ -345,11 +347,11 @@ export default function ConfigurationPage() {
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        console.log('Configurations réinitialisées avec succès !');
+        logger.debug('Configurations réinitialisées avec succès !');
         // Recharger les configurations après la réinitialisation
         await fetchConfigurations(); // Ceci va reset le store et mettre à jour previousConfigs
       } catch (e) {
-        console.error('Erreur lors de la réinitialisation des configurations:', e);
+        logger.error('Erreur lors de la réinitialisation des configurations:', e);
         setError('Impossible de réinitialiser les configurations. Veuillez réessayer.');
       } finally {
         setIsLoading(false);
@@ -390,11 +392,11 @@ export default function ConfigurationPage() {
       }
 
       // Afficher une notification de succès
-      console.log('Snapshot créé avec succès !');
+      logger.debug('Snapshot créé avec succès !');
       alert('Snapshot créé avec succès !'); // Conserver l'alerte pour l'instant
       // Pas besoin de màj previousConfigs ici car snapshot ne modifie pas l'état courant "sauvegardé"
     } catch (e) {
-      console.error('Erreur lors de la création du snapshot:', e);
+      logger.error('Erreur lors de la création du snapshot:', e);
       setError('Impossible de créer le snapshot. Veuillez réessayer.');
       alert('Erreur lors de la création du snapshot. Voir la console pour plus de détails.');
       throw e; // Propager l'erreur pour que le modal puisse la gérer
@@ -424,11 +426,11 @@ export default function ConfigurationPage() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      console.log('Modification annulée avec succès !');
+      logger.debug('Modification annulée avec succès !');
       // Recharger les configurations après l'annulation (mettra à jour le store et previousConfigs)
       await fetchConfigurations();
     } catch (e) {
-      console.error("Erreur lors de l'annulation de la modification:", e);
+      logger.error("Erreur lors de l'annulation de la modification:", e);
       setError("Impossible d'annuler la modification. Veuillez réessayer.");
     } finally {
       setIsLoading(false);
@@ -456,12 +458,12 @@ export default function ConfigurationPage() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      console.log('Snapshot appliqué avec succès !');
+      logger.debug('Snapshot appliqué avec succès !');
       alert('Les configurations ont été restaurées depuis le snapshot.');
       // Recharger les configurations après l'application (mettra à jour le store et previousConfigs)
       await fetchConfigurations();
     } catch (e) {
-      console.error("Erreur lors de l'application du snapshot:", e);
+      logger.error("Erreur lors de l'application du snapshot:", e);
       setError("Impossible d'appliquer le snapshot. Veuillez réessayer.");
       alert('Erreur lors de la restauration du snapshot. Voir la console pour plus de détails.');
     } finally {
@@ -872,6 +874,11 @@ export default function ConfigurationPage() {
                           <option value="YYYY-MM-DD">YYYY-MM-DD</option>
                         </select>
                       </div>
+                    </div>
+
+                    {/* Switch de base de données */}
+                    <div className="mt-8 pt-6 border-t border-purple-500/20">
+                      <DatabaseSwitch />
                     </div>
                   </div>
                 </div>

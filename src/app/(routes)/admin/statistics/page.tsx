@@ -58,6 +58,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
+import { logger } from '@/lib/logger';
 
 type Period = 'daily' | 'weekly' | 'monthly';
 
@@ -124,18 +125,18 @@ export default function StatisticsPage() {
             recentTracks: prismaData.recentTracks || 0,
           });
         } else {
-          console.error(
+          logger.error(
             'Erreur lors de la récupération des statistiques Prisma:',
             await prismaResponse.text()
           );
         }
       } catch (error) {
-        console.error('Erreur lors de la récupération des statistiques Prisma:', error);
+        logger.error('Erreur lors de la récupération des statistiques Prisma:', error);
       }
 
       // Récupérer les données réelles d'Umami
       try {
-        console.log(`Fetching Umami data for period: ${activeView}`);
+        logger.debug(`Fetching Umami data for period: ${activeView}`);
         const { umami } = await getStatistics(activeView); // Passer la période active
 
         if (umami) {
@@ -150,7 +151,7 @@ export default function StatisticsPage() {
           setUmamiData({ stats: null, pagesVisited: [], trafficSources: [], pageviewsData: [] });
         }
       } catch (error) {
-        console.error('Erreur de récupération des données Umami:', error);
+        logger.error('Erreur de récupération des données Umami:', error);
         setUmamiData({ stats: null, pagesVisited: [], trafficSources: [], pageviewsData: [] });
       }
 

@@ -20,6 +20,7 @@ import { FaSpotify, FaYoutube, FaSoundcloud, FaApple, FaMusic as FaDeezer } from
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Track } from '@/lib/utils/types'; // Utiliser le type Track existant
+import { logger } from '@/lib/logger';
 
 // Mapping icônes plateformes
 const platformIcons: Record<string, React.ElementType> = {
@@ -55,7 +56,7 @@ export default function TrackDetailView({ trackId, onClose }: TrackDetailViewPro
         }
         setTrack(data);
       } catch (err) {
-        console.error('Error fetching track details:', err);
+        logger.error('Error fetching track details:', err);
         setError(err instanceof Error ? err.message : 'Erreur inconnue');
       } finally {
         setIsLoading(false);
@@ -98,7 +99,7 @@ export default function TrackDetailView({ trackId, onClose }: TrackDetailViewPro
   const genres = track.genre?.join(', ') || 'Aucun';
 
   // Log debug pour publishAt et isPublished
-  console.log('[DETAIL][TRACK] isPublished:', track.isPublished, 'publishAt:', track.publishAt);
+  logger.debug('[DETAIL][TRACK] isPublished:', track.isPublished, 'publishAt:', track.publishAt);
 
   // Fonction utilitaire DRY pour l'état d'un morceau
   const getTrackStatus = (track: Track) => {

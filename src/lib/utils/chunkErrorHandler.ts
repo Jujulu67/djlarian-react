@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * Utilitaire pour gérer les erreurs de chargement de chunks
  * Cette fonction configure un gestionnaire global pour intercepter et gérer
@@ -44,21 +45,21 @@ export function setupChunkErrorHandler() {
       // Empêcher l'affichage de l'erreur dans la console
       event.preventDefault();
 
-      console.warn('Erreur de chargement de chunk détectée:', event.error || event.message);
+      logger.warn('Erreur de chargement de chunk détectée:', event.error || event.message);
 
       // Incrémenter le compteur de tentatives
       const retryCount = incrementRetryCount();
 
       if (retryCount <= MAX_RETRIES) {
-        console.log(`Tentative de rechargement ${retryCount}/${MAX_RETRIES}...`);
+        logger.debug(`Tentative de rechargement ${retryCount}/${MAX_RETRIES}...`);
 
         // Effacer le cache des chunks en mémoire si possible
         if (window.__NEXT_DATA__) {
-          console.log('Nettoyage du cache des chunks...');
+          logger.debug('Nettoyage du cache des chunks...');
           // Accès sécurisé à la propriété chunks avec une vérification de type
           const nextData = window.__NEXT_DATA__ as any;
           if (nextData.chunks) {
-            console.log('Chunks trouvés dans __NEXT_DATA__');
+            logger.debug('Chunks trouvés dans __NEXT_DATA__');
           }
         }
 
@@ -67,7 +68,7 @@ export function setupChunkErrorHandler() {
           window.location.reload();
         }, 1000);
       } else {
-        console.error(`Échec après ${MAX_RETRIES} tentatives. Réinitialisation du compteur.`);
+        logger.error(`Échec après ${MAX_RETRIES} tentatives. Réinitialisation du compteur.`);
         resetRetryCount();
 
         // Afficher un message à l'utilisateur
@@ -96,7 +97,7 @@ export function setupChunkErrorHandler() {
 
   // Vérifier si nous venons de recharger à cause d'une erreur de chunk
   if (getRetryCount() > 0) {
-    console.log(
+    logger.debug(
       `Page rechargée suite à une erreur de chunk (tentative ${getRetryCount()}/${MAX_RETRIES})`
     );
   }
@@ -116,7 +117,7 @@ export function withChunkErrorHandling(
     try {
       return await importFn();
     } catch (error) {
-      console.error('Erreur lors du chargement du module:', error);
+      logger.error('Erreur lors du chargement du module:', error);
 
       // Si nous sommes côté client, tenter de recharger la page
       if (typeof window !== 'undefined') {

@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Track, MusicPlatform } from '@/lib/utils/types';
 import { motion, AnimatePresence } from 'framer-motion';
-import Image from 'next/image';
 import {
   X,
   Music,
@@ -21,6 +20,7 @@ import {
 } from 'lucide-react';
 import { FaSpotify, FaYoutube, FaSoundcloud, FaMusic } from 'react-icons/fa';
 import { getEmbedUrl } from '@/lib/utils/music-service';
+import { logger } from '@/lib/logger';
 
 interface MusicPlayerSystemProps {
   track: Track | null;
@@ -40,7 +40,7 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
   onPrevTrack,
 }) => {
   // Supprimer les logs qui causent des rendus excessifs
-  // console.log('MusicPlayerSystem rendu avec:', { track: track?.title, isPlaying });
+  // logger.debug('MusicPlayerSystem rendu avec:', { track: track?.title, isPlaying });
 
   const [selectedPlatform, setSelectedPlatform] = useState<MusicPlatform | null>(null);
   const [embedUrl, setEmbedUrl] = useState<string | null>(null);
@@ -72,7 +72,7 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
   // Sélectionner la plateforme par défaut
   useEffect(() => {
     if (track) {
-      console.log('useEffect [track] déclenché, track =', track.title);
+      logger.debug('useEffect [track] déclenché, track =', track.title);
 
       const availablePlatforms = Object.entries(track.platforms || {})
         .filter(([_, value]) => value?.url)
@@ -131,16 +131,16 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
   // Mettre à jour l'URL d'embedding
   useEffect(() => {
     if (track && selectedPlatform && track.platforms[selectedPlatform]?.url) {
-      console.log('useEffect [track, selectedPlatform] déclenché, plateforme =', selectedPlatform);
+      logger.debug('useEffect [track, selectedPlatform] déclenché, plateforme =', selectedPlatform);
 
       if (selectedPlatform === 'youtube') {
         const videoId = extractYoutubeId(track.platforms.youtube!.url);
-        console.log('YouTube ID extrait:', videoId);
+        logger.debug('YouTube ID extrait:', videoId);
         setYoutubeVideoId(videoId);
         setEmbedUrl(null); // On n'utilise pas d'iframe pour YouTube
       } else {
         const url = getEmbedUrl(track.platforms[selectedPlatform]!.url, selectedPlatform);
-        console.log("URL d'embedding générée:", url);
+        logger.debug("URL d'embedding générée:", url);
         setEmbedUrl(url);
         setYoutubeVideoId(null);
       }
@@ -299,13 +299,12 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div className="w-12 h-12 relative rounded-md overflow-hidden bg-gray-800 flex-shrink-0">
                   {track.imageId && !imageError ? (
-                    <Image
+                    <img
                       src={`/uploads/${track.imageId}.jpg`}
                       alt={track.title}
-                      width={48}
-                      height={48}
                       className="w-full h-full object-cover"
                       onError={() => setImageError(true)}
+                      onLoad={() => setImageError(false)}
                     />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-r from-purple-900/30 to-blue-900/30 flex items-center justify-center">
@@ -440,13 +439,12 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
                 <div className="flex flex-col items-center mb-8">
                   <div className="w-64 h-64 md:w-80 md:h-80 relative rounded-lg overflow-hidden bg-gray-800 mb-6 shadow-xl">
                     {track.imageId && !imageError ? (
-                      <Image
+                      <img
                         src={`/uploads/${track.imageId}.jpg`}
                         alt={track.title}
-                        width={320}
-                        height={320}
                         className="w-full h-full object-cover"
                         onError={() => setImageError(true)}
+                        onLoad={() => setImageError(false)}
                       />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-r from-purple-900/30 to-blue-900/30 flex items-center justify-center">

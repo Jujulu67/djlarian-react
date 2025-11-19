@@ -1,13 +1,13 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import Image from 'next/image';
 import { FaSpotify, FaApple, FaSoundcloud } from 'react-icons/fa';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { Track } from '@/lib/utils/types';
 import { Loader } from 'lucide-react';
 import { Music } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 // Ajouter un état pour gérer l'erreur d'une image spécifique
 type ImageErrorState = { [key: string]: boolean };
@@ -80,7 +80,7 @@ export default function LatestReleases({
         setReleases(filteredReleases);
         setError(null);
       } catch (err) {
-        console.error('Erreur:', err);
+        logger.error('Erreur:', err);
         setError('Impossible de charger les dernières sorties');
       } finally {
         setIsLoading(false);
@@ -174,14 +174,13 @@ export default function LatestReleases({
                 {/* Carte principale avec contour doré via box-shadow */}
                 <div className="cursor-pointer golden-border rounded-lg overflow-hidden shadow-xl transform-gpu transition-all duration-500 hover:scale-[1.05]">
                   <div className="relative aspect-square">
-                    {release.imageId ? (
-                      <Image
+                    {release.imageId && !imageErrors[release.id] ? (
+                      <img
                         src={`/uploads/${release.imageId}.jpg`}
                         alt={release.title}
-                        width={400}
-                        height={400}
                         className="w-full h-full object-cover object-center rounded-lg shadow-lg"
                         onError={() => handleImageError(release.id)}
+                        onLoad={() => setImageErrors((prev) => ({ ...prev, [release.id]: false }))}
                       />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-r from-purple-900/30 to-blue-900/30 flex items-center justify-center rounded-lg shadow-lg">

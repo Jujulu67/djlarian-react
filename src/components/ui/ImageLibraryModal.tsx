@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Modal from './Modal';
+import { logger } from '@/lib/logger';
 
 interface ImageMeta {
   id: string;
@@ -74,14 +75,14 @@ const ImageLibraryModal: React.FC<ImageLibraryModalProps> = ({ open, onClose, on
               key={img.id}
               className="cursor-pointer bg-gray-800 rounded-lg p-2 hover:ring-2 hover:ring-purple-500 transition"
               onClick={() => {
-                console.log('[BIBLIO] Image sélectionnée', img);
+                logger.debug('[BIBLIO] Image sélectionnée', img);
                 onSelect(img);
               }}
               tabIndex={0}
               aria-label={`Sélectionner ${img.name}`}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
-                  console.log('[BIBLIO] Image sélectionnée', img);
+                  logger.debug('[BIBLIO] Image sélectionnée', img);
                   onSelect(img);
                 }
               }}

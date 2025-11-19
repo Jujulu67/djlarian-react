@@ -21,6 +21,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import {
+import { logger } from '@/lib/logger';
   FaCalendarAlt,
   FaMapMarkerAlt,
   FaTicketAlt,
@@ -96,7 +97,7 @@ export default function EventDetailPage() {
     if (dateParam) {
       actualVirtualDate = dateParam;
       setVirtualDate(dateParam);
-      console.log(`Virtual date from URL: ${dateParam}`);
+      logger.debug(`Virtual date from URL: ${dateParam}`);
     }
 
     // Éviter les appels en double
@@ -114,9 +115,9 @@ export default function EventDetailPage() {
         let apiUrl = `/api/events/${eventId}`;
         if (actualVirtualDate) {
           apiUrl += `?date=${encodeURIComponent(actualVirtualDate)}`;
-          console.log(`Fetching event with virtual date parameter: ${actualVirtualDate}`);
+          logger.debug(`Fetching event with virtual date parameter: ${actualVirtualDate}`);
         } else {
-          console.log(`Fetching event without virtual date parameter`);
+          logger.debug(`Fetching event without virtual date parameter`);
         }
 
         const response = await fetch(apiUrl);
@@ -133,20 +134,20 @@ export default function EventDetailPage() {
 
         const data = await response.json();
         // Vérifier l'état des dates avant et après
-        console.log(
+        logger.debug(
           `Dates avant traitement - startDate: ${data.startDate}, virtualStartDate: ${data.virtualStartDate}`
         );
 
         // Si c'est un événement virtuel, on s'assure que la date est correctement utilisée
         if (data.isVirtualOccurrence && data.virtualStartDate) {
-          console.log(`Événement virtuel avec date spécifique: ${data.virtualStartDate}`);
+          logger.debug(`Événement virtuel avec date spécifique: ${data.virtualStartDate}`);
           // Forcer la date principale à être la date virtuelle
           data.startDate = data.virtualStartDate;
-          console.log(`Date après remplacement: ${data.startDate}`);
+          logger.debug(`Date après remplacement: ${data.startDate}`);
         }
 
         setEvent(data);
-        console.log('Événement final chargé:', {
+        logger.debug('Événement final chargé:', {
           titre: data.title,
           startDate: data.startDate,
           isVirtualOccurrence: data.isVirtualOccurrence,
@@ -170,7 +171,7 @@ export default function EventDetailPage() {
     // par virtualStartDate dans useEffect si nécessaire
     const dateString = event.startDate;
 
-    console.log(
+    logger.debug(
       `Formatting date from: ${dateString} (isVirtual: ${!!event.isVirtualOccurrence}, virtualDate: ${event.virtualStartDate})`
     );
 
@@ -234,7 +235,7 @@ export default function EventDetailPage() {
 
   // Formater la date
   const formatDate = (dateString: string) => {
-    console.log(`formatDate called with: ${dateString}`);
+    logger.debug(`formatDate called with: ${dateString}`);
     return format(parseISO(dateString), 'dd MMMM yyyy à HH:mm', { locale: fr });
   };
 
@@ -341,6 +342,11 @@ export default function EventDetailPage() {
                 fill
                 className="w-full h-full object-cover object-[50%_25%]"
                 unoptimized
+                onError={(e) => {
+                  // Éviter la boucle infinie en masquant l'image si elle n'existe pas
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                }}
               />
             ) : (
               <div className="bg-gradient-to-r from-purple-900/50 to-blue-900/50 w-full h-full flex items-center justify-center">

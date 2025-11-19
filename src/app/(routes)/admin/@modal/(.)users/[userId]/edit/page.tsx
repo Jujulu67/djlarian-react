@@ -2,6 +2,7 @@ import AddUserModal from '@/components/admin/AddUserModal';
 import ErrorModal from '@/components/ui/ErrorModal';
 import prisma from '@/lib/prisma';
 import { User } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 interface EditUserModalPageProps {
   params: Promise<{
@@ -11,7 +12,7 @@ interface EditUserModalPageProps {
 
 async function getUserData(userId: string): Promise<User | null> {
   if (!userId || typeof userId !== 'string' || userId.length < 5) {
-    console.error('ID utilisateur invalide fourni:', userId);
+    logger.error('ID utilisateur invalide fourni:', userId);
     return null;
   }
 
@@ -21,7 +22,7 @@ async function getUserData(userId: string): Promise<User | null> {
     });
     return user;
   } catch (error) {
-    console.error("Erreur Prisma lors de la récupération de l'utilisateur:", error);
+    logger.error("Erreur Prisma lors de la récupération de l'utilisateur:", error);
     return null;
   }
 }

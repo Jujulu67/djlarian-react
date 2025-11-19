@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 
 import { defaultConfigs } from '@/config/defaults';
 import prisma from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 // Endpoint pour récupérer les configurations par défaut
 export async function GET() {
@@ -37,7 +38,7 @@ export async function GET() {
 
     return NextResponse.json(processedConfig, { status: 200 });
   } catch (error) {
-    console.error('Erreur lors de la récupération des configurations par défaut:', error);
+    logger.error('Erreur lors de la récupération des configurations par défaut:', error);
     return NextResponse.json(
       { error: 'Erreur serveur lors de la récupération des configurations par défaut' },
       { status: 500 }

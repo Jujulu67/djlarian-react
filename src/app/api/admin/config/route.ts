@@ -4,6 +4,7 @@ import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { AllConfigs } from '@/types/config';
 import { defaultConfigs } from '@/config/defaults';
+import { logger } from '@/lib/logger';
 
 // Valeurs par défaut pour les configurations (en cas d'erreur ou de première visite)
 /*
@@ -100,7 +101,7 @@ export async function GET(req: NextRequest) {
       // Tenter de compter les entrées pour vérifier que la table existe et est accessible
       await prisma.siteConfig.count();
     } catch (tableError) {
-      console.error('Erreur lors de la vérification des tables:', tableError);
+      logger.error('Erreur lors de la vérification des tables:', tableError);
       areTablesReady = false;
     }
 
@@ -139,21 +140,21 @@ export async function GET(req: NextRequest) {
 
       // Si aucune config n'est trouvée, utiliser les valeurs par défaut
       if (Object.keys(configObject).length === 0) {
-        console.log('Aucune configuration trouvée, utilisation des valeurs par défaut');
+        logger.debug('Aucune configuration trouvée, utilisation des valeurs par défaut');
         configObject = { ...defaultConfigs };
       }
     } else {
       // Tables non prêtes, on utilise les valeurs par défaut
-      console.log('Tables non prêtes, utilisation des valeurs par défaut');
+      logger.debug('Tables non prêtes, utilisation des valeurs par défaut');
       configObject = { ...defaultConfigs };
     }
 
     return NextResponse.json(configObject, { status: 200 });
   } catch (error) {
-    console.error('Erreur lors de la récupération des configurations:', error);
+    logger.error('Erreur lors de la récupération des configurations:', error);
 
     // En cas d'erreur, retourner les valeurs par défaut
-    console.log('Erreur, utilisation des valeurs par défaut');
+    logger.debug('Erreur, utilisation des valeurs par défaut');
     return NextResponse.json(defaultConfigs as AllConfigs, { status: 200 });
   }
 }
@@ -174,16 +175,16 @@ export async function POST(req: NextRequest) {
       await prisma.siteConfig.count();
       await prisma.configHistory.count();
       if (areTablesReady) {
-        console.log('Tables prêtes pour la sauvegarde');
+        logger.debug('Tables prêtes pour la sauvegarde');
       }
     } catch (tableError) {
-      console.error('Erreur lors de la vérification des tables:', tableError);
+      logger.error('Erreur lors de la vérification des tables:', tableError);
       areTablesReady = false;
     }
 
     // Si les tables ne sont pas prêtes, simuler un succès (pour le développement)
     if (!areTablesReady) {
-      console.log('Tables non prêtes, simulation de succès pour le développement');
+      logger.debug('Tables non prêtes, simulation de succès pour le développement');
       return NextResponse.json({ success: true, status: 'SIMULATED' }, { status: 200 });
     }
 
@@ -249,7 +250,7 @@ export async function POST(req: NextRequest) {
             );
           }
         } catch (configError) {
-          console.error(`Erreur lors du traitement de la config ${section}.${key}:`, configError);
+          logger.error(`Erreur lors du traitement de la config ${section}.${key}:`, configError);
           // Continuer avec les autres configurations
         }
       }
@@ -269,7 +270,7 @@ export async function POST(req: NextRequest) {
           })
         );
       } catch (snapshotError) {
-        console.error('Erreur lors de la création du snapshot:', snapshotError);
+        logger.error('Erreur lors de la création du snapshot:', snapshotError);
       }
     }
 
@@ -277,7 +278,7 @@ export async function POST(req: NextRequest) {
     try {
       await Promise.all(updatePromises);
     } catch (promiseError) {
-      console.error("Erreur lors de l'exécution des mises à jour:", promiseError);
+      logger.error("Erreur lors de l'exécution des mises à jour:", promiseError);
       return NextResponse.json(
         { error: 'Erreur lors de la sauvegarde de certaines configurations', partialSuccess: true },
         { status: 207 }
@@ -286,7 +287,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
-    console.error('Erreur lors de la sauvegarde des configurations:', error);
+    logger.error('Erreur lors de la sauvegarde des configurations:', error);
     return NextResponse.json(
       { error: 'Erreur serveur lors de la sauvegarde des configurations' },
       { status: 500 }

@@ -1,4 +1,5 @@
 import React, { forwardRef, useEffect, useRef, useState } from 'react';
+import { logger } from '@/lib/logger';
 
 interface AudioPlayerProps {
   src: string;
@@ -66,7 +67,7 @@ const AudioPlayer = forwardRef<HTMLAudioElement, AudioPlayerProps>(
           if (onPause) onPause();
         } else {
           ref.current.play().catch((error) => {
-            console.error('Erreur de lecture:', error);
+            logger.error('Erreur de lecture:', error);
           });
           if (onPlay) onPlay();
         }

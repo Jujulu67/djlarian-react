@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { listBlobFiles, deleteFromBlob, isBlobConfigured } from '@/lib/blob';
+import { logger } from '@/lib/logger';
 
 
 // GET - Récupérer toutes les images
@@ -7,14 +8,14 @@ export async function GET() {
   try {
     // Utiliser Vercel Blob pour le stockage des fichiers
     if (!isBlobConfigured) {
-      console.warn('Vercel Blob not configured, returning empty images list');
+      logger.warn('Vercel Blob not configured, returning empty images list');
       return NextResponse.json({ images: [] }, { status: 200 });
     }
 
     const images = await listBlobFiles();
     return NextResponse.json({ images }, { status: 200 });
   } catch (error) {
-    console.error('Erreur API:', error);
+    logger.error('Erreur API:', error);
     return NextResponse.json(
       { error: 'Erreur lors de la récupération des images' },
       { status: 500 }
@@ -47,7 +48,7 @@ export async function DELETE(request: NextRequest) {
       { status: 200 }
     );
   } catch (error) {
-    console.error('Erreur lors de la suppression:', error);
+    logger.error('Erreur lors de la suppression:', error);
     return NextResponse.json(
       { error: "Erreur lors de la suppression de l'image" },
       { status: 500 }

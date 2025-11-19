@@ -13,6 +13,7 @@ import {
   getInitialVolume,
   applyVolumeToAllPlayers,
 } from '@/lib/utils/audioUtils';
+import { logger } from '@/lib/logger';
 
 interface MusicCardProps {
   track: Track;
@@ -112,7 +113,7 @@ export const MusicCard: React.FC<MusicCardProps> = ({
       // Si c'est la carte active, synchroniser avec l'état global
       // mais seulement après un court délai pour éviter les changements transitoires
       const syncTimeout = setTimeout(() => {
-        console.log(
+        logger.debug(
           `MusicCard: synchronisation de l'état local pour track ${track.id} - isPlaying=${isPlaying}`
         );
         setLocalIsPlaying(isPlaying);
@@ -146,7 +147,7 @@ export const MusicCard: React.FC<MusicCardProps> = ({
         : null;
     //const iframe = platform === 'youtube' ? iframeRef.current : soundcloudIframeRef.current; // We'll get the iframe ref inside logic now
 
-    console.log(
+    logger.debug(
       `Active Card Effect: Track ${track.id}, isPlaying: ${isPlaying}, platform: ${platform}`
     );
 
@@ -156,27 +157,27 @@ export const MusicCard: React.FC<MusicCardProps> = ({
         setIsYoutubeVisible(true);
         setIsSoundcloudVisible(false);
         setPlayWhenReady(false); // Reset soundcloud flag
-        console.log(`[Card ${track.id}] YouTube selected. Visibility set. Play command delayed.`);
+        logger.debug(`[Card ${track.id}] YouTube selected. Visibility set. Play command delayed.`);
         // Delay play command slightly to ensure iframe is ready/visible (YouTube seems less problematic)
         // TODO: Consider adding 'ready' handling for YouTube as well for robustness
         setTimeout(() => sendPlayerCommand(iframeRef.current, 'youtube', 'play'), 150);
       } else if (platform === 'soundcloud' && soundcloudUrl) {
         setIsSoundcloudVisible(true);
         setIsYoutubeVisible(false);
-        console.log(
+        logger.debug(
           `[Card ${track.id}] SoundCloud selected. isReady=${isSoundcloudReady}, iframeRef=${!!soundcloudIframeRef.current}`
         );
         // If already ready, play immediately. Otherwise, set flag.
         if (isSoundcloudReady && soundcloudIframeRef.current) {
-          console.log(`[Card ${track.id}] SoundCloud already ready. Applying volume and playing.`);
+          logger.debug(`[Card ${track.id}] SoundCloud already ready. Applying volume and playing.`);
           // Apply current volume immediately before playing
           const currentVolume = getInitialVolume(); // Or ideally get from global state/context
-          console.log(`[Card ${track.id}] Applying volume ${currentVolume} before playing.`);
+          logger.debug(`[Card ${track.id}] Applying volume ${currentVolume} before playing.`);
           sendPlayerCommand(soundcloudIframeRef.current, 'soundcloud', 'setVolume', currentVolume);
           sendPlayerCommand(soundcloudIframeRef.current, 'soundcloud', 'play');
           setPlayWhenReady(false); // Reset flag
         } else {
-          console.log(`[Card ${track.id}] SoundCloud not ready. Setting playWhenReady flag.`);
+          logger.debug(`[Card ${track.id}] SoundCloud not ready. Setting playWhenReady flag.`);
           setPlayWhenReady(true); // Set flag to play when 'ready' event arrives
         }
       }
@@ -214,12 +215,12 @@ export const MusicCard: React.FC<MusicCardProps> = ({
       track.platforms.soundcloud &&
       soundcloudIframeRef.current
     ) {
-      console.log(
+      logger.debug(
         `[Card ${track.id}] useEffect[playWhenReady, isReady]: Triggered. playWhenReady=${playWhenReady}, isReady=${isSoundcloudReady}, isActive=${isActive}, isPlaying=${isPlaying}`
       );
       // Apply current volume immediately before playing
       const currentVolume = getInitialVolume(); // Or ideally get from global state/context
-      console.log(`[Card ${track.id}] Applying volume ${currentVolume} then playing.`);
+      logger.debug(`[Card ${track.id}] Applying volume ${currentVolume} then playing.`);
       sendPlayerCommand(soundcloudIframeRef.current, 'soundcloud', 'setVolume', currentVolume);
       sendPlayerCommand(soundcloudIframeRef.current, 'soundcloud', 'play');
       setPlayWhenReady(false); // Reset the flag
@@ -257,7 +258,7 @@ export const MusicCard: React.FC<MusicCardProps> = ({
             );
           }
         } catch (e) {
-          console.error('Erreur lors de la récupération du temps:', e);
+          logger.error('Erreur lors de la récupération du temps:', e);
         }
       }, 5000);
 
@@ -282,7 +283,7 @@ export const MusicCard: React.FC<MusicCardProps> = ({
           // qui viennent de l'API YouTube et qui pourraient perturber notre logique
           // PlayerState: -1 (non démarré), 0 (terminé), 1 (lecture), 2 (pause), 3 (buffering), 5 (vidéo à lire)
           if (data && data.info && typeof data.info.playerState !== 'undefined') {
-            console.log(
+            logger.debug(
               `[Card ${track.id}] Événement YouTube ignoré - playerState: ${data.info.playerState}`
             );
             // Si on reçoit un événement de lecture (playerState=1) alors que localIsPlaying est déjà true,
@@ -292,7 +293,7 @@ export const MusicCard: React.FC<MusicCardProps> = ({
               (data.info.playerState === 1 && localIsPlaying) ||
               (data.info.playerState === 2 && !localIsPlaying)
             ) {
-              console.log(
+              logger.debug(
                 `[Card ${track.id}] Événement YouTube cohérent avec état actuel - ignoré`
               );
               return;
@@ -301,7 +302,7 @@ export const MusicCard: React.FC<MusicCardProps> = ({
             // Si on reçoit un événement contradictoire, on pourrait avoir besoin de le bloquer
             // pour empêcher des cycles, mais ne pas toucher à l'état global car cela pourrait
             // interférer avec la navigation entre pistes
-            console.log(
+            logger.debug(
               `[Card ${track.id}] Événement YouTube contradictoire avec état actuel - bloqué`
             );
             return;
@@ -355,7 +356,7 @@ export const MusicCard: React.FC<MusicCardProps> = ({
         sendPlayerCommand(iframeRef.current, 'youtube', 'pause');
       }
     } catch (e) {
-      console.error('Erreur lors de la mise en pause YouTube:', e);
+      logger.error('Erreur lors de la mise en pause YouTube:', e);
     }
 
     // Mettre à jour l'état local mais ne pas cacher le lecteur
@@ -388,7 +389,7 @@ export const MusicCard: React.FC<MusicCardProps> = ({
         }, 100);
       }
     } catch (e) {
-      console.error('Erreur lors de la reprise YouTube:', e);
+      logger.error('Erreur lors de la reprise YouTube:', e);
     }
   };
 
@@ -459,13 +460,13 @@ export const MusicCard: React.FC<MusicCardProps> = ({
   const handleIframeLoad = () => {
     setIsYoutubeLoaded(true);
     setIsLoading(false); // Fin du chargement pour YouTube
-    console.log(`YouTube iframe loaded for ${track.title}, ID: ${iframeRef.current?.id}`);
+    logger.debug(`YouTube iframe loaded for ${track.title}, ID: ${iframeRef.current?.id}`);
 
     // Appliquer le volume initial une fois l'API chargée
     // Note: On utilise applyVolumeToAllPlayers pour s'assurer que ce nouveau lecteur reçoit le volume actuel
     const currentVolume = getInitialVolume();
     applyVolumeToAllPlayers(currentVolume);
-    console.log(`MusicCard: Applied initial volume ${currentVolume} globally after YouTube load`);
+    logger.debug(`MusicCard: Applied initial volume ${currentVolume} globally after YouTube load`);
   };
 
   // Fonction pour fermer le lecteur YouTube ou SoundCloud
@@ -482,7 +483,7 @@ export const MusicCard: React.FC<MusicCardProps> = ({
           sendPlayerCommand(iframeRef.current, 'youtube', 'pause');
         }
       } catch (error) {
-        console.error('Erreur lors de la mise en pause YouTube:', error);
+        logger.error('Erreur lors de la mise en pause YouTube:', error);
       }
     }
 
@@ -493,7 +494,7 @@ export const MusicCard: React.FC<MusicCardProps> = ({
           sendPlayerCommand(soundcloudIframeRef.current, 'soundcloud', 'pause');
         }
       } catch (error) {
-        console.error('Erreur lors de la mise en pause SoundCloud:', error);
+        logger.error('Erreur lors de la mise en pause SoundCloud:', error);
       }
     }
 
@@ -565,25 +566,25 @@ export const MusicCard: React.FC<MusicCardProps> = ({
         !soundcloudIframeRef.current ||
         event.source !== soundcloudIframeRef.current.contentWindow
       ) {
-        // console.log(`[Card ${track.id}] Message ignored: Source mismatch or iframe ref not set.`);
+        // logger.debug(`[Card ${track.id}] Message ignored: Source mismatch or iframe ref not set.`);
         return; // Ignore messages not from this specific iframe instance
       }
 
       try {
         const data = JSON.parse(event.data);
-        console.log(
+        logger.debug(
           `[Card ${track.id}] SoundCloud event received from OWN iframe: ${JSON.stringify(data)}`
         );
 
         if (data.method === 'ready') {
-          console.log(
+          logger.debug(
             `[Card ${track.id}] SoundCloud iframe READY event received. Setting isSoundcloudReady to true.`
           );
           setIsSoundcloudReady(true); // Mettre à jour l'état ready
         }
         // Handle other methods if needed
       } catch (e) {
-        console.error(`[Card ${track.id}] Error parsing SoundCloud message:`, e, event.data);
+        logger.error(`[Card ${track.id}] Error parsing SoundCloud message:`, e, event.data);
       }
     };
 
@@ -592,7 +593,7 @@ export const MusicCard: React.FC<MusicCardProps> = ({
     return () => {
       window.removeEventListener('message', handleSoundcloudMessage);
       // Réinitialiser l'état ready quand le composant est démonté ou la track change
-      console.log(`[Card ${track.id}] Cleanup: Resetting isSoundcloudReady and playWhenReady.`);
+      logger.debug(`[Card ${track.id}] Cleanup: Resetting isSoundcloudReady and playWhenReady.`);
       setIsSoundcloudReady(false);
       setPlayWhenReady(false);
     };
@@ -607,7 +608,7 @@ export const MusicCard: React.FC<MusicCardProps> = ({
         sendPlayerCommand(soundcloudIframeRef.current, 'soundcloud', 'pause');
       }
     } catch (e) {
-      console.error('Erreur lors de la mise en pause SoundCloud:', e);
+      logger.error('Erreur lors de la mise en pause SoundCloud:', e);
     }
 
     // Mettre à jour l'état local mais ne pas cacher le lecteur
@@ -639,19 +640,19 @@ export const MusicCard: React.FC<MusicCardProps> = ({
         }, 100);
       }
     } catch (e) {
-      console.error('Erreur lors de la reprise SoundCloud:', e);
+      logger.error('Erreur lors de la reprise SoundCloud:', e);
     }
   };
 
   // Gérer le chargement initial de l'iframe SoundCloud
   const handleSoundcloudIframeLoad = () => {
-    console.log(
+    logger.debug(
       `SoundCloud iframe loaded for ${track.title}, ID: ${soundcloudIframeRef.current?.id}`
     );
     setIsSoundcloudLoaded(true);
     // !!! SUPPRIMÉ: Appel redondant et potentiellement problématique
     // applyVolumeToAllPlayers(getInitialVolume());
-    // console.log(`MusicCard: Applied initial volume ${getInitialVolume()} globally after SoundCloud load`);
+    // logger.debug(`MusicCard: Applied initial volume ${getInitialVolume()} globally after SoundCloud load`);
   };
 
   // Préparation de l'URL pour l'embed SoundCloud
