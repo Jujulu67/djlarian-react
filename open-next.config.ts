@@ -8,6 +8,13 @@ export default {
       tagCache: 'dummy',
       queue: 'dummy',
     },
+    // Externaliser Prisma pour éviter les problèmes avec fs
+    external: [
+      '@prisma/client',
+      '.prisma/client',
+      '@prisma/adapter-neon',
+      '@neondatabase/serverless',
+    ],
   },
   edgeExternals: ['node:crypto'],
   middleware: {
