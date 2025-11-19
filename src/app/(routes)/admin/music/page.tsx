@@ -143,7 +143,7 @@ export default function AdminMusicPage() {
       const data = await res.json();
       setTracks(data);
     } catch (err) {
-      logger.error(err);
+      logger.error('Erreur:', err instanceof Error ? err.message : String(err));
       toast.error('Erreur de chargement');
     } finally {
       setIsLoading(false);
@@ -350,7 +350,7 @@ export default function AdminMusicPage() {
       setSuccessTrackId(currentForm.id ?? null);
       setTimeout(() => setSuccessTrackId(null), 3000);
     } catch (err: any) {
-      logger.error(err);
+      logger.error('Erreur:', err instanceof Error ? err.message : String(err));
       toast.error(err.message || 'Erreur');
     } finally {
       setIsSubmitting(false);
