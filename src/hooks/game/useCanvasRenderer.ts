@@ -1,5 +1,5 @@
 import { useRef, useCallback } from 'react';
-import { GamePattern } from '@/types/game';
+import type { GamePattern } from '@/types/game';
 import { logger } from '@/lib/logger';
 import { isNotEmpty } from '@/lib/utils/arrayHelpers';
 
@@ -33,7 +33,6 @@ export const useCanvasRenderer = ({
   canvasRef,
   ctx,
   playerRef,
-  patterns,
   screenShake,
   updateScreenShake,
   drawLanes,
@@ -42,7 +41,7 @@ export const useCanvasRenderer = ({
   updatePointAnimations,
   checkCollisions,
   audioData,
-}: UseCanvasRendererProps) => {
+}: UseCanvasRendererProps): void => {
   const lastPatternWarningTimeRef = useRef<number>(0);
   const lastPatternLogTimeRef = useRef<number>(0);
   const hasLoggedInactiveWithPatternsRef = useRef<boolean>(false);
@@ -81,7 +80,7 @@ export const useCanvasRenderer = ({
 
   // Draw a single pattern
   const drawPattern = useCallback(
-    (pattern: GamePattern, canvasWidth: number, canvasHeight: number) => {
+    (pattern: GamePattern, canvasWidth: number): void => {
       if (!ctx.current) return;
 
       // Validate pattern position

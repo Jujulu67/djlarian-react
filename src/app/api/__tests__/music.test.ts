@@ -44,7 +44,6 @@ describe('/api/music', () => {
   describe('GET', () => {
     it('should return tracks successfully', async () => {
       const { default: prisma } = await import('@/lib/prisma');
-      const { formatTrackData } = await import('@/lib/api/musicService');
 
       const mockTracks = [
         {
@@ -65,7 +64,7 @@ describe('/api/music', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(Array.isArray(data)).toBe(true);
+      expect(Array.isArray(data.data)).toBe(true);
       expect(prisma.track.findMany).toHaveBeenCalled();
     });
 
@@ -77,7 +76,7 @@ describe('/api/music', () => {
       const data = await response.json();
 
       expect(response.status).toBe(500);
-      expect(data.error).toBe('Failed to fetch tracks');
+      expect(data.error).toBe('Database error');
     });
   });
 
@@ -99,7 +98,7 @@ describe('/api/music', () => {
       const response = await POST(request);
       const data = await response.json();
 
-      expect(response.status).toBe(401);
+      expect(response.status).toBe(403);
       expect(data.error).toContain('Unauthorized');
     });
 

@@ -1,28 +1,25 @@
-import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 
 import prisma from '@/lib/prisma';
 import { UpdateTrackInput, formatTrackData } from '@/lib/api/musicService';
-import { MusicType } from '@/lib/utils/types';
-import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
-import { Prisma } from '@prisma/client';
-import { logger } from '@/lib/logger';
 import { isNotEmpty } from '@/lib/utils/arrayHelpers';
+import { handleApiError } from '@/lib/api/errorHandler';
+import { createSuccessResponse } from '@/lib/api/responseHelpers';
 
 // GET /api/music/[id] - Récupérer une piste spécifique
-export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
-  // Attendre la résolution de la Promise params
-  const resolvedParams = await context.params;
-  const id = resolvedParams.id; // Accéder à l'ID sur l'objet résolu
-
-  logger.debug('API Route GET - Resolved params', resolvedParams);
-
-  if (!id) {
-    return NextResponse.json({ error: 'Track ID is required or invalid' }, { status: 400 });
-  }
-
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+): Promise<Response> {
   try {
+    const resolvedParams = await params;
+    const { id } = resolvedParams;
+
+    if (!id) {
+      return handleApiError(new Error('Track ID is required or invalid'), 'GET /api/music/[id]');
+    }
+
     const track = await prisma.track.findUnique({
       where: { id },
       include: {
@@ -43,28 +40,27 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     });
 
     if (!track) {
-      logger.error(`Track not found with ID: ${id}`);
-      return NextResponse.json({ error: 'Track not found' }, { status: 404 });
+      return handleApiError(new Error('Track not found'), 'GET /api/music/[id]');
     }
 
-    return NextResponse.json(formatTrackData(track));
+    return createSuccessResponse(formatTrackData(track));
   } catch (error) {
-    logger.error(`Error fetching track ${id}`, error);
-    return NextResponse.json({ error: 'Failed to fetch track' }, { status: 500 });
+    return handleApiError(error, 'GET /api/music/[id]');
   }
 }
 
 // PUT /api/music/[id] - Mettre à jour une piste spécifique
-export async function PUT(request: Request, context: { params: Promise<{ id: string }> }) {
-  // Attendre la résolution de la Promise params
-  const resolvedParams = await context.params;
-  const id = (await resolvedParams).id;
-
-  if (!id) {
-    return NextResponse.json({ error: 'Track ID is required' }, { status: 400 });
-  }
-
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+): Promise<Response> {
   try {
+    const resolvedParams = await params;
+    const { id } = resolvedParams;
+
+    if (!id) {
+      return handleApiError(new Error('Track ID is required'), 'PUT /api/music/[id]');
+    }
     const session = await auth();
     if (!session?.user || session.user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -87,13 +83,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
     // Préparer les données scalaires à mettre à jour
     // Exclure explicitement les champs non scalaires ou gérés par les relations
     const {
-      coverUrl,
-      originalImageUrl,
-      genre, // Exclure explicitement le tableau genre du formulaire
-      // Exclure d'autres champs potentiellement présents dans trackData mais non modifiables directement
-      user,
-      collection,
-      createdAt,
+      // Exclure les champs non scalaires ou gérés par les relations
       // updatedAt est géré ci-dessous
       ...baseDataToUpdate
     } = trackData as Record<string, unknown>;
@@ -212,31 +202,24 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
       });
     });
 
-    return NextResponse.json(formatTrackData(updatedTrack));
+    return createSuccessResponse(formatTrackData(updatedTrack));
   } catch (error) {
-    logger.error(`Error updating track ${id}:`, error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to update track';
-    // Renvoyer l'erreur Prisma brute si disponible pour le débogage
-    const prismaError =
-      error instanceof Prisma.PrismaClientKnownRequestError ||
-      error instanceof Prisma.PrismaClientValidationError
-        ? error.message
-        : null;
-    return NextResponse.json({ error: prismaError || errorMessage }, { status: 500 });
+    return handleApiError(error, 'PUT /api/music/[id]');
   }
 }
 
 // DELETE /api/music/[id] - Supprimer une piste spécifique
-export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
-  // Attendre la résolution de la Promise params
-  const resolvedParams = await context.params;
-  const id = resolvedParams.id; // Accéder à l'ID sur l'objet résolu
-
-  if (!id) {
-    return NextResponse.json({ error: 'Track ID is required' }, { status: 400 });
-  }
-
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+): Promise<Response> {
   try {
+    const resolvedParams = await params;
+    const { id } = resolvedParams;
+
+    if (!id) {
+      return handleApiError(new Error('Track ID is required'), 'DELETE /api/music/[id]');
+    }
     const session = await auth();
     if (!session?.user || session.user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -265,23 +248,24 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
       });
     });
 
-    return NextResponse.json({ message: 'Track deleted successfully' }, { status: 200 }); // Utiliser 200 ou 204
+    return createSuccessResponse({ message: 'Track deleted successfully' });
   } catch (error) {
-    logger.error(`Error deleting track ${id}:`, error);
-    return NextResponse.json({ error: 'Failed to delete track' }, { status: 500 });
+    return handleApiError(error, 'DELETE /api/music/[id]');
   }
 }
 
 // PATCH /api/music/[id] - Mise à jour partielle (ex: imageId)
-export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
-  const resolvedParams = await context.params;
-  const id = resolvedParams.id;
-
-  if (!id) {
-    return NextResponse.json({ error: 'Track ID is required' }, { status: 400 });
-  }
-
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+): Promise<Response> {
   try {
+    const resolvedParams = await params;
+    const { id } = resolvedParams;
+
+    if (!id) {
+      return handleApiError(new Error('Track ID is required'), 'PATCH /api/music/[id]');
+    }
     const session = await auth();
     if (!session?.user || session.user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -299,9 +283,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       data: { imageId },
     });
 
-    return NextResponse.json({ success: true, track: updatedTrack });
+    return createSuccessResponse({ success: true, track: updatedTrack });
   } catch (error) {
-    logger.error(`Error PATCH track ${id}:`, error);
-    return NextResponse.json({ error: 'Failed to patch track' }, { status: 500 });
+    return handleApiError(error, 'PATCH /api/music/[id]');
   }
 }

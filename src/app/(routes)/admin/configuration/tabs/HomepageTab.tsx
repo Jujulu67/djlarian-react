@@ -7,20 +7,19 @@ import NumberInput from '@/components/config/NumberInput';
 import ToggleRow from '@/components/config/ToggleRow';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useConfigs } from '@/stores/useConfigs';
-import { AllConfigs, HomepageConfig } from '@/types/config';
+import type { HomepageConfig } from '@/types/config';
 
-export default function HomepageTab() {
+const HomepageTab = (): JSX.Element => {
   const { homepage, update } = useConfigs();
 
   // Gérer le drag and drop pour l'ordre des sections
   const handleDragEnd = (result: {
     destination?: { index: number } | null;
     source: { index: number };
-  }) => {
+  }): void => {
     if (!result.destination) return;
 
     const sections = homepage.sectionsOrder.split(',').filter(Boolean);
@@ -30,7 +29,7 @@ export default function HomepageTab() {
     update('homepage', 'sectionsOrder', sections.join(','));
   };
 
-  const getSectionInfo = (id: string) => {
+  const getSectionInfo = (id: string): { icon: JSX.Element; name: string } => {
     switch (id) {
       case 'hero':
         return { icon: <Home className="h-4 w-4" />, name: 'Héro' };
@@ -55,19 +54,34 @@ export default function HomepageTab() {
 
       <Tabs defaultValue="hero" className="w-full">
         <TabsList className="flex mb-6 p-1 bg-black/30 border border-purple-500/20 rounded-xl overflow-hidden">
-          <TabsTrigger value="hero" className="flex-1 tab-trigger">
+          <TabsTrigger 
+            value="hero" 
+            className="flex-1 py-3 px-4 rounded-lg transition-all data-[state=active]:bg-purple-600/20 data-[state=active]:text-white data-[state=active]:shadow-[0_0_10px_rgba(139,92,246,0.3)] data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-purple-300"
+          >
             <Home className="w-4 h-4 mr-2" /> Héro
           </TabsTrigger>
-          <TabsTrigger value="releases" className="flex-1 tab-trigger">
+          <TabsTrigger 
+            value="releases" 
+            className="flex-1 py-3 px-4 rounded-lg transition-all data-[state=active]:bg-purple-600/20 data-[state=active]:text-white data-[state=active]:shadow-[0_0_10px_rgba(139,92,246,0.3)] data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-purple-300"
+          >
             <Music className="w-4 h-4 mr-2" /> Sorties
           </TabsTrigger>
-          <TabsTrigger value="visualizer" className="flex-1 tab-trigger">
+          <TabsTrigger 
+            value="visualizer" 
+            className="flex-1 py-3 px-4 rounded-lg transition-all data-[state=active]:bg-purple-600/20 data-[state=active]:text-white data-[state=active]:shadow-[0_0_10px_rgba(139,92,246,0.3)] data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-purple-300"
+          >
             <Eye className="w-4 h-4 mr-2" /> Visualiseur
           </TabsTrigger>
-          <TabsTrigger value="events" className="flex-1 tab-trigger">
+          <TabsTrigger 
+            value="events" 
+            className="flex-1 py-3 px-4 rounded-lg transition-all data-[state=active]:bg-purple-600/20 data-[state=active]:text-white data-[state=active]:shadow-[0_0_10px_rgba(139,92,246,0.3)] data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-purple-300"
+          >
             <CalendarDays className="w-4 h-4 mr-2" /> Événements
           </TabsTrigger>
-          <TabsTrigger value="stream" className="flex-1 tab-trigger">
+          <TabsTrigger 
+            value="stream" 
+            className="flex-1 py-3 px-4 rounded-lg transition-all data-[state=active]:bg-purple-600/20 data-[state=active]:text-white data-[state=active]:shadow-[0_0_10px_rgba(139,92,246,0.3)] data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-purple-300"
+          >
             <Video className="w-4 h-4 mr-2" /> Stream
           </TabsTrigger>
         </TabsList>
@@ -76,11 +90,11 @@ export default function HomepageTab() {
         <TabsContent value="hero" className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="heroTitle">Titre principal</Label>
-            <Input
+              <Input
               id="heroTitle"
               value={homepage.heroTitle}
               onChange={(e) => update('homepage', 'heroTitle', e.target.value)}
-              className="input-style"
+              className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
           <div className="space-y-2">
@@ -89,7 +103,7 @@ export default function HomepageTab() {
               id="heroSubtitle"
               value={homepage.heroSubtitle}
               onChange={(e) => update('homepage', 'heroSubtitle', e.target.value)}
-              className="input-style"
+              className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -99,7 +113,7 @@ export default function HomepageTab() {
                 id="heroExploreButtonText"
                 value={homepage.heroExploreButtonText}
                 onChange={(e) => update('homepage', 'heroExploreButtonText', e.target.value)}
-                className="input-style"
+                className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
             <div className="space-y-2">
@@ -108,7 +122,7 @@ export default function HomepageTab() {
                 id="heroExploreButtonUrl"
                 value={homepage.heroExploreButtonUrl}
                 onChange={(e) => update('homepage', 'heroExploreButtonUrl', e.target.value)}
-                className="input-style"
+                className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
           </div>
@@ -119,7 +133,7 @@ export default function HomepageTab() {
                 id="heroEventsButtonText"
                 value={homepage.heroEventsButtonText}
                 onChange={(e) => update('homepage', 'heroEventsButtonText', e.target.value)}
-                className="input-style"
+                className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
             <div className="space-y-2">
@@ -128,7 +142,7 @@ export default function HomepageTab() {
                 id="heroEventsButtonUrl"
                 value={homepage.heroEventsButtonUrl}
                 onChange={(e) => update('homepage', 'heroEventsButtonUrl', e.target.value)}
-                className="input-style"
+                className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
           </div>
@@ -138,7 +152,7 @@ export default function HomepageTab() {
               id="heroBackgroundVideo"
               value={homepage.heroBackgroundVideo}
               onChange={(e) => update('homepage', 'heroBackgroundVideo', e.target.value)}
-              className="input-style"
+              className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
           <div className="space-y-2">
@@ -147,7 +161,7 @@ export default function HomepageTab() {
               id="heroPosterImage"
               value={homepage.heroPosterImage}
               onChange={(e) => update('homepage', 'heroPosterImage', e.target.value)}
-              className="input-style"
+              className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
         </TabsContent>
@@ -166,7 +180,7 @@ export default function HomepageTab() {
               id="releasesTitle"
               value={homepage.releasesTitle}
               onChange={(e) => update('homepage', 'releasesTitle', e.target.value)}
-              className="input-style"
+              className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={!homepage.releasesEnabled}
             />
           </div>
@@ -196,7 +210,7 @@ export default function HomepageTab() {
               id="visualizerTitle"
               value={homepage.visualizerTitle}
               onChange={(e) => update('homepage', 'visualizerTitle', e.target.value)}
-              className="input-style"
+              className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={!homepage.visualizerEnabled}
             />
           </div>
@@ -216,7 +230,7 @@ export default function HomepageTab() {
               id="eventsTitle"
               value={homepage.eventsTitle}
               onChange={(e) => update('homepage', 'eventsTitle', e.target.value)}
-              className="input-style"
+              className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={!homepage.eventsEnabled}
             />
           </div>
@@ -237,7 +251,7 @@ export default function HomepageTab() {
                 id="eventsViewAllText"
                 value={homepage.eventsViewAllText}
                 onChange={(e) => update('homepage', 'eventsViewAllText', e.target.value)}
-                className="input-style"
+                className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={!homepage.eventsEnabled}
               />
             </div>
@@ -247,7 +261,7 @@ export default function HomepageTab() {
                 id="eventsViewAllUrl"
                 value={homepage.eventsViewAllUrl}
                 onChange={(e) => update('homepage', 'eventsViewAllUrl', e.target.value)}
-                className="input-style"
+                className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={!homepage.eventsEnabled}
               />
             </div>
@@ -268,7 +282,7 @@ export default function HomepageTab() {
               id="streamTitle"
               value={homepage.streamTitle}
               onChange={(e) => update('homepage', 'streamTitle', e.target.value)}
-              className="input-style"
+              className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={!homepage.streamEnabled}
             />
           </div>
@@ -278,7 +292,7 @@ export default function HomepageTab() {
               id="streamSubtitle"
               value={homepage.streamSubtitle}
               onChange={(e) => update('homepage', 'streamSubtitle', e.target.value)}
-              className="input-style"
+              className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={!homepage.streamEnabled}
             />
           </div>
@@ -288,7 +302,7 @@ export default function HomepageTab() {
               id="streamDescription"
               value={homepage.streamDescription}
               onChange={(e) => update('homepage', 'streamDescription', e.target.value)}
-              className="input-style"
+              className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
               rows={3}
               disabled={!homepage.streamEnabled}
             />
@@ -299,7 +313,7 @@ export default function HomepageTab() {
               id="twitchUsername"
               value={homepage.twitchUsername}
               onChange={(e) => update('homepage', 'twitchUsername', e.target.value)}
-              className="input-style"
+              className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={!homepage.streamEnabled}
             />
           </div>
@@ -310,7 +324,7 @@ export default function HomepageTab() {
                 id="twitchFollowButtonText"
                 value={homepage.twitchFollowButtonText}
                 onChange={(e) => update('homepage', 'twitchFollowButtonText', e.target.value)}
-                className="input-style"
+                className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={!homepage.streamEnabled}
               />
             </div>
@@ -320,7 +334,7 @@ export default function HomepageTab() {
                 id="twitchFollowButtonUrl"
                 value={homepage.twitchFollowButtonUrl}
                 onChange={(e) => update('homepage', 'twitchFollowButtonUrl', e.target.value)}
-                className="input-style"
+                className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={!homepage.streamEnabled}
               />
             </div>
@@ -331,7 +345,7 @@ export default function HomepageTab() {
               id="streamNotifyButtonText"
               value={homepage.streamNotifyButtonText}
               onChange={(e) => update('homepage', 'streamNotifyButtonText', e.target.value)}
-              className="input-style"
+              className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={!homepage.streamEnabled}
             />
           </div>
@@ -350,7 +364,7 @@ export default function HomepageTab() {
                   id="streamFollowers"
                   value={homepage.streamFollowers}
                   onChange={(e) => update('homepage', 'streamFollowers', e.target.value)}
-                  className="input-style"
+                  className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={!homepage.streamEnabled}
                 />
               </div>
@@ -360,7 +374,7 @@ export default function HomepageTab() {
                   id="streamHoursStreamed"
                   value={homepage.streamHoursStreamed}
                   onChange={(e) => update('homepage', 'streamHoursStreamed', e.target.value)}
-                  className="input-style"
+                  className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={!homepage.streamEnabled}
                 />
               </div>
@@ -370,7 +384,7 @@ export default function HomepageTab() {
                   id="streamTracksPlayed"
                   value={homepage.streamTracksPlayed}
                   onChange={(e) => update('homepage', 'streamTracksPlayed', e.target.value)}
-                  className="input-style"
+                  className="bg-purple-500/10 border-purple-500/20 focus:border-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={!homepage.streamEnabled}
                 />
               </div>
@@ -411,11 +425,15 @@ export default function HomepageTab() {
                                 ref={provided.innerRef}
                                 {...provided.draggableProps}
                                 {...provided.dragHandleProps}
-                                className={`draggable-item ${snapshot.isDragging ? 'dragging' : ''}`}
+                                className={`flex items-center p-3 rounded-md border transition-all bg-purple-500/10 border-purple-500/20 hover:bg-purple-500/20 ${
+                                  snapshot.isDragging 
+                                    ? 'border-cyan-400 shadow-lg bg-purple-800/30 z-50' 
+                                    : ''
+                                }`}
                                 style={provided.draggableProps.style}
                               >
                                 <div
-                                  className={`handle ${snapshot.isDragging ? 'text-cyan-300' : 'text-gray-500'} hover:text-gray-300`}
+                                  className={`mr-3 cursor-grab ${snapshot.isDragging ? 'cursor-grabbing text-cyan-300' : 'text-gray-500'} hover:text-gray-300`}
                                 >
                                   <GripVertical className="h-5 w-5" />
                                 </div>
@@ -431,7 +449,8 @@ export default function HomepageTab() {
                                     {name}
                                   </span>
                                 </div>
-                                <div
+                                <button
+                                  type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     if (section !== 'hero') {
@@ -439,14 +458,22 @@ export default function HomepageTab() {
                                       update('homepage', prop, !homepage[prop]);
                                     }
                                   }}
-                                  className={`ml-auto status-badge ${section === 'hero' ? 'always-active' : isEnabled ? 'active' : 'inactive'}`}
+                                  className={`ml-auto px-2 py-1 text-xs rounded-full cursor-pointer ${
+                                    section === 'hero'
+                                      ? 'bg-blue-500/20 text-blue-300 cursor-default'
+                                      : isEnabled
+                                        ? 'bg-green-500/20 text-green-300 hover:bg-green-500/40'
+                                        : 'bg-red-500/20 text-red-300 hover:bg-red-500/40'
+                                  }`}
+                                  disabled={section === 'hero'}
+                                  aria-label={`${section === 'hero' ? 'Toujours actif' : isEnabled ? 'Désactiver' : 'Activer'} ${name}`}
                                 >
                                   {section === 'hero'
                                     ? 'Toujours actif'
                                     : isEnabled
                                       ? 'Actif'
                                       : 'Inactif'}
-                                </div>
+                                </button>
                               </div>
                             )}
                           </Draggable>
@@ -464,101 +491,8 @@ export default function HomepageTab() {
           </p>
         </div>
       </div>
-
-      {/* Styles CSS spécifiques pour les éléments (à déplacer potentiellement) */}
-      <style jsx>{`
-        .tab-trigger {
-          flex: 1;
-          padding: 0.75rem 1rem; /* py-3 px-4 */
-          border-radius: 0.5rem; /* rounded-lg */
-          transition: all 0.2s;
-        }
-        .tab-trigger[data-state='active'] {
-          background-color: rgba(139, 92, 246, 0.2); /* bg-purple-600/20 */
-          color: white;
-          box-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
-        }
-        .tab-trigger[data-state='inactive'] {
-          color: #9ca3af; /* text-gray-400 */
-        }
-        .tab-trigger[data-state='inactive']:hover {
-          color: #c4b5fd; /* hover:text-purple-300 */
-        }
-        .input-style {
-          background-color: rgba(139, 92, 246, 0.1); /* bg-purple-500/10 */
-          border: 1px solid rgba(139, 92, 246, 0.2); /* border-purple-500/20 */
-        }
-        .input-style:focus {
-          border-color: rgba(139, 92, 246, 0.5); /* focus:border-purple-500/50 */
-        }
-        .input-style:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-        .draggable-item {
-          background-color: rgba(139, 92, 246, 0.1); /* bg-purple-500/10 */
-          border-radius: 0.375rem; /* rounded-md */
-          border: 1px solid rgba(139, 92, 246, 0.2); /* border-purple-500/20 */
-          display: flex;
-          align-items: center;
-          padding: 0.75rem; /* p-3 */
-          transition:
-            background-color 0.2s,
-            border-color 0.2s;
-        }
-        .draggable-item:hover {
-          background-color: rgba(139, 92, 246, 0.2); /* hover:bg-purple-500/20 */
-        }
-        .draggable-item.dragging {
-          border-color: #22d3ee; /* border-cyan-400 */
-          box-shadow:
-            0 4px 6px -1px rgb(0 0 0 / 0.1),
-            0 2px 4px -2px rgb(0 0 0 / 0.1); /* shadow-lg */
-          background-color: rgba(88, 28, 135, 0.3); /* bg-purple-800/30 - Approximation */
-          z-index: 50;
-        }
-        .handle {
-          margin-right: 0.75rem; /* mr-3 */
-          cursor: grab;
-        }
-        .draggable-item.dragging .handle {
-          cursor: grabbing;
-        }
-        .status-badge {
-          margin-left: auto; /* ml-auto */
-          padding: 0.25rem 0.5rem; /* px-2 py-1 */
-          font-size: 0.75rem; /* text-xs */
-          border-radius: 9999px; /* rounded-full */
-          cursor: pointer;
-        }
-        .status-badge.always-active {
-          background-color: rgba(59, 130, 246, 0.2); /* bg-blue-500/20 */
-          color: #93c5fd; /* text-blue-300 */
-          cursor: default;
-        }
-        .status-badge.active {
-          background-color: rgba(34, 197, 94, 0.2); /* bg-green-500/20 */
-          color: #86efac; /* text-green-300 */
-        }
-        .status-badge.active:hover {
-          background-color: rgba(34, 197, 94, 0.4); /* hover:bg-green-500/40 */
-        }
-        .status-badge.inactive {
-          background-color: rgba(239, 68, 68, 0.2); /* bg-red-500/20 */
-          color: #fca5a5; /* text-red-300 */
-        }
-        .status-badge.inactive:hover {
-          background-color: rgba(239, 68, 68, 0.4); /* hover:bg-red-500/40 */
-        }
-        .toggle-row:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-        .toggle-row label span:first-child {
-          /* Assurer que le label ne soit pas affecté par disabled */
-          opacity: 1 !important;
-        }
-      `}</style>
     </div>
   );
-}
+};
+
+export default HomepageTab;

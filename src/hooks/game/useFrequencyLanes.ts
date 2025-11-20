@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FrequencyBand } from '@/types/game';
+import type { FrequencyBand } from '@/types/game';
 
 interface FrequencyLane {
   name: FrequencyBand;
@@ -10,7 +10,10 @@ interface FrequencyLane {
 /**
  * Hook to manage frequency lanes visualization
  */
-export const useFrequencyLanes = (currentBpm?: number) => {
+export const useFrequencyLanes = (currentBpm?: number): {
+  frequencyLanes: FrequencyLane[];
+  drawLanes: (ctx: CanvasRenderingContext2D, canvasWidth: number, canvasHeight: number) => void;
+} => {
   const [frequencyLanes, setFrequencyLanes] = useState<FrequencyLane[]>([
     { name: 'bass', yPosition: 0.75, alpha: 0.2 }, // Low frequencies
     { name: 'mid', yPosition: 0.5, alpha: 0.2 }, // Mid frequencies
@@ -22,7 +25,7 @@ export const useFrequencyLanes = (currentBpm?: number) => {
     if (!currentBpm) return;
 
     const beatInterval = 60000 / currentBpm;
-    const pulseLanes = () => {
+    const pulseLanes = (): void => {
       setFrequencyLanes((prev) =>
         prev.map((lane) => ({
           ...lane,
@@ -42,11 +45,13 @@ export const useFrequencyLanes = (currentBpm?: number) => {
     };
 
     const interval = setInterval(pulseLanes, beatInterval);
-    return () => clearInterval(interval);
+    return (): void => {
+      clearInterval(interval);
+    };
   }, [currentBpm]);
 
   const drawLanes = useCallback(
-    (ctx: CanvasRenderingContext2D, canvasWidth: number, canvasHeight: number) => {
+    (ctx: CanvasRenderingContext2D, canvasWidth: number, canvasHeight: number): void => {
       frequencyLanes.forEach((lane) => {
         const yPos = lane.yPosition * canvasHeight;
 
