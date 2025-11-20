@@ -1,14 +1,16 @@
 'use client';
 
 import { Search, SlidersHorizontal, Filter } from 'lucide-react';
+
+import type { ImageMeta } from '@/app/api/admin/images/shared';
+import { Button } from '@/components/ui/Button';
+import { Checkbox } from '@/components/ui/Checkbox';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
-import { Checkbox } from '@/components/ui/Checkbox';
-import { Button } from '@/components/ui/Button';
-import type { ImageMeta } from '@/app/api/admin/images/shared';
-import type { SortOption } from '../types';
 import { logger } from '@/lib/logger';
 import { isNotEmpty } from '@/lib/utils/arrayHelpers';
+
+import type { SortOption } from '../types';
 
 interface FiltersBarProps {
   images: ImageMeta[];
@@ -29,7 +31,7 @@ interface FiltersBarProps {
   onReset: () => void;
 }
 
-export function FiltersBar({
+export const FiltersBar = ({
   images,
   searchTerm,
   setSearchTerm,
@@ -46,7 +48,7 @@ export function FiltersBar({
   setIsMultiSelectMode,
   setSelectedImageIds,
   onReset,
-}: FiltersBarProps) {
+}: FiltersBarProps) => {
   // Filtrer les types qui ne sont pas "Autre"
   const filteredTypes = [
     ...Array.from(new Set(images.map((img) => img.type))).filter((type) => type !== 'Autre'),
@@ -165,5 +167,4 @@ export function FiltersBar({
       </div>
     </div>
   );
-}
-
+};

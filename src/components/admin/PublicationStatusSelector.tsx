@@ -1,8 +1,9 @@
-import React from 'react';
-import { Calendar as CalendarIcon, CheckCircle, Clock, PauseCircle } from 'lucide-react';
 import * as RadixPopover from '@radix-ui/react-popover';
 import { format, parseISO, isValid } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { Calendar as CalendarIcon, CheckCircle, Clock, PauseCircle } from 'lucide-react';
+import React from 'react';
+
 import { DateTimeField } from '@/components/ui/DateTimeField';
 
 interface PublicationStatusSelectorProps {

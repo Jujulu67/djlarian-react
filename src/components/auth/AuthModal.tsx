@@ -1,13 +1,14 @@
 'use client';
 
+import { motion, AnimatePresence } from 'framer-motion';
+import { Loader2 } from 'lucide-react';
+import Image from 'next/image';
+import { signIn } from 'next-auth/react';
 import React from 'react';
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { signIn } from 'next-auth/react';
 import toast from 'react-hot-toast';
-import { Loader2 } from 'lucide-react';
+
 import Modal from '@/components/ui/Modal';
-import Image from 'next/image';
 import { logger } from '@/lib/logger';
 
 interface AuthModalProps {

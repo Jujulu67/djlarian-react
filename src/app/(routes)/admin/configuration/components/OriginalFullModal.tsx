@@ -1,15 +1,16 @@
 'use client';
 
 import Image from 'next/image';
-import Modal from '@/components/ui/Modal';
+
 import type { ImageMeta } from '@/app/api/admin/images/shared';
+import Modal from '@/components/ui/Modal';
 
 interface OriginalFullModalProps {
   image: ImageMeta;
   onClose: () => void;
 }
 
-export function OriginalFullModal({ image, onClose }: OriginalFullModalProps) {
+export const OriginalFullModal = ({ image, onClose }: OriginalFullModalProps) => {
   return (
     <Modal
       maxWidth="max-w-none"
@@ -32,5 +33,4 @@ export function OriginalFullModal({ image, onClose }: OriginalFullModalProps) {
       </div>
     </Modal>
   );
-}
-
+};

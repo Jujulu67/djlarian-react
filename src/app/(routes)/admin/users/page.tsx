@@ -1,13 +1,14 @@
-import { redirect } from 'next/navigation';
-import { auth } from '@/auth';
-
-import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { ChevronLeft, UserPlus } from 'lucide-react';
 import Link from 'next/link';
-import { UserTable } from './components/UserTable';
-import { UserPagination } from './components/UserPagination';
+import { redirect } from 'next/navigation';
+
+import { auth } from '@/auth';
+import prisma from '@/lib/prisma';
+
 import { UserFiltersServer } from './components/UserFiltersServer';
+import { UserPagination } from './components/UserPagination';
+import { UserTable } from './components/UserTable';
 
 // Type pour les utilisateurs (mis à jour)
 type UserData = {

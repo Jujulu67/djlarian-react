@@ -1,11 +1,13 @@
 'use client';
 
-import Image from 'next/image';
 import { Download, Music, Calendar } from 'lucide-react';
+import Image from 'next/image';
+
+import type { ImageMeta } from '@/app/api/admin/images/shared';
 import { Button } from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
+
 import type { GroupedImage } from '../types';
-import type { ImageMeta } from '@/app/api/admin/images/shared';
 
 interface ImageDetailModalProps {
   selectedGroup: GroupedImage;
@@ -14,12 +16,12 @@ interface ImageDetailModalProps {
   onShowOriginalFull: () => void;
 }
 
-export function ImageDetailModal({
+export const ImageDetailModal = ({
   selectedGroup,
   onClose,
   onDownload,
   onShowOriginalFull,
-}: ImageDetailModalProps) {
+}: ImageDetailModalProps) => {
   return (
     <Modal
       maxWidth="max-w-5xl"
@@ -165,4 +167,4 @@ export function ImageDetailModal({
       </div>
     </Modal>
   );
-}
+};

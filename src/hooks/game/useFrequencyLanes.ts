@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+
 import type { FrequencyBand } from '@/types/game';
 
 interface FrequencyLane {
@@ -10,7 +11,9 @@ interface FrequencyLane {
 /**
  * Hook to manage frequency lanes visualization
  */
-export const useFrequencyLanes = (currentBpm?: number): {
+export const useFrequencyLanes = (
+  currentBpm?: number
+): {
   frequencyLanes: FrequencyLane[];
   drawLanes: (ctx: CanvasRenderingContext2D, canvasWidth: number, canvasHeight: number) => void;
 } => {
@@ -93,4 +96,3 @@ export const useFrequencyLanes = (currentBpm?: number): {
     drawLanes,
   };
 };
-

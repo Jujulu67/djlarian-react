@@ -1,14 +1,16 @@
 'use client';
 
-import { useState } from 'react';
-import Image from 'next/image';
 import { AlertTriangle } from 'lucide-react';
+import Image from 'next/image';
+import { useState } from 'react';
+
+import type { ImageMeta } from '@/app/api/admin/images/shared';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
 import Modal from '@/components/ui/Modal';
-import type { GroupedImage } from '../types';
-import type { ImageMeta } from '@/app/api/admin/images/shared';
 import { logger } from '@/lib/logger';
+
+import type { GroupedImage } from '../types';
 
 interface FusionModalProps {
   family: { signature: string; groups: GroupedImage[] };
@@ -21,7 +23,7 @@ interface FusionModalProps {
   onConfirm: (masterId: string, ignoredIds: string[]) => Promise<void>;
 }
 
-export function FusionModal({
+export const FusionModal = ({
   family,
   selectedMasterId,
   setSelectedMasterId,
@@ -30,7 +32,7 @@ export function FusionModal({
   isLoadingFusion,
   onClose,
   onConfirm,
-}: FusionModalProps) {
+}: FusionModalProps) => {
   const handleConfirm = async () => {
     if (!selectedMasterId || ignoredIds.includes(selectedMasterId)) return;
     await onConfirm(selectedMasterId, ignoredIds);
@@ -143,4 +145,4 @@ export function FusionModal({
       </div>
     </Modal>
   );
-}
+};

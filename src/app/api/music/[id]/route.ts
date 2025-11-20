@@ -1,10 +1,8 @@
-import { auth } from '@/auth';
-
-import prisma from '@/lib/prisma';
-import { UpdateTrackInput, formatTrackData } from '@/lib/api/musicService';
 import { v4 as uuidv4 } from 'uuid';
-import { isNotEmpty } from '@/lib/utils/arrayHelpers';
+
+import { auth } from '@/auth';
 import { handleApiError } from '@/lib/api/errorHandler';
+import { UpdateTrackInput, formatTrackData } from '@/lib/api/musicService';
 import {
   createSuccessResponse,
   createForbiddenResponse,
@@ -12,6 +10,8 @@ import {
   createNotFoundResponse,
   createBadRequestResponse,
 } from '@/lib/api/responseHelpers';
+import prisma from '@/lib/prisma';
+import { isNotEmpty } from '@/lib/utils/arrayHelpers';
 
 // GET /api/music/[id] - Récupérer une piste spécifique
 export async function GET(

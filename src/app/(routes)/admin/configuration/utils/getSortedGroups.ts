@@ -16,7 +16,7 @@ export function getSortedGroups(
   showDuplicates: boolean
 ): GroupedImage[] {
   const sorted = [...groups];
-  
+
   if (showDuplicates) {
     // Tri par signature d'originale (taille), puis par nom
     sorted.sort((a, b) => {
@@ -27,7 +27,7 @@ export function getSortedGroups(
     });
     return sorted;
   }
-  
+
   // Tri normal sinon
   switch (sortOption) {
     case 'date-desc':
@@ -79,4 +79,3 @@ export function getSortedGroups(
   }
   return sorted;
 }
-

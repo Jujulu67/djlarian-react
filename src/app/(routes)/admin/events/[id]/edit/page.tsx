@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+import { useRouter, useParams } from 'next/navigation';
+import { useEffect } from 'react';
+
 import { logger } from '@/lib/logger';
 
 export default function EditEventRedirect() {

@@ -4,10 +4,12 @@ import { useSession as useNextAuthSession } from 'next-auth/react';
 import { useEffect, useRef } from 'react';
 
 // Type pour la session
-type SessionData = { user?: { id: string; role?: string; email?: string | null; name?: string | null } } | null;
+type SessionData = {
+  user?: { id: string; role?: string; email?: string | null; name?: string | null };
+} | null;
 
 // Cache global pour dédupliquer les requêtes de session
-let sessionCache: {
+const sessionCache: {
   data: SessionData;
   timestamp: number;
   promise: Promise<SessionData> | null;

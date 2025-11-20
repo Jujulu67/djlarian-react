@@ -1,12 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
+
+import { NextRequest, NextResponse } from 'next/server';
 
 // Route pour vérifier si le serveur est prêt après redémarrage
 export async function GET(req: NextRequest) {
   try {
     const restartMarkerPath = path.join(process.cwd(), '.db-restart-required.json');
-    
+
     // Vérifier si un redémarrage est requis
     let restartRequired = false;
     try {
@@ -23,10 +24,6 @@ export async function GET(req: NextRequest) {
       restartRequired,
     });
   } catch (error) {
-    return NextResponse.json(
-      { ready: false, error: 'Server not ready' },
-      { status: 503 }
-    );
+    return NextResponse.json({ ready: false, error: 'Server not ready' }, { status: 503 });
   }
 }
-

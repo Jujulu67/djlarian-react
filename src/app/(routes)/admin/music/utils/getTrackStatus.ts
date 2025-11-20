@@ -13,4 +13,3 @@ export function getTrackStatus(track: Track): { label: string; className: string
   }
   return { label: 'Brouillon', className: 'bg-yellow-900/40 text-yellow-300' };
 }
-

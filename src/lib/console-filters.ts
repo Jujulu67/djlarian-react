@@ -1,7 +1,7 @@
 /**
  * Filtres pour supprimer les warnings et erreurs non critiques de la console
  * Centralise toute la logique de filtrage pour une meilleure maintenabilité
- * 
+ *
  * IMPORTANT: Utilisez le système de logging centralisé (src/lib/logger.ts)
  * au lieu de console.log/warn/error directement dans votre code.
  */
@@ -61,9 +61,10 @@ export function setupConsoleFilters() {
   const originalWarn = console.warn.bind(console);
   const originalError = console.error.bind(console);
   const originalLog = console.log.bind(console);
-  
+
   // Obtenir le descriptor original de console.warn pour pouvoir le restaurer
-  const originalWarnDescriptor = Object.getOwnPropertyDescriptor(console, 'warn') || 
+  const originalWarnDescriptor =
+    Object.getOwnPropertyDescriptor(console, 'warn') ||
     Object.getOwnPropertyDescriptor(Object.getPrototypeOf(console), 'warn');
 
   // Intercepter console.log
@@ -179,4 +180,3 @@ export function setupConsoleFilters() {
     window.removeEventListener('unhandledrejection', handleUnhandledRejection);
   };
 }
-

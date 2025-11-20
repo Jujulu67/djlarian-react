@@ -1,6 +1,8 @@
 import { useState, useCallback } from 'react';
+
 import type { ImageMeta } from '@/app/api/admin/images/shared';
 import type { Track } from '@/lib/utils/types';
+
 import type { GroupedImage, LinkedTo } from '../types';
 import { extractImageId } from '../utils/extractImageId';
 
@@ -10,7 +12,7 @@ export function useImageGrouping() {
 
   const groupAndLinkImages = useCallback(async (images: ImageMeta[]) => {
     setIsGrouping(true);
-    
+
     // 1. Récupérer tracks et events
     const [tracksRes, eventsRes] = await Promise.all([fetch('/api/music'), fetch('/api/events')]);
     const tracksData = await tracksRes.json();
@@ -71,10 +73,10 @@ export function useImageGrouping() {
       if (group.ori) group.ori.isDuplicate = isDuplicate;
       if (group.crop) group.crop.isDuplicate = isDuplicate;
     });
-    
+
     setGroupedImages(groupList);
     setIsGrouping(false);
-    
+
     return groupList;
   }, []);
 
@@ -100,4 +102,3 @@ export function useImageGrouping() {
     syncImagesWithGroups,
   };
 }
-

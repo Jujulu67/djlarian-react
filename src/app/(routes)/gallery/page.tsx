@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { GalleryItem } from '@/lib/utils/types';
 import Image from 'next/image';
+import { useState } from 'react';
+
+import { GalleryItem } from '@/lib/utils/types';
 
 const galleryItems: GalleryItem[] = [
   {

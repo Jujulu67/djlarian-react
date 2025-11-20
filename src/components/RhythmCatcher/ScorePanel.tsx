@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import React, { useEffect, useState } from 'react';
+
 import { Player } from './gameEngine';
 import styles from './styles.module.css';
 

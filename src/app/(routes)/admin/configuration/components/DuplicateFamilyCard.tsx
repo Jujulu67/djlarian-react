@@ -1,10 +1,13 @@
 'use client';
 
 import { AlertTriangle } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { ImageCard } from './ImageCard';
-import type { GroupedImage } from '../types';
+
 import type { ImageMeta } from '@/app/api/admin/images/shared';
+import { Button } from '@/components/ui/Button';
+
+import type { GroupedImage } from '../types';
+
+import { ImageCard } from './ImageCard';
 
 interface DuplicateFamilyCardProps {
   family: { signature: string; groups: GroupedImage[] };
@@ -18,7 +21,7 @@ interface DuplicateFamilyCardProps {
   onFusion: () => void;
 }
 
-export function DuplicateFamilyCard({
+export const DuplicateFamilyCard = ({
   family,
   isMultiSelectMode,
   selectedImageIds,
@@ -28,14 +31,13 @@ export function DuplicateFamilyCard({
   onDownload,
   onDelete,
   onFusion,
-}: DuplicateFamilyCardProps) {
+}: DuplicateFamilyCardProps) => {
   return (
     <div className="mb-8 p-4 rounded-xl border-2 border-yellow-400 bg-yellow-50/10">
       <div className="mb-4 font-bold text-yellow-400 flex items-center gap-2 justify-between">
         <span className="flex items-center gap-2">
           <AlertTriangle className="w-5 h-5" />
-          Doublons potentiels (taille originale :{' '}
-          {(Number(family.signature) / 1024).toFixed(1)} Ko)
+          Doublons potentiels (taille originale : {(Number(family.signature) / 1024).toFixed(1)} Ko)
         </span>
         <Button
           variant="outline"
@@ -68,5 +70,4 @@ export function DuplicateFamilyCard({
       </div>
     </div>
   );
-}
-
+};

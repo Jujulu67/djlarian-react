@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { Event as PrismaEvent, TicketInfo as PrismaTicketInfo } from '@prisma/client';
+import { format, parseISO } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import {
   Calendar,
   Plus,
@@ -25,10 +24,12 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import Image from 'next/image';
-import { format, parseISO } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { useState, useEffect, useMemo } from 'react';
 import { FaPlus, FaEdit, FaTrash, FaEye, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
-import { Event as PrismaEvent, TicketInfo as PrismaTicketInfo } from '@prisma/client';
+
 import { logger } from '@/lib/logger';
 
 // Créer un type local pour inclure les relations si nécessaire

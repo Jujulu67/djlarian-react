@@ -111,12 +111,7 @@ const ImageCropModal: React.FC<ImageCropModalProps> = ({
           </h3>
         </div>
         <div className="max-h-[70vh] overflow-auto flex justify-center items-center mb-4 pb-8">
-          <img
-            src={imageToEdit}
-            onLoad={handleImageLoad}
-            alt="À recadrer"
-            className="hidden"
-          />
+          <img src={imageToEdit} onLoad={handleImageLoad} alt="À recadrer" className="hidden" />
           {isImageLoaded && displayCrop ? (
             <ReactCrop
               crop={displayCrop}

@@ -1,6 +1,8 @@
 import { useRef, useCallback, useEffect } from 'react';
-import type { AudioAnalyser, FrequencyBand } from '@/types/game';
+
 import { logger } from '@/lib/logger';
+import type { AudioAnalyser, FrequencyBand } from '@/types/game';
+
 import {
   FREQUENCY_LANES,
   BEAT_DETECTION_THRESHOLD,
@@ -21,9 +23,7 @@ export interface UseAudioAnalyserReturn {
   beatConfidence: React.MutableRefObject<number>;
 }
 
-export function useAudioAnalyser(
-  audioElement: HTMLAudioElement | null
-): UseAudioAnalyserReturn {
+export function useAudioAnalyser(audioElement: HTMLAudioElement | null): UseAudioAnalyserReturn {
   const audioAnalyser = useRef<AudioAnalyser | null>(null);
   const audioContext = useRef<AudioContext | null>(null);
   const sourceNode = useRef<MediaElementAudioSourceNode | null>(null);
@@ -331,4 +331,3 @@ export function useAudioAnalyser(
     beatConfidence,
   };
 }
-

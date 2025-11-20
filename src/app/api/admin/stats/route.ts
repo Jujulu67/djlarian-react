@@ -1,10 +1,10 @@
+import { Prisma } from '@prisma/client';
+import { subDays, startOfDay, startOfWeek, startOfMonth } from 'date-fns';
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+
 import { auth } from '@/auth';
 import { logger } from '@/lib/logger';
-
-import { subDays, startOfDay, startOfWeek, startOfMonth } from 'date-fns';
-import { Prisma } from '@prisma/client';
+import prisma from '@/lib/prisma';
 
 // Define Period type
 type Period = 'daily' | 'weekly' | 'monthly';

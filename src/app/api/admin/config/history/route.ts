@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
 
-import prisma from '@/lib/prisma';
+import { auth } from '@/auth';
 import { logger } from '@/lib/logger';
+import prisma from '@/lib/prisma';
 
 // Récupère l'historique des modifications
 export async function GET(req: NextRequest) {

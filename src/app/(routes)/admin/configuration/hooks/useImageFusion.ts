@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import type { GroupedImage } from '../types';
+
 import type { ImageMeta } from '@/app/api/admin/images/shared';
 import { logger } from '@/lib/logger';
+
+import type { GroupedImage } from '../types';
 
 interface FusionModalState {
   family: { signature: string; groups: GroupedImage[] };
@@ -112,4 +114,3 @@ export function useImageFusion() {
     handleFusion,
   };
 }
-

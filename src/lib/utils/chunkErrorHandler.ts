@@ -1,5 +1,6 @@
-import { logger } from '@/lib/logger';
 import React from 'react';
+
+import { logger } from '@/lib/logger';
 /**
  * Utilitaire pour gérer les erreurs de chargement de chunks
  * Cette fonction configure un gestionnaire global pour intercepter et gérer

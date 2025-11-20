@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+
 import { getAllImages } from './shared';
 
 // GET /api/admin/images - Liste toutes les images

@@ -1,8 +1,10 @@
 // Prisma Client pour Vercel (Node.js runtime natif)
 // Plus besoin d'adaptateurs ou de hacks - tout fonctionne nativement
-import { PrismaClient } from '@prisma/client';
 import fs from 'fs';
 import path from 'path';
+
+import { PrismaClient } from '@prisma/client';
+
 import { logger } from '@/lib/logger';
 
 declare global {
@@ -53,12 +55,12 @@ if (process.env.NODE_ENV !== 'production') {
   try {
     const schemaPath = path.join(process.cwd(), 'prisma', 'schema.prisma');
     const switchPath = path.join(process.cwd(), '.db-switch.json');
-    
+
     if (fs.existsSync(schemaPath)) {
       const schemaContent = fs.readFileSync(schemaPath, 'utf-8');
       const isPostgreSQL = schemaContent.includes('provider = "postgresql"');
       const isSQLite = schemaContent.includes('provider = "sqlite"');
-      
+
       // Lire le switch pour déterminer le provider attendu
       let expectedProvider: 'postgresql' | 'sqlite' = 'sqlite'; // Par défaut SQLite
       if (fs.existsSync(switchPath)) {
@@ -70,15 +72,15 @@ if (process.env.NODE_ENV !== 'production') {
           logger.warn('Erreur lors de la lecture du switch, utilisation de SQLite par défaut');
         }
       }
-      
+
       // Vérifier la cohérence et synchroniser si nécessaire
       const actualProvider = isPostgreSQL ? 'postgresql' : 'sqlite';
-      
+
       if (actualProvider !== expectedProvider) {
         logger.warn(
           `⚠️  Incohérence détectée: schema.prisma est en ${actualProvider} mais le switch indique ${expectedProvider}. Synchronisation automatique...`
         );
-        
+
         // Synchroniser automatiquement le schéma
         try {
           let newSchemaContent = schemaContent;
@@ -93,14 +95,14 @@ if (process.env.NODE_ENV !== 'production') {
               'provider = "postgresql"'
             );
           }
-          
+
           fs.writeFileSync(schemaPath, newSchemaContent, 'utf-8');
           logger.info(`✅ Schema.prisma synchronisé vers ${expectedProvider}`);
         } catch (error) {
           logger.error('Erreur lors de la synchronisation automatique du schéma', error);
         }
       }
-      
+
       // Vérifier aussi la cohérence avec DATABASE_URL
       const isSQLiteUrl = databaseUrl.startsWith('file:');
       const isPostgreSQLUrl =

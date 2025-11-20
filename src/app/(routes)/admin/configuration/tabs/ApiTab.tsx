@@ -1,13 +1,14 @@
 'use client';
 
-import { useConfigs } from '@/stores/useConfigs';
+import { RefreshCcw } from 'lucide-react';
+
+import NumberInput from '@/components/config/NumberInput';
+import ToggleRow from '@/components/config/ToggleRow';
+import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/Button';
-import ToggleRow from '@/components/config/ToggleRow';
-import NumberInput from '@/components/config/NumberInput';
-import { RefreshCcw } from 'lucide-react';
 import { logger } from '@/lib/logger';
+import { useConfigs } from '@/stores/useConfigs';
 
 export default function ApiTab() {
   const { api, update } = useConfigs();

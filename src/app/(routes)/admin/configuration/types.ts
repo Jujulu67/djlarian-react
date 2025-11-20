@@ -18,4 +18,3 @@ export type SortOption =
   | 'size-desc'
   | 'type'
   | 'linked';
-

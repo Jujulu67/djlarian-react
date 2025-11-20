@@ -1,6 +1,7 @@
 // Vercel Blob Storage - Remplacement de R2
 // Plan gratuit : 5 GB de stockage, 100 GB de bande passante/mois
 import { put, del, list, head } from '@vercel/blob';
+
 import { logger } from '@/lib/logger';
 
 // Vérifier si Vercel Blob est configuré
@@ -29,7 +30,7 @@ export const uploadToBlob = async (
 
     return blob.url;
   } catch (error) {
-    logger.error('[BLOB] Erreur lors de l\'upload:', error);
+    logger.error("[BLOB] Erreur lors de l'upload:", error);
     throw error;
   }
 };
@@ -70,14 +71,18 @@ export const getBlobPublicUrl = (url: string): string => {
  * Note: Vercel Blob ne supporte pas directement le listing par préfixe
  * On utilise une approche différente si nécessaire
  */
-export const listBlobFiles = async (prefix: string = 'uploads/'): Promise<Array<{
-  id: string;
-  name: string;
-  path: string;
-  type: string;
-  size: number;
-  lastModified: string;
-}>> => {
+export const listBlobFiles = async (
+  prefix: string = 'uploads/'
+): Promise<
+  Array<{
+    id: string;
+    name: string;
+    path: string;
+    type: string;
+    size: number;
+    lastModified: string;
+  }>
+> => {
   if (!isBlobConfigured) {
     return [];
   }
@@ -98,7 +103,7 @@ export const listBlobFiles = async (prefix: string = 'uploads/'): Promise<Array<
     // Créer un objet pour chaque image avec des métadonnées
     return imageFiles.map((blob) => {
       const filename = blob.pathname;
-      
+
       // Déterminer le type d'image basé sur le nom du fichier
       let type = 'Autre';
       if (filename.includes('cover')) type = 'Couverture';
@@ -123,7 +128,9 @@ export const listBlobFiles = async (prefix: string = 'uploads/'): Promise<Array<
 /**
  * Obtenir les métadonnées d'un fichier Blob
  */
-export const getBlobMetadata = async (url: string): Promise<{
+export const getBlobMetadata = async (
+  url: string
+): Promise<{
   size: number;
   uploadedAt: Date;
   contentType: string;
@@ -144,4 +151,3 @@ export const getBlobMetadata = async (url: string): Promise<{
     return null;
   }
 };
-

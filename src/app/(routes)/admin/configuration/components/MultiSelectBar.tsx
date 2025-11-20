@@ -1,11 +1,13 @@
 'use client';
 
 import ReactDOM from 'react-dom';
-import { Checkbox } from '@/components/ui/Checkbox';
-import { Button } from '@/components/ui/Button';
-import type { GroupedImage } from '../types';
+
 import type { ImageMeta } from '@/app/api/admin/images/shared';
+import { Button } from '@/components/ui/Button';
+import { Checkbox } from '@/components/ui/Checkbox';
 import { isNotEmpty } from '@/lib/utils/arrayHelpers';
+
+import type { GroupedImage } from '../types';
 
 interface MultiSelectBarProps {
   isMultiSelectMode: boolean;
@@ -15,13 +17,13 @@ interface MultiSelectBarProps {
   setDeleteTarget: (img: ImageMeta | null) => void;
 }
 
-export function MultiSelectBar({
+export const MultiSelectBar = ({
   isMultiSelectMode,
   selectedImageIds,
   paginatedGroups,
   setSelectedImageIds,
   setDeleteTarget,
-}: MultiSelectBarProps) {
+}: MultiSelectBarProps) => {
   if (typeof window === 'undefined') return null;
 
   const allImageIds = paginatedGroups
@@ -100,5 +102,4 @@ export function MultiSelectBar({
     </div>,
     document.body
   );
-}
-
+};

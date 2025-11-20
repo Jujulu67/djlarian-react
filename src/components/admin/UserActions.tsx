@@ -1,9 +1,10 @@
 'use client'; // Nécessaire pour les hooks et interactions
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Trash2, Edit } from 'lucide-react'; // Importer les icônes nécessaires
 import Link from 'next/link'; // Importer Link
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+
 import { logger } from '@/lib/logger';
 
 interface UserActionsProps {

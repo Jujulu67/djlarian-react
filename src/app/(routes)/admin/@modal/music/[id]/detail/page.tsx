@@ -1,9 +1,10 @@
 'use client';
 
-import Modal from '@/components/ui/Modal';
-import TrackDetailView from '@/components/admin/TrackDetailView';
 import { useRouter, useParams } from 'next/navigation';
 import React from 'react';
+
+import TrackDetailView from '@/components/admin/TrackDetailView';
+import Modal from '@/components/ui/Modal';
 import { logger } from '@/lib/logger';
 
 export default function InterceptedMusicDetailPage() {

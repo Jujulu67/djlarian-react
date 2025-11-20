@@ -1,8 +1,10 @@
-import NextAuth from 'next-auth';
 import { PrismaAdapter } from '@auth/prisma-adapter';
+import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
+
 import { compare as bcryptCompare } from '@/lib/bcrypt-edge';
 import prisma from '@/lib/prisma';
+
 import { authConfig } from './auth.config';
 
 // Configuration principale avec adaptateur Prisma et Credentials
@@ -66,4 +68,3 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
   secret: secret,
   debug: false, // Désactiver le debug pour éviter les erreurs "Configuration"
 });
-

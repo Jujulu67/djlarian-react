@@ -1,7 +1,8 @@
 import { useRef, useCallback } from 'react';
-import type { GamePattern } from '@/types/game';
+
 import { logger } from '@/lib/logger';
 import { isNotEmpty } from '@/lib/utils/arrayHelpers';
+import type { GamePattern } from '@/types/game';
 
 const PLAYER_SIZE = 12;
 
@@ -372,11 +373,7 @@ export const useCanvasRenderer = ({
         if (ctx.current) {
           ctx.current.fillStyle = '#ff0000';
           ctx.current.font = '20px Arial';
-          ctx.current.fillText(
-            'Aucun pattern à afficher',
-            canvasWidth / 2 - 100,
-            canvasHeight / 2
-          );
+          ctx.current.fillText('Aucun pattern à afficher', canvasWidth / 2 - 100, canvasHeight / 2);
         }
 
         // Try to regenerate patterns
@@ -523,4 +520,3 @@ export const useCanvasRenderer = ({
     drawPattern,
   };
 };
-

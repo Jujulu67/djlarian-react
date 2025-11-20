@@ -1,10 +1,13 @@
 import { useCallback } from 'react';
+
 import { EventFormData, TicketInfo } from '../types';
 
 interface UseEventTicketsProps {
   formData: EventFormData;
   setFormData: React.Dispatch<React.SetStateAction<EventFormData>>;
-  handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
+  handleChange: (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => void;
   handleCheckboxChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
@@ -56,4 +59,3 @@ export const useEventTickets = ({
     handleChange,
   };
 };
-

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Audiowide, Montserrat } from 'next/font/google';
+
 import ClientLayout from '@/components/layout/ClientLayout';
 import './globals.css';
 import HydrationWrapper from '@/components/HydrationWrapper';

@@ -1,26 +1,28 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
 import { RefreshCcw, Image as ImageIcon, AlertTriangle } from 'lucide-react';
+import Link from 'next/link';
+import { useState, useEffect, useCallback } from 'react';
+
+import type { ImageMeta } from '@/app/api/admin/images/shared';
 import { Button } from '@/components/ui/Button';
 import { Pagination } from '@/components/ui/Pagination';
-import Link from 'next/link';
-import type { GroupedImage } from './types';
-import type { ImageMeta } from '@/app/api/admin/images/shared';
-import { useImages } from './hooks/useImages';
-import { useImageGrouping } from './hooks/useImageGrouping';
-import { useImageFilters } from './hooks/useImageFilters';
-import { useImageSelection } from './hooks/useImageSelection';
-import { useImageFusion } from './hooks/useImageFusion';
-import { FiltersBar } from './components/FiltersBar';
-import { MultiSelectBar } from './components/MultiSelectBar';
-import { ImageCard } from './components/ImageCard';
-import { DuplicateFamilyCard } from './components/DuplicateFamilyCard';
-import { ImageDetailModal } from './components/ImageDetailModal';
-import { OriginalFullModal } from './components/OriginalFullModal';
-import { DeleteConfirmModal } from './components/DeleteConfirmModal';
-import { FusionModal } from './components/FusionModal';
 import { logger } from '@/lib/logger';
+
+import { DeleteConfirmModal } from './components/DeleteConfirmModal';
+import { DuplicateFamilyCard } from './components/DuplicateFamilyCard';
+import { FiltersBar } from './components/FiltersBar';
+import { FusionModal } from './components/FusionModal';
+import { ImageCard } from './components/ImageCard';
+import { ImageDetailModal } from './components/ImageDetailModal';
+import { MultiSelectBar } from './components/MultiSelectBar';
+import { OriginalFullModal } from './components/OriginalFullModal';
+import { useImageFilters } from './hooks/useImageFilters';
+import { useImageFusion } from './hooks/useImageFusion';
+import { useImageGrouping } from './hooks/useImageGrouping';
+import { useImages } from './hooks/useImages';
+import { useImageSelection } from './hooks/useImageSelection';
+import type { GroupedImage } from './types';
 
 // Composant de spinner simple
 const ClipLoader = ({ size = 24, color = '#fff' }: { size?: number; color?: string }) => (
@@ -63,13 +65,8 @@ export default function GestionImages({
     deleteImage: deleteImageFromHook,
   } = useImages();
 
-  const {
-    groupedImages,
-    isGrouping,
-    setGroupedImages,
-    groupAndLinkImages,
-    syncImagesWithGroups,
-  } = useImageGrouping();
+  const { groupedImages, isGrouping, setGroupedImages, groupAndLinkImages, syncImagesWithGroups } =
+    useImageGrouping();
 
   const {
     filter,
@@ -143,7 +140,9 @@ export default function GestionImages({
     async (id: string) => {
       try {
         await deleteImageFromHook(id);
-        setGroupedImages((prev) => prev.filter((group) => group.crop?.id !== id && group.ori?.id !== id));
+        setGroupedImages((prev) =>
+          prev.filter((group) => group.crop?.id !== id && group.ori?.id !== id)
+        );
         setToast('Image supprimée avec succès');
         // Rafraîchir les images après suppression
         const fetchedImages = await fetchImages();
@@ -156,7 +155,14 @@ export default function GestionImages({
         throw err;
       }
     },
-    [deleteImageFromHook, setGroupedImages, fetchImages, groupAndLinkImages, syncImagesWithGroups, setImages]
+    [
+      deleteImageFromHook,
+      setGroupedImages,
+      fetchImages,
+      groupAndLinkImages,
+      syncImagesWithGroups,
+      setImages,
+    ]
   );
 
   // Gestion de la suppression multiple
@@ -185,7 +191,17 @@ export default function GestionImages({
     } else {
       setToast('Images supprimées avec succès');
     }
-  }, [deleteTarget, selectedImageIds, handleDeleteImage, clearSelection, setIsMultiSelectMode, paginatedGroups, currentPage, setCurrentPage, setError]);
+  }, [
+    deleteTarget,
+    selectedImageIds,
+    handleDeleteImage,
+    clearSelection,
+    setIsMultiSelectMode,
+    paginatedGroups,
+    currentPage,
+    setCurrentPage,
+    setError,
+  ]);
 
   // Téléchargement de l'image
   const handleDownload = useCallback((image: ImageMeta) => {
@@ -214,7 +230,16 @@ export default function GestionImages({
         throw err;
       }
     },
-    [handleFusion, deleteImageFromHook, fetchImages, groupAndLinkImages, syncImagesWithGroups, setImages, setGroupedImages, closeFusionModal]
+    [
+      handleFusion,
+      deleteImageFromHook,
+      fetchImages,
+      groupAndLinkImages,
+      syncImagesWithGroups,
+      setImages,
+      setGroupedImages,
+      closeFusionModal,
+    ]
   );
 
   return (
@@ -386,4 +411,3 @@ export default function GestionImages({
     </div>
   );
 }
-

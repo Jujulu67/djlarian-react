@@ -1,9 +1,5 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useRouter, useParams, useSearchParams } from 'next/navigation';
-import { useSession } from 'next-auth/react';
-import Link from 'next/link';
 import {
   Calendar,
   ChevronLeft,
@@ -21,11 +17,16 @@ import {
   Loader2,
   AlertCircle,
 } from 'lucide-react';
-import EventPreview from '@/app/components/EventPreview';
-import EventForm, { EventFormData } from '@/app/components/EventForm';
+import Link from 'next/link';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { useState, useEffect, useRef } from 'react';
 import type { Crop as CropType } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import { v4 as uuidv4 } from 'uuid';
+
+import EventForm, { EventFormData } from '@/app/components/EventForm';
+import EventPreview from '@/app/components/EventPreview';
 import { logger } from '@/lib/logger';
 
 // Déplacer la fonction helper ici pour qu'elle soit accessible partout

@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
-
-import prisma from '@/lib/prisma';
-import { RecurrenceConfig } from '@/app/components/EventForm';
 import { Prisma } from '@prisma/client';
-import { logger } from '@/lib/logger';
+import { NextRequest, NextResponse } from 'next/server';
+
+import { RecurrenceConfig } from '@/app/components/EventForm';
+import { auth } from '@/auth';
 import { handleApiError } from '@/lib/api/errorHandler';
 import { createSuccessResponse, createForbiddenResponse } from '@/lib/api/responseHelpers';
+import { logger } from '@/lib/logger';
+import prisma from '@/lib/prisma';
 
 // GET - Récupérer tous les événements avec filtres optionnels
 export async function GET(request: NextRequest): Promise<Response> {
@@ -282,7 +282,9 @@ export async function POST(request: Request): Promise<Response> {
           ...(body.tickets.price !== undefined && { price: Number(body.tickets.price) }),
           ...(body.tickets.buyUrl && { buyUrl: body.tickets.buyUrl as string }),
           ...(body.tickets.quantity !== undefined && { quantity: Number(body.tickets.quantity) }),
-          ...(body.tickets.availableFrom && { availableFrom: new Date(body.tickets.availableFrom) }),
+          ...(body.tickets.availableFrom && {
+            availableFrom: new Date(body.tickets.availableFrom),
+          }),
           ...(body.tickets.availableTo && { availableTo: new Date(body.tickets.availableTo) }),
         } as Prisma.TicketInfoCreateWithoutEventInput,
       };

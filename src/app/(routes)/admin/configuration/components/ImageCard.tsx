@@ -1,12 +1,14 @@
 'use client';
 
-import Image from 'next/image';
 import { Download, Trash2, Music, Calendar, Image as ImageIcon } from 'lucide-react';
+import Image from 'next/image';
+
+import type { ImageMeta } from '@/app/api/admin/images/shared';
+import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
-import { Badge } from '@/components/ui/Badge';
+
 import type { GroupedImage } from '../types';
-import type { ImageMeta } from '@/app/api/admin/images/shared';
 
 interface ImageCardProps {
   group: GroupedImage;
@@ -19,7 +21,7 @@ interface ImageCardProps {
   onDelete: (image: ImageMeta) => void;
 }
 
-export function ImageCard({
+export const ImageCard = ({
   group,
   isSelected,
   isMultiSelectMode,
@@ -28,7 +30,7 @@ export function ImageCard({
   onView,
   onDownload,
   onDelete,
-}: ImageCardProps): JSX.Element | null {
+}: ImageCardProps): JSX.Element | null => {
   const image = group.crop || group.ori;
   if (!image) return null;
 
@@ -185,5 +187,4 @@ export function ImageCard({
       </div>
     </div>
   );
-}
-
+};

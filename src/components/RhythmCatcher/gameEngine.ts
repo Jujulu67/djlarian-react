@@ -127,7 +127,7 @@ export function addPattern(
   let x = Math.random() * (canvasWidth - 100) + 50;
   let speed = 2 + Math.random() * 2;
   let radius = 25 + Math.random() * 15;
-  let points = Math.round(BASE_POINTS * (1 + Math.random() * 0.5));
+  const points = Math.round(BASE_POINTS * (1 + Math.random() * 0.5));
 
   // Si des données audio sont disponibles, on les utilise pour influencer le pattern
   if (audioData && audioData.length > 0) {

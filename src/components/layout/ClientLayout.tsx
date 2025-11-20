@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect } from 'react';
+import { Toaster } from 'react-hot-toast';
+
 import Navigation from '@/components/layout/Navigation';
 import CustomCursor from '@/components/ui/CustomCursor';
 import AuthProvider from '@/providers/AuthProvider';
-import { Toaster } from 'react-hot-toast';
 // import { SessionProvider } from 'next-auth/react';
 
 interface ClientLayoutProps {

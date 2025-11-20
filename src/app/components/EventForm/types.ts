@@ -33,4 +33,3 @@ export interface EventFormData {
   tickets: TicketInfo;
   recurrence?: RecurrenceConfig;
 }
-

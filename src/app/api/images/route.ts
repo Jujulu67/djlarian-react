@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+
 import { listBlobFiles, deleteFromBlob, isBlobConfigured } from '@/lib/blob';
 import { logger } from '@/lib/logger';
-
 
 // GET - Récupérer toutes les images
 export async function GET() {
@@ -27,10 +27,7 @@ export async function GET() {
 export async function DELETE(request: NextRequest) {
   try {
     if (!isBlobConfigured) {
-      return NextResponse.json(
-        { error: 'Vercel Blob not configured' },
-        { status: 503 }
-      );
+      return NextResponse.json({ error: 'Vercel Blob not configured' }, { status: 503 });
     }
 
     const { searchParams } = new URL(request.url);

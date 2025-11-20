@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
 import debounce from 'lodash/debounce';
 import { Search, X } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
+import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
-import { Button } from '@/components/ui/Button';
 
 export const UserFilters = () => {
   const router = useRouter();

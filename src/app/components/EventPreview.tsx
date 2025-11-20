@@ -1,5 +1,6 @@
 import { Calendar, Clock, Euro, Eye, MapPin, Ticket, Star, Repeat } from 'lucide-react';
 import Image from 'next/image';
+
 import { EventFormData } from './EventForm';
 
 interface EventPreviewProps {

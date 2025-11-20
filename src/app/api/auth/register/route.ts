@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
+
 import { hash as bcryptHash } from '@/lib/bcrypt-edge';
-import prisma from '@/lib/prisma';
 import { logger } from '@/lib/logger';
+import prisma from '@/lib/prisma';
 
 export async function POST(request: Request) {
   try {

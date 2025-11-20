@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+
 import RhythmCatcher from '@/components/RhythmCatcher';
 import { logger } from '@/lib/logger';
 

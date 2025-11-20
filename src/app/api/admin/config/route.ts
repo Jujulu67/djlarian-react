@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
 
-import prisma from '@/lib/prisma';
-import { AllConfigs } from '@/types/config';
+import { auth } from '@/auth';
 import { defaultConfigs } from '@/config/defaults';
 import { logger } from '@/lib/logger';
+import prisma from '@/lib/prisma';
+import { AllConfigs } from '@/types/config';
 
 // Valeurs par défaut pour les configurations (en cas d'erreur ou de première visite)
 /*

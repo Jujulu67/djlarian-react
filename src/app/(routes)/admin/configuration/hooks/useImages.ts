@@ -1,6 +1,8 @@
 import { useState, useCallback } from 'react';
+
 import { ImageMeta } from '@/app/api/admin/images/shared';
 import { logger } from '@/lib/logger';
+
 import { extractImageId } from '../utils/extractImageId';
 
 export function useImages() {
@@ -18,24 +20,26 @@ export function useImages() {
         throw new Error(`Erreur lors de la récupération des images: ${response.status}`);
       }
       const data = await response.json();
-      const formattedImages: ImageMeta[] = data.images.map((img: {
-        id: string;
-        path: string;
-        name: string;
-        size: number;
-        lastModified: string;
-        type: string;
-      }) => ({
-        id: img.id,
-        url: img.path,
-        name: img.name,
-        size: img.size,
-        date: img.lastModified,
-        type: img.type,
-        linkedTo: null,
-        isDuplicate: false,
-      }));
-      
+      const formattedImages: ImageMeta[] = data.images.map(
+        (img: {
+          id: string;
+          path: string;
+          name: string;
+          size: number;
+          lastModified: string;
+          type: string;
+        }) => ({
+          id: img.id,
+          url: img.path,
+          name: img.name,
+          size: img.size,
+          date: img.lastModified,
+          type: img.type,
+          linkedTo: null,
+          isDuplicate: false,
+        })
+      );
+
       // Détection des doublons par nom de base
       const nameMap: Record<string, number> = {};
       formattedImages.forEach((img: ImageMeta) => {
@@ -46,7 +50,7 @@ export function useImages() {
         const baseName = extractImageId(img.name);
         return { ...img, isDuplicate: nameMap[baseName] > 1 };
       });
-      
+
       setImages(imagesWithDuplicates);
       return imagesWithDuplicates;
     } catch (err) {
@@ -64,35 +68,41 @@ export function useImages() {
     setIsRefreshing(false);
   }, [fetchImages]);
 
-  const deleteImage = useCallback(async (id: string) => {
-    setError(null);
-    try {
-      const imageToDelete = images.find((img) => img.id === id);
-      if (!imageToDelete) {
-        throw new Error('Image non trouvée');
-      }
-
-      const response = await fetch(
-        `/api/images?filename=${encodeURIComponent(imageToDelete.name)}`,
-        {
-          method: 'DELETE',
+  const deleteImage = useCallback(
+    async (id: string) => {
+      setError(null);
+      try {
+        const imageToDelete = images.find((img) => img.id === id);
+        if (!imageToDelete) {
+          throw new Error('Image non trouvée');
         }
-      );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Erreur lors de la suppression: ${response.status}`);
+        const response = await fetch(
+          `/api/images?filename=${encodeURIComponent(imageToDelete.name)}`,
+          {
+            method: 'DELETE',
+          }
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `Erreur lors de la suppression: ${response.status}`);
+        }
+
+        setImages((prev) => prev.filter((img) => img.id !== id));
+        return true;
+      } catch (err: unknown) {
+        const errorMessage =
+          err instanceof Error
+            ? err.message
+            : "Impossible de supprimer l'image. Veuillez réessayer.";
+        logger.error('Erreur de suppression:', err);
+        setError(errorMessage);
+        throw err;
       }
-
-      setImages((prev) => prev.filter((img) => img.id !== id));
-      return true;
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : "Impossible de supprimer l'image. Veuillez réessayer.";
-      logger.error('Erreur de suppression:', err);
-      setError(errorMessage);
-      throw err;
-    }
-  }, [images]);
+    },
+    [images]
+  );
 
   return {
     images,
@@ -106,4 +116,3 @@ export function useImages() {
     deleteImage,
   };
 }
-

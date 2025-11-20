@@ -1,9 +1,10 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import Image from 'next/image';
-import { Event } from '@/types';
 import { Calendar, MapPin } from 'lucide-react';
+import Image from 'next/image';
+
+import { Event } from '@/types';
 
 export interface UpcomingEventsProps {
   title?: string;

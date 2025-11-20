@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
-
-import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import { NextRequest, NextResponse } from 'next/server';
+
+import { auth } from '@/auth';
 import { defaultConfigs } from '@/config/defaults';
 import { logger } from '@/lib/logger';
+import prisma from '@/lib/prisma';
 import { isNotEmpty } from '@/lib/utils/arrayHelpers';
 
 // Types pour les sections de configuration
@@ -157,10 +157,7 @@ export async function POST(req: NextRequest) {
         },
       });
     } catch (snapshotError) {
-      logger.error(
-        'Erreur lors de la création du snapshot avant réinitialisation:',
-        snapshotError
-      );
+      logger.error('Erreur lors de la création du snapshot avant réinitialisation:', snapshotError);
       // Continuer même si la création du snapshot a échoué
     }
 

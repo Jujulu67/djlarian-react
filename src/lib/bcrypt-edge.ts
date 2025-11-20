@@ -1,6 +1,6 @@
 /**
  * Wrapper pour bcrypt - Vercel (Node.js runtime natif)
- * 
+ *
  * Sur Vercel, bcryptjs fonctionne nativement sans hacks
  */
 import bcrypt from 'bcryptjs';
@@ -18,4 +18,3 @@ export async function compare(password: string, hash: string): Promise<boolean> 
 export async function hash(password: string, saltRounds: number = 10): Promise<string> {
   return bcrypt.hash(password, saltRounds);
 }
-

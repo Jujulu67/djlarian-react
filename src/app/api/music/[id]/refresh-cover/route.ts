@@ -1,9 +1,10 @@
-import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
-import { v4 as uuidv4 } from 'uuid';
 import * as cheerio from 'cheerio';
+import { NextResponse } from 'next/server';
+import { v4 as uuidv4 } from 'uuid';
+
 import { uploadToBlob, isBlobConfigured, getBlobPublicUrl } from '@/lib/blob';
 import { logger } from '@/lib/logger';
+import prisma from '@/lib/prisma';
 
 // Refresh cover endpoint - Vercel (Node.js runtime natif)
 
@@ -104,11 +105,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (!response.ok) throw new Error('Cover fetch failed');
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    
+
     // Déterminer le type MIME depuis l'URL ou la réponse
     const contentType = response.headers.get('content-type') || 'image/jpeg';
     const extension = contentType.includes('png') ? 'png' : 'jpg';
-    
+
     // Sauvegarder dans Vercel Blob si configuré, sinon erreur
     if (!isBlobConfigured) {
       return NextResponse.json(
@@ -121,10 +122,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const originalKey = `uploads/${imageId}-ori.${extension}`;
     const blobUrl = await uploadToBlob(key, buffer, contentType);
     await uploadToBlob(originalKey, buffer, contentType);
-    
+
     // 4. Mettre à jour la track
     await prisma.track.update({ where: { id }, data: { imageId } });
-    
+
     // 5. Retourner la nouvelle cover (Vercel Blob retourne directement l'URL)
     return NextResponse.json({
       success: true,

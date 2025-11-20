@@ -1,5 +1,6 @@
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+
 import { logger } from '@/lib/logger';
 
 export interface EventData {
@@ -74,7 +75,8 @@ export const useEditEvent = () => {
       return result;
     } catch (err: unknown) {
       logger.error('Error saving event:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Une erreur est survenue lors de la sauvegarde';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Une erreur est survenue lors de la sauvegarde';
       setError(errorMessage);
       setLoading(false);
       throw err;

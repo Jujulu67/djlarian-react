@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
 import { debounce } from 'lodash';
 import { Search, Star, RotateCcw } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useCallback, useEffect } from 'react';
+
 import { Select } from '../../../../../components/ui/Select';
 
 interface UserFiltersServerProps {

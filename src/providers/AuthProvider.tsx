@@ -1,8 +1,9 @@
 'use client';
 
 import { SessionProvider } from 'next-auth/react';
-import ErrorBoundary from '@/components/ErrorBoundary';
 import { useEffect } from 'react';
+
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 // Cache global pour dédupliquer les requêtes de session
 let sessionRequestCache: {
@@ -19,26 +20,26 @@ const ENABLE_LOGS = false; // Désactiver les logs en production
 // Intercepter fetch AVANT que les composants ne se montent
 if (typeof window !== 'undefined') {
   const originalFetch = window.fetch;
-  
+
   window.fetch = async (...args): Promise<Response> => {
     const url = typeof args[0] === 'string' ? args[0] : (args[0] as Request).url;
-    
+
     // Si c'est une requête vers /api/auth/session
     if (url.includes('/api/auth/session')) {
       const now = Date.now();
-      
+
       // Logs désactivés pour réduire le bruit dans la console
-      
+
       // Vérifier si on a une réponse en cache valide
       if (sessionRequestCache) {
         const cacheAge = now - sessionRequestCache.timestamp;
-        
+
         // Si le cache est récent et qu'on a une réponse, la réutiliser
         if (cacheAge < CACHE_DURATION && sessionRequestCache.response) {
           // Cloner la réponse pour qu'elle puisse être utilisée plusieurs fois
           return sessionRequestCache.response.clone();
         }
-        
+
         // Si on a une requête en cours (même si elle vient de commencer), réutiliser la promesse
         // Augmenté la fenêtre à 500ms pour mieux dédupliquer les requêtes quasi-simultanées
         if (sessionRequestCache.promise && cacheAge < DEDUP_WINDOW) {
@@ -46,49 +47,60 @@ if (typeof window !== 'undefined') {
           return sessionRequestCache.promise.then((response) => {
             // Décrémenter le compteur quand la réponse arrive
             if (sessionRequestCache) {
-              sessionRequestCache.pendingRequests = Math.max(0, sessionRequestCache.pendingRequests - 1);
+              sessionRequestCache.pendingRequests = Math.max(
+                0,
+                sessionRequestCache.pendingRequests - 1
+              );
             }
             return response.clone();
           });
         }
       }
-      
+
       // Créer une nouvelle requête et la mettre en cache
-      const promise = originalFetch(...args).then((response) => {
-        // Mettre en cache la réponse
-        if (sessionRequestCache) {
-          sessionRequestCache.response = response.clone();
-          sessionRequestCache.pendingRequests = Math.max(0, sessionRequestCache.pendingRequests - 1);
-        }
-        return response;
-      }).catch((error) => {
-        if (sessionRequestCache) {
-          sessionRequestCache.pendingRequests = Math.max(0, sessionRequestCache.pendingRequests - 1);
-        }
-        throw error;
-      });
-      
+      const promise = originalFetch(...args)
+        .then((response) => {
+          // Mettre en cache la réponse
+          if (sessionRequestCache) {
+            sessionRequestCache.response = response.clone();
+            sessionRequestCache.pendingRequests = Math.max(
+              0,
+              sessionRequestCache.pendingRequests - 1
+            );
+          }
+          return response;
+        })
+        .catch((error) => {
+          if (sessionRequestCache) {
+            sessionRequestCache.pendingRequests = Math.max(
+              0,
+              sessionRequestCache.pendingRequests - 1
+            );
+          }
+          throw error;
+        });
+
       sessionRequestCache = {
         promise,
         timestamp: now,
         response: null,
         pendingRequests: 0,
       };
-      
+
       // Nettoyer le cache après la durée de cache
       setTimeout(() => {
         if (sessionRequestCache?.promise === promise) {
           sessionRequestCache = null;
         }
       }, CACHE_DURATION);
-      
+
       return promise;
     }
-    
+
     // Pour les autres requêtes, utiliser fetch normal
     return originalFetch(...args);
   };
-  
+
   // Interception activée silencieusement
 }
 

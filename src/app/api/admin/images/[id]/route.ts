@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // Référence à la liste partagée avec le endpoint parent
-import { removeImage } from '../../images/shared';
 import { logger } from '@/lib/logger';
+
+import { removeImage } from '../../images/shared';
 
 // DELETE /api/admin/images/[id] - Supprime une image par ID
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

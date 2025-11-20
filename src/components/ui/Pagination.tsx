@@ -1,5 +1,6 @@
-import React from 'react';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import React from 'react';
+
 import { cn } from '@/lib/utils/cn';
 
 interface PaginationProps {
@@ -24,7 +25,7 @@ export const Pagination: React.FC<PaginationProps> = ({
 
     const halfVisiblePages = Math.floor(maxVisiblePages / 2);
     let startPage = Math.max(currentPage - halfVisiblePages, 1);
-    let endPage = Math.min(startPage + maxVisiblePages - 1, totalPages);
+    const endPage = Math.min(startPage + maxVisiblePages - 1, totalPages);
 
     if (endPage - startPage + 1 < maxVisiblePages) {
       startPage = Math.max(endPage - maxVisiblePages + 1, 1);

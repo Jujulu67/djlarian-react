@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+
 import { cleanupAttributes } from '@/lib/utils/cleanupAttributes';
 
 export default function HydrationWrapper({ children }: { children: React.ReactNode }) {

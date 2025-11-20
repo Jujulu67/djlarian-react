@@ -1,14 +1,15 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import gsap from 'gsap';
+import { useEffect, useRef, useState } from 'react';
 import useSWR from 'swr';
-import LatestReleases from '@/components/sections/LatestReleases';
-import UpcomingEvents from '@/components/sections/UpcomingEvents';
-import TwitchStream from '@/components/sections/TwitchStream';
+
 import ParticleVisualizer from '@/components/3d/ParticleVisualizer';
 import RhythmCatcher from '@/components/RhythmCatcher';
+import LatestReleases from '@/components/sections/LatestReleases';
+import TwitchStream from '@/components/sections/TwitchStream';
+import UpcomingEvents from '@/components/sections/UpcomingEvents';
 import { defaultConfigs } from '@/config/defaults';
 
 // Type pour les configurations de la page d'accueil
@@ -172,7 +173,10 @@ export default function HomePage() {
           return renderHeroSection();
         case 'releases':
           return currentConfig.releasesEnabled ? (
-            <LatestReleases title={currentConfig.releasesTitle} count={currentConfig.releasesCount} />
+            <LatestReleases
+              title={currentConfig.releasesTitle}
+              count={currentConfig.releasesCount}
+            />
           ) : null;
         case 'visualizer':
           return currentConfig.visualizerEnabled ? renderVisualizerSection() : null;
@@ -373,7 +377,9 @@ export default function HomePage() {
               onClick={handleExperienceClick}
             >
               <span className="cursor-pointer hover:text-purple-400 transition-colors">
-                {isSoundActive ? `Stop ${currentConfig.visualizerTitle}` : currentConfig.visualizerTitle}
+                {isSoundActive
+                  ? `Stop ${currentConfig.visualizerTitle}`
+                  : currentConfig.visualizerTitle}
               </span>
             </motion.h2>
           </div>

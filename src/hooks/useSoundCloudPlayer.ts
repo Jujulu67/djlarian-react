@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Track } from '@/lib/utils/types';
-import { sendPlayerCommand, getInitialVolume } from '@/lib/utils/audioUtils';
+
 import { logger } from '@/lib/logger';
+import { sendPlayerCommand, getInitialVolume } from '@/lib/utils/audioUtils';
+import { Track } from '@/lib/utils/types';
 
 interface UseSoundCloudPlayerProps {
   track: Track;
@@ -75,14 +76,7 @@ export const useSoundCloudPlayer = ({
       setIsSoundcloudVisible(true);
       setPlayWhenReady(false);
     }
-  }, [
-    isActive,
-    isPlaying,
-    soundcloudUrl,
-    isSoundcloudReady,
-    track.id,
-    track.platforms.soundcloud,
-  ]);
+  }, [isActive, isPlaying, soundcloudUrl, isSoundcloudReady, track.id, track.platforms.soundcloud]);
 
   // Effect to play SoundCloud when it becomes ready AND play is intended
   useEffect(() => {
@@ -108,9 +102,9 @@ export const useSoundCloudPlayer = ({
   // Determine if SoundCloud is active
   const isSoundcloudActive = Boolean(
     isActive &&
-    track.platforms.soundcloud &&
-    soundcloudUrl &&
-    (isSoundcloudVisible || isSoundcloudLoaded)
+      track.platforms.soundcloud &&
+      soundcloudUrl &&
+      (isSoundcloudVisible || isSoundcloudLoaded)
   );
 
   // Handle SoundCloud messages
@@ -238,4 +232,3 @@ export const useSoundCloudPlayer = ({
     handleClosePlayer,
   };
 };
-

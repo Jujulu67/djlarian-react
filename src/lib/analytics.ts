@@ -12,6 +12,7 @@ import {
   startOfMonth,
   endOfMonth,
 } from 'date-fns';
+
 import { logger } from '@/lib/logger';
 import { isNotEmpty, first } from '@/lib/utils/arrayHelpers';
 
@@ -197,7 +198,7 @@ export async function getUmamiStats(
     });
 
     // Structure pour les résultats
-    let result: UmamiStats = {
+    const result: UmamiStats = {
       metrics: {
         pageviews: { value: 0, change: 0 },
         uniques: { value: 0, change: 0 },
@@ -424,7 +425,7 @@ export async function getTrafficSources(
     // Mapper les données
     return data.map((referrer: { x?: string; y?: number }) => {
       // Déterminer le type de source
-      let source = (referrer.x || '').toLowerCase();
+      const source = (referrer.x || '').toLowerCase();
       let displayName = referrer.x || '(unknown)';
       let colorKey = 'other';
 

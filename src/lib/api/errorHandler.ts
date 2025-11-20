@@ -1,13 +1,15 @@
 import { Prisma } from '@prisma/client';
+import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
+
 import { logger } from '@/lib/logger';
+
 import {
   createErrorResponse as createErrorResponseHelper,
   createBadRequestResponse,
   createConflictResponse,
   createInternalErrorResponse,
 } from './responseHelpers';
-import { NextResponse } from 'next/server';
 
 /**
  * Standard error codes for API responses
@@ -86,17 +88,14 @@ function handlePrismaError(
       const fields = (error.meta?.target as string[]) ?? ['unknown field'];
       const fieldNames = fields.join(', ');
       logger.warn(`${context} Unique constraint violation on: ${fieldNames}`);
-      return createConflictResponse(
-        `A record with this ${fieldNames} already exists`,
-        { fields }
-      );
+      return createConflictResponse(`A record with this ${fieldNames} already exists`, { fields });
     }
 
     case 'P2003': {
       // Foreign key constraint violation
       const field = (error.meta?.field_name as string) ?? 'unknown relation';
       logger.warn(`${context} Foreign key constraint violation on: ${field}`);
-      
+
       // Provide user-friendly messages for common fields
       let userFriendlyMessage = `Invalid reference: ${field}`;
       if (field.includes('collectionId')) {
@@ -132,5 +131,3 @@ function handlePrismaError(
     }
   }
 }
-
-

@@ -1,6 +1,5 @@
-import { redirect } from 'next/navigation';
-import { auth } from '@/auth';
-import Link from 'next/link';
+import { format, formatDistanceToNow, isToday, isYesterday, parseISO } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import {
   CalendarDays,
   Music2,
@@ -11,10 +10,12 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
-import prisma from '@/lib/prisma';
-import { format, formatDistanceToNow, isToday, isYesterday, parseISO } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
+
+import { auth } from '@/auth';
+import prisma from '@/lib/prisma';
 import { isNotEmpty } from '@/lib/utils/arrayHelpers';
 
 // Définir un type pour les activités pour plus de clarté
@@ -42,7 +43,7 @@ const formatGroupDate = (dateString: string) => {
 };
 
 // Composant de pagination moderne avec simple HTML
-function ModernPagination({
+const ModernPagination = ({
   currentPage,
   totalPages,
   baseUrl,
@@ -50,7 +51,7 @@ function ModernPagination({
   currentPage: number;
   totalPages: number;
   baseUrl: string;
-}) {
+}) => {
   // Fonction pour générer l'URL de pagination
   const getPageUrl = (page: number) => {
     if (baseUrl.includes('?')) {
@@ -98,7 +99,7 @@ function ModernPagination({
       )}
     </div>
   );
-}
+};
 
 // Revenir au type standard pour searchParams
 export default async function AdminActivitiesPage({
@@ -207,7 +208,7 @@ export default async function AdminActivitiesPage({
     ]);
 
     // Combiner et mapper
-    let combinedData = [
+    const combinedData = [
       ...allEvents.map((e) => ({
         id: e.id,
         type: 'event' as ActivityType,

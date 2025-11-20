@@ -1,8 +1,8 @@
 'use client';
 
+import type { ImageMeta } from '@/app/api/admin/images/shared';
 import { Button } from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
-import type { ImageMeta } from '@/app/api/admin/images/shared';
 
 interface DeleteConfirmModalProps {
   deleteTarget: ImageMeta;
@@ -11,12 +11,12 @@ interface DeleteConfirmModalProps {
   onConfirm: () => Promise<void>;
 }
 
-export function DeleteConfirmModal({
+export const DeleteConfirmModal = ({
   deleteTarget,
   selectedImageIds,
   onClose,
   onConfirm,
-}: DeleteConfirmModalProps) {
+}: DeleteConfirmModalProps) => {
   const isMultiDelete = deleteTarget.id === 'multi';
 
   return (
@@ -45,11 +45,7 @@ export function DeleteConfirmModal({
           {isMultiDelete ? 'les images sélectionnées' : "l'image"}.
         </div>
         <div className="flex gap-4 justify-center">
-          <Button
-            variant="outline"
-            onClick={onClose}
-            className="border-gray-700 hover:bg-gray-800"
-          >
+          <Button variant="outline" onClick={onClose} className="border-gray-700 hover:bg-gray-800">
             Annuler
           </Button>
           <Button variant="destructive" onClick={onConfirm}>
@@ -59,5 +55,4 @@ export function DeleteConfirmModal({
       </div>
     </Modal>
   );
-}
-
+};

@@ -1,4 +1,5 @@
 import { renderHook, act } from '@testing-library/react';
+
 import { useImageUpload } from '../useImageUpload';
 
 describe('useImageUpload', () => {
@@ -52,4 +53,3 @@ describe('useImageUpload', () => {
     expect(result.current.originalImageFileRef).toBeDefined();
   });
 });
-
