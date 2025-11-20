@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import {
   HistoryIcon,
   ClockIcon,
@@ -12,12 +13,12 @@ import {
   PlusCircle,
   Settings,
 } from 'lucide-react';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
-import { Button } from '@/components/ui/Button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+
+import { Button } from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { logger } from '@/lib/logger';
 
 interface ConfigHistoryItem {
@@ -78,6 +79,7 @@ export default function HistoryModal({
     if (isOpen) {
       fetchHistoryData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, activeTab]);
 
   useEffect(() => {

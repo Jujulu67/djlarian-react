@@ -1,25 +1,8 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-# Vérifier que schema.prisma est en PostgreSQL avant le commit
-SCHEMA_PATH="prisma/schema.prisma"
-
-if [ -f "$SCHEMA_PATH" ]; then
-  if grep -q 'provider = "sqlite"' "$SCHEMA_PATH"; then
-    echo "⚠️  ATTENTION: schema.prisma est en SQLite !"
-    echo ""
-    echo "Le schema.prisma doit être en PostgreSQL pour être commité."
-    echo "En production (Vercel), PostgreSQL est requis."
-    echo ""
-    echo "Options:"
-    echo "  1. Utilisez le switch DB dans l'admin panel pour revenir à PostgreSQL"
-    echo "  2. Ou exécutez: npm run db:production"
-    echo "  3. Ou modifiez manuellement prisma/schema.prisma"
-    echo ""
-    echo "Le commit a été annulé. Corrigez le schema et recommencez."
-    exit 1
-  fi
-fi
+# Vérification SQLite/PostgreSQL supprimée - les scripts de build s'en chargent automatiquement
+# Le script ensure-postgresql-schema.sh s'exécute lors du build sur Vercel
 
 # Exécuter lint-staged si configuré
 npx lint-staged

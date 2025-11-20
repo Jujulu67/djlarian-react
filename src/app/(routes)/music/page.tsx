@@ -1,14 +1,15 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Track, MusicType } from '@/lib/utils/types';
+import { Filter, Search, Zap, ChevronDown, Music, Loader, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+
+import { Input } from '@/components/ui/Input';
 import MusicCard from '@/components/ui/MusicCard';
 import SimpleMusicPlayer from '@/components/ui/SimpleMusicPlayer';
-import { Filter, Search, Zap, ChevronDown, Music, Loader, Sparkles } from 'lucide-react';
-import { Input } from '@/components/ui/Input';
-import { sendPlayerCommand } from '@/lib/utils/audioUtils';
 import { logger } from '@/lib/logger';
+import { sendPlayerCommand } from '@/lib/utils/audioUtils';
+import { Track, MusicType } from '@/lib/utils/types';
 
 // Helper function for locking mechanism
 const withLock = async (
@@ -196,7 +197,7 @@ export default function MusicPage() {
   }, [tracks, selectedType, searchTerm]);
 
   // Déclarer closePlayer au-dessus de playTrack pour éviter les problèmes de déclaration
-  const closePlayer = () => {
+  const closePlayer = useCallback(() => {
     withLock(
       stateLockedRef,
       () => {
@@ -225,7 +226,7 @@ export default function MusicPage() {
       },
       100
     ); // Short lock delay 100ms
-  };
+  }, [currentTrack]);
 
   // Fonction pour jouer un morceau avec gestion simplifiée
   const playTrack = useCallback(

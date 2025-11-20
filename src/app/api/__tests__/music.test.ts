@@ -1,10 +1,11 @@
 /**
  * Tests for /api/music route
  * Note: These are integration tests that may require a test database
+ * @jest-environment node
  */
+import { NextRequest } from 'next/server';
 
 import { GET, POST } from '../music/route';
-import { NextRequest } from 'next/server';
 
 // Mock dependencies
 jest.mock('@/auth', () => ({
@@ -70,9 +71,7 @@ describe('/api/music', () => {
 
     it('should handle errors gracefully', async () => {
       const { default: prisma } = await import('@/lib/prisma');
-      (prisma.track.findMany as jest.Mock).mockRejectedValue(
-        new Error('Database error')
-      );
+      (prisma.track.findMany as jest.Mock).mockRejectedValue(new Error('Database error'));
 
       const response = await GET();
       const data = await response.json();
@@ -107,14 +106,18 @@ describe('/api/music', () => {
     it('should validate request body', async () => {
       const { auth } = await import('@/auth');
       (auth as jest.Mock).mockResolvedValue({
-        user: { id: '1', role: 'admin' },
+        user: { id: '1', role: 'ADMIN' },
       });
 
       const request = new NextRequest('http://localhost/api/music', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
-          // Missing required fields
+          // Missing required fields - title is empty string which fails min(1)
           title: '',
+          artist: '',
         }),
       });
 
@@ -123,7 +126,8 @@ describe('/api/music', () => {
 
       expect(response.status).toBe(400);
       expect(data.error).toBeDefined();
+      // The error format from Zod includes 'details' field
+      expect(data.error === 'Invalid input data' || data.error === 'Invalid JSON body').toBe(true);
     });
   });
 });
-

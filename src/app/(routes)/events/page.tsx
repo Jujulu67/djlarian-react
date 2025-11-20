@@ -1,11 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
-import { useSearchParams } from 'next/navigation';
 import { format, parseISO, addDays, addMonths } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { motion } from 'framer-motion';
 import {
   Calendar,
   Search,
@@ -24,7 +21,11 @@ import {
   Sparkles,
   Eye,
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
+
 import { logger } from '@/lib/logger';
 
 // Types
@@ -79,7 +80,7 @@ export default function EventsPage() {
 
   // Générer des occurrences virtuelles pour les événements récurrents
   function generateVirtualOccurrences(events: Event[]): Event[] {
-    let allEvents: Event[] = [];
+    const allEvents: Event[] = [];
 
     for (const event of events) {
       // Marquer l'événement maître comme récurrent pour l'affichage
@@ -259,6 +260,7 @@ export default function EventsPage() {
     };
 
     fetchEvents();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedStatus]);
 
   // Filtrer les événements par recherche
@@ -527,7 +529,7 @@ export default function EventsPage() {
             <h2 className="text-2xl font-bold text-white mb-3">Aucun événement trouvé</h2>
             <p className="text-gray-400 mb-6 max-w-md mx-auto">
               {searchTerm
-                ? `Aucun résultat ne correspond à "${searchTerm}"`
+                ? `Aucun résultat ne correspond à &quot;${searchTerm}&quot;`
                 : selectedStatus === 'all'
                   ? 'Aucun événement disponible pour le moment'
                   : `Aucun événement ${selectedStatus === 'UPCOMING' ? 'à venir' : selectedStatus === 'COMPLETED' ? 'passé' : 'annulé'}`}

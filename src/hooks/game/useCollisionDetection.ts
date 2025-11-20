@@ -1,7 +1,19 @@
 import { useCallback } from 'react';
+
 import { GamePattern } from '@/types/game';
 
 const PLAYER_SIZE = 12;
+
+interface Particle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  size: number;
+  color: string;
+  life: number;
+  timestamp: number;
+}
 
 interface UseCollisionDetectionProps {
   handleCollision: (type: GamePattern['type'], pattern: GamePattern) => void;
@@ -10,11 +22,9 @@ interface UseCollisionDetectionProps {
     lastHitPoints?: number;
   };
   setScreenShake: (shake: { active: boolean; intensity: number }) => void;
-  setParticles: React.Dispatch<React.SetStateAction<any[]>>;
+  setParticles: React.Dispatch<React.SetStateAction<Particle[]>>;
   setPointAnimations: React.Dispatch<
-    React.SetStateAction<
-      { x: number; y: number; value: number; timestamp: number; type: string }[]
-    >
+    React.SetStateAction<{ x: number; y: number; value: number; timestamp: number; type: string }[]>
   >;
 }
 
@@ -45,8 +55,7 @@ export const useCollisionDetection = ({
           setScreenShake({ active: true, intensity });
 
           // Generate particles at collision location
-          const particleCount =
-            pattern.type === 'golden' ? 12 : pattern.type === 'blue' ? 10 : 8;
+          const particleCount = pattern.type === 'golden' ? 12 : pattern.type === 'blue' ? 10 : 8;
           const particleColor =
             pattern.type === 'golden'
               ? '#FFD700'
@@ -96,4 +105,3 @@ export const useCollisionDetection = ({
 
   return { checkCollisions };
 };
-

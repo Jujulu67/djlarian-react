@@ -1,11 +1,12 @@
 'use client';
 
-import { useConfigs } from '@/stores/useConfigs';
+import { Lock } from 'lucide-react';
+
+import NumberInput from '@/components/config/NumberInput';
+import ToggleRow from '@/components/config/ToggleRow';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/label';
-import ToggleRow from '@/components/config/ToggleRow';
-import NumberInput from '@/components/config/NumberInput';
-import { Lock } from 'lucide-react';
+import { useConfigs } from '@/stores/useConfigs';
 
 export default function SecurityTab() {
   const { security, update } = useConfigs();
@@ -69,7 +70,7 @@ export default function SecurityTab() {
             <Lock className="h-5 w-5 text-yellow-400 mr-3 mt-0.5 flex-shrink-0" />
             <p className="text-sm text-gray-300">
               Les paramètres de sécurité avancés tels que les politiques de mot de passe et les
-              journaux d'audit peuvent être configurés via le panneau de sécurité dédié.
+              journaux d&apos;audit peuvent être configurés via le panneau de sécurité dédié.
             </p>
           </div>
         </div>

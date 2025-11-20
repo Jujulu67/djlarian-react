@@ -1,7 +1,5 @@
-import { redirect } from 'next/navigation';
-import { auth } from '@/auth';
-
-import Link from 'next/link';
+import { formatDistanceToNow } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import {
   CalendarDays,
   ImageIcon,
@@ -14,9 +12,11 @@ import {
   Ticket,
   ArrowRight,
 } from 'lucide-react';
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
+
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
-import { formatDistanceToNow } from 'date-fns';
-import { fr } from 'date-fns/locale';
 
 // Métadonnées de cache pour améliorer les performances
 export const revalidate = 60; // Revalider toutes les 60 secondes
@@ -312,7 +312,7 @@ export default async function AdminPage() {
                 Utilisateurs
               </h2>
               <p className="text-gray-400 mb-8">
-                Gérez les comptes utilisateurs, les rôles et les permissions d'accès au site.
+                Gérez les comptes utilisateurs, les rôles et les permissions d&apos;accès au site.
               </p>
 
               <div className="flex space-x-2 mb-6">
@@ -358,7 +358,7 @@ export default async function AdminPage() {
                 Statistiques
               </h2>
               <p className="text-gray-400 mb-8">
-                Consultez les statistiques du site, analysez le trafic et l'engagement des
+                Consultez les statistiques du site, analysez le trafic et l&apos;engagement des
                 visiteurs.
               </p>
 
@@ -407,7 +407,7 @@ export default async function AdminPage() {
                 Configuration
               </h2>
               <p className="text-gray-400 mb-8">
-                Gérez les paramètres du site, l'apparence, les notifications, la sécurité et
+                Gérez les paramètres du site, l&apos;apparence, les notifications, la sécurité et
                 les intégrations API.
               </p>
 

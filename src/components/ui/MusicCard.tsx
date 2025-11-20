@@ -1,16 +1,14 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
-import { motion } from 'framer-motion';
-
+import { useAudioFrequencyCapture } from '@/hooks/useAudioFrequencyCapture';
+import { useSoundCloudPlayer } from '@/hooks/useSoundCloudPlayer';
+import { useYouTubePlayer } from '@/hooks/useYouTubePlayer';
 import { logger } from '@/lib/logger';
 import { sendPlayerCommand } from '@/lib/utils/audioUtils';
 import { Track } from '@/lib/utils/types';
-
-import { useSoundCloudPlayer } from '@/hooks/useSoundCloudPlayer';
-import { useYouTubePlayer } from '@/hooks/useYouTubePlayer';
-import { useAudioFrequencyCapture } from '@/hooks/useAudioFrequencyCapture';
 
 import { MusicCardBadges } from './MusicCard/MusicCardBadges';
 import { MusicCardControls } from './MusicCard/MusicCardControls';
@@ -35,12 +33,7 @@ interface MusicCardProps {
  * based on whether the card is the currently active track (`isActive`) and the global playback state (`isPlaying`).
  * It uses utility functions for sending commands and applying initial volume.
  */
-export const MusicCard: React.FC<MusicCardProps> = ({
-  track,
-  onPlay,
-  isPlaying,
-  isActive,
-}) => {
+export const MusicCard: React.FC<MusicCardProps> = ({ track, onPlay, isPlaying, isActive }) => {
   const [imageError, setImageError] = useState(false);
   const [localIsPlaying, setLocalIsPlaying] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -63,14 +56,15 @@ export const MusicCard: React.FC<MusicCardProps> = ({
 
   // Determine if any player is active
   const isPlayerActive = youtubePlayer.isYoutubeActive || soundcloudPlayer.isSoundcloudActive;
-  const isPlayerVisible =
-    youtubePlayer.isYoutubeVisible || soundcloudPlayer.isSoundcloudVisible;
+  const isPlayerVisible = youtubePlayer.isYoutubeVisible || soundcloudPlayer.isSoundcloudVisible;
 
   // Try to capture real audio frequencies
-  const activeIframeRef = isPlayerVisible 
-    ? (youtubePlayer.isYoutubeVisible ? youtubePlayer.iframeRef : soundcloudPlayer.soundcloudIframeRef)
+  const activeIframeRef = isPlayerVisible
+    ? youtubePlayer.isYoutubeVisible
+      ? youtubePlayer.iframeRef
+      : soundcloudPlayer.soundcloudIframeRef
     : null;
-  
+
   const audioCapture = useAudioFrequencyCapture({
     iframeRef: activeIframeRef || { current: null },
     isPlaying: isPlaying && isActive,
@@ -108,7 +102,7 @@ export const MusicCard: React.FC<MusicCardProps> = ({
         });
       }, 100);
     }
-  }, [isActive, localIsPlaying]);
+  }, [isActive, localIsPlaying, track.id]);
 
   // Handle play click
   const handlePlayClick = useCallback(() => {
@@ -221,14 +215,13 @@ export const MusicCard: React.FC<MusicCardProps> = ({
           isPlayerVisible={isPlayerVisible}
           onPlayClick={handlePlayClick}
         />
-
       </div>
 
       {/* Audio Visualizer - Below player in purple section when player is active */}
       {isPlayerVisible && (
         <div className="w-full bg-gradient-to-b from-purple-900/90 via-purple-800/80 to-purple-900/90 h-20 flex items-center">
-          <MusicCardVisualizer 
-            isVisible={true} 
+          <MusicCardVisualizer
+            isVisible={true}
             isPlaying={isPlaying && isActive}
             frequencyData={audioCapture.frequencyData}
             isRealAudio={audioCapture.isCapturing}

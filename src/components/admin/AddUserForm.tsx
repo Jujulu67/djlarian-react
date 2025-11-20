@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { UserPlus, Loader2, Edit, Star } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+
 import { logger } from '@/lib/logger';
 
 // Rétablir l'interface locale
@@ -53,7 +54,7 @@ export default function AddUserForm({ onSuccess, userToEdit }: AddUserFormProps)
       setIsVip(false);
       setError(null);
     }
-  }, [userToEdit]);
+  }, [userToEdit, isEditMode]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -145,7 +146,7 @@ export default function AddUserForm({ onSuccess, userToEdit }: AddUserFormProps)
           </>
         ) : (
           <>
-            <UserPlus className="h-6 w-6 mr-2 text-purple-400" /> Ajout d'utilisateur
+            <UserPlus className="h-6 w-6 mr-2 text-purple-400" /> Ajout d&apos;utilisateur
           </>
         )}
       </h2>

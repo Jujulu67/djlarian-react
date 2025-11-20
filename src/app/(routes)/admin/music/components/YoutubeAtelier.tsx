@@ -1,13 +1,14 @@
 'use client';
+import { X, ExternalLink, RefreshCw, Save, Search, Plus, Check, AlertCircle } from 'lucide-react';
+import Image from 'next/image';
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
-import { Track, MusicType } from '@/lib/utils/types';
-import { X, ExternalLink, RefreshCw, Save, Search, Plus, Check, AlertCircle } from 'lucide-react';
-import { extractInfoFromTitle, emptyTrackForm, MUSIC_TYPES } from '@/lib/utils/music-helpers';
-import Modal from '@/components/ui/Modal';
+
 import { DateTimeField } from '@/components/ui/DateTimeField';
-import Image from 'next/image';
+import Modal from '@/components/ui/Modal';
 import { logger } from '@/lib/logger';
+import { extractInfoFromTitle, emptyTrackForm, MUSIC_TYPES } from '@/lib/utils/music-helpers';
+import { Track, MusicType } from '@/lib/utils/types';
 
 /* -------------------------------------------------------------------------- */
 /*  Types locaux                                                              */
@@ -65,7 +66,7 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
       else setYoutubeError(`Erreur: ${data.error || 'Impossible de récupérer les vidéos'}`);
     } catch (err) {
       logger.error('Erreur:', err instanceof Error ? err.message : String(err));
-      setYoutubeError("Une erreur s'est produite lors de la récupération des vidéos");
+      setYoutubeError('Une erreur s&apos;est produite lors de la récupération des vidéos');
     } finally {
       setIsLoadingVideos(false);
     }
@@ -170,9 +171,7 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
   return (
     <div className="grid grid-cols-1 gap-8">
       <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg border border-gray-700/50 p-6">
-        <h2 className="text-xl font-bold mb-6 text-white">
-          Atelier d'ajout intelligent YouTube
-        </h2>
+        <h2 className="text-xl font-bold mb-6 text-white">Atelier d'ajout intelligent YouTube</h2>
         <p className="text-gray-300 mb-6">
           Retrouvez vos vidéos YouTube et importez-les directement dans votre base de données
           musicale. Le système détecte automatiquement celles déjà présentes.
@@ -187,7 +186,7 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
         >
           <div className="flex-1">
             <label htmlFor="yt" className="block text-gray-300 font-medium mb-2">
-              Nom d'utilisateur / URL de chaîne
+              Nom d&apos;utilisateur / URL de chaîne
             </label>
             <input
               id="yt"

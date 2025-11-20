@@ -1,22 +1,26 @@
 'use client';
 
-import { useConfigs } from '@/stores/useConfigs';
-import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Home, Music, Eye, CalendarDays, Video, GripVertical } from 'lucide-react';
-import ToggleRow from '@/components/config/ToggleRow';
+
 import NumberInput from '@/components/config/NumberInput';
+import ToggleRow from '@/components/config/ToggleRow';
+import { Input } from '@/components/ui/Input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { useConfigs } from '@/stores/useConfigs';
 import { AllConfigs, HomepageConfig } from '@/types/config';
 
 export default function HomepageTab() {
   const { homepage, update } = useConfigs();
 
   // Gérer le drag and drop pour l'ordre des sections
-  const handleDragEnd = (result: { destination?: { index: number } | null; source: { index: number } }) => {
+  const handleDragEnd = (result: {
+    destination?: { index: number } | null;
+    source: { index: number };
+  }) => {
     if (!result.destination) return;
 
     const sections = homepage.sectionsOrder.split(',').filter(Boolean);
@@ -46,7 +50,7 @@ export default function HomepageTab() {
   return (
     <div className="p-6 relative z-10">
       <h2 className="text-2xl font-audiowide text-white mb-6 pb-2 border-b border-purple-500/20">
-        Configuration de la page d'accueil
+        Configuration de la page d&apos;accueil
       </h2>
 
       <Tabs defaultValue="hero" className="w-full">
@@ -129,7 +133,7 @@ export default function HomepageTab() {
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="heroBackgroundVideo">URL de la vidéo d'arrière-plan</Label>
+            <Label htmlFor="heroBackgroundVideo">URL de la vidéo d&apos;arrière-plan</Label>
             <Input
               id="heroBackgroundVideo"
               value={homepage.heroBackgroundVideo}
@@ -138,7 +142,7 @@ export default function HomepageTab() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="heroPosterImage">URL de l'image poster (fallback vidéo)</Label>
+            <Label htmlFor="heroPosterImage">URL de l&apos;image poster (fallback vidéo)</Label>
             <Input
               id="heroPosterImage"
               value={homepage.heroPosterImage}
@@ -290,7 +294,7 @@ export default function HomepageTab() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="twitchUsername">Nom d'utilisateur Twitch</Label>
+            <Label htmlFor="twitchUsername">Nom d&apos;utilisateur Twitch</Label>
             <Input
               id="twitchUsername"
               value={homepage.twitchUsername}
@@ -455,7 +459,7 @@ export default function HomepageTab() {
             </DragDropContext>
           </div>
           <p className="text-xs text-gray-400">
-            L'ordre des sections détermine leur position sur la page d'accueil. Les
+            L&apos;ordre des sections détermine leur position sur la page d&apos;accueil. Les
             sections désactivées ne seront pas affichées.
           </p>
         </div>

@@ -1,9 +1,5 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
-import Link from 'next/link';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {
@@ -30,6 +26,11 @@ import {
   User,
 } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
+import { useParams, useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { useState, useEffect } from 'react';
+
 import { logger } from '@/lib/logger';
 
 // Types
@@ -241,7 +242,7 @@ export default function EventDetailsPage() {
                 <Loader2 className="w-16 h-16 text-purple-500 mb-4 animate-spin relative z-10" />
               </div>
               <h2 className="text-2xl font-semibold text-white mt-4">
-                Chargement de l'événement...
+                Chargement de l&apos;événement...
               </h2>
               <p className="text-gray-400 mt-2">Préparation des détails administratifs</p>
             </div>
@@ -289,7 +290,7 @@ export default function EventDetailsPage() {
               </div>
               <h2 className="text-2xl font-bold text-white mb-3">Événement non trouvé</h2>
               <p className="text-gray-300 mb-6">
-                L'événement que vous recherchez n'existe pas ou a été supprimé.
+                L&apos;événement que vous recherchez n&apos;existe pas ou a été supprimé.
               </p>
               <Link
                 href="/admin/events"

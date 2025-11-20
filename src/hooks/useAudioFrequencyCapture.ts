@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+
 import { logger } from '@/lib/logger';
 
 interface UseAudioFrequencyCaptureProps {
@@ -23,7 +24,7 @@ export const useAudioFrequencyCapture = ({
 }: UseAudioFrequencyCaptureProps): UseAudioFrequencyCaptureReturn => {
   const [frequencyData, setFrequencyData] = useState<Uint8Array | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
-  
+
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
@@ -59,7 +60,10 @@ export const useAudioFrequencyCapture = ({
         const iframe = iframeRef.current;
         if (!iframe) return;
 
-        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        const AudioContextClass =
+          window.AudioContext ||
+          (window as typeof window & { webkitAudioContext?: typeof AudioContext })
+            .webkitAudioContext;
         if (!AudioContextClass) {
           logger.warn('AudioContext not supported');
           return;
@@ -68,7 +72,7 @@ export const useAudioFrequencyCapture = ({
         // Use or create the global audio context (same as used for volume control)
         const win = window as any;
         let audioContext: AudioContext;
-        
+
         if (win.globalAudioContext) {
           audioContext = win.globalAudioContext;
         } else {
@@ -88,11 +92,11 @@ export const useAudioFrequencyCapture = ({
           if (iframeDoc) {
             // Try to find audio/video elements in the iframe
             const audioElements = iframeDoc.querySelectorAll('audio, video');
-            
+
             if (audioElements.length > 0) {
               // Found audio/video element - try to connect to it
               const mediaElement = audioElements[0] as HTMLMediaElement;
-              
+
               // Create analyser
               if (!analyserRef.current) {
                 analyserRef.current = audioContext.createAnalyser();
@@ -104,12 +108,12 @@ export const useAudioFrequencyCapture = ({
               if (sourceNodeRef.current) {
                 sourceNodeRef.current.disconnect();
               }
-              
+
               sourceNodeRef.current = audioContext.createMediaElementSource(mediaElement);
-              
+
               // Connect to analyser for frequency analysis
               sourceNodeRef.current.connect(analyserRef.current);
-              
+
               // Also connect to global gain node if it exists (for volume control)
               const globalGainNode = win.globalGainNode;
               if (globalGainNode) {
@@ -145,7 +149,7 @@ export const useAudioFrequencyCapture = ({
           // CORS error - can't access iframe content (expected)
           logger.debug('Cannot access iframe content (CORS - expected):', iframeError);
         }
-        
+
         // Alternative approach: Try to use the global gain node's input
         // If we can access the source connected to the global gain node, we can analyze it
         // However, this requires modifying the audioUtils to expose the source
@@ -155,11 +159,11 @@ export const useAudioFrequencyCapture = ({
         // Fallback: Try to use Web Audio API with system audio capture
         // This requires user permission via getDisplayMedia
         // This is the ONLY way to capture audio from iframes due to CORS restrictions
-        // 
+        //
         // Note: Due to browser security (CORS), we cannot directly access audio from
         // YouTube/SoundCloud iframes. The only workaround is to use getDisplayMedia
         // which captures system audio but requires explicit user permission.
-        // 
+        //
         // getDisplayMedia requires:
         // - HTTPS (or localhost)
         // - User interaction (cannot be called automatically)
@@ -169,7 +173,7 @@ export const useAudioFrequencyCapture = ({
           if (!navigator.mediaDevices) {
             throw new Error('navigator.mediaDevices is not available (requires HTTPS)');
           }
-          
+
           if (!navigator.mediaDevices.getDisplayMedia) {
             throw new Error('getDisplayMedia is not supported in this browser');
           }
@@ -177,8 +181,10 @@ export const useAudioFrequencyCapture = ({
           // Note: getDisplayMedia can only be called from a user interaction context
           // If called automatically, it may fail. We'll try anyway but expect it might fail.
           logger.debug('Attempting to request audio capture permission via getDisplayMedia...');
-          logger.debug('Note: This requires HTTPS and user interaction. If it fails, enhanced simulation will be used.');
-          
+          logger.debug(
+            'Note: This requires HTTPS and user interaction. If it fails, enhanced simulation will be used.'
+          );
+
           const stream = await navigator.mediaDevices.getDisplayMedia({
             video: false, // We only need audio
             audio: {
@@ -188,16 +194,18 @@ export const useAudioFrequencyCapture = ({
               suppressLocalAudioPlayback: false,
             } as MediaTrackConstraints,
           });
-          
+
           // Check if audio track is available
           const audioTracks = stream.getAudioTracks();
           if (audioTracks.length === 0) {
             throw new Error('No audio track available - user may have selected video only');
           }
-          
+
           // User granted permission - we can now capture audio
-          logger.debug('User granted audio capture permission via getDisplayMedia - real audio capture active!');
-          
+          logger.debug(
+            'User granted audio capture permission via getDisplayMedia - real audio capture active!'
+          );
+
           // Listen for track ending (user stops sharing)
           audioTracks[0].addEventListener('ended', () => {
             logger.debug('Audio track ended - user stopped sharing');
@@ -238,7 +246,7 @@ export const useAudioFrequencyCapture = ({
           updateFrequencyData();
         } catch (error) {
           // Fallback: If we can't capture real audio, we'll use enhanced simulation
-          // 
+          //
           // Why real audio capture fails:
           // 1. CORS restrictions prevent direct iframe audio access (security)
           // 2. getDisplayMedia requires HTTPS and user interaction
@@ -252,7 +260,7 @@ export const useAudioFrequencyCapture = ({
             `Real audio capture not available (${errorMessage}). Using enhanced simulation for visualization.`
           );
           setIsCapturing(false);
-          
+
           // Note: This is expected behavior - direct audio capture from iframes
           // is blocked by browser security. The simulation is designed to look realistic.
         }
@@ -289,4 +297,3 @@ export const useAudioFrequencyCapture = ({
     isCapturing,
   };
 };
-
