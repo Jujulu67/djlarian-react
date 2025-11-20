@@ -84,8 +84,8 @@ export default function AdminEventsPage() {
         }
 
         const result = await response.json();
-        // La réponse API utilise createSuccessResponse qui retourne { data: [...] }
-        setEvents(result.data || []);
+        // La réponse API utilise createSuccessResponse qui retourne { data: { events: [...], pagination: {...} } }
+        setEvents(result.data?.events || []);
       } catch (err) {
         setError('Erreur lors du chargement des événements');
         logger.error('Erreur:', err instanceof Error ? err.message : String(err));
