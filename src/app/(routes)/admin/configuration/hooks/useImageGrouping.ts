@@ -16,14 +16,11 @@ export function useImageGrouping() {
     // 1. Récupérer tracks et events
     const [tracksRes, eventsRes] = await Promise.all([fetch('/api/music'), fetch('/api/events')]);
     const tracksResult = await tracksRes.json();
-    const eventsData = await eventsRes.json();
+    const eventsResult = await eventsRes.json();
     // La réponse API utilise createSuccessResponse qui retourne { data: [...] }
     const tracks: Track[] = tracksResult.data || [];
-    const events: Array<{ id: string; title: string; imageId?: string | null }> = Array.isArray(
-      eventsData.events
-    )
-      ? eventsData.events
-      : eventsData;
+    const events: Array<{ id: string; title: string; imageId?: string | null }> =
+      eventsResult.data || [];
 
     // 2. Regrouper les images crop/ori
     const groups: Record<string, GroupedImage> = {};
