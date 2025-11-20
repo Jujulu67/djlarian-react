@@ -70,9 +70,12 @@ export const useEditEvent = () => {
       }
 
       const result = await response.json();
-      logger.debug(`Event ${isCreate ? 'created' : 'updated'} successfully:`, result);
+      // POST /api/events retourne { success: true, event: ... } directement
+      // PATCH /api/events/[id] retourne { data: Event } via createSuccessResponse
+      const eventData = result.data || result.event || result;
+      logger.debug(`Event ${isCreate ? 'created' : 'updated'} successfully:`, eventData);
       setLoading(false);
-      return result;
+      return eventData;
     } catch (err: unknown) {
       logger.error('Error saving event:', err);
       const errorMessage =
