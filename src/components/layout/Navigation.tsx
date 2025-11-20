@@ -51,6 +51,7 @@ const Navigation = () => {
     { href: '/events', label: 'Events', icon: Calendar },
     { href: '/gallery', label: 'Gallery', icon: ImageIcon },
     { href: '/contact', label: 'Contact', icon: Mail },
+    { href: '/old', label: 'Old Design', icon: null },
   ];
 
   // Fermer les menus quand on clique en dehors

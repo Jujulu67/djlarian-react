@@ -79,7 +79,7 @@ const fetcher = async (url: string) => {
   return response.json();
 };
 
-export default function HomePage() {
+export default function OldHomePage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isSoundActive, setIsSoundActive] = useState(false);
   // État pour stocker les configurations de la page d'accueil
@@ -265,29 +265,11 @@ export default function HomePage() {
   const renderHeroSection = () => {
     const currentConfig = config || defaultConfigs.homepage;
 
-    // Générer des particules flottantes
-    const particles = Array.from({ length: 20 }, (_, i) => ({
-      id: i,
-      left: `${Math.random() * 100}%`,
-      delay: `${Math.random() * 15}s`,
-      size: `${2 + Math.random() * 4}px`,
-    }));
-
     return (
-      <div
-        ref={containerRef}
-        className="min-h-screen relative overflow-hidden"
-        style={{ position: 'relative' }}
-      >
-        {/* Animated Gradient Background Layers */}
-        <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-900/30 via-blue-900/20 to-purple-900/30 animate-gradient-shift bg-[length:200%_200%]" />
-          <div className="absolute inset-0 bg-gradient-to-tr from-blue-900/20 via-transparent to-purple-900/20 animate-gradient-pulse" />
-        </div>
-
+      <div ref={containerRef} className="min-h-screen relative" style={{ position: 'relative' }}>
         {/* Background Video */}
-        <div className="absolute inset-0 overflow-hidden z-[1]">
-          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/80 z-10 glass-modern" />
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black z-10" />
           <video
             autoPlay
             muted
@@ -300,86 +282,68 @@ export default function HomePage() {
           </video>
         </div>
 
-        {/* Floating Particles */}
-        {particles.map((particle) => (
-          <div
-            key={particle.id}
-            className="particle"
-            style={{
-              left: particle.left,
-              top: '100%',
-              animationDelay: particle.delay,
-              width: particle.size,
-              height: particle.size,
-            }}
-          />
-        ))}
-
-        {/* Hero Content with Enhanced Glassmorphism */}
+        {/* Hero Content */}
         <motion.div
           style={{ opacity, scale }}
           className="relative z-20 min-h-screen flex flex-col items-center justify-center text-center px-4"
         >
-          {/* Glassmorphism Container */}
-          <div className="glass-modern rounded-3xl p-8 md:p-12 backdrop-blur-xl border border-white/20 shadow-2xl">
-            <motion.h1
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.8, ease: 'easeOut' }}
-              className="text-5xl md:text-7xl lg:text-8xl font-audiowide mb-6 text-gradient-animated"
-            >
-              {currentConfig.heroTitle}
-            </motion.h1>
+          <motion.h1
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.8, ease: 'easeOut' }}
+            className="text-5xl md:text-7xl lg:text-8xl font-audiowide text-white mb-6"
+          >
+            {currentConfig.heroTitle}
+          </motion.h1>
 
-            <motion.p
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
-              className="text-xl md:text-2xl text-gray-200 font-montserrat mb-8 max-w-2xl drop-shadow-lg"
-            >
-              {currentConfig.heroSubtitle}
-            </motion.p>
+          <motion.p
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
+            className="text-xl md:text-2xl text-gray-300 font-montserrat mb-8 max-w-2xl"
+          >
+            {currentConfig.heroSubtitle}
+          </motion.p>
 
-            {/* Enhanced Animated Waveform */}
-            <motion.div
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: 1 }}
-              transition={{ duration: 1, ease: 'easeOut', delay: 0.4 }}
-              className="waveform w-full max-w-md h-16 bg-gradient-to-r from-purple-500 via-blue-500 to-purple-500 bg-[length:200%_100%] rounded-lg opacity-70 animate-gradient-shift glow-purple"
-            />
+          {/* Animated Waveform */}
+          <motion.div
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ duration: 1, ease: 'easeOut', delay: 0.4 }}
+            className="waveform w-full max-w-md h-16 bg-gradient-to-r from-purple-500 via-blue-500 to-purple-500 bg-[length:200%_100%] rounded-lg opacity-60"
+          />
 
-            {/* Modern CTA Buttons */}
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.8, ease: 'easeOut', delay: 0.6 }}
-              className="flex flex-col sm:flex-row gap-4 mt-12"
+          {/* CTA Buttons */}
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.8, ease: 'easeOut', delay: 0.6 }}
+            className="flex flex-col sm:flex-row gap-4 mt-12"
+          >
+            <a
+              href={currentConfig.heroExploreButtonUrl}
+              className="px-8 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-full font-montserrat transition-colors duration-200"
             >
-              <a
-                href={currentConfig.heroExploreButtonUrl}
-                className="btn-modern px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-full font-montserrat font-semibold text-lg relative overflow-hidden glow-purple animate-glow-pulse"
-              >
-                <span className="relative z-10">{currentConfig.heroExploreButtonText}</span>
-              </a>
-              <a
-                href={currentConfig.heroEventsButtonUrl}
-                className="btn-modern px-8 py-4 border-2 border-white/30 hover:border-white/60 text-white rounded-full font-montserrat font-semibold text-lg relative overflow-hidden glass-modern-hover backdrop-blur-sm"
-              >
-                <span className="relative z-10">{currentConfig.heroEventsButtonText}</span>
-              </a>
-            </motion.div>
-          </div>
+              {currentConfig.heroExploreButtonText}
+            </a>
+            <a
+              href={currentConfig.heroEventsButtonUrl}
+              className="px-8 py-3 border-2 border-white hover:bg-white hover:text-black text-white rounded-full font-montserrat transition-colors duration-200"
+            >
+              {currentConfig.heroEventsButtonText}
+            </a>
+          </motion.div>
         </motion.div>
 
-        {/* Enhanced Scroll Indicator */}
+        {/* Scroll Indicator */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1, duration: 1 }}
-          className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex flex-col items-center z-20 glass-modern px-4 py-3 rounded-full"
+          className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex flex-col items-center"
         >
-          <span className="text-white text-sm mb-2 font-montserrat">Scroll to Explore</span>
-          <div className="w-0.5 h-8 bg-white/30 relative overflow-hidden rounded-full">
+          <span className="text-white text-sm mb-2">Scroll to Explore</span>
+          <div className="w-0.5 h-8 bg-white/30 relative overflow-hidden">
             <motion.div
               animate={{
                 y: [0, 32, 0],
@@ -389,7 +353,7 @@ export default function HomePage() {
                 repeat: Infinity,
                 ease: 'linear',
               }}
-              className="w-full h-1/3 bg-gradient-to-b from-purple-400 to-blue-400 absolute top-0 rounded-full"
+              className="w-full h-1/3 bg-white absolute top-0"
             />
           </div>
         </motion.div>
@@ -402,13 +366,8 @@ export default function HomePage() {
     const currentConfig = config || defaultConfigs.homepage;
 
     return (
-      <section className="py-20 relative overflow-hidden">
-        {/* Animated Gradient Background */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black via-purple-900/10 to-black">
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-900/15 via-blue-900/10 to-purple-900/15 animate-gradient-pulse" />
-        </div>
-
-        <div className="max-w-7xl mx-auto px-4 relative z-10">
+      <section className="py-20">
+        <div className="max-w-7xl mx-auto">
           <div className="relative group">
             <motion.h2
               initial={{ opacity: 0, y: 20 }}
@@ -417,35 +376,22 @@ export default function HomePage() {
               className="text-4xl md:text-5xl font-audiowide mb-12 text-center flex items-center justify-center gap-4"
               onClick={handleExperienceClick}
             >
-              <motion.span
-                className="cursor-pointer text-gradient-animated transition-all duration-300 glass-modern px-6 py-3 rounded-full"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
+              <span className="cursor-pointer hover:text-purple-400 transition-colors">
                 {isSoundActive
                   ? `Stop ${currentConfig.visualizerTitle}`
                   : currentConfig.visualizerTitle}
-              </motion.span>
+              </span>
             </motion.h2>
           </div>
 
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-            className="relative w-full aspect-[2/1] rounded-2xl overflow-hidden glass-modern animate-glow-border border-2 border-purple-500/30 shadow-2xl"
-          >
+          <div className="relative w-full aspect-[2/1] rounded-lg overflow-hidden border border-gray-800">
             <AnimatePresence mode="wait">
               <motion.div
                 key={isSoundActive ? 'rhythm' : 'particles'}
-                initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                transition={{
-                  duration: 0.6,
-                  ease: [0.4, 0, 0.2, 1],
-                }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.5 }}
                 className="w-full h-full absolute inset-0"
               >
                 {isSoundActive ? (
@@ -455,7 +401,7 @@ export default function HomePage() {
                 )}
               </motion.div>
             </AnimatePresence>
-          </motion.div>
+          </div>
         </div>
       </section>
     );
