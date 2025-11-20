@@ -13,7 +13,7 @@ interface UseCanvasRendererProps {
   patterns: GamePattern[];
   screenShake: { active: boolean; intensity: number };
   updateScreenShake: (reduceFactor?: number) => void;
-  drawLanes: (ctx: CanvasRenderingContext2D, width: number, height: number) => void;
+  drawLanes: (ctx: CanvasRenderingContext2D, width: number, canvasHeight: number) => void;
   checkAndAddBeat: (audioData: Uint8Array | null, canvasWidth: number) => void;
   updateAndDrawBeats: (
     ctx: CanvasRenderingContext2D,
@@ -42,7 +42,19 @@ export const useCanvasRenderer = ({
   updatePointAnimations,
   checkCollisions,
   audioData,
-}: UseCanvasRendererProps): void => {
+}: UseCanvasRendererProps): {
+  animate: (
+    isActive: boolean,
+    gameData: {
+      patterns: GamePattern[];
+      audioData: Uint8Array | null;
+      handleCollision: (type: GamePattern['type'], pattern: GamePattern) => void;
+      gameState: { isActive: boolean };
+    }
+  ) => void;
+  drawPlayer: (ctx: CanvasRenderingContext2D, x: number, y: number) => void;
+  drawPattern: (pattern: GamePattern, canvasWidth: number) => void;
+} => {
   const lastPatternWarningTimeRef = useRef<number>(0);
   const lastPatternLogTimeRef = useRef<number>(0);
   const hasLoggedInactiveWithPatternsRef = useRef<boolean>(false);
@@ -477,7 +489,7 @@ export const useCanvasRenderer = ({
 
       // Draw each pattern
       gameData.patterns.forEach((pattern) => {
-        drawPattern(pattern, canvasWidth, canvasHeight);
+        drawPattern(pattern, canvasWidth);
       });
 
       // Draw player
