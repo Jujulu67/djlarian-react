@@ -35,8 +35,21 @@ async function getUser() {
   return session?.user;
 }
 
+// Type pour les données de cache YouTube
+type YouTubeCacheData = {
+  videos: Array<{
+    id: string;
+    title: string;
+    description: string;
+    thumbnail: string | undefined;
+    publishedAt: string;
+    channelTitle: string;
+    exists: boolean;
+  }>;
+};
+
 // Fonction de cache simple en mémoire
-const cache: Record<string, { data: any; timestamp: number }> = {};
+const cache: Record<string, { data: YouTubeCacheData; timestamp: number }> = {};
 const CACHE_TTL = 3600000; // 1 heure en millisecondes
 
 function getCachedData(key: string) {
@@ -47,7 +60,7 @@ function getCachedData(key: string) {
   return null;
 }
 
-function setCachedData(key: string, data: any) {
+function setCachedData(key: string, data: YouTubeCacheData) {
   cache[key] = {
     data,
     timestamp: Date.now(),
@@ -126,8 +139,23 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
     const data = await response.json();
 
+    // Type pour les items YouTube API
+    type YouTubeSearchItem = {
+      id: { videoId: string };
+      snippet: {
+        title: string;
+        description: string;
+        thumbnails: {
+          high?: { url: string };
+          default?: { url: string };
+        };
+        publishedAt: string;
+        channelTitle: string;
+      };
+    };
+
     // Récupérer les vidéos existantes de la base de données
-    const videoIds = data.items.map((item: any) => item.id.videoId);
+    const videoIds = (data.items as YouTubeSearchItem[]).map((item) => item.id.videoId);
 
     // Vérifier quelles vidéos existent déjà dans notre base de données
     const existingVideos = await prisma.$queryRaw<{ embedId: string }[]>(
@@ -141,7 +169,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     // Créer un ensemble d'IDs pour une recherche rapide
     const existingVideoIds = new Set(existingVideos.map((v) => v.embedId));
 
-    const videos = data.items.map((item: any) => ({
+    const videos = (data.items as YouTubeSearchItem[]).map((item) => ({
       id: item.id.videoId,
       title: decodeHtmlEntities(item.snippet.title),
       description: decodeHtmlEntities(item.snippet.description),

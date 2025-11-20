@@ -72,9 +72,10 @@ export const useEditEvent = () => {
       logger.debug(`Event ${isCreate ? 'created' : 'updated'} successfully:`, result);
       setLoading(false);
       return result;
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.error('Error saving event:', err);
-      setError(err.message || 'Une erreur est survenue lors de la sauvegarde');
+      const errorMessage = err instanceof Error ? err.message : 'Une erreur est survenue lors de la sauvegarde';
+      setError(errorMessage);
       setLoading(false);
       throw err;
     }
@@ -98,7 +99,7 @@ export const useEditEvent = () => {
 
       const result = await response.json();
       return result.imageId;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error uploading image:', error);
       throw error;
     }

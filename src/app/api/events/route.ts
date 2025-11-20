@@ -104,17 +104,12 @@ export async function GET(request: NextRequest) {
 
     // LOGIQUE AUTO-PUBLICATION (copiée du GET unitaire)
     for (const event of events) {
-      const eventAny = event as any;
-      if (
-        eventAny.publishAt &&
-        !eventAny.isPublished &&
-        new Date(eventAny.publishAt) <= new Date()
-      ) {
+      if (event.publishAt && !event.isPublished && new Date(event.publishAt) <= new Date()) {
         await prisma.event.update({
-          where: { id: eventAny.id },
+          where: { id: event.id },
           data: { isPublished: true },
         });
-        eventAny.isPublished = true;
+        event.isPublished = true;
       }
     }
 
@@ -129,7 +124,7 @@ export async function GET(request: NextRequest) {
 
     // Formater les événements pour correspondre à ce qu'attend le client
     const formattedEvents = events.map((event) => {
-      const formattedEvent = { ...event } as any;
+      const formattedEvent: Record<string, unknown> = { ...event };
 
       if ('TicketInfo' in event) {
         formattedEvent.tickets = event.TicketInfo;
@@ -264,7 +259,7 @@ export async function POST(request: Request) {
     }
 
     // Préparer les données communes de l'événement
-    const commonEventData: any = {
+    const commonEventData: Prisma.EventCreateInput = {
       title: body.title,
       description: body.description || '',
       location: body.location,
@@ -279,7 +274,7 @@ export async function POST(request: Request) {
     };
     // Ajout de publishAt si présent
     if (body.publishAt) {
-      commonEventData.publishAt = new Date(body.publishAt);
+      commonEventData.publishAt = new Date(body.publishAt) as Date;
     }
 
     // Log du commonEventData juste avant création
@@ -292,13 +287,13 @@ export async function POST(request: Request) {
     if (body.tickets) {
       commonEventData.TicketInfo = {
         create: {
-          price: body.tickets.price !== undefined ? Number(body.tickets.price) : 0,
-          currency: body.tickets.currency || 'EUR',
-          buyUrl: body.tickets.buyUrl || '',
-          quantity: body.tickets.quantity !== undefined ? Number(body.tickets.quantity) : 0,
-          availableFrom: body.tickets.availableFrom ? new Date(body.tickets.availableFrom) : null,
-          availableTo: body.tickets.availableTo ? new Date(body.tickets.availableTo) : null,
-        },
+          currency: (body.tickets.currency || 'EUR') as string,
+          ...(body.tickets.price !== undefined && { price: Number(body.tickets.price) }),
+          ...(body.tickets.buyUrl && { buyUrl: body.tickets.buyUrl as string }),
+          ...(body.tickets.quantity !== undefined && { quantity: Number(body.tickets.quantity) }),
+          ...(body.tickets.availableFrom && { availableFrom: new Date(body.tickets.availableFrom) }),
+          ...(body.tickets.availableTo && { availableTo: new Date(body.tickets.availableTo) }),
+        } as Prisma.TicketInfoCreateWithoutEventInput,
       };
     }
 

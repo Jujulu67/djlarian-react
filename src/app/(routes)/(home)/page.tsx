@@ -48,7 +48,7 @@ interface HomepageConfig {
 
 // Définir une classe d'erreur personnalisée pour le fetch
 class FetchError extends Error {
-  info?: any;
+  info?: unknown;
   status?: number;
 
   constructor(message: string) {

@@ -71,7 +71,7 @@ export default function HistoryModal({
   const [applyingId, setApplyingId] = useState<string | null>(null);
   const [resetting, setResetting] = useState(false);
   const [applyingBaseConfig, setApplyingBaseConfig] = useState(false);
-  const [defaultConfigsData, setDefaultConfigsData] = useState<any>({});
+  const [defaultConfigsData, setDefaultConfigsData] = useState<Record<string, unknown>>({});
 
   // Récupérer l'historique et les snapshots
   useEffect(() => {

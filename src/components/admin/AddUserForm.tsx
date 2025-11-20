@@ -78,7 +78,13 @@ export default function AddUserForm({ onSuccess, userToEdit }: AddUserFormProps)
     }
 
     // Préparer le corps de la requête
-    const body: any = {
+    const body: {
+      email: string;
+      name: string | null;
+      role: string;
+      password?: string;
+      isVip?: boolean;
+    } = {
       email,
       name: name || null, // Envoyer null si le nom est vide
       role, // Envoyer la valeur actuelle de l'état `role` (string)
@@ -120,9 +126,10 @@ export default function AddUserForm({ onSuccess, userToEdit }: AddUserFormProps)
         onSuccess(); // Appeler le callback (ex: pour fermer la modale et rafraîchir)
       }
       // Idéalement, afficher un toast/notification de succès
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.error(`Erreur lors de ${isEditMode ? 'la modification' : "l'ajout"}:`, err);
-      setError(err.message || 'Une erreur est survenue.');
+      const errorMessage = err instanceof Error ? err.message : 'Une erreur est survenue.';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
