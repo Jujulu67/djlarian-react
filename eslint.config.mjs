@@ -23,9 +23,11 @@ const eslintConfig = [
     plugins: ['@typescript-eslint', 'jsx-a11y', 'prettier', 'import'],
     rules: {
       // Règles TypeScript
-      '@typescript-eslint/explicit-function-return-type': 'error',
-      '@typescript-eslint/no-unused-vars': 'error',
-      '@typescript-eslint/no-explicit-any': 'error',
+      // explicit-function-return-type en 'warn' : règle de style, souvent controversée en 2025
+      // On garde les types explicites dans les guides, mais on n'en fait pas un blocage
+      '@typescript-eslint/explicit-function-return-type': 'warn',
+      '@typescript-eslint/no-unused-vars': 'error', // Critique : variables non utilisées
+      '@typescript-eslint/no-explicit-any': 'error', // Critique : on a fait 90→0 any, il faut maintenir
       '@typescript-eslint/naming-convention': [
         'error',
         {
@@ -59,8 +61,9 @@ const eslintConfig = [
       'react/jsx-no-bind': 'warn', // Passer en warning au lieu d'error pour permettre les commits
 
       // Règles d'import
+      // import/order en 'warn' : règle de style, pas critique pour le fonctionnement
       'import/order': [
-        'error',
+        'warn',
         {
           groups: ['builtin', 'external', 'internal', 'parent', 'sibling', 'index'],
           'newlines-between': 'always',
