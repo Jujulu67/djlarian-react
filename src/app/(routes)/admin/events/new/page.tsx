@@ -131,7 +131,9 @@ export default function EventFormPage() {
         if (!response.ok) {
           throw new Error("Erreur lors du chargement des données de l'événement");
         }
-        const event = await response.json();
+        const result = await response.json();
+        // La réponse API utilise createSuccessResponse qui retourne { data: Event }
+        const event = result.data;
         setFormData({
           title: event.title,
           description: event.description || '',

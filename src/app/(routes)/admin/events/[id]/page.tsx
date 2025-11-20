@@ -106,8 +106,9 @@ export default function EventDetailsPage() {
           throw new Error(`Erreur ${response.status}: ${response.statusText}`);
         }
 
-        const data = await response.json();
-        setEvent(data);
+        const result = await response.json();
+        // La réponse API utilise createSuccessResponse qui retourne { data: Event }
+        setEvent(result.data);
       } catch (err) {
         logger.error("Erreur lors du chargement de l'événement:", err);
         setError(err instanceof Error ? err.message : 'Erreur inconnue');
@@ -161,7 +162,9 @@ export default function EventDetailsPage() {
         throw new Error(`Erreur ${response.status}: ${response.statusText}`);
       }
 
-      const updatedEvent = await response.json();
+      const result = await response.json();
+      // La réponse API utilise createSuccessResponse qui retourne { data: Event }
+      const updatedEvent = result.data;
       setEvent(updatedEvent);
     } catch (err) {
       logger.error('Erreur lors de la mise à jour:', err);
@@ -188,7 +191,9 @@ export default function EventDetailsPage() {
         throw new Error(`Erreur ${response.status}: ${response.statusText}`);
       }
 
-      const updatedEvent = await response.json();
+      const result = await response.json();
+      // La réponse API utilise createSuccessResponse qui retourne { data: Event }
+      const updatedEvent = result.data;
       setEvent(updatedEvent);
     } catch (err) {
       logger.error('Erreur lors de la mise à jour:', err);

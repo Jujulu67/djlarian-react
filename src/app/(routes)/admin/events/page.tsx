@@ -83,9 +83,9 @@ export default function AdminEventsPage() {
           throw new Error(`Erreur ${response.status}: ${response.statusText}`);
         }
 
-        const data = await response.json();
-        // Vérifier si data.events existe et est un tableau, sinon utiliser un tableau vide
-        setEvents(Array.isArray(data.events) ? data.events : []);
+        const result = await response.json();
+        // La réponse API utilise createSuccessResponse qui retourne { data: [...] }
+        setEvents(result.data || []);
       } catch (err) {
         setError('Erreur lors du chargement des événements');
         logger.error('Erreur:', err instanceof Error ? err.message : String(err));
@@ -177,7 +177,9 @@ export default function AdminEventsPage() {
         throw new Error(`Erreur ${response.status}: ${response.statusText}`);
       }
 
-      const updatedEvent: EventWithRelations = await response.json(); // Utiliser le type correct
+      const result = await response.json();
+      // La réponse API utilise createSuccessResponse qui retourne { data: Event }
+      const updatedEvent: EventWithRelations = result.data;
 
       // Mettre à jour la liste des événements
       setEvents(
@@ -217,7 +219,9 @@ export default function AdminEventsPage() {
         throw new Error(`Erreur ${response.status}: ${response.statusText}`);
       }
 
-      const updatedEvent: EventWithRelations = await response.json(); // Utiliser le type correct
+      const result = await response.json();
+      // La réponse API utilise createSuccessResponse qui retourne { data: Event }
+      const updatedEvent: EventWithRelations = result.data;
 
       // Mettre à jour la liste des événements
       setEvents(
