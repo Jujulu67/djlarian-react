@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { defaultConfigs } from '@/config/defaults';
 import { logger } from '@/lib/logger';
+import { isNotEmpty } from '@/lib/utils/arrayHelpers';
 
 // Types pour les sections de configuration
 type GeneralConfig = {
@@ -111,12 +112,12 @@ export async function POST(req: NextRequest) {
         const value = sectionConfig[key as keyof typeof sectionConfig];
 
         // Chercher si cette config existe déjà
-        const existingConfig = await prisma.$queryRaw`
+        const existingConfig = (await prisma.$queryRaw`
           SELECT * FROM "SiteConfig" 
           WHERE section = ${section} AND key = ${key}
-        `;
+        `) as Array<{ id: string; value: string }> | null;
 
-        if (existingConfig && Array.isArray(existingConfig) && existingConfig.length > 0) {
+        if (isNotEmpty(existingConfig)) {
           const config = existingConfig[0];
           // Ne mettre à jour que si la valeur a changé
           if (config.value !== value) {

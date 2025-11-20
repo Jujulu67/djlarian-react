@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { defaultConfigs } from '@/config/defaults';
 import { HomepageConfig } from '@/types/config';
 import { logger } from '@/lib/logger';
+import { isNotEmpty } from '@/lib/utils/arrayHelpers';
 
 // API publique pour récupérer la configuration de la page d'accueil
 // Accessible sans authentification pour permettre le chargement de la page d'accueil
@@ -25,7 +26,7 @@ export async function GET() {
         orderBy: { createdAt: 'asc' },
       });
 
-      if (configs.length > 0) {
+      if (isNotEmpty(configs)) {
         // Construire l'objet de configuration depuis la base de données
         const configObject: Record<string, any> = {};
         configs.forEach((config) => {

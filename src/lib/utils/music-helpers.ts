@@ -47,7 +47,7 @@ export function extractInfoFromTitle(title: string) {
     .replace(/&amp;/g, '&')
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
-    .replace(/&apos;/g, "'")
+    .replace(/'/g, "'")
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>');
 

@@ -241,7 +241,7 @@ export default function EventDetailsPage() {
                 <Loader2 className="w-16 h-16 text-purple-500 mb-4 animate-spin relative z-10" />
               </div>
               <h2 className="text-2xl font-semibold text-white mt-4">
-                Chargement de l&apos;événement...
+                Chargement de l'événement...
               </h2>
               <p className="text-gray-400 mt-2">Préparation des détails administratifs</p>
             </div>
@@ -289,7 +289,7 @@ export default function EventDetailsPage() {
               </div>
               <h2 className="text-2xl font-bold text-white mb-3">Événement non trouvé</h2>
               <p className="text-gray-300 mb-6">
-                L&apos;événement que vous recherchez n&apos;existe pas ou a été supprimé.
+                L'événement que vous recherchez n'existe pas ou a été supprimé.
               </p>
               <Link
                 href="/admin/events"
@@ -434,7 +434,7 @@ export default function EventDetailsPage() {
                       <p className="text-gray-300 text-sm">{formatDate(event.startDate)}</p>
                       {event.endDate && (
                         <p className="text-gray-400 text-sm mt-1">
-                          Jusqu&apos;à {formatDate(event.endDate)}
+                          Jusqu'à {formatDate(event.endDate)}
                         </p>
                       )}
                     </div>
@@ -493,7 +493,7 @@ export default function EventDetailsPage() {
                             className="text-purple-400 hover:text-purple-300 text-sm flex items-center gap-1 mt-2"
                           >
                             <ExternalLink className="w-3.5 h-3.5" />
-                            Lien d&apos;achat
+                            Lien d'achat
                           </a>
                         )}
                       </div>

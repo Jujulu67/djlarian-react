@@ -248,7 +248,7 @@ export default function EventDetailPage() {
             <div className="animate-pulse flex flex-col items-center">
               <Loader2 className="w-12 h-12 text-purple-500 mb-4 animate-spin" />
               <h2 className="text-2xl font-semibold text-white">
-                Chargement de l&apos;événement...
+                Chargement de l'événement...
               </h2>
             </div>
           </div>
@@ -272,7 +272,7 @@ export default function EventDetailPage() {
               </h2>
               <p className="text-gray-300 mb-6">
                 {error === 'Événement non trouvé'
-                  ? 'L&apos;événement que vous recherchez n&apos;existe pas ou a été supprimé.'
+                  ? "L'événement que vous recherchez n'existe pas ou a été supprimé."
                   : error}
               </p>
               <Link
@@ -299,7 +299,7 @@ export default function EventDetailPage() {
               <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
               <h2 className="text-2xl font-semibold text-white mb-2">Événement non disponible</h2>
               <p className="text-gray-300 mb-6">
-                Désolé, cet événement n&apos;est pas disponible pour le moment.
+                Désolé, cet événement n'est pas disponible pour le moment.
               </p>
               <Link
                 href="/events"
@@ -338,9 +338,10 @@ export default function EventDetailPage() {
             {event.imageId ? (
               <Image
                 src={`/uploads/${event.imageId}.jpg`}
-                alt={event.title}
+                alt={`Image de couverture pour l'événement ${event.title}`}
                 fill
                 className="w-full h-full object-cover object-[50%_25%]"
+                priority
                 unoptimized
                 onError={(e) => {
                   // Éviter la boucle infinie en masquant l'image si elle n'existe pas
@@ -417,7 +418,7 @@ export default function EventDetailPage() {
                       <p className="text-gray-300 text-sm">{formatEventDate(event)}</p>
                       {event.endDate && (
                         <p className="text-gray-400 text-sm mt-1">
-                          Jusqu&apos;à {formatDate(event.endDate)}
+                          Jusqu'à {formatDate(event.endDate)}
                         </p>
                       )}
                     </div>
@@ -495,7 +496,7 @@ export default function EventDetailPage() {
                     </div>
                   )}
 
-                  {/* Status de l&apos;événement */}
+                  {/* Status de l'événement */}
                   <div className="mb-6">
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-gray-300">Statut</span>

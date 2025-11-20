@@ -5,6 +5,7 @@ import { Checkbox } from '@/components/ui/Checkbox';
 import { Button } from '@/components/ui/Button';
 import type { GroupedImage } from '../types';
 import type { ImageMeta } from '@/app/api/admin/images/shared';
+import { isNotEmpty } from '@/lib/utils/arrayHelpers';
 
 interface MultiSelectBarProps {
   isMultiSelectMode: boolean;
@@ -27,7 +28,7 @@ export function MultiSelectBar({
     .map((g) => g.crop?.id || g.ori?.id)
     .filter((id): id is string => !!id);
 
-  const isAllSelected = selectedImageIds.length === allImageIds.length && allImageIds.length > 0;
+  const isAllSelected = selectedImageIds.length === allImageIds.length && isNotEmpty(allImageIds);
 
   return ReactDOM.createPortal(
     <div

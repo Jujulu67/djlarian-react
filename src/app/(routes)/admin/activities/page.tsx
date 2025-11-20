@@ -15,6 +15,7 @@ import prisma from '@/lib/prisma';
 import { format, formatDistanceToNow, isToday, isYesterday, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Suspense } from 'react';
+import { isNotEmpty } from '@/lib/utils/arrayHelpers';
 
 // Définir un type pour les activités pour plus de clarté
 type ActivityType = 'event' | 'track' | 'ticket';
@@ -377,7 +378,7 @@ export default async function AdminActivitiesPage({
         <div className="glass rounded-xl backdrop-blur-md overflow-hidden relative border border-purple-500/20 p-6">
           <div className="absolute inset-0 bg-gradient-to-b from-purple-900/5 to-black/20"></div>
           <div className="relative z-10 space-y-6">
-            {Object.keys(groupedActivities).length > 0 ? (
+            {isNotEmpty(Object.keys(groupedActivities)) ? (
               <>
                 {/* Contenu des activités regroupées par jour */}
                 {Object.entries(groupedActivities).map(([dateKey, activities]) => (

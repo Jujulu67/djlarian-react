@@ -46,6 +46,7 @@ import { useConfigs } from '@/stores/useConfigs'; // Import du store Zustand
 import ToggleRow from '@/components/config/ToggleRow'; // Import du composant ToggleRow
 import DatabaseSwitch from '@/components/admin/DatabaseSwitch'; // Import du switch de base de données
 import { logger } from '@/lib/logger';
+import { isNotEmpty } from '@/lib/utils/arrayHelpers';
 
 // Chargement dynamique des composants d'onglet
 const HomepageTab = dynamic(() => import('./tabs/HomepageTab'), {
@@ -588,7 +589,7 @@ export default function ConfigurationPage() {
         }
       });
 
-      if (sectionChanges.length > 0) {
+      if (isNotEmpty(sectionChanges)) {
         const sectionTitle = section.charAt(0).toUpperCase() + section.slice(1);
         changes.push(
           `<span class="text-cyan-300 font-bold">${sectionTitle}:</span>\n${sectionChanges.join('\n')}`
@@ -748,7 +749,7 @@ export default function ConfigurationPage() {
                   className={`w-full flex items-center p-3 rounded-lg transition-all ${activeSection === 'homepage' ? 'bg-purple-500/20 text-purple-300' : 'hover:bg-purple-500/10 text-gray-300'}`}
                 >
                   <Home className="h-5 w-5 mr-3" />
-                  Page d&apos;accueil
+                  Page d'accueil
                 </button>
 
                 <button

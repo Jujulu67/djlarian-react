@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Track, MusicPlatform } from '@/lib/utils/types';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -21,6 +22,7 @@ import {
 import { FaSpotify, FaYoutube, FaSoundcloud, FaMusic } from 'react-icons/fa';
 import { getEmbedUrl } from '@/lib/utils/music-service';
 import { logger } from '@/lib/logger';
+import { isNotEmpty } from '@/lib/utils/arrayHelpers';
 
 interface MusicPlayerSystemProps {
   track: Track | null;
@@ -69,6 +71,39 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
     return match ? match[1] : null;
   };
 
+  // Simuler la progression pour les plateformes autres que YouTube
+  const stopProgressInterval = useCallback(() => {
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+  }, []);
+
+  const startProgressInterval = useCallback(() => {
+    stopProgressInterval();
+
+    // Durée simulée de 3 minutes si pas de durée réelle
+    const estimatedDuration = duration || 180;
+
+    progressIntervalRef.current = setInterval(() => {
+      setProgress((prev) => {
+        // Réinitialiser à la fin
+        if (prev >= estimatedDuration) {
+          if (onNextTrack) onNextTrack();
+          return 0;
+        }
+        return prev + 0.5;
+      });
+    }, 500);
+  }, [duration, onNextTrack, stopProgressInterval]);
+
+  const restartProgressInterval = useCallback(() => {
+    stopProgressInterval();
+    if (isPlaying) {
+      startProgressInterval();
+    }
+  }, [isPlaying, stopProgressInterval, startProgressInterval]);
+
   // Sélectionner la plateforme par défaut
   useEffect(() => {
     if (track) {
@@ -95,7 +130,7 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
         }
       }
 
-      if (!platformToUse && availablePlatforms.length > 0) {
+      if (!platformToUse && isNotEmpty(availablePlatforms)) {
         platformToUse = availablePlatforms[0];
       }
 
@@ -126,7 +161,7 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
     return () => {
       stopProgressInterval();
     };
-  }, [track]);
+  }, [track, stopProgressInterval, startProgressInterval]);
 
   // Mettre à jour l'URL d'embedding
   useEffect(() => {
@@ -156,7 +191,7 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
       setYoutubeVideoId(null);
       stopProgressInterval();
     }
-  }, [track, selectedPlatform]);
+  }, [track, selectedPlatform, restartProgressInterval, stopProgressInterval]);
 
   // Gérer la lecture/pause
   useEffect(() => {
@@ -165,40 +200,7 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
     } else {
       stopProgressInterval();
     }
-  }, [isPlaying]);
-
-  // Simuler la progression pour les plateformes autres que YouTube
-  const startProgressInterval = () => {
-    stopProgressInterval();
-
-    // Durée simulée de 3 minutes si pas de durée réelle
-    const estimatedDuration = duration || 180;
-
-    progressIntervalRef.current = setInterval(() => {
-      setProgress((prev) => {
-        // Réinitialiser à la fin
-        if (prev >= estimatedDuration) {
-          if (onNextTrack) onNextTrack();
-          return 0;
-        }
-        return prev + 0.5;
-      });
-    }, 500);
-  };
-
-  const stopProgressInterval = () => {
-    if (progressIntervalRef.current) {
-      clearInterval(progressIntervalRef.current);
-      progressIntervalRef.current = null;
-    }
-  };
-
-  const restartProgressInterval = () => {
-    stopProgressInterval();
-    if (isPlaying) {
-      startProgressInterval();
-    }
-  };
+  }, [isPlaying, startProgressInterval, stopProgressInterval]);
 
   // Gérer le changement de position dans la piste
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -299,12 +301,15 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div className="w-12 h-12 relative rounded-md overflow-hidden bg-gray-800 flex-shrink-0">
                   {track.imageId && !imageError ? (
-                    <img
+                    <Image
                       src={`/uploads/${track.imageId}.jpg`}
                       alt={track.title}
+                      width={48}
+                      height={48}
                       className="w-full h-full object-cover"
                       onError={() => setImageError(true)}
                       onLoad={() => setImageError(false)}
+                      unoptimized
                     />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-r from-purple-900/30 to-blue-900/30 flex items-center justify-center">
@@ -439,12 +444,16 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
                 <div className="flex flex-col items-center mb-8">
                   <div className="w-64 h-64 md:w-80 md:h-80 relative rounded-lg overflow-hidden bg-gray-800 mb-6 shadow-xl">
                     {track.imageId && !imageError ? (
-                      <img
+                      <Image
                         src={`/uploads/${track.imageId}.jpg`}
-                        alt={track.title}
+                        alt={`Pochette de ${track.title} par ${track.artist}`}
+                        width={320}
+                        height={320}
                         className="w-full h-full object-cover"
+                        priority
                         onError={() => setImageError(true)}
                         onLoad={() => setImageError(false)}
+                        unoptimized
                       />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-r from-purple-900/30 to-blue-900/30 flex items-center justify-center">

@@ -82,6 +82,46 @@ else
   fi
 fi
 
+# Mettre à jour DATABASE_URL dans .env.local si nécessaire
+ENV_LOCAL_PATH=".env.local"
+if [ "$USE_PRODUCTION" != "true" ]; then
+  # Vérifier si .env.local existe et si DATABASE_URL pointe vers PostgreSQL
+  if [ -f "$ENV_LOCAL_PATH" ]; then
+    if grep -q '^DATABASE_URL=.*postgresql' "$ENV_LOCAL_PATH"; then
+      echo "⚠️  DATABASE_URL dans .env.local pointe vers PostgreSQL, correction vers SQLite..."
+      
+      # Sauvegarder l'ancienne valeur si elle n'est pas déjà sauvegardée
+      if [ ! -f ".env.local.backup" ]; then
+        grep '^DATABASE_URL=' "$ENV_LOCAL_PATH" >> .env.local.backup 2>/dev/null || true
+      fi
+      
+      # Remplacer DATABASE_URL par SQLite
+      if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS
+        sed -i '' 's|^DATABASE_URL=.*|DATABASE_URL="file:./prisma/dev.db"|' "$ENV_LOCAL_PATH"
+      else
+        # Linux
+        sed -i 's|^DATABASE_URL=.*|DATABASE_URL="file:./prisma/dev.db"|' "$ENV_LOCAL_PATH"
+      fi
+      
+      echo "✅ DATABASE_URL corrigée vers SQLite dans .env.local"
+    elif ! grep -q '^DATABASE_URL=' "$ENV_LOCAL_PATH"; then
+      # Ajouter DATABASE_URL si elle n'existe pas
+      echo "" >> "$ENV_LOCAL_PATH"
+      echo "# Base de données locale (SQLite) pour le développement" >> "$ENV_LOCAL_PATH"
+      echo 'DATABASE_URL="file:./prisma/dev.db"' >> "$ENV_LOCAL_PATH"
+      echo "✅ DATABASE_URL ajoutée dans .env.local"
+    else
+      echo "✅ DATABASE_URL est déjà correcte dans .env.local"
+    fi
+  else
+    # Créer .env.local avec DATABASE_URL SQLite
+    echo "# Base de données locale (SQLite) pour le développement" > "$ENV_LOCAL_PATH"
+    echo 'DATABASE_URL="file:./prisma/dev.db"' >> "$ENV_LOCAL_PATH"
+    echo "✅ Fichier .env.local créé avec DATABASE_URL SQLite"
+  fi
+fi
+
 # Si le schéma a été modifié, régénérer le client Prisma
 if [ "$SCHEMA_CHANGED" = true ]; then
   echo "🔄 Régénération du client Prisma..."

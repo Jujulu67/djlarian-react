@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import { FaSpotify, FaApple, FaSoundcloud } from 'react-icons/fa';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
@@ -175,12 +176,15 @@ export default function LatestReleases({
                 <div className="cursor-pointer golden-border rounded-lg overflow-hidden shadow-xl transform-gpu transition-all duration-500 hover:scale-[1.05]">
                   <div className="relative aspect-square">
                     {release.imageId && !imageErrors[release.id] ? (
-                      <img
+                      <Image
                         src={`/uploads/${release.imageId}.jpg`}
-                        alt={release.title}
-                        className="w-full h-full object-cover object-center rounded-lg shadow-lg"
+                        alt={`Pochette de ${release.title} par ${release.artist}`}
+                        fill
+                        className="object-cover object-center rounded-lg shadow-lg"
+                        priority={index < 3}
                         onError={() => handleImageError(release.id)}
                         onLoad={() => setImageErrors((prev) => ({ ...prev, [release.id]: false }))}
+                        unoptimized
                       />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-r from-purple-900/30 to-blue-900/30 flex items-center justify-center rounded-lg shadow-lg">

@@ -8,6 +8,7 @@ import {
   PATTERN_LIFETIME,
 } from './constants';
 import type { UseAudioAnalyserReturn } from './useAudioAnalyser';
+import { isNotEmpty } from '@/lib/utils/arrayHelpers';
 
 import type { GameState } from '@/types/game';
 
@@ -142,7 +143,7 @@ export function usePatternManager({
           if (pattern) newPatterns.push(pattern);
         });
 
-        if (newPatterns.length > 0) {
+        if (isNotEmpty(newPatterns)) {
           setPatterns((prev) => [...prev, ...newPatterns]);
 
           setGameState((prev) => ({

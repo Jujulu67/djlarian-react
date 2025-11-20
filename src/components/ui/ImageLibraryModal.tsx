@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
 import Modal from './Modal';
 import { logger } from '@/lib/logger';
 
@@ -56,7 +57,7 @@ const ImageLibraryModal: React.FC<ImageLibraryModalProps> = ({ open, onClose, on
   return (
     <Modal maxWidth="max-w-3xl" onClose={onClose} showLoader={false}>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-white">Bibliothèque d&apos;images originales</h2>
+        <h2 className="text-xl font-bold text-white">Bibliothèque d'images originales</h2>
       </div>
       <input
         value={search}
@@ -87,10 +88,13 @@ const ImageLibraryModal: React.FC<ImageLibraryModalProps> = ({ open, onClose, on
                 }
               }}
             >
-              <img
+              <Image
                 src={getImageUrl(img)}
                 alt={img.name}
+                width={200}
+                height={128}
                 className="w-full h-32 object-cover rounded mb-2 bg-gray-700"
+                unoptimized
               />
               <div className="text-sm text-white truncate" title={img.name}>
                 {img.name}

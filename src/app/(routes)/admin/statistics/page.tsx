@@ -37,7 +37,7 @@ import {
   UmamiMetrics,
   getStatistics,
 } from '@/lib/analytics';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -181,30 +181,41 @@ export default function StatisticsPage() {
     return 'text-gray-400';
   };
 
-  // Calcul du nombre de pages par session à partir des données réelles
-  const calculatePagesPerSession = () => {
+  // Calcul du nombre de pages par session à partir des données réelles (mémorisé)
+  const pagesPerSession = useMemo(() => {
     if (!stats?.pageviews?.value || !stats?.uniques?.value || stats.uniques.value === 0) {
       return 0;
     }
-    const pagesPerSession = stats.pageviews.value / stats.uniques.value;
-    return parseFloat(pagesPerSession.toFixed(1));
-  };
+    const result = stats.pageviews.value / stats.uniques.value;
+    return parseFloat(result.toFixed(1));
+  }, [stats?.pageviews?.value, stats?.uniques?.value]);
 
-  // Calcul du taux de variation pour les pages par session
-  const calculatePagesPerSessionChange = () => {
+  // Calcul du taux de variation pour les pages par session (mémorisé)
+  const pagesPerSessionChange = useMemo(() => {
     const pageviewsChange = stats?.pageviews?.change ?? 0;
     const uniquesChange = stats?.uniques?.change ?? 0;
     return parseFloat((pageviewsChange - uniquesChange).toFixed(1));
-  };
+  }, [stats?.pageviews?.change, stats?.uniques?.change]);
 
-  const engagementData = {
-    avgDuration: stats?.totalTime?.value ?? 0,
-    avgDurationChange: stats?.totalTime?.change ?? 0,
-    bounceRate: stats?.bounces?.value ?? 0,
-    bounceRateChange: stats?.bounces?.change ?? 0,
-    pagesPerSession: calculatePagesPerSession(),
-    pagesPerSessionChange: calculatePagesPerSessionChange(),
-  };
+  // Engagement data mémorisé
+  const engagementData = useMemo(
+    () => ({
+      avgDuration: stats?.totalTime?.value ?? 0,
+      avgDurationChange: stats?.totalTime?.change ?? 0,
+      bounceRate: stats?.bounces?.value ?? 0,
+      bounceRateChange: stats?.bounces?.change ?? 0,
+      pagesPerSession,
+      pagesPerSessionChange,
+    }),
+    [
+      stats?.totalTime?.value,
+      stats?.totalTime?.change,
+      stats?.bounces?.value,
+      stats?.bounces?.change,
+      pagesPerSession,
+      pagesPerSessionChange,
+    ]
+  );
 
   const getTrendIcon = (change: number | undefined) => {
     const value = change ?? 0;

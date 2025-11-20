@@ -16,6 +16,7 @@ import {
   Star,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import Image from 'next/image';
 import ImageCropModal from '@/components/ui/ImageCropModal';
 import ImageDropzone from '@/components/ui/ImageDropzone';
 import { extractPlatformId } from '@/lib/utils/music-service';
@@ -671,14 +672,17 @@ export default function AdminMusicPage() {
                       </div>
                       <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
                         {editingTrack.imageId ? (
-                          <img
+                          <Image
                             src={`/uploads/${editingTrack.imageId}.jpg?t=${
                               editingTrack.updatedAt
                                 ? new Date(editingTrack.updatedAt).getTime()
                                 : Date.now()
                             }`}
                             alt={editingTrack.title}
+                            width={64}
+                            height={64}
                             className="w-full h-full object-cover"
+                            unoptimized
                           />
                         ) : (
                           <div className="w-full h-full bg-gray-700 flex items-center justify-center">

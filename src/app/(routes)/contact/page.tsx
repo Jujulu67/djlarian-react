@@ -99,7 +99,7 @@ export default function ContactPage() {
         >
           <h1 className="text-4xl md:text-5xl font-audiowide mb-6">Contact</h1>
           <p className="text-xl text-gray-300 font-montserrat max-w-2xl mx-auto">
-            Une question ? Une proposition de collaboration ? N&apos;hésitez pas à me contacter.
+            Une question ? Une proposition de collaboration ? N'hésitez pas à me contacter.
           </p>
         </motion.div>
 
@@ -221,7 +221,7 @@ export default function ContactPage() {
             <div>
               <h2 className="text-2xl font-audiowide mb-4">Booking</h2>
               <p className="text-gray-300">
-                Pour les réservations d&apos;événements et les performances live :
+                Pour les réservations d'événements et les performances live :
               </p>
               <a
                 href="mailto:booking@djlarian.com"

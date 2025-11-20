@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma';
 import { MusicPlatform, MusicType, Track } from '@/lib/utils/types';
 import { Genre, Prisma } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
+import { isNotEmpty } from '@/lib/utils/arrayHelpers';
 
 export type CreateTrackInput = {
   title: string;
@@ -146,7 +147,7 @@ export async function updateTrack(data: UpdateTrackInput) {
   let genreUpdates = undefined;
   if (genreNames !== undefined) {
     await prisma.genresOnTracks.deleteMany({ where: { trackId: id } });
-    if (genreNames.length > 0) {
+    if (isNotEmpty(genreNames)) {
       const genrePromises = genreNames.map(async (name) => {
         const normalizedName = name.trim().toLowerCase();
         return prisma.genre.upsert({
@@ -171,7 +172,7 @@ export async function updateTrack(data: UpdateTrackInput) {
   let platformUpdates = undefined;
   if (platforms !== undefined) {
     await prisma.trackPlatform.deleteMany({ where: { trackId: id } });
-    if (platforms.length > 0) {
+    if (isNotEmpty(platforms)) {
       platformUpdates = {
         create: platforms.map((platform) => ({
           id: uuidv4(),

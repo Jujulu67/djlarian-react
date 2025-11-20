@@ -9,8 +9,27 @@ import { Prisma } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import { uploadToBlob, isBlobConfigured, getBlobPublicUrl } from '@/lib/blob';
 import { logger } from '@/lib/logger';
+import { isNotEmpty } from '@/lib/utils/arrayHelpers';
 
-// Music API endpoint - Vercel (Node.js runtime natif)
+/**
+ * Music API endpoint - Vercel (Node.js runtime natif)
+ * 
+ * Handles creation and retrieval of music tracks
+ * 
+ * @route POST /api/music - Create a new music track
+ * @route GET /api/music - Get all music tracks
+ * 
+ * @example
+ * // Create a track
+ * POST /api/music
+ * {
+ *   "title": "Track Title",
+ *   "artist": "Artist Name",
+ *   "releaseDate": "2024-01-01",
+ *   "type": "single",
+ *   "platforms": [{"platform": "spotify", "url": "https://..."}]
+ * }
+ */
 
 // Define actual arrays for Zod enums from types
 const musicTypes: [MusicType, ...MusicType[]] = [
@@ -194,7 +213,7 @@ export async function POST(request: Request) {
     const track = await prisma.$transaction(async (tx) => {
       // Handle optional genreNames
       const genres =
-        dataForPrisma.genreNames && dataForPrisma.genreNames.length > 0
+        isNotEmpty(dataForPrisma.genreNames)
           ? await Promise.all(
               dataForPrisma.genreNames.map(async (name: string) => {
                 const normalizedName = name.trim().toLowerCase();
@@ -226,7 +245,7 @@ export async function POST(request: Request) {
 
       // Handle optional genres connection
       const genresToConnect =
-        genres.length > 0
+        isNotEmpty(genres)
           ? genres.map((genre) => ({
               Genre: { connect: { id: genre.id } },
             }))
@@ -234,7 +253,7 @@ export async function POST(request: Request) {
 
       // Handle optional platforms creation
       const platformsToCreate =
-        dataForPrisma.platforms && dataForPrisma.platforms.length > 0
+        isNotEmpty(dataForPrisma.platforms)
           ? dataForPrisma.platforms.map((platform) => ({
               id: uuidv4(),
               platform: platform.platform,
