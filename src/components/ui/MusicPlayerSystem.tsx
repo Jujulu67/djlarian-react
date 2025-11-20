@@ -23,7 +23,7 @@ import { FaSpotify, FaYoutube, FaSoundcloud, FaMusic } from 'react-icons/fa';
 import { logger } from '@/lib/logger';
 import { isNotEmpty } from '@/lib/utils/arrayHelpers';
 import { getEmbedUrl } from '@/lib/utils/music-service';
-import { Track, MusicPlatform } from '@/lib/utils/types';
+import type { Track, MusicPlatform } from '@/lib/utils/types';
 
 interface MusicPlayerSystemProps {
   track: Track | null;

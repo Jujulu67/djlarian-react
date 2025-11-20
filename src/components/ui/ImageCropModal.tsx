@@ -1,11 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import ReactCrop, { type Crop as CropType, centerCrop, makeAspectCrop } from 'react-image-crop';
 
 import 'react-image-crop/dist/ReactCrop.css';
 import { Button } from '@/components/ui';
 import Modal from '@/components/ui/Modal';
-
-import { X } from 'lucide-react';
 
 interface ImageCropModalProps {
   imageToEdit: string | null;
@@ -33,7 +31,7 @@ const ImageCropModal: React.FC<ImageCropModalProps> = ({
   const imageRef = useRef<HTMLImageElement | null>(null);
 
   // Centrer le crop à l'ouverture
-  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>): void => {
     const { naturalWidth, naturalHeight } = e.currentTarget;
     imageRef.current = e.currentTarget;
     if (naturalWidth > 0 && naturalHeight > 0) {
@@ -58,7 +56,7 @@ const ImageCropModal: React.FC<ImageCropModalProps> = ({
   };
 
   // Générer le fichier croppé et appeler le callback
-  const handleApplyCrop = () => {
+  const handleApplyCrop = (): void => {
     if (!imageRef.current || !displayCrop?.width || !displayCrop?.height) return;
     const image = imageRef.current;
     const canvas = document.createElement('canvas');
@@ -117,7 +115,7 @@ const ImageCropModal: React.FC<ImageCropModalProps> = ({
             src={imageToEdit}
             onLoad={handleImageLoad}
             alt="À recadrer"
-            style={{ display: 'none' }}
+            className="hidden"
           />
           {isImageLoaded && displayCrop ? (
             <ReactCrop
@@ -130,7 +128,7 @@ const ImageCropModal: React.FC<ImageCropModalProps> = ({
                 ref={imageRef}
                 src={imageToEdit}
                 alt="Recadrage"
-                style={{ maxHeight: '60vh', objectFit: 'contain' }}
+                className="max-h-[60vh] object-contain"
               />
             </ReactCrop>
           ) : (

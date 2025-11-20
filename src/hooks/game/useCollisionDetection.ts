@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 
-import { GamePattern } from '@/types/game';
+import type { GamePattern } from '@/types/game';
 
 const PLAYER_SIZE = 12;
 
@@ -37,9 +37,11 @@ export const useCollisionDetection = ({
   setScreenShake,
   setParticles,
   setPointAnimations,
-}: UseCollisionDetectionProps) => {
+}: UseCollisionDetectionProps): {
+  checkCollisions: (playerX: number, playerY: number, patterns: GamePattern[], now: number) => void;
+} => {
   const checkCollisions = useCallback(
-    (playerX: number, playerY: number, patterns: GamePattern[], now: number) => {
+    (playerX: number, playerY: number, patterns: GamePattern[], now: number): void => {
       patterns.forEach((pattern) => {
         // Ignore patterns that are disintegrating
         if (pattern.isDisintegrating) return;

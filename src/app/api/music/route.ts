@@ -1,13 +1,13 @@
-import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 
 import prisma from '@/lib/prisma';
 import { formatTrackData } from '@/lib/api/musicService';
-import { MusicType, MusicPlatform } from '@/lib/utils/types';
+import { handleApiError } from '@/lib/api/errorHandler';
+import { createSuccessResponse, createForbiddenResponse } from '@/lib/api/responseHelpers';
+import type { MusicType, MusicPlatform } from '@/lib/utils/types';
 import { z } from 'zod';
-import { Prisma } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
-import { uploadToBlob, isBlobConfigured, getBlobPublicUrl } from '@/lib/blob';
+import { uploadToBlob, isBlobConfigured } from '@/lib/blob';
 import { logger } from '@/lib/logger';
 import { isNotEmpty } from '@/lib/utils/arrayHelpers';
 
@@ -80,7 +80,7 @@ const trackCreateSchema = z.object({
 type CreateTrackInput = z.infer<typeof trackCreateSchema>;
 
 // GET /api/music - Récupérer toutes les pistes
-export async function GET() {
+export async function GET(): Promise<Response> {
   try {
     const tracks = await prisma.track.findMany({
       include: {
@@ -114,20 +114,19 @@ export async function GET() {
 
     const formattedTracks = tracks.map((track) => formatTrackData(track));
 
-    return NextResponse.json(formattedTracks);
+    return createSuccessResponse(formattedTracks);
   } catch (error) {
-    logger.error('Error fetching tracks', error);
-    return NextResponse.json({ error: 'Failed to fetch tracks' }, { status: 500 });
+    return handleApiError(error, 'GET /api/music');
   }
 }
 
 // POST /api/music - Créer une nouvelle piste
-export async function POST(request: Request) {
+export async function POST(request: Request): Promise<Response> {
   const session = await auth();
 
   // Vérifier l'authentification
   if (!session?.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return createForbiddenResponse('Unauthorized');
   }
 
   // Vérifier le rôle d'admin
@@ -177,6 +176,7 @@ export async function POST(request: Request) {
   }
 
   // Supprimer publishAt du DTO Zod car il est traité et sera passé séparément à Prisma
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { publishAt, ...dataForPrisma } = data;
 
   let imageId = dataForPrisma.imageId;
@@ -299,29 +299,9 @@ export async function POST(request: Request) {
       return fullTrack;
     });
 
-    return NextResponse.json(formatTrackData(track), { status: 201 });
+    return createSuccessResponse(formatTrackData(track), 201, 'Track created successfully');
   } catch (error) {
-    logger.error('Error during track creation transaction', error);
-
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      if (error.code === 'P2002') {
-        const fields = (error.meta?.target as string[]) ?? ['unknown field'];
-        return NextResponse.json(
-          { error: `Unique constraint failed on field(s): ${fields.join(', ')}` },
-          { status: 409 }
-        );
-      }
-      if (error.code === 'P2003') {
-        const field = (error.meta?.field_name as string) ?? 'unknown relation';
-        let userFriendlyMessage = `Relation constraint failed on field: ${field}`;
-        if (field.includes('collectionId')) {
-          userFriendlyMessage = 'The selected music collection does not exist.';
-        }
-        return NextResponse.json({ error: userFriendlyMessage }, { status: 400 });
-      }
-    }
-
-    return NextResponse.json({ error: 'Failed to save track to database' }, { status: 500 });
+    return handleApiError(error, 'POST /api/music');
   }
 }
 

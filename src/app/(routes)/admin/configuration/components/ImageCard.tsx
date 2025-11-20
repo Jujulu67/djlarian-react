@@ -28,11 +28,11 @@ export function ImageCard({
   onView,
   onDownload,
   onDelete,
-}: ImageCardProps) {
+}: ImageCardProps): JSX.Element | null {
   const image = group.crop || group.ori;
   if (!image) return null;
 
-  const handleClick = (e: React.MouseEvent) => {
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>): void => {
     if (isMultiSelectMode) {
       if (isSelected) {
         onDeselect();
@@ -45,7 +45,7 @@ export function ImageCard({
     onView();
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>): void => {
     if (isMultiSelectMode) {
       if (e.key === ' ' || e.key === 'Enter') {
         if (isSelected) {
@@ -65,7 +65,8 @@ export function ImageCard({
 
   return (
     <div
-      className={`relative overflow-hidden flex flex-col rounded-xl shadow-lg transition-all duration-200 group hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 ${
+      role="button"
+      className={`relative overflow-hidden flex flex-col rounded-xl shadow-lg transition-all duration-200 group hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 bg-gradient-to-br from-[rgba(30,30,40,0.8)] to-[rgba(20,20,25,0.9)] ${
         isMultiSelectMode && isSelected
           ? 'ring-2 ring-purple-500 border border-purple-500/40'
           : 'border border-gray-800'
@@ -74,9 +75,6 @@ export function ImageCard({
       tabIndex={0}
       aria-label={`Voir le détail de l'image ${image.name}`}
       onKeyDown={handleKeyDown}
-      style={{
-        background: 'linear-gradient(to bottom right, rgba(30, 30, 40, 0.8), rgba(20, 20, 25, 0.9))',
-      }}
     >
       {isMultiSelectMode && (
         <div className="absolute top-3 left-3 z-20">
@@ -144,13 +142,12 @@ export function ImageCard({
         {group.linkedTo && (
           <div className="mt-2 w-full">
             <span
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm w-full ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm w-full min-h-[2.5rem] ${
                 group.linkedTo.type === 'track'
                   ? 'bg-purple-700/30 text-purple-200'
                   : 'bg-blue-700/30 text-blue-200'
               } whitespace-nowrap overflow-hidden transition-colors duration-200 hover:bg-opacity-50`}
               title={group.linkedTo.title}
-              style={{ minHeight: '2.5rem' }}
             >
               {group.linkedTo.type === 'track' ? (
                 <Music className="w-5 h-5 flex-shrink-0" />

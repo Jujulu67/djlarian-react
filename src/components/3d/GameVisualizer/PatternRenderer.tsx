@@ -1,5 +1,5 @@
 import React from 'react';
-import { GamePattern } from '@/types/game';
+import type { GamePattern } from '@/types/game';
 
 interface PatternRendererProps {
   pattern: GamePattern;
@@ -15,7 +15,6 @@ export const PatternRenderer: React.FC<PatternRendererProps> = ({
   pattern,
   ctx,
   canvasWidth,
-  canvasHeight,
 }) => {
   // Validate pattern position
   if (

@@ -12,7 +12,7 @@ import { usePointAnimations } from '@/hooks/game/usePointAnimations';
 import { useScreenShake } from '@/hooks/game/useScreenShake';
 import { logger } from '@/lib/logger';
 import { isNotEmpty } from '@/lib/utils/arrayHelpers';
-import { GamePattern } from '@/types/game';
+import type { GamePattern } from '@/types/game';
 
 import ParticleSystem, { Particle } from './ParticleSystem';
 import ScoreDisplay from './ScoreDisplay';
@@ -154,7 +154,7 @@ const GameVisualizer: React.FC<GameVisualizerProps> = ({ gameData, audioElement 
       return;
     }
 
-    const resizeCanvas = () => {
+    const resizeCanvas = (): void => {
       if (!canvasRef.current) return;
       const container = canvasRef.current.parentElement;
       if (!container) return;
@@ -182,7 +182,7 @@ const GameVisualizer: React.FC<GameVisualizerProps> = ({ gameData, audioElement 
       canvasRenderer.animate(gameData.gameState.isActive, gameData)
     );
 
-    return () => {
+    return (): void => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
@@ -210,7 +210,7 @@ const GameVisualizer: React.FC<GameVisualizerProps> = ({ gameData, audioElement 
   }, [gameData.gameState.isActive]);
 
   // Render instructions overlay
-  const renderInstructions = () => {
+  const renderInstructions = (): JSX.Element | null => {
     // Don't show instructions if game is active
     if (gameData.gameState.isActive) {
       return null;

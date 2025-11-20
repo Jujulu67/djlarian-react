@@ -7,7 +7,7 @@ import React, { useState, useEffect, useRef } from 'react';
 
 import { logger } from '@/lib/logger';
 import { getInitialVolume, applyVolumeToAllPlayers } from '@/lib/utils/audioUtils';
-import { Track } from '@/lib/utils/types';
+import type { Track } from '@/lib/utils/types';
 
 interface SimpleMusicPlayerProps {
   track: Track | null;
@@ -169,8 +169,7 @@ const SimpleMusicPlayer: React.FC<SimpleMusicPlayerProps> = ({
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: '100%', opacity: 0 }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-black via-gray-900/95 to-gray-900/90 backdrop-blur-md shadow-lg z-50 border-t border-gray-700/50 p-3 md:p-4"
-      style={{ borderTopLeftRadius: '1rem', borderTopRightRadius: '1rem' }}
+      className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-black via-gray-900/95 to-gray-900/90 backdrop-blur-md shadow-lg z-50 border-t border-gray-700/50 p-3 md:p-4 rounded-t-2xl"
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 md:gap-6">
         <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0 md:flex-none md:w-1/4">

@@ -5,21 +5,20 @@ import prisma from '@/lib/prisma';
 import { RecurrenceConfig } from '@/app/components/EventForm';
 import { Prisma } from '@prisma/client';
 import { logger } from '@/lib/logger';
+import { handleApiError } from '@/lib/api/errorHandler';
+import { createSuccessResponse, createForbiddenResponse } from '@/lib/api/responseHelpers';
 
 // GET - Récupérer tous les événements avec filtres optionnels
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest): Promise<Response> {
   try {
     const { searchParams } = new URL(request.url);
     const session = await auth();
     const isAdmin = session?.user?.role === 'ADMIN';
-    const isAuthenticated = !!session;
 
     // Filtres optionnels
     const titleFilter = searchParams.get('title');
     const startDateFilter = searchParams.get('startDate');
     const endDateFilter = searchParams.get('endDate');
-    const categoryFilter = searchParams.get('category');
-    const typeFilter = searchParams.get('type');
     const isPublishedParam = searchParams.get('isPublished');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
@@ -146,7 +145,7 @@ export async function GET(request: NextRequest) {
       return formattedEvent;
     });
 
-    return NextResponse.json({
+    return createSuccessResponse({
       events: formattedEvents,
       pagination: {
         total,
@@ -156,15 +155,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error('Erreur lors de la récupération des événements', error);
-    return NextResponse.json(
-      {
-        error: 'Erreur lors de la récupération des événements',
-        details: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined,
-      },
-      { status: 500 }
-    );
+    return handleApiError(error, 'GET /api/events');
   }
 }
 
@@ -210,12 +201,12 @@ function generateRecurringDates(
 }
 
 // POST - Créer un nouvel événement
-export async function POST(request: Request) {
+export async function POST(request: Request): Promise<Response> {
   const session = await auth();
 
   // Vérifier l'authentification et les autorisations
   if (!session?.user || session.user.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+    return createForbiddenResponse('Non autorisé');
   }
 
   try {

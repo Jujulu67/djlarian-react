@@ -1,68 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { auth } from '@/auth';
 
 import prisma from '@/lib/prisma';
-// Réimporter Prisma pour JsonNull
-import { Prisma } from '@prisma/client';
-import { RecurrenceConfig } from '@/app/components/EventForm';
 import { logger } from '@/lib/logger';
-
-// Type pour Event avec includes
-type EventWithRelations = Prisma.EventGetPayload<{
-  include: {
-    User: { select: { name: true } };
-    TicketInfo: true;
-    RecurrenceConfig: true;
-    Event: { select: { id: true } };
-    other_Event: { select: { id: true; startDate: true } };
-  };
-}>;
-// Ne pas importer Prisma pour l'instant, testons avec null standard
-// import { Prisma } from '@prisma/client';
-
-// Fonction pour générer des dates récurrentes (copiée de /api/events/route.ts)
-function generateRecurringDates(
-  startDate: Date,
-  recurrence: RecurrenceConfig,
-  excludedDates: string[] = []
-): Date[] {
-  const dates: Date[] = [];
-  const endDate = recurrence.endDate ? new Date(recurrence.endDate) : null;
-
-  // Date de début
-  let currentDate = new Date(startDate);
-
-  // Limiter à un maximum de 52 occurrences (1 an) si pas de date de fin
-  const maxOccurrences = 52;
-  let occurrenceCount = 0;
-
-  // Générer des dates en fonction de la fréquence
-  while ((!endDate || currentDate <= endDate) && occurrenceCount < maxOccurrences) {
-    // Vérifier si cette date n'est pas exclue
-    const dateString = currentDate.toISOString().split('T')[0];
-    if (!excludedDates.includes(dateString)) {
-      dates.push(new Date(currentDate));
-    }
-
-    // Passer à la prochaine date selon la fréquence
-    if (recurrence.frequency === 'weekly') {
-      // Ajouter 7 jours pour la prochaine semaine
-      currentDate = new Date(currentDate);
-      currentDate.setDate(currentDate.getDate() + 7);
-    } else if (recurrence.frequency === 'monthly') {
-      // Ajouter un mois
-      currentDate = new Date(currentDate);
-      currentDate.setMonth(currentDate.getMonth() + 1);
-    }
-
-    occurrenceCount++;
-  }
-
-  return dates;
-}
+import { handleApiError } from '@/lib/api/errorHandler';
+import { createSuccessResponse, createForbiddenResponse } from '@/lib/api/responseHelpers';
 
 // GET - Récupérer un événement spécifique par son ID
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+): Promise<Response> {
   try {
     const resolvedParams = await params;
     const { id } = resolvedParams;
@@ -109,13 +57,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // Si l'événement n'existe pas
     if (!event) {
-      logger.debug(`Event not found with ID: ${id}`);
-      return NextResponse.json({ error: 'Événement non trouvé' }, { status: 404 });
+      return handleApiError(new Error('Événement non trouvé'), 'GET /api/events/[id]');
     }
 
     // Si l'événement n'est pas publié et que l'utilisateur n'est pas admin
     if (!event.isPublished && !isAdmin) {
-      return NextResponse.json({ error: 'Accès non autorisé' }, { status: 403 });
+      return createForbiddenResponse('Accès non autorisé');
     }
 
     // Publication automatique si la date est passée
@@ -166,9 +113,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         logger.debug(
           `Date comparison - Original: ${event.startDate}, Virtual: ${virtualEvent.startDate}`
         );
-        return NextResponse.json(virtualEvent);
+        return createSuccessResponse(virtualEvent);
       } catch (error) {
         logger.error(`Error creating virtual event:`, error);
+        return handleApiError(error, 'GET /api/events/[id]');
       }
     }
 
@@ -193,22 +141,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       delete formattedEvent.User;
     }
 
-    return NextResponse.json(formattedEvent);
+    return createSuccessResponse(formattedEvent);
   } catch (error) {
-    logger.error("Erreur lors de la récupération de l'événement:", error);
-    return NextResponse.json(
-      {
-        error: "Erreur lors de la récupération de l'événement",
-        details: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined,
-      },
-      { status: 500 }
-    );
+    return handleApiError(error, 'GET /api/events/[id]');
   }
 }
 
 // PATCH - Mettre à jour un événement existant
-export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+): Promise<Response> {
   const resolvedParams = await params;
     const id = resolvedParams.id;
   logger.debug(`--- PATCH /api/events/${id} ---`);
@@ -221,8 +164,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     });
 
     if (!eventExists) {
-      logger.error(`[API] Event with ID ${id} not found`);
-      return NextResponse.json({ error: 'Événement non trouvé' }, { status: 404 });
+      return handleApiError(new Error('Événement non trouvé'), 'PATCH /api/events/[id]');
     }
 
     logger.debug(`[API] Event with ID ${id} found, proceeding with update`);
@@ -230,7 +172,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const session = await auth();
 
     if (!session?.user || session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+      return createForbiddenResponse('Non autorisé');
     }
 
     // Afficher les informations de session pour debug
@@ -246,7 +188,6 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       address,
       startDate,
       endDate,
-      imageUrl,
       status,
       isPublished,
       featured,
@@ -409,34 +350,17 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       delete formattedEvent.User;
     }
 
-    return NextResponse.json(formattedEvent);
-  } catch (error: unknown) {
-    logger.error(`--- ERROR in PATCH /api/events/${id} ---`);
-    logger.error('Error details:', error);
-    const prismaError = error as { code?: string; meta?: unknown; message?: string; stack?: string };
-    logger.error('Error code:', prismaError.code);
-    logger.error('Error meta:', prismaError.meta);
-    logger.error('Stack trace:', prismaError.stack);
-
-    // Renvoi d'une réponse d'erreur plus détaillée pour le débogage
-    if (prismaError.code === 'P2025') {
-      return NextResponse.json({ error: 'Événement non trouvé' }, { status: 404 });
-    }
-
-    return NextResponse.json(
-      {
-        error: 'Internal Server Error during update.',
-        details: prismaError.message || 'Unknown error',
-        code: prismaError.code,
-        meta: prismaError.meta,
-      },
-      { status: 500 }
-    );
+    return createSuccessResponse(formattedEvent);
+  } catch (error) {
+    return handleApiError(error, 'PATCH /api/events/[id]');
   }
 }
 
 // DELETE - Supprimer un événement
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+): Promise<Response> {
   const resolvedParams = await params;
   try {
     const id = resolvedParams.id;
@@ -444,7 +368,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     // Vérifier l'authentification et les autorisations
     if (!session?.user || session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+      return createForbiddenResponse('Non autorisé');
     }
 
     // Vérifier si l'événement existe
@@ -453,7 +377,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     });
 
     if (!eventExists) {
-      return NextResponse.json({ error: 'Événement non trouvé' }, { status: 404 });
+      return handleApiError(new Error('Événement non trouvé'), 'DELETE /api/events/[id]');
     }
 
     // Supprimer l'événement et ses tickets associés (cascade)
@@ -461,12 +385,8 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       where: { id },
     });
 
-    return NextResponse.json({ message: 'Événement supprimé avec succès' });
+    return createSuccessResponse({ message: 'Événement supprimé avec succès' });
   } catch (error) {
-    logger.error("Erreur lors de la suppression de l'événement:", error);
-    return NextResponse.json(
-      { error: "Erreur lors de la suppression de l'événement" },
-      { status: 500 }
-    );
+    return handleApiError(error, 'DELETE /api/events/[id]');
   }
 }
