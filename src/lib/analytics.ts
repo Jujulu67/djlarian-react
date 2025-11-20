@@ -20,7 +20,7 @@ interface UmamiPageView {
   change: number;
 }
 
-interface UmamiMetrics {
+export interface UmamiMetrics {
   pageviews: UmamiPageView;
   uniques: UmamiPageView;
   bounces: UmamiPageView;
@@ -334,7 +334,7 @@ export async function getTopPages(
         return [];
       }
 
-      return data.map((item: any) => ({
+      return data.map((item: { x?: string; y?: number }) => ({
         x: item.x || '/',
         y: item.y || 0,
       }));
@@ -421,7 +421,7 @@ export async function getTrafficSources(
     };
 
     // Mapper les données
-    return data.map((referrer: any) => {
+    return data.map((referrer: { x?: string; y?: number }) => {
       // Déterminer le type de source
       let source = (referrer.x || '').toLowerCase();
       let displayName = referrer.x || '(unknown)';

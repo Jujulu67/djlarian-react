@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { defaultConfigs } from '@/config/defaults';
 import { logger } from '@/lib/logger';
 
@@ -150,7 +151,7 @@ export async function POST(req: NextRequest) {
         data: {
           name: 'Avant réinitialisation - ' + new Date().toLocaleString(),
           description: 'Snapshot automatique créé avant la réinitialisation aux valeurs par défaut',
-          data: currentConfigs,
+          data: currentConfigs as Prisma.InputJsonValue,
           createdBy: session.user.email || undefined,
         },
       });
@@ -175,16 +176,16 @@ export async function POST(req: NextRequest) {
 // Fonction utilitaire pour récupérer les configurations actuelles
 async function fetchCurrentConfigs() {
   const configs = await prisma.$queryRaw`SELECT * FROM "SiteConfig"`;
-  const configObject: Record<string, Record<string, any>> = {};
+  const configObject: Record<string, Record<string, unknown>> = {};
 
   if (Array.isArray(configs)) {
-    configs.forEach((config: any) => {
+    configs.forEach((config: { section: string; key: string; value: unknown }) => {
       if (!configObject[config.section]) {
         configObject[config.section] = {};
       }
 
       // Convertir les valeurs en types appropriés
-      let value: any = config.value;
+      let value: unknown = config.value;
       if (value === 'true' || value === 'false') {
         value = value === 'true';
       } else if (!isNaN(Number(value)) && value !== '') {

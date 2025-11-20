@@ -20,7 +20,7 @@ interface MusicCardProps {
   onPlay: (track: Track) => void;
   isPlaying: boolean;
   isActive: boolean;
-  playerRef?: React.MutableRefObject<any>;
+  playerRef?: React.MutableRefObject<HTMLIFrameElement | null>;
 }
 
 const platformIcons: Record<MusicPlatform, React.ReactNode> = {
@@ -507,7 +507,7 @@ export const MusicCard: React.FC<MusicCardProps> = ({
     // Au lieu de basculer l'état, on signale au parent qu'il faut arrêter complètement la lecture
     if (isActive) {
       // Communiquer au parent qu'il faut fermer le lecteur
-      onPlay({ ...track, close: true } as any);
+      onPlay({ ...track, close: true } as Parameters<typeof onPlay>[0] & { close: true });
     }
   };
 

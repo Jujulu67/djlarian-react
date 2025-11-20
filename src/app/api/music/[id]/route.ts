@@ -24,24 +24,20 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
   try {
     const track = await prisma.track.findUnique({
       where: { id },
-      select: {
-        id: true,
-        title: true,
-        artist: true,
-        imageId: true,
-        releaseDate: true,
-        description: true,
-        bpm: true,
-        featured: true,
-        isPublished: true,
-        publishAt: true,
-        type: true,
-        createdAt: true,
-        updatedAt: true,
-        TrackPlatform: { select: { platform: true, url: true, embedId: true } },
-        GenresOnTracks: { include: { Genre: { select: { name: true } } } },
-        MusicCollection: { select: { id: true, title: true } },
-        User: { select: { id: true, name: true } },
+      include: {
+        TrackPlatform: true,
+        GenresOnTracks: {
+          include: {
+            Genre: true,
+          },
+        },
+        MusicCollection: true,
+        User: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
 
@@ -50,7 +46,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
       return NextResponse.json({ error: 'Track not found' }, { status: 404 });
     }
 
-    return NextResponse.json(formatTrackData(track as any));
+    return NextResponse.json(formatTrackData(track));
   } catch (error) {
     logger.error(`Error fetching track ${id}`, error);
     return NextResponse.json({ error: 'Failed to fetch track' }, { status: 500 });
@@ -99,11 +95,11 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
       createdAt,
       // updatedAt est géré ci-dessous
       ...baseDataToUpdate
-    } = trackData as any;
+    } = trackData as Record<string, unknown>;
 
     // Assurer les bons types pour certains champs
-    if (baseDataToUpdate.releaseDate) {
-      baseDataToUpdate.releaseDate = new Date(baseDataToUpdate.releaseDate);
+    if (baseDataToUpdate.releaseDate && typeof baseDataToUpdate.releaseDate === 'string') {
+      baseDataToUpdate.releaseDate = new Date(baseDataToUpdate.releaseDate) as Date;
     }
 
     // Traitement de publishAt

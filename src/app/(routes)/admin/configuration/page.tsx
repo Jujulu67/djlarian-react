@@ -406,7 +406,7 @@ export default function ConfigurationPage() {
   };
 
   // Fonction pour annuler une modification spécifique (recharge les configs)
-  const handleRevertChange = async (historyItem: any) => {
+  const handleRevertChange = async (historyItem: { id: string; configId: string; previousValue: string; newValue: string; createdAt: string; createdBy?: string; description?: string; reverted: boolean; config: { section: string; key: string } }) => {
     setIsLoading(true);
     setError(null);
 
@@ -438,7 +438,7 @@ export default function ConfigurationPage() {
   };
 
   // Fonction pour appliquer un snapshot (recharge les configs)
-  const handleApplySnapshot = async (snapshot: any) => {
+  const handleApplySnapshot = async (snapshot: { id: string; name: string; description?: string; createdAt: string; createdBy?: string }) => {
     setIsLoading(true);
     setError(null);
 
@@ -560,7 +560,7 @@ export default function ConfigurationPage() {
     };
 
     // Fonction pour formater la valeur (simple pour l'instant)
-    const formatValue = (value: any): string => {
+    const formatValue = (value: unknown): string => {
       if (typeof value === 'boolean') return value ? 'Activé' : 'Désactivé';
       if (value === null || value === undefined || value === '')
         return '<span class="text-gray-500">[Vide]</span>';

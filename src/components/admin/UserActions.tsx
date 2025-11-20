@@ -45,9 +45,10 @@ export default function UserActions({ userId, userName }: UserActionsProps) {
       router.refresh();
       // Optionnel : Afficher une notification de succès (peut être fait avec une librairie de toasts)
       logger.debug('Utilisateur supprimé avec succès');
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.error('Erreur lors de la suppression:', err);
-      setError(err.message || 'Une erreur est survenue.');
+      const errorMessage = err instanceof Error ? err.message : 'Une erreur est survenue.';
+      setError(errorMessage);
       // Optionnel : Afficher une notification d'erreur
     } finally {
       setIsDeleting(false);

@@ -36,7 +36,12 @@ trap cleanup SIGINT SIGTERM EXIT
 start_server() {
     echo "🚀 Démarrage du serveur Next.js..."
     
+    # Synchroniser le schéma Prisma avant de démarrer (le script npm run dev le fera aussi, mais on le fait ici pour être sûr)
+    # Le script ensure-sqlite-schema.sh vérifie d'abord si c'est nécessaire, donc pas de problème de double exécution
+    bash scripts/ensure-sqlite-schema.sh > /dev/null 2>&1 || bash scripts/ensure-sqlite-schema.sh
+    
     # Lancer npm run dev en arrière-plan et capturer son PID
+    # npm run dev exécute aussi ensure-sqlite-schema.sh, mais c'est rapide et garantit la synchronisation
     npm run dev &
     NPM_PID=$!
     echo $NPM_PID > "$PID_FILE"

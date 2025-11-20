@@ -1,7 +1,7 @@
 /**
  * Système de logging centralisé pour l'application
  * Remplace tous les console.log/warn/error par un système unifié
- * 
+ *
  * Niveaux de log :
  * - debug: Informations de débogage (désactivé en production)
  * - info: Informations générales
@@ -24,7 +24,7 @@ class Logger {
   /**
    * Log de débogage (uniquement en développement)
    */
-  debug(message: string, ...args: any[]): void {
+  debug(message: string, ...args: unknown[]): void {
     if (this.isDevelopment) {
       console.log(`[DEBUG] ${message}`, ...args);
     }
@@ -33,7 +33,7 @@ class Logger {
   /**
    * Log d'information
    */
-  info(message: string, ...args: any[]): void {
+  info(message: string, ...args: unknown[]): void {
     if (!this.isProduction) {
       console.log(`[INFO] ${message}`, ...args);
     }
@@ -42,7 +42,7 @@ class Logger {
   /**
    * Log d'avertissement
    */
-  warn(message: string, ...args: any[]): void {
+  warn(message: string, ...args: unknown[]): void {
     console.warn(`[WARN] ${message}`, ...args);
   }
 
@@ -50,7 +50,7 @@ class Logger {
    * Log d'erreur
    * Accepte un message et des arguments supplémentaires (peut être une erreur)
    */
-  error(message: string, ...args: any[]): void {
+  error(message: string, ...args: unknown[]): void {
     // Convertir les erreurs en format lisible
     const formattedArgs = args.map((arg) => {
       if (arg instanceof Error) {
@@ -64,7 +64,7 @@ class Logger {
   /**
    * Log avec préfixe personnalisé
    */
-  log(prefix: string, message: string, ...args: any[]): void {
+  log(prefix: string, message: string, ...args: unknown[]): void {
     if (!this.isProduction) {
       console.log(`[${prefix}] ${message}`, ...args);
     }
@@ -73,7 +73,7 @@ class Logger {
   /**
    * Log avec options avancées
    */
-  logWithOptions(message: string, options: LogOptions = {}, ...args: any[]): void {
+  logWithOptions(message: string, options: LogOptions = {}, ...args: unknown[]): void {
     const { level = 'info', prefix, disableInProduction = false } = options;
 
     if (disableInProduction && this.isProduction) {
@@ -112,4 +112,3 @@ export { Logger };
 
 // Export des types
 export type { LogLevel, LogOptions };
-

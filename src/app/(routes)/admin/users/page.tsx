@@ -2,9 +2,9 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { ChevronLeft, UserPlus } from 'lucide-react';
 import Link from 'next/link';
-import { Prisma } from '@prisma/client';
 import { UserTable } from './components/UserTable';
 import { UserPagination } from './components/UserPagination';
 import { UserFiltersServer } from './components/UserFiltersServer';
@@ -69,9 +69,9 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
   }
 
   if (isVip === 'true') {
-    filters.push({ isVip: true } as any);
+    filters.push({ isVip: true } as Prisma.UserWhereInput);
   } else if (isVip === 'false') {
-    filters.push({ isVip: false } as any);
+    filters.push({ isVip: false } as Prisma.UserWhereInput);
   }
 
   if (filters.length > 0) {

@@ -51,7 +51,10 @@ export async function PUT(request: Request, { params }: { params: Promise<{ user
   if (email !== undefined) dataToUpdate.email = email;
   if (name !== undefined) dataToUpdate.name = name;
   if (role !== undefined) dataToUpdate.role = role;
-  if (isVip !== undefined) (dataToUpdate as any).isVip = isVip;
+  if (isVip !== undefined) {
+    // isVip est un champ Prisma, utiliser un cast sécurisé
+    (dataToUpdate as PrismaUser & { isVip?: boolean }).isVip = isVip;
+  }
   if (password) {
     try {
       // Assurez-vous que le champ dans Prisma s'appelle bien hashedPassword
@@ -90,9 +93,10 @@ export async function PUT(request: Request, { params }: { params: Promise<{ user
       updatedUser
     );
     return NextResponse.json(updatedUser);
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error(`PUT /api/users/${userId} - Erreur Prisma update:`, error);
-    if (error.code === 'P2002' && error.meta?.target?.includes('email')) {
+    const prismaError = error as { code?: string; meta?: { target?: string[] } };
+    if (prismaError.code === 'P2002' && prismaError.meta?.target?.includes('email')) {
       return NextResponse.json(
         { error: 'Cet email est déjà utilisé par un autre compte.' },
         { status: 409 }
@@ -140,11 +144,12 @@ export async function DELETE(
     // Retourner une réponse de succès sans contenu
     return new NextResponse(null, { status: 204 });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error(`DELETE /api/users/${userId} - Erreur Prisma delete:`, error);
     // Gérer les erreurs potentielles (ex: contraintes de clé étrangère si la suppression cascade n'est pas configurée)
     // Code P2014: Violation de contrainte (ex: relation requise existe toujours)
-     if (error.code === 'P2014' || error.code === 'P2003') {
+    const prismaError = error as { code?: string };
+    if (prismaError.code === 'P2014' || prismaError.code === 'P2003') {
          return NextResponse.json({ error: 'Impossible de supprimer cet utilisateur car il est lié à d\'autres données (événements, pistes, etc.).' }, { status: 409 }); // Conflit
      }
      // Code P2025: Record to delete does not exist (déjà géré par findUnique avant)
