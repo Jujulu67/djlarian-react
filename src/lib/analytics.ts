@@ -13,6 +13,7 @@ import {
   endOfMonth,
 } from 'date-fns';
 import { logger } from '@/lib/logger';
+import { isNotEmpty, first } from '@/lib/utils/arrayHelpers';
 
 // Types pour les données Umami
 interface UmamiPageView {
@@ -249,7 +250,7 @@ export async function getUmamiStats(
       }
 
       // Gérer les données pour le graphique pageviews (doit être un tableau)
-      if (data.pageviews && Array.isArray(data.pageviews) && data.pageviews.length > 0) {
+      if (isNotEmpty(data.pageviews)) {
         result.pageviews = data.pageviews;
         // Recalculer la valeur totale des pageviews si elle n'a pas été trouvée dans metrics
         if (result.metrics.pageviews.value === 0 && result.metrics.pageviews.change === 0) {
@@ -324,7 +325,7 @@ export async function getTopPages(
     logger.debug('Données top pages reçues:', {
       isArray: Array.isArray(data),
       length: Array.isArray(data) ? data.length : 0,
-      firstItem: Array.isArray(data) && data.length > 0 ? data[0] : null,
+      firstItem: first(data) ?? null,
     });
 
     // Transformer les données au format attendu
@@ -388,7 +389,7 @@ export async function getTrafficSources(
     logger.debug('Données sources de trafic reçues:', {
       isArray: Array.isArray(data),
       length: Array.isArray(data) ? data.length : 0,
-      firstItem: Array.isArray(data) && data.length > 0 ? data[0] : null,
+      firstItem: first(data) ?? null,
     });
 
     if (!data || !Array.isArray(data)) {

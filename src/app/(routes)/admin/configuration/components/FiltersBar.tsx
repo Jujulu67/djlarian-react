@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import type { ImageMeta } from '@/app/api/admin/images/shared';
 import type { SortOption } from '../types';
 import { logger } from '@/lib/logger';
+import { isNotEmpty } from '@/lib/utils/arrayHelpers';
 
 interface FiltersBarProps {
   images: ImageMeta[];
@@ -67,7 +68,7 @@ export function FiltersBar({
           />
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          {filteredTypes.length > 0 && (
+          {isNotEmpty(filteredTypes) && (
             <div className="flex items-center gap-2 min-w-[120px]">
               <Filter className="h-4 w-4 text-gray-400" />
               <Select

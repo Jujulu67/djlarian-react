@@ -8,6 +8,7 @@ import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { Prisma } from '@prisma/client';
 import { logger } from '@/lib/logger';
+import { isNotEmpty } from '@/lib/utils/arrayHelpers';
 
 // GET /api/music/[id] - Récupérer une piste spécifique
 export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
@@ -139,7 +140,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
     let genresUpdate = undefined;
     if (genreNames !== undefined) {
       await prisma.genresOnTracks.deleteMany({ where: { trackId: id } });
-      if (genreNames.length > 0) {
+      if (isNotEmpty(genreNames)) {
         const genrePromises = genreNames.map(async (name) => {
           const normalizedName = name.trim().toLowerCase();
           return prisma.genre.upsert({
@@ -166,7 +167,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
     let platformsUpdate = undefined;
     if (platforms !== undefined) {
       await prisma.trackPlatform.deleteMany({ where: { trackId: id } });
-      if (platforms.length > 0) {
+      if (isNotEmpty(platforms)) {
         platformsUpdate = {
           create: platforms.map((platform) => ({
             id: uuidv4(),

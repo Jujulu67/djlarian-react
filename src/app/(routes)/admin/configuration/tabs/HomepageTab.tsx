@@ -46,7 +46,7 @@ export default function HomepageTab() {
   return (
     <div className="p-6 relative z-10">
       <h2 className="text-2xl font-audiowide text-white mb-6 pb-2 border-b border-purple-500/20">
-        Configuration de la page d&apos;accueil
+        Configuration de la page d'accueil
       </h2>
 
       <Tabs defaultValue="hero" className="w-full">
@@ -129,7 +129,7 @@ export default function HomepageTab() {
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="heroBackgroundVideo">URL de la vidéo d&apos;arrière-plan</Label>
+            <Label htmlFor="heroBackgroundVideo">URL de la vidéo d'arrière-plan</Label>
             <Input
               id="heroBackgroundVideo"
               value={homepage.heroBackgroundVideo}
@@ -138,7 +138,7 @@ export default function HomepageTab() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="heroPosterImage">URL de l&apos;image poster (fallback vidéo)</Label>
+            <Label htmlFor="heroPosterImage">URL de l'image poster (fallback vidéo)</Label>
             <Input
               id="heroPosterImage"
               value={homepage.heroPosterImage}
@@ -290,7 +290,7 @@ export default function HomepageTab() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="twitchUsername">Nom d&apos;utilisateur Twitch</Label>
+            <Label htmlFor="twitchUsername">Nom d'utilisateur Twitch</Label>
             <Input
               id="twitchUsername"
               value={homepage.twitchUsername}
@@ -455,7 +455,7 @@ export default function HomepageTab() {
             </DragDropContext>
           </div>
           <p className="text-xs text-gray-400">
-            L&apos;ordre des sections détermine leur position sur la page d&apos;accueil. Les
+            L'ordre des sections détermine leur position sur la page d'accueil. Les
             sections désactivées ne seront pas affichées.
           </p>
         </div>

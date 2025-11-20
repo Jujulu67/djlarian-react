@@ -16,42 +16,11 @@ import { Calendar as CalendarIcon, CheckCircle, Clock, PauseCircle } from 'lucid
 import { PublicationStatusSelector } from '@/components/admin/PublicationStatusSelector';
 import { DateTimeField } from '@/components/ui/DateTimeField';
 import { logger } from '@/lib/logger';
+import { EventFormData, TicketInfo, RecurrenceConfig } from './EventForm/types';
+import { EventFormTickets } from './EventForm/components/EventFormTickets';
+import { isNotEmpty } from '@/lib/utils/arrayHelpers';
 
-export interface TicketInfo {
-  price?: number;
-  currency?: string;
-  quantity?: number;
-  buyUrl?: string;
-  url?: string;
-  availableTo?: string;
-  availableFrom?: string;
-}
-
-export interface RecurrenceConfig {
-  isRecurring: boolean;
-  frequency: 'weekly' | 'monthly';
-  day?: number; // 0-6 pour les jours de la semaine (0=dimanche)
-  endDate?: string;
-  excludedDates?: string[]; // Dates à exclure de la récurrence
-}
-
-export interface EventFormData {
-  title: string;
-  description: string;
-  location: string;
-  address?: string;
-  date?: string;
-  startDate?: string;
-  endDate?: string;
-  status?: 'UPCOMING' | 'COMPLETED' | 'CANCELLED';
-  isPublished?: boolean;
-  publishAt?: string;
-  hasTickets?: boolean;
-  featured?: boolean;
-  imageId?: string | null;
-  tickets: TicketInfo;
-  recurrence?: RecurrenceConfig;
-}
+export type { EventFormData, TicketInfo, RecurrenceConfig };
 
 // Définir un type pour les erreurs qui permet d'accéder aux propriétés imbriquées
 interface FormErrors extends Partial<Record<keyof EventFormData, string>> {
@@ -256,7 +225,7 @@ const EventForm: React.FC<EventFormProps> = ({
 
   // Gère le drop d'une NOUVELLE image
   const handleNewImageDrop = (acceptedFiles: File[]) => {
-    if (acceptedFiles && acceptedFiles.length > 0) {
+    if (isNotEmpty(acceptedFiles)) {
       const file = acceptedFiles[0];
       setOriginalImageFile(file);
       const reader = new FileReader();
@@ -404,7 +373,7 @@ const EventForm: React.FC<EventFormProps> = ({
             </select>
             {futureOccurrences.length === 0 && formData.date && (
               <p className="text-amber-400 text-xs mt-1">
-                Pour voir les occurrences, définissez d&apos;abord la date de première occurrence.
+                Pour voir les occurrences, définissez d'abord la date de première occurrence.
               </p>
             )}
           </div>
@@ -439,7 +408,7 @@ const EventForm: React.FC<EventFormProps> = ({
           </Button>
         </div>
         <p className="text-gray-400 text-xs italic mt-2">
-          Les occurrences exclues n&apos;apparaîtront pas dans le calendrier des événements.
+          Les occurrences exclues n'apparaîtront pas dans le calendrier des événements.
         </p>
       </div>
     );
@@ -683,15 +652,15 @@ const EventForm: React.FC<EventFormProps> = ({
         ref={formRef}
       >
         <h2 className="text-2xl font-bold mb-6">
-          {isEditMode ? 'Modifier l&apos;événement' : 'Créer un nouvel événement'}
+          {isEditMode ? "Modifier l'événement" : 'Créer un nouvel événement'}
         </h2>
 
         <div>
-          <h3 className="text-xl font-semibold mb-4">Informations de l&apos;événement</h3>
+          <h3 className="text-xl font-semibold mb-4">Informations de l'événement</h3>
 
           <div className="input-group">
             <label htmlFor="title" className={labelBaseClass}>
-              Titre de l&apos;événement <span className="text-red-500">*</span>
+              Titre de l'événement <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -734,7 +703,7 @@ const EventForm: React.FC<EventFormProps> = ({
               />
             </div>
             <p className="text-gray-400 text-sm mt-1">
-              En activant cette option, l&apos;événement sera automatiquement répété selon la
+              En activant cette option, l'événement sera automatiquement répété selon la
               configuration définie ci-dessous.
             </p>
           </div>
@@ -834,7 +803,7 @@ const EventForm: React.FC<EventFormProps> = ({
               <div className="mt-6">
                 <label className={labelBaseClass}>Dates à exclure de la récurrence</label>
                 <p className="text-gray-400 text-sm mb-3">
-                  Sélectionnez les dates spécifiques où l&apos;événement ne doit pas avoir lieu.
+                  Sélectionnez les dates spécifiques où l'événement ne doit pas avoir lieu.
                 </p>
 
                 <RecurringDates formData={formData} setFormData={setFormData} />
@@ -925,7 +894,7 @@ const EventForm: React.FC<EventFormProps> = ({
               }}
             />
             <p className="text-gray-400 text-sm mt-1">
-              Choisissez si l&apos;événement doit être visible publiquement, rester en brouillon, ou
+              Choisissez si l'événement doit être visible publiquement, rester en brouillon, ou
               être publié automatiquement à une date précise.
             </p>
           </div>
@@ -935,7 +904,7 @@ const EventForm: React.FC<EventFormProps> = ({
         <div className="space-y-6 pt-2">
           <h2 className={sectionHeaderClass}>
             <span className={sectionNumberClass}>2</span>
-            Image de l&apos;événement
+            Image de l'événement
           </h2>
 
           <div className="mb-6">
@@ -959,135 +928,21 @@ const EventForm: React.FC<EventFormProps> = ({
           </div>
         </div>
 
-        {/* Section 3: Billets (changement de numéro de 4 à 3) */}
-        <div className="space-y-6 pt-2">
-          <h2 className={sectionHeaderClass}>
-            <span className={sectionNumberClass}>3</span>
-            Billetterie et mise en avant
-          </h2>
-
-          <div className="mb-6">
-            <div className="flex items-center justify-between py-2">
-              <label htmlFor="hasTickets" className="text-gray-300 font-medium">
-                Cet événement propose des billets
-              </label>
-              <Switch
-                id="hasTickets"
-                name="hasTickets"
-                checked={formData.hasTickets || false}
-                onCheckedChange={(checked) => {
-                  const event = {
-                    target: {
-                      type: 'checkbox',
-                      name: 'hasTickets',
-                      id: 'hasTickets',
-                      checked,
-                    },
-                  } as React.ChangeEvent<HTMLInputElement>;
-                  handleCheckboxChange(event);
-                }}
-              />
-            </div>
-          </div>
-
-          {formData.hasTickets && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label htmlFor="tickets.price" className={labelBaseClass}>
-                  Prix (€) <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    id="tickets.price"
-                    name="tickets.price"
-                    value={formData.tickets.price}
-                    onChange={handleChange}
-                    className={`${inputBaseClass} pr-10 ${errors['tickets.price'] ? 'border-red-500 bg-red-900/10' : ''}`}
-                    min="0"
-                    step="0.01"
-                    required
-                  />
-                  <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                    €
-                  </span>
-                </div>
-                {errors['tickets.price'] && (
-                  <p className="mt-2 text-red-500 text-sm">{errors['tickets.price']}</p>
-                )}
-              </div>
-
-              <div>
-                <label htmlFor="tickets.buyUrl" className={labelBaseClass}>
-                  URL de billetterie <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="url"
-                  id="tickets.buyUrl"
-                  name="tickets.buyUrl"
-                  value={formData.tickets.buyUrl || ''}
-                  onChange={handleChange}
-                  className={`${inputBaseClass} ${errors['tickets.buyUrl'] ? 'border-red-500 bg-red-900/10' : ''}`}
-                  placeholder="https://..."
-                  required
-                />
-                {errors['tickets.buyUrl'] && (
-                  <p className="mt-2 text-red-500 text-sm">{errors['tickets.buyUrl']}</p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {formData.hasTickets && (
-            <div className="mt-6">
-              <label htmlFor="tickets.quantity" className={labelBaseClass}>
-                Quantité de billets disponibles
-              </label>
-              <input
-                type="number"
-                id="tickets.quantity"
-                name="tickets.quantity"
-                value={formData.tickets.quantity || ''}
-                onChange={handleChange}
-                className={`${inputBaseClass} ${errors['tickets.quantity'] ? 'border-red-500 bg-red-900/10' : ''}`}
-                min="0"
-                step="1"
-              />
-              {errors['tickets.quantity'] && (
-                <p className="mt-2 text-red-500 text-sm">{errors['tickets.quantity']}</p>
-              )}
-            </div>
-          )}
-
-          <div className="flex items-center justify-between py-2 mt-6">
-            <label htmlFor="featured" className="text-gray-300 font-medium">
-              Mettre en avant cet événement
-            </label>
-            <Switch
-              id="featured"
-              name="featured"
-              checked={formData.featured || false}
-              onCheckedChange={(checked) => {
-                const event = {
-                  target: {
-                    type: 'checkbox',
-                    name: 'featured',
-                    id: 'featured',
-                    checked,
-                  },
-                } as React.ChangeEvent<HTMLInputElement>;
-                handleCheckboxChange(event);
-              }}
-            />
-          </div>
-        </div>
+        {/* Section 3: Billets */}
+        <EventFormTickets
+          formData={formData}
+          setFormData={setFormData}
+          errors={errors}
+          handleChange={handleChange}
+          handleCheckboxChange={handleCheckboxChange}
+        />
 
         <div className="pt-8 flex justify-end space-x-4">
           <button
             type="submit"
             className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 shadow-lg shadow-purple-600/20 hover:shadow-purple-600/40"
           >
-            {isEditMode ? 'Mettre à jour' : 'Créer l&apos;événement'}
+            {isEditMode ? 'Mettre à jour' : "Créer l'événement"}
           </button>
         </div>
       </form>

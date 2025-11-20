@@ -11,6 +11,7 @@ import {
   AUDIO_UPDATE_INTERVAL,
 } from './game/constants';
 import type { FrequencyBand } from '@/types/game';
+import { isNotEmpty } from '@/lib/utils/arrayHelpers';
 
 export const useGameManager = (audioElement: HTMLAudioElement | null) => {
   const [gameState, setGameState] = useState<GameState>(() => {
@@ -160,7 +161,7 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
       return;
     }
 
-    if (!isActive.current && patterns.length > 0) {
+    if (!isActive.current && isNotEmpty(patterns)) {
       const slowUpdatePatterns = patterns
         .map((pattern) => {
           const newX = pattern.position.x - (pattern.speed || SCROLL_SPEED) * 0.2;
@@ -229,7 +230,7 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
 
     if (isActive.current) {
       patternManager.animationFrame.current = requestAnimationFrame(simpleUpdateGame);
-    } else if (updatedPatterns.length > 0) {
+    } else if (isNotEmpty(updatedPatterns)) {
       requestAnimationFrame(simpleUpdateGame);
     }
   }, [patterns, setPatterns, patternManager, isActive]);

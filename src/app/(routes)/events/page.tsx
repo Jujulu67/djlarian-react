@@ -665,7 +665,7 @@ export default function EventsPage() {
                     <div className="flex justify-between items-center">
                       <span className="text-purple-400 group-hover:text-purple-300 transition-colors text-sm font-medium flex items-center">
                         <Eye className="w-4 h-4 mr-1.5" />
-                        Voir l&apos;événement
+                        Voir l'événement
                       </span>
 
                       {event.tickets?.buyUrl && !isPastEvent(event.startDate) && (

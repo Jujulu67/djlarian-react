@@ -171,7 +171,7 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
     <div className="grid grid-cols-1 gap-8">
       <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg border border-gray-700/50 p-6">
         <h2 className="text-xl font-bold mb-6 text-white">
-          Atelier d&apos;ajout intelligent YouTube
+          Atelier d'ajout intelligent YouTube
         </h2>
         <p className="text-gray-300 mb-6">
           Retrouvez vos vidéos YouTube et importez-les directement dans votre base de données
@@ -187,7 +187,7 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
         >
           <div className="flex-1">
             <label htmlFor="yt" className="block text-gray-300 font-medium mb-2">
-              Nom d&apos;utilisateur / URL de chaîne
+              Nom d'utilisateur / URL de chaîne
             </label>
             <input
               id="yt"

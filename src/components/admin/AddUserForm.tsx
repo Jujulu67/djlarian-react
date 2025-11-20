@@ -69,7 +69,7 @@ export default function AddUserForm({ onSuccess, userToEdit }: AddUserFormProps)
       if (!userToEdit) {
         logger.error('Erreur: Mode édition actif mais userToEdit non défini.');
         setError(
-          'Une erreur interne est survenue. Impossible de déterminer l&apos;utilisateur à modifier.'
+          "Une erreur interne est survenue. Impossible de déterminer l'utilisateur à modifier."
         );
         setIsLoading(false);
         return;
@@ -141,11 +141,11 @@ export default function AddUserForm({ onSuccess, userToEdit }: AddUserFormProps)
         {/* Icône et titre dynamiques */}
         {isEditMode ? (
           <>
-            <Edit className="h-6 w-6 mr-2 text-purple-400" /> Modifier l&apos;Utilisateur
+            <Edit className="h-6 w-6 mr-2 text-purple-400" /> Modifier l'Utilisateur
           </>
         ) : (
           <>
-            <UserPlus className="h-6 w-6 mr-2 text-purple-400" /> Ajout d&apos;utilisateur
+            <UserPlus className="h-6 w-6 mr-2 text-purple-400" /> Ajout d'utilisateur
           </>
         )}
       </h2>
@@ -340,11 +340,11 @@ export default function AddUserForm({ onSuccess, userToEdit }: AddUserFormProps)
           </>
         ) : isEditMode ? (
           <>
-            <Edit className="h-5 w-5 mr-2" /> Modifier l&apos;Utilisateur
+            <Edit className="h-5 w-5 mr-2" /> Modifier l'Utilisateur
           </>
         ) : (
           <>
-            <UserPlus className="h-5 w-5 mr-2" /> Ajouter l&apos;Utilisateur
+            <UserPlus className="h-5 w-5 mr-2" /> Ajouter l'Utilisateur
           </>
         )}
       </button>

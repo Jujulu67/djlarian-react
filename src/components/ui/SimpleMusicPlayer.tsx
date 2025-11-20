@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Track } from '@/lib/utils/types';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { X, Music, Play, Pause, SkipBack, SkipForward, Volume, VolumeX } from 'lucide-react';
 import { getInitialVolume, applyVolumeToAllPlayers } from '@/lib/utils/audioUtils';
@@ -178,12 +179,14 @@ const SimpleMusicPlayer: React.FC<SimpleMusicPlayerProps> = ({
                 <Music className="w-16 h-16 text-gray-600" />
               </div>
             ) : (
-              <img
+              <Image
                 src={`/uploads/${track.imageId}.jpg`}
                 alt={track.title}
-                className="w-full h-full object-cover object-center"
+                fill
+                className="object-cover object-center"
                 onError={handleImageError}
                 onLoad={() => setImageError(false)}
+                unoptimized
               />
             )}
           </div>

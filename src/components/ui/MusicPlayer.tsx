@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Track, MusicPlatform } from '@/lib/utils/types';
+import Image from 'next/image';
 import { FaSpotify, FaYoutube, FaSoundcloud, FaMusic } from 'react-icons/fa';
 import { getEmbedUrl } from '@/lib/utils/music-service';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -89,12 +90,15 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({ track, isPlaying, onClose, on
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 relative rounded-md overflow-hidden bg-gray-800">
                   {track.imageId && !imageError ? (
-                    <img
+                    <Image
                       src={`/uploads/${track.imageId}.jpg`}
                       alt={track.title}
+                      width={64}
+                      height={64}
                       className="w-full h-full object-cover"
                       onError={() => setImageError(true)}
                       onLoad={() => setImageError(false)}
+                      unoptimized
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-gray-800">
