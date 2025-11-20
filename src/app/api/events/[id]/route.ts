@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { auth } from '@/auth';
 
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { logger } from '@/lib/logger';
 import { handleApiError } from '@/lib/api/errorHandler';
 import { createSuccessResponse, createForbiddenResponse } from '@/lib/api/responseHelpers';
@@ -153,7 +154,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ): Promise<Response> {
   const resolvedParams = await params;
-    const id = resolvedParams.id;
+  const id = resolvedParams.id;
   logger.debug(`--- PATCH /api/events/${id} ---`);
 
   try {
