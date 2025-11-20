@@ -149,13 +149,9 @@ export async function POST(request: Request): Promise<Response> {
 
   if (!validationResult.success) {
     logger.error('Validation failed', validationResult.error.format());
-    return NextResponse.json(
-      {
-        error: 'Invalid input data',
-        details: validationResult.error.flatten().fieldErrors,
-      },
-      { status: 400 }
-    );
+    return createBadRequestResponse('Invalid input data', {
+      details: validationResult.error.flatten().fieldErrors,
+    });
   }
 
   const data: CreateTrackInput = validationResult.data;
