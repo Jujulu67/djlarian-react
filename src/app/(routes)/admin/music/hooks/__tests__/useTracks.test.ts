@@ -73,7 +73,7 @@ describe('useTracks', () => {
 
     (global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
-      json: async () => mockTracks,
+      json: async () => ({ data: mockTracks }),
     });
 
     const { result } = renderHook(() => useTracks());
@@ -108,7 +108,7 @@ describe('useTracks', () => {
 
     (global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
-      json: async () => mockTracks,
+      json: async () => ({ data: mockTracks }),
     });
 
     const { result } = renderHook(() => useTracks());
