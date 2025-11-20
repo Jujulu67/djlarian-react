@@ -105,18 +105,19 @@ export default function LatestReleases({
   // Si en chargement, afficher un loader
   if (isLoading) {
     return (
-      <section className="py-20 bg-black/50 backdrop-blur-lg">
-        <div className="max-w-7xl mx-auto px-4">
+      <section className="py-20 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-black via-purple-900/10 to-black" />
+        <div className="max-w-7xl mx-auto px-4 relative z-10">
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-4xl font-bold text-center mb-12"
+            className="text-4xl md:text-5xl font-audiowide text-center mb-12 text-gradient-animated"
           >
             {title}
           </motion.h2>
           <div className="flex justify-center items-center min-h-[300px]">
-            <Loader className="w-10 h-10 text-purple-500 animate-spin" />
+            <Loader className="w-10 h-10 text-purple-500 animate-spin glow-purple" />
           </div>
         </div>
       </section>
@@ -126,18 +127,19 @@ export default function LatestReleases({
   // Si erreur, afficher un message
   if (error) {
     return (
-      <section className="py-20 bg-black/50 backdrop-blur-lg">
-        <div className="max-w-7xl mx-auto px-4">
+      <section className="py-20 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-black via-purple-900/10 to-black" />
+        <div className="max-w-7xl mx-auto px-4 relative z-10">
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-4xl font-bold text-center mb-12"
+            className="text-4xl md:text-5xl font-audiowide text-center mb-12 text-gradient-animated"
           >
             {title}
           </motion.h2>
           <div className="flex justify-center items-center min-h-[200px]">
-            <p className="text-red-400">{error}</p>
+            <p className="text-red-400 glass-modern px-6 py-3 rounded-lg">{error}</p>
           </div>
         </div>
       </section>
@@ -151,13 +153,18 @@ export default function LatestReleases({
         {glowAnimation}
       </style>
 
-      <section className="py-20 bg-black/50 backdrop-blur-lg">
-        <div className="max-w-7xl mx-auto px-4">
+      <section className="py-20 relative overflow-hidden">
+        {/* Animated Gradient Background */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black via-purple-900/10 to-black">
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-900/20 via-transparent to-blue-900/20 animate-gradient-pulse" />
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 relative z-10">
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-4xl font-bold text-center mb-12"
+            className="text-4xl md:text-5xl font-audiowide text-center mb-12 text-gradient-animated"
           >
             {title}
           </motion.h2>
@@ -171,47 +178,48 @@ export default function LatestReleases({
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
                 onClick={() => handleCardClick(release.id)}
-                className="relative"
+                className="relative lift-3d"
               >
-                {/* Carte principale avec contour doré via box-shadow */}
-                <div className="cursor-pointer golden-border rounded-lg overflow-hidden shadow-xl transform-gpu transition-all duration-500 hover:scale-[1.05]">
-                  <div className="relative aspect-square">
+                {/* Modern Glassmorphism Card */}
+                <div className="cursor-pointer glass-modern glass-modern-hover rounded-2xl overflow-hidden shadow-2xl group">
+                  <div className="relative aspect-square overflow-hidden">
                     {release.imageId && !imageErrors[release.id] ? (
                       <Image
                         src={`/uploads/${release.imageId}.jpg`}
                         alt={`Pochette de ${release.title} par ${release.artist}`}
                         fill
-                        className="object-cover object-center rounded-lg shadow-lg"
+                        className="object-cover object-center transition-transform duration-700 group-hover:scale-110"
                         priority={index < 3}
                         onError={() => handleImageError(release.id)}
                         onLoad={() => setImageErrors((prev) => ({ ...prev, [release.id]: false }))}
                         unoptimized
                       />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-r from-purple-900/30 to-blue-900/30 flex items-center justify-center rounded-lg shadow-lg">
+                      <div className="w-full h-full bg-gradient-to-br from-purple-900/40 via-blue-900/30 to-purple-900/40 flex items-center justify-center animate-gradient-pulse">
                         {(imageErrors[release.id] || !release.imageId) && (
-                          <Music className="w-16 h-16 text-gray-600" />
+                          <Music className="w-16 h-16 text-gray-500" />
                         )}
                       </div>
                     )}
 
-                    {/* Overlay léger */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent opacity-50 hover:opacity-30 transition-opacity duration-500" />
+                    {/* Animated Gradient Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-70 group-hover:opacity-50 transition-opacity duration-500" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-purple-600/0 via-transparent to-blue-600/0 group-hover:from-purple-600/20 group-hover:to-blue-600/20 transition-all duration-500" />
 
-                    {/* Badge type qui s'élève au survol */}
-                    <div className="absolute top-3 left-3 z-20">
-                      <span className="bg-purple-600/80 text-white text-xs font-semibold px-2.5 py-1 rounded-full transform transition-all duration-500 hover:-translate-y-1 hover:scale-110 hover:shadow-lg hover:shadow-purple-500/50">
+                    {/* Enhanced Badge */}
+                    <div className="absolute top-4 left-4 z-20">
+                      <span className="glass-modern px-3 py-1.5 text-white text-xs font-semibold rounded-full backdrop-blur-md border border-white/20 glow-purple group-hover:animate-glow-pulse">
                         {release.type.toUpperCase()}
                       </span>
                     </div>
                   </div>
 
-                  <div className="p-6 relative">
-                    {/* Texte qui change légèrement de couleur au survol */}
-                    <h3 className="text-xl font-bold mb-2 text-white hover:text-purple-300 transition-colors duration-300">
+                  <div className="p-6 relative glass-modern border-t border-white/10">
+                    {/* Enhanced Title */}
+                    <h3 className="text-xl font-bold mb-2 text-white group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-purple-400 group-hover:to-blue-400 transition-all duration-300">
                       {release.title}
                     </h3>
-                    <div className="flex items-center gap-2 text-gray-400 mb-4">
+                    <div className="flex items-center gap-2 text-gray-300 mb-4 text-sm">
                       <span>{release.artist}</span>
                       <span>•</span>
                       <span>
@@ -222,15 +230,15 @@ export default function LatestReleases({
                       </span>
                     </div>
 
-                    {/* Icônes qui se soulèvent et s'illuminent au survol */}
+                    {/* Enhanced Icons with 3D effect */}
                     <div className="flex gap-4">
                       {release.platforms.spotify?.url && (
                         <a
                           href={release.platforms.spotify.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-2xl text-gray-400 hover:text-green-500 transition-all duration-300 transform hover:scale-125 hover:-translate-y-1"
-                          onClick={(e) => e.stopPropagation()} // Empêcher le déclenchement du onClick parent
+                          className="text-2xl text-gray-400 hover:text-green-400 transition-all duration-300 transform hover:scale-125 hover:-translate-y-2 hover:rotate-3 micro-bounce"
+                          onClick={(e) => e.stopPropagation()}
                         >
                           <FaSpotify />
                         </a>
@@ -240,8 +248,8 @@ export default function LatestReleases({
                           href={release.platforms.apple.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-2xl text-gray-400 hover:text-pink-500 transition-all duration-300 transform hover:scale-125 hover:-translate-y-1"
-                          onClick={(e) => e.stopPropagation()} // Empêcher le déclenchement du onClick parent
+                          className="text-2xl text-gray-400 hover:text-pink-400 transition-all duration-300 transform hover:scale-125 hover:-translate-y-2 hover:-rotate-3 micro-bounce"
+                          onClick={(e) => e.stopPropagation()}
                         >
                           <FaApple />
                         </a>
@@ -251,8 +259,8 @@ export default function LatestReleases({
                           href={release.platforms.soundcloud.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-2xl text-gray-400 hover:text-orange-500 transition-all duration-300 transform hover:scale-125 hover:-translate-y-1"
-                          onClick={(e) => e.stopPropagation()} // Empêcher le déclenchement du onClick parent
+                          className="text-2xl text-gray-400 hover:text-orange-400 transition-all duration-300 transform hover:scale-125 hover:-translate-y-2 hover:rotate-3 micro-bounce"
+                          onClick={(e) => e.stopPropagation()}
                         >
                           <FaSoundcloud />
                         </a>

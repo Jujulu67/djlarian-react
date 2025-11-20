@@ -31,8 +31,9 @@ export function useTracks() {
       fetchCountRef.current += 1;
       const res = await fetch('/api/music');
       if (!res.ok) throw new Error('Failed');
-      const data = await res.json();
-      setTracks(data);
+      const result = await res.json();
+      // La réponse API utilise createSuccessResponse qui retourne { data: [...] }
+      setTracks(result.data || []);
     } catch (err) {
       logger.error('Erreur:', err instanceof Error ? err.message : String(err));
       toast.error('Erreur de chargement');

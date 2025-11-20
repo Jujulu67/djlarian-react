@@ -143,8 +143,9 @@ export default function MusicPage() {
         if (!response.ok) {
           throw new Error('Erreur lors de la récupération des morceaux');
         }
-        const data = await response.json();
-        setTracks(data);
+        const result = await response.json();
+        // La réponse API utilise createSuccessResponse qui retourne { data: [...] }
+        setTracks(result.data || []);
         setError(null);
       } catch (err) {
         logger.error('Erreur:', err);
