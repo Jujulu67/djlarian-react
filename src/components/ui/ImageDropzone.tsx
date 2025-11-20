@@ -33,7 +33,7 @@ const ImageDropzone: React.FC<ImageDropzoneProps> = ({
   const [showLibrary, setShowLibrary] = useState(false);
 
   // Handler pour sélection depuis la bibliothèque
-  const handleSelectFromLibrary = async (imgMeta: any) => {
+  const handleSelectFromLibrary = async (imgMeta: { id: string; url: string; name: string }) => {
     try {
       const exts = [
         '', // extension du chemin fourni
@@ -43,7 +43,7 @@ const ImageDropzone: React.FC<ImageDropzoneProps> = ({
         '.webp',
       ];
       let file: File | null = null;
-      const baseUrl = imgMeta.url || imgMeta.path;
+      const baseUrl = imgMeta.url;
       for (const ext of exts) {
         let url = baseUrl;
         if (ext && !baseUrl.endsWith(ext)) {

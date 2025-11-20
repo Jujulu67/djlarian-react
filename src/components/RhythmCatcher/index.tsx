@@ -70,7 +70,11 @@ const RhythmCatcher: React.FC<RhythmCatcherProps> = ({ audioSrc, onClose }) => {
       setIsAudioLoaded(true);
 
       try {
-        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const AudioContextClass = window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        if (!AudioContextClass) {
+          throw new Error('AudioContext not supported');
+        }
+        const audioContext = new AudioContextClass();
         const analyser = audioContext.createAnalyser();
 
         analyser.fftSize = 2048;

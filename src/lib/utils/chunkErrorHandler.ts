@@ -1,4 +1,5 @@
 import { logger } from '@/lib/logger';
+import React from 'react';
 /**
  * Utilitaire pour gérer les erreurs de chargement de chunks
  * Cette fonction configure un gestionnaire global pour intercepter et gérer
@@ -57,7 +58,7 @@ export function setupChunkErrorHandler() {
         if (window.__NEXT_DATA__) {
           logger.debug('Nettoyage du cache des chunks...');
           // Accès sécurisé à la propriété chunks avec une vérification de type
-          const nextData = window.__NEXT_DATA__ as any;
+          const nextData = window.__NEXT_DATA__ as { chunks?: unknown[] };
           if (nextData.chunks) {
             logger.debug('Chunks trouvés dans __NEXT_DATA__');
           }
@@ -110,7 +111,7 @@ export function setupChunkErrorHandler() {
  * @returns Le composant chargé ou le fallback en cas d'erreur
  */
 export function withChunkErrorHandling(
-  importFn: () => Promise<any>,
+  importFn: () => Promise<{ default: React.ComponentType }>,
   fallback: React.ReactNode = null
 ) {
   return async () => {

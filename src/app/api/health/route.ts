@@ -59,10 +59,10 @@ export async function GET() {
       stack: error instanceof Error ? error.stack : undefined,
       errorType: error?.constructor?.name,
       errorName: error instanceof Error ? error.name : undefined,
-      errorCode: (error as any)?.code,
-      errorErrno: (error as any)?.errno,
-      errorSyscall: (error as any)?.syscall,
-      errorPath: (error as any)?.path,
+      errorCode: error && typeof error === 'object' && 'code' in error ? String(error.code) : undefined,
+      errorErrno: error && typeof error === 'object' && 'errno' in error ? Number(error.errno) : undefined,
+      errorSyscall: error && typeof error === 'object' && 'syscall' in error ? String(error.syscall) : undefined,
+      errorPath: error && typeof error === 'object' && 'path' in error ? String(error.path) : undefined,
       fullError: JSON.stringify(error, Object.getOwnPropertyNames(error)),
     });
     

@@ -2,6 +2,13 @@
 
 import { logger } from '@/lib/logger';
 
+// Extension de l'interface Window pour les propriétés audio globales
+interface WindowWithAudio extends Window {
+  globalAudioContext?: AudioContext;
+  globalGainNode?: GainNode;
+  webkitAudioContext?: typeof AudioContext;
+}
+
 // ======================================================================
 // Volume Management
 // ======================================================================
@@ -144,20 +151,26 @@ export const sendPlayerCommand = (
 const getOrCreateGlobalGainNode = (): GainNode | null => {
   if (typeof window === 'undefined') return null;
 
-  if (!(window as any).globalAudioContext) {
+  const win = window as WindowWithAudio;
+
+  if (!win.globalAudioContext) {
     try {
-      (window as any).globalAudioContext = new (window.AudioContext ||
-        (window as any).webkitAudioContext)();
-      (window as any).globalGainNode = (window as any).globalAudioContext.createGain();
+      const AudioContextClass = window.AudioContext || win.webkitAudioContext;
+      if (!AudioContextClass) {
+        logger.error('AudioContext not supported in this browser');
+        return null;
+      }
+      win.globalAudioContext = new AudioContextClass();
+      win.globalGainNode = win.globalAudioContext.createGain();
       // Initial volume will be set by applyVolumeToAllPlayers
-      (window as any).globalGainNode.connect((window as any).globalAudioContext.destination);
+      win.globalGainNode.connect(win.globalAudioContext.destination);
       logger.debug('Global AudioContext and GainNode created.');
     } catch (error) {
       logger.error('Error creating global audio context:', error);
       return null;
     }
   }
-  return (window as any).globalGainNode;
+  return win.globalGainNode ?? null;
 };
 
 /**
@@ -192,7 +205,7 @@ export const applyVolumeToAllPlayers = (
     const gainNode = getOrCreateGlobalGainNode();
     if (gainNode) {
       // Ensure audio context is running (might be suspended by browser policy)
-      const audioContext = (window as any).globalAudioContext as AudioContext;
+      const audioContext = (window as WindowWithAudio).globalAudioContext;
       if (audioContext && audioContext.state === 'suspended') {
         audioContext.resume().catch((err) => logger.error('Error resuming AudioContext:', err));
       }

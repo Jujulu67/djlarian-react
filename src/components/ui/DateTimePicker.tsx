@@ -5,7 +5,7 @@ import { format, parse, isValid } from 'date-fns'; // Moins de dépendances dire
 import { fr } from 'date-fns/locale';
 import { Calendar as CalendarIcon } from 'lucide-react';
 
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/utils/cn';
 import { Button } from '@/components/ui/Button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';

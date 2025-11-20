@@ -67,7 +67,7 @@ export function setupConsoleFilters() {
     Object.getOwnPropertyDescriptor(Object.getPrototypeOf(console), 'warn');
 
   // Intercepter console.log
-  console.log = (...args: any[]) => {
+  console.log = (...args: unknown[]) => {
     const message = args.join(' ');
     if (shouldFilterMessage(message)) {
       return; // Ne pas afficher ces logs
@@ -80,7 +80,7 @@ export function setupConsoleFilters() {
   if (originalWarnDescriptor) {
     Object.defineProperty(console, 'warn', {
       ...originalWarnDescriptor,
-      value: (...args: any[]) => {
+      value: (...args: unknown[]) => {
         const message = args.join(' ');
         if (shouldFilterMessage(message)) {
           return; // Ne pas afficher ces warnings
@@ -92,7 +92,7 @@ export function setupConsoleFilters() {
     });
   } else {
     // Fallback si Object.defineProperty ne fonctionne pas
-    console.warn = (...args: any[]) => {
+    console.warn = (...args: unknown[]) => {
       const message = args.join(' ');
       if (shouldFilterMessage(message)) {
         return; // Ne pas afficher ces warnings
@@ -102,7 +102,7 @@ export function setupConsoleFilters() {
   }
 
   // Intercepter console.error
-  console.error = (...args: any[]) => {
+  console.error = (...args: unknown[]) => {
     const message = args.join(' ');
     if (shouldFilterMessage(message)) {
       return; // Ne pas afficher ces erreurs

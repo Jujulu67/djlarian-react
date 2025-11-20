@@ -278,7 +278,7 @@ export default function EventFormPage() {
   // Fonction pour générer le blob recadré (16/9)
   const getCroppedBlob = async (
     image: HTMLImageElement,
-    crop: any,
+    crop: CropType,
     fileName: string,
     imageFileSource: File | null
   ): Promise<{ croppedBlob: Blob | null; originalFileToSend: File | null }> => {
@@ -381,12 +381,42 @@ export default function EventFormPage() {
           throw new Error("Erreur lors de l'upload de l'image");
         }
       }
-      const dataToSend: any = {
+      // Préparer les données avec gestion explicite des valeurs optionnelles
+      const addressValue: string = formData.address ?? '';
+
+      const dataToSend: {
+        title: string;
+        description: string;
+        location: string;
+        address: string;
+        startDate: string;
+        endDate?: string | null;
+        imageId?: string | null;
+        status?: string;
+        isPublished?: boolean;
+        featured?: boolean;
+        tickets?: {
+          price: number;
+          currency: string;
+          buyUrl: string;
+          quantity: number;
+          availableFrom?: string | null;
+          availableTo?: string | null;
+        };
+        recurrence?: {
+          isRecurring: boolean;
+          frequency?: string;
+          day?: number;
+          endDate?: string | null;
+          excludedDates?: string[];
+        };
+        publishAt?: string | null;
+      } = {
         title: formData.title,
         description: formData.description,
         location: formData.location,
-        address: formData.address || '',
-        startDate: formData.date,
+        address: addressValue,
+        startDate: formData.date ?? '',
         endDate: formData.endDate || null,
         status: formData.status,
         isPublished: formData.isPublished,
@@ -405,8 +435,10 @@ export default function EventFormPage() {
                 formData.tickets?.quantity !== undefined
                   ? parseInt(String(formData.tickets.quantity), 10) || 0
                   : 0,
+              availableFrom: formData.tickets?.availableFrom || null,
+              availableTo: formData.tickets?.availableTo || null,
             }
-          : null,
+          : undefined,
         recurrence: isEditMode
           ? {
               ...formData.recurrence,

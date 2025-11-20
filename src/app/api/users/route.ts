@@ -86,9 +86,10 @@ export async function POST(request: Request) {
       status: 201, // Created
       headers: { 'Content-Type': 'application/json' },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error("Erreur lors de la création de l'utilisateur:", error);
-    return new NextResponse(JSON.stringify({ error: 'Erreur interne du serveur' }), {
+    const errorMessage = error instanceof Error ? error.message : 'Erreur interne du serveur';
+    return new NextResponse(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
