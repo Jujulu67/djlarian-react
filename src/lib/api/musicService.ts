@@ -1,8 +1,9 @@
-import prisma from '@/lib/prisma';
-import { MusicPlatform, MusicType, Track } from '@/lib/utils/types';
 import { Genre, Prisma } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
+
+import prisma from '@/lib/prisma';
 import { isNotEmpty } from '@/lib/utils/arrayHelpers';
+import { MusicPlatform, MusicType, Track } from '@/lib/utils/types';
 
 export type CreateTrackInput = {
   title: string;

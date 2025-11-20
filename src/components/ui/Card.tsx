@@ -1,8 +1,9 @@
-import type { ReactNode } from 'react';
 import clsx from 'clsx';
-import type { BaseComponentProps } from '@/types';
+import type { ReactNode } from 'react';
 import * as React from 'react';
+
 import { cn } from '@/lib/utils/cn';
+import type { BaseComponentProps } from '@/types';
 
 interface CardProps extends BaseComponentProps {
   title?: string;

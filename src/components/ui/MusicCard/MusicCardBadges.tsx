@@ -1,5 +1,6 @@
-import React from 'react';
 import { Music, Star } from 'lucide-react';
+import React from 'react';
+
 import { Track } from '@/lib/utils/types';
 
 interface MusicCardBadgesProps {
@@ -61,4 +62,3 @@ export const MusicCardBadges: React.FC<MusicCardBadgesProps> = ({ track, isPlaye
     </>
   );
 };
-

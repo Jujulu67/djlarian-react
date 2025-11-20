@@ -1,5 +1,6 @@
 import React from 'react';
 import { FaSpotify, FaYoutube, FaSoundcloud, FaApple, FaMusic } from 'react-icons/fa';
+
 import type { MusicPlatform } from '@/lib/utils/types';
 
 export const platformLabels: Record<MusicPlatform, string> = {
@@ -19,4 +20,3 @@ export const platformIcons: Record<MusicPlatform, React.ReactNode> = {
 };
 
 export type AdminMusicTab = 'tracks' | 'collections' | 'youtube';
-

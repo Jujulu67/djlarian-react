@@ -1,8 +1,9 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import Modal from '@/components/ui/Modal'; // Importer la modale générique
+
 import AddUserForm from '@/components/admin/AddUserForm'; // Importer le formulaire
+import Modal from '@/components/ui/Modal'; // Importer la modale générique
 import { logger } from '@/lib/logger';
 
 // Rétablir l'interface locale (identique à AddUserForm)

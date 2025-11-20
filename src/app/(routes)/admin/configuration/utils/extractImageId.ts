@@ -5,4 +5,3 @@
 export function extractImageId(name: string): string {
   return name.replace(/-ori(\.[a-zA-Z0-9]+)?$/, '').replace(/\.[a-zA-Z0-9]+$/, '');
 }
-

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
+import React, { useState, useEffect, useRef } from 'react';
 
 interface UseAudioVisualizerProps {
   isYoutubeVisible: boolean;
@@ -25,10 +25,10 @@ export const useAudioVisualizer = ({
   // Animate bars when player is visible - More aggressive animation
   useEffect(() => {
     const shouldAnimate = isYoutubeVisible || isSoundcloudVisible;
-    
+
     if (shouldAnimate) {
-      let startTime = Date.now();
-      
+      const startTime = Date.now();
+
       const animateBars = () => {
         const elapsed = (Date.now() - startTime) / 1000;
         const newData = Array(20)
@@ -74,15 +74,15 @@ export const useAudioVisualizer = ({
   // Render visualizer bars - Always render if either player is visible
   const renderVisualizer = React.useCallback(() => {
     const shouldShow = isYoutubeVisible || isSoundcloudVisible;
-    
+
     if (!shouldShow || audioData.every((val) => val === 0)) {
       return null;
     }
 
     return (
-      <div 
+      <div
         className="h-[64px] w-full bg-gradient-to-r from-purple-900/20 via-purple-900/40 to-purple-900/20 flex items-end justify-center overflow-hidden"
-        style={{ 
+        style={{
           position: 'relative',
           zIndex: 50,
         }}
@@ -112,8 +112,8 @@ export const useAudioVisualizer = ({
                   }}
                   initial={{ height: '15%' }}
                   animate={{ height: `${value}%` }}
-                  transition={{ 
-                    duration: 0.3, 
+                  transition={{
+                    duration: 0.3,
                     ease: 'easeOut',
                     repeat: Infinity,
                     repeatType: 'reverse' as const,
@@ -132,4 +132,3 @@ export const useAudioVisualizer = ({
     renderVisualizer,
   };
 };
-

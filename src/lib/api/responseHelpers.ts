@@ -116,4 +116,3 @@ export function createInternalErrorResponse(
 ): NextResponse<ApiErrorResponse> {
   return createErrorResponse(error, 500, details, 'INTERNAL_ERROR');
 }
-

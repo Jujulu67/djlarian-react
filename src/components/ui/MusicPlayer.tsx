@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Track, MusicPlatform } from '@/lib/utils/types';
-import Image from 'next/image';
-import { FaSpotify, FaYoutube, FaSoundcloud, FaMusic } from 'react-icons/fa';
-import { getEmbedUrl } from '@/lib/utils/music-service';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Music } from 'lucide-react';
+import Image from 'next/image';
+import React, { useState, useEffect } from 'react';
+import { FaSpotify, FaYoutube, FaSoundcloud, FaMusic } from 'react-icons/fa';
+
+import { getEmbedUrl } from '@/lib/utils/music-service';
+import { Track, MusicPlatform } from '@/lib/utils/types';
 
 interface MusicPlayerProps {
   track: Track | null;

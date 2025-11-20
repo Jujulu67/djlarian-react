@@ -1,10 +1,10 @@
 'use client';
 
-import { useConfigs } from '@/stores/useConfigs';
-import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/label';
 import ColorInput from '@/components/config/ColorInput';
 import ToggleRow from '@/components/config/ToggleRow';
+import { Input } from '@/components/ui/Input';
+import { Label } from '@/components/ui/label';
+import { useConfigs } from '@/stores/useConfigs';
 
 export default function AppearanceTab() {
   const { appearance, update } = useConfigs();

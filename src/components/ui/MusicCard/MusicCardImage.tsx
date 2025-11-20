@@ -1,6 +1,7 @@
-import React from 'react';
-import Image from 'next/image';
 import { Music } from 'lucide-react';
+import Image from 'next/image';
+import React from 'react';
+
 import { Track } from '@/lib/utils/types';
 
 interface MusicCardImageProps {
@@ -37,4 +38,3 @@ export const MusicCardImage: React.FC<MusicCardImageProps> = ({
     </div>
   );
 };
-

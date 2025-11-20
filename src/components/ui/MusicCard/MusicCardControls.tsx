@@ -1,6 +1,6 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { Play, Pause } from 'lucide-react';
+import React from 'react';
 
 interface MusicCardControlsProps {
   isActive: boolean;
@@ -64,4 +64,3 @@ export const MusicCardControls: React.FC<MusicCardControlsProps> = ({
     </div>
   );
 };
-

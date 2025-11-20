@@ -54,32 +54,32 @@ const HomepageTab = (): JSX.Element => {
 
       <Tabs defaultValue="hero" className="w-full">
         <TabsList className="flex mb-6 p-1 bg-black/30 border border-purple-500/20 rounded-xl overflow-hidden">
-          <TabsTrigger 
-            value="hero" 
+          <TabsTrigger
+            value="hero"
             className="flex-1 py-3 px-4 rounded-lg transition-all data-[state=active]:bg-purple-600/20 data-[state=active]:text-white data-[state=active]:shadow-[0_0_10px_rgba(139,92,246,0.3)] data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-purple-300"
           >
             <Home className="w-4 h-4 mr-2" /> Héro
           </TabsTrigger>
-          <TabsTrigger 
-            value="releases" 
+          <TabsTrigger
+            value="releases"
             className="flex-1 py-3 px-4 rounded-lg transition-all data-[state=active]:bg-purple-600/20 data-[state=active]:text-white data-[state=active]:shadow-[0_0_10px_rgba(139,92,246,0.3)] data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-purple-300"
           >
             <Music className="w-4 h-4 mr-2" /> Sorties
           </TabsTrigger>
-          <TabsTrigger 
-            value="visualizer" 
+          <TabsTrigger
+            value="visualizer"
             className="flex-1 py-3 px-4 rounded-lg transition-all data-[state=active]:bg-purple-600/20 data-[state=active]:text-white data-[state=active]:shadow-[0_0_10px_rgba(139,92,246,0.3)] data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-purple-300"
           >
             <Eye className="w-4 h-4 mr-2" /> Visualiseur
           </TabsTrigger>
-          <TabsTrigger 
-            value="events" 
+          <TabsTrigger
+            value="events"
             className="flex-1 py-3 px-4 rounded-lg transition-all data-[state=active]:bg-purple-600/20 data-[state=active]:text-white data-[state=active]:shadow-[0_0_10px_rgba(139,92,246,0.3)] data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-purple-300"
           >
             <CalendarDays className="w-4 h-4 mr-2" /> Événements
           </TabsTrigger>
-          <TabsTrigger 
-            value="stream" 
+          <TabsTrigger
+            value="stream"
             className="flex-1 py-3 px-4 rounded-lg transition-all data-[state=active]:bg-purple-600/20 data-[state=active]:text-white data-[state=active]:shadow-[0_0_10px_rgba(139,92,246,0.3)] data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-purple-300"
           >
             <Video className="w-4 h-4 mr-2" /> Stream
@@ -90,7 +90,7 @@ const HomepageTab = (): JSX.Element => {
         <TabsContent value="hero" className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="heroTitle">Titre principal</Label>
-              <Input
+            <Input
               id="heroTitle"
               value={homepage.heroTitle}
               onChange={(e) => update('homepage', 'heroTitle', e.target.value)}
@@ -426,8 +426,8 @@ const HomepageTab = (): JSX.Element => {
                                 {...provided.draggableProps}
                                 {...provided.dragHandleProps}
                                 className={`flex items-center p-3 rounded-md border transition-all bg-purple-500/10 border-purple-500/20 hover:bg-purple-500/20 ${
-                                  snapshot.isDragging 
-                                    ? 'border-cyan-400 shadow-lg bg-purple-800/30 z-50' 
+                                  snapshot.isDragging
+                                    ? 'border-cyan-400 shadow-lg bg-purple-800/30 z-50'
                                     : ''
                                 }`}
                                 style={provided.draggableProps.style}

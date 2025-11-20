@@ -43,10 +43,7 @@ export default function AdminLoading() {
             </div>
             <div className="space-y-3">
               {[...Array(3)].map((_, i) => (
-                <div
-                  key={i}
-                  className="bg-black/30 p-3 rounded-lg animate-pulse"
-                >
+                <div key={i} className="bg-black/30 p-3 rounded-lg animate-pulse">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                       <div className="bg-purple-500/20 w-10 h-10 rounded-lg"></div>
@@ -66,4 +63,3 @@ export default function AdminLoading() {
     </div>
   );
 }
-

@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import {
   ArrowLeft,
   Calendar,
@@ -16,11 +15,13 @@ import {
   Clock,
   RefreshCw,
 } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import React, { useState, useEffect } from 'react';
 import { FaSpotify, FaYoutube, FaSoundcloud, FaApple, FaMusic as FaDeezer } from 'react-icons/fa';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
-import { Track } from '@/lib/utils/types'; // Utiliser le type Track existant
+
 import { logger } from '@/lib/logger';
+import { Track } from '@/lib/utils/types'; // Utiliser le type Track existant
 
 // Mapping icônes plateformes
 const platformIcons: Record<string, React.ElementType> = {

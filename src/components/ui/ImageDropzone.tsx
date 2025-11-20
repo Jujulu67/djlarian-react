@@ -1,6 +1,7 @@
-import React, { useRef, useState } from 'react';
-import Image from 'next/image';
 import { Upload, Crop, Trash2, Image as ImageIcon } from 'lucide-react';
+import Image from 'next/image';
+import React, { useRef, useState } from 'react';
+
 import ImageLibraryModal from './ImageLibraryModal';
 
 interface ImageDropzoneProps {
@@ -101,13 +102,7 @@ const ImageDropzone: React.FC<ImageDropzoneProps> = ({
           <div
             className={`w-full ${aspectRatio ?? 'pb-[100%]'} relative overflow-hidden rounded-lg group`}
           >
-            <Image
-              src={imageUrl}
-              alt="Cover preview"
-              fill
-              className="object-cover"
-              unoptimized
-            />
+            <Image src={imageUrl} alt="Cover preview" fill className="object-cover" unoptimized />
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
               <button
                 type="button"

@@ -1,14 +1,15 @@
-import { auth } from '@/auth';
-import { hash as bcryptHash } from '@/lib/bcrypt-edge';
-import prisma from '@/lib/prisma';
-import { logger } from '@/lib/logger';
 import { z } from 'zod';
+
+import { auth } from '@/auth';
 import { handleApiError } from '@/lib/api/errorHandler';
 import {
   createCreatedResponse,
   createForbiddenResponse,
   createConflictResponse,
 } from '@/lib/api/responseHelpers';
+import { hash as bcryptHash } from '@/lib/bcrypt-edge';
+import { logger } from '@/lib/logger';
+import prisma from '@/lib/prisma';
 
 /**
  * Zod schema for user creation

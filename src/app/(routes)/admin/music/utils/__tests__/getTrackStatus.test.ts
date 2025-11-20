@@ -1,5 +1,6 @@
-import { getTrackStatus } from '../getTrackStatus';
 import type { Track } from '@/lib/utils/types';
+
+import { getTrackStatus } from '../getTrackStatus';
 
 describe('getTrackStatus', () => {
   it('should return "À publier" for future publishAt date', () => {
@@ -61,4 +62,3 @@ describe('getTrackStatus', () => {
     expect(status.className).toContain('bg-yellow-900/40');
   });
 });
-

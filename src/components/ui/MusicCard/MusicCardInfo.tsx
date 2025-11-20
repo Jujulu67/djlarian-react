@@ -1,8 +1,9 @@
-import React from 'react';
-import { Track } from '@/lib/utils/types';
-import { Calendar } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { Calendar } from 'lucide-react';
+import React from 'react';
+
+import { Track } from '@/lib/utils/types';
 
 interface MusicCardInfoProps {
   track: Track;
@@ -72,4 +73,3 @@ export const MusicCardInfo: React.FC<MusicCardInfoProps> = ({ track, isPlayerVis
     </div>
   );
 };
-

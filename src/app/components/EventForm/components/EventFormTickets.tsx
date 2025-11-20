@@ -1,5 +1,7 @@
 import React from 'react';
+
 import { Switch } from '@/components/ui';
+
 import { useEventTickets } from '../hooks/useEventTickets';
 import { EventFormData } from '../types';
 
@@ -48,7 +50,12 @@ export const EventFormTickets: React.FC<EventFormTicketsProps> = ({
           <label htmlFor="hasTickets" className="text-gray-300 font-medium">
             Cet événement propose des billets
           </label>
-          <Switch id="hasTickets" name="hasTickets" checked={hasTickets} onCheckedChange={toggleHasTickets} />
+          <Switch
+            id="hasTickets"
+            name="hasTickets"
+            checked={hasTickets}
+            onCheckedChange={toggleHasTickets}
+          />
         </div>
       </div>
 
@@ -70,7 +77,9 @@ export const EventFormTickets: React.FC<EventFormTicketsProps> = ({
                 step="0.01"
                 required
               />
-              <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">€</span>
+              <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                €
+              </span>
             </div>
             {errors['tickets.price'] && (
               <p className="mt-2 text-red-500 text-sm">{errors['tickets.price']}</p>
@@ -128,4 +137,3 @@ export const EventFormTickets: React.FC<EventFormTicketsProps> = ({
     </div>
   );
 };
-

@@ -1,5 +1,6 @@
-import React from 'react';
 import { X } from 'lucide-react';
+import React from 'react';
+
 import { Track } from '@/lib/utils/types';
 
 interface MusicCardPlayerProps {
@@ -35,7 +36,9 @@ export const MusicCardPlayer: React.FC<MusicCardPlayerProps> = ({
   }
 
   const isYouTube = platform === 'youtube';
-  const bgColor = isYouTube ? 'bg-purple-600/70 hover:bg-purple-700/90' : 'bg-orange-500/70 hover:bg-orange-600/90';
+  const bgColor = isYouTube
+    ? 'bg-purple-600/70 hover:bg-purple-700/90'
+    : 'bg-orange-500/70 hover:bg-orange-600/90';
 
   return (
     <div
@@ -90,4 +93,3 @@ export const MusicCardPlayer: React.FC<MusicCardPlayerProps> = ({
     </div>
   );
 };
-

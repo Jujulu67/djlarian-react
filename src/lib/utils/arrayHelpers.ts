@@ -47,4 +47,3 @@ export function last<T>(array: T[] | null | undefined): T | undefined {
 export function safeLength<T>(array: T[] | null | undefined): number {
   return Array.isArray(array) ? array.length : 0;
 }
-

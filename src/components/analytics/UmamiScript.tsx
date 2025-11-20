@@ -1,6 +1,7 @@
 'use client';
 
 import Script from 'next/script';
+
 import { logger } from '@/lib/logger';
 
 /**

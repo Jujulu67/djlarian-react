@@ -1,9 +1,7 @@
 'use client';
 
-import { redirect } from 'next/navigation';
-import { auth } from '@/auth';
-
-import Link from 'next/link';
+import { formatDistanceToNow, subDays, format, parseISO } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import {
   BarChart3,
   Calendar,
@@ -25,22 +23,9 @@ import {
   MousePointerClick,
   LogOut,
 } from 'lucide-react';
-import prisma from '@/lib/prisma';
-import { formatDistanceToNow, subDays, format, parseISO } from 'date-fns';
-import { fr } from 'date-fns/locale';
-import {
-  getUmamiStats,
-  getTopPages,
-  getTrafficSources,
-  UmamiPageViewsData,
-  UmamiTopPage,
-  UmamiMetrics,
-  getStatistics,
-} from '@/lib/analytics';
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { useState, useEffect, useMemo } from 'react';
-import { Button } from '@/components/ui/Button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import {
   ResponsiveContainer,
   LineChart as RechartsLineChart,
@@ -50,6 +35,11 @@ import {
   CartesianGrid,
   Line,
 } from 'recharts';
+
+import { auth } from '@/auth';
+import { Button } from '@/components/ui/Button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Progress } from '@/components/ui/progress';
 import {
   Table,
   TableBody,
@@ -58,8 +48,18 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  getUmamiStats,
+  getTopPages,
+  getTrafficSources,
+  UmamiPageViewsData,
+  UmamiTopPage,
+  UmamiMetrics,
+  getStatistics,
+} from '@/lib/analytics';
 import { logger } from '@/lib/logger';
+import prisma from '@/lib/prisma';
 
 type Period = 'daily' | 'weekly' | 'monthly';
 

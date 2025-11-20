@@ -1,8 +1,9 @@
+import { User } from '@prisma/client';
+
 import AddUserModal from '@/components/admin/AddUserModal';
 import ErrorModal from '@/components/ui/ErrorModal';
-import prisma from '@/lib/prisma';
-import { User } from '@prisma/client';
 import { logger } from '@/lib/logger';
+import prisma from '@/lib/prisma';
 
 interface EditUserModalPageProps {
   params: Promise<{

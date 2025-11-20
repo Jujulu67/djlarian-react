@@ -41,4 +41,3 @@ export const GridRenderer: React.FC<GridRendererProps> = ({ ctx, canvasWidth, ca
 
   return null;
 };
-

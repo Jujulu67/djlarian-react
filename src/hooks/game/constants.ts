@@ -78,4 +78,3 @@ export const PRE_MAPPED_PATTERNS = [
   { time: 26750, lane: 'high', type: 'blue', x: 1100, y: 150, size: 30, speed: 1.8 },
   { time: 27000, lane: 'mid', type: 'collect', x: 1100, y: 300, size: 40, speed: 1.8 },
 ] as const;
-

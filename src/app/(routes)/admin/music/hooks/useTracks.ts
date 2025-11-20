@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-hot-toast';
-import type { Track, MusicPlatform } from '@/lib/utils/types';
+
 import { logger } from '@/lib/logger';
+import type { Track, MusicPlatform } from '@/lib/utils/types';
 
 export function useTracks() {
   const { data: session, status } = useSession();

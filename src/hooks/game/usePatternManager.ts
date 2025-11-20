@@ -1,16 +1,12 @@
 import { useRef, useCallback } from 'react';
-import type { GamePattern, FrequencyBand } from '@/types/game';
-import { logger } from '@/lib/logger';
-import {
-  FREQUENCY_LANES,
-  PRE_MAPPED_PATTERNS,
-  SCROLL_SPEED,
-  PATTERN_LIFETIME,
-} from './constants';
-import type { UseAudioAnalyserReturn } from './useAudioAnalyser';
-import { isNotEmpty } from '@/lib/utils/arrayHelpers';
 
+import { logger } from '@/lib/logger';
+import { isNotEmpty } from '@/lib/utils/arrayHelpers';
+import type { GamePattern, FrequencyBand } from '@/types/game';
 import type { GameState } from '@/types/game';
+
+import { FREQUENCY_LANES, PRE_MAPPED_PATTERNS, SCROLL_SPEED, PATTERN_LIFETIME } from './constants';
+import type { UseAudioAnalyserReturn } from './useAudioAnalyser';
 
 interface UsePatternManagerProps {
   patterns: GamePattern[];
@@ -243,4 +239,3 @@ export function usePatternManager({
     animationFrame,
   };
 }
-

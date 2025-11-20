@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useRef, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import React, { useRef, useEffect, useState } from 'react';
+
 import { GameState, Pattern, Point, checkCollisions, HitQuality } from './gameEngine';
 import styles from './styles.module.css';
 

@@ -1,9 +1,10 @@
-import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
-import { hash as bcryptHash } from '@/lib/bcrypt-edge';
-import { z } from 'zod';
 import { User as PrismaUser } from '@prisma/client';
+import { NextResponse } from 'next/server';
+import { z } from 'zod';
+
+import { hash as bcryptHash } from '@/lib/bcrypt-edge';
 import { logger } from '@/lib/logger';
+import prisma from '@/lib/prisma';
 
 // Schéma Zod adapté
 const updateUserSchema = z
@@ -119,7 +120,7 @@ export async function DELETE(
   logger.debug(`DELETE /api/users/${userId} - Requête reçue`);
 
   if (!userId) {
-     logger.error("DELETE /api/users - userId manquant dans les params");
+    logger.error('DELETE /api/users - userId manquant dans les params');
     return NextResponse.json({ error: 'ID utilisateur manquant.' }, { status: 400 });
   }
 
@@ -143,18 +144,26 @@ export async function DELETE(
     logger.debug(`DELETE /api/users/${userId} - Suppression réussie.`);
     // Retourner une réponse de succès sans contenu
     return new NextResponse(null, { status: 204 });
-
   } catch (error: unknown) {
     logger.error(`DELETE /api/users/${userId} - Erreur Prisma delete:`, error);
     // Gérer les erreurs potentielles (ex: contraintes de clé étrangère si la suppression cascade n'est pas configurée)
     // Code P2014: Violation de contrainte (ex: relation requise existe toujours)
     const prismaError = error as { code?: string };
     if (prismaError.code === 'P2014' || prismaError.code === 'P2003') {
-         return NextResponse.json({ error: 'Impossible de supprimer cet utilisateur car il est lié à d\'autres données (événements, pistes, etc.).' }, { status: 409 }); // Conflit
-     }
-     // Code P2025: Record to delete does not exist (déjà géré par findUnique avant)
+      return NextResponse.json(
+        {
+          error:
+            "Impossible de supprimer cet utilisateur car il est lié à d'autres données (événements, pistes, etc.).",
+        },
+        { status: 409 }
+      ); // Conflit
+    }
+    // Code P2025: Record to delete does not exist (déjà géré par findUnique avant)
 
-    return NextResponse.json({ error: 'Erreur interne du serveur lors de la suppression.' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Erreur interne du serveur lors de la suppression.' },
+      { status: 500 }
+    );
   }
 }
 
@@ -162,15 +171,21 @@ export async function DELETE(
 async function handleUnsupportedMethod(request: Request) {
   logger.debug(`Unsupported API Route ${request.method} ${request.url} - Méthode non autorisée`);
   if (request.method !== 'GET' && request.method !== 'POST' && request.method !== 'PATCH') {
-     return NextResponse.json(
-       { error: `Méthode ${request.method} non autorisée.` },
-       { status: 405 }
-     );
+    return NextResponse.json(
+      { error: `Méthode ${request.method} non autorisée.` },
+      { status: 405 }
+    );
   }
   return NextResponse.json({ error: `Requête non gérée.` }, { status: 400 });
 }
 
 // Les exports pour GET, POST, PATCH
-export async function GET(request: Request, { params }: { params: Promise<{ userId: string }> }) { return handleUnsupportedMethod(request); }
-export async function POST(request: Request, { params }: { params: Promise<{ userId: string }> }) { return handleUnsupportedMethod(request); }
-export async function PATCH(request: Request, { params }: { params: Promise<{ userId: string }> }) { return handleUnsupportedMethod(request); }
+export async function GET(request: Request, { params }: { params: Promise<{ userId: string }> }) {
+  return handleUnsupportedMethod(request);
+}
+export async function POST(request: Request, { params }: { params: Promise<{ userId: string }> }) {
+  return handleUnsupportedMethod(request);
+}
+export async function PATCH(request: Request, { params }: { params: Promise<{ userId: string }> }) {
+  return handleUnsupportedMethod(request);
+}

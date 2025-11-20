@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+
 import { AllConfigs, initialConfigs } from '@/types/config';
 
 // Interface pour le store Zustand, incluant les configurations et la fonction de mise à jour

@@ -1,6 +1,8 @@
 import { useCallback } from 'react';
-import type { GameState, GamePattern } from '@/types/game';
+
 import { logger } from '@/lib/logger';
+import type { GameState, GamePattern } from '@/types/game';
+
 import { SCORE_INCREMENT } from './constants';
 
 interface UseScoreManagerProps {
@@ -246,4 +248,3 @@ export function useScoreManager({
     handleCollision,
   };
 }
-

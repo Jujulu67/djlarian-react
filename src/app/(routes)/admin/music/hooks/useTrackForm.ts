@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
-import type { Track } from '@/lib/utils/types';
+
 import { emptyTrackForm } from '@/lib/utils/music-helpers';
+import type { Track } from '@/lib/utils/types';
 
 export function useTrackForm() {
   const [currentForm, setCurrentForm] = useState<
@@ -87,4 +88,3 @@ export function useTrackForm() {
     handleEdit,
   };
 }
-

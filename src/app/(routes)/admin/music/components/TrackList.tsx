@@ -1,13 +1,15 @@
 'use client';
 
-import React from 'react';
-import type { Track } from '@/lib/utils/types';
 import { Music, Calendar, Star, RefreshCw, Edit, Trash2, Eye, EyeOff } from 'lucide-react';
-import { platformLabels, platformIcons } from '../constants';
-import type { MusicPlatform } from '@/lib/utils/types';
-import { MUSIC_TYPES } from '@/lib/utils/music-helpers';
-import { getTrackStatus } from '../utils/getTrackStatus';
 import Image from 'next/image';
+import React from 'react';
+
+import { MUSIC_TYPES } from '@/lib/utils/music-helpers';
+import type { Track } from '@/lib/utils/types';
+import type { MusicPlatform } from '@/lib/utils/types';
+
+import { platformLabels, platformIcons } from '../constants';
+import { getTrackStatus } from '../utils/getTrackStatus';
 
 interface TrackListProps {
   tracks: Track[];

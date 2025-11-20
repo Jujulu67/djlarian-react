@@ -1,4 +1,5 @@
 import React from 'react';
+
 import type { GamePattern } from '@/types/game';
 
 interface PatternRendererProps {
@@ -11,11 +12,7 @@ interface PatternRendererProps {
 /**
  * Component to render a single pattern on the canvas
  */
-export const PatternRenderer: React.FC<PatternRendererProps> = ({
-  pattern,
-  ctx,
-  canvasWidth,
-}) => {
+export const PatternRenderer: React.FC<PatternRendererProps> = ({ pattern, ctx, canvasWidth }) => {
   // Validate pattern position
   if (
     !pattern.position ||
@@ -157,13 +154,7 @@ export const PatternRenderer: React.FC<PatternRendererProps> = ({
   // Add inner circle for special patterns
   if (pattern.type === 'golden' || pattern.type === 'blue') {
     ctx.beginPath();
-    ctx.arc(
-      pattern.position.x,
-      pattern.position.y,
-      (pattern.size || 20) / 4,
-      0,
-      Math.PI * 2
-    );
+    ctx.arc(pattern.position.x, pattern.position.y, (pattern.size || 20) / 4, 0, Math.PI * 2);
     ctx.fillStyle = pattern.type === 'golden' ? '#FFFFFF' : '#DDFAFF';
     ctx.fill();
   }
@@ -176,13 +167,7 @@ export const PatternRenderer: React.FC<PatternRendererProps> = ({
     if (Math.abs(timeUntilTarget) < perfectWindowSize) {
       // In perfect window, show bright border
       ctx.beginPath();
-      ctx.arc(
-        pattern.position.x,
-        pattern.position.y,
-        (pattern.size || 20) / 2 + 3,
-        0,
-        Math.PI * 2
-      );
+      ctx.arc(pattern.position.x, pattern.position.y, (pattern.size || 20) / 2 + 3, 0, Math.PI * 2);
       ctx.strokeStyle =
         pattern.type === 'golden'
           ? 'rgba(255, 255, 255, 0.8)'
@@ -207,4 +192,3 @@ export const PatternRenderer: React.FC<PatternRendererProps> = ({
 
   return null;
 };
-

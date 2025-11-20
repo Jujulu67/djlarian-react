@@ -1,11 +1,11 @@
-import { NextRequest } from 'next/server';
-import { auth } from '@/auth';
-
-import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
-import { logger } from '@/lib/logger';
+import { NextRequest } from 'next/server';
+
+import { auth } from '@/auth';
 import { handleApiError } from '@/lib/api/errorHandler';
 import { createSuccessResponse, createForbiddenResponse } from '@/lib/api/responseHelpers';
+import { logger } from '@/lib/logger';
+import prisma from '@/lib/prisma';
 
 // GET - Récupérer un événement spécifique par son ID
 export async function GET(

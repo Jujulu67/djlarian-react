@@ -1,5 +1,6 @@
-import React from 'react';
 import { ChevronDown } from 'lucide-react';
+import React from 'react';
+
 import { cn } from '@/lib/utils/cn';
 
 interface Option {

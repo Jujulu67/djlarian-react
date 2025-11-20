@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 
 export function useSuccessNotification() {
   const router = useRouter();
@@ -51,4 +51,3 @@ export function useSuccessNotification() {
     setSuccess,
   };
 }
-

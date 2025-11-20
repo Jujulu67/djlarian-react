@@ -1,7 +1,9 @@
 import { renderHook, act } from '@testing-library/react';
-import { useTrackForm } from '../useTrackForm';
+
 import { emptyTrackForm } from '@/lib/utils/music-helpers';
 import type { Track } from '@/lib/utils/types';
+
+import { useTrackForm } from '../useTrackForm';
 
 // Mock des dépendances
 jest.mock('@/lib/utils/music-helpers', () => ({
@@ -95,4 +97,3 @@ describe('useTrackForm', () => {
     expect(result.current.isEditing).toBe(false);
   });
 });
-

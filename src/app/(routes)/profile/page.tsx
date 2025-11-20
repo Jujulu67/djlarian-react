@@ -1,9 +1,9 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
 import { motion } from 'framer-motion';
 import { User, Mail, Calendar, Edit, Camera } from 'lucide-react';
 import Image from 'next/image';
+import { useSession } from 'next-auth/react';
 import { useState } from 'react';
 
 export default function ProfilePage() {

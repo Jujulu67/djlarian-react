@@ -1,6 +1,7 @@
 import React from 'react';
-import { Track, MusicPlatform } from '@/lib/utils/types';
 import { FaSpotify, FaYoutube, FaSoundcloud, FaApple, FaMusic } from 'react-icons/fa';
+
+import { Track, MusicPlatform } from '@/lib/utils/types';
 
 const platformIcons: Record<MusicPlatform, React.ReactNode> = {
   spotify: <FaSpotify className="w-4 h-4" />,
@@ -82,4 +83,3 @@ export const MusicCardPlatforms: React.FC<MusicCardPlatformsProps> = ({
     </div>
   );
 };
-

@@ -1,19 +1,19 @@
-import { auth } from '@/auth';
+import { v4 as uuidv4 } from 'uuid';
+import { z } from 'zod';
 
-import prisma from '@/lib/prisma';
-import { formatTrackData } from '@/lib/api/musicService';
+import { auth } from '@/auth';
 import { handleApiError } from '@/lib/api/errorHandler';
+import { formatTrackData } from '@/lib/api/musicService';
 import {
   createSuccessResponse,
   createForbiddenResponse,
   createBadRequestResponse,
 } from '@/lib/api/responseHelpers';
-import type { MusicType, MusicPlatform } from '@/lib/utils/types';
-import { z } from 'zod';
-import { v4 as uuidv4 } from 'uuid';
 import { uploadToBlob, isBlobConfigured } from '@/lib/blob';
 import { logger } from '@/lib/logger';
+import prisma from '@/lib/prisma';
 import { isNotEmpty } from '@/lib/utils/arrayHelpers';
+import type { MusicType, MusicPlatform } from '@/lib/utils/types';
 
 /**
  * Music API endpoint - Vercel (Node.js runtime natif)

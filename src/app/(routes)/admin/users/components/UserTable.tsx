@@ -1,6 +1,7 @@
 'use client';
 
 import { User, Mail } from 'lucide-react';
+
 import UserActions from '@/components/admin/UserActions';
 
 type UserData = {

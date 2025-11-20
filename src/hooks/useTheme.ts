@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+
 import type { Theme } from '@/types';
 
 export const useTheme = (): [Theme, (theme: Theme) => void] => {

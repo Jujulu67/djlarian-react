@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { Database, AlertTriangle, CheckCircle2, Loader2, RefreshCw } from 'lucide-react';
-import ToggleRow from '@/components/config/ToggleRow';
+import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
+
+import ToggleRow from '@/components/config/ToggleRow';
 import { logger } from '@/lib/logger';
 
 export default function DatabaseSwitch() {
@@ -24,9 +25,9 @@ export default function DatabaseSwitch() {
           setUseProduction(data.useProduction);
           setLocked(data.locked || false);
         }
-              } catch (error) {
-                logger.error("Erreur lors du chargement de l'état", error);
-              } finally {
+      } catch (error) {
+        logger.error("Erreur lors du chargement de l'état", error);
+      } finally {
         setLoading(false);
       }
     };
@@ -85,11 +86,11 @@ export default function DatabaseSwitch() {
         toast.error(error.error || 'Erreur lors du changement de base de données');
         setSwitching(false);
       }
-            } catch (error) {
-              logger.error('Erreur lors du switch', error);
-              toast.error('Erreur lors du changement de base de données');
-              setSwitching(false);
-            }
+    } catch (error) {
+      logger.error('Erreur lors du switch', error);
+      toast.error('Erreur lors du changement de base de données');
+      setSwitching(false);
+    }
   };
 
   const waitForServerRestart = async () => {

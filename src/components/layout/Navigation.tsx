@@ -1,14 +1,16 @@
 'use client';
 
-import React from 'react';
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useSession, signOut } from 'next-auth/react';
-import AuthModal from '../auth/AuthModal';
 import { Menu, User, LogOut, Music, Calendar, ImageIcon, Mail, Settings, Home } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
+import { useSession, signOut } from 'next-auth/react';
+import { useState, useEffect } from 'react';
+import React from 'react';
+
 import { logger } from '@/lib/logger';
+
+import AuthModal from '../auth/AuthModal';
 
 const Navigation = () => {
   const { data: session, status } = useSession();

@@ -1,4 +1,5 @@
 import { renderHook, act } from '@testing-library/react';
+
 import { useAudioVisualizer } from '../useAudioVisualizer';
 
 // Mock framer-motion
@@ -132,4 +133,3 @@ describe('useAudioVisualizer', () => {
     expect(result.current.audioData).toEqual(Array(20).fill(0));
   });
 });
-

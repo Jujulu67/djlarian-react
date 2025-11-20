@@ -1,8 +1,9 @@
 'use client';
 
+import { SessionProvider } from 'next-auth/react';
 import { ThemeProvider } from 'next-themes';
 import { ReactNode, useEffect } from 'react';
-import { SessionProvider } from 'next-auth/react';
+
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { setupConsoleFilters } from '@/lib/console-filters';
 
@@ -10,7 +11,7 @@ import { setupConsoleFilters } from '@/lib/console-filters';
  * Providers globaux pour l'application
  * Encapsule SessionProvider pour next-auth et ThemeProvider pour le thème
  */
-export function Providers({ children }: { children: ReactNode }) {
+export const Providers = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     // Configurer les filtres de console EN PREMIER (avant tout autre code)
     // Cela permet d'intercepter les warnings de framer-motion qui passent par forward-logs-shared.ts
@@ -77,4 +78,4 @@ export function Providers({ children }: { children: ReactNode }) {
       </SessionProvider>
     </ErrorBoundary>
   );
-}
+};

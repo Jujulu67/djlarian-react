@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/auth';
 
+import { auth } from '@/auth';
 import { defaultConfigs } from '@/config/defaults';
-import prisma from '@/lib/prisma';
 import { logger } from '@/lib/logger';
+import prisma from '@/lib/prisma';
 
 // Endpoint pour récupérer les configurations par défaut
 export async function GET() {

@@ -38,4 +38,3 @@ export const GameInstructions: React.FC<GameInstructionsProps> = ({ isActive, on
     </div>
   );
 };
-

@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+
 import { logger } from '@/lib/logger';
 
 interface UseGameStartProps {
@@ -83,4 +84,3 @@ export const useGameStart = ({ audioElement, startGame }: UseGameStartProps) => 
 
   return { handlePlayClick };
 };
-

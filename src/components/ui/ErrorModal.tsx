@@ -1,9 +1,10 @@
 'use client'; // Nécessaire pour useRouter
 
-import Modal from '@/components/ui/Modal';
-import { useRouter } from 'next/navigation'; // Importer useRouter
 import { AlertTriangle, Home, ArrowLeft } from 'lucide-react'; // Ajouter ArrowLeft
 import Image from 'next/image';
+import { useRouter } from 'next/navigation'; // Importer useRouter
+
+import Modal from '@/components/ui/Modal';
 
 interface ErrorModalProps {
   title?: string;

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+
 import { auth } from '@/auth';
-import prisma from '@/lib/prisma';
 import { logger } from '@/lib/logger';
+import prisma from '@/lib/prisma';
 
 // Valeurs par défaut pour les configurations
 const defaultConfigs = {

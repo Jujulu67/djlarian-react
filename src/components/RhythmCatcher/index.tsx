@@ -1,9 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+
+import { logger } from '@/lib/logger';
+
 import GameCanvas from './GameCanvas';
-import ScorePanel from './ScorePanel';
 import {
   initializeGame,
   updateGame,
@@ -14,8 +16,8 @@ import {
   CollisionResult,
   detectBPM,
 } from './gameEngine';
+import ScorePanel from './ScorePanel';
 import styles from './styles.module.css';
-import { logger } from '@/lib/logger';
 
 interface RhythmCatcherProps {
   audioSrc?: string;
@@ -70,7 +72,9 @@ const RhythmCatcher: React.FC<RhythmCatcherProps> = ({ audioSrc, onClose }) => {
       setIsAudioLoaded(true);
 
       try {
-        const AudioContextClass = window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        const AudioContextClass =
+          window.AudioContext ||
+          (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
         if (!AudioContextClass) {
           throw new Error('AudioContext not supported');
         }
@@ -114,7 +118,9 @@ const RhythmCatcher: React.FC<RhythmCatcherProps> = ({ audioSrc, onClose }) => {
     // Nettoyage
     return () => {
       if (audioContextRef.current) {
-        audioContextRef.current.close().catch((err) => logger.error('Erreur lors de la fermeture de AudioContext', err));
+        audioContextRef.current
+          .close()
+          .catch((err) => logger.error('Erreur lors de la fermeture de AudioContext', err));
       }
 
       if (audioRef.current) {
@@ -138,7 +144,9 @@ const RhythmCatcher: React.FC<RhythmCatcherProps> = ({ audioSrc, onClose }) => {
 
     if (audio.paused) {
       // Activation de l'audio et du jeu
-      audioContextRef.current?.resume().catch((err) => logger.error('Erreur lors de la reprise de AudioContext', err));
+      audioContextRef.current
+        ?.resume()
+        .catch((err) => logger.error('Erreur lors de la reprise de AudioContext', err));
       audio.play().catch((err) => logger.error('Erreur lors de la lecture audio', err));
       setIsAudioActive(true);
 

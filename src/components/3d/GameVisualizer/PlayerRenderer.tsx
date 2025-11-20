@@ -33,4 +33,3 @@ export const PlayerRenderer: React.FC<PlayerRendererProps> = ({ ctx, x, y }) => 
 
   return null;
 };
-

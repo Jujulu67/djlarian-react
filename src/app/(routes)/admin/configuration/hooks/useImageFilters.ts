@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
+
 import type { ImageMeta } from '@/app/api/admin/images/shared';
+
 import type { GroupedImage, SortOption } from '../types';
 import { getSortedGroups } from '../utils/getSortedGroups';
 
@@ -59,7 +61,10 @@ export function useImageFilters(
   }, [filteredGroups, sortOption, showDuplicatesState, currentPage, itemsPerPage]);
 
   const totalPages = useMemo(
-    () => Math.ceil(getSortedGroups(filteredGroups, sortOption, showDuplicatesState).length / itemsPerPage),
+    () =>
+      Math.ceil(
+        getSortedGroups(filteredGroups, sortOption, showDuplicatesState).length / itemsPerPage
+      ),
     [filteredGroups, sortOption, showDuplicatesState, itemsPerPage]
   );
 
@@ -108,4 +113,3 @@ export function useImageFilters(
     resetFilters,
   };
 }
-

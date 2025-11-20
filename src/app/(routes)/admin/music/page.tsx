@@ -1,8 +1,6 @@
 'use client';
-import React, { useState, useEffect, useRef, ChangeEvent, FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
 import { MusicPlatform, MusicType } from '@/lib/utils/types';
-import { Button } from '@/components/ui';
+
 import {
   Music,
   PlusCircle,
@@ -15,27 +13,32 @@ import {
   Calendar,
   Star,
 } from 'lucide-react';
-import { toast } from 'react-hot-toast';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, useRef, ChangeEvent, FormEvent } from 'react';
+import { toast } from 'react-hot-toast';
+import { type Crop as CropType, centerCrop, makeAspectCrop } from 'react-image-crop';
+import { v4 as uuidv4 } from 'uuid';
+
+import 'react-image-crop/dist/ReactCrop.css';
+import { PublicationStatusSelector } from '@/components/admin/PublicationStatusSelector';
+import { Button } from '@/components/ui';
+import { DateTimeField } from '@/components/ui/DateTimeField';
 import ImageCropModal from '@/components/ui/ImageCropModal';
 import ImageDropzone from '@/components/ui/ImageDropzone';
-import { extractPlatformId } from '@/lib/utils/music-service';
-import { v4 as uuidv4 } from 'uuid';
-import { type Crop as CropType, centerCrop, makeAspectCrop } from 'react-image-crop';
-import 'react-image-crop/dist/ReactCrop.css';
-import YoutubeAtelier from './components/YoutubeAtelier';
-import { MUSIC_TYPES } from '@/lib/utils/music-helpers';
-import { PublicationStatusSelector } from '@/components/admin/PublicationStatusSelector';
-import { DateTimeField } from '@/components/ui/DateTimeField';
 import { logger } from '@/lib/logger';
-import { useTracks } from './hooks/useTracks';
-import { useTrackForm } from './hooks/useTrackForm';
+import { MUSIC_TYPES } from '@/lib/utils/music-helpers';
+import { extractPlatformId } from '@/lib/utils/music-service';
+import type { Track } from '@/lib/utils/types';
+
+import { TrackList } from './components/TrackList';
+import YoutubeAtelier from './components/YoutubeAtelier';
+import { platformLabels, platformIcons, type AdminMusicTab } from './constants';
 import { useImageUpload } from './hooks/useImageUpload';
 import { useSuccessNotification } from './hooks/useSuccessNotification';
-import { TrackList } from './components/TrackList';
-import { platformLabels, platformIcons, type AdminMusicTab } from './constants';
+import { useTrackForm } from './hooks/useTrackForm';
+import { useTracks } from './hooks/useTracks';
 import { getTrackStatus } from './utils/getTrackStatus';
-import type { Track } from '@/lib/utils/types';
 
 /* Helper crop centré */
 function centerAspectCropFn(w: number, h: number, a: number): CropType {

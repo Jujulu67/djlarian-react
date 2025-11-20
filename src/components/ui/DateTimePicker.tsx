@@ -1,14 +1,14 @@
 'use client';
 
-import * as React from 'react';
 import { format, parse, isValid } from 'date-fns'; // Moins de dépendances directes à setHours/setMinutes ici
 import { fr } from 'date-fns/locale';
 import { Calendar as CalendarIcon } from 'lucide-react';
+import * as React from 'react';
 
-import { cn } from '@/lib/utils/cn';
 import { Button } from '@/components/ui/Button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils/cn';
 
 interface DateTimePickerProps {
   value: Date | null | undefined;
@@ -16,7 +16,7 @@ interface DateTimePickerProps {
   className?: string;
 }
 
-export function DateTimePicker({ value, onChange, className }: DateTimePickerProps) {
+export const DateTimePicker = ({ value, onChange, className }: DateTimePickerProps) => {
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(
     value instanceof Date && isValid(value) ? value : undefined
   );
@@ -186,4 +186,4 @@ export function DateTimePicker({ value, onChange, className }: DateTimePickerPro
       </PopoverContent>
     </Popover>
   );
-}
+};

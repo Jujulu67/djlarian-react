@@ -43,7 +43,7 @@ export function extractInfoFromTitle(title: string) {
   };
 
   // Nettoyage des entités HTML courantes
-  let cleanTitle = title
+  const cleanTitle = title
     .replace(/&amp;/g, '&')
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")

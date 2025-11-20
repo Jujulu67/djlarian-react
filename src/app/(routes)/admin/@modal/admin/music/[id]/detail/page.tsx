@@ -1,6 +1,7 @@
 import React from 'react';
-import Modal from '@/components/ui/Modal';
+
 import TrackDetailView from '@/components/admin/TrackDetailView';
+import Modal from '@/components/ui/Modal';
 
 interface InterceptedTrackDetailProps {
   params: Promise<{ id: string }>;

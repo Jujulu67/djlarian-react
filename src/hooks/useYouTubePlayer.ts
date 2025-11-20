@@ -1,7 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Track } from '@/lib/utils/types';
-import { sendPlayerCommand, getInitialVolume, applyVolumeToAllPlayers } from '@/lib/utils/audioUtils';
+
 import { logger } from '@/lib/logger';
+import {
+  sendPlayerCommand,
+  getInitialVolume,
+  applyVolumeToAllPlayers,
+} from '@/lib/utils/audioUtils';
+import { Track } from '@/lib/utils/types';
 
 interface UseYouTubePlayerProps {
   track: Track;
@@ -245,4 +250,3 @@ export const useYouTubePlayer = ({
     handleClosePlayer,
   };
 };
-

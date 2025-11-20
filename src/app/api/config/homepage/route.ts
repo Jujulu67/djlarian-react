@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+
 import { defaultConfigs } from '@/config/defaults';
-import { HomepageConfig } from '@/types/config';
 import { logger } from '@/lib/logger';
+import prisma from '@/lib/prisma';
 import { isNotEmpty } from '@/lib/utils/arrayHelpers';
+import { HomepageConfig } from '@/types/config';
 
 // API publique pour récupérer la configuration de la page d'accueil
 // Accessible sans authentification pour permettre le chargement de la page d'accueil
@@ -61,4 +62,3 @@ export async function GET() {
     return NextResponse.json(defaultConfigs.homepage, { status: 200 });
   }
 }
-
