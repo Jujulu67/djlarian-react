@@ -51,7 +51,9 @@ export default function TrackDetailView({ trackId, onClose }: TrackDetailViewPro
         if (!response.ok) {
           throw new Error(`Morceau introuvable ou erreur serveur (ID: ${trackId})`);
         }
-        const data: Track = await response.json();
+        const result = await response.json();
+        // La réponse API utilise createSuccessResponse qui retourne { data: Track }
+        const data: Track = result.data;
         if (!data) {
           throw new Error(`Données vides reçues pour le morceau (ID: ${trackId})`);
         }

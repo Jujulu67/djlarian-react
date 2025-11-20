@@ -66,7 +66,9 @@ export default function LatestReleases({
         if (!response.ok) {
           throw new Error('Erreur lors de la récupération des morceaux');
         }
-        const data = await response.json();
+        const result = await response.json();
+        // La réponse API utilise createSuccessResponse qui retourne { data: [...] }
+        const data = result.data || [];
 
         // Filtrer et trier: uniquement les singles, EPs et albums (pas les DJ sets ou videos)
         // Et trier par date (du plus récent au plus ancien)
