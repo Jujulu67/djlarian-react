@@ -76,7 +76,14 @@ const fetcher = async (url: string) => {
     error.status = response.status;
     throw error;
   }
-  return response.json();
+  const result = await response.json();
+  // Les routes qui utilisent createSuccessResponse retournent { data: ... }
+  // Les routes qui utilisent NextResponse.json directement retournent les données directement
+  // On détecte automatiquement le format en vérifiant si result.data existe
+  if (result && typeof result === 'object' && 'data' in result && !('error' in result)) {
+    return result.data;
+  }
+  return result;
 };
 
 export default function HomePage() {
