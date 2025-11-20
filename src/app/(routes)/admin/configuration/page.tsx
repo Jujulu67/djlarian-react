@@ -1,10 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import dynamic from 'next/dynamic'; // Import pour le chargement dynamique
-import Link from 'next/link';
-import isEqual from 'lodash/isEqual'; // Import de isEqual
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import isEqual from 'lodash/isEqual'; // Import de isEqual
 import {
   ArrowLeft,
   Settings,
@@ -23,14 +20,22 @@ import {
   History,
   Image as ImageIcon,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import dynamic from 'next/dynamic'; // Import pour le chargement dynamique
+import Link from 'next/link';
+import { useState, useEffect, useCallback, useRef } from 'react';
+
+import DatabaseSwitch from '@/components/admin/DatabaseSwitch'; // Import du switch de base de données
+import ToggleRow from '@/components/config/ToggleRow'; // Import du composant ToggleRow
 import { Button } from '@/components/ui/Button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
+import { Label } from '@/components/ui/label';
+import Modal from '@/components/ui/Modal';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import HistoryModal from './components/HistoryModal';
-import Modal from '@/components/ui/Modal';
+import { logger } from '@/lib/logger';
+import { isNotEmpty } from '@/lib/utils/arrayHelpers';
+import { useConfigs } from '@/stores/useConfigs'; // Import du store Zustand
 import {
   AllConfigs,
   initialConfigs,
@@ -42,11 +47,8 @@ import {
   ApiConfig,
   ConfigSection,
 } from '@/types/config'; // Import centralisé
-import { useConfigs } from '@/stores/useConfigs'; // Import du store Zustand
-import ToggleRow from '@/components/config/ToggleRow'; // Import du composant ToggleRow
-import DatabaseSwitch from '@/components/admin/DatabaseSwitch'; // Import du switch de base de données
-import { logger } from '@/lib/logger';
-import { isNotEmpty } from '@/lib/utils/arrayHelpers';
+
+import HistoryModal from './components/HistoryModal';
 
 // Chargement dynamique des composants d'onglet
 const HomepageTab = dynamic(() => import('./tabs/HomepageTab'), {
@@ -116,7 +118,10 @@ const SaveConfigModal = ({ isOpen, onClose, onSave, changesSummary }: SaveConfig
       onClose();
     } catch (err) {
       setError('Une erreur est survenue lors de la sauvegarde. Veuillez réessayer.');
-      logger.error('Erreur lors de la sauvegarde:', err instanceof Error ? err.message : String(err));
+      logger.error(
+        'Erreur lors de la sauvegarde:',
+        err instanceof Error ? err.message : String(err)
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -258,7 +263,10 @@ export default function ConfigurationPage() {
       // Stocker la configuration chargée comme référence pour le diff
       previousConfigs.current = JSON.parse(JSON.stringify(data)); // Copie profonde simple
     } catch (e) {
-      logger.error('Erreur lors de la récupération des configurations:', e instanceof Error ? e.message : String(e));
+      logger.error(
+        'Erreur lors de la récupération des configurations:',
+        e instanceof Error ? e.message : String(e)
+      );
       logger.debug('Utilisation des valeurs par défaut (mode fallback)');
       // Utiliser les valeurs initiales du store en cas d'erreur
       resetConfigs();
@@ -326,7 +334,10 @@ export default function ConfigurationPage() {
       setSuccessMessage('Configurations sauvegardées avec succès !');
       setTimeout(() => setSuccessMessage(null), 3000); // Cacher après 3s
     } catch (e) {
-      logger.error('Erreur lors de la sauvegarde des configurations:', e instanceof Error ? e.message : String(e));
+      logger.error(
+        'Erreur lors de la sauvegarde des configurations:',
+        e instanceof Error ? e.message : String(e)
+      );
       setError('Impossible de sauvegarder les configurations. Veuillez réessayer.');
       // Ne pas utiliser alert(), l'erreur est déjà affichée dans la modale
       throw e; // Propager l'erreur pour la modale
@@ -352,7 +363,10 @@ export default function ConfigurationPage() {
         // Recharger les configurations après la réinitialisation
         await fetchConfigurations(); // Ceci va reset le store et mettre à jour previousConfigs
       } catch (e) {
-        logger.error('Erreur lors de la réinitialisation des configurations:', e instanceof Error ? e.message : String(e));
+        logger.error(
+          'Erreur lors de la réinitialisation des configurations:',
+          e instanceof Error ? e.message : String(e)
+        );
         setError('Impossible de réinitialiser les configurations. Veuillez réessayer.');
       } finally {
         setIsLoading(false);
@@ -397,7 +411,10 @@ export default function ConfigurationPage() {
       alert('Snapshot créé avec succès !'); // Conserver l'alerte pour l'instant
       // Pas besoin de màj previousConfigs ici car snapshot ne modifie pas l'état courant "sauvegardé"
     } catch (e) {
-      logger.error('Erreur lors de la création du snapshot:', e instanceof Error ? e.message : String(e));
+      logger.error(
+        'Erreur lors de la création du snapshot:',
+        e instanceof Error ? e.message : String(e)
+      );
       setError('Impossible de créer le snapshot. Veuillez réessayer.');
       alert('Erreur lors de la création du snapshot. Voir la console pour plus de détails.');
       throw e; // Propager l'erreur pour que le modal puisse la gérer
@@ -407,7 +424,17 @@ export default function ConfigurationPage() {
   };
 
   // Fonction pour annuler une modification spécifique (recharge les configs)
-  const handleRevertChange = async (historyItem: { id: string; configId: string; previousValue: string; newValue: string; createdAt: string; createdBy?: string; description?: string; reverted: boolean; config: { section: string; key: string } }) => {
+  const handleRevertChange = async (historyItem: {
+    id: string;
+    configId: string;
+    previousValue: string;
+    newValue: string;
+    createdAt: string;
+    createdBy?: string;
+    description?: string;
+    reverted: boolean;
+    config: { section: string; key: string };
+  }) => {
     setIsLoading(true);
     setError(null);
 
@@ -431,7 +458,10 @@ export default function ConfigurationPage() {
       // Recharger les configurations après l'annulation (mettra à jour le store et previousConfigs)
       await fetchConfigurations();
     } catch (e) {
-      logger.error("Erreur lors de l'annulation de la modification:", e instanceof Error ? e.message : String(e));
+      logger.error(
+        "Erreur lors de l'annulation de la modification:",
+        e instanceof Error ? e.message : String(e)
+      );
       setError("Impossible d'annuler la modification. Veuillez réessayer.");
     } finally {
       setIsLoading(false);
@@ -439,7 +469,13 @@ export default function ConfigurationPage() {
   };
 
   // Fonction pour appliquer un snapshot (recharge les configs)
-  const handleApplySnapshot = async (snapshot: { id: string; name: string; description?: string; createdAt: string; createdBy?: string }) => {
+  const handleApplySnapshot = async (snapshot: {
+    id: string;
+    name: string;
+    description?: string;
+    createdAt: string;
+    createdBy?: string;
+  }) => {
     setIsLoading(true);
     setError(null);
 
@@ -464,7 +500,10 @@ export default function ConfigurationPage() {
       // Recharger les configurations après l'application (mettra à jour le store et previousConfigs)
       await fetchConfigurations();
     } catch (e) {
-      logger.error("Erreur lors de l'application du snapshot:", e instanceof Error ? e.message : String(e));
+      logger.error(
+        "Erreur lors de l'application du snapshot:",
+        e instanceof Error ? e.message : String(e)
+      );
       setError("Impossible d'appliquer le snapshot. Veuillez réessayer.");
       alert('Erreur lors de la restauration du snapshot. Voir la console pour plus de détails.');
     } finally {
@@ -749,7 +788,7 @@ export default function ConfigurationPage() {
                   className={`w-full flex items-center p-3 rounded-lg transition-all ${activeSection === 'homepage' ? 'bg-purple-500/20 text-purple-300' : 'hover:bg-purple-500/10 text-gray-300'}`}
                 >
                   <Home className="h-5 w-5 mr-3" />
-                  Page d'accueil
+                  Page d&apos;accueil
                 </button>
 
                 <button

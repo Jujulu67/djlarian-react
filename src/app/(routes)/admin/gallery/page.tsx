@@ -1,7 +1,7 @@
-import { redirect } from 'next/navigation';
-import { auth } from '@/auth';
-
 import Image from 'next/image';
+import { redirect } from 'next/navigation';
+
+import { auth } from '@/auth';
 
 export default async function AdminGalleryPage() {
   const session = await auth();
@@ -65,7 +65,7 @@ export default async function AdminGalleryPage() {
             <div className="p-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Event 1</h3>
               <p className="text-sm text-gray-600 dark:text-gray-300">
-                Description de l'image...
+                Description de l&apos;image...
               </p>
             </div>
           </div>

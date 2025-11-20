@@ -1,20 +1,21 @@
 'use client';
 
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { GamePattern } from '@/types/game';
-import ScoreDisplay from './ScoreDisplay';
-import ParticleSystem, { Particle } from './ParticleSystem';
-import { logger } from '@/lib/logger';
 
 // Hooks
+import { useBeatVisuals } from '@/hooks/game/useBeatVisuals';
 import { useCanvasRenderer } from '@/hooks/game/useCanvasRenderer';
 import { useCollisionDetection } from '@/hooks/game/useCollisionDetection';
-import { useScreenShake } from '@/hooks/game/useScreenShake';
-import { usePointAnimations } from '@/hooks/game/usePointAnimations';
 import { useFrequencyLanes } from '@/hooks/game/useFrequencyLanes';
-import { useBeatVisuals } from '@/hooks/game/useBeatVisuals';
 import { usePlayerPosition } from '@/hooks/game/usePlayerPosition';
+import { usePointAnimations } from '@/hooks/game/usePointAnimations';
+import { useScreenShake } from '@/hooks/game/useScreenShake';
+import { logger } from '@/lib/logger';
 import { isNotEmpty } from '@/lib/utils/arrayHelpers';
+import { GamePattern } from '@/types/game';
+
+import ParticleSystem, { Particle } from './ParticleSystem';
+import ScoreDisplay from './ScoreDisplay';
 
 interface GameVisualizerProps {
   gameData: {
@@ -199,11 +200,13 @@ const GameVisualizer: React.FC<GameVisualizerProps> = ({ gameData, audioElement 
     } else {
       logger.debug('GameVisualizer: aucun pattern disponible dans gameData.patterns');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameData.patterns]);
 
   // Monitor game state changes
   useEffect(() => {
     logger.debug(`GameVisualizer: état du jeu mis à jour, isActive=${gameData.gameState.isActive}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameData.gameState.isActive]);
 
   // Render instructions overlay

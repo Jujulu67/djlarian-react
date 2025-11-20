@@ -1,17 +1,19 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
-import type { GameState, GamePattern } from '@/types/game';
+
 import { logger } from '@/lib/logger';
-import { useAudioAnalyser } from './game/useAudioAnalyser';
-import { usePatternManager } from './game/usePatternManager';
-import { useScoreManager } from './game/useScoreManager';
+import { isNotEmpty } from '@/lib/utils/arrayHelpers';
+import type { GameState, GamePattern } from '@/types/game';
+import type { FrequencyBand } from '@/types/game';
+
 import {
   PRE_MAPPED_PATTERNS,
   SCROLL_SPEED,
   PATTERN_LIFETIME,
   AUDIO_UPDATE_INTERVAL,
 } from './game/constants';
-import type { FrequencyBand } from '@/types/game';
-import { isNotEmpty } from '@/lib/utils/arrayHelpers';
+import { useAudioAnalyser } from './game/useAudioAnalyser';
+import { usePatternManager } from './game/usePatternManager';
+import { useScoreManager } from './game/useScoreManager';
 
 export const useGameManager = (audioElement: HTMLAudioElement | null) => {
   const [gameState, setGameState] = useState<GameState>(() => {
@@ -249,6 +251,7 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
         requestAnimationFrame(() => simpleUpdateGame());
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patterns.length, simpleUpdateGame, patternManager]);
 
   // Démarrage du jeu

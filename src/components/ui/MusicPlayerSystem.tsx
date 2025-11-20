@@ -1,8 +1,5 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Track, MusicPlatform } from '@/lib/utils/types';
-import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -19,10 +16,14 @@ import {
   SkipBack,
   SkipForward,
 } from 'lucide-react';
+import Image from 'next/image';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { FaSpotify, FaYoutube, FaSoundcloud, FaMusic } from 'react-icons/fa';
-import { getEmbedUrl } from '@/lib/utils/music-service';
+
 import { logger } from '@/lib/logger';
 import { isNotEmpty } from '@/lib/utils/arrayHelpers';
+import { getEmbedUrl } from '@/lib/utils/music-service';
+import { Track, MusicPlatform } from '@/lib/utils/types';
 
 interface MusicPlayerSystemProps {
   track: Track | null;
@@ -161,6 +162,7 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
     return () => {
       stopProgressInterval();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [track, stopProgressInterval, startProgressInterval]);
 
   // Mettre à jour l'URL d'embedding
@@ -191,6 +193,7 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
       setYoutubeVideoId(null);
       stopProgressInterval();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [track, selectedPlatform, restartProgressInterval, stopProgressInterval]);
 
   // Gérer la lecture/pause
@@ -200,6 +203,7 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
     } else {
       stopProgressInterval();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPlaying, startProgressInterval, stopProgressInterval]);
 
   // Gérer le changement de position dans la piste

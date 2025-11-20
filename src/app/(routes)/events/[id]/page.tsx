@@ -1,9 +1,5 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import Image from 'next/image';
-import Link from 'next/link';
 import { format, isPast, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {
@@ -20,6 +16,10 @@ import {
   Loader2,
   AlertCircle,
 } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useParams, useRouter } from 'next/navigation';
+import { useState, useEffect, useRef } from 'react';
 import {
   FaCalendarAlt,
   FaMapMarkerAlt,
@@ -29,6 +29,7 @@ import {
   FaTwitter,
   FaCopy,
 } from 'react-icons/fa';
+
 import { logger } from '@/lib/logger';
 
 // Types
@@ -126,7 +127,7 @@ export default function EventDetailPage() {
           if (response.status === 404) {
             throw new Error('Événement non trouvé');
           } else if (response.status === 403) {
-            throw new Error("Vous n'avez pas accès à cet événement");
+            throw new Error('Vous n&apos;avez pas accès à cet événement');
           } else {
             throw new Error('Une erreur est survenue lors de la récupération des données');
           }
@@ -247,9 +248,7 @@ export default function EventDetailPage() {
           <div className="flex justify-center items-center min-h-[40vh]">
             <div className="animate-pulse flex flex-col items-center">
               <Loader2 className="w-12 h-12 text-purple-500 mb-4 animate-spin" />
-              <h2 className="text-2xl font-semibold text-white">
-                Chargement de l'événement...
-              </h2>
+              <h2 className="text-2xl font-semibold text-white">Chargement de l'événement...</h2>
             </div>
           </div>
         </div>
@@ -272,7 +271,7 @@ export default function EventDetailPage() {
               </h2>
               <p className="text-gray-300 mb-6">
                 {error === 'Événement non trouvé'
-                  ? "L'événement que vous recherchez n'existe pas ou a été supprimé."
+                  ? 'L&apos;événement que vous recherchez n&apos;existe pas ou a été supprimé.'
                   : error}
               </p>
               <Link
@@ -344,7 +343,7 @@ export default function EventDetailPage() {
                 priority
                 unoptimized
                 onError={(e) => {
-                  // Éviter la boucle infinie en masquant l'image si elle n'existe pas
+                  // Éviter la boucle infinie en masquant l&apos;image si elle n&apos;existe pas
                   const target = e.target as HTMLImageElement;
                   target.style.display = 'none';
                 }}

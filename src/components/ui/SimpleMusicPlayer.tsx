@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { Track } from '@/lib/utils/types';
-import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { X, Music, Play, Pause, SkipBack, SkipForward, Volume, VolumeX } from 'lucide-react';
-import { getInitialVolume, applyVolumeToAllPlayers } from '@/lib/utils/audioUtils';
+import Image from 'next/image';
+import React, { useState, useEffect, useRef } from 'react';
+
 import { logger } from '@/lib/logger';
+import { getInitialVolume, applyVolumeToAllPlayers } from '@/lib/utils/audioUtils';
+import { Track } from '@/lib/utils/types';
 
 interface SimpleMusicPlayerProps {
   track: Track | null;
@@ -52,7 +53,7 @@ const SimpleMusicPlayer: React.FC<SimpleMusicPlayerProps> = ({
         `SimpleMusicPlayer: Réinitialisation de l\'erreur d\'image pour la piste ${track.id}`
       );
     }
-  }, [track?.id]);
+  }, [track]);
 
   useEffect(() => {
     try {

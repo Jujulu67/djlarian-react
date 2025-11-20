@@ -1,11 +1,18 @@
-import { renderHook, act, waitFor } from '@testing-library/react';
-import { useTracks } from '../useTracks';
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+// Mock des dépendances AVANT les imports
+jest.mock('next-auth/react', () => ({
+  useSession: jest.fn(),
+}));
 
-// Mock des dépendances
-jest.mock('next-auth/react');
-jest.mock('next/navigation');
+jest.mock('next/navigation', () => ({
+  useRouter: jest.fn(),
+}));
+
+import { renderHook, act, waitFor } from '@testing-library/react';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+
+import { useTracks } from '../useTracks';
+
 jest.mock('react-hot-toast', () => ({
   toast: {
     success: jest.fn(),
@@ -81,8 +88,22 @@ describe('useTracks', () => {
 
   it('should filter tracks by search term', async () => {
     const mockTracks = [
-      { id: '1', title: 'House Track', artist: 'Artist 1', type: 'single', platforms: {}, genre: [] },
-      { id: '2', title: 'Techno Track', artist: 'Artist 2', type: 'single', platforms: {}, genre: [] },
+      {
+        id: '1',
+        title: 'House Track',
+        artist: 'Artist 1',
+        type: 'single',
+        platforms: {},
+        genre: [],
+      },
+      {
+        id: '2',
+        title: 'Techno Track',
+        artist: 'Artist 2',
+        type: 'single',
+        platforms: {},
+        genre: [],
+      },
     ];
 
     (global.fetch as jest.Mock).mockResolvedValueOnce({
@@ -106,4 +127,3 @@ describe('useTracks', () => {
     });
   });
 });
-

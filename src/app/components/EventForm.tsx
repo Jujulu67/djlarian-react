@@ -1,24 +1,26 @@
 import React from 'react';
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Button, Input, Label, Switch, Textarea } from '@/components/ui';
 import * as RadixPopover from '@radix-ui/react-popover';
 import { Upload, X, Image as ImageIcon, XCircle, Crop, Calendar, Plus, Trash2 } from 'lucide-react';
-import { useDropzone } from 'react-dropzone';
-import ReactCrop, { type Crop as CropType, centerCrop, makeAspectCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import { format, parseISO, addMonths, addWeeks, addDays, isBefore, endOfMonth } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { Calendar as CalendarIcon, CheckCircle, Clock, PauseCircle } from 'lucide-react';
+import { useDropzone } from 'react-dropzone';
+import { toast } from 'react-hot-toast';
+import ReactCrop, { type Crop as CropType, centerCrop, makeAspectCrop } from 'react-image-crop';
+
+import { PublicationStatusSelector } from '@/components/admin/PublicationStatusSelector';
+import { Button, Input, Label, Switch, Textarea } from '@/components/ui';
+import { DateTimeField } from '@/components/ui/DateTimeField';
 import ImageCropModal from '@/components/ui/ImageCropModal';
 import ImageDropzone from '@/components/ui/ImageDropzone';
-import { toast } from 'react-hot-toast';
-import { findOriginalImageUrl } from '@/lib/utils/findOriginalImageUrl';
-import { Calendar as CalendarIcon, CheckCircle, Clock, PauseCircle } from 'lucide-react';
-import { PublicationStatusSelector } from '@/components/admin/PublicationStatusSelector';
-import { DateTimeField } from '@/components/ui/DateTimeField';
 import { logger } from '@/lib/logger';
-import { EventFormData, TicketInfo, RecurrenceConfig } from './EventForm/types';
-import { EventFormTickets } from './EventForm/components/EventFormTickets';
 import { isNotEmpty } from '@/lib/utils/arrayHelpers';
+import { findOriginalImageUrl } from '@/lib/utils/findOriginalImageUrl';
+
+import { EventFormTickets } from './EventForm/components/EventFormTickets';
+import { EventFormData, TicketInfo, RecurrenceConfig } from './EventForm/types';
 
 export type { EventFormData, TicketInfo, RecurrenceConfig };
 
@@ -133,7 +135,7 @@ const EventForm: React.FC<EventFormProps> = ({
       setDisplayCrop(initialCrop);
       setIsImageLoaded(true);
     } else {
-      logger.error("L'image chargée n'a pas de dimensions.");
+      logger.error('L&apos;image chargée n&apos;a pas de dimensions.');
       handleCancelRecrop();
     }
   };
@@ -373,7 +375,7 @@ const EventForm: React.FC<EventFormProps> = ({
             </select>
             {futureOccurrences.length === 0 && formData.date && (
               <p className="text-amber-400 text-xs mt-1">
-                Pour voir les occurrences, définissez d'abord la date de première occurrence.
+                Pour voir les occurrences, définissez d&apos;abord la date de première occurrence.
               </p>
             )}
           </div>
@@ -408,7 +410,7 @@ const EventForm: React.FC<EventFormProps> = ({
           </Button>
         </div>
         <p className="text-gray-400 text-xs italic mt-2">
-          Les occurrences exclues n'apparaîtront pas dans le calendrier des événements.
+          Les occurrences exclues n&apos;apparaîtront pas dans le calendrier des événements.
         </p>
       </div>
     );
@@ -490,7 +492,7 @@ const EventForm: React.FC<EventFormProps> = ({
         reader.readAsDataURL(originalImageFile);
         return;
       } else {
-        toast.error("Aucune image d'origine en mémoire pour recadrer.");
+        toast.error('Aucune image d&apos;origine en mémoire pour recadrer.');
         return;
       }
     }
@@ -523,7 +525,7 @@ const EventForm: React.FC<EventFormProps> = ({
           };
           reader.readAsDataURL(file);
         } else {
-          toast.error("Impossible de charger l'image originale pour le recadrage.");
+          toast.error('Impossible de charger l&apos;image originale pour le recadrage.');
         }
       } else {
         toast.error("Impossible de charger l'image originale pour le recadrage.");
@@ -894,8 +896,8 @@ const EventForm: React.FC<EventFormProps> = ({
               }}
             />
             <p className="text-gray-400 text-sm mt-1">
-              Choisissez si l'événement doit être visible publiquement, rester en brouillon, ou
-              être publié automatiquement à une date précise.
+              Choisissez si l'événement doit être visible publiquement, rester en brouillon, ou être
+              publié automatiquement à une date précise.
             </p>
           </div>
         </div>

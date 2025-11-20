@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ReactCrop, { type Crop as CropType, centerCrop, makeAspectCrop } from 'react-image-crop';
+
 import 'react-image-crop/dist/ReactCrop.css';
 import { Button } from '@/components/ui';
 import Modal from '@/components/ui/Modal';
+
 import { X } from 'lucide-react';
 
 interface ImageCropModalProps {
@@ -133,7 +135,7 @@ const ImageCropModal: React.FC<ImageCropModalProps> = ({
             </ReactCrop>
           ) : (
             <div className="flex items-center justify-center h-40 text-gray-400">
-              Chargement de l'image...
+              Chargement de l&apos;image...
             </div>
           )}
         </div>

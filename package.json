@@ -13,6 +13,8 @@
     "type-check": "tsc --noEmit",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:ci": "jest --ci --coverage --maxWorkers=2",
     "prepare": "husky install || true",
     "db:setup:local": "bash scripts/setup-local-db.sh",
     "db:local": "bash scripts/setup-local-db.sh",
