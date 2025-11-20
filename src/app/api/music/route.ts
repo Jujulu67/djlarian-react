@@ -64,36 +64,27 @@ type CreateTrackInput = z.infer<typeof trackCreateSchema>;
 export async function GET() {
   try {
     const tracks = await prisma.track.findMany({
-      select: {
-        id: true,
-        title: true,
-        artist: true,
-        imageId: true,
-        releaseDate: true,
-        bpm: true,
-        description: true,
-        type: true,
-        featured: true,
-        isPublished: true,
-        publishAt: true,
-        createdAt: true,
-        updatedAt: true,
-        TrackPlatform: { select: { platform: true, url: true, embedId: true } },
-        GenresOnTracks: { include: { Genre: { select: { name: true } } } },
-        MusicCollection: { select: { id: true, title: true } },
-        User: { select: { id: true, name: true } },
+      include: {
+        TrackPlatform: true,
+        GenresOnTracks: {
+          include: {
+            Genre: true,
+          },
+        },
+        MusicCollection: true,
+        User: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
       orderBy: [{ featured: 'desc' }, { releaseDate: 'desc' }],
     });
 
     // Logique d'auto-publication
     for (const track of tracks) {
-      if (
-        'publishAt' in track &&
-        track.publishAt &&
-        !track.isPublished &&
-        new Date(track.publishAt) <= new Date()
-      ) {
+      if (track.publishAt && !track.isPublished && new Date(track.publishAt) <= new Date()) {
         await prisma.track.update({
           where: { id: track.id },
           data: { isPublished: true },
@@ -102,7 +93,7 @@ export async function GET() {
       }
     }
 
-    const formattedTracks = tracks.map((track) => formatTrackData(track as any));
+    const formattedTracks = tracks.map((track) => formatTrackData(track));
 
     return NextResponse.json(formattedTracks);
   } catch (error) {
@@ -177,11 +168,11 @@ export async function POST(request: Request) {
       if (!response.ok) throw new Error('Thumbnail fetch failed');
       const arrayBuffer = await response.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
-      
+
       // Déterminer le type MIME depuis l'URL ou la réponse
       const contentType = response.headers.get('content-type') || 'image/jpeg';
       const extension = contentType.includes('png') ? 'png' : 'jpg';
-      
+
       // Sauvegarder dans Vercel Blob si configuré
       if (isBlobConfigured) {
         const key = `uploads/${imageId}.${extension}`;

@@ -1,7 +1,7 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  reactStrictMode: process.env.NODE_ENV === 'production', // Désactiver en développement pour éviter les doubles appels
+  reactStrictMode: true, // Activé pour détecter les problèmes potentiels en développement
   compiler: {
     styledComponents: true,
   },

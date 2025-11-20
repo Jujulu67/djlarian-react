@@ -48,19 +48,65 @@ function getDatabaseUrl(): string {
 // Sur Vercel, le runtime Node.js supporte nativement Prisma
 const databaseUrl = getDatabaseUrl();
 
-// Vérification de cohérence schema.prisma vs DATABASE_URL (uniquement en dev)
+// Vérification de cohérence schema.prisma vs switch (uniquement en dev)
 if (process.env.NODE_ENV !== 'production') {
   try {
     const schemaPath = path.join(process.cwd(), 'prisma', 'schema.prisma');
+    const switchPath = path.join(process.cwd(), '.db-switch.json');
+    
     if (fs.existsSync(schemaPath)) {
       const schemaContent = fs.readFileSync(schemaPath, 'utf-8');
       const isPostgreSQL = schemaContent.includes('provider = "postgresql"');
       const isSQLite = schemaContent.includes('provider = "sqlite"');
+      
+      // Lire le switch pour déterminer le provider attendu
+      let expectedProvider: 'postgresql' | 'sqlite' = 'sqlite'; // Par défaut SQLite
+      if (fs.existsSync(switchPath)) {
+        try {
+          const switchConfig = JSON.parse(fs.readFileSync(switchPath, 'utf-8'));
+          expectedProvider = switchConfig.useProduction ? 'postgresql' : 'sqlite';
+        } catch (error) {
+          // Si erreur de lecture, utiliser SQLite par défaut
+          logger.warn('Erreur lors de la lecture du switch, utilisation de SQLite par défaut');
+        }
+      }
+      
+      // Vérifier la cohérence et synchroniser si nécessaire
+      const actualProvider = isPostgreSQL ? 'postgresql' : 'sqlite';
+      
+      if (actualProvider !== expectedProvider) {
+        logger.warn(
+          `⚠️  Incohérence détectée: schema.prisma est en ${actualProvider} mais le switch indique ${expectedProvider}. Synchronisation automatique...`
+        );
+        
+        // Synchroniser automatiquement le schéma
+        try {
+          let newSchemaContent = schemaContent;
+          if (expectedProvider === 'sqlite') {
+            newSchemaContent = newSchemaContent.replace(
+              /provider\s*=\s*"postgresql"/,
+              'provider = "sqlite"'
+            );
+          } else {
+            newSchemaContent = newSchemaContent.replace(
+              /provider\s*=\s*"sqlite"/,
+              'provider = "postgresql"'
+            );
+          }
+          
+          fs.writeFileSync(schemaPath, newSchemaContent, 'utf-8');
+          logger.info(`✅ Schema.prisma synchronisé vers ${expectedProvider}`);
+        } catch (error) {
+          logger.error('Erreur lors de la synchronisation automatique du schéma', error);
+        }
+      }
+      
+      // Vérifier aussi la cohérence avec DATABASE_URL
       const isSQLiteUrl = databaseUrl.startsWith('file:');
       const isPostgreSQLUrl =
         databaseUrl.startsWith('postgresql://') || databaseUrl.startsWith('postgres://');
 
-      // Avertir si incohérence (mais ne pas bloquer)
+      // Avertir si incohérence entre schéma et URL (après synchronisation)
       if (isPostgreSQL && isSQLiteUrl) {
         logger.warn(
           "⚠️  ATTENTION: schema.prisma est en PostgreSQL mais DATABASE_URL pointe vers SQLite. Utilisez le switch DB dans l'admin panel pour synchroniser."

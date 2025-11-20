@@ -6,6 +6,17 @@ import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { RecurrenceConfig } from '@/app/components/EventForm';
 import { logger } from '@/lib/logger';
+
+// Type pour Event avec includes
+type EventWithRelations = Prisma.EventGetPayload<{
+  include: {
+    User: { select: { name: true } };
+    TicketInfo: true;
+    RecurrenceConfig: true;
+    Event: { select: { id: true } };
+    other_Event: { select: { id: true; startDate: true } };
+  };
+}>;
 // Ne pas importer Prisma pour l'instant, testons avec null standard
 // import { Prisma } from '@prisma/client';
 
@@ -108,15 +119,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     // Publication automatique si la date est passée
-    const eventAny = event as any;
-    if (eventAny.publishAt && !eventAny.isPublished && new Date(eventAny.publishAt) <= new Date()) {
+    if (event.publishAt && !event.isPublished && new Date(event.publishAt) <= new Date()) {
       // Mettre à jour en base
       await prisma.event.update({
-        where: { id: eventAny.id },
+        where: { id: event.id },
         data: { isPublished: true },
       });
       // Recharger l'événement à jour
-      eventAny.isPublished = true;
+      event.isPublished = true;
     }
 
     // Si c'est un événement virtuel avec une date valide, modifier les dates
@@ -165,7 +175,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     logger.debug(`Returning regular event with date: ${event.startDate}`);
 
     // Formater l'événement pour correspondre à ce qu'attend le client
-    const formattedEvent = { ...event } as any;
+    const formattedEvent: Record<string, unknown> = { ...event };
 
     // Renommer les propriétés s'ils existent
     if ('TicketInfo' in event) {
@@ -246,14 +256,18 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       publishAt,
     } = body;
 
-    const dataToUpdate: any = {};
+    const dataToUpdate: Prisma.EventUpdateInput = {};
 
     if (title !== undefined) dataToUpdate.title = title;
     if (description !== undefined) dataToUpdate.description = description;
     if (location !== undefined) dataToUpdate.location = location;
     if (address !== undefined) dataToUpdate.address = address;
-    if (startDate !== undefined) dataToUpdate.startDate = startDate ? new Date(startDate) : null;
-    dataToUpdate.endDate = endDate ? new Date(endDate) : null;
+    if (startDate !== undefined) {
+      dataToUpdate.startDate = startDate ? new Date(startDate) : undefined;
+    }
+    if (endDate !== undefined) {
+      dataToUpdate.endDate = endDate ? new Date(endDate) : undefined;
+    }
     if (status !== undefined) dataToUpdate.status = status;
     if (isPublished !== undefined) dataToUpdate.isPublished = isPublished;
     if (featured !== undefined) dataToUpdate.featured = featured;
@@ -306,13 +320,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
           // Créer de nouveaux tickets
           dataToUpdate.TicketInfo = {
             create: {
-              price: tickets.price !== undefined ? Number(tickets.price) : 0,
-              currency: tickets.currency || 'EUR',
-              buyUrl: tickets.buyUrl || '',
-              quantity: tickets.quantity !== undefined ? Number(tickets.quantity) : 0,
-              availableFrom: tickets.availableFrom ? new Date(tickets.availableFrom) : null,
-              availableTo: tickets.availableTo ? new Date(tickets.availableTo) : null,
-            },
+              currency: (tickets.currency || 'EUR') as string,
+              ...(tickets.price !== undefined && { price: Number(tickets.price) }),
+              ...(tickets.buyUrl && { buyUrl: tickets.buyUrl as string }),
+              ...(tickets.quantity !== undefined && { quantity: Number(tickets.quantity) }),
+              ...(tickets.availableFrom && { availableFrom: new Date(tickets.availableFrom) }),
+              ...(tickets.availableTo && { availableTo: new Date(tickets.availableTo) }),
+            } as Prisma.TicketInfoCreateWithoutEventInput,
           };
         }
       } catch (error) {
@@ -377,7 +391,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     logger.debug(`Event ${id} updated successfully.`);
 
     // Formater l'événement pour correspondre à ce qu'attend le client
-    const formattedEvent = { ...updatedEvent } as any;
+    const formattedEvent: Record<string, unknown> = { ...updatedEvent };
 
     // Renommer les propriétés s'ils existent
     if ('TicketInfo' in updatedEvent) {
@@ -396,24 +410,25 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     return NextResponse.json(formattedEvent);
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error(`--- ERROR in PATCH /api/events/${id} ---`);
     logger.error('Error details:', error);
-    logger.error('Error code:', error.code);
-    logger.error('Error meta:', error.meta);
-    logger.error('Stack trace:', error.stack);
+    const prismaError = error as { code?: string; meta?: unknown; message?: string; stack?: string };
+    logger.error('Error code:', prismaError.code);
+    logger.error('Error meta:', prismaError.meta);
+    logger.error('Stack trace:', prismaError.stack);
 
     // Renvoi d'une réponse d'erreur plus détaillée pour le débogage
-    if (error.code === 'P2025') {
+    if (prismaError.code === 'P2025') {
       return NextResponse.json({ error: 'Événement non trouvé' }, { status: 404 });
     }
 
     return NextResponse.json(
       {
         error: 'Internal Server Error during update.',
-        details: error.message,
-        code: error.code,
-        meta: error.meta,
+        details: prismaError.message || 'Unknown error',
+        code: prismaError.code,
+        meta: prismaError.meta,
       },
       { status: 500 }
     );

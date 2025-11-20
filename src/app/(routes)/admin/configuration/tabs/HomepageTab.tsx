@@ -16,7 +16,7 @@ export default function HomepageTab() {
   const { homepage, update } = useConfigs();
 
   // Gérer le drag and drop pour l'ordre des sections
-  const handleDragEnd = (result: any) => {
+  const handleDragEnd = (result: { destination?: { index: number } | null; source: { index: number } }) => {
     if (!result.destination) return;
 
     const sections = homepage.sectionsOrder.split(',').filter(Boolean);

@@ -34,6 +34,7 @@ import {
   getTrafficSources,
   UmamiPageViewsData,
   UmamiTopPage,
+  UmamiMetrics,
   getStatistics,
 } from '@/lib/analytics';
 import { useState, useEffect } from 'react';
@@ -87,7 +88,7 @@ const formatDuration = (seconds: number) => {
 };
 
 export default function StatisticsPage() {
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<{ user?: { role?: string } } | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState<Period>('daily');
   const [periodUnit, setPeriodUnit] = useState<'hour' | 'day'>('hour'); // Pour formater le graphique
@@ -101,9 +102,9 @@ export default function StatisticsPage() {
     recentTracks: 0,
   });
   const [umamiData, setUmamiData] = useState<{
-    stats: any | null;
+    stats: UmamiMetrics | null;
     pagesVisited: UmamiTopPage[];
-    trafficSources: any[];
+    trafficSources: Array<{ source: string; percentage: number; color: string }>;
     pageviewsData: UmamiPageViewsData[]; // Pour le graphique
   }>({ stats: null, pagesVisited: [], trafficSources: [], pageviewsData: [] });
 

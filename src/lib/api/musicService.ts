@@ -1,6 +1,6 @@
 import prisma from '@/lib/prisma';
-import { MusicPlatform, MusicType } from '@/lib/utils/types';
-import { Genre } from '@prisma/client';
+import { MusicPlatform, MusicType, Track } from '@/lib/utils/types';
+import { Genre, Prisma } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 
 export type CreateTrackInput = {
@@ -78,7 +78,7 @@ export async function createTrack(data: CreateTrackInput, userId?: string) {
     return prisma.genre.upsert({
       where: { name: normalizedName },
       update: {},
-      create: { name: normalizedName } as any,
+      create: { name: normalizedName },
     });
   });
 
@@ -119,7 +119,7 @@ export async function createTrack(data: CreateTrackInput, userId?: string) {
           },
         })),
       },
-    } as any,
+    },
     include: {
       TrackPlatform: true,
       GenresOnTracks: {
@@ -136,9 +136,9 @@ export async function updateTrack(data: UpdateTrackInput) {
   const { id, genreNames, platforms, ...trackData } = data;
 
   // Mettre à jour les données de base de la piste
-  const trackUpdateData: any = { ...trackData };
+  const trackUpdateData: Prisma.TrackUpdateInput = { ...trackData };
 
-  if (trackUpdateData.releaseDate) {
+  if (trackUpdateData.releaseDate && typeof trackUpdateData.releaseDate === 'string') {
     trackUpdateData.releaseDate = new Date(trackUpdateData.releaseDate);
   }
 
@@ -236,25 +236,35 @@ export async function getAllGenres() {
   });
 }
 
+// Type pour les données Prisma avec includes (correspond à getAllTracks et getTrackById)
+type TrackWithRelations = Prisma.TrackGetPayload<{
+  include: {
+    TrackPlatform: true;
+    GenresOnTracks: { include: { Genre: true } };
+    MusicCollection: true;
+    User: { select: { id: true; name: true } };
+  };
+}>;
+
 // Convertir les données Prisma au format attendu par le frontend
-export function formatTrackData(track: any) {
+export function formatTrackData(track: TrackWithRelations | null): Track | null {
   if (!track) return null;
 
-  const formattedTrack: any = {
+  const formattedTrack: Track = {
     id: track.id,
     title: track.title,
     artist: track.artist,
     imageId: track.imageId,
-    releaseDate: track.releaseDate?.toISOString(),
-    bpm: track.bpm,
-    description: track.description,
-    type: track.type,
+    releaseDate: track.releaseDate?.toISOString() ?? '',
+    bpm: track.bpm ?? undefined,
+    description: track.description ?? undefined,
+    type: track.type as MusicType,
     featured: track.featured,
     isPublished: track.isPublished,
     publishAt: track.publishAt?.toISOString(),
     createdAt: track.createdAt?.toISOString(),
     updatedAt: track.updatedAt?.toISOString(),
-    genre: track.GenresOnTracks?.map((gt: any) => gt.Genre?.name).filter(Boolean) || [],
+    genre: track.GenresOnTracks?.map((gt) => gt.Genre?.name).filter(Boolean) || [],
     platforms: {},
     collection: track.MusicCollection
       ? { id: track.MusicCollection.id, title: track.MusicCollection.title }
@@ -263,9 +273,11 @@ export function formatTrackData(track: any) {
   };
 
   if (track.TrackPlatform && Array.isArray(track.TrackPlatform)) {
-    track.TrackPlatform.forEach((p: any) => {
-      if (p.platform) {
-        formattedTrack.platforms[p.platform] = { url: p.url, embedId: p.embedId };
+    const validPlatforms: MusicPlatform[] = ['spotify', 'youtube', 'soundcloud', 'apple', 'deezer'];
+    track.TrackPlatform.forEach((p) => {
+      if (p.platform && validPlatforms.includes(p.platform as MusicPlatform)) {
+        const platformKey = p.platform as MusicPlatform;
+        formattedTrack.platforms[platformKey] = { url: p.url, embedId: p.embedId ?? undefined };
       }
     });
   }
