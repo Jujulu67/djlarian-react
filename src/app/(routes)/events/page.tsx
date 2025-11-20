@@ -232,10 +232,9 @@ export default function EventsPage() {
           throw new Error('Erreur lors du chargement des événements');
         }
 
-        const data = await response.json();
-
-        // Récupérer les données d'événements
-        const fetchedEvents = Array.isArray(data) ? data : data.events || [];
+        const result = await response.json();
+        // La réponse API utilise createSuccessResponse qui retourne { data: { events: [...], pagination: {...} } }
+        const fetchedEvents = result.data?.events || [];
 
         // Générer les occurrences virtuelles
         const eventsWithVirtualOccurrences = generateVirtualOccurrences(fetchedEvents);
