@@ -21,7 +21,7 @@ export const useConfigs = create<ConfigsState>((set) => ({
   ...initialConfigs,
 
   // Implémentation de la fonction de mise à jour
-  update: (section, key, value) =>
+  update: (section, key, value): void =>
     set((state) => ({
       // Crée un nouvel objet pour la section mise à jour
       [section]: {
@@ -33,8 +33,8 @@ export const useConfigs = create<ConfigsState>((set) => ({
     })),
 
   // Implémentation pour remplacer toutes les configurations
-  setAllConfigs: (newConfigs) => set(newConfigs),
+  setAllConfigs: (newConfigs): void => set(newConfigs),
 
   // Implémentation pour réinitialiser
-  resetConfigs: () => set(initialConfigs),
+  resetConfigs: (): void => set(initialConfigs),
 }));

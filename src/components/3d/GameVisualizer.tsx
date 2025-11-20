@@ -178,9 +178,9 @@ const GameVisualizer: React.FC<GameVisualizerProps> = ({ gameData, audioElement 
     }
 
     logger.debug("Démarrage de la boucle d'animation du canvas");
-    animationFrameRef.current = requestAnimationFrame(() =>
-      canvasRenderer.animate(gameData.gameState.isActive, gameData)
-    );
+    animationFrameRef.current = requestAnimationFrame(() => {
+      canvasRenderer.animate(gameData.gameState.isActive, gameData);
+    });
 
     return (): void => {
       if (animationFrameRef.current) {
