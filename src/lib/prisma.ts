@@ -27,16 +27,18 @@ function getDatabaseUrl(): string {
         if (fs.existsSync(schemaPath)) {
           const schemaContent = fs.readFileSync(schemaPath, 'utf-8');
           if (!schemaContent.includes('provider = "postgresql"')) {
-            logger.warn('Le schéma Prisma est en SQLite mais le switch indique PostgreSQL. Utilisez le switch dans l\'admin panel pour synchroniser le schéma.');
+            logger.warn(
+              "Le schéma Prisma est en SQLite mais le switch indique PostgreSQL. Utilisez le switch dans l'admin panel pour synchroniser le schéma."
+            );
           }
         }
         return process.env.DATABASE_URL_PRODUCTION;
       }
     }
-          } catch (error) {
-            // En cas d'erreur, utiliser la DATABASE_URL par défaut
-            logger.warn('Erreur lors de la lecture du switch de base de données', error);
-          }
+  } catch (error) {
+    // En cas d'erreur, utiliser la DATABASE_URL par défaut
+    logger.warn('Erreur lors de la lecture du switch de base de données', error);
+  }
 
   // Par défaut, utiliser DATABASE_URL (qui pointe vers SQLite local en dev)
   return process.env.DATABASE_URL || '';
@@ -46,9 +48,31 @@ function getDatabaseUrl(): string {
 // Sur Vercel, le runtime Node.js supporte nativement Prisma
 const databaseUrl = getDatabaseUrl();
 
-// Supprimer le marqueur de redémarrage requis au démarrage
+// Vérification de cohérence schema.prisma vs DATABASE_URL (uniquement en dev)
 if (process.env.NODE_ENV !== 'production') {
   try {
+    const schemaPath = path.join(process.cwd(), 'prisma', 'schema.prisma');
+    if (fs.existsSync(schemaPath)) {
+      const schemaContent = fs.readFileSync(schemaPath, 'utf-8');
+      const isPostgreSQL = schemaContent.includes('provider = "postgresql"');
+      const isSQLite = schemaContent.includes('provider = "sqlite"');
+      const isSQLiteUrl = databaseUrl.startsWith('file:');
+      const isPostgreSQLUrl =
+        databaseUrl.startsWith('postgresql://') || databaseUrl.startsWith('postgres://');
+
+      // Avertir si incohérence (mais ne pas bloquer)
+      if (isPostgreSQL && isSQLiteUrl) {
+        logger.warn(
+          "⚠️  ATTENTION: schema.prisma est en PostgreSQL mais DATABASE_URL pointe vers SQLite. Utilisez le switch DB dans l'admin panel pour synchroniser."
+        );
+      } else if (isSQLite && isPostgreSQLUrl) {
+        logger.warn(
+          "⚠️  ATTENTION: schema.prisma est en SQLite mais DATABASE_URL pointe vers PostgreSQL. Utilisez le switch DB dans l'admin panel pour synchroniser."
+        );
+      }
+    }
+
+    // Supprimer le marqueur de redémarrage requis au démarrage
     const restartMarkerPath = path.join(process.cwd(), '.db-restart-required.json');
     if (fs.existsSync(restartMarkerPath)) {
       // Vérifier si le schéma correspond à la configuration
@@ -57,10 +81,12 @@ if (process.env.NODE_ENV !== 'production') {
         const switchConfig = JSON.parse(fs.readFileSync(switchPath, 'utf-8'));
         const schemaPath = path.join(process.cwd(), 'prisma', 'schema.prisma');
         const schemaContent = fs.readFileSync(schemaPath, 'utf-8');
-        
+
         const expectedProvider = switchConfig.useProduction ? 'postgresql' : 'sqlite';
-        const actualProvider = schemaContent.includes('provider = "postgresql"') ? 'postgresql' : 'sqlite';
-        
+        const actualProvider = schemaContent.includes('provider = "postgresql"')
+          ? 'postgresql'
+          : 'sqlite';
+
         // Si le schéma correspond à la configuration, supprimer le marqueur
         if (expectedProvider === actualProvider) {
           fs.unlinkSync(restartMarkerPath);
