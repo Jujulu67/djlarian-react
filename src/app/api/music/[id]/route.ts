@@ -5,7 +5,13 @@ import { UpdateTrackInput, formatTrackData } from '@/lib/api/musicService';
 import { v4 as uuidv4 } from 'uuid';
 import { isNotEmpty } from '@/lib/utils/arrayHelpers';
 import { handleApiError } from '@/lib/api/errorHandler';
-import { createSuccessResponse } from '@/lib/api/responseHelpers';
+import {
+  createSuccessResponse,
+  createForbiddenResponse,
+  createUnauthorizedResponse,
+  createNotFoundResponse,
+  createBadRequestResponse,
+} from '@/lib/api/responseHelpers';
 
 // GET /api/music/[id] - Récupérer une piste spécifique
 export async function GET(
@@ -63,7 +69,7 @@ export async function PUT(
     }
     const session = await auth();
     if (!session?.user || session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return createUnauthorizedResponse('Unauthorized');
     }
 
     const data: Omit<UpdateTrackInput, 'id'> = await request.json();
@@ -77,7 +83,7 @@ export async function PUT(
     });
 
     if (!existingTrack) {
-      return NextResponse.json({ error: 'Track not found' }, { status: 404 });
+      return createNotFoundResponse('Track not found');
     }
 
     // Préparer les données scalaires à mettre à jour
@@ -222,7 +228,7 @@ export async function DELETE(
     }
     const session = await auth();
     if (!session?.user || session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return createUnauthorizedResponse('Unauthorized');
     }
 
     // Vérifier que la piste existe avant de tenter de supprimer
@@ -232,7 +238,7 @@ export async function DELETE(
     });
 
     if (!existingTrack) {
-      return NextResponse.json({ error: 'Track not found' }, { status: 404 });
+      return createNotFoundResponse('Track not found');
     }
 
     // Supprimer la piste (Prisma gère les suppressions en cascade si configuré dans le schéma)
@@ -268,14 +274,14 @@ export async function PATCH(
     }
     const session = await auth();
     if (!session?.user || session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return createUnauthorizedResponse('Unauthorized');
     }
 
     const data = await request.json();
     const { imageId } = data;
 
     if (!imageId) {
-      return NextResponse.json({ error: 'imageId is required' }, { status: 400 });
+      return createBadRequestResponse('imageId is required');
     }
 
     const updatedTrack = await prisma.track.update({

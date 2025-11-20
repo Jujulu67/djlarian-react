@@ -3,7 +3,11 @@ import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { formatTrackData } from '@/lib/api/musicService';
 import { handleApiError } from '@/lib/api/errorHandler';
-import { createSuccessResponse, createForbiddenResponse } from '@/lib/api/responseHelpers';
+import {
+  createSuccessResponse,
+  createForbiddenResponse,
+  createBadRequestResponse,
+} from '@/lib/api/responseHelpers';
 import type { MusicType, MusicPlatform } from '@/lib/utils/types';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
@@ -13,12 +17,12 @@ import { isNotEmpty } from '@/lib/utils/arrayHelpers';
 
 /**
  * Music API endpoint - Vercel (Node.js runtime natif)
- * 
+ *
  * Handles creation and retrieval of music tracks
- * 
+ *
  * @route POST /api/music - Create a new music track
  * @route GET /api/music - Get all music tracks
- * 
+ *
  * @example
  * // Create a track
  * POST /api/music
@@ -131,14 +135,14 @@ export async function POST(request: Request): Promise<Response> {
 
   // Vérifier le rôle d'admin
   if (session.user.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    return createForbiddenResponse('Insufficient permissions');
   }
 
   let rawData;
   try {
     rawData = await request.json();
   } catch (error) {
-    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    return createBadRequestResponse('Invalid JSON body');
   }
 
   const validationResult = trackCreateSchema.safeParse(rawData);
@@ -212,23 +216,22 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const track = await prisma.$transaction(async (tx) => {
       // Handle optional genreNames
-      const genres =
-        isNotEmpty(dataForPrisma.genreNames)
-          ? await Promise.all(
-              dataForPrisma.genreNames.map(async (name: string) => {
-                const normalizedName = name.trim().toLowerCase();
-                return tx.genre.upsert({
-                  where: { name: normalizedName },
-                  update: {},
-                  create: {
-                    id: uuidv4(),
-                    name: normalizedName,
-                    updatedAt: new Date(),
-                  },
-                });
-              })
-            )
-          : [];
+      const genres = isNotEmpty(dataForPrisma.genreNames)
+        ? await Promise.all(
+            dataForPrisma.genreNames.map(async (name: string) => {
+              const normalizedName = name.trim().toLowerCase();
+              return tx.genre.upsert({
+                where: { name: normalizedName },
+                update: {},
+                create: {
+                  id: uuidv4(),
+                  name: normalizedName,
+                  updatedAt: new Date(),
+                },
+              });
+            })
+          )
+        : [];
 
       let userConnect = {};
       try {
@@ -244,24 +247,22 @@ export async function POST(request: Request): Promise<Response> {
       }
 
       // Handle optional genres connection
-      const genresToConnect =
-        isNotEmpty(genres)
-          ? genres.map((genre) => ({
-              Genre: { connect: { id: genre.id } },
-            }))
-          : undefined;
+      const genresToConnect = isNotEmpty(genres)
+        ? genres.map((genre) => ({
+            Genre: { connect: { id: genre.id } },
+          }))
+        : undefined;
 
       // Handle optional platforms creation
-      const platformsToCreate =
-        isNotEmpty(dataForPrisma.platforms)
-          ? dataForPrisma.platforms.map((platform) => ({
-              id: uuidv4(),
-              platform: platform.platform,
-              url: platform.url,
-              embedId: platform.embedId,
-              updatedAt: new Date(),
-            }))
-          : undefined;
+      const platformsToCreate = isNotEmpty(dataForPrisma.platforms)
+        ? dataForPrisma.platforms.map((platform) => ({
+            id: uuidv4(),
+            platform: platform.platform,
+            url: platform.url,
+            embedId: platform.embedId,
+            updatedAt: new Date(),
+          }))
+        : undefined;
 
       const newTrack = await tx.track.create({
         data: {
