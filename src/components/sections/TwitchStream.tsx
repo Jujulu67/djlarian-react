@@ -3,17 +3,40 @@
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 
+interface StreamStatus {
+  isLive: boolean;
+  stream?: {
+    title: string;
+    viewer_count: number;
+    game_name: string;
+    thumbnail_url: string;
+  } | null;
+  error?: string;
+}
+
 const TwitchStream = () => {
-  const [showIframe, setShowIframe] = useState(false);
+  const [streamStatus, setStreamStatus] = useState<StreamStatus | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Charger l'iframe de façon différée pour éviter trop de requêtes à l'API Twitch
+  // Vérifier le statut du stream
   useEffect(() => {
-    // Attendre 2 secondes avant de charger l'iframe
-    const timer = setTimeout(() => {
-      setShowIframe(true);
-    }, 2000);
+    const checkStreamStatus = async () => {
+      try {
+        const response = await fetch('/api/twitch/status');
+        const data = await response.json();
+        setStreamStatus(data);
+      } catch (error) {
+        console.error('Error checking stream status:', error);
+        setStreamStatus({ isLive: false });
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-    return () => clearTimeout(timer);
+    checkStreamStatus();
+    // Vérifier toutes les 60 secondes
+    const interval = setInterval(checkStreamStatus, 60000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -45,13 +68,13 @@ const TwitchStream = () => {
             <h3 className="text-2xl md:text-3xl font-bold mb-4 text-white">
               Join the Live Experience
             </h3>
-            <p className="text-gray-300 mb-8 leading-relaxed">
+            <p className="text-gray-200 mb-8 leading-relaxed">
               Tune in to my live streams where I share my creative process, perform exclusive sets,
               and interact with the community in real-time.
             </p>
             <div className="flex flex-wrap gap-4">
-              <a
-                href="https://twitch.tv/djlarian"
+              <motion.a
+                href="https://twitch.tv/larianmusic"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-modern px-6 py-3 bg-gradient-to-r from-[#9146FF] to-[#7a3dd1] hover:from-[#a855f7] hover:to-[#9146FF] text-white rounded-full transition-all duration-300 flex items-center gap-2 font-semibold glow-purple micro-bounce"
@@ -67,10 +90,15 @@ const TwitchStream = () => {
                   <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z" />
                 </svg>
                 Follow on Twitch
-              </a>
-              <button className="btn-modern px-6 py-3 border-2 border-purple-500/50 hover:border-purple-500 hover:bg-purple-500/20 text-white rounded-full transition-all duration-300 font-semibold glass-modern-hover micro-bounce">
+              </motion.a>
+              <motion.button
+                className="btn-modern px-6 py-3 border-2 border-purple-500/50 hover:border-purple-500 hover:bg-purple-500/20 text-white rounded-full transition-all duration-300 font-semibold glass-modern-hover micro-bounce focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-black"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                aria-label="Recevoir des notifications pour les streams"
+              >
                 Get Notified
-              </button>
+              </motion.button>
             </div>
           </motion.div>
 
@@ -79,22 +107,154 @@ const TwitchStream = () => {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="aspect-video rounded-2xl overflow-hidden glass-modern animate-glow-border border-2 border-purple-500/30"
+            className="aspect-video rounded-2xl overflow-hidden glass-modern animate-glow-border border-2 border-purple-500/30 relative"
           >
-            {showIframe ? (
-              <iframe
-                src="https://player.twitch.tv/?channel=djlarian&parent=localhost&muted=true"
-                frameBorder="0"
-                allowFullScreen
-                scrolling="no"
-                className="w-full h-full"
-              ></iframe>
-            ) : (
+            {isLoading ? (
               <div className="w-full h-full flex items-center justify-center glass-modern">
                 <div className="text-purple-400 animate-pulse font-semibold flex items-center gap-2">
                   <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" />
-                  <span>Chargement du stream...</span>
+                  <span>Vérification du statut...</span>
                 </div>
+              </div>
+            ) : streamStatus?.isLive ? (
+              <div className="w-full h-full relative">
+                {/* Live Badge */}
+                <div className="absolute top-4 left-4 z-20 flex items-center gap-2">
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', duration: 0.5 }}
+                    className="flex items-center gap-2 bg-red-600 px-3 py-1.5 rounded-full shadow-lg"
+                  >
+                    <motion.div
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                      className="w-2 h-2 bg-white rounded-full"
+                    />
+                    <span className="text-white font-bold text-sm">LIVE</span>
+                  </motion.div>
+                  {streamStatus.stream?.viewer_count && (
+                    <motion.div
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.2 }}
+                      className="glass-modern px-3 py-1.5 rounded-full"
+                    >
+                      <span className="text-white text-sm font-medium">
+                        {streamStatus.stream.viewer_count.toLocaleString()} viewers
+                      </span>
+                    </motion.div>
+                  )}
+                </div>
+                <iframe
+                  src={`https://player.twitch.tv/?channel=larianmusic&parent=${
+                    typeof window !== 'undefined' ? window.location.hostname : 'localhost'
+                  }&muted=true`}
+                  frameBorder="0"
+                  allowFullScreen
+                  scrolling="no"
+                  className="w-full h-full"
+                  title="LarianMusic Twitch Stream"
+                  allow="autoplay; fullscreen"
+                ></iframe>
+              </div>
+            ) : (
+              <div className="w-full h-full relative flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900/20 to-black overflow-hidden">
+                {/* Animated background particles */}
+                <div className="absolute inset-0">
+                  {[...Array(15)].map((_, i) => (
+                    <motion.div
+                      key={i}
+                      className="absolute w-1.5 h-1.5 bg-purple-400/20 rounded-full"
+                      initial={{
+                        x: Math.random() * 100 + '%',
+                        y: '100%',
+                        opacity: 0,
+                      }}
+                      animate={{
+                        y: ['100%', '-10%'],
+                        opacity: [0, 0.6, 0],
+                        scale: [0.5, 1, 0.5],
+                      }}
+                      transition={{
+                        duration: Math.random() * 4 + 3,
+                        repeat: Infinity,
+                        delay: Math.random() * 3,
+                        ease: 'easeOut',
+                      }}
+                    />
+                  ))}
+                </div>
+
+                {/* Gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+
+                {/* Content */}
+                <div className="relative z-10 text-center px-6 py-8">
+                  {/* Twitch Icon */}
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', duration: 0.6 }}
+                    className="mb-6"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      className="w-20 h-20 text-purple-400 mx-auto"
+                    >
+                      <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z" />
+                    </svg>
+                  </motion.div>
+
+                  {/* Status Text */}
+                  <motion.h3
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="text-2xl md:text-3xl font-bold text-white mb-3"
+                  >
+                    Stream Offline
+                  </motion.h3>
+
+                  <motion.p
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="text-gray-300 mb-6 text-sm md:text-base max-w-md mx-auto"
+                  >
+                    LarianMusic n'est pas en direct pour le moment. Revenez bientôt pour des sets
+                    exclusifs et des interactions en direct !
+                  </motion.p>
+
+                  {/* CTA Button */}
+                  <motion.a
+                    href="https://twitch.tv/larianmusic"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#9146FF] to-[#7a3dd1] hover:from-[#a855f7] hover:to-[#9146FF] text-white rounded-full transition-all duration-300 font-semibold glow-purple"
+                    aria-label="Visiter la chaîne Twitch de LarianMusic"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      className="w-5 h-5"
+                    >
+                      <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z" />
+                    </svg>
+                    Visiter la chaîne
+                  </motion.a>
+                </div>
+
+                {/* Animated border glow */}
+                <div className="absolute inset-0 rounded-2xl border-2 border-purple-500/30 animate-pulse" />
               </div>
             )}
           </motion.div>
@@ -110,6 +270,8 @@ const TwitchStream = () => {
           <motion.div
             whileHover={{ scale: 1.05, y: -5 }}
             className="glass-modern glass-modern-hover rounded-2xl p-6 text-center lift-3d"
+            role="article"
+            aria-label="Statistiques: 24K+ Followers"
           >
             <div className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400 mb-2">
               24K+
@@ -119,6 +281,8 @@ const TwitchStream = () => {
           <motion.div
             whileHover={{ scale: 1.05, y: -5 }}
             className="glass-modern glass-modern-hover rounded-2xl p-6 text-center lift-3d"
+            role="article"
+            aria-label="Statistiques: 150+ Hours Streamed"
           >
             <div className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 mb-2">
               150+
@@ -128,6 +292,8 @@ const TwitchStream = () => {
           <motion.div
             whileHover={{ scale: 1.05, y: -5 }}
             className="glass-modern glass-modern-hover rounded-2xl p-6 text-center lift-3d"
+            role="article"
+            aria-label="Statistiques: 500+ Tracks Played"
           >
             <div className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-blue-400 to-purple-400 mb-2 animate-gradient-shift bg-[length:200%_100%]">
               500+

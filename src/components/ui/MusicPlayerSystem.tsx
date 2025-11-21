@@ -306,7 +306,11 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
                 <div className="w-12 h-12 relative rounded-md overflow-hidden bg-gray-800 flex-shrink-0">
                   {track.imageId && !imageError ? (
                     <Image
-                      src={`/uploads/${track.imageId}.jpg`}
+                      src={
+                        track.imageId.startsWith('http://') || track.imageId.startsWith('https://')
+                          ? track.imageId
+                          : `/uploads/${track.imageId}.jpg`
+                      }
                       alt={track.title}
                       width={48}
                       height={48}
@@ -449,7 +453,12 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
                   <div className="w-64 h-64 md:w-80 md:h-80 relative rounded-lg overflow-hidden bg-gray-800 mb-6 shadow-xl">
                     {track.imageId && !imageError ? (
                       <Image
-                        src={`/uploads/${track.imageId}.jpg`}
+                        src={
+                          track.imageId.startsWith('http://') ||
+                          track.imageId.startsWith('https://')
+                            ? track.imageId
+                            : `/uploads/${track.imageId}.jpg`
+                        }
                         alt={`Pochette de ${track.title} par ${track.artist}`}
                         width={320}
                         height={320}

@@ -22,10 +22,18 @@ if (typeof window !== 'undefined') {
   const originalFetch = window.fetch;
 
   window.fetch = async (...args): Promise<Response> => {
-    const url = typeof args[0] === 'string' ? args[0] : (args[0] as Request).url;
+    // Safely extract URL from fetch arguments
+    let url: string | undefined;
+    if (typeof args[0] === 'string') {
+      url = args[0];
+    } else if (args[0] instanceof Request) {
+      url = args[0].url;
+    } else if (args[0] && typeof args[0] === 'object' && 'url' in args[0]) {
+      url = (args[0] as { url: string }).url;
+    }
 
     // Si c'est une requête vers /api/auth/session
-    if (url.includes('/api/auth/session')) {
+    if (url && typeof url === 'string' && url.includes('/api/auth/session')) {
       const now = Date.now();
 
       // Logs désactivés pour réduire le bruit dans la console
@@ -98,6 +106,22 @@ if (typeof window !== 'undefined') {
     }
 
     // Pour les autres requêtes, utiliser fetch normal
+    // Intercepter les erreurs 404 sur les images -ori.* pour éviter le bruit dans la console
+    // Si c'est une requête vers une image originale qui pourrait ne pas exister
+    if (url && typeof url === 'string' && url.includes('/uploads/') && url.includes('-ori.')) {
+      return originalFetch(...args)
+        .then((response) => {
+          // Si c'est une 404, retourner la réponse normalement (le code gère déjà les 404)
+          // Mais on ne veut pas que le navigateur l'affiche dans la console
+          return response;
+        })
+        .catch((error) => {
+          // Si c'est une erreur réseau, créer une réponse 404 factice
+          // Le code appelant vérifie res.ok, donc ça fonctionnera
+          return new Response(null, { status: 404, statusText: 'Not Found' });
+        });
+    }
+
     return originalFetch(...args);
   };
 

@@ -132,8 +132,13 @@ export default function AdminMusicPage() {
       return;
     }
     if (trackForm.currentForm.imageId) {
+      // Ne pas essayer de charger l'image originale si c'est une URL externe
+      const imageId = trackForm.currentForm.imageId;
+      if (imageId.startsWith('http://') || imageId.startsWith('https://')) {
+        return; // URL externe, pas d'image originale locale
+      }
       try {
-        const res = await fetch(`/uploads/${trackForm.currentForm.imageId}-ori.jpg`);
+        const res = await fetch(`/uploads/${imageId}-ori.jpg`);
         if (res.ok) {
           const blob = await res.blob();
           const file = new File([blob], 'original.jpg', { type: blob.type });
@@ -213,14 +218,31 @@ export default function AdminMusicPage() {
 
       if (!platformsArray.length) throw new Error('Au moins une plateforme est requise');
 
+      // Nettoyer le body pour exclure les champs non valides pour Prisma
+      const {
+        id: _id, // Garder id séparément si nécessaire
+        user: _user,
+        collection: _collection,
+        createdAt: _createdAt,
+        updatedAt: _updatedAt,
+        genre: _genre, // Exclure genre car on utilise genreNames
+        platforms: _platforms, // Exclure platforms car on utilise platformsArray
+        ...cleanFormData
+      } = trackForm.currentForm;
+
+      // Extraire collectionId depuis collection si présent
+      const collectionId = trackForm.currentForm.collection?.id || undefined;
+
       const body = {
-        ...trackForm.currentForm,
+        ...cleanFormData,
         imageId,
         genreNames: trackForm.currentForm.genre,
         platforms: platformsArray,
         publishAt: trackForm.currentForm.publishAt
           ? new Date(trackForm.currentForm.publishAt).toISOString()
           : undefined,
+        // Inclure collectionId si présent
+        ...(collectionId !== undefined && { collectionId }),
       };
       const url = trackForm.isEditing ? `/api/music/${trackForm.currentForm.id}` : '/api/music';
       const res = await fetch(url, {
@@ -267,30 +289,36 @@ export default function AdminMusicPage() {
   };
 
   // Fonction utilitaire pour fetch l'originale avec plusieurs extensions
+  // Charge directement l'image comme dans handleReCrop (qui fonctionne)
   const tryFetchOriginal = async (imageId: string) => {
-    const exts = ['jpg', 'png', 'webp'];
+    // Essayer .png en premier car c'est le format le plus courant pour les images originales
+    const exts = ['png', 'jpg', 'jpeg', 'webp'];
     for (const ext of exts) {
       const url = `/uploads/${imageId}-ori.${ext}`;
       try {
+        // Charger directement l'image (comme dans handleReCrop ligne 136)
         const res = await fetch(url);
         if (res.ok) {
           const blob = await res.blob();
-          const file = new File([blob], `original.${ext}`, { type: blob.type });
-          return file;
+          return new File([blob], `original.${ext}`, { type: blob.type });
         }
+        // Si 404, continuer avec la prochaine extension sans erreur
       } catch (err) {
-        // ignore
+        // ignore - l'image n'existe probablement pas avec ce suffixe
+        // Ne pas logger l'erreur pour éviter le bruit dans la console
       }
     }
     return null;
   };
 
   // Gestion du cache image originale synchronisée sur imageId
+  // Ne charger l'image originale que si on est en mode édition (où elle est nécessaire)
   useEffect(() => {
     imageUpload.setOriginalImageFile(null);
     imageUpload.setCachedOriginalFile(null);
     imageUpload.setCroppedImageBlob(null);
-    if (trackForm.currentForm.imageId) {
+    // Ne charger l'image originale que si on est en mode édition
+    if (trackForm.isEditing && trackForm.currentForm.imageId) {
       (async () => {
         const file = await tryFetchOriginal(trackForm.currentForm.imageId as string);
         if (file) {
@@ -300,7 +328,7 @@ export default function AdminMusicPage() {
       })();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trackForm.currentForm.imageId]);
+  }, [trackForm.currentForm.imageId, trackForm.isEditing]);
 
   const successTrackInList =
     success.successTrackId && tracks.filteredTracks.some((t) => t.id === success.successTrackId);
@@ -676,11 +704,16 @@ export default function AdminMusicPage() {
                       <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
                         {editingTrack.imageId ? (
                           <Image
-                            src={`/uploads/${editingTrack.imageId}.jpg?t=${
-                              editingTrack.updatedAt
-                                ? new Date(editingTrack.updatedAt).getTime()
-                                : Date.now()
-                            }`}
+                            src={
+                              editingTrack.imageId?.startsWith('http://') ||
+                              editingTrack.imageId?.startsWith('https://')
+                                ? editingTrack.imageId
+                                : `/uploads/${editingTrack.imageId}.jpg?t=${
+                                    editingTrack.updatedAt
+                                      ? new Date(editingTrack.updatedAt).getTime()
+                                      : Date.now()
+                                  }`
+                            }
                             alt={editingTrack.title}
                             width={64}
                             height={64}
@@ -719,7 +752,7 @@ export default function AdminMusicPage() {
                                   href={v.url}
                                   target="_blank"
                                   onClick={(e) => e.stopPropagation()}
-                                  className="p-1.5 bg-gray-700/60 hover:bg-gray-600 rounded-full text-gray-300 hover:text-white"
+                                  className="p-1.5 bg-gray-700/60 hover:bg-gray-600 rounded-full text-gray-300 hover:text-white platform-icon"
                                   title={platformLabels[p as MusicPlatform]}
                                 >
                                   {platformIcons[p as MusicPlatform]}

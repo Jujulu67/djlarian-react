@@ -46,9 +46,9 @@ const defaultConfigs = {
     streamSubtitle: 'Join the Live Experience',
     streamDescription:
       'Tune in to my live streams where I share my creative process, perform exclusive sets, and interact with the community in real-time.',
-    twitchUsername: 'djlarian',
+    twitchUsername: 'larianmusic',
     twitchFollowButtonText: 'Follow on Twitch',
-    twitchFollowButtonUrl: 'https://twitch.tv/djlarian',
+    twitchFollowButtonUrl: 'https://twitch.tv/larianmusic',
     streamNotifyButtonText: 'Get Notified',
     streamStatsEnabled: 'true',
     streamFollowers: '24K+',

@@ -7,10 +7,11 @@ import useSWR from 'swr';
 
 import ParticleVisualizer from '@/components/3d/ParticleVisualizer';
 import RhythmCatcher from '@/components/RhythmCatcher';
-import LatestReleases from '@/components/sections/LatestReleases';
-import TwitchStream from '@/components/sections/TwitchStream';
-import UpcomingEvents from '@/components/sections/UpcomingEvents';
+import LatestReleasesOld from './components/LatestReleasesOld';
+import TwitchStreamOld from './components/TwitchStreamOld';
+import UpcomingEventsOld from './components/UpcomingEventsOld';
 import { defaultConfigs } from '@/config/defaults';
+import './old-styles.css';
 
 // Type pour les configurations de la page d'accueil
 interface HomepageConfig {
@@ -76,7 +77,14 @@ const fetcher = async (url: string) => {
     error.status = response.status;
     throw error;
   }
-  return response.json();
+  const result = await response.json();
+  // Les routes qui utilisent createSuccessResponse retournent { data: ... }
+  // Les routes qui utilisent NextResponse.json directement retournent les données directement
+  // On détecte automatiquement le format en vérifiant si result.data existe
+  if (result && typeof result === 'object' && 'data' in result && !('error' in result)) {
+    return result.data;
+  }
+  return result;
 };
 
 export default function OldHomePage() {
@@ -173,7 +181,7 @@ export default function OldHomePage() {
           return renderHeroSection();
         case 'releases':
           return currentConfig.releasesEnabled ? (
-            <LatestReleases
+            <LatestReleasesOld
               title={currentConfig.releasesTitle}
               count={currentConfig.releasesCount}
             />
@@ -238,7 +246,7 @@ export default function OldHomePage() {
                   aria-live="polite"
                 >
                   <div className="max-w-7xl mx-auto px-4">
-                    <UpcomingEvents
+                    <UpcomingEventsOld
                       events={eventsData?.events || []}
                       title={currentConfig.eventsTitle}
                       count={currentConfig.eventsCount}
@@ -249,7 +257,7 @@ export default function OldHomePage() {
             </AnimatePresence>
           ) : null;
         case 'stream':
-          return currentConfig.streamEnabled ? <TwitchStream /> : null;
+          return currentConfig.streamEnabled ? <TwitchStreamOld /> : null;
         default:
           return null;
       }
@@ -407,5 +415,5 @@ export default function OldHomePage() {
     );
   };
 
-  return <>{renderSections()}</>;
+  return <div className="old-homepage-wrapper">{renderSections()}</div>;
 }

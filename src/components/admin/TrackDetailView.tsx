@@ -137,6 +137,7 @@ export default function TrackDetailView({ trackId, onClose }: TrackDetailViewPro
             height={300}
             className="rounded-lg shadow-lg mb-6 aspect-square object-cover border-2 border-purple-500/30"
             priority
+            unoptimized
           />
         ) : (
           <div className="w-[300px] h-[300px] bg-gray-800/50 rounded-lg flex items-center justify-center mb-6 border-2 border-purple-500/30">

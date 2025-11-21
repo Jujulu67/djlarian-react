@@ -19,9 +19,18 @@ export const MusicCardImage: React.FC<MusicCardImageProps> = ({
   onImageError,
 }) => {
   if (track.imageId && !imageError) {
+    // Vérifier si imageId est une URL complète (http/https)
+    const isFullUrl = track.imageId.startsWith('http://') || track.imageId.startsWith('https://');
+
+    // Si c'est une URL complète, l'utiliser directement
+    // Sinon, construire le chemin local /uploads/
+    const imageSrc = isFullUrl
+      ? track.imageId
+      : `/uploads/${track.imageId}.jpg?t=${track.updatedAt ? new Date(track.updatedAt).getTime() : Date.now()}`;
+
     return (
       <Image
-        src={`/uploads/${track.imageId}.jpg?t=${track.updatedAt ? new Date(track.updatedAt).getTime() : Date.now()}`}
+        src={imageSrc}
         alt={`Pochette de ${track.title} par ${track.artist}`}
         width={400}
         height={400}

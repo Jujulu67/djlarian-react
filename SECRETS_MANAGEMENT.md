@@ -53,7 +53,10 @@ Marquez ces variables comme **"Encrypt"** (Secret) :
 - `R2_ACCESS_KEY_ID` - Public (mais peut être encrypté par précaution)
 - `R2_BUCKET_NAME` - Public
 - `NODE_ENV` - Public
+- `TWITCH_CLIENT_ID` - Public (pour vérifier le statut du stream)
 - `NEXT_PUBLIC_*` - Toutes les variables publiques
+
+**Note** : `TWITCH_CLIENT_ID` et `TWITCH_CLIENT_SECRET` sont optionnels. Si non configurés, l'écran offline personnalisé s'affichera par défaut.
 
 ---
 
@@ -70,6 +73,7 @@ Marquez ces variables comme **"Encrypt"** (Secret) :
 ### 2. NEXTAUTH_SECRET (Secret)
 
 **Générer** :
+
 ```bash
 openssl rand -base64 32
 ```
@@ -157,4 +161,3 @@ Si ça retourne `.env.local`, c'est bon ! ✅
 ---
 
 **Tous les secrets doivent être configurés UNIQUEMENT dans Cloudflare Pages, jamais dans le code source !** 🔒
-

@@ -238,14 +238,7 @@
   transition: transform 0.5s ease;
 }
 
-@layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
-}
+/* Removed duplicate @layer base - already defined above */
 
 /* Animation pour la surbrillance de la track en édition */
 @keyframes highlight-ring {
@@ -278,8 +271,56 @@
   }
 }
 
+/* Subtle shimmer animation for glassmorphism effect */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%) translateY(-100%) rotate(45deg);
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.4;
+  }
+  100% {
+    transform: translateX(200%) translateY(200%) rotate(45deg);
+    opacity: 0;
+  }
+}
+
+/* Glassmorphism veil animation - more visible movement */
+@keyframes veil-shift {
+  0% {
+    background-position: 0% 0%;
+  }
+  25% {
+    background-position: 100% 0%;
+  }
+  50% {
+    background-position: 100% 100%;
+  }
+  75% {
+    background-position: 0% 100%;
+  }
+  100% {
+    background-position: 0% 0%;
+  }
+}
+
+/* Subtle sparkle/twinkle effect */
+@keyframes sparkle {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+}
+
 @keyframes gradient-pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.6;
   }
   50% {
@@ -302,7 +343,7 @@
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 
+  box-shadow:
     0 8px 32px 0 rgba(0, 0, 0, 0.37),
     inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
 }
@@ -310,7 +351,7 @@
 .glass-modern-hover:hover {
   background: rgba(255, 255, 255, 0.05);
   border-color: rgba(139, 92, 246, 0.4);
-  box-shadow: 
+  box-shadow:
     0 12px 40px 0 rgba(139, 92, 246, 0.2),
     inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
   transform: translateY(-2px);
@@ -319,19 +360,28 @@
 
 /* Glow Effects */
 .glow-purple {
-  box-shadow: 0 0 20px rgba(139, 92, 246, 0.4), 0 0 40px rgba(139, 92, 246, 0.2);
+  box-shadow:
+    0 0 20px rgba(139, 92, 246, 0.4),
+    0 0 40px rgba(139, 92, 246, 0.2);
 }
 
 .glow-blue {
-  box-shadow: 0 0 20px rgba(59, 130, 246, 0.4), 0 0 40px rgba(59, 130, 246, 0.2);
+  box-shadow:
+    0 0 20px rgba(59, 130, 246, 0.4),
+    0 0 40px rgba(59, 130, 246, 0.2);
 }
 
 @keyframes glow-pulse {
-  0%, 100% {
-    box-shadow: 0 0 20px rgba(139, 92, 246, 0.4), 0 0 40px rgba(139, 92, 246, 0.2);
+  0%,
+  100% {
+    box-shadow:
+      0 0 20px rgba(139, 92, 246, 0.4),
+      0 0 40px rgba(139, 92, 246, 0.2);
   }
   50% {
-    box-shadow: 0 0 30px rgba(139, 92, 246, 0.6), 0 0 60px rgba(139, 92, 246, 0.3);
+    box-shadow:
+      0 0 30px rgba(139, 92, 246, 0.6),
+      0 0 60px rgba(139, 92, 246, 0.3);
   }
 }
 
@@ -340,7 +390,8 @@
 }
 
 @keyframes glow-border {
-  0%, 100% {
+  0%,
+  100% {
     border-color: rgba(139, 92, 246, 0.3);
     box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4);
   }
@@ -436,12 +487,7 @@
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.2),
-    transparent
-  );
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
   transition: left 0.5s;
 }
 
@@ -461,12 +507,227 @@
   .animate-glow-pulse,
   .animate-glow-border,
   .particle,
-  .text-gradient-animated {
+  .text-gradient-animated,
+  .animate-float,
+  .animate-fadeIn,
+  .animate-highlight-ring {
     animation: none !important;
   }
-  
+
+  * {
+    transition-duration: 0.01ms !important;
+  }
+
   .lift-3d:hover,
   .btn-modern:hover {
     transform: none !important;
   }
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+  /* Reduce particle count on mobile */
+  .particle {
+    display: none;
+  }
+
+  /* Reduce animation complexity */
+  .animate-gradient-shift,
+  .animate-gradient-pulse {
+    animation-duration: 12s !important;
+  }
+
+  /* Larger touch targets */
+  .btn-modern,
+  a[class*='btn'] {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 12px 24px;
+  }
+
+  /* Better spacing on mobile */
+  section[class*='py-20'] {
+    padding-top: 3rem;
+    padding-bottom: 3rem;
+  }
+
+  /* Optimize glassmorphism on mobile */
+  .glass-modern {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+}
+
+/* Accessibility Improvements */
+.btn-modern:focus,
+button:focus {
+  outline: 2px solid rgba(139, 92, 246, 0.8);
+  outline-offset: 2px;
+  border-radius: 0.5rem;
+}
+
+/* Links focus - use ring instead of outline to avoid overflow issues */
+a:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 2px rgba(139, 92, 246, 0.8);
+  border-radius: 0.25rem;
+}
+
+/* Header navigation links - iOS style glassmorphism on focus */
+header nav a:focus,
+nav a:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+/* Preserve rounded-full for specific buttons */
+.mobile-menu-button:focus,
+.mobile-menu-button:active,
+button[class*='rounded-full']:focus,
+button[class*='rounded-full']:active {
+  border-radius: 9999px !important;
+}
+
+/* Smooth scroll between sections - Note: scroll-behavior is set to auto in @layer base to avoid warnings */
+/* Use JavaScript for smooth scrolling when needed */
+
+/* Scroll Snapping - Modern UX Enhancement */
+/* Applied to html when on homepage - CSS only, no JS */
+html.homepage-scroll-snap {
+  scroll-snap-type: y proximity; /* Proximity mode for smoother feel */
+  scroll-padding-top: 4rem; /* Account for fixed header */
+  scroll-behavior: smooth; /* Native smooth scroll */
+}
+
+.scroll-snap-section {
+  scroll-snap-align: start;
+  scroll-snap-stop: normal; /* Changed from always to normal for better UX */
+  scroll-margin-top: 4rem; /* Account for fixed header */
+}
+
+/* Disable scroll snap on mobile for better UX */
+@media (max-width: 768px) {
+  html.homepage-scroll-snap {
+    scroll-snap-type: none;
+  }
+}
+
+/* Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  html.homepage-scroll-snap {
+    scroll-snap-type: none;
+  }
+}
+
+/* Better focus states - more specific to avoid conflicts */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid rgba(139, 92, 246, 0.8);
+  outline-offset: 2px;
+}
+
+/* Improved section transitions */
+section {
+  scroll-margin-top: 80px;
+}
+
+/* Improved color contrasts for accessibility */
+.text-gray-300 {
+  color: rgb(209, 213, 219); /* WCAG AA compliant */
+}
+
+.text-gray-400 {
+  color: rgb(156, 163, 175); /* WCAG AA compliant */
+}
+
+/* Ensure sufficient contrast for interactive elements */
+.btn-modern,
+a[class*='btn'] {
+  color: white;
+  font-weight: 600;
+}
+
+/* Platform icon utility class - simplifies selectors and reduces !important usage */
+.platform-icon {
+  color: inherit;
+}
+
+.platform-icon svg {
+  color: inherit;
+}
+
+/* Better contrast for links - simplified selector excluding platform icons, header, nav, buttons, and admin buttons */
+a:not([class*='btn']):not(header a):not(nav a):not(.platform-icon):not(.admin-button-link):not(
+    button
+  ):not([role='button']) {
+  color: rgb(196, 181, 253); /* purple-300 - better contrast */
+}
+
+a:not([class*='btn']):not(header a):not(nav a):not(.platform-icon):not(.admin-button-link):not(
+    button
+  ):not([role='button']):hover {
+  color: rgb(167, 139, 250); /* purple-400 */
+}
+
+/* Admin button links should keep their white text color */
+a.admin-button-link,
+a.admin-button-link *,
+a.admin-button-link span {
+  color: rgb(255, 255, 255) !important;
+}
+
+/* Ensure buttons and button-like elements don't inherit link colors */
+button,
+[role='button'],
+[class*='Button'],
+[class*='button'] {
+  color: inherit;
+}
+
+button a,
+[role='button'] a,
+[class*='Button'] a,
+[class*='button'] a {
+  color: inherit;
+}
+
+/* Ensure button text doesn't get purple color - more specific rules */
+button span,
+button p,
+button div,
+button *,
+[role='button'] span,
+[role='button'] p,
+[role='button'] div,
+[role='button'] * {
+  color: inherit;
+}
+
+/* Header navigation links should be white for better visibility - increased specificity instead of !important */
+header nav a,
+nav a,
+header > nav > a {
+  color: rgb(255, 255, 255);
+}
+
+header nav a:hover,
+nav a:hover,
+header > nav > a:hover {
+  color: rgb(255, 255, 255);
+}
+
+/* Ensure text on glass backgrounds is readable */
+.glass-modern,
+.glass-modern-hover {
+  color: white;
+}
+
+.glass-modern h1,
+.glass-modern h2,
+.glass-modern h3 {
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
