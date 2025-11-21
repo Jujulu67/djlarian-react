@@ -51,6 +51,8 @@ if [ "$NODE_ENV" = "production" ]; then
   if [ "$SCHEMA_CHANGED" = true ]; then
     echo "🔄 Régénération du client Prisma..."
     npx prisma generate > /dev/null 2>&1 || npx prisma generate
+    # Corriger les fichiers default.js et default.mjs pour Prisma 7
+    node scripts/fix-prisma-types.mjs > /dev/null 2>&1 || node scripts/fix-prisma-types.mjs
     echo "✅ Client Prisma régénéré"
   fi
   
@@ -94,6 +96,8 @@ fi
 if [ "$SCHEMA_CHANGED" = true ]; then
   echo "🔄 Régénération du client Prisma..."
   npx prisma generate > /dev/null 2>&1 || npx prisma generate
+  # Corriger les fichiers default.js et default.mjs pour Prisma 7
+  node scripts/fix-prisma-types.mjs > /dev/null 2>&1 || node scripts/fix-prisma-types.mjs
   echo "✅ Client Prisma régénéré"
 fi
 

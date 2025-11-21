@@ -127,6 +127,15 @@ fi
 if [ "$SCHEMA_CHANGED" = true ] || [ "$USE_PRODUCTION" = "true" ]; then
   echo "🔄 Régénération du client Prisma..."
   npx prisma generate > /dev/null 2>&1 || npx prisma generate
+  # Corriger les fichiers default.js et default.mjs pour Prisma 7
+  node scripts/fix-prisma-types.mjs > /dev/null 2>&1 || node scripts/fix-prisma-types.mjs
   echo "✅ Client Prisma régénéré"
+else
+  # Même si le schéma n'a pas changé, s'assurer que les fichiers default.js et default.mjs existent
+  # (nécessaire pour Prisma 7 avec tsx)
+  if [ ! -f "node_modules/.prisma/client/default.js" ]; then
+    echo "🔄 Création des fichiers default.js et default.mjs pour Prisma 7..."
+    node scripts/fix-prisma-types.mjs > /dev/null 2>&1 || node scripts/fix-prisma-types.mjs
+  fi
 fi
 

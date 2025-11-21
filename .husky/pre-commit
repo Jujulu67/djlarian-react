@@ -1,3 +1,6 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
 # Vérification SQLite/PostgreSQL supprimée - les scripts de build s'en chargent automatiquement
 # Le script ensure-postgresql-schema.sh s'exécute lors du build sur Vercel
 

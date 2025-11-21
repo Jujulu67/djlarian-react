@@ -1,8 +1,11 @@
 // Prisma Client pour Vercel (Node.js runtime natif)
-// Plus besoin d'adaptateurs ou de hacks - tout fonctionne nativement
+// Prisma 7 nécessite des adaptateurs explicites pour chaque base de données
 import fs from 'fs';
 import path from 'path';
 
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+import { PrismaNeon } from '@prisma/adapter-neon';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 
 import { logger } from '@/lib/logger';
@@ -148,14 +151,58 @@ if (process.env.NODE_ENV !== 'production') {
   }
 }
 
+// Déterminer le type de base de données et créer l'adaptateur approprié
+function createAdapter(databaseUrl: string): PrismaBetterSqlite3 | PrismaNeon | PrismaPg {
+  const isSQLiteUrl = databaseUrl.startsWith('file:');
+  const isPostgreSQLUrl =
+    databaseUrl.startsWith('postgresql://') || databaseUrl.startsWith('postgres://');
+  const isNeonUrl =
+    databaseUrl.includes('neon.tech') ||
+    databaseUrl.includes('neon.tech') ||
+    databaseUrl.includes('neon');
+
+  if (isSQLiteUrl) {
+    // SQLite - utiliser better-sqlite3 adapter
+    try {
+      // Vérifier que better-sqlite3 est disponible
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const betterSqlite3 = require('better-sqlite3');
+      if (!betterSqlite3) {
+        throw new Error('better-sqlite3 module not found');
+      }
+      return new PrismaBetterSqlite3({
+        url: databaseUrl || 'file:./dev.db',
+      });
+    } catch (error) {
+      logger.error("Erreur lors de l'initialisation de l'adaptateur SQLite:", error);
+      throw error;
+    }
+  } else if (isNeonUrl) {
+    // Neon - utiliser Neon adapter
+    // PrismaNeon attend un PoolConfig avec connectionString
+    return new PrismaNeon({
+      connectionString: databaseUrl,
+    });
+  } else if (isPostgreSQLUrl) {
+    // PostgreSQL standard - utiliser pg adapter
+    return new PrismaPg({
+      connectionString: databaseUrl,
+    });
+  } else {
+    // Par défaut, essayer SQLite
+    logger.warn('Type de base de données non reconnu, utilisation de SQLite par défaut');
+    return new PrismaBetterSqlite3({
+      url: databaseUrl || 'file:./dev.db',
+    });
+  }
+}
+
+const adapter = createAdapter(databaseUrl);
+
 const prisma: PrismaClient =
   global.prisma ||
   new PrismaClient({
-    datasources: {
-      db: {
-        url: databaseUrl,
-      },
-    },
+    adapter,
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
   });
 
