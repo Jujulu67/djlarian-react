@@ -73,23 +73,23 @@ export default function AdminMusicPage() {
 
   // Handlers
   const handleAddGenre = () => {
-    if (
-      trackForm.genreInput.trim() &&
-      !trackForm.currentForm.genre.includes(trackForm.genreInput.trim())
-    ) {
+    const currentGenre = trackForm.currentForm.genre || [];
+    if (trackForm.genreInput.trim() && !currentGenre.includes(trackForm.genreInput.trim())) {
       trackForm.setCurrentForm({
         ...trackForm.currentForm,
-        genre: [...trackForm.currentForm.genre, trackForm.genreInput.trim()],
+        genre: [...currentGenre, trackForm.genreInput.trim()],
       });
       trackForm.setGenreInput('');
     }
   };
 
-  const handleRemoveGenre = (g: string) =>
+  const handleRemoveGenre = (g: string) => {
+    const currentGenre = trackForm.currentForm.genre || [];
     trackForm.setCurrentForm({
       ...trackForm.currentForm,
-      genre: trackForm.currentForm.genre.filter((x) => x !== g),
+      genre: currentGenre.filter((x) => x !== g),
     });
+  };
 
   const handlePlatformChange = (p: MusicPlatform, url: string) => {
     const embedId = extractPlatformId(url, p);
@@ -212,7 +212,8 @@ export default function AdminMusicPage() {
         imageId = newId;
       }
 
-      const platformsArray = Object.entries(trackForm.currentForm.platforms)
+      const platforms = trackForm.currentForm.platforms || {};
+      const platformsArray = Object.entries(platforms)
         .filter(([, v]) => v?.url)
         .map(([p, v]) => ({ platform: p as MusicPlatform, url: v!.url, embedId: v!.embedId }));
 
@@ -236,7 +237,7 @@ export default function AdminMusicPage() {
       const body = {
         ...cleanFormData,
         imageId,
-        genreNames: trackForm.currentForm.genre,
+        genreNames: trackForm.currentForm.genre || [],
         platforms: platformsArray,
         publishAt: trackForm.currentForm.publishAt
           ? new Date(trackForm.currentForm.publishAt).toISOString()
@@ -501,7 +502,7 @@ export default function AdminMusicPage() {
                       </button>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {trackForm.currentForm.genre.map((g) => (
+                      {(trackForm.currentForm.genre || []).map((g) => (
                         <span
                           key={g}
                           className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-purple-600/30 text-purple-200"
@@ -744,7 +745,7 @@ export default function AdminMusicPage() {
                           </span>
                         </div>
                         <div className="flex gap-1 mt-2">
-                          {Object.entries(editingTrack.platforms).map(
+                          {Object.entries(editingTrack.platforms || {}).map(
                             ([p, v]) =>
                               v?.url && (
                                 <a

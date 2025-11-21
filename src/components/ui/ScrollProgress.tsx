@@ -11,9 +11,7 @@ export default function ScrollProgress() {
   }, []);
 
   // Use scrollYProgress from window/document - no container needed
-  const { scrollYProgress } = useScroll({
-    layoutEffect: false, // Prevent layout shift warnings
-  });
+  const { scrollYProgress } = useScroll();
 
   const scaleX = useSpring(scrollYProgress, {
     stiffness: 100,

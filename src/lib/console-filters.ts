@@ -77,7 +77,7 @@ export function setupConsoleFilters() {
   // Ces erreurs sont générées par le runtime et ne passent pas par console.error
   const handleRuntimeError = (event: ErrorEvent) => {
     const message = String(event.message || '').toLowerCase();
-    const source = String(event.filename || event.source || '').toLowerCase();
+    const source = String(event.filename || '').toLowerCase();
     const target = (event.target as HTMLElement)?.tagName?.toLowerCase() || '';
 
     // Filtrer les erreurs de message port (extensions de navigateur)

@@ -46,16 +46,19 @@ export function useTrackForm() {
     ) => {
       // Convertir les platforms au bon format
       const plat: Track['platforms'] = {};
-      Object.entries(track.platforms).forEach(([k, v]) => {
-        if (v?.url) {
-          plat[k as keyof typeof plat] = v;
-        }
-      });
+      if (track.platforms) {
+        Object.entries(track.platforms).forEach(([k, v]) => {
+          if (v?.url) {
+            plat[k as keyof typeof plat] = v;
+          }
+        });
+      }
 
       setCurrentForm({
         ...track,
         releaseDate: new Date(track.releaseDate).toISOString().split('T')[0],
         platforms: plat,
+        genre: track.genre || [], // S'assurer que genre est toujours un array
       });
       // Vérifier si imageId est une URL complète avant d'ajouter le préfixe /uploads/
       const coverPreview = track.imageId
