@@ -296,15 +296,21 @@ export default function AdminMusicPage() {
   // Fonction utilitaire pour fetch l'originale avec plusieurs extensions
   // Charge directement l'image comme dans handleReCrop (qui fonctionne)
   const tryFetchOriginal = async (imageId: string) => {
-    // Essayer .png en premier car c'est le format le plus courant pour les images originales
-    const exts = ['png', 'jpg', 'jpeg', 'webp'];
-    for (const ext of exts) {
-      const url = `/uploads/${imageId}-ori.${ext}`;
+    // Utiliser la route API qui gère blob/local automatiquement
+    const url = getImageUrl(imageId, { original: true });
+    if (url) {
       try {
-        // Charger directement l'image (comme dans handleReCrop ligne 136)
+        // Charger directement l'image via la route API
         const res = await fetch(url);
         if (res.ok) {
           const blob = await res.blob();
+          // Déterminer l'extension depuis le Content-Type
+          const contentType = res.headers.get('content-type') || 'image/webp';
+          const ext = contentType.includes('png')
+            ? 'png'
+            : contentType.includes('jpeg') || contentType.includes('jpg')
+              ? 'jpg'
+              : 'webp';
           return new File([blob], `original.${ext}`, { type: blob.type });
         }
         // Si 404, continuer avec la prochaine extension sans erreur

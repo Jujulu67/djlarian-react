@@ -10,6 +10,7 @@ import { FaSpotify, FaApple, FaSoundcloud } from 'react-icons/fa';
 
 import { logger } from '@/lib/logger';
 import { Track } from '@/lib/utils/types';
+import { getImageUrl } from '@/lib/utils/getImageUrl';
 
 // Ajouter un état pour gérer l'erreur d'une image spécifique
 type ImageErrorState = { [key: string]: boolean };
@@ -172,7 +173,7 @@ export default function LatestReleasesOld({
                   <div className="relative aspect-square">
                     {release.imageId && !imageErrors[release.id] ? (
                       <Image
-                        src={`/uploads/${release.imageId}.jpg`}
+                        src={getImageUrl(release.imageId) || ''}
                         alt={`Pochette de ${release.title} par ${release.artist}`}
                         fill
                         className="object-cover object-center rounded-lg shadow-lg"

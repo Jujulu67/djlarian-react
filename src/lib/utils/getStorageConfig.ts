@@ -11,9 +11,16 @@ import { logger } from '@/lib/logger';
 export function shouldUseBlobStorage(): boolean {
   const isProduction = process.env.NODE_ENV === 'production';
 
-  // En production réelle, toujours utiliser Blob
+  // En production réelle, toujours utiliser Blob si configuré
+  // Sur Vercel, BLOB_READ_WRITE_TOKEN est automatiquement disponible via les variables d'environnement
   if (isProduction) {
-    return isBlobConfigured;
+    const blobConfigured = isBlobConfigured;
+    if (!blobConfigured) {
+      logger.warn(
+        '[STORAGE CONFIG] Production détectée mais BLOB_READ_WRITE_TOKEN non configuré. Les images ne pourront pas être uploadées.'
+      );
+    }
+    return blobConfigured;
   }
 
   // En développement, vérifier le switch de base de données

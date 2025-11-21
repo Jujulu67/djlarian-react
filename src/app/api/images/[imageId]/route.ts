@@ -26,6 +26,14 @@ export async function GET(
     // Utiliser la fonction utilitaire qui respecte le switch
     const useBlobStorage = shouldUseBlobStorage();
 
+    logger.debug(`[API IMAGES] Configuration:`, {
+      imageId,
+      useBlobStorage,
+      isBlobConfigured,
+      nodeEnv: process.env.NODE_ENV,
+      hasBlobToken: !!process.env.BLOB_READ_WRITE_TOKEN,
+    });
+
     // Extensions à essayer
     const extensions = ['webp', 'jpg', 'jpeg', 'png']; // WebP en priorité (nouveau format)
     const suffix = isOriginal ? '-ori' : '';
