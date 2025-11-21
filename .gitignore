@@ -81,3 +81,7 @@ prisma/schema.prisma.postgresql.backup
 # Database switch config
 .db-switch.json
 .git-rewrite/
+
+# Dev server PID files
+.dev-server.pid
+*.pid
