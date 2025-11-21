@@ -80,3 +80,4 @@ prisma/schema.prisma.postgresql.backup
 
 # Database switch config
 .db-switch.json
+.git-rewrite/
