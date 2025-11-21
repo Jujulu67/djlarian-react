@@ -193,7 +193,7 @@ export async function POST(request: Request): Promise<Response> {
       const response = await fetch(dataForPrisma.thumbnailUrl);
       if (!response.ok) throw new Error('Thumbnail fetch failed');
       const arrayBuffer = await response.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
+      const buffer = Buffer.from(arrayBuffer) as Buffer;
 
       // Convertir en WebP si possible
       let webpBuffer = buffer;

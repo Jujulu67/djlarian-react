@@ -7,13 +7,25 @@ import { logger } from '@/lib/logger';
  * @param quality - Qualité WebP (0-100, défaut: 90 pour une qualité quasi-identique avec bonne compression)
  * @returns Buffer de l'image convertie en WebP
  */
-export async function convertToWebP(buffer: Buffer, quality: number = 90): Promise<Buffer> {
+export async function convertToWebP(
+  buffer: Buffer | Uint8Array | ArrayBuffer,
+  quality: number = 90
+): Promise<Buffer> {
   try {
-    const webpBuffer = await sharp(buffer)
+    // Normaliser le buffer en Buffer pour sharp
+    let normalizedBuffer: Buffer;
+    if (Buffer.isBuffer(buffer)) {
+      normalizedBuffer = buffer;
+    } else if (buffer instanceof ArrayBuffer) {
+      normalizedBuffer = Buffer.from(new Uint8Array(buffer));
+    } else {
+      normalizedBuffer = Buffer.from(buffer);
+    }
+    const webpBuffer = await sharp(normalizedBuffer)
       .webp({ quality, effort: 4 }) // effort 4 = bon compromis vitesse/compression
       .toBuffer();
 
-    const originalSize = buffer.length;
+    const originalSize = normalizedBuffer.length;
     const newSize = webpBuffer.length;
     const reduction = ((originalSize - newSize) / originalSize) * 100;
 
