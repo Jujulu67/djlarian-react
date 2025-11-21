@@ -1,4 +1,5 @@
 import sharp from 'sharp';
+
 import { logger } from '@/lib/logger';
 
 /**

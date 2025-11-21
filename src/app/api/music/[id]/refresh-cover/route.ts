@@ -1,11 +1,11 @@
 import * as cheerio from 'cheerio';
 import { NextResponse } from 'next/server';
-import { generateImageId } from '@/lib/utils/generateImageId';
 
 import { uploadToBlob, isBlobConfigured, getBlobPublicUrl } from '@/lib/blob';
-import { convertToWebP, canConvertToWebP } from '@/lib/utils/convertToWebP';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
+import { convertToWebP, canConvertToWebP } from '@/lib/utils/convertToWebP';
+import { generateImageId } from '@/lib/utils/generateImageId';
 
 // Refresh cover endpoint - Vercel (Node.js runtime natif)
 

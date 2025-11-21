@@ -9,8 +9,8 @@ import { useState, useEffect } from 'react';
 import { FaSpotify, FaApple, FaSoundcloud } from 'react-icons/fa';
 
 import { logger } from '@/lib/logger';
-import { Track } from '@/lib/utils/types';
 import { getImageUrl } from '@/lib/utils/getImageUrl';
+import { Track } from '@/lib/utils/types';
 
 // Ajouter un état pour gérer l'erreur d'une image spécifique
 type ImageErrorState = { [key: string]: boolean };

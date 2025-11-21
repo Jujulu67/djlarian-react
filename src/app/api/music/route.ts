@@ -1,8 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 
-import { generateImageId } from '@/lib/utils/generateImageId';
-
 import { auth } from '@/auth';
 import { handleApiError } from '@/lib/api/errorHandler';
 import { formatTrackData } from '@/lib/api/musicService';
@@ -12,10 +10,11 @@ import {
   createBadRequestResponse,
 } from '@/lib/api/responseHelpers';
 import { uploadToBlob, isBlobConfigured } from '@/lib/blob';
-import { convertToWebP, canConvertToWebP } from '@/lib/utils/convertToWebP';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import { isNotEmpty } from '@/lib/utils/arrayHelpers';
+import { convertToWebP, canConvertToWebP } from '@/lib/utils/convertToWebP';
+import { generateImageId } from '@/lib/utils/generateImageId';
 import type { MusicType, MusicPlatform } from '@/lib/utils/types';
 
 /**

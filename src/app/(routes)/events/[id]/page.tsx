@@ -19,8 +19,6 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-
-import { getImageUrl } from '@/lib/utils/getImageUrl';
 import { useState, useEffect, useRef } from 'react';
 import {
   FaCalendarAlt,
@@ -33,6 +31,7 @@ import {
 } from 'react-icons/fa';
 
 import { logger } from '@/lib/logger';
+import { getImageUrl } from '@/lib/utils/getImageUrl';
 
 // Types
 type Event = {

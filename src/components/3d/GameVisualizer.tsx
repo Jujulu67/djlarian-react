@@ -200,13 +200,11 @@ const GameVisualizer: React.FC<GameVisualizerProps> = ({ gameData, audioElement 
     } else {
       logger.debug('GameVisualizer: aucun pattern disponible dans gameData.patterns');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameData.patterns]);
 
   // Monitor game state changes
   useEffect(() => {
     logger.debug(`GameVisualizer: état du jeu mis à jour, isActive=${gameData.gameState.isActive}`);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameData.gameState.isActive]);
 
   // Render instructions overlay

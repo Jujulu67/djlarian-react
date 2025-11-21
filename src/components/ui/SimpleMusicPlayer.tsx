@@ -7,8 +7,8 @@ import React, { useState, useEffect, useRef } from 'react';
 
 import { logger } from '@/lib/logger';
 import { getInitialVolume, applyVolumeToAllPlayers } from '@/lib/utils/audioUtils';
-import type { Track } from '@/lib/utils/types';
 import { getImageUrl } from '@/lib/utils/getImageUrl';
+import type { Track } from '@/lib/utils/types';
 
 interface SimpleMusicPlayerProps {
   track: Track | null;

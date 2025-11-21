@@ -7,10 +7,11 @@ import useSWR from 'swr';
 
 import ParticleVisualizer from '@/components/3d/ParticleVisualizer';
 import RhythmCatcher from '@/components/RhythmCatcher';
+import { defaultConfigs } from '@/config/defaults';
+
 import LatestReleasesOld from './components/LatestReleasesOld';
 import TwitchStreamOld from './components/TwitchStreamOld';
 import UpcomingEventsOld from './components/UpcomingEventsOld';
-import { defaultConfigs } from '@/config/defaults';
 import './old-styles.css';
 
 // Type pour les configurations de la page d'accueil

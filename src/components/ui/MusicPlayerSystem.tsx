@@ -22,9 +22,9 @@ import { FaSpotify, FaYoutube, FaSoundcloud, FaMusic } from 'react-icons/fa';
 
 import { logger } from '@/lib/logger';
 import { isNotEmpty } from '@/lib/utils/arrayHelpers';
+import { getImageUrl } from '@/lib/utils/getImageUrl';
 import { getEmbedUrl } from '@/lib/utils/music-service';
 import type { Track, MusicPlatform } from '@/lib/utils/types';
-import { getImageUrl } from '@/lib/utils/getImageUrl';
 
 interface MusicPlayerSystemProps {
   track: Track | null;
@@ -163,7 +163,6 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
     return () => {
       stopProgressInterval();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [track, stopProgressInterval, startProgressInterval]);
 
   // Mettre à jour l'URL d'embedding
@@ -194,7 +193,6 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
       setYoutubeVideoId(null);
       stopProgressInterval();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [track, selectedPlatform, restartProgressInterval, stopProgressInterval]);
 
   // Gérer la lecture/pause
@@ -204,7 +202,6 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
     } else {
       stopProgressInterval();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPlaying, startProgressInterval, stopProgressInterval]);
 
   // Gérer le changement de position dans la piste

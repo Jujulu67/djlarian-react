@@ -18,7 +18,6 @@ import { useRouter } from 'next/navigation';
 import React, { useState, useEffect, useRef, ChangeEvent, FormEvent } from 'react';
 import { toast } from 'react-hot-toast';
 import { type Crop as CropType, centerCrop, makeAspectCrop } from 'react-image-crop';
-import { generateImageId } from '@/lib/utils/generateImageId';
 
 import 'react-image-crop/dist/ReactCrop.css';
 import { PublicationStatusSelector } from '@/components/admin/PublicationStatusSelector';
@@ -27,10 +26,11 @@ import { DateTimeField } from '@/components/ui/DateTimeField';
 import ImageCropModal from '@/components/ui/ImageCropModal';
 import ImageDropzone from '@/components/ui/ImageDropzone';
 import { logger } from '@/lib/logger';
+import { generateImageId } from '@/lib/utils/generateImageId';
+import { getImageUrl, getOriginalImageUrl } from '@/lib/utils/getImageUrl';
 import { MUSIC_TYPES } from '@/lib/utils/music-helpers';
 import { extractPlatformId } from '@/lib/utils/music-service';
 import type { Track } from '@/lib/utils/types';
-import { getImageUrl, getOriginalImageUrl } from '@/lib/utils/getImageUrl';
 
 import { TrackList } from './components/TrackList';
 import YoutubeAtelier from './components/YoutubeAtelier';

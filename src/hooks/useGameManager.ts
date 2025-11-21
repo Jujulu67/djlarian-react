@@ -251,7 +251,6 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
         requestAnimationFrame(() => simpleUpdateGame());
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patterns.length, simpleUpdateGame, patternManager]);
 
   // Démarrage du jeu

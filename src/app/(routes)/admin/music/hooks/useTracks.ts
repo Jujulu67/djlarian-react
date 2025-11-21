@@ -45,7 +45,6 @@ export function useTracks() {
   useEffect(() => {
     if (status !== 'authenticated') return;
     fetchTracks();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);
 
   // Filter tracks

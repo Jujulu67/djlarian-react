@@ -2,8 +2,8 @@ import { Music } from 'lucide-react';
 import Image from 'next/image';
 import React from 'react';
 
-import { Track } from '@/lib/utils/types';
 import { getImageUrl } from '@/lib/utils/getImageUrl';
+import { Track } from '@/lib/utils/types';
 
 interface MusicCardImageProps {
   track: Track;

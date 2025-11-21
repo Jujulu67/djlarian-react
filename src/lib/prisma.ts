@@ -11,7 +11,6 @@ import { PrismaClient } from '@prisma/client';
 import { logger } from '@/lib/logger';
 
 declare global {
-  // eslint-disable-next-line no-var
   var prisma: PrismaClient | undefined;
 }
 
@@ -165,7 +164,7 @@ function createAdapter(databaseUrl: string): PrismaBetterSqlite3 | PrismaNeon | 
     // SQLite - utiliser better-sqlite3 adapter
     try {
       // Vérifier que better-sqlite3 est disponible
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
+
       const betterSqlite3 = require('better-sqlite3');
       if (!betterSqlite3) {
         throw new Error('better-sqlite3 module not found');
