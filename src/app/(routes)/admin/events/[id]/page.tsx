@@ -28,6 +28,8 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
+
+import { getImageUrl } from '@/lib/utils/getImageUrl';
 import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 
@@ -387,7 +389,11 @@ export default function EventDetailsPage() {
           <div className="relative overflow-hidden" style={{ aspectRatio: '16/9' }}>
             {event.imageId ? (
               <Image
-                src={`/uploads/${event.imageId}.jpg?t=${event.updatedAt ? new Date(event.updatedAt).getTime() : Date.now()}`}
+                src={
+                  getImageUrl(event.imageId, {
+                    cacheBust: event.updatedAt ? new Date(event.updatedAt).getTime() : Date.now(),
+                  }) || ''
+                }
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
                   target.style.display = 'none';

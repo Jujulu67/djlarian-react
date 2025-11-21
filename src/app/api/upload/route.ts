@@ -6,6 +6,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { uploadToBlob, isBlobConfigured, getBlobPublicUrl } from '@/lib/blob';
 import { logger } from '@/lib/logger';
+import { convertToWebP, canConvertToWebP } from '@/lib/utils/convertToWebP';
+import { shouldUseBlobStorage } from '@/lib/utils/getStorageConfig';
 
 // Upload endpoint - Support local (public/uploads/) et production (Vercel Blob)
 
@@ -44,24 +46,24 @@ export async function POST(request: NextRequest) {
     }
 
     const croppedBytes = await croppedImage.arrayBuffer();
-    const croppedBuffer = Buffer.from(croppedBytes);
+    let croppedBuffer = Buffer.from(croppedBytes);
 
-    const isProduction = process.env.NODE_ENV === 'production';
-
-    // Vérifier le switch de base de données pour déterminer le stockage
-    let useBlobStorage = isProduction; // En production réelle, toujours Blob
-    if (!isProduction) {
+    // Convertir en WebP si possible
+    if (canConvertToWebP(croppedImage.type)) {
       try {
-        const switchPath = path.join(process.cwd(), '.db-switch.json');
-        if (fs.existsSync(switchPath)) {
-          const switchConfig = JSON.parse(fs.readFileSync(switchPath, 'utf-8'));
-          // Si on utilise la base de production, on utilise aussi Blob pour les images
-          useBlobStorage = switchConfig.useProduction === true;
-        }
+        croppedBuffer = await convertToWebP(croppedBuffer);
+        logger.debug('API UPLOAD - Image recadrée convertie en WebP');
       } catch (error) {
-        logger.warn('API UPLOAD - Erreur lecture switch, utilisation locale par défaut', error);
+        logger.warn(
+          'API UPLOAD - Erreur conversion WebP pour image recadrée, utilisation originale',
+          error
+        );
+        // Continuer avec l'image originale si la conversion échoue
       }
     }
+
+    // Utiliser la fonction utilitaire qui respecte le switch
+    let useBlobStorage = shouldUseBlobStorage();
 
     // Si on veut utiliser Blob mais qu'il n'est pas configuré, fallback vers local
     if (useBlobStorage && !isBlobConfigured) {
@@ -81,21 +83,32 @@ export async function POST(request: NextRequest) {
           fs.mkdirSync(uploadsDir, { recursive: true });
         }
 
-        // Sauvegarder l'image recadrée
-        const croppedPath = path.join(uploadsDir, `${imageId}.jpg`);
+        // Sauvegarder l'image recadrée en WebP
+        const croppedPath = path.join(uploadsDir, `${imageId}.webp`);
         fs.writeFileSync(croppedPath, croppedBuffer);
         logger.debug(`API UPLOAD - Image recadrée sauvegardée localement: ${croppedPath}`);
 
-        // Sauvegarder l'image originale si fournie
+        // Sauvegarder l'image originale si fournie (convertie en WebP)
         if (originalImage && originalImage.type.startsWith('image/')) {
           if (originalImage.size <= 15 * 1024 * 1024) {
             try {
               const originalBytes = await originalImage.arrayBuffer();
-              const originalBuffer = Buffer.from(originalBytes);
-              const extension = originalImage.name.includes('.')
-                ? originalImage.name.split('.').pop()
-                : 'jpg';
-              const originalPath = path.join(uploadsDir, `${imageId}-ori.${extension}`);
+              let originalBuffer = Buffer.from(originalBytes);
+
+              // Convertir en WebP si possible
+              if (canConvertToWebP(originalImage.type)) {
+                try {
+                  originalBuffer = await convertToWebP(originalBuffer);
+                  logger.debug('API UPLOAD - Image originale convertie en WebP');
+                } catch (error) {
+                  logger.warn(
+                    'API UPLOAD - Erreur conversion WebP pour image originale, utilisation originale',
+                    error
+                  );
+                }
+              }
+
+              const originalPath = path.join(uploadsDir, `${imageId}-ori.webp`);
               fs.writeFileSync(originalPath, originalBuffer);
               logger.debug(`API UPLOAD - Image originale sauvegardée localement: ${originalPath}`);
             } catch (error) {
@@ -109,7 +122,7 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        const localUrl = `/uploads/${imageId}.jpg`;
+        const localUrl = `/uploads/${imageId}.webp`;
         logger.debug(`API UPLOAD - Upload local terminé pour imageId: ${imageId}`);
         return NextResponse.json({
           success: true,
@@ -131,22 +144,32 @@ export async function POST(request: NextRequest) {
     if (useBlobStorage && isBlobConfigured) {
       // Upload vers Vercel Blob
       try {
-        const croppedKey = `uploads/${imageId}.jpg`;
-        const croppedUrl = await uploadToBlob(croppedKey, croppedBuffer, 'image/jpeg');
+        const croppedKey = `uploads/${imageId}.webp`;
+        const croppedUrl = await uploadToBlob(croppedKey, croppedBuffer, 'image/webp');
         logger.debug(`API UPLOAD - Image recadrée uploadée vers Vercel Blob: ${croppedUrl}`);
 
-        // Upload de l'image originale si fournie
+        // Upload de l'image originale si fournie (convertie en WebP)
         if (originalImage && originalImage.type.startsWith('image/')) {
           if (originalImage.size <= 15 * 1024 * 1024) {
             try {
               const originalBytes = await originalImage.arrayBuffer();
-              const originalBuffer = Buffer.from(originalBytes);
-              const extension = originalImage.name.includes('.')
-                ? originalImage.name.split('.').pop()
-                : 'jpg';
-              const originalKey = `uploads/${imageId}-ori.${extension}`;
-              const contentType = originalImage.type || `image/${extension}`;
-              await uploadToBlob(originalKey, originalBuffer, contentType);
+              let originalBuffer = Buffer.from(originalBytes);
+
+              // Convertir en WebP si possible
+              if (canConvertToWebP(originalImage.type)) {
+                try {
+                  originalBuffer = await convertToWebP(originalBuffer);
+                  logger.debug('API UPLOAD - Image originale convertie en WebP');
+                } catch (error) {
+                  logger.warn(
+                    'API UPLOAD - Erreur conversion WebP pour image originale, utilisation originale',
+                    error
+                  );
+                }
+              }
+
+              const originalKey = `uploads/${imageId}-ori.webp`;
+              await uploadToBlob(originalKey, originalBuffer, 'image/webp');
               logger.debug(
                 `API UPLOAD - Image originale uploadée vers Vercel Blob: ${originalKey}`
               );

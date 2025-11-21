@@ -23,11 +23,12 @@ import { useSession } from 'next-auth/react';
 import { useState, useEffect, useRef } from 'react';
 import type { Crop as CropType } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
-import { v4 as uuidv4 } from 'uuid';
+import { generateImageId } from '@/lib/utils/generateImageId';
 
 import EventForm, { EventFormData } from '@/app/components/EventForm';
 import EventPreview from '@/app/components/EventPreview';
 import { logger } from '@/lib/logger';
+import { getImageUrl } from '@/lib/utils/getImageUrl';
 
 // Déplacer la fonction helper ici pour qu'elle soit accessible partout
 const formatDateForInput = (dateString: string | null | undefined): string => {
@@ -179,7 +180,7 @@ export default function EventFormPage() {
           event,
         });
         if (isEditMode && event.imageId) {
-          setImagePreview(`/uploads/${event.imageId}.jpg?t=${Date.now()}`);
+          setImagePreview(getImageUrl(event.imageId, { cacheBust: Date.now() }) || '');
         }
       } catch (error) {
         setErrors({ submit: 'Erreur lors du chargement des données' });
@@ -308,7 +309,7 @@ export default function EventFormPage() {
   // Nouvelle fonction pour gérer la sélection/recadrage d'image depuis EventForm
   const handleImageSelected = (file: File) => {
     // Générer un nouvel imageId à chaque nouvelle sélection
-    const newImageId = uuidv4();
+    const newImageId = generateImageId();
     setFormData((prev) => ({
       ...prev,
       imageId: newImageId,
@@ -367,7 +368,7 @@ export default function EventFormPage() {
       let imageId = formData.imageId;
       // Générer un nouvel imageId si besoin
       if (!imageId && (originalImageFile || croppedImageFile)) {
-        imageId = uuidv4();
+        imageId = generateImageId();
         setFormData((prev) => ({ ...prev, imageId }));
       }
       // Upload DRY des deux fichiers si présents
@@ -534,7 +535,7 @@ export default function EventFormPage() {
                     };
                     reader.readAsDataURL(crop);
                   } else if (formData.imageId) {
-                    setImagePreview(`/uploads/${formData.imageId}.jpg?t=${Date.now()}`);
+                    setImagePreview(getImageUrl(formData.imageId, { cacheBust: Date.now() }) || '');
                   } else {
                     setImagePreview(null);
                   }

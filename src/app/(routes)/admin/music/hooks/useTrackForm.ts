@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 
 import { emptyTrackForm } from '@/lib/utils/music-helpers';
+import { getImageUrl } from '@/lib/utils/getImageUrl';
 import type { Track } from '@/lib/utils/types';
 
 export function useTrackForm() {
@@ -60,12 +61,8 @@ export function useTrackForm() {
         platforms: plat,
         genre: track.genre || [], // S'assurer que genre est toujours un array
       });
-      // Vérifier si imageId est une URL complète avant d'ajouter le préfixe /uploads/
-      const coverPreview = track.imageId
-        ? track.imageId.startsWith('http://') || track.imageId.startsWith('https://')
-          ? track.imageId
-          : `/uploads/${track.imageId}.jpg`
-        : '';
+      // Utiliser getImageUrl pour générer l'URL de l'image
+      const coverPreview = getImageUrl(track.imageId) || '';
       setCoverPreview(coverPreview);
       setIsEditing(true);
 

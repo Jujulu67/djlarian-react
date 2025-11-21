@@ -1,8 +1,9 @@
 import * as cheerio from 'cheerio';
 import { NextResponse } from 'next/server';
-import { v4 as uuidv4 } from 'uuid';
+import { generateImageId } from '@/lib/utils/generateImageId';
 
 import { uploadToBlob, isBlobConfigured, getBlobPublicUrl } from '@/lib/blob';
+import { convertToWebP, canConvertToWebP } from '@/lib/utils/convertToWebP';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 
@@ -100,15 +101,23 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   // 3. Télécharger et sauvegarder l'image
   try {
-    const imageId = uuidv4();
+    const imageId = generateImageId();
     const response = await fetch(coverUrl);
     if (!response.ok) throw new Error('Cover fetch failed');
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Déterminer le type MIME depuis l'URL ou la réponse
+    // Convertir en WebP si possible
+    let webpBuffer = buffer;
     const contentType = response.headers.get('content-type') || 'image/jpeg';
-    const extension = contentType.includes('png') ? 'png' : 'jpg';
+    if (canConvertToWebP(contentType)) {
+      try {
+        webpBuffer = await convertToWebP(buffer);
+        logger.debug('API REFRESH COVER - Image convertie en WebP');
+      } catch (error) {
+        logger.warn('API REFRESH COVER - Erreur conversion WebP, utilisation originale', error);
+      }
+    }
 
     // Sauvegarder dans Vercel Blob si configuré, sinon erreur
     if (!isBlobConfigured) {
@@ -118,10 +127,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       );
     }
 
-    const key = `uploads/${imageId}.${extension}`;
-    const originalKey = `uploads/${imageId}-ori.${extension}`;
-    const blobUrl = await uploadToBlob(key, buffer, contentType);
-    await uploadToBlob(originalKey, buffer, contentType);
+    const key = `uploads/${imageId}.webp`;
+    const originalKey = `uploads/${imageId}-ori.webp`;
+    const blobUrl = await uploadToBlob(key, webpBuffer, 'image/webp');
+    await uploadToBlob(originalKey, webpBuffer, 'image/webp');
 
     // 4. Mettre à jour la track
     await prisma.track.update({ where: { id }, data: { imageId } });

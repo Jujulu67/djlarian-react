@@ -8,6 +8,7 @@ import { FaSpotify, FaYoutube, FaSoundcloud, FaMusic } from 'react-icons/fa';
 
 import { getEmbedUrl } from '@/lib/utils/music-service';
 import { Track, MusicPlatform } from '@/lib/utils/types';
+import { getImageUrl } from '@/lib/utils/getImageUrl';
 
 interface MusicPlayerProps {
   track: Track | null;
@@ -92,11 +93,7 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({ track, isPlaying, onClose, on
                 <div className="w-16 h-16 relative rounded-md overflow-hidden bg-gray-800">
                   {track.imageId && !imageError ? (
                     <Image
-                      src={
-                        track.imageId.startsWith('http://') || track.imageId.startsWith('https://')
-                          ? track.imageId
-                          : `/uploads/${track.imageId}.jpg`
-                      }
+                      src={getImageUrl(track.imageId) || ''}
                       alt={track.title}
                       width={64}
                       height={64}

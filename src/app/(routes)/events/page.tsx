@@ -27,6 +27,7 @@ import { useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 
 import { logger } from '@/lib/logger';
+import { getImageUrl } from '@/lib/utils/getImageUrl';
 
 // Types
 type RecurrenceConfig = {
@@ -586,7 +587,7 @@ export default function EventsPage() {
                   >
                     {event.imageId ? (
                       <Image
-                        src={`/uploads/${event.imageId}.jpg`}
+                        src={getImageUrl(event.imageId) || ''}
                         alt={event.title}
                         fill
                         className="w-full h-full object-cover object-[50%_25%] group-hover:scale-105 transition-transform duration-500"
