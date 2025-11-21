@@ -180,7 +180,11 @@ const SimpleMusicPlayer: React.FC<SimpleMusicPlayerProps> = ({
               </div>
             ) : (
               <Image
-                src={`/uploads/${track.imageId}.jpg`}
+                src={
+                  track.imageId.startsWith('http://') || track.imageId.startsWith('https://')
+                    ? track.imageId
+                    : `/uploads/${track.imageId}.jpg`
+                }
                 alt={track.title}
                 fill
                 className="object-cover object-center"

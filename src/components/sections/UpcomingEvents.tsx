@@ -57,7 +57,10 @@ export default function UpcomingEvents({
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: index * 0.1 }}
-              className="glass-modern glass-modern-hover rounded-2xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 group lift-3d"
+              className="glass-modern glass-modern-hover rounded-2xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 group lift-3d focus-within:outline-2 focus-within:outline-purple-500 focus-within:outline-offset-2"
+              tabIndex={0}
+              role="article"
+              aria-label={`Événement: ${event.title}`}
             >
               <div className="flex-1">
                 <h3 className="text-xl font-bold mb-3 text-white group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-purple-400 group-hover:to-blue-400 transition-all duration-300">
@@ -104,9 +107,10 @@ export default function UpcomingEvents({
                   href={event.ticketUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn-modern px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-full font-semibold text-sm glow-purple animate-glow-pulse micro-bounce whitespace-nowrap"
+                  className="btn-modern px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-full font-semibold text-sm glow-purple animate-glow-pulse micro-bounce whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-black"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
+                  aria-label={`Acheter des billets pour ${event.title}`}
                 >
                   Acheter des billets
                 </motion.a>
@@ -124,13 +128,15 @@ export default function UpcomingEvents({
         >
           <a
             href="/events"
-            className="inline-flex items-center gap-2 text-purple-400 hover:text-purple-300 transition-all duration-300 group text-lg font-semibold"
+            className="inline-flex items-center gap-2 text-purple-400 hover:text-purple-300 transition-all duration-300 group text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-black rounded px-2"
+            aria-label="Voir tous les événements"
           >
             <span>Voir tous les événements</span>
             <motion.span
               className="inline-block"
               animate={{ x: [0, 5, 0] }}
               transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+              aria-hidden="true"
             >
               →
             </motion.span>

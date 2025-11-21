@@ -33,6 +33,14 @@ const nextConfig: NextConfig = {
         hostname: '*.public.blob.vercel-storage.com', // Vercel Blob Storage
       },
     ],
+    // Configuration pour les images locales avec query strings (cache busting)
+    // Permet d'utiliser des query strings comme ?t=timestamp pour forcer le rechargement
+    // Note: Les query strings sont autorisées pour tous les patterns locaux
+    localPatterns: [
+      {
+        pathname: '/uploads/**',
+      },
+    ],
     // Optimisations d'images pour la production
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 60,

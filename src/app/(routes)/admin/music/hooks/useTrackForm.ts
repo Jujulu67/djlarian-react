@@ -57,7 +57,13 @@ export function useTrackForm() {
         releaseDate: new Date(track.releaseDate).toISOString().split('T')[0],
         platforms: plat,
       });
-      setCoverPreview(track.imageId ? `/uploads/${track.imageId}.jpg` : '');
+      // Vérifier si imageId est une URL complète avant d'ajouter le préfixe /uploads/
+      const coverPreview = track.imageId
+        ? track.imageId.startsWith('http://') || track.imageId.startsWith('https://')
+          ? track.imageId
+          : `/uploads/${track.imageId}.jpg`
+        : '';
+      setCoverPreview(coverPreview);
       setIsEditing(true);
 
       // Nettoyer les états d'image si callbacks fournis

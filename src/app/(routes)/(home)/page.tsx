@@ -2,14 +2,34 @@
 
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import gsap from 'gsap';
+import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState } from 'react';
 import useSWR from 'swr';
 
-import ParticleVisualizer from '@/components/3d/ParticleVisualizer';
-import RhythmCatcher from '@/components/RhythmCatcher';
+// Lazy loading des composants lourds
+const ParticleVisualizer = dynamic(() => import('@/components/3d/ParticleVisualizer'), {
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center">
+      <div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" />
+    </div>
+  ),
+  ssr: false,
+});
+
+const RhythmCatcher = dynamic(() => import('@/components/RhythmCatcher'), {
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center">
+      <div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" />
+    </div>
+  ),
+  ssr: false,
+});
+
 import LatestReleases from '@/components/sections/LatestReleases';
 import TwitchStream from '@/components/sections/TwitchStream';
 import UpcomingEvents from '@/components/sections/UpcomingEvents';
+import ScrollToTop from '@/components/ui/ScrollToTop';
+import ScrollProgress from '@/components/ui/ScrollProgress';
 import { defaultConfigs } from '@/config/defaults';
 
 // Type pour les configurations de la page d'accueil
@@ -122,6 +142,9 @@ export default function HomePage() {
   const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
   const scale = useTransform(scrollYProgress, [0, 0.5], [1, 0.8]);
 
+  // Parallax effect for hero content
+  const heroY = useTransform(scrollYProgress, [0, 1], [0, -50]);
+
   // Configurer les animations et appliquer les configurations
   useEffect(() => {
     if (!containerRef.current) return;
@@ -168,13 +191,24 @@ export default function HomePage() {
     };
   }, [isSoundActive]);
 
+  // Enable scroll snapping for homepage (CSS only, no JS interference)
+  useEffect(() => {
+    document.documentElement.classList.add('homepage-scroll-snap');
+    return () => {
+      document.documentElement.classList.remove('homepage-scroll-snap');
+    };
+  }, []);
+
   // Rendu des sections selon l'ordre configuré
   const renderSections = () => {
     // Utiliser les valeurs par défaut si la config n'est pas encore chargée
     const currentConfig = config || defaultConfigs.homepage;
 
     // Fonction auxiliaire pour rendre chaque section en fonction de son type
-    const renderSection = (sectionType: string) => {
+    const renderSection = (sectionType: string, sectionIndex: number) => {
+      // Seule la première section (index 0) doit être visible immédiatement
+      const isFirstSection = sectionIndex === 0;
+
       switch (sectionType) {
         case 'hero':
           return renderHeroSection();
@@ -183,6 +217,7 @@ export default function HomePage() {
             <LatestReleases
               title={currentConfig.releasesTitle}
               count={currentConfig.releasesCount}
+              isFirstSection={isFirstSection}
             />
           ) : null;
         case 'visualizer':
@@ -262,10 +297,30 @@ export default function HomePage() {
       }
     };
 
-    // Rendre les sections dans l'ordre configuré
-    return sectionOrder.map((section, index) => (
-      <div key={`section-${section}-${index}`}>{renderSection(section)}</div>
-    ));
+    // Rendre les sections dans l'ordre configuré avec transitions fluides
+    return sectionOrder.map((section, index) => {
+      // Seule la première section (index 0) doit être visible immédiatement
+      const isFirstSection = index === 0;
+
+      return (
+        <motion.div
+          key={`section-${section}-${index}`}
+          initial={isFirstSection ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+          animate={isFirstSection ? { opacity: 1, y: 0 } : undefined}
+          whileInView={isFirstSection ? undefined : { opacity: 1, y: 0 }}
+          viewport={isFirstSection ? undefined : { once: true, margin: '-100px' }}
+          transition={{
+            duration: 0.6,
+            ease: [0.4, 0, 0.2, 1],
+            delay: isFirstSection ? 0 : index * 0.1,
+          }}
+          className="scroll-snap-section"
+          style={{ position: 'relative' }} // Fix for Framer Motion scroll offset warning
+        >
+          {renderSection(section, index)}
+        </motion.div>
+      );
+    });
   };
 
   // Rendu de la section héro
@@ -283,7 +338,7 @@ export default function HomePage() {
     return (
       <div
         ref={containerRef}
-        className="min-h-screen relative overflow-hidden"
+        className="min-h-[calc(100vh-4rem)] relative overflow-hidden"
         style={{ position: 'relative' }}
       >
         {/* Animated Gradient Background Layers */}
@@ -294,7 +349,7 @@ export default function HomePage() {
 
         {/* Background Video */}
         <div className="absolute inset-0 overflow-hidden z-[1]">
-          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/80 z-10 glass-modern" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/60 z-10 backdrop-blur-[1px]" />
           <video
             autoPlay
             muted
@@ -322,10 +377,14 @@ export default function HomePage() {
           />
         ))}
 
-        {/* Hero Content with Enhanced Glassmorphism */}
+        {/* Hero Content with Enhanced Glassmorphism and Parallax */}
         <motion.div
-          style={{ opacity, scale }}
-          className="relative z-20 min-h-screen flex flex-col items-center justify-center text-center px-4"
+          style={{
+            opacity,
+            scale,
+            y: heroY,
+          }}
+          className="relative z-20 h-[calc(100vh-4rem)] flex flex-col items-center justify-center text-center px-4"
         >
           {/* Glassmorphism Container */}
           <div className="glass-modern rounded-3xl p-8 md:p-12 backdrop-blur-xl border border-white/20 shadow-2xl">
@@ -352,7 +411,7 @@ export default function HomePage() {
               initial={{ scaleX: 0 }}
               animate={{ scaleX: 1 }}
               transition={{ duration: 1, ease: 'easeOut', delay: 0.4 }}
-              className="waveform w-full max-w-md h-16 bg-gradient-to-r from-purple-500 via-blue-500 to-purple-500 bg-[length:200%_100%] rounded-lg opacity-70 animate-gradient-shift glow-purple"
+              className="waveform w-full max-w-md h-16 bg-gradient-to-r from-purple-500 via-blue-500 to-purple-500 bg-[length:200%_100%] rounded-lg opacity-70 animate-gradient-shift glow-purple mx-auto"
             />
 
             {/* Modern CTA Buttons */}
@@ -360,17 +419,19 @@ export default function HomePage() {
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.8, ease: 'easeOut', delay: 0.6 }}
-              className="flex flex-col sm:flex-row gap-4 mt-12"
+              className="flex flex-col sm:flex-row gap-4 mt-12 justify-center items-center"
             >
               <a
                 href={currentConfig.heroExploreButtonUrl}
-                className="btn-modern px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-full font-montserrat font-semibold text-lg relative overflow-hidden glow-purple animate-glow-pulse"
+                className="btn-modern px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-full font-montserrat font-semibold text-lg relative overflow-hidden glow-purple animate-glow-pulse focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-black"
+                aria-label={currentConfig.heroExploreButtonText}
               >
                 <span className="relative z-10">{currentConfig.heroExploreButtonText}</span>
               </a>
               <a
                 href={currentConfig.heroEventsButtonUrl}
-                className="btn-modern px-8 py-4 border-2 border-white/30 hover:border-white/60 text-white rounded-full font-montserrat font-semibold text-lg relative overflow-hidden glass-modern-hover backdrop-blur-sm"
+                className="btn-modern px-8 py-4 border-2 border-white/30 hover:border-white/60 text-white rounded-full font-montserrat font-semibold text-lg relative overflow-hidden glass-modern-hover backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-black"
+                aria-label={currentConfig.heroEventsButtonText}
               >
                 <span className="relative z-10">{currentConfig.heroEventsButtonText}</span>
               </a>
@@ -383,7 +444,8 @@ export default function HomePage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1, duration: 1 }}
-          className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex flex-col items-center z-20 glass-modern px-4 py-3 rounded-full"
+          className="absolute bottom-16 left-1/2 transform -translate-x-1/2 flex flex-col items-center z-20 glass-modern px-4 py-3 rounded-full"
+          aria-label="Indicateur de défilement"
         >
           <span className="text-white text-sm mb-2 font-montserrat">Scroll to Explore</span>
           <div className="w-0.5 h-8 bg-white/30 relative overflow-hidden rounded-full">
@@ -397,6 +459,7 @@ export default function HomePage() {
                 ease: 'linear',
               }}
               className="w-full h-1/3 bg-gradient-to-b from-purple-400 to-blue-400 absolute top-0 rounded-full"
+              aria-hidden="true"
             />
           </div>
         </motion.div>
@@ -422,17 +485,22 @@ export default function HomePage() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
               className="text-4xl md:text-5xl font-audiowide mb-12 text-center flex items-center justify-center gap-4"
-              onClick={handleExperienceClick}
             >
-              <motion.span
-                className="cursor-pointer text-gradient-animated transition-all duration-300 glass-modern px-6 py-3 rounded-full"
+              <motion.button
+                onClick={handleExperienceClick}
+                className="cursor-pointer text-gradient-animated transition-all duration-300 glass-modern px-6 py-3 rounded-full focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-black"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
+                aria-label={
+                  isSoundActive
+                    ? `Arrêter ${currentConfig.visualizerTitle}`
+                    : `Démarrer ${currentConfig.visualizerTitle}`
+                }
               >
                 {isSoundActive
                   ? `Stop ${currentConfig.visualizerTitle}`
                   : currentConfig.visualizerTitle}
-              </motion.span>
+              </motion.button>
             </motion.h2>
           </div>
 
@@ -468,5 +536,11 @@ export default function HomePage() {
     );
   };
 
-  return <>{renderSections()}</>;
+  return (
+    <>
+      <ScrollProgress />
+      <div className="scroll-snap-container">{renderSections()}</div>
+      <ScrollToTop />
+    </>
+  );
 }

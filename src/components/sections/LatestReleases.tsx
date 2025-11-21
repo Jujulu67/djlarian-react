@@ -45,11 +45,13 @@ const glowAnimation = `
 export interface LatestReleasesProps {
   title?: string;
   count?: number;
+  isFirstSection?: boolean; // Indique si c'est la première section après le hero
 }
 
 export default function LatestReleases({
   title = 'Latest Releases',
   count = 3,
+  isFirstSection = false,
 }: LatestReleasesProps) {
   const [releases, setReleases] = useState<Track[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -59,16 +61,24 @@ export default function LatestReleases({
 
   // Charger les morceaux depuis l'API
   useEffect(() => {
+    let isMounted = true;
+    let abortController = new AbortController();
+
     const fetchTracks = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch('/api/music');
+        const response = await fetch('/api/music', {
+          cache: 'no-store', // Force le fetch à chaque fois
+          signal: abortController.signal,
+        });
         if (!response.ok) {
           throw new Error('Erreur lors de la récupération des morceaux');
         }
         const result = await response.json();
         // La réponse API utilise createSuccessResponse qui retourne { data: [...] }
         const data = result.data || [];
+
+        if (!isMounted) return; // Éviter les mises à jour si le composant est démonté
 
         // Filtrer et trier: uniquement les singles, EPs et albums (pas les DJ sets ou videos)
         // Et trier par date (du plus récent au plus ancien)
@@ -81,17 +91,30 @@ export default function LatestReleases({
           })
           .slice(0, count); // Limiter au nombre demandé
 
+        if (!isMounted) return;
+
         setReleases(filteredReleases);
         setError(null);
-      } catch (err) {
+      } catch (err: any) {
+        if (err.name === 'AbortError' || !isMounted) return;
         logger.error('Erreur:', err);
-        setError('Impossible de charger les dernières sorties');
+        if (isMounted) {
+          setError('Impossible de charger les dernières sorties');
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
+    // Démarrer le fetch immédiatement, même si isFirstSection
     fetchTracks();
+
+    return () => {
+      isMounted = false;
+      abortController.abort();
+    };
   }, [count]);
 
   // Fonction pour gérer le clic sur une carte
@@ -118,8 +141,24 @@ export default function LatestReleases({
           >
             {title}
           </motion.h2>
-          <div className="flex justify-center items-center min-h-[300px]">
-            <Loader className="w-10 h-10 text-purple-500 animate-spin glow-purple" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="glass-modern rounded-lg overflow-hidden shadow-xl animate-pulse"
+              >
+                <div className="aspect-square bg-gradient-to-r from-purple-900/30 to-blue-900/30" />
+                <div className="p-6 space-y-4">
+                  <div className="h-6 bg-gray-700/50 rounded w-3/4" />
+                  <div className="h-4 bg-gray-700/30 rounded w-1/2" />
+                  <div className="flex gap-4">
+                    <div className="w-8 h-8 bg-gray-700/30 rounded" />
+                    <div className="w-8 h-8 bg-gray-700/30 rounded" />
+                    <div className="w-8 h-8 bg-gray-700/30 rounded" />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -163,9 +202,10 @@ export default function LatestReleases({
 
         <div className="max-w-7xl mx-auto px-4 relative z-10">
           <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            initial={isFirstSection ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+            animate={isFirstSection ? { opacity: 1, y: 0 } : undefined}
+            whileInView={isFirstSection ? undefined : { opacity: 1, y: 0 }}
+            viewport={isFirstSection ? undefined : { once: true }}
             className="text-4xl md:text-5xl font-audiowide text-center mb-12 text-gradient-animated"
           >
             {title}
@@ -175,53 +215,66 @@ export default function LatestReleases({
             {releases.map((release, index) => (
               <motion.div
                 key={release.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
+                initial={isFirstSection ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+                animate={isFirstSection ? { opacity: 1, y: 0 } : undefined}
+                whileInView={isFirstSection ? undefined : { opacity: 1, y: 0 }}
+                viewport={isFirstSection ? undefined : { once: true }}
+                transition={{ delay: isFirstSection ? 0 : index * 0.1 }}
                 onClick={() => handleCardClick(release.id)}
                 className="relative lift-3d"
               >
-                {/* Modern Glassmorphism Card */}
-                <div className="cursor-pointer glass-modern glass-modern-hover rounded-2xl overflow-hidden shadow-2xl group">
+                {/* Card with Golden Glow Effect */}
+                <div
+                  className="cursor-pointer golden-border rounded-lg overflow-hidden shadow-xl transform-gpu transition-all duration-500 hover:scale-[1.05] group focus-within:outline-2 focus-within:outline-purple-500 focus-within:outline-offset-2"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Voir les détails de ${release.title} par ${release.artist}`}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      handleCardClick(release.id);
+                    }
+                  }}
+                >
                   <div className="relative aspect-square overflow-hidden">
                     {release.imageId && !imageErrors[release.id] ? (
                       <Image
                         src={`/uploads/${release.imageId}.jpg`}
                         alt={`Pochette de ${release.title} par ${release.artist}`}
                         fill
-                        className="object-cover object-center transition-transform duration-700 group-hover:scale-110"
+                        className="object-cover object-center rounded-lg shadow-lg transition-opacity duration-300"
                         priority={index < 3}
+                        loading={index < 3 ? 'eager' : 'lazy'}
+                        placeholder="blur"
+                        blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
                         onError={() => handleImageError(release.id)}
                         onLoad={() => setImageErrors((prev) => ({ ...prev, [release.id]: false }))}
                         unoptimized
                       />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-purple-900/40 via-blue-900/30 to-purple-900/40 flex items-center justify-center animate-gradient-pulse">
+                      <div className="w-full h-full bg-gradient-to-r from-purple-900/30 to-blue-900/30 flex items-center justify-center rounded-lg shadow-lg">
                         {(imageErrors[release.id] || !release.imageId) && (
-                          <Music className="w-16 h-16 text-gray-500" />
+                          <Music className="w-16 h-16 text-gray-600" />
                         )}
                       </div>
                     )}
 
-                    {/* Animated Gradient Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-70 group-hover:opacity-50 transition-opacity duration-500" />
-                    <div className="absolute inset-0 bg-gradient-to-br from-purple-600/0 via-transparent to-blue-600/0 group-hover:from-purple-600/20 group-hover:to-blue-600/20 transition-all duration-500" />
+                    {/* Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent opacity-50 hover:opacity-30 transition-opacity duration-500" />
 
-                    {/* Enhanced Badge */}
-                    <div className="absolute top-4 left-4 z-20">
-                      <span className="glass-modern px-3 py-1.5 text-white text-xs font-semibold rounded-full backdrop-blur-md border border-white/20 glow-purple group-hover:animate-glow-pulse">
+                    {/* Badge */}
+                    <div className="absolute top-3 left-3 z-20">
+                      <span className="bg-purple-600/80 text-white text-xs font-semibold px-2.5 py-1 rounded-full transform transition-all duration-500 hover:-translate-y-1 hover:scale-110 hover:shadow-lg hover:shadow-purple-500/50">
                         {release.type.toUpperCase()}
                       </span>
                     </div>
                   </div>
 
-                  <div className="p-6 relative glass-modern border-t border-white/10">
-                    {/* Enhanced Title */}
-                    <h3 className="text-xl font-bold mb-2 text-white group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-purple-400 group-hover:to-blue-400 transition-all duration-300">
+                  <div className="p-6 relative">
+                    {/* Title */}
+                    <h3 className="text-xl font-bold mb-2 text-white hover:text-purple-300 transition-colors duration-300">
                       {release.title}
                     </h3>
-                    <div className="flex items-center gap-2 text-gray-300 mb-4 text-sm">
+                    <div className="flex items-center gap-2 text-gray-400 mb-4">
                       <span>{release.artist}</span>
                       <span>•</span>
                       <span>
@@ -232,15 +285,16 @@ export default function LatestReleases({
                       </span>
                     </div>
 
-                    {/* Enhanced Icons with 3D effect */}
+                    {/* Icons */}
                     <div className="flex gap-4">
                       {release.platforms.spotify?.url && (
                         <a
                           href={release.platforms.spotify.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-2xl text-gray-400 hover:text-green-400 transition-all duration-300 transform hover:scale-125 hover:-translate-y-2 hover:rotate-3 micro-bounce"
+                          className="platform-icon text-2xl text-gray-300 hover:text-green-400 transition-all duration-300 transform hover:scale-125 hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-black rounded"
                           onClick={(e) => e.stopPropagation()}
+                          aria-label={`Écouter ${release.title} sur Spotify`}
                         >
                           <FaSpotify />
                         </a>
@@ -250,8 +304,9 @@ export default function LatestReleases({
                           href={release.platforms.apple.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-2xl text-gray-400 hover:text-pink-400 transition-all duration-300 transform hover:scale-125 hover:-translate-y-2 hover:-rotate-3 micro-bounce"
+                          className="platform-icon text-2xl text-gray-300 hover:text-pink-400 transition-all duration-300 transform hover:scale-125 hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 focus:ring-offset-black rounded"
                           onClick={(e) => e.stopPropagation()}
+                          aria-label={`Écouter ${release.title} sur Apple Music`}
                         >
                           <FaApple />
                         </a>
@@ -261,8 +316,9 @@ export default function LatestReleases({
                           href={release.platforms.soundcloud.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-2xl text-gray-400 hover:text-orange-400 transition-all duration-300 transform hover:scale-125 hover:-translate-y-2 hover:rotate-3 micro-bounce"
+                          className="platform-icon text-2xl text-gray-300 hover:text-orange-400 transition-all duration-300 transform hover:scale-125 hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-black rounded"
                           onClick={(e) => e.stopPropagation()}
+                          aria-label={`Écouter ${release.title} sur SoundCloud`}
                         >
                           <FaSoundcloud />
                         </a>

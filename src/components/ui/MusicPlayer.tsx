@@ -92,7 +92,11 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({ track, isPlaying, onClose, on
                 <div className="w-16 h-16 relative rounded-md overflow-hidden bg-gray-800">
                   {track.imageId && !imageError ? (
                     <Image
-                      src={`/uploads/${track.imageId}.jpg`}
+                      src={
+                        track.imageId.startsWith('http://') || track.imageId.startsWith('https://')
+                          ? track.imageId
+                          : `/uploads/${track.imageId}.jpg`
+                      }
                       alt={track.title}
                       width={64}
                       height={64}

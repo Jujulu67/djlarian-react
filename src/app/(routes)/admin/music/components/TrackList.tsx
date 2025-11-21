@@ -2,6 +2,7 @@
 
 import { Music, Calendar, Star, RefreshCw, Edit, Trash2, Eye, EyeOff } from 'lucide-react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import React from 'react';
 
 import { MUSIC_TYPES } from '@/lib/utils/music-helpers';
@@ -34,6 +35,7 @@ export const TrackList: React.FC<TrackListProps> = ({
   onRefreshCover,
   onTogglePublish,
 }) => {
+  const router = useRouter();
   if (tracks.length === 0) {
     return (
       <div className="text-center py-12">
@@ -55,7 +57,7 @@ export const TrackList: React.FC<TrackListProps> = ({
           }`}
           onClick={() => {
             if (track.id && typeof window !== 'undefined') {
-              window.location.href = `/admin/music/${track.id}/detail`;
+              router.push(`/admin/music/${track.id}/detail`);
             }
           }}
         >
@@ -63,7 +65,11 @@ export const TrackList: React.FC<TrackListProps> = ({
           <div className="w-16 h-16 flex-shrink-0 rounded-md overflow-hidden relative">
             {track.imageId ? (
               <Image
-                src={`/uploads/${track.imageId}.jpg?t=${track.updatedAt ? new Date(track.updatedAt).getTime() : Date.now()}`}
+                src={
+                  track.imageId.startsWith('http://') || track.imageId.startsWith('https://')
+                    ? track.imageId
+                    : `/uploads/${track.imageId}.jpg?t=${track.updatedAt ? new Date(track.updatedAt).getTime() : Date.now()}`
+                }
                 alt={track.title}
                 fill
                 className="w-full h-full object-cover"
@@ -104,7 +110,7 @@ export const TrackList: React.FC<TrackListProps> = ({
                       href={data.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-1.5 bg-gray-700/60 hover:bg-gray-600 rounded-full text-gray-300 hover:text-white transition-colors"
+                      className="p-1.5 bg-gray-700/60 hover:bg-gray-600 rounded-full text-gray-300 hover:text-white transition-colors platform-icon"
                       title={`Voir sur ${platformLabels[platform as MusicPlatform]}`}
                     >
                       {platformIcons[platform as MusicPlatform]}
@@ -117,7 +123,10 @@ export const TrackList: React.FC<TrackListProps> = ({
           {/* Actions */}
           <div className="flex items-center gap-2">
             <button
-              onClick={() => onToggleFeatured(track.id, track.featured || false)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleFeatured(track.id, track.featured || false);
+              }}
               className={`p-2 rounded-lg transition-colors ${
                 track.featured
                   ? 'bg-yellow-600/80 hover:bg-yellow-500/80 text-white'
@@ -159,14 +168,20 @@ export const TrackList: React.FC<TrackListProps> = ({
               {track.isPublished ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
             </button>
             <button
-              onClick={() => onEdit(track)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(track);
+              }}
               className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
               title="Modifier"
             >
               <Edit className="w-5 h-5" />
             </button>
             <button
-              onClick={() => onDelete(track.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(track.id);
+              }}
               className="p-2 text-gray-400 hover:text-red-500 hover:bg-gray-700 rounded-lg transition-colors"
               title="Supprimer"
             >

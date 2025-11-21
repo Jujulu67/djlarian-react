@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, User, LogOut, Music, Calendar, ImageIcon, Mail, Settings, Home } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 import React from 'react';
@@ -14,12 +15,42 @@ import AuthModal from '../auth/AuthModal';
 
 const Navigation = () => {
   const { data: session, status } = useSession();
+  const pathname = usePathname();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileUserMenuOpen, setIsMobileUserMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+
+  // Error boundary pour capturer les erreurs
+  useEffect(() => {
+    const errorHandler = (event: ErrorEvent) => {
+      logger.error('Navigation error caught:', {
+        message: event.message,
+        error: event.error,
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno,
+        pathname: pathname,
+      });
+    };
+
+    const unhandledRejectionHandler = (event: PromiseRejectionEvent) => {
+      logger.error('Navigation unhandled promise rejection:', {
+        reason: event.reason,
+        pathname: pathname,
+      });
+    };
+
+    window.addEventListener('error', errorHandler);
+    window.addEventListener('unhandledrejection', unhandledRejectionHandler);
+
+    return () => {
+      window.removeEventListener('error', errorHandler);
+      window.removeEventListener('unhandledrejection', unhandledRejectionHandler);
+    };
+  }, [pathname]);
 
   // Debug: Afficher les informations de session (désactivé pour réduire les logs)
   // useEffect(() => {
@@ -30,19 +61,31 @@ const Navigation = () => {
   // }, [session]);
 
   useEffect(() => {
-    setMounted(true);
-    let timeout: NodeJS.Timeout | null = null;
-    const handleScroll = () => {
-      if (timeout) clearTimeout(timeout);
-      timeout = setTimeout(() => {
-        setIsScrolled(window.scrollY > 10);
-      }, 30);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => {
-      if (timeout) clearTimeout(timeout);
-      window.removeEventListener('scroll', handleScroll);
-    };
+    try {
+      setMounted(true);
+      let timeout: NodeJS.Timeout | null = null;
+      const handleScroll = () => {
+        try {
+          if (timeout) clearTimeout(timeout);
+          timeout = setTimeout(() => {
+            setIsScrolled(window.scrollY > 10);
+          }, 30);
+        } catch (error) {
+          logger.error('Error in scroll handler:', error);
+        }
+      };
+      if (typeof window !== 'undefined') {
+        window.addEventListener('scroll', handleScroll, { passive: true });
+      }
+      return () => {
+        if (timeout) clearTimeout(timeout);
+        if (typeof window !== 'undefined') {
+          window.removeEventListener('scroll', handleScroll);
+        }
+      };
+    } catch (error) {
+      logger.error('Error in Navigation mount effect:', error);
+    }
   }, []);
 
   const links = [
@@ -57,68 +100,167 @@ const Navigation = () => {
   // Fermer les menus quand on clique en dehors
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (isUserMenuOpen && !target.closest('.user-menu')) {
-        setIsUserMenuOpen(false);
-      }
-      if (
-        isMobileMenuOpen &&
-        !target.closest('.mobile-menu') &&
-        !target.closest('.mobile-menu-button')
-      ) {
-        setIsMobileMenuOpen(false);
-      }
-      if (
-        isMobileUserMenuOpen &&
-        !target.closest('.mobile-user-menu') &&
-        !target.closest('.mobile-user-button')
-      ) {
-        setIsMobileUserMenuOpen(false);
+      try {
+        const target = event.target as HTMLElement;
+        if (!target) return;
+
+        if (isUserMenuOpen && !target.closest('.user-menu')) {
+          setIsUserMenuOpen(false);
+        }
+        if (
+          isMobileMenuOpen &&
+          !target.closest('.mobile-menu') &&
+          !target.closest('.mobile-menu-button')
+        ) {
+          setIsMobileMenuOpen(false);
+        }
+        if (
+          isMobileUserMenuOpen &&
+          !target.closest('.mobile-user-menu') &&
+          !target.closest('.mobile-user-button')
+        ) {
+          setIsMobileUserMenuOpen(false);
+        }
+      } catch (error) {
+        logger.error('Error in click outside handler:', error);
       }
     };
 
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
+    if (typeof document !== 'undefined') {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
   }, [isUserMenuOpen, isMobileMenuOpen, isMobileUserMenuOpen]);
 
-  if (!mounted) return null;
+  // Safe render check with fallback UI to prevent errors
+  if (!mounted || typeof window === 'undefined') {
+    return (
+      <header className="fixed top-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-xl border-b border-purple-500/10">
+        <nav className="container mx-auto px-3 sm:px-4 h-16 flex items-center justify-between">
+          <div className="text-xl sm:text-2xl font-audiowide text-white">LARIAN</div>
+        </nav>
+      </header>
+    );
+  }
 
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-colors transition-[border-opacity] duration-300 ${
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
           isScrolled
-            ? 'bg-black/95 backdrop-blur-lg border-b border-purple-500/10 border-opacity-100 shadow-lg shadow-purple-500/5'
-            : 'bg-gradient-to-b from-black/80 to-transparent border-b border-purple-500/10 border-opacity-0 shadow-none'
+            ? 'bg-black/90 backdrop-blur-xl border-b border-purple-500/20 border-opacity-100 shadow-2xl shadow-purple-500/10'
+            : 'bg-gradient-to-b from-black/70 via-black/50 to-transparent border-b border-purple-500/10 border-opacity-0 shadow-none'
         }`}
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-transparent to-blue-500/5" />
+        {/* Animated gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-transparent to-blue-500/10 opacity-50" />
+        <div
+          className={`absolute inset-0 transition-opacity duration-500 ${
+            isScrolled ? 'opacity-100' : 'opacity-0'
+          }`}
+          style={{
+            backgroundImage:
+              'linear-gradient(90deg, rgba(139, 92, 246, 0.1) 0%, transparent 50%, rgba(59, 130, 246, 0.1) 100%)',
+            backgroundSize: '200% 100%',
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'center',
+            animation: isScrolled ? 'gradient-shift 8s ease infinite' : 'none',
+          }}
+        />
 
-        <nav className="container mx-auto px-4 h-16 flex items-center justify-between relative z-10">
+        {/* Glow effect on scroll */}
+        {isScrolled && (
+          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-500/50 to-transparent animate-glow-pulse" />
+        )}
+
+        <nav className="container mx-auto px-3 sm:px-4 h-16 flex items-center justify-between relative z-10 gap-2 sm:gap-4">
           <Link
             href="/"
-            className="text-2xl font-audiowide text-white hover:text-purple-400 transition-colors duration-300"
+            className="text-xl sm:text-2xl font-audiowide text-white hover:text-transparent hover:bg-clip-text hover:bg-gradient-to-r hover:from-purple-400 hover:via-blue-400 hover:to-purple-400 transition-all duration-300 relative group shrink-0"
           >
-            LARIAN
+            <span className="relative z-10">LARIAN</span>
+            {isScrolled && (
+              <span className="absolute inset-0 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-blue-400 to-purple-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 animate-gradient-shift bg-[length:200%_100%]" />
+            )}
           </Link>
 
-          {/* Version desktop */}
-          <div className="hidden md:flex items-center space-x-8">
-            {links.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="text-gray-300 hover:text-white transition-all duration-300 flex items-center gap-2 hover:scale-105 group"
-              >
-                {link.icon && (
-                  <link.icon
-                    size={18}
-                    className="group-hover:text-purple-400 transition-colors duration-300"
-                  />
-                )}
-                {link.label}
-              </Link>
-            ))}
+          {/* Version desktop - visible from lg breakpoint to avoid overlaps */}
+          <div className="hidden lg:flex items-center space-x-6 xl:space-x-8">
+            {links.map((link) => {
+              // Safe pathname check to avoid errors
+              const isActive = pathname
+                ? pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href))
+                : false;
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="text-white/90 hover:text-white transition-all duration-300 flex items-center gap-1.5 xl:gap-2 hover:scale-105 group relative px-2 xl:px-3 py-1.5 xl:py-2 rounded-lg focus:outline-none text-sm xl:text-base"
+                >
+                  {/* Glassmorphism overlay on focus/active - iOS style with improved texture */}
+                  <span
+                    className={`absolute inset-0 rounded-lg transition-opacity duration-200 pointer-events-none overflow-hidden ${
+                      isActive
+                        ? 'opacity-100'
+                        : 'opacity-0 group-focus-within:opacity-100 focus-within:opacity-100'
+                    }`}
+                    style={{
+                      backdropFilter: 'blur(12px) saturate(180%)',
+                      WebkitBackdropFilter: 'blur(12px) saturate(180%)',
+                      backgroundColor: isActive
+                        ? 'rgba(255, 255, 255, 0.1)'
+                        : 'rgba(255, 255, 255, 0.1)',
+                      backgroundImage: isActive
+                        ? 'linear-gradient(135deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.08) 25%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.08) 75%, rgba(255, 255, 255, 0.18) 100%)'
+                        : 'none',
+                      backgroundSize: isActive ? '300% 300%' : 'auto',
+                      backgroundRepeat: 'no-repeat',
+                      backgroundPosition: 'center',
+                      boxShadow: isActive
+                        ? 'inset 0 0 0 1px rgba(255, 255, 255, 0.2), inset 0 1px 2px rgba(255, 255, 255, 0.1)'
+                        : 'none',
+                      animation: isActive ? 'veil-shift 6s ease-in-out infinite' : 'none',
+                    }}
+                  >
+                    {/* Animated texture overlay for visible movement */}
+                    <span
+                      className={`absolute inset-0 transition-opacity duration-200 ${
+                        isActive ? 'opacity-40' : 'opacity-0'
+                      }`}
+                      style={{
+                        backgroundImage: `
+                          radial-gradient(circle at 30% 40%, rgba(255, 255, 255, 0.15) 0%, transparent 40%),
+                          radial-gradient(circle at 70% 60%, rgba(255, 255, 255, 0.12) 0%, transparent 40%),
+                          linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%)
+                        `,
+                        backgroundSize: '150% 150%, 150% 150%, 250% 250%',
+                        mixBlendMode: 'overlay',
+                        animation: isActive ? 'veil-shift 8s ease-in-out infinite reverse' : 'none',
+                      }}
+                    />
+                  </span>
+
+                  {link.icon && (
+                    <link.icon
+                      size={18}
+                      className={`relative z-10 transition-all duration-300 ${
+                        isActive
+                          ? 'text-purple-400 drop-shadow-[0_0_8px_rgba(139,92,246,0.6)]'
+                          : 'group-hover:text-purple-400 group-hover:drop-shadow-[0_0_8px_rgba(139,92,246,0.6)]'
+                      }`}
+                    />
+                  )}
+                  <span className="relative z-10">
+                    {link.label}
+                    <span
+                      className={`absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-purple-400 to-blue-400 transition-all duration-300 ${
+                        isActive ? 'w-full' : 'w-0 group-hover:w-full'
+                      }`}
+                    />
+                  </span>
+                </Link>
+              );
+            })}
 
             {/* Logique d'affichage conditionnel basée sur le statut de la session */}
             <AnimatePresence mode="wait">
@@ -151,7 +293,7 @@ const Navigation = () => {
                       e.stopPropagation();
                       setIsUserMenuOpen(!isUserMenuOpen);
                     }}
-                    className="flex items-center space-x-3 text-gray-300 hover:text-white transition-all duration-300
+                    className="flex items-center space-x-3 text-white/90 hover:text-white transition-all duration-300
                       bg-gradient-to-r from-purple-500/10 to-blue-500/10 hover:from-purple-500/20 hover:to-blue-500/20
                       px-4 py-2 rounded-full border border-purple-500/20 hover:border-purple-500/40 hover:scale-105"
                   >
@@ -193,7 +335,8 @@ const Navigation = () => {
                             duration: 0.15,
                           },
                         }}
-                        className="absolute right-0 mt-2 w-48 rounded-lg bg-black/95 backdrop-blur-lg border border-purple-500/20 shadow-lg shadow-purple-500/5 overflow-hidden"
+                        className="absolute right-0 mt-2 w-48 rounded-lg bg-black/95 backdrop-blur-lg border border-purple-500/20 shadow-lg shadow-purple-500/5"
+                        style={{ padding: '0.25rem' }}
                       >
                         <motion.div
                           className="py-1"
@@ -209,7 +352,7 @@ const Navigation = () => {
                             >
                               <Link
                                 href="/admin"
-                                className="flex items-center px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-purple-500/10 transition-colors"
+                                className="flex items-center px-4 py-2 text-sm text-white/90 hover:text-white hover:bg-purple-500/10 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-inset"
                               >
                                 <Settings className="w-4 h-4 mr-2" />
                                 Panel Admin
@@ -223,7 +366,7 @@ const Navigation = () => {
                           >
                             <Link
                               href="/profile"
-                              className="flex items-center px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-purple-500/10 transition-colors"
+                              className="flex items-center px-4 py-2 text-sm text-white/90 hover:text-white hover:bg-purple-500/10 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-inset"
                             >
                               <User className="w-4 h-4 mr-2" />
                               Profil
@@ -236,7 +379,7 @@ const Navigation = () => {
                           >
                             <button
                               onClick={() => signOut()}
-                              className="flex items-center w-full px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-purple-500/10 transition-colors"
+                              className="flex items-center w-full px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:ring-inset"
                             >
                               <LogOut className="w-4 h-4 mr-2" />
                               Déconnexion
@@ -259,7 +402,7 @@ const Navigation = () => {
                       // Ouvrir le modal immédiatement
                       setIsAuthModalOpen(true);
                     }}
-                    className="text-gray-300 hover:text-white transition-all duration-300
+                    className="text-white/90 hover:text-white transition-all duration-300
                       bg-gradient-to-r from-purple-500/10 to-blue-500/10 hover:from-purple-500/20 hover:to-blue-500/20
                       px-4 py-2 rounded-full border border-purple-500/20 hover:border-purple-500/40 hover:scale-105"
                   >
@@ -270,8 +413,8 @@ const Navigation = () => {
             </AnimatePresence>
           </div>
 
-          {/* Version mobile */}
-          <div className="flex md:hidden items-center space-x-4">
+          {/* Version mobile/tablet - visible up to lg breakpoint */}
+          <div className="flex lg:hidden items-center space-x-3 sm:space-x-4">
             {/* Bouton d'authentification mobile */}
             <AnimatePresence mode="wait">
               {status === 'loading' ? (
@@ -295,7 +438,7 @@ const Navigation = () => {
                       e.stopPropagation();
                       setIsMobileUserMenuOpen(!isMobileUserMenuOpen);
                     }}
-                    className="mobile-user-button flex items-center justify-center text-gray-300 hover:text-white 
+                    className="mobile-user-button flex items-center justify-center text-white/90 hover:text-white 
                       bg-gradient-to-r from-purple-500/10 to-blue-500/10 hover:from-purple-500/20 hover:to-blue-500/20
                       w-10 h-10 rounded-full border border-purple-500/20 hover:border-purple-500/40"
                     aria-label="Menu utilisateur"
@@ -337,7 +480,8 @@ const Navigation = () => {
                             duration: 0.15,
                           },
                         }}
-                        className="absolute right-0 mt-2 w-48 rounded-lg bg-black/95 backdrop-blur-lg border border-purple-500/20 shadow-lg shadow-purple-500/5 overflow-hidden"
+                        className="absolute right-0 mt-2 w-48 rounded-lg bg-black/95 backdrop-blur-lg border border-purple-500/20 shadow-lg shadow-purple-500/5"
+                        style={{ padding: '0.25rem' }}
                       >
                         <div className="py-1">
                           <div className="px-4 py-2 text-sm text-white border-b border-purple-500/20 mb-1">
@@ -346,7 +490,7 @@ const Navigation = () => {
                           {session.user?.role === 'ADMIN' && (
                             <Link
                               href="/admin"
-                              className="flex items-center px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-purple-500/10 transition-colors"
+                              className="flex items-center px-4 py-2 text-sm text-white/90 hover:text-white hover:bg-purple-500/10 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-inset"
                               onClick={() => setIsMobileUserMenuOpen(false)}
                             >
                               <Settings className="w-4 h-4 mr-2" />
@@ -355,7 +499,7 @@ const Navigation = () => {
                           )}
                           <Link
                             href="/profile"
-                            className="flex items-center px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-purple-500/10 transition-colors"
+                            className="flex items-center px-4 py-2 text-sm text-white/90 hover:text-white hover:bg-purple-500/10 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-inset"
                             onClick={() => setIsMobileUserMenuOpen(false)}
                           >
                             <User className="w-4 h-4 mr-2" />
@@ -366,7 +510,7 @@ const Navigation = () => {
                               signOut();
                               setIsMobileUserMenuOpen(false);
                             }}
-                            className="flex items-center w-full px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-purple-500/10 transition-colors"
+                            className="flex items-center w-full px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:ring-inset"
                           >
                             <LogOut className="w-4 h-4 mr-2" />
                             Déconnexion
@@ -388,7 +532,7 @@ const Navigation = () => {
                       // Ouvrir le modal immédiatement
                       setIsAuthModalOpen(true);
                     }}
-                    className="text-gray-300 hover:text-white transition-all duration-300
+                    className="text-white/90 hover:text-white transition-all duration-300
                       bg-gradient-to-r from-purple-500/10 to-blue-500/10 hover:from-purple-500/20 hover:to-blue-500/20
                       p-2 rounded-full border border-purple-500/20 hover:border-purple-500/40"
                     aria-label="Connexion"
@@ -403,7 +547,8 @@ const Navigation = () => {
             <button
               className="text-white hover:text-purple-400 transition-colors duration-300 mobile-menu-button
                 bg-gradient-to-r from-purple-500/10 to-blue-500/10 hover:from-purple-500/20 hover:to-blue-500/20
-                p-2 rounded-full border border-purple-500/20 hover:border-purple-500/40"
+                p-2 rounded-full border border-purple-500/20 hover:border-purple-500/40 overflow-hidden"
+              style={{ borderRadius: '9999px' }}
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               aria-label="Menu navigation"
             >
@@ -433,9 +578,13 @@ const Navigation = () => {
                   opacity: { duration: 0.1 },
                 },
               }}
-              className="md:hidden mobile-menu bg-black/95 backdrop-blur-md border-b border-purple-500/20 overflow-hidden"
+              className="lg:hidden mobile-menu bg-black/95 backdrop-blur-md border-b border-purple-500/20 overflow-hidden rounded-b-2xl"
+              style={{ borderTopLeftRadius: 0, borderTopRightRadius: 0 }}
             >
-              <div className="container mx-auto px-4 py-4 flex flex-col space-y-3">
+              <div
+                className="container mx-auto px-4 py-4 flex flex-col space-y-3"
+                style={{ paddingLeft: '1.5rem', paddingRight: '1.5rem' }}
+              >
                 {links.map((link, index) => (
                   <motion.div
                     key={link.href}
@@ -445,7 +594,7 @@ const Navigation = () => {
                   >
                     <Link
                       href={link.href}
-                      className="text-gray-300 hover:text-white py-2 transition-colors flex items-center gap-2"
+                      className="text-white/90 hover:text-white py-2 transition-colors flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-inset rounded"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       {link.icon && <link.icon size={18} className="text-purple-400" />}
