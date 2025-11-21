@@ -23,12 +23,14 @@ D'après vos logs :
 ```
 
 **Total** : ~6 minutes
+
 - **Clonage** : 4:50 (80% du temps) ⚠️
 - **Build** : ~1:20 (20% du temps) ✅
 
 ## 🔍 Pourquoi le Clonage est Lent
 
 Le clonage prend 5 minutes car :
+
 1. **`.open-next/` est toujours dans l'historique Git** sur GitHub (~312 MB)
 2. **`backup.sql` est toujours dans l'historique** (~14 MB)
 3. **Total** : ~326 MB de fichiers inutiles dans l'historique
@@ -40,11 +42,13 @@ Même si ces fichiers sont maintenant dans `.gitignore`, ils restent dans l'hist
 ### Option 1 : Attendre (Recommandé pour l'instant) ✅
 
 **Avantages** :
+
 - ✅ Aucun risque
 - ✅ Les futurs commits seront plus légers
 - ✅ Le temps de clonage s'améliorera progressivement
 
 **Inconvénients** :
+
 - ⚠️ Le clonage restera lent pendant quelques semaines/mois
 - ⚠️ L'historique Git reste volumineux
 
@@ -55,10 +59,12 @@ Même si ces fichiers sont maintenant dans `.gitignore`, ils restent dans l'hist
 Supprimer `.open-next/` et `backup.sql` de **tout l'historique Git**.
 
 **Avantages** :
+
 - ✅ Clonage rapide immédiatement (< 30 secondes)
 - ✅ Réduction significative de la taille du repo
 
 **Inconvénients** :
+
 - ⚠️ Réécrit l'historique Git (destructif)
 - ⚠️ Nécessite un `force push`
 - ⚠️ Tous les collaborateurs devront re-cloner
@@ -80,6 +86,7 @@ Même sans nettoyer l'historique, le temps de clonage devrait s'améliorer :
 **Pour l'instant** : **Garder comme ça**
 
 **Raisons** :
+
 1. ✅ Tout fonctionne parfaitement
 2. ✅ Le build lui-même est rapide (1:20)
 3. ✅ Le clonage lent n'impacte que le premier déploiement après un push
@@ -108,10 +115,10 @@ Si vous voulez vraiment optimiser :
 **Votre projet fonctionne parfaitement !** 🎉
 
 Le temps de clonage est un peu long, mais :
+
 - ✅ C'est un problème d'historique Git, pas de code
 - ✅ Le build lui-même est rapide
 - ✅ Tout fonctionne (database + blob)
 - ✅ Vous pouvez nettoyer l'historique plus tard si nécessaire
 
 **Félicitations pour la migration réussie vers Vercel !** 🚀
-

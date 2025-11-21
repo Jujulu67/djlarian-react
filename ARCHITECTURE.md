@@ -7,6 +7,7 @@ Application Next.js 14 avec App Router, TypeScript, Prisma ORM, et authentificat
 ## Stack Technique
 
 ### Frontend
+
 - **Next.js 14** (App Router) - Framework React avec SSR/SSG
 - **React 18** - Bibliothèque UI
 - **TypeScript** - Typage statique
@@ -16,6 +17,7 @@ Application Next.js 14 avec App Router, TypeScript, Prisma ORM, et authentificat
 - **Zustand** - Gestion d'état globale (si nécessaire)
 
 ### Backend
+
 - **Next.js API Routes** - API REST
 - **Prisma ORM** - ORM pour PostgreSQL/SQLite
 - **NextAuth.js** - Authentification
@@ -23,6 +25,7 @@ Application Next.js 14 avec App Router, TypeScript, Prisma ORM, et authentificat
 - **Vercel Blob Storage** - Stockage d'images
 
 ### Base de données
+
 - **PostgreSQL** (production)
 - **SQLite** (développement)
 
@@ -61,11 +64,13 @@ src/
 ### 1. Composants Modulaires
 
 Les composants volumineux sont décomposés en :
+
 - **Hooks personnalisés** : Logique métier extraite
 - **Composants enfants** : UI décomposée
 - **Types partagés** : Types dans `types.ts`
 
 **Exemple** : `MusicCard.tsx` (235 lignes) utilise :
+
 - `useYouTubePlayer`, `useSoundCloudPlayer`, `useAudioVisualizer` (hooks)
 - `MusicCardImage`, `MusicCardControls`, `MusicCardPlatforms` (composants)
 
@@ -87,6 +92,7 @@ export const useYouTubePlayer = ({
 ```
 
 **Hooks principaux** :
+
 - `useGameManager` - Gestion du jeu audio
 - `useTracks` - Gestion des pistes musicales
 - `useEventTickets` - Gestion des tickets d'événements
@@ -119,11 +125,13 @@ export async function POST(request: Request) {
 ### 5. Optimisations de Performance
 
 #### Mémorisation
+
 - `useMemo` pour calculs coûteux
 - `useCallback` pour fonctions stables
 - `arrayHelpers.ts` avec `isNotEmpty()` pour optimiser les vérifications
 
 #### Images
+
 - `next/image` pour optimisation automatique
 - `priority` pour images above-the-fold
 - Alt descriptifs pour accessibilité
@@ -142,6 +150,7 @@ export async function POST(request: Request) {
 **Choix** : App Router (Next.js 14)
 
 **Raisons** :
+
 - Meilleure performance avec React Server Components
 - Layouts partagés plus faciles
 - Streaming SSR
@@ -152,6 +161,7 @@ export async function POST(request: Request) {
 **Choix** : Prisma
 
 **Raisons** :
+
 - Type-safety end-to-end
 - Migrations automatiques
 - Support PostgreSQL et SQLite
@@ -162,6 +172,7 @@ export async function POST(request: Request) {
 **Choix** : Zustand (si nécessaire)
 
 **Raisons** :
+
 - API plus simple
 - Moins de boilerplate
 - Performance optimale
@@ -172,6 +183,7 @@ export async function POST(request: Request) {
 **Choix** : Zod
 
 **Raisons** :
+
 - TypeScript-first
 - Validation runtime
 - Schémas réutilisables
@@ -182,6 +194,7 @@ export async function POST(request: Request) {
 **Choix** : Vercel Blob
 
 **Raisons** :
+
 - Intégration native avec Vercel
 - CDN automatique
 - Optimisation d'images
@@ -190,18 +203,21 @@ export async function POST(request: Request) {
 ## Conventions de Code
 
 ### Nommage
+
 - **Composants** : PascalCase (`MusicCard.tsx`)
 - **Hooks** : camelCase avec préfixe `use` (`useTracks.ts`)
 - **Utilitaires** : camelCase (`arrayHelpers.ts`)
 - **Types** : PascalCase (`Track`, `Event`)
 
 ### Structure des Fichiers
+
 - Un composant par fichier
 - Types dans `types.ts` ou interfaces inline
 - Hooks dans `hooks/` ou `hooks/[feature]/`
 - Utilitaires dans `lib/utils/`
 
 ### Imports
+
 ```typescript
 // 1. React et Next.js
 import { useState } from 'react';
@@ -221,30 +237,36 @@ import type { Track } from '@/types';
 ## Gestion d'État
 
 ### État Local
+
 - `useState` pour état composant
 - `useReducer` pour état complexe
 
 ### État Global
+
 - Zustand (si nécessaire)
 - Context API pour thème/auth
 
 ### État Serveur
+
 - React Server Components
 - Server Actions (Next.js 14)
 
 ## Sécurité
 
 ### Authentification
+
 - NextAuth.js avec providers multiples
 - Sessions sécurisées
 - CSRF protection
 
 ### Validation
+
 - Zod pour validation côté serveur
 - Sanitization des inputs
 - Rate limiting (si nécessaire)
 
 ### Autorisation
+
 - Rôles utilisateurs (admin, user)
 - Middleware pour routes protégées
 - Vérification dans API routes
@@ -252,12 +274,14 @@ import type { Track } from '@/types';
 ## Performance
 
 ### Optimisations
+
 - Code splitting automatique
 - Lazy loading des composants
 - Image optimization (next/image)
 - Mémorisation des calculs coûteux
 
 ### Monitoring
+
 - Logger centralisé (`lib/logger.ts`)
 - Error tracking (à implémenter)
 - Analytics (Umami)
@@ -265,11 +289,13 @@ import type { Track } from '@/types';
 ## Tests
 
 ### Structure
+
 - Tests unitaires : `__tests__/`
 - Tests E2E : `cypress/e2e/`
 - Tests composants : Vitest/Jest
 
 ### Couverture
+
 - Hooks personnalisés
 - Utilitaires
 - API routes
@@ -278,17 +304,20 @@ import type { Track } from '@/types';
 ## Déploiement
 
 ### Plateforme
+
 - **Vercel** (recommandé)
 - Support natif Next.js
 - Edge Functions
 - CDN global
 
 ### Variables d'Environnement
+
 - `.env.local` (développement)
 - `.env.production` (production)
 - Vercel Environment Variables
 
 ### Base de Données
+
 - PostgreSQL (production)
 - SQLite (développement local)
 - Migration automatique avec Prisma
@@ -296,6 +325,7 @@ import type { Track } from '@/types';
 ## Évolutions Futures
 
 ### Améliorations Prévues
+
 1. **Tests** : Augmenter la couverture
 2. **Performance** : Optimiser les requêtes DB
 3. **Accessibilité** : Audit complet WCAG
@@ -303,6 +333,7 @@ import type { Track } from '@/types';
 5. **Monitoring** : Error tracking (Sentry)
 
 ### Patterns à Adopter
+
 - Server Actions pour mutations
 - Streaming SSR pour meilleure UX
 - Edge Functions pour logique légère
@@ -314,4 +345,3 @@ import type { Track } from '@/types';
 - [Prisma Documentation](https://www.prisma.io/docs)
 - [Zod Documentation](https://zod.dev)
 - [TailwindCSS Documentation](https://tailwindcss.com/docs)
-
