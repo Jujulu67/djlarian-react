@@ -31,6 +31,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { FaPlus, FaEdit, FaTrash, FaEye, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 
 import { logger } from '@/lib/logger';
+import { getImageUrl } from '@/lib/utils/getImageUrl';
 
 // Créer un type local pour inclure les relations si nécessaire
 // (Alternative: utiliser Prisma.EventGetPayload avec include)
@@ -470,7 +471,7 @@ export default function AdminEventsPage() {
                               <div className="flex-shrink-0 h-10 w-10 mr-3 relative">
                                 {event.imageId ? (
                                   <Image
-                                    src={`/uploads/${event.imageId}_crop.jpg`}
+                                    src={getImageUrl(event.imageId) || ''}
                                     onError={(e) => {
                                       const target = e.target as HTMLImageElement;
                                       target.style.display = 'none';

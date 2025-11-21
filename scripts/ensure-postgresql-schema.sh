@@ -38,6 +38,15 @@ if [ "$NODE_ENV" = "production" ]; then
     echo "✅ Schema.prisma est déjà en PostgreSQL"
   fi
   
+  # Vérifier que BLOB_READ_WRITE_TOKEN est configuré en production
+  if [ -z "$BLOB_READ_WRITE_TOKEN" ]; then
+    echo "⚠️  ATTENTION: BLOB_READ_WRITE_TOKEN n'est pas défini en production!"
+    echo "   Les images ne pourront pas être uploadées vers Vercel Blob."
+    echo "   Assurez-vous que BLOB_READ_WRITE_TOKEN est configuré dans les variables d'environnement Vercel."
+  else
+    echo "✅ BLOB_READ_WRITE_TOKEN est configuré (production utilisera Vercel Blob)"
+  fi
+  
   # Si le schéma a été modifié, régénérer le client Prisma
   if [ "$SCHEMA_CHANGED" = true ]; then
     echo "🔄 Régénération du client Prisma..."
