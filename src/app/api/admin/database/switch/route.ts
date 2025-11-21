@@ -1,18 +1,14 @@
-import { exec } from 'child_process';
 import { spawn } from 'child_process';
 import fs from 'fs/promises';
 import path from 'path';
-import { promisify } from 'util';
 
 import { NextRequest, NextResponse } from 'next/server';
 
 import { auth } from '@/auth';
 import { logger } from '@/lib/logger';
 
-const execAsync = promisify(exec);
-
 // Route pour basculer entre base locale et production
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     // Vérifier l'authentification
     const session = await auth();
@@ -168,35 +164,8 @@ export async function POST(req: NextRequest) {
       'utf-8'
     );
 
-    // Régénérer le client Prisma
-    try {
-      await execAsync('npx prisma generate', { cwd: process.cwd() });
-      logger.debug('Client Prisma régénéré avec succès');
-    } catch (error) {
-      logger.error('Erreur lors de la régénération du client Prisma', error);
-      // Ne pas bloquer si la régénération échoue, l'utilisateur pourra le faire manuellement
-    }
-
-    // Nettoyer le cache Next.js pour forcer la recompilation avec le nouveau client Prisma
-    try {
-      const nextCachePath = path.join(process.cwd(), '.next');
-      const { access } = await import('fs/promises');
-      try {
-        await access(nextCachePath);
-        // Le cache existe, on le supprime
-        const { rm } = await import('fs/promises');
-        await rm(nextCachePath, { recursive: true, force: true });
-        logger.debug('Cache Next.js nettoyé pour forcer la recompilation');
-      } catch {
-        // Le cache n'existe pas, c'est OK
-        logger.debug('Aucun cache Next.js à nettoyer');
-      }
-    } catch (error) {
-      logger.warn('Erreur lors du nettoyage du cache Next.js (non bloquant)', error);
-      // Ne pas bloquer, le redémarrage du serveur devrait suffire
-    }
-
     // Créer un fichier de marqueur pour indiquer qu'un redémarrage est nécessaire
+    // Ce fichier sera lu par le script de redémarrage pour savoir quoi faire
     const restartMarkerPath = path.join(process.cwd(), '.db-restart-required.json');
     await fs.writeFile(
       restartMarkerPath,
@@ -205,6 +174,8 @@ export async function POST(req: NextRequest) {
           timestamp: Date.now(),
           useProduction,
           requiresRestart: true,
+          needsPrismaGenerate: true,
+          needsCacheClean: true,
         },
         null,
         2
@@ -213,7 +184,11 @@ export async function POST(req: NextRequest) {
     );
 
     // Redémarrer automatiquement le serveur en arrière-plan
-    // Utiliser spawn avec detached pour que le script s'exécute indépendamment
+    // Le script de redémarrage s'occupera de :
+    // 1. Arrêter le serveur
+    // 2. Régénérer Prisma
+    // 3. Nettoyer le cache
+    // 4. Redémarrer le serveur
     try {
       const restartScriptPath = path.join(process.cwd(), 'scripts', 'restart-dev-server.sh');
 
@@ -251,7 +226,8 @@ export async function POST(req: NextRequest) {
 }
 
 // Route pour récupérer l'état actuel
-export async function GET(req: NextRequest) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function GET(_req: NextRequest): Promise<NextResponse> {
   try {
     // Vérifier l'authentification
     const session = await auth();

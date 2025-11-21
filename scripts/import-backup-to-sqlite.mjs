@@ -5,7 +5,9 @@
  * Parse le fichier backup.sql et insère les données via Prisma
  */
 
-import { PrismaClient } from '@prisma/client';
+import pkg from '@prisma/client';
+const { PrismaClient } = pkg;
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -15,9 +17,17 @@ const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, '..');
 
 // Utiliser SQLite local
-process.env.DATABASE_URL = 'file:./prisma/dev.db';
+const databaseUrl = 'file:./prisma/dev.db';
+process.env.DATABASE_URL = databaseUrl;
 
-const prisma = new PrismaClient();
+// Créer l'adaptateur Prisma 7
+const adapter = new PrismaBetterSqlite3({
+  url: databaseUrl,
+});
+
+const prisma = new PrismaClient({
+  adapter,
+});
 
 // Parser les données COPY du backup PostgreSQL
 function parseCopyData(sqlContent) {

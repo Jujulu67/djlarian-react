@@ -45,9 +45,33 @@ const nextConfig: NextConfig = {
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 60,
   },
-  // Configuration Turbopack pour Next.js 16
-  // Turbopack est activé par défaut, on ajoute une config vide pour éviter les conflits
+  // Configuration pour Prisma 7 avec tsx
+  // Avec tsx loader, Node.js peut charger directement les fichiers .ts de Prisma
+  // Turbopack peut maintenant être utilisé car les fichiers .ts sont gérés par tsx à l'exécution
+  //
+  // Approche inspirée de Trigger.dev : marquer Prisma comme dépendance externe
+  // Prisma 7 utilise un client Rust-free qui ne doit pas être bundlé
+  // Référence: https://trigger.dev/changelog/prisma-7-integration
+  //
+  // Configuration Turbopack (vide car Prisma est géré par tsx à l'exécution)
   turbopack: {},
+  // Configuration webpack conservée pour compatibilité si --webpack est utilisé explicitement
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      // Marquer @prisma/client et .prisma/client comme externes
+      // Cela empêche Next.js de bundler/compiler les fichiers TypeScript de Prisma
+      // et permet à Node.js (avec tsx) de les charger directement à l'exécution
+      const externals = config.externals || [];
+      config.externals = [
+        ...(Array.isArray(externals) ? externals : [externals]),
+        {
+          '@prisma/client': 'commonjs @prisma/client',
+          '.prisma/client': 'commonjs .prisma/client',
+        },
+      ];
+    }
+    return config;
+  },
   // Ignorer les erreurs d'hydratation causées par les extensions comme BitDefender
   onDemandEntries: {
     // période en ms pendant laquelle la page sera gardée en mémoire
