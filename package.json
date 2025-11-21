@@ -113,7 +113,7 @@
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
-      "eslint --config eslint.config.mjs --fix",
+      "bash scripts/lint-staged-eslint.sh",
       "prettier --write"
     ],
     "*.{json,md,css}": [
