@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     }
 
     const croppedBytes = await croppedImage.arrayBuffer();
-    let croppedBuffer = Buffer.from(croppedBytes);
+    let croppedBuffer = Buffer.from(croppedBytes) as Buffer;
 
     // Convertir en WebP si possible
     if (canConvertToWebP(croppedImage.type)) {
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
           if (originalImage.size <= 15 * 1024 * 1024) {
             try {
               const originalBytes = await originalImage.arrayBuffer();
-              let originalBuffer = Buffer.from(originalBytes);
+              let originalBuffer = Buffer.from(originalBytes) as Buffer;
 
               // Convertir en WebP si possible
               if (canConvertToWebP(originalImage.type)) {
@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
           if (originalImage.size <= 15 * 1024 * 1024) {
             try {
               const originalBytes = await originalImage.arrayBuffer();
-              let originalBuffer = Buffer.from(originalBytes);
+              let originalBuffer = Buffer.from(originalBytes) as Buffer;
 
               // Convertir en WebP si possible
               if (canConvertToWebP(originalImage.type)) {

@@ -105,7 +105,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const response = await fetch(coverUrl);
     if (!response.ok) throw new Error('Cover fetch failed');
     const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    const buffer = Buffer.from(arrayBuffer) as Buffer;
 
     // Convertir en WebP si possible
     let webpBuffer = buffer;
