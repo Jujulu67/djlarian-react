@@ -6,9 +6,9 @@ import Image from 'next/image';
 import React, { useState, useEffect } from 'react';
 import { FaSpotify, FaYoutube, FaSoundcloud, FaMusic } from 'react-icons/fa';
 
+import { getImageUrl } from '@/lib/utils/getImageUrl';
 import { getEmbedUrl } from '@/lib/utils/music-service';
 import { Track, MusicPlatform } from '@/lib/utils/types';
-import { getImageUrl } from '@/lib/utils/getImageUrl';
 
 interface MusicPlayerProps {
   track: Track | null;

@@ -28,12 +28,11 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-
-import { getImageUrl } from '@/lib/utils/getImageUrl';
 import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 
 import { logger } from '@/lib/logger';
+import { getImageUrl } from '@/lib/utils/getImageUrl';
 
 // Types
 type Event = {

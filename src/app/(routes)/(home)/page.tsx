@@ -28,8 +28,8 @@ const RhythmCatcher = dynamic(() => import('@/components/RhythmCatcher'), {
 import LatestReleases from '@/components/sections/LatestReleases';
 import TwitchStream from '@/components/sections/TwitchStream';
 import UpcomingEvents from '@/components/sections/UpcomingEvents';
-import ScrollToTop from '@/components/ui/ScrollToTop';
 import ScrollProgress from '@/components/ui/ScrollProgress';
+import ScrollToTop from '@/components/ui/ScrollToTop';
 import { defaultConfigs } from '@/config/defaults';
 
 // Type pour les configurations de la page d'accueil

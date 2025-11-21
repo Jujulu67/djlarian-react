@@ -5,10 +5,10 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import React from 'react';
 
+import { getImageUrl } from '@/lib/utils/getImageUrl';
 import { MUSIC_TYPES } from '@/lib/utils/music-helpers';
 import type { Track } from '@/lib/utils/types';
 import type { MusicPlatform } from '@/lib/utils/types';
-import { getImageUrl } from '@/lib/utils/getImageUrl';
 
 import { platformLabels, platformIcons } from '../constants';
 import { getTrackStatus } from '../utils/getTrackStatus';

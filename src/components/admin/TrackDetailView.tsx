@@ -18,11 +18,10 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import React, { useState, useEffect } from 'react';
-
-import { getImageUrl } from '@/lib/utils/getImageUrl';
 import { FaSpotify, FaYoutube, FaSoundcloud, FaApple, FaMusic as FaDeezer } from 'react-icons/fa';
 
 import { logger } from '@/lib/logger';
+import { getImageUrl } from '@/lib/utils/getImageUrl';
 import { Track } from '@/lib/utils/types'; // Utiliser le type Track existant
 
 // Mapping icônes plateformes

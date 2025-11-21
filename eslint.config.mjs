@@ -1,26 +1,28 @@
 import { dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { createRequire } from 'module';
 import { FlatCompat } from '@eslint/eslintrc';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const require = createRequire(import.meta.url);
 
 const compat = new FlatCompat({
   baseDirectory: __dirname,
+  resolvePluginsRelativeTo: __dirname,
 });
+
+// Import direct de next/core-web-vitals pour éviter les problèmes de FlatCompat
+// next/core-web-vitals inclut déjà: react, react-hooks, import, jsx-a11y, @typescript-eslint
+const nextConfig = require('eslint-config-next/core-web-vitals');
 
 const eslintConfig = [
   {
     ignores: ['.next/', 'node_modules/', 'public/', 'dist/', 'coverage/'],
   },
-  ...compat.extends(
-    'next/core-web-vitals',
-    'plugin:@typescript-eslint/recommended',
-    'plugin:jsx-a11y/recommended',
-    'plugin:prettier/recommended'
-  ),
-  ...compat.config({
-    plugins: ['@typescript-eslint', 'jsx-a11y', 'prettier', 'import'],
+  ...nextConfig,
+  ...compat.extends('plugin:prettier/recommended'),
+  {
     rules: {
       // Règles TypeScript
       // explicit-function-return-type en 'warn' : règle de style, souvent controversée en 2025
@@ -96,7 +98,7 @@ const eslintConfig = [
         typescript: {},
       },
     },
-  }),
+  },
 ];
 
 export default eslintConfig;

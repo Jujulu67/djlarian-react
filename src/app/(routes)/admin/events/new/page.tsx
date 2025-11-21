@@ -22,12 +22,13 @@ import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useState, useEffect, useRef } from 'react';
 import type { Crop as CropType } from 'react-image-crop';
+
 import 'react-image-crop/dist/ReactCrop.css';
-import { generateImageId } from '@/lib/utils/generateImageId';
 
 import EventForm, { EventFormData } from '@/app/components/EventForm';
 import EventPreview from '@/app/components/EventPreview';
 import { logger } from '@/lib/logger';
+import { generateImageId } from '@/lib/utils/generateImageId';
 import { getImageUrl } from '@/lib/utils/getImageUrl';
 
 // Déplacer la fonction helper ici pour qu'elle soit accessible partout
