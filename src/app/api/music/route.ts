@@ -1,6 +1,8 @@
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 
+import { generateImageId } from '@/lib/utils/generateImageId';
+
 import { auth } from '@/auth';
 import { handleApiError } from '@/lib/api/errorHandler';
 import { formatTrackData } from '@/lib/api/musicService';
@@ -10,6 +12,7 @@ import {
   createBadRequestResponse,
 } from '@/lib/api/responseHelpers';
 import { uploadToBlob, isBlobConfigured } from '@/lib/blob';
+import { convertToWebP, canConvertToWebP } from '@/lib/utils/convertToWebP';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import { isNotEmpty } from '@/lib/utils/arrayHelpers';
@@ -60,7 +63,11 @@ const trackCreateSchema = z.object({
   releaseDate: z.string().refine((date) => !isNaN(new Date(date).getTime()), {
     message: 'Invalid date format for releaseDate',
   }),
-  imageId: z.string().uuid().optional().nullable(),
+  imageId: z
+    .string()
+    .regex(/^[a-z0-9]+-[a-z0-9]+$|^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
+    .optional()
+    .nullable(), // Accepte le nouveau format court (timestamp-random) ou l'ancien UUID
   bpm: z.number().int().positive().optional().nullable(),
   description: z.string().optional().nullable(),
   type: z.enum(musicTypes),
@@ -182,22 +189,30 @@ export async function POST(request: Request): Promise<Response> {
   let imageId = dataForPrisma.imageId;
   if (!imageId && dataForPrisma.thumbnailUrl) {
     try {
-      imageId = uuidv4();
+      imageId = generateImageId();
       const response = await fetch(dataForPrisma.thumbnailUrl);
       if (!response.ok) throw new Error('Thumbnail fetch failed');
       const arrayBuffer = await response.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
 
-      // Déterminer le type MIME depuis l'URL ou la réponse
+      // Convertir en WebP si possible
+      let webpBuffer = buffer;
       const contentType = response.headers.get('content-type') || 'image/jpeg';
-      const extension = contentType.includes('png') ? 'png' : 'jpg';
+      if (canConvertToWebP(contentType)) {
+        try {
+          webpBuffer = await convertToWebP(buffer);
+          logger.debug('API MUSIC - Thumbnail converti en WebP');
+        } catch (error) {
+          logger.warn('API MUSIC - Erreur conversion WebP, utilisation originale', error);
+        }
+      }
 
       // Sauvegarder dans Vercel Blob si configuré
       if (isBlobConfigured) {
-        const key = `uploads/${imageId}.${extension}`;
-        const originalKey = `uploads/${imageId}-ori.${extension}`;
-        await uploadToBlob(key, buffer, contentType);
-        await uploadToBlob(originalKey, buffer, contentType);
+        const key = `uploads/${imageId}.webp`;
+        const originalKey = `uploads/${imageId}-ori.webp`;
+        await uploadToBlob(key, webpBuffer, 'image/webp');
+        await uploadToBlob(originalKey, webpBuffer, 'image/webp');
         dataForPrisma.imageId = imageId;
       } else {
         logger.warn('API MUSIC - Vercel Blob not configured, skipping image upload');

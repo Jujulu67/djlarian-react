@@ -8,6 +8,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { logger } from '@/lib/logger';
 import { getInitialVolume, applyVolumeToAllPlayers } from '@/lib/utils/audioUtils';
 import type { Track } from '@/lib/utils/types';
+import { getImageUrl } from '@/lib/utils/getImageUrl';
 
 interface SimpleMusicPlayerProps {
   track: Track | null;
@@ -180,11 +181,7 @@ const SimpleMusicPlayer: React.FC<SimpleMusicPlayerProps> = ({
               </div>
             ) : (
               <Image
-                src={
-                  track.imageId.startsWith('http://') || track.imageId.startsWith('https://')
-                    ? track.imageId
-                    : `/uploads/${track.imageId}.jpg`
-                }
+                src={getImageUrl(track.imageId) || ''}
                 alt={track.title}
                 fill
                 className="object-cover object-center"

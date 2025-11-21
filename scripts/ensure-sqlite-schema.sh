@@ -123,7 +123,8 @@ if [ "$USE_PRODUCTION" != "true" ]; then
 fi
 
 # Si le schéma a été modifié, régénérer le client Prisma
-if [ "$SCHEMA_CHANGED" = true ]; then
+# Aussi régénérer si on est en mode production (switch activé) pour s'assurer que le client correspond
+if [ "$SCHEMA_CHANGED" = true ] || [ "$USE_PRODUCTION" = "true" ]; then
   echo "🔄 Régénération du client Prisma..."
   npx prisma generate > /dev/null 2>&1 || npx prisma generate
   echo "✅ Client Prisma régénéré"

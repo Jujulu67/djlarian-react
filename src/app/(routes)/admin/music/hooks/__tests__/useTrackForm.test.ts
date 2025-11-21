@@ -69,7 +69,7 @@ describe('useTrackForm', () => {
 
     expect(result.current.currentForm.title).toBe('Test Track');
     expect(result.current.isEditing).toBe(true);
-    expect(result.current.coverPreview).toBe('/uploads/img-123.jpg');
+    expect(result.current.coverPreview).toBe('/api/images/img-123');
   });
 
   it('should reset form correctly', () => {

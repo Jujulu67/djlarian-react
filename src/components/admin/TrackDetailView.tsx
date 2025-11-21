@@ -18,6 +18,8 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import React, { useState, useEffect } from 'react';
+
+import { getImageUrl } from '@/lib/utils/getImageUrl';
 import { FaSpotify, FaYoutube, FaSoundcloud, FaApple, FaMusic as FaDeezer } from 'react-icons/fa';
 
 import { logger } from '@/lib/logger';
@@ -131,7 +133,11 @@ export default function TrackDetailView({ trackId, onClose }: TrackDetailViewPro
       <div className="md:col-span-1 flex flex-col items-center">
         {track.imageId ? (
           <Image
-            src={`/uploads/${track.imageId}.jpg?t=${track.updatedAt ? new Date(track.updatedAt).getTime() : Date.now()}`}
+            src={
+              getImageUrl(track.imageId, {
+                cacheBust: track.updatedAt ? new Date(track.updatedAt).getTime() : Date.now(),
+              }) || ''
+            }
             alt={`Pochette de ${track.title}`}
             width={300}
             height={300}

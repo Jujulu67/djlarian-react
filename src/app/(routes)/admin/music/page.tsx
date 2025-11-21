@@ -18,7 +18,7 @@ import { useRouter } from 'next/navigation';
 import React, { useState, useEffect, useRef, ChangeEvent, FormEvent } from 'react';
 import { toast } from 'react-hot-toast';
 import { type Crop as CropType, centerCrop, makeAspectCrop } from 'react-image-crop';
-import { v4 as uuidv4 } from 'uuid';
+import { generateImageId } from '@/lib/utils/generateImageId';
 
 import 'react-image-crop/dist/ReactCrop.css';
 import { PublicationStatusSelector } from '@/components/admin/PublicationStatusSelector';
@@ -30,6 +30,7 @@ import { logger } from '@/lib/logger';
 import { MUSIC_TYPES } from '@/lib/utils/music-helpers';
 import { extractPlatformId } from '@/lib/utils/music-service';
 import type { Track } from '@/lib/utils/types';
+import { getImageUrl, getOriginalImageUrl } from '@/lib/utils/getImageUrl';
 
 import { TrackList } from './components/TrackList';
 import YoutubeAtelier from './components/YoutubeAtelier';
@@ -108,7 +109,7 @@ export default function AdminMusicPage() {
     if (!file) return;
     imageUpload.originalImageFileRef.current = file;
     imageUpload.setOriginalImageFile(file);
-    imageUpload.setImageToUploadId(uuidv4());
+    imageUpload.setImageToUploadId(generateImageId());
     imageUpload.setUploadedImage(URL.createObjectURL(file));
     imageUpload.setShowCropModal(true);
   };
@@ -118,7 +119,7 @@ export default function AdminMusicPage() {
       imageUpload.originalImageFileRef.current = imageUpload.originalImageFile;
       const url = URL.createObjectURL(imageUpload.originalImageFile);
       imageUpload.setUploadedImage(url);
-      imageUpload.setImageToUploadId(uuidv4());
+      imageUpload.setImageToUploadId(generateImageId());
       imageUpload.setShowCropModal(true);
       return;
     }
@@ -127,7 +128,7 @@ export default function AdminMusicPage() {
       imageUpload.setOriginalImageFile(imageUpload.cachedOriginalFile);
       const localUrl = URL.createObjectURL(imageUpload.cachedOriginalFile);
       imageUpload.setUploadedImage(localUrl);
-      imageUpload.setImageToUploadId(uuidv4());
+      imageUpload.setImageToUploadId(generateImageId());
       imageUpload.setShowCropModal(true);
       return;
     }
@@ -138,17 +139,20 @@ export default function AdminMusicPage() {
         return; // URL externe, pas d'image originale locale
       }
       try {
-        const res = await fetch(`/uploads/${imageId}-ori.jpg`);
-        if (res.ok) {
-          const blob = await res.blob();
-          const file = new File([blob], 'original.jpg', { type: blob.type });
-          imageUpload.originalImageFileRef.current = file;
-          imageUpload.setOriginalImageFile(file);
-          imageUpload.setCachedOriginalFile(file);
-          const localUrl = URL.createObjectURL(file);
-          imageUpload.setUploadedImage(localUrl);
-          imageUpload.setImageToUploadId(uuidv4());
-          imageUpload.setShowCropModal(true);
+        const originalUrl = getOriginalImageUrl(imageId);
+        if (originalUrl) {
+          const res = await fetch(originalUrl);
+          if (res.ok) {
+            const blob = await res.blob();
+            const file = new File([blob], 'original.jpg', { type: blob.type });
+            imageUpload.originalImageFileRef.current = file;
+            imageUpload.setOriginalImageFile(file);
+            imageUpload.setCachedOriginalFile(file);
+            const localUrl = URL.createObjectURL(file);
+            imageUpload.setUploadedImage(localUrl);
+            imageUpload.setImageToUploadId(generateImageId());
+            imageUpload.setShowCropModal(true);
+          }
         }
       } catch {}
     }
@@ -185,7 +189,7 @@ export default function AdminMusicPage() {
     if (!file) return;
     imageUpload.originalImageFileRef.current = file;
     imageUpload.setOriginalImageFile(file);
-    imageUpload.setImageToUploadId(uuidv4());
+    imageUpload.setImageToUploadId(generateImageId());
     imageUpload.setUploadedImage(URL.createObjectURL(file));
     imageUpload.setShowCropModal(true);
   };
@@ -706,14 +710,11 @@ export default function AdminMusicPage() {
                         {editingTrack.imageId ? (
                           <Image
                             src={
-                              editingTrack.imageId?.startsWith('http://') ||
-                              editingTrack.imageId?.startsWith('https://')
-                                ? editingTrack.imageId
-                                : `/uploads/${editingTrack.imageId}.jpg?t=${
-                                    editingTrack.updatedAt
-                                      ? new Date(editingTrack.updatedAt).getTime()
-                                      : Date.now()
-                                  }`
+                              getImageUrl(editingTrack.imageId, {
+                                cacheBust: editingTrack.updatedAt
+                                  ? new Date(editingTrack.updatedAt).getTime()
+                                  : Date.now(),
+                              }) || ''
                             }
                             alt={editingTrack.title}
                             width={64}

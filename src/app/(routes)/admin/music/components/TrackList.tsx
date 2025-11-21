@@ -8,6 +8,7 @@ import React from 'react';
 import { MUSIC_TYPES } from '@/lib/utils/music-helpers';
 import type { Track } from '@/lib/utils/types';
 import type { MusicPlatform } from '@/lib/utils/types';
+import { getImageUrl } from '@/lib/utils/getImageUrl';
 
 import { platformLabels, platformIcons } from '../constants';
 import { getTrackStatus } from '../utils/getTrackStatus';
@@ -66,9 +67,9 @@ export const TrackList: React.FC<TrackListProps> = ({
             {track.imageId ? (
               <Image
                 src={
-                  track.imageId.startsWith('http://') || track.imageId.startsWith('https://')
-                    ? track.imageId
-                    : `/uploads/${track.imageId}.jpg?t=${track.updatedAt ? new Date(track.updatedAt).getTime() : Date.now()}`
+                  getImageUrl(track.imageId, {
+                    cacheBust: track.updatedAt ? new Date(track.updatedAt).getTime() : Date.now(),
+                  }) || ''
                 }
                 alt={track.title}
                 fill

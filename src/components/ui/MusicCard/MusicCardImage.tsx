@@ -3,6 +3,7 @@ import Image from 'next/image';
 import React from 'react';
 
 import { Track } from '@/lib/utils/types';
+import { getImageUrl } from '@/lib/utils/getImageUrl';
 
 interface MusicCardImageProps {
   track: Track;
@@ -19,14 +20,17 @@ export const MusicCardImage: React.FC<MusicCardImageProps> = ({
   onImageError,
 }) => {
   if (track.imageId && !imageError) {
-    // Vérifier si imageId est une URL complète (http/https)
-    const isFullUrl = track.imageId.startsWith('http://') || track.imageId.startsWith('https://');
+    const imageSrc = getImageUrl(track.imageId, {
+      cacheBust: track.updatedAt ? new Date(track.updatedAt).getTime() : Date.now(),
+    });
 
-    // Si c'est une URL complète, l'utiliser directement
-    // Sinon, construire le chemin local /uploads/
-    const imageSrc = isFullUrl
-      ? track.imageId
-      : `/uploads/${track.imageId}.jpg?t=${track.updatedAt ? new Date(track.updatedAt).getTime() : Date.now()}`;
+    if (!imageSrc) {
+      return (
+        <div className="w-full h-full bg-gradient-to-r from-purple-900/30 to-blue-900/30 flex items-center justify-center group-hover:scale-105 transition-transform duration-500">
+          <Music className="w-16 h-16 text-gray-600" />
+        </div>
+      );
+    }
 
     return (
       <Image

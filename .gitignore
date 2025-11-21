@@ -69,6 +69,7 @@ umami-db-data/
 
 # Backup env files
 .env.bak
+.env.local.backup
 
 # Local SQLite database
 prisma/dev.db

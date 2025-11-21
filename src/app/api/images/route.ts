@@ -1,19 +1,110 @@
+import fs from 'fs';
+import path from 'path';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { listBlobFiles, deleteFromBlob, isBlobConfigured } from '@/lib/blob';
 import { logger } from '@/lib/logger';
+import { shouldUseBlobStorage } from '@/lib/utils/getStorageConfig';
+
+/**
+ * Lister les fichiers locaux depuis public/uploads/
+ * Retourne le même format que listBlobFiles() pour compatibilité
+ */
+function listLocalFiles(): Array<{
+  id: string;
+  name: string;
+  path: string;
+  type: string;
+  size: number;
+  lastModified: string;
+}> {
+  const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+
+  if (!fs.existsSync(uploadsDir)) {
+    return [];
+  }
+
+  try {
+    const files = fs.readdirSync(uploadsDir);
+    const imageExtensions = ['.webp', '.jpg', '.jpeg', '.png', '.gif']; // WebP en priorité
+
+    return files
+      .filter((file) => {
+        const ext = path.extname(file).toLowerCase();
+        return imageExtensions.includes(ext);
+      })
+      .map((file) => {
+        const filePath = path.join(uploadsDir, file);
+        const stats = fs.statSync(filePath);
+
+        // Déterminer le type d'image basé sur le nom du fichier
+        let type = 'Autre';
+        if (file.includes('cover')) type = 'Couverture';
+        else if (file.includes('event')) type = 'Événement';
+        else if (file.includes('staff')) type = 'Staff';
+
+        return {
+          id: `uploads/${file}`,
+          name: `uploads/${file}`,
+          path: `/uploads/${file}`,
+          type,
+          size: stats.size,
+          lastModified: stats.mtime.toISOString(),
+        };
+      });
+  } catch (error) {
+    logger.error('[API IMAGES] Erreur lors de la liste des fichiers locaux:', error);
+    return [];
+  }
+}
 
 // GET - Récupérer toutes les images
 export async function GET() {
   try {
-    // Utiliser Vercel Blob pour le stockage des fichiers
-    if (!isBlobConfigured) {
-      logger.warn('Vercel Blob not configured, returning empty images list');
-      return NextResponse.json({ images: [] }, { status: 200 });
+    const useBlobStorage = shouldUseBlobStorage();
+
+    // Si on doit utiliser le blob (prod ou switch activé), récupérer depuis Blob
+    let blobImages: Array<{
+      id: string;
+      name: string;
+      path: string;
+      type: string;
+      size: number;
+      lastModified: string;
+    }> = [];
+
+    if (useBlobStorage && isBlobConfigured) {
+      blobImages = await listBlobFiles();
     }
 
-    const images = await listBlobFiles();
-    return NextResponse.json({ images }, { status: 200 });
+    // Lister aussi les fichiers locaux (pour le développement et la compatibilité)
+    // Si le switch est activé, on liste quand même les fichiers locaux mais on priorise le blob
+    const localImages = listLocalFiles();
+
+    // Fusionner les deux listes, en évitant les doublons basés sur le nom
+    const imageMap = new Map<string, (typeof blobImages)[0]>();
+
+    if (useBlobStorage) {
+      // Si on utilise le blob, prioriser les images blob (elles écrasent les locales si même nom)
+      localImages.forEach((img) => {
+        imageMap.set(img.name, img);
+      });
+      blobImages.forEach((img) => {
+        imageMap.set(img.name, img);
+      });
+    } else {
+      // Sinon, prioriser les images locales
+      blobImages.forEach((img) => {
+        imageMap.set(img.name, img);
+      });
+      localImages.forEach((img) => {
+        imageMap.set(img.name, img);
+      });
+    }
+
+    const allImages = Array.from(imageMap.values());
+
+    return NextResponse.json({ images: allImages }, { status: 200 });
   } catch (error) {
     logger.error('Erreur API:', error);
     return NextResponse.json(

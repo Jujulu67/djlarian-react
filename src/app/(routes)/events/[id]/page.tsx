@@ -19,6 +19,8 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
+
+import { getImageUrl } from '@/lib/utils/getImageUrl';
 import { useState, useEffect, useRef } from 'react';
 import {
   FaCalendarAlt,
@@ -336,7 +338,7 @@ export default function EventDetailPage() {
           <div className="relative overflow-hidden" style={{ aspectRatio: '16/9' }}>
             {event.imageId ? (
               <Image
-                src={`/uploads/${event.imageId}.jpg`}
+                src={getImageUrl(event.imageId) || ''}
                 alt={`Image de couverture pour l'événement ${event.title}`}
                 fill
                 className="w-full h-full object-cover object-[50%_25%]"

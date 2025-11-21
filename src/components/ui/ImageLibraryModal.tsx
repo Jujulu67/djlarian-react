@@ -2,6 +2,7 @@ import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
 
 import { logger } from '@/lib/logger';
+import { getImageUrl } from '@/lib/utils/getImageUrl';
 
 import Modal from './Modal';
 
@@ -22,10 +23,28 @@ interface ImageLibraryModalProps {
   onSelect: (image: ImageMeta) => void;
 }
 
-const getImageUrl = (img: ImageMeta) => {
-  // Si l'url n'est pas déjà correcte, la recalculer
-  if (img.url && img.url.startsWith('/uploads/')) return img.url;
-  return `/uploads/${img.name}`;
+const getImageUrlForModal = (img: ImageMeta) => {
+  // Si c'est déjà une URL complète (blob), l'utiliser directement
+  if (img.url && (img.url.startsWith('http://') || img.url.startsWith('https://'))) {
+    return img.url;
+  }
+
+  // Extraire l'imageId du nom (format: "uploads/abc123-ori.jpg" ou "abc123-ori.jpg")
+  const nameWithoutPath = img.name.replace(/^uploads\//, '');
+  const imageId = nameWithoutPath.replace(/-ori\.(jpg|jpeg|png|webp)$/i, '');
+
+  // Utiliser getImageUrl avec le paramètre original si c'est une image originale
+  if (nameWithoutPath.includes('-ori.')) {
+    return getImageUrl(imageId, { original: true });
+  }
+
+  // Sinon, utiliser l'URL telle quelle ou construire depuis le nom
+  if (img.url && img.url.startsWith('/uploads/')) {
+    return img.url;
+  }
+
+  // Fallback : utiliser la route API avec le nom
+  return getImageUrl(imageId) || img.url || `/uploads/${img.name}`;
 };
 
 const getImageDate = (img: ImageMeta) => {
@@ -91,7 +110,7 @@ const ImageLibraryModal: React.FC<ImageLibraryModalProps> = ({ open, onClose, on
               }}
             >
               <Image
-                src={getImageUrl(img)}
+                src={getImageUrlForModal(img) || '/placeholder-image.jpg'}
                 alt={img.name}
                 width={200}
                 height={128}
