@@ -11,7 +11,7 @@ import { PrismaClient } from '@prisma/client';
 import { logger } from '@/lib/logger';
 
 declare global {
-  var prisma: PrismaClient | undefined;
+  var prisma: InstanceType<typeof PrismaClient> | undefined;
 }
 
 // Fonction pour obtenir la DATABASE_URL selon le switch
@@ -198,7 +198,7 @@ function createAdapter(databaseUrl: string): PrismaBetterSqlite3 | PrismaNeon | 
 
 const adapter = createAdapter(databaseUrl);
 
-const prisma: PrismaClient =
+const prisma: InstanceType<typeof PrismaClient> =
   global.prisma ||
   new PrismaClient({
     adapter,

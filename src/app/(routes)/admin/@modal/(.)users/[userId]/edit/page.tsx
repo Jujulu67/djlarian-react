@@ -1,4 +1,6 @@
-import { User } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+
+type User = Prisma.UserGetPayload<{}>;
 
 import AddUserModal from '@/components/admin/AddUserModal';
 import ErrorModal from '@/components/ui/ErrorModal';

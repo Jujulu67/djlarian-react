@@ -1,6 +1,9 @@
 'use client';
 
-import { Event as PrismaEvent, TicketInfo as PrismaTicketInfo } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+
+type PrismaEvent = Prisma.EventGetPayload<{}>;
+type PrismaTicketInfo = Prisma.TicketInfoGetPayload<{}>;
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {

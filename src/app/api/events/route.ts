@@ -114,7 +114,7 @@ export async function GET(request: NextRequest): Promise<Response> {
 
     // LOGS DEBUG EVENTS
     logger.debug(`[API] GET /api/events - Nombre d'événements retournés : ${events.length}`);
-    events.forEach((ev) => {
+    events.forEach((ev: { id: string; imageId: string | null; title: string }) => {
       logger.debug(`[API] Event: id=${ev.id}, imageId=${ev.imageId}, title=${ev.title}`);
     });
 
@@ -122,7 +122,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     const total = await prisma.event.count({ where });
 
     // Formater les événements pour correspondre à ce qu'attend le client
-    const formattedEvents = events.map((event) => {
+    const formattedEvents = events.map((event: { [key: string]: unknown }) => {
       const formattedEvent: Record<string, unknown> = { ...event };
 
       if ('TicketInfo' in event) {

@@ -108,7 +108,7 @@ describe('useSoundCloudPlayer', () => {
     act(() => {
       const event = new MessageEvent('message', {
         data: JSON.stringify({ method: 'ready' }),
-        source: mockContentWindow,
+        source: mockContentWindow as unknown as MessageEventSource,
       });
       window.dispatchEvent(event);
     });
@@ -261,7 +261,7 @@ describe('useSoundCloudPlayer', () => {
     act(() => {
       const event = new MessageEvent('message', {
         data: JSON.stringify({ method: 'ready' }),
-        source: mockContentWindow,
+        source: mockContentWindow as unknown as MessageEventSource,
       });
       window.dispatchEvent(event);
     });
