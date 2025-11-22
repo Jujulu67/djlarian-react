@@ -119,6 +119,20 @@ export default function HomePage() {
     'events',
     'stream',
   ]);
+  // État pour détecter si on est sur mobile
+  const [isMobile, setIsMobile] = useState(false);
+  // État pour contrôler le démarrage de l'animation du gradient waveform (fallback)
+  const [waveformAnimationReady, setWaveformAnimationReady] = useState(false);
+  // État pour vérifier si la vidéo est chargée
+  const [videoLoaded, setVideoLoaded] = useState(false);
+  // État pour savoir si la vidéo a échoué à charger
+  const [videoFailed, setVideoFailed] = useState(false);
+  // Référence à l'élément vidéo pour contrôler la lecture
+  const videoRef = useRef<HTMLVideoElement>(null);
+  // État pour contrôler quand démarrer les autres animations (après le waveform)
+  const [readyForOtherAnimations, setReadyForOtherAnimations] = useState(false);
+  // État pour savoir si les données critiques sont chargées
+  const [criticalDataLoaded, setCriticalDataLoaded] = useState(false);
 
   // Charger les configurations de la page d'accueil (API publique)
   const {
@@ -134,30 +148,63 @@ export default function HomePage() {
     isLoading: eventsLoading,
   } = useSWR('/api/events', fetcher);
 
+  // Détecter si on est sur mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Attendre que les données critiques soient chargées avant de démarrer l'animation du waveform
+  // Cela évite les stutters causés par le chargement simultané (lazy loading, API calls, etc.)
+  useEffect(() => {
+    // Attendre que les configurations soient chargées (données critiques pour le hero)
+    if (!configLoading && configData) {
+      // Petit délai pour laisser le navigateur terminer les opérations de rendu initiales
+      const timer = setTimeout(() => {
+        setCriticalDataLoaded(true);
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [configLoading, configData]);
+
+  // Démarrer la vidéo uniquement après que l'animation de déploiement soit terminée
+  useEffect(() => {
+    if (waveformAnimationReady && videoLoaded && !videoFailed && videoRef.current) {
+      const video = videoRef.current;
+      video.currentTime = 0;
+      video.play().catch((err) => {
+        console.warn('[Waveform] Erreur lors du démarrage de la vidéo:', err);
+      });
+    }
+  }, [waveformAnimationReady, videoLoaded, videoFailed]);
+
+  // Optimiser useScroll sur mobile - simplifier le parallax pour de meilleures performances
+  // Note: on garde useScroll actif mais on simplifie les transformations sur mobile
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ['start start', 'end start'],
   });
 
-  const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
-  const scale = useTransform(scrollYProgress, [0, 0.5], [1, 0.8]);
+  // Simplifier les transformations sur mobile - utiliser des valeurs statiques
+  // Sur mobile, on utilise directement des valeurs numériques au lieu de useTransform
+  const opacity = useTransform(scrollYProgress, [0, 0.5], [1, isMobile ? 1 : 0]);
+  const scale = useTransform(scrollYProgress, [0, 0.5], [1, isMobile ? 1 : 0.8]);
 
-  // Parallax effect for hero content
-  const heroY = useTransform(scrollYProgress, [0, 1], [0, -50]);
+  // Parallax effect for hero content - désactivé sur mobile
+  const heroY = useTransform(scrollYProgress, [0, 1], [0, isMobile ? 0 : -50]);
 
   // Configurer les animations et appliquer les configurations
+  // Optimiser GSAP sur mobile - utiliser CSS animation à la place si possible
+  // Utiliser CSS animation directement (plus performant que GSAP pour animations continues)
   useEffect(() => {
-    if (!containerRef.current) return;
-    const tl = gsap.timeline({ repeat: -1 });
-    tl.to('.waveform', {
-      backgroundPositionX: '100%',
-      duration: 10,
-      ease: 'none',
-    });
-    return () => {
-      tl.kill();
-    };
-  }, []);
+    // L'animation est maintenant gérée par CSS via la classe 'waveform-animated'
+    // Plus besoin de GSAP pour cette animation - CSS est plus performant
+    // GSAP reste disponible pour d'autres animations si nécessaire
+  }, [isMobile]);
 
   // Extraire les configurations de la page d'accueil lors du chargement des données
   useEffect(() => {
@@ -191,13 +238,16 @@ export default function HomePage() {
     };
   }, [isSoundActive]);
 
-  // Enable scroll snapping for homepage (CSS only, no JS interference)
+  // Enable scroll snapping for homepage - désactivé sur mobile pour éviter les bugs
   useEffect(() => {
-    document.documentElement.classList.add('homepage-scroll-snap');
+    // Ne pas ajouter la classe sur mobile pour éviter les problèmes de performance
+    if (!isMobile) {
+      document.documentElement.classList.add('homepage-scroll-snap');
+    }
     return () => {
       document.documentElement.classList.remove('homepage-scroll-snap');
     };
-  }, []);
+  }, [isMobile]);
 
   // Rendu des sections selon l'ordre configuré
   const renderSections = () => {
@@ -228,10 +278,10 @@ export default function HomePage() {
               {eventsLoading ? (
                 <motion.section
                   key="events-loader"
-                  initial={{ opacity: 0, y: 40 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -40 }}
-                  transition={{ duration: 0.5, ease: 'easeOut' }}
+                  initial={isMobile ? { opacity: 1 } : { opacity: 0, y: 40 }}
+                  animate={isMobile ? undefined : { opacity: 1, y: 0 }}
+                  exit={isMobile ? undefined : { opacity: 0, y: -40 }}
+                  transition={isMobile ? undefined : { duration: 0.5, ease: 'easeOut' }}
                   className="py-20 bg-gradient-to-b from-black to-purple-900/20"
                   aria-live="polite"
                 >
@@ -256,10 +306,10 @@ export default function HomePage() {
               ) : eventsError ? (
                 <motion.section
                   key="events-error"
-                  initial={{ opacity: 0, y: 40 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -40 }}
-                  transition={{ duration: 0.5, ease: 'easeOut' }}
+                  initial={isMobile ? { opacity: 1 } : { opacity: 0, y: 40 }}
+                  animate={isMobile ? undefined : { opacity: 1, y: 0 }}
+                  exit={isMobile ? undefined : { opacity: 0, y: -40 }}
+                  transition={isMobile ? undefined : { duration: 0.5, ease: 'easeOut' }}
                   className="py-20 bg-gradient-to-b from-black to-purple-900/20"
                   aria-live="polite"
                 >
@@ -272,10 +322,10 @@ export default function HomePage() {
               ) : eventsData && !eventsError ? (
                 <motion.section
                   key="events-section"
-                  initial={{ opacity: 0, y: 40 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -40 }}
-                  transition={{ duration: 0.7, ease: 'easeOut' }}
+                  initial={isMobile ? { opacity: 1 } : { opacity: 0, y: 40 }}
+                  animate={isMobile ? undefined : { opacity: 1, y: 0 }}
+                  exit={isMobile ? undefined : { opacity: 0, y: -40 }}
+                  transition={isMobile ? undefined : { duration: 0.7, ease: 'easeOut' }}
                   className="py-20 bg-gradient-to-b from-black to-purple-900/20"
                   aria-live="polite"
                 >
@@ -302,18 +352,49 @@ export default function HomePage() {
       // Seule la première section (index 0) doit être visible immédiatement
       const isFirstSection = index === 0;
 
+      // Optimiser les animations sur mobile - garder l'affichage mais simplifier les animations
+      const isMobileSection = isMobile;
+
       return (
         <motion.div
           key={`section-${section}-${index}`}
-          initial={isFirstSection ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-          animate={isFirstSection ? { opacity: 1, y: 0 } : undefined}
-          whileInView={isFirstSection ? undefined : { opacity: 1, y: 0 }}
+          initial={
+            isMobileSection
+              ? isFirstSection
+                ? { opacity: 1 }
+                : { opacity: 0 } // Sur mobile: juste opacity, pas de mouvement
+              : isFirstSection
+                ? { opacity: 1, y: 0 }
+                : { opacity: 0, y: 30 }
+          }
+          animate={
+            isMobileSection
+              ? isFirstSection
+                ? { opacity: 1 }
+                : undefined // Sur mobile: pas d'animation automatique
+              : isFirstSection
+                ? { opacity: 1, y: 0 }
+                : undefined
+          }
+          whileInView={
+            isMobileSection
+              ? isFirstSection
+                ? undefined
+                : { opacity: 1 } // Sur mobile: juste opacity au scroll, pas de mouvement
+              : isFirstSection
+                ? undefined
+                : { opacity: 1, y: 0 }
+          }
           viewport={isFirstSection ? undefined : { once: true, margin: '-100px' }}
-          transition={{
-            duration: 0.6,
-            ease: [0.4, 0, 0.2, 1],
-            delay: isFirstSection ? 0 : index * 0.1,
-          }}
+          transition={
+            isMobileSection
+              ? { duration: 0.3, ease: 'easeOut' } // Animation plus rapide et simple sur mobile
+              : {
+                  duration: 0.6,
+                  ease: [0.4, 0, 0.2, 1],
+                  delay: isFirstSection ? 0 : index * 0.1,
+                }
+          }
           className="scroll-snap-section"
           style={{ position: 'relative' }} // Fix for Framer Motion scroll offset warning
         >
@@ -327,13 +408,15 @@ export default function HomePage() {
   const renderHeroSection = () => {
     const currentConfig = config || defaultConfigs.homepage;
 
-    // Générer des particules flottantes
-    const particles = Array.from({ length: 20 }, (_, i) => ({
-      id: i,
-      left: `${Math.random() * 100}%`,
-      delay: `${Math.random() * 15}s`,
-      size: `${2 + Math.random() * 4}px`,
-    }));
+    // Générer des particules flottantes - désactivées sur mobile pour améliorer les performances
+    const particles = isMobile
+      ? []
+      : Array.from({ length: 20 }, (_, i) => ({
+          id: i,
+          left: `${Math.random() * 100}%`,
+          delay: `${Math.random() * 15}s`,
+          size: `${2 + Math.random() * 4}px`,
+        }));
 
     return (
       <div
@@ -341,10 +424,28 @@ export default function HomePage() {
         className="min-h-[calc(100vh-4rem)] relative overflow-hidden"
         style={{ position: 'relative' }}
       >
-        {/* Animated Gradient Background Layers */}
+        {/* Animated Gradient Background Layers - optimisé pour mobile avec GPU acceleration */}
         <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-900/30 via-blue-900/20 to-purple-900/30 animate-gradient-shift bg-[length:200%_200%]" />
-          <div className="absolute inset-0 bg-gradient-to-tr from-blue-900/20 via-transparent to-purple-900/20 animate-gradient-pulse" />
+          <div
+            className={`absolute inset-0 bg-gradient-to-br from-purple-900/30 via-blue-900/20 to-purple-900/30 bg-[length:200%_200%] ${isMobile ? '' : 'animate-gradient-shift'}`}
+            style={{
+              willChange: isMobile ? 'auto' : 'background-position',
+              transform: 'translateZ(0)', // Force GPU acceleration
+              backfaceVisibility: 'hidden',
+              WebkitBackfaceVisibility: 'hidden',
+              animationDelay: '1s', // Démarrer après les animations principales
+            }}
+          />
+          <div
+            className={`absolute inset-0 bg-gradient-to-tr from-blue-900/20 via-transparent to-purple-900/20 ${isMobile ? '' : 'animate-gradient-pulse'}`}
+            style={{
+              willChange: isMobile ? 'auto' : 'opacity',
+              transform: 'translateZ(0)', // Force GPU acceleration
+              backfaceVisibility: 'hidden',
+              WebkitBackfaceVisibility: 'hidden',
+              animationDelay: '1.2s', // Démarrer après les animations principales
+            }}
+          />
         </div>
 
         {/* Background Video */}
@@ -355,8 +456,10 @@ export default function HomePage() {
             muted
             loop
             playsInline
+            preload={isMobile ? 'metadata' : 'auto'}
             className="w-full h-full object-cover"
             poster={currentConfig.heroPosterImage}
+            style={{ willChange: 'auto' }}
           >
             <source src={currentConfig.heroBackgroundVideo} type="video/mp4" />
           </video>
@@ -380,46 +483,152 @@ export default function HomePage() {
         {/* Hero Content with Enhanced Glassmorphism and Parallax */}
         <motion.div
           style={{
-            opacity,
-            scale,
+            opacity: isMobile ? 1 : opacity,
+            scale: isMobile ? 1 : scale,
             y: heroY,
           }}
           className="relative z-20 h-[calc(100vh-4rem)] flex flex-col items-center justify-center text-center px-4"
         >
-          {/* Glassmorphism Container */}
-          <div className="glass-modern rounded-3xl p-8 md:p-12 backdrop-blur-xl border border-white/20 shadow-2xl">
+          {/* Glassmorphism Container - optimisé pour mobile */}
+          <div
+            className="glass-modern rounded-3xl p-8 md:p-12 backdrop-blur-xl border border-white/20 shadow-2xl"
+            style={{ willChange: isMobile ? 'auto' : 'transform' }}
+          >
             <motion.h1
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.8, ease: 'easeOut' }}
-              className="text-5xl md:text-7xl lg:text-8xl font-audiowide mb-6 text-gradient-animated"
+              initial={isMobile ? { opacity: 1 } : { y: 20, opacity: 0 }}
+              animate={
+                isMobile || readyForOtherAnimations
+                  ? isMobile
+                    ? undefined
+                    : { y: 0, opacity: 1 }
+                  : { y: 20, opacity: 0 }
+              }
+              transition={isMobile ? undefined : { duration: 0.6, ease: 'easeOut', delay: 0.1 }}
+              className={`text-5xl md:text-7xl lg:text-8xl font-audiowide mb-6 ${isMobile ? 'text-gradient' : 'text-gradient-animated'}`}
+              style={{ willChange: isMobile ? 'auto' : 'transform, opacity' }}
             >
               {currentConfig.heroTitle}
             </motion.h1>
 
             <motion.p
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
+              initial={isMobile ? { opacity: 1 } : { y: 20, opacity: 0 }}
+              animate={
+                isMobile || readyForOtherAnimations
+                  ? isMobile
+                    ? undefined
+                    : { y: 0, opacity: 1 }
+                  : { y: 20, opacity: 0 }
+              }
+              transition={isMobile ? undefined : { duration: 0.6, ease: 'easeOut', delay: 0.3 }}
               className="text-xl md:text-2xl text-gray-200 font-montserrat mb-8 max-w-2xl drop-shadow-lg"
+              style={{ willChange: isMobile ? 'auto' : 'transform, opacity' }}
             >
               {currentConfig.heroSubtitle}
             </motion.p>
 
-            {/* Enhanced Animated Waveform */}
+            {/* Enhanced Animated Waveform - Démarré APRÈS le chargement des données critiques */}
             <motion.div
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: 1 }}
-              transition={{ duration: 1, ease: 'easeOut', delay: 0.4 }}
-              className="waveform w-full max-w-md h-16 bg-gradient-to-r from-purple-500 via-blue-500 to-purple-500 bg-[length:200%_100%] rounded-lg opacity-70 animate-gradient-shift glow-purple mx-auto"
-            />
+              initial={{ scaleX: 0, opacity: 0 }}
+              animate={criticalDataLoaded ? { scaleX: 1, opacity: 0.7 } : { scaleX: 0, opacity: 0 }}
+              transition={{
+                duration: 0.8,
+                ease: [0.25, 0.1, 0.25, 1], // Courbe de Bézier personnalisée pour plus de fluidité
+                delay: 0, // Pas de délai supplémentaire, mais attend que criticalDataLoaded soit true
+              }}
+              onAnimationComplete={() => {
+                // Marquer que l'animation de déploiement est terminée
+                // Maintenant on peut démarrer les autres animations et la vidéo
+                setWaveformAnimationReady(true);
+                setReadyForOtherAnimations(true);
+              }}
+              className="waveform w-full max-w-md h-16 rounded-lg glow-purple mx-auto relative overflow-hidden"
+              style={{
+                willChange: 'transform, opacity',
+                transform: 'translateZ(0)', // Force GPU acceleration
+                backfaceVisibility: 'hidden',
+                WebkitBackfaceVisibility: 'hidden',
+                // Optimisations supplémentaires pour la fluidité
+                isolation: 'isolate', // Créer un nouveau contexte de stacking pour l'isolation GPU
+                // Priorité GPU maximale
+                contain: 'layout style paint',
+              }}
+            >
+              {/* Vidéo du gradient animé - plus fluide que CSS animation, utilisée aussi sur mobile pour performance */}
+              {!videoFailed && (
+                <video
+                  autoPlay={false}
+                  muted
+                  loop
+                  playsInline
+                  preload={isMobile ? 'metadata' : 'auto'}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  style={{
+                    opacity: videoLoaded && waveformAnimationReady ? 1 : 0,
+                    transition: 'opacity 0.3s ease-in',
+                  }}
+                  ref={videoRef}
+                  onLoadedData={(e) => {
+                    console.log('[Waveform] ✅ Vidéo chargée avec succès');
+                    setVideoLoaded(true);
+                    // La vidéo sera démarrée par le useEffect quand l'animation sera terminée
+                  }}
+                  onTimeUpdate={(e) => {
+                    // S'assurer que la boucle est parfaite en revenant à 0 juste avant la fin
+                    const video = e.currentTarget;
+                    if (video.duration && video.currentTime >= video.duration - 0.1) {
+                      video.currentTime = 0;
+                    }
+                  }}
+                  onError={(e) => {
+                    // Si la vidéo ne charge pas (404 ou autre erreur), utiliser le fallback CSS
+                    const video = e.currentTarget;
+                    const errorDetails = {
+                      error: e.type,
+                      videoSrc: video?.src || video?.currentSrc,
+                      networkState: video?.networkState, // 0=empty, 1=idle, 2=loading, 3=noSource
+                      readyState: video?.readyState, // 0=haveNothing, 1=haveMetadata, 2=haveCurrentData, 3=haveFutureData, 4=haveEnough
+                      errorCode: video?.error?.code,
+                      errorMessage: video?.error?.message,
+                    };
+                    console.warn(
+                      '[Waveform] ❌ Erreur lors du chargement de la vidéo:',
+                      errorDetails
+                    );
+                    setVideoFailed(true);
+                    setWaveformAnimationReady(true);
+                  }}
+                  onLoadStart={() => {
+                    console.log('[Waveform] 🔄 Début du chargement de la vidéo');
+                  }}
+                >
+                  <source src="/videos/waveform-gradient.mp4" type="video/mp4" />
+                </video>
+              )}
+
+              {/* Fallback gradient animé CSS si vidéo non disponible */}
+              <div
+                className={`absolute inset-0 bg-gradient-to-r from-purple-500 via-blue-500 to-purple-500 bg-[length:200%_100%] ${(!videoLoaded || videoFailed) && waveformAnimationReady ? 'waveform-animated' : ''}`}
+                style={{
+                  opacity: !videoLoaded || videoFailed ? 1 : 0,
+                  display: !videoLoaded || videoFailed ? 'block' : 'none',
+                  transition: 'opacity 0.3s ease-out',
+                }}
+              />
+            </motion.div>
 
             {/* Modern CTA Buttons */}
             <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.8, ease: 'easeOut', delay: 0.6 }}
+              initial={isMobile ? { opacity: 1 } : { y: 20, opacity: 0 }}
+              animate={
+                isMobile || readyForOtherAnimations
+                  ? isMobile
+                    ? undefined
+                    : { y: 0, opacity: 1 }
+                  : { y: 20, opacity: 0 }
+              }
+              transition={isMobile ? undefined : { duration: 0.6, ease: 'easeOut', delay: 0.8 }}
               className="flex flex-col sm:flex-row gap-4 mt-12 justify-center items-center"
+              style={{ willChange: isMobile ? 'auto' : 'transform, opacity' }}
             >
               <a
                 href={currentConfig.heroExploreButtonUrl}
@@ -439,30 +648,32 @@ export default function HomePage() {
           </div>
         </motion.div>
 
-        {/* Enhanced Scroll Indicator */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1, duration: 1 }}
-          className="absolute bottom-16 left-1/2 transform -translate-x-1/2 flex flex-col items-center z-20 glass-modern px-4 py-3 rounded-full"
-          aria-label="Indicateur de défilement"
-        >
-          <span className="text-white text-sm mb-2 font-montserrat">Scroll to Explore</span>
-          <div className="w-0.5 h-8 bg-white/30 relative overflow-hidden rounded-full">
-            <motion.div
-              animate={{
-                y: [0, 32, 0],
-              }}
-              transition={{
-                duration: 1.5,
-                repeat: Infinity,
-                ease: 'linear',
-              }}
-              className="w-full h-1/3 bg-gradient-to-b from-purple-400 to-blue-400 absolute top-0 rounded-full"
-              aria-hidden="true"
-            />
-          </div>
-        </motion.div>
+        {/* Enhanced Scroll Indicator - masqué sur mobile pour économiser les performances */}
+        {!isMobile && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1, duration: 1 }}
+            className="absolute bottom-16 left-1/2 transform -translate-x-1/2 flex flex-col items-center z-20 glass-modern px-4 py-3 rounded-full"
+            aria-label="Indicateur de défilement"
+          >
+            <span className="text-white text-sm mb-2 font-montserrat">Scroll to Explore</span>
+            <div className="w-0.5 h-8 bg-white/30 relative overflow-hidden rounded-full">
+              <motion.div
+                animate={{
+                  y: [0, 32, 0],
+                }}
+                transition={{
+                  duration: 1.5,
+                  repeat: Infinity,
+                  ease: 'linear',
+                }}
+                className="w-full h-1/3 bg-gradient-to-b from-purple-400 to-blue-400 absolute top-0 rounded-full"
+                aria-hidden="true"
+              />
+            </div>
+          </motion.div>
+        )}
       </div>
     );
   };
@@ -473,17 +684,20 @@ export default function HomePage() {
 
     return (
       <section className="py-20 relative overflow-hidden">
-        {/* Animated Gradient Background */}
+        {/* Animated Gradient Background - optimisé pour mobile */}
         <div className="absolute inset-0 bg-gradient-to-b from-black via-purple-900/10 to-black">
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-900/15 via-blue-900/10 to-purple-900/15 animate-gradient-pulse" />
+          <div
+            className={`absolute inset-0 bg-gradient-to-r from-purple-900/15 via-blue-900/10 to-purple-900/15 ${isMobile ? '' : 'animate-gradient-pulse'}`}
+          />
         </div>
 
         <div className="max-w-7xl mx-auto px-4 relative z-10">
           <div className="relative group">
             <motion.h2
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
+              initial={isMobile ? { opacity: 0 } : { opacity: 0, y: 20 }}
+              whileInView={isMobile ? { opacity: 1 } : { opacity: 1, y: 0 }}
+              transition={isMobile ? { duration: 0.3, ease: 'easeOut' } : { duration: 0.6 }}
+              viewport={{ once: true, margin: '-50px' }}
               className="text-4xl md:text-5xl font-audiowide mb-12 text-center flex items-center justify-center gap-4"
             >
               <motion.button
@@ -505,29 +719,37 @@ export default function HomePage() {
           </div>
 
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-            className="relative w-full aspect-[2/1] rounded-2xl overflow-hidden glass-modern animate-glow-border border-2 border-purple-500/30 shadow-2xl"
+            initial={isMobile ? { opacity: 0, scale: 1 } : { opacity: 0, scale: 0.95 }}
+            whileInView={isMobile ? { opacity: 1, scale: 1 } : { opacity: 1, scale: 1 }}
+            viewport={{ once: true, margin: '-50px' }}
+            transition={isMobile ? { duration: 0.3, ease: 'easeOut' } : { duration: 0.8 }}
+            className={`relative w-full aspect-[2/1] rounded-2xl overflow-hidden glass-modern border-2 border-purple-500/30 shadow-2xl ${isMobile ? '' : 'animate-glow-border'}`}
           >
             <AnimatePresence mode="wait">
               <motion.div
                 key={isSoundActive ? 'rhythm' : 'particles'}
-                initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                transition={{
-                  duration: 0.6,
-                  ease: [0.4, 0, 0.2, 1],
-                }}
+                initial={isMobile ? { opacity: 0, scale: 1 } : { opacity: 0, y: 20, scale: 0.95 }}
+                animate={isMobile ? { opacity: 1, scale: 1 } : { opacity: 1, y: 0, scale: 1 }}
+                exit={isMobile ? { opacity: 0, scale: 0.95 } : { opacity: 0, y: -20, scale: 0.95 }}
+                transition={
+                  isMobile
+                    ? {
+                        duration: 0.3,
+                        ease: 'easeOut',
+                      }
+                    : {
+                        duration: 0.6,
+                        ease: [0.4, 0, 0.2, 1],
+                      }
+                }
                 className="w-full h-full absolute inset-0"
               >
-                {isSoundActive ? (
-                  <RhythmCatcher onClose={handleExperienceClick} />
-                ) : (
-                  <ParticleVisualizer />
-                )}
+                {waveformAnimationReady &&
+                  (isSoundActive ? (
+                    <RhythmCatcher onClose={handleExperienceClick} />
+                  ) : (
+                    <ParticleVisualizer />
+                  ))}
               </motion.div>
             </AnimatePresence>
           </motion.div>

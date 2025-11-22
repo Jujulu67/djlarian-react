@@ -256,6 +256,35 @@
   animation: highlight-ring 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
+/* Animation pour la track en succès (création/modification) */
+@keyframes success-glow {
+  0% {
+    box-shadow:
+      0 0 0 0 rgba(34, 197, 94, 0.7),
+      0 0 0 0 rgba(34, 197, 94, 0.5),
+      0 0 20px rgba(34, 197, 94, 0.3);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow:
+      0 0 0 8px rgba(34, 197, 94, 0),
+      0 0 0 12px rgba(34, 197, 94, 0),
+      0 0 40px rgba(34, 197, 94, 0.6);
+    transform: scale(1.01);
+  }
+  100% {
+    box-shadow:
+      0 0 0 0 rgba(34, 197, 94, 0),
+      0 0 0 0 rgba(34, 197, 94, 0),
+      0 0 20px rgba(34, 197, 94, 0.3);
+    transform: scale(1);
+  }
+}
+
+.animate-success-glow {
+  animation: success-glow 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
 /* ===== MODERN DESIGN 2025 EFFECTS ===== */
 
 /* Animated Gradients */
@@ -268,6 +297,26 @@
   }
   100% {
     background-position: 0% 50%;
+  }
+}
+
+/* Optimized horizontal gradient animation for waveform - smooth GPU-accelerated animation */
+@keyframes gradient-shift-horizontal {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 200% 0%;
+  }
+}
+
+/* Alternative: Use transform-based animation for even better performance (if needed) */
+@keyframes gradient-shift-transform {
+  0% {
+    transform: translateX(0) translateZ(0);
+  }
+  100% {
+    transform: translateX(-100%) translateZ(0);
   }
 }
 
@@ -331,10 +380,32 @@
 .animate-gradient-shift {
   background-size: 200% 200%;
   animation: gradient-shift 8s ease infinite;
+  /* GPU acceleration optimizations */
+  transform: translateZ(0);
+  will-change: background-position;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Optimized waveform animation - uses GPU-accelerated background-position */
+.waveform-animated {
+  animation: gradient-shift-horizontal 10s linear infinite;
+  /* Force GPU acceleration */
+  transform: translateZ(0);
+  will-change: background-position;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  /* Démarrer l'animation après un court délai pour éviter le stutter initial */
+  animation-delay: 0.2s;
 }
 
 .animate-gradient-pulse {
   animation: gradient-pulse 3s ease-in-out infinite;
+  /* GPU acceleration optimizations */
+  transform: translateZ(0);
+  will-change: opacity;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 /* Enhanced Glassmorphism */
@@ -528,13 +599,27 @@
 @media (max-width: 768px) {
   /* Reduce particle count on mobile */
   .particle {
-    display: none;
+    display: none !important;
   }
 
-  /* Reduce animation complexity */
+  /* Disable or reduce animation complexity on mobile for better performance */
   .animate-gradient-shift,
   .animate-gradient-pulse {
-    animation-duration: 12s !important;
+    animation: none !important;
+    /* Fallback to static gradient */
+    background-position: 50% 50% !important;
+  }
+
+  /* Disable glow animations on mobile */
+  .animate-glow-pulse,
+  .animate-glow-border {
+    animation: none !important;
+  }
+
+  /* Simplify text gradient animation on mobile */
+  .text-gradient-animated {
+    animation: none !important;
+    background-position: 50% 50% !important;
   }
 
   /* Larger touch targets */
@@ -551,10 +636,40 @@
     padding-bottom: 3rem;
   }
 
-  /* Optimize glassmorphism on mobile */
+  /* Optimize glassmorphism on mobile - reduce blur for better performance */
   .glass-modern {
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    /* Use transform for better GPU acceleration */
+    transform: translateZ(0);
+    will-change: auto;
+  }
+
+  /* Disable hover effects on mobile */
+  .glass-modern-hover:hover {
+    transform: none !important;
+  }
+
+  /* Optimize 3D effects on mobile */
+  .lift-3d {
+    transform: none !important;
+  }
+
+  .lift-3d:hover {
+    transform: none !important;
+  }
+
+  /* Reduce backdrop blur in hero section on mobile */
+  .hero-section .glass-modern,
+  .hero-section .backdrop-blur-xl {
+    backdrop-filter: blur(6px) !important;
+    -webkit-backdrop-filter: blur(6px) !important;
+  }
+
+  /* Optimize video rendering on mobile */
+  video {
+    transform: translateZ(0);
+    will-change: auto;
   }
 }
 

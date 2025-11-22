@@ -2,6 +2,7 @@
 
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowLeft,
   Calendar,
@@ -14,10 +15,13 @@ import {
   XCircle,
   Clock,
   RefreshCw,
+  X,
+  Maximize2,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { FaSpotify, FaYoutube, FaSoundcloud, FaApple, FaMusic as FaDeezer } from 'react-icons/fa';
 
 import { logger } from '@/lib/logger';
@@ -42,6 +46,7 @@ export default function TrackDetailView({ trackId, onClose }: TrackDetailViewPro
   const [track, setTrack] = useState<Track | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isImageFullscreen, setIsImageFullscreen] = useState(false);
 
   useEffect(() => {
     const fetchTrackDetails = async () => {
@@ -69,6 +74,26 @@ export default function TrackDetailView({ trackId, onClose }: TrackDetailViewPro
 
     fetchTrackDetails();
   }, [trackId]);
+
+  // Gérer la fermeture avec la touche Escape
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isImageFullscreen) {
+        setIsImageFullscreen(false);
+      }
+    };
+
+    if (isImageFullscreen) {
+      document.addEventListener('keydown', handleEscape);
+      // Empêcher le scroll du body quand l'image est en plein écran
+      document.body.style.overflow = 'hidden';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = '';
+    };
+  }, [isImageFullscreen]);
 
   if (isLoading) {
     return (
@@ -131,19 +156,30 @@ export default function TrackDetailView({ trackId, onClose }: TrackDetailViewPro
       {/* Colonne Gauche: Image & Infos rapides */}
       <div className="md:col-span-1 flex flex-col items-center">
         {track.imageId ? (
-          <Image
-            src={
-              getImageUrl(track.imageId, {
-                cacheBust: track.updatedAt ? new Date(track.updatedAt).getTime() : Date.now(),
-              }) || ''
-            }
-            alt={`Pochette de ${track.title}`}
-            width={300}
-            height={300}
-            className="rounded-lg shadow-lg mb-6 aspect-square object-cover border-2 border-purple-500/30"
-            priority
-            unoptimized
-          />
+          <div className="relative group mb-6">
+            <button
+              onClick={() => setIsImageFullscreen(true)}
+              className="relative rounded-lg shadow-lg overflow-hidden border-2 border-purple-500/30 transition-all duration-300 hover:border-purple-500/60 hover:shadow-xl hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+            >
+              <Image
+                src={
+                  getImageUrl(track.imageId, {
+                    cacheBust: track.updatedAt ? new Date(track.updatedAt).getTime() : Date.now(),
+                  }) || ''
+                }
+                alt={`Pochette de ${track.title}`}
+                width={300}
+                height={300}
+                className="w-[300px] h-[300px] aspect-square object-cover"
+                priority
+                unoptimized
+              />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
+                <Maximize2 className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              </div>
+            </button>
+            <p className="text-xs text-gray-500 mt-2 text-center">Cliquez pour agrandir</p>
+          </div>
         ) : (
           <div className="w-[300px] h-[300px] bg-gray-800/50 rounded-lg flex items-center justify-center mb-6 border-2 border-purple-500/30">
             <Music className="w-20 h-20 text-gray-500" />
@@ -246,6 +282,76 @@ export default function TrackDetailView({ trackId, onClose }: TrackDetailViewPro
           )}
         </div>
       </div>
+
+      {/* Modale d'affichage en grand de l'image - Rendu via Portal pour être au-dessus de tout */}
+      {typeof window !== 'undefined' &&
+        ReactDOM.createPortal(
+          <AnimatePresence>
+            {isImageFullscreen && track.imageId && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="fixed inset-0 z-[99999] bg-black/95 backdrop-blur-sm flex items-center justify-center p-4"
+                onClick={() => setIsImageFullscreen(false)}
+                style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+              >
+                {/* Bouton de fermeture */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsImageFullscreen(false);
+                  }}
+                  className="absolute top-4 right-4 z-10 w-12 h-12 rounded-full bg-gray-900/80 hover:bg-gray-800/80 border border-gray-700/50 flex items-center justify-center transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                  aria-label="Fermer"
+                >
+                  <X className="w-6 h-6 text-white" />
+                </button>
+
+                {/* Image en grand */}
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.8, opacity: 0 }}
+                  transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+                  className="relative max-w-[90vw] max-h-[90vh] w-auto h-auto"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Image
+                    src={
+                      getImageUrl(track.imageId, {
+                        cacheBust: track.updatedAt
+                          ? new Date(track.updatedAt).getTime()
+                          : Date.now(),
+                      }) || ''
+                    }
+                    alt={`Pochette de ${track.title} - Taille réelle`}
+                    width={1200}
+                    height={1200}
+                    className="max-w-full max-h-[90vh] w-auto h-auto object-contain rounded-lg shadow-2xl"
+                    priority
+                    unoptimized
+                    style={{
+                      imageRendering: 'auto',
+                    }}
+                  />
+                  {/* Info en bas */}
+                  <motion.div
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent p-6 rounded-b-lg"
+                  >
+                    <p className="text-white font-semibold text-lg">{track.title}</p>
+                    <p className="text-gray-300 text-sm">{track.artist}</p>
+                  </motion.div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body
+        )}
     </div>
   );
 }
