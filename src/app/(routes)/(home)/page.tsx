@@ -568,7 +568,6 @@ export default function HomePage() {
                   }}
                   ref={videoRef}
                   onLoadedData={(e) => {
-                    console.log('[Waveform] ✅ Vidéo chargée avec succès');
                     setVideoLoaded(true);
                     // La vidéo sera démarrée par le useEffect quand l'animation sera terminée
                   }}
@@ -598,7 +597,7 @@ export default function HomePage() {
                     setWaveformAnimationReady(true);
                   }}
                   onLoadStart={() => {
-                    console.log('[Waveform] 🔄 Début du chargement de la vidéo');
+                    // Début du chargement de la vidéo
                   }}
                 >
                   <source src="/videos/waveform-gradient.mp4" type="video/mp4" />

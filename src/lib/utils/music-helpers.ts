@@ -16,7 +16,7 @@ export const MUSIC_TYPES: { label: string; value: MusicType }[] = [
 /** Formulaire vide par défaut utilisé partout */
 export const emptyTrackForm: Omit<Track, 'id'> & { id?: string } = {
   title: '',
-  artist: 'DJ Larian',
+  artist: 'Larian',
   imageId: undefined,
   releaseDate: new Date().toISOString().split('T')[0],
   genre: [],
@@ -26,6 +26,7 @@ export const emptyTrackForm: Omit<Track, 'id'> & { id?: string } = {
   platforms: {},
   isPublished: true,
   bpm: undefined,
+  musicalKey: undefined,
   collection: undefined,
   user: undefined,
   createdAt: undefined,

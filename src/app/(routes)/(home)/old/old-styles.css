@@ -61,12 +61,12 @@
 }
 
 /* Restore original Latest Releases section */
-.old-homepage-wrapper section[class*="py-20"] {
+.old-homepage-wrapper section[class*='py-20'] {
   background: rgba(0, 0, 0, 0.5) !important;
   backdrop-filter: blur(16px) !important;
 }
 
-.old-homepage-wrapper section[class*="py-20"]::before {
+.old-homepage-wrapper section[class*='py-20']::before {
   display: none !important;
 }
 
@@ -84,7 +84,9 @@
 }
 
 .old-homepage-wrapper .golden-border:hover {
-  box-shadow: 0 0 8px 2px #FFF3A3, 0 0 15px 5px #DAA520 !important;
+  box-shadow:
+    0 0 8px 2px #fff3a3,
+    0 0 15px 5px #daa520 !important;
   animation: shimmer 3s ease-in-out infinite !important;
 }
 
@@ -105,7 +107,7 @@
 }
 
 /* Restore original scroll indicator */
-.old-homepage-wrapper .glass-modern[class*="bottom-8"] {
+.old-homepage-wrapper .glass-modern[class*='bottom-8'] {
   background: transparent !important;
   backdrop-filter: none !important;
   border: none !important;
@@ -121,23 +123,23 @@
 }
 
 /* Restore original Twitch Stream section */
-.old-homepage-wrapper section[class*="bg-black"],
-.old-homepage-wrapper section[class*="bg-gradient"] {
+.old-homepage-wrapper section[class*='bg-black'],
+.old-homepage-wrapper section[class*='bg-gradient'] {
   background: black !important;
 }
 
-.old-homepage-wrapper section[class*="bg-gradient"]::before {
+.old-homepage-wrapper section[class*='bg-gradient']::before {
   display: none !important;
 }
 
 /* Restore original stats cards */
-.old-homepage-wrapper .glass-modern[class*="rounded-2xl"] {
+.old-homepage-wrapper .glass-modern[class*='rounded-2xl'] {
   background: rgba(17, 24, 39, 0.5) !important;
   backdrop-filter: blur(16px) !important;
   border: none !important;
 }
 
-.old-homepage-wrapper .glass-modern[class*="rounded-2xl"] div[class*="text-transparent"] {
+.old-homepage-wrapper .glass-modern[class*='rounded-2xl'] div[class*='text-transparent'] {
   background: none !important;
   -webkit-background-clip: unset !important;
   background-clip: unset !important;
@@ -145,11 +147,11 @@
 }
 
 /* Restore original Visualizer section */
-.old-homepage-wrapper section[class*="py-20"][class*="relative"] {
+.old-homepage-wrapper section[class*='py-20'][class*='relative'] {
   background: transparent !important;
 }
 
-.old-homepage-wrapper section[class*="py-20"][class*="relative"]::before {
+.old-homepage-wrapper section[class*='py-20'][class*='relative']::before {
   display: none !important;
 }
 
@@ -165,7 +167,7 @@
 }
 
 /* Restore original iframe container */
-.old-homepage-wrapper .aspect-video[class*="rounded-2xl"] {
+.old-homepage-wrapper .aspect-video[class*='rounded-2xl'] {
   background: rgb(17, 24, 39) !important;
   border: none !important;
   animation: none !important;
@@ -177,12 +179,12 @@
   background: rgba(0, 0, 0, 0.5) !important;
 }
 
-.old-homepage-wrapper section[class*="bg-gradient-to-b"] {
+.old-homepage-wrapper section[class*='bg-gradient-to-b'] {
   background: linear-gradient(to bottom, rgb(0, 0, 0), rgba(147, 51, 234, 0.2)) !important;
 }
 
 /* Remove all animated gradient backgrounds */
-.old-homepage-wrapper div[class*="absolute"][class*="inset-0"][class*="bg-gradient"] {
+.old-homepage-wrapper div[class*='absolute'][class*='inset-0'][class*='bg-gradient'] {
   display: none !important;
 }
 
@@ -216,4 +218,3 @@
 .old-homepage-wrapper .animate-glow-border {
   animation: none !important;
 }
-

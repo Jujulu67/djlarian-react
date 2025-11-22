@@ -9,12 +9,12 @@ import {
   createForbiddenResponse,
   createBadRequestResponse,
 } from '@/lib/api/responseHelpers';
-import { uploadToBlob, isBlobConfigured } from '@/lib/blob';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import { isNotEmpty } from '@/lib/utils/arrayHelpers';
 import { convertToWebP, canConvertToWebP } from '@/lib/utils/convertToWebP';
 import { generateImageId } from '@/lib/utils/generateImageId';
+import { saveImage } from '@/lib/utils/saveImage';
 import type { MusicType, MusicPlatform } from '@/lib/utils/types';
 
 /**
@@ -68,6 +68,7 @@ const trackCreateSchema = z.object({
     .optional()
     .nullable(), // Accepte le nouveau format court (timestamp-random) ou l'ancien UUID
   bpm: z.number().int().positive().optional().nullable(),
+  musicalKey: z.string().optional().nullable(),
   description: z.string().optional().nullable(),
   type: z.enum(musicTypes),
   featured: z.boolean().optional(),
@@ -184,10 +185,42 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   // Supprimer publishAt du DTO Zod car il est traité et sera passé séparément à Prisma
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   const { publishAt, ...dataForPrisma } = data;
 
   let imageId = dataForPrisma.imageId;
+
+  // Si pas d'imageId mais qu'on a des plateformes, essayer de récupérer l'image depuis les plateformes
+  if (!imageId && !dataForPrisma.thumbnailUrl && dataForPrisma.platforms) {
+    try {
+      const platforms = dataForPrisma.platforms.reduce(
+        (acc, p) => {
+          if (p.platform === 'spotify') acc.spotify = p.url;
+          else if (p.platform === 'soundcloud') acc.soundcloud = p.url;
+          else if (p.platform === 'youtube') acc.youtube = p.url;
+          return acc;
+        },
+        {} as { spotify?: string; soundcloud?: string; youtube?: string }
+      );
+
+      const { fetchThumbnailFromPlatforms } = await import(
+        '@/lib/utils/fetchThumbnailFromPlatforms'
+      );
+      const thumbnailResult = await fetchThumbnailFromPlatforms(platforms);
+
+      if (thumbnailResult) {
+        dataForPrisma.thumbnailUrl = thumbnailResult.url;
+        logger.debug(
+          `API MUSIC - Image trouvée depuis ${thumbnailResult.source}: ${thumbnailResult.url}`
+        );
+      }
+    } catch (err) {
+      logger.warn('API MUSIC - Erreur récupération image depuis plateformes:', err);
+      // On continue, on essaiera thumbnailUrl si fourni
+    }
+  }
+
+  // Si on a une thumbnailUrl (fournie ou récupérée depuis les plateformes), la télécharger et sauvegarder
   if (!imageId && dataForPrisma.thumbnailUrl) {
     try {
       imageId = generateImageId();
@@ -208,19 +241,16 @@ export async function POST(request: Request): Promise<Response> {
         }
       }
 
-      // Sauvegarder dans Vercel Blob si configuré
-      if (isBlobConfigured) {
-        const key = `uploads/${imageId}.webp`;
-        const originalKey = `uploads/${imageId}-ori.webp`;
-        await uploadToBlob(key, webpBuffer, 'image/webp');
-        await uploadToBlob(originalKey, webpBuffer, 'image/webp');
-        dataForPrisma.imageId = imageId;
+      // Sauvegarder l'image (locale ou Blob) via la fonction utilitaire partagée
+      const savedImageId = await saveImage(imageId, webpBuffer, webpBuffer);
+      if (savedImageId) {
+        dataForPrisma.imageId = savedImageId;
+        logger.debug(`API MUSIC - Image sauvegardée avec succès: ${savedImageId}`);
       } else {
-        logger.warn('API MUSIC - Vercel Blob not configured, skipping image upload');
-        // On continue sans image si Blob n'est pas configuré
+        logger.warn("API MUSIC - Échec de la sauvegarde de l'image, continuation sans image");
       }
     } catch (err) {
-      logger.error('API MUSIC - Erreur import thumbnail YouTube', err);
+      logger.error('API MUSIC - Erreur import thumbnail', err);
       // On continue sans image si erreur
     }
   }
@@ -290,6 +320,7 @@ export async function POST(request: Request): Promise<Response> {
             releaseDate: new Date(dataForPrisma.releaseDate),
             imageId: dataForPrisma.imageId,
             bpm: dataForPrisma.bpm,
+            musicalKey: dataForPrisma.musicalKey,
             description: dataForPrisma.description,
             type: dataForPrisma.type,
             featured: dataForPrisma.featured || false,

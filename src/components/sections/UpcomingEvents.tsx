@@ -128,7 +128,7 @@ export default function UpcomingEvents({
         >
           <a
             href="/events"
-            className="inline-flex items-center gap-2 text-purple-400 hover:text-purple-300 transition-all duration-300 group text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-black rounded px-2"
+            className="inline-flex items-center gap-2 text-white hover:text-gray-300 transition-all duration-300 group text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-black rounded px-2"
             aria-label="Voir tous les événements"
           >
             <span>Voir tous les événements</span>

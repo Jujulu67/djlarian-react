@@ -3,6 +3,7 @@
 ## 🎉 Ce qui a été fait
 
 ### ✅ Configuration Neon
+
 - ✅ Projet créé : `djlarian`
 - ✅ PostgreSQL 17 configuré
 - ✅ Connection string obtenue et configurée
@@ -50,6 +51,7 @@
    - **Sauvegarder** : Access Key ID, Secret Access Key, Account ID
 
 **Quand c'est fait, dites-moi :**
+
 - "Account ID : ..."
 - "R2 Access Key ID : ..."
 - "R2 Secret Access Key : ..."
@@ -76,4 +78,3 @@ Cela ouvrira Prisma Studio et vous pourrez voir vos tables dans la base Neon.
 - ⏳ En attente de Cloudflare Pages
 
 **Neon est prêt ! Passons à Cloudflare R2 maintenant.** 🚀
-

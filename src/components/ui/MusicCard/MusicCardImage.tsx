@@ -21,7 +21,7 @@ export const MusicCardImage: React.FC<MusicCardImageProps> = ({
 }) => {
   if (track.imageId && !imageError) {
     const imageSrc = getImageUrl(track.imageId, {
-      cacheBust: track.updatedAt ? new Date(track.updatedAt).getTime() : Date.now(),
+      cacheBust: track.updatedAt ? new Date(track.updatedAt).getTime() : 0,
     });
 
     if (!imageSrc) {

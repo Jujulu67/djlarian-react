@@ -198,11 +198,24 @@ function createAdapter(databaseUrl: string): PrismaBetterSqlite3 | PrismaNeon | 
 
 const adapter = createAdapter(databaseUrl);
 
+// Configuration des logs Prisma
+// Par défaut, masquer les queries en développement pour réduire le bruit
+// Réactiver avec PRISMA_LOG_QUERIES=true pour le debug
+const shouldLogQueries =
+  process.env.PRISMA_LOG_QUERIES === 'true' || process.env.PRISMA_LOG_QUERIES === '1';
+
+const prismaLogConfig: Array<'query' | 'error' | 'warn' | 'info'> =
+  process.env.NODE_ENV === 'development'
+    ? shouldLogQueries
+      ? ['query', 'error', 'warn']
+      : ['error', 'warn']
+    : ['error'];
+
 const prisma: InstanceType<typeof PrismaClient> =
   global.prisma ||
   new PrismaClient({
     adapter,
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+    log: prismaLogConfig,
   });
 
 if (process.env.NODE_ENV !== 'production') {

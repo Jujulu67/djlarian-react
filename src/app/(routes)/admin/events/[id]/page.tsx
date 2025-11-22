@@ -445,7 +445,7 @@ export default function EventDetailsPage() {
                       <p className="text-gray-300 text-sm">{formatDate(event.startDate)}</p>
                       {event.endDate && (
                         <p className="text-gray-400 text-sm mt-1">
-                          Jusqu'à {formatDate(event.endDate)}
+                          Jusqu&apos;à {formatDate(event.endDate)}
                         </p>
                       )}
                     </div>
@@ -501,7 +501,7 @@ export default function EventDetailsPage() {
                             href={event.tickets.buyUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-purple-400 hover:text-purple-300 text-sm flex items-center gap-1 mt-2"
+                            className="text-white hover:text-gray-300 text-sm flex items-center gap-1 mt-2"
                           >
                             <ExternalLink className="w-3.5 h-3.5" />
                             Lien d'achat

@@ -58,7 +58,27 @@ TWITCH_CLIENT_SECRET="[VOTRE_TWITCH_CLIENT_SECRET]"  # 🔒 Secret
 ### YouTube API (si utilisé)
 
 ```env
-YOUTUBE_API_KEY="AIzaSyAI0LHuemMMQCIViObGkG_G0r7GIUT0ByE"
+YOUTUBE_API_KEY="<votre_cle_api_youtube>"
+```
+
+### Spotify API - Auto-détection des releases (nouveau)
+
+```env
+SPOTIFY_CLIENT_ID="<votre_client_id_spotify>"
+SPOTIFY_CLIENT_SECRET="<votre_client_secret_spotify>"  # 🔒 Secret
+SPOTIFY_ARTIST_ID="<votre_artist_id_spotify>"
+```
+
+### MusicBrainz (optionnel, pour enrichissement métadonnées)
+
+```env
+MUSICBRAINZ_USER_AGENT="DJLarianApp/1.0.0 (contact@djlarian.com)"
+```
+
+### Last.fm (optionnel, pour enrichissement métadonnées)
+
+```env
+LASTFM_API_KEY="votre_cle_lastfm"
 ```
 
 ### Umami Analytics (si utilisé)
@@ -105,6 +125,10 @@ Ces variables sont **automatiquement gérées par Vercel** :
 - [ ] `NEXTAUTH_SECRET` généré et configuré (🔒 Secret)
 - [ ] `NEXTAUTH_URL` configuré avec votre URL Vercel
 - [ ] `NODE_ENV` configuré à `production`
+- [ ] `SPOTIFY_CLIENT_ID` configuré
+- [ ] `SPOTIFY_CLIENT_SECRET` configuré (🔒 Secret)
+- [ ] `SPOTIFY_ARTIST_ID` configuré
+- [ ] `YOUTUBE_API_KEY` configuré
 - [ ] Variables OAuth configurées (si utilisées)
 - [ ] Variables Umami configurées (si utilisées)
 - [ ] Tous les secrets sont marqués comme "Encrypt"

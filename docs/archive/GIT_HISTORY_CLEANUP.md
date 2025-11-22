@@ -6,6 +6,7 @@
 ⚠️ **Reste à faire** : Ces fichiers sont toujours dans l'historique Git (sur GitHub)
 
 **Impact** :
+
 - Les **futurs clones** seront rapides (fichiers ignorés)
 - L'**historique Git** contient encore ~326 MB de fichiers inutiles
 - Les **anciens clones** peuvent être lents
@@ -17,11 +18,13 @@
 **Déjà fait** - Les fichiers sont dans `.gitignore` et supprimés du tracking.
 
 **Avantages** :
+
 - ✅ Les futurs clones Vercel seront rapides (< 30 secondes)
 - ✅ Pas de risque de casser l'historique
 - ✅ Simple et sûr
 
 **Inconvénients** :
+
 - ⚠️ L'historique Git reste volumineux
 - ⚠️ Les anciens commits contiennent encore les gros fichiers
 
@@ -34,11 +37,13 @@
 Supprimer `.open-next/` et `backup.sql` de **tout l'historique Git**.
 
 **Avantages** :
+
 - ✅ Réduit vraiment la taille du repo
 - ✅ Nettoyage complet
 - ✅ Tous les clones seront rapides
 
 **Inconvénients** :
+
 - ⚠️ **Réécrit l'historique Git** (destructif)
 - ⚠️ Nécessite un `force push` (tous les collaborateurs devront re-cloner)
 - ⚠️ Plus complexe
@@ -130,6 +135,7 @@ git push origin --force --all
 ### Après le Nettoyage
 
 **Tous les collaborateurs devront** :
+
 ```bash
 # Supprimer leur clone local
 rm -rf djlarian-react
@@ -154,6 +160,7 @@ cd djlarian-react
 ### Si Vous Voulez Nettoyer l'Historique Plus Tard
 
 Vous pouvez toujours nettoyer l'historique plus tard si :
+
 - Le repo devient vraiment trop gros
 - Vous avez du temps pour coordonner avec les collaborateurs
 - Vous voulez vraiment optimiser la taille du repo
@@ -181,13 +188,13 @@ git push
 
 ## 📊 Comparaison
 
-| Aspect | Option 1 (Simple) | Option 2 (Complète) |
-|--------|-------------------|---------------------|
-| **Clonage Vercel** | ✅ Rapide | ✅ Rapide |
-| **Taille repo** | ⚠️ Historique gros | ✅ Historique propre |
-| **Complexité** | ✅ Simple | ⚠️ Complexe |
-| **Risque** | ✅ Aucun | ⚠️ Force push requis |
-| **Collaborateurs** | ✅ Pas d'impact | ⚠️ Doivent re-cloner |
+| Aspect             | Option 1 (Simple)  | Option 2 (Complète)  |
+| ------------------ | ------------------ | -------------------- |
+| **Clonage Vercel** | ✅ Rapide          | ✅ Rapide            |
+| **Taille repo**    | ⚠️ Historique gros | ✅ Historique propre |
+| **Complexité**     | ✅ Simple          | ⚠️ Complexe          |
+| **Risque**         | ✅ Aucun           | ⚠️ Force push requis |
+| **Collaborateurs** | ✅ Pas d'impact    | ⚠️ Doivent re-cloner |
 
 ---
 
@@ -196,4 +203,3 @@ git push
 **Pour l'instant, l'Option 1 suffit** pour résoudre votre problème de clonage Vercel.
 
 Vous pouvez toujours nettoyer l'historique plus tard si nécessaire.
-

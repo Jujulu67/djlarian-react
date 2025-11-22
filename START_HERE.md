@@ -3,6 +3,7 @@
 ## ⚠️ Note Importante
 
 Il y a une erreur TypeScript à corriger avant le déploiement :
+
 - Fichier : `src/app/(routes)/admin/@modal/(.)users/[userId]/edit/page.tsx`
 - Problème : Les `params` doivent être des `Promise` dans Next.js 15
 
@@ -15,10 +16,12 @@ Il y a une erreur TypeScript à corriger avant le déploiement :
 ### ✅ Étape 1 : Neon (Base de Données) - 5 minutes
 
 1. **Créer un compte** : https://neon.tech
+
    - Cliquer sur "Sign Up"
    - S'inscrire avec GitHub (recommandé)
 
 2. **Créer un projet** :
+
    - Cliquer sur "Create a project"
    - **Project name** : `djlarian`
    - **Region** : `Europe (Frankfurt)` ou la plus proche
@@ -26,16 +29,20 @@ Il y a une erreur TypeScript à corriger avant le déploiement :
    - Cliquer sur "Create project"
 
 3. **Copier la connection string** :
+
    - Format : `postgresql://user:password@host/database?sslmode=require`
    - **SAUVEGARDER** cette string, vous en aurez besoin !
 
 4. **Mettre à jour `.env.local`** :
+
    ```env
    DATABASE_URL="postgresql://user:password@host/database?sslmode=require"
    ```
+
    (Remplacer par votre connection string Neon)
 
 5. **Appliquer les migrations** :
+
    ```bash
    npx prisma migrate deploy
    npx prisma generate
@@ -51,9 +58,11 @@ Il y a une erreur TypeScript à corriger avant le déploiement :
 ### ✅ Étape 2 : Cloudflare R2 (Uploads) - 5 minutes
 
 1. **Créer un compte Cloudflare** : https://dash.cloudflare.com/sign-up
+
    - C'est gratuit !
 
 2. **Créer un bucket R2** :
+
    - Dashboard → **R2** (menu de gauche)
    - Cliquer sur **"Create bucket"**
    - **Bucket name** : `djlarian-uploads`
@@ -76,6 +85,7 @@ Il y a une erreur TypeScript à corriger avant le déploiement :
 ### ✅ Étape 3 : Cloudflare Pages (Déploiement) - 10 minutes
 
 1. **Connecter votre repo GitHub** :
+
    - Dashboard → **Pages** (menu de gauche)
    - Cliquer sur **"Create a project"**
    - Cliquer sur **"Connect to Git"**
@@ -84,6 +94,7 @@ Il y a une erreur TypeScript à corriger avant le déploiement :
    - Cliquer sur **"Begin setup"**
 
 2. **Configurer le build** :
+
    - **Project name** : `djlarian` (ou votre choix)
    - **Production branch** : `main`
    - **Framework preset** : `Next.js`
@@ -92,28 +103,30 @@ Il y a une erreur TypeScript à corriger avant le déploiement :
    - **Root directory** : `/` (laisser vide)
 
 3. **Générer NEXTAUTH_SECRET** :
+
    ```bash
    openssl rand -base64 32
    ```
+
    Copier le résultat.
 
 4. **Configurer les variables d'environnement** :
    Dans **Settings → Environment Variables**, ajouter :
 
-   | Variable | Valeur | Secret ? |
-   |----------|--------|----------|
-   | `DATABASE_URL` | Votre connection string Neon | ✅ Oui |
-   | `NEXTAUTH_URL` | `https://votre-projet.pages.dev` | Non |
-   | `NEXTAUTH_SECRET` | Résultat de `openssl rand -base64 32` | ✅ Oui |
-   | `CLOUDFLARE_ACCOUNT_ID` | Votre Account ID Cloudflare | Non |
-   | `R2_ACCESS_KEY_ID` | Votre R2 Access Key ID | ✅ Oui |
-   | `R2_SECRET_ACCESS_KEY` | Votre R2 Secret Access Key | ✅ Oui |
-   | `R2_BUCKET_NAME` | `djlarian-uploads` | Non |
-   | `NODE_ENV` | `production` | Non |
-   | `GOOGLE_CLIENT_ID` | Votre Google Client ID | Non |
-   | `GOOGLE_CLIENT_SECRET` | Votre Google Client Secret | ✅ Oui |
-   | `TWITCH_CLIENT_ID` | Votre Twitch Client ID | Non |
-   | `TWITCH_CLIENT_SECRET` | Votre Twitch Client Secret | ✅ Oui |
+   | Variable                | Valeur                                | Secret ? |
+   | ----------------------- | ------------------------------------- | -------- |
+   | `DATABASE_URL`          | Votre connection string Neon          | ✅ Oui   |
+   | `NEXTAUTH_URL`          | `https://votre-projet.pages.dev`      | Non      |
+   | `NEXTAUTH_SECRET`       | Résultat de `openssl rand -base64 32` | ✅ Oui   |
+   | `CLOUDFLARE_ACCOUNT_ID` | Votre Account ID Cloudflare           | Non      |
+   | `R2_ACCESS_KEY_ID`      | Votre R2 Access Key ID                | ✅ Oui   |
+   | `R2_SECRET_ACCESS_KEY`  | Votre R2 Secret Access Key            | ✅ Oui   |
+   | `R2_BUCKET_NAME`        | `djlarian-uploads`                    | Non      |
+   | `NODE_ENV`              | `production`                          | Non      |
+   | `GOOGLE_CLIENT_ID`      | Votre Google Client ID                | Non      |
+   | `GOOGLE_CLIENT_SECRET`  | Votre Google Client Secret            | ✅ Oui   |
+   | `TWITCH_CLIENT_ID`      | Votre Twitch Client ID                | Non      |
+   | `TWITCH_CLIENT_SECRET`  | Votre Twitch Client Secret            | ✅ Oui   |
 
    **Note** : Pour marquer comme Secret, cocher la case "Encrypt" lors de l'ajout.
 
@@ -169,10 +182,10 @@ Il y a une erreur TypeScript à corriger avant le déploiement :
 ## 🎉 Une fois Terminé
 
 Votre site sera accessible gratuitement sur Cloudflare Pages avec :
+
 - ✅ Base de données Neon (0.5 GB gratuit)
 - ✅ Stockage R2 (10 GB gratuit)
 - ✅ Bandwidth illimité
 - ✅ CDN global
 
 **Coût total : 0€/mois** 🎊
-

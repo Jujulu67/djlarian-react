@@ -26,7 +26,7 @@ const ParticleSystem: React.FC<ParticleSystemProps> = ({ particles, setParticles
 
   // Fonction d'animation des particules
   const animateParticles = useCallback(
-    (timestamp: number) => {
+    function animate(timestamp: number) {
       const canvas = canvasRef.current;
       if (!canvas) return;
 
@@ -113,7 +113,7 @@ const ParticleSystem: React.FC<ParticleSystemProps> = ({ particles, setParticles
 
       // Continuer l'animation si des particules existent encore
       if (particles.length > 0) {
-        animationFrameRef.current = requestAnimationFrame(animateParticles);
+        animationFrameRef.current = requestAnimationFrame(animate);
       } else {
         animationFrameRef.current = null;
       }

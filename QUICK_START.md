@@ -1,4 +1,4 @@
-# ⚡ Quick Start : Déploiement Cloudflare Pages + Neon
+# ⚡ Quick Start : Déploiement Vercel + Neon
 
 ## 🎯 Démarrage Rapide (15 minutes)
 
@@ -20,38 +20,31 @@
    npx prisma generate
    ```
 
-### 2. Cloudflare R2 - Uploads (5 min)
+### 2. Vercel Blob - Uploads (automatique)
 
-1. **Créer un compte** : https://dash.cloudflare.com/sign-up
-2. **Créer un bucket R2** :
-   - Dashboard → R2 → Create bucket
-   - Name : `djlarian-uploads`
-3. **Créer un API token** :
-   - R2 → Manage R2 API Tokens → Create API token
-   - Permissions : Object Read & Write
-   - **Sauvegarder** : Access Key ID, Secret Access Key, Account ID
+Vercel Blob est automatiquement configuré lors du déploiement. Aucune configuration manuelle nécessaire.
 
-### 3. Cloudflare Pages - Déploiement (5 min)
+### 3. Vercel - Déploiement (5 min)
 
 1. **Connecter le repo** :
-   - Dashboard → Pages → Create a project
-   - Connect to Git → Sélectionner votre repo
+   - Dashboard Vercel → Add New Project
+   - Import Git Repository → Sélectionner votre repo
 2. **Configurer le build** :
-   - Framework : Next.js
-   - Build command : `npm run build`
-   - Output directory : `.next`
+   - Framework Preset : Next.js (détecté automatiquement)
+   - Build command et Output directory : détectés automatiquement
 3. **Variables d'environnement** (Settings → Environment Variables) :
    ```env
    DATABASE_URL=postgresql://... (connection string Neon)
-   NEXTAUTH_URL=https://votre-projet.pages.dev
+   NEXTAUTH_URL=https://votre-projet.vercel.app
    NEXTAUTH_SECRET=<générer avec: openssl rand -base64 32>
-   CLOUDFLARE_ACCOUNT_ID=<votre account ID>
-   R2_ACCESS_KEY_ID=<votre access key>
-   R2_SECRET_ACCESS_KEY=<votre secret key>
-   R2_BUCKET_NAME=djlarian-uploads
    NODE_ENV=production
+   SPOTIFY_CLIENT_ID=<votre_client_id_spotify>
+   SPOTIFY_CLIENT_SECRET=<votre_client_secret_spotify> (🔒 Secret)
+   SPOTIFY_ARTIST_ID=<votre_artist_id_spotify>
+   YOUTUBE_API_KEY=<votre_cle_api_youtube>
    ```
-   + Vos variables OAuth (Google, Twitch)
+   - Vos variables OAuth (Google, Twitch)
+   - Variables MusicBrainz/Last.fm (optionnel, voir SECRETS_MANAGEMENT.md)
 4. **Déployer** : Save and Deploy
 
 ---
@@ -63,10 +56,10 @@
 - `DATABASE_URL` - Connection string Neon
 - `NEXTAUTH_URL` - URL de votre site Cloudflare Pages
 - `NEXTAUTH_SECRET` - Générer avec `openssl rand -base64 32`
-- `CLOUDFLARE_ACCOUNT_ID` - Account ID Cloudflare
-- `R2_ACCESS_KEY_ID` - R2 Access Key
-- `R2_SECRET_ACCESS_KEY` - R2 Secret Key
-- `R2_BUCKET_NAME` - Nom du bucket (ex: `djlarian-uploads`)
+- `SPOTIFY_CLIENT_ID` - Client ID Spotify
+- `SPOTIFY_CLIENT_SECRET` - Client Secret Spotify (🔒 Secret)
+- `SPOTIFY_ARTIST_ID` - ID de l'artiste Spotify
+- `YOUTUBE_API_KEY` - Clé API YouTube
 
 ### Optionnelles (si utilisées)
 
@@ -74,6 +67,7 @@
 - `TWITCH_CLIENT_ID` / `TWITCH_CLIENT_SECRET`
 - `R2_PUBLIC_URL` - URL publique R2 (si custom domain)
 - `NEXT_PUBLIC_UMAMI_URL` / `NEXT_PUBLIC_UMAMI_WEBSITE_ID`
+- `PRISMA_LOG_QUERIES` - Activer les logs de requêtes Prisma pour le debug (défaut: `false`)
 
 ---
 
@@ -103,4 +97,3 @@ npx prisma studio
 ## 🆘 Besoin d'Aide ?
 
 Consultez la section "Dépannage" dans `DEPLOYMENT_STEP_BY_STEP.md`
-

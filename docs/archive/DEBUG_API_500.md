@@ -3,6 +3,7 @@
 ## 📊 Routes Affectées
 
 Les routes suivantes retournent des erreurs 500 :
+
 - `/api/events` → 500
 - `/api/admin/config` → 500
 - `/api/auth/session` → 500
@@ -12,6 +13,7 @@ Les routes suivantes retournent des erreurs 500 :
 ### Route `/api/health` (Nouvelle)
 
 Une route de diagnostic a été créée pour tester les connexions :
+
 - **URL** : `https://djlarian-react.pages.dev/api/health`
 - **Tests** :
   - ✅ Connexion à la base de données (Prisma + Neon)
@@ -27,11 +29,13 @@ Une route de diagnostic a été créée pour tester les connexions :
 ## 🧪 Tests à Effectuer
 
 1. **Tester `/api/health`** :
+
    ```bash
    curl https://djlarian-react.pages.dev/api/health
    ```
-   
+
    Cela devrait retourner :
+
    ```json
    {
      "status": "ok" | "degraded",
@@ -45,6 +49,7 @@ Une route de diagnostic a été créée pour tester les connexions :
    ```
 
 2. **Vérifier les logs Cloudflare Pages** :
+
    - Aller dans Cloudflare Dashboard → Pages → djlarian-react → Logs
    - Chercher les erreurs liées à Prisma, Auth.js, ou DATABASE_URL
 
@@ -58,6 +63,7 @@ Une route de diagnostic a été créée pour tester les connexions :
 ### Solution 1 : Vérifier DATABASE_URL
 
 La `DATABASE_URL` doit utiliser le format Neon avec `?sslmode=require` :
+
 ```
 postgresql://user:password@host/database?sslmode=require
 ```
@@ -65,6 +71,7 @@ postgresql://user:password@host/database?sslmode=require
 ### Solution 2 : Vérifier Prisma Adapter
 
 L'adaptateur Neon peut nécessiter une configuration supplémentaire. Vérifier que :
+
 - `@neondatabase/serverless` est installé
 - `@prisma/adapter-neon` est installé
 - `previewFeatures = ["driverAdapters"]` est dans `schema.prisma`
@@ -79,4 +86,3 @@ Auth.js v5 peut nécessiter des ajustements pour fonctionner avec Prisma en Edge
 2. ⏳ Vérifier les logs Cloudflare Pages
 3. ⏳ Corriger les problèmes identifiés
 4. ⏳ Retester les routes API
-

@@ -665,7 +665,7 @@ export default function EventsPage() {
                     </p>
 
                     <div className="flex justify-between items-center">
-                      <span className="text-purple-400 group-hover:text-purple-300 transition-colors text-sm font-medium flex items-center">
+                      <span className="text-white group-hover:text-gray-300 transition-colors text-sm font-medium flex items-center">
                         <Eye className="w-4 h-4 mr-1.5" />
                         Voir l'événement
                       </span>

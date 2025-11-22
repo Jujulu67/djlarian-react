@@ -29,6 +29,7 @@ export default async function AdminPage() {
   }
 
   // Paralléliser toutes les requêtes Prisma pour améliorer les performances
+  // eslint-disable-next-line react-hooks/purity
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
   const [
@@ -116,6 +117,7 @@ export default async function AdminPage() {
       type: 'track',
       title: 'Aucun morceau ajouté récemment',
       description: 'Ajoutez votre premier morceau via la gestion de musique.',
+      // eslint-disable-next-line react-hooks/purity
       date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
       icon: Music2,
       isPlaceholder: true,
@@ -137,6 +139,7 @@ export default async function AdminPage() {
       type: 'ticket',
       title: 'Aucune configuration de billet récente',
       description: 'Configurez la billetterie pour un événement.',
+      // eslint-disable-next-line react-hooks/purity
       date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
       icon: Ticket,
       isPlaceholder: true,
@@ -450,7 +453,7 @@ export default async function AdminPage() {
                 <h3 className="text-xl font-audiowide text-white">Activités récentes</h3>
                 <Link
                   href="/admin/activities"
-                  className="text-sm text-purple-400 hover:text-purple-300 transition-colors flex items-center"
+                  className="text-sm text-white hover:text-gray-300 transition-colors flex items-center"
                 >
                   Voir tout
                   <ArrowRight className="ml-1 h-4 w-4" />

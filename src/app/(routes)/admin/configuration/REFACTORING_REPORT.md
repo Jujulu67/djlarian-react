@@ -46,4 +46,3 @@
 - Meilleure maintenabilité
 - Tests plus faciles à écrire
 - Réduction de 76% du code principal
-

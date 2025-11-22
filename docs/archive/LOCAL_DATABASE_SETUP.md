@@ -13,6 +13,7 @@ npm run db:setup:local
 ```
 
 Ce script va :
+
 1. **Sauvegarder** votre configuration PostgreSQL actuelle
 2. Modifier `prisma/schema.prisma` pour utiliser SQLite
 3. Créer un fichier `.env.local` avec `DATABASE_URL` SQLite
@@ -21,6 +22,7 @@ Ce script va :
 6. Générer le client Prisma
 
 **⚠️ Important** : Le script préserve automatiquement :
+
 - Votre schema PostgreSQL (dans `prisma/schema.prisma.postgresql.backup`)
 - Votre ancienne `DATABASE_URL` (dans `.env.local.backup`)
 - Vos données SQLite existantes (si `prisma/dev.db` existe déjà)
@@ -28,6 +30,7 @@ Ce script va :
 ### Option 2 : Configuration Manuelle
 
 1. **Modifier `prisma/schema.prisma`** :
+
    ```prisma
    datasource db {
      provider = "sqlite"
@@ -36,12 +39,14 @@ Ce script va :
    ```
 
 2. **Mettre à jour `.env.local`** :
+
    ```env
    # Base de données locale (SQLite)
    DATABASE_URL="file:./dev.db"
    ```
 
 3. **Appliquer les migrations** :
+
    ```bash
    npx prisma migrate dev --name init
    npx prisma generate
@@ -77,11 +82,13 @@ Ces scripts modifient automatiquement `prisma/schema.prisma` et régénèrent le
 ### Différences SQLite vs PostgreSQL
 
 1. **Types de données** :
+
    - SQLite n'a pas de type `DateTime` natif → Prisma le gère automatiquement
    - SQLite n'a pas de type `Json` natif → Prisma le gère automatiquement
    - Les UUIDs sont stockés comme `TEXT` en SQLite
 
 2. **Fonctionnalités** :
+
    - SQLite supporte la plupart des fonctionnalités Prisma
    - Les migrations fonctionnent de la même manière
    - Prisma Studio fonctionne identiquement
@@ -94,6 +101,7 @@ Ces scripts modifient automatiquement `prisma/schema.prisma` et régénèrent le
 ### Fichier de Base de Données
 
 Le fichier `dev.db` sera créé dans le dossier `prisma/` :
+
 ```
 prisma/
   ├── dev.db          # Base de données SQLite (local)
@@ -108,14 +116,17 @@ prisma/
 ## 🧪 Tester la Configuration
 
 1. **Démarrer l'application** :
+
    ```bash
    npm run dev
    ```
 
 2. **Ouvrir Prisma Studio** :
+
    ```bash
    npx prisma studio
    ```
+
    - Cela ouvrira http://localhost:5555
    - Vous verrez vos tables avec des données vides (ou vos données de test)
 
@@ -132,6 +143,7 @@ prisma/
 Si vous voulez copier certaines données de production vers votre base locale :
 
 1. **Exporter depuis Neon** (via Prisma Studio ou SQL) :
+
    ```bash
    # Se connecter à Neon
    DATABASE_URL="postgresql://..." npx prisma studio
@@ -177,16 +189,19 @@ npx prisma migrate dev
 Si vous préférez PostgreSQL local (via Docker) :
 
 1. **Démarrer PostgreSQL avec Docker** :
+
    ```bash
    docker run --name djlarian-postgres -e POSTGRES_PASSWORD=dev -e POSTGRES_DB=djlarian -p 5432:5432 -d postgres:17
    ```
 
 2. **Mettre à jour `.env.local`** :
+
    ```env
    DATABASE_URL="postgresql://postgres:dev@localhost:5432/djlarian"
    ```
 
 3. **Modifier `prisma/schema.prisma`** :
+
    ```prisma
    datasource db {
      provider = "postgresql"
@@ -220,4 +235,3 @@ Si vous préférez PostgreSQL local (via Docker) :
 - [ ] Client Prisma généré
 - [ ] Prisma Studio fonctionne
 - [ ] Application démarre correctement
-

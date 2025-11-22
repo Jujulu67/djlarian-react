@@ -1,6 +1,6 @@
 'use client'; // Nécessaire pour useRouter
 
-import { AlertTriangle, Home, ArrowLeft } from 'lucide-react'; // Ajouter ArrowLeft
+import { AlertTriangle, ArrowLeft } from 'lucide-react'; // Ajouter ArrowLeft
 import Image from 'next/image';
 import { useRouter } from 'next/navigation'; // Importer useRouter
 
@@ -14,13 +14,13 @@ interface ErrorModalProps {
   backButtonLabel?: string; // Label du bouton de retour optionnel
 }
 
-export default function ErrorModal({
+const ErrorModal = ({
   title = "Oops ! Quelque chose s'est mal passé...",
   message = 'Une erreur inattendue est survenue. Rassurez-vous, tout est sous contrôle (normalement).',
   imageUrl = 'https://placehold.co/300x200?text=Image+Rigolote+%3AP&font=Lille',
   backHref, // Récupérer la prop
   backButtonLabel = 'Retour', // Label par défaut
-}: ErrorModalProps) {
+}: ErrorModalProps) => {
   const router = useRouter();
 
   const handleBackClick = () => {
@@ -63,4 +63,6 @@ export default function ErrorModal({
       </div>
     </Modal>
   );
-}
+};
+
+export default ErrorModal;

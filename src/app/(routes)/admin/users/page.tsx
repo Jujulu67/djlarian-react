@@ -106,7 +106,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
       <div className="max-w-7xl mx-auto">
         <Link
           href="/admin"
-          className="inline-flex items-center text-purple-400 hover:text-purple-300 mb-6"
+          className="inline-flex items-center text-white hover:text-gray-300 mb-6"
         >
           <ChevronLeft className="h-5 w-5 mr-1" />
           Retour au tableau de bord

@@ -25,6 +25,7 @@ export interface Track {
   genre: string[];
   description?: string;
   bpm?: number;
+  musicalKey?: string;
   featured?: boolean;
   isPublished?: boolean;
   publishAt?: string;

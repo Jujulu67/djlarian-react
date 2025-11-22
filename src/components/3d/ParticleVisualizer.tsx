@@ -14,8 +14,137 @@ interface Particle {
   baseSpeedY: number;
   color: string;
   inertia: number;
-  update: (isHovered: boolean, isEffectActive: boolean) => void;
-  draw: () => void;
+  update: (
+    canvasWidth: number,
+    canvasHeight: number,
+    mouseX: number,
+    mouseY: number,
+    isHovered: boolean,
+    isEffectActive: boolean
+  ) => void;
+  draw: (ctx: CanvasRenderingContext2D) => void;
+}
+
+class ParticleImpl implements Particle {
+  x: number = 0;
+  y: number = 0;
+  size: number = 0;
+  baseSize: number = 0;
+  speedX: number = 0;
+  speedY: number = 0;
+  baseSpeedX: number = 0;
+  baseSpeedY: number = 0;
+  color: string = '';
+  inertia: number = 0.98;
+
+  constructor(canvasWidth: number, canvasHeight: number) {
+    this.x = Math.random() * canvasWidth;
+    this.y = Math.random() * canvasHeight;
+    this.baseSize = Math.random() * 3 + 1;
+    this.size = this.baseSize;
+    this.baseSpeedX = (Math.random() * 2 - 1) * 1.2;
+    this.baseSpeedY = (Math.random() * 2 - 1) * 1.2;
+    this.speedX = this.baseSpeedX;
+    this.speedY = this.baseSpeedY;
+    this.color = `hsla(${Math.random() * 40 + 250}, 80%, 65%, 0.9)`;
+  }
+
+  update(
+    canvasWidth: number,
+    canvasHeight: number,
+    mouseX: number,
+    mouseY: number,
+    isHovered: boolean,
+    isEffectActive: boolean
+  ) {
+    this.speedX *= this.inertia;
+    this.speedY *= this.inertia;
+
+    const padding = 20;
+    const forceStrength = 0.1;
+
+    if (this.x < padding) {
+      this.speedX += forceStrength * (1 - this.x / padding);
+    } else if (this.x > canvasWidth - padding) {
+      this.speedX -= forceStrength * (1 - (canvasWidth - this.x) / padding);
+    }
+
+    if (this.y < padding) {
+      this.speedY += forceStrength * (1 - this.y / padding);
+    } else if (this.y > canvasHeight - padding) {
+      this.speedY -= forceStrength * (1 - (canvasHeight - this.y) / padding);
+    }
+
+    if (isHovered) {
+      const dx = this.x - mouseX;
+      const dy = this.y - mouseY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      const maxDistance = 120;
+
+      if (distance < maxDistance) {
+        const force = (1 - distance / maxDistance) * (isEffectActive ? 4 : 1.5);
+        const directionX = distance === 0 ? 1 : dx / distance;
+        const directionY = distance === 0 ? 1 : dy / distance;
+
+        this.speedX += directionX * force * (isEffectActive ? 2 : 0.5);
+        this.speedY += directionY * force * (isEffectActive ? 2 : 0.5);
+      }
+    }
+
+    const randomForce = isEffectActive ? 0.4 : 0.1;
+    this.speedX += (Math.random() - 0.5) * randomForce;
+    this.speedY += (Math.random() - 0.5) * randomForce;
+
+    const maxSpeed = isEffectActive ? 12 : 6;
+    const currentSpeed = Math.sqrt(this.speedX * this.speedX + this.speedY * this.speedY);
+    if (currentSpeed > maxSpeed) {
+      const scale = maxSpeed / currentSpeed;
+      this.speedX *= scale;
+      this.speedY *= scale;
+    }
+
+    const minSpeed = isEffectActive ? 0.5 : 0.2;
+    if (currentSpeed < minSpeed) {
+      const scale = minSpeed / (currentSpeed || 1);
+      this.speedX *= scale;
+      this.speedY *= scale;
+    }
+
+    this.x += this.speedX;
+    this.y += this.speedY;
+
+    if (this.x > canvasWidth) {
+      this.x = canvasWidth;
+      this.speedX *= -0.5;
+    } else if (this.x < 0) {
+      this.x = 0;
+      this.speedX *= -0.5;
+    }
+
+    if (this.y > canvasHeight) {
+      this.y = canvasHeight;
+      this.speedY *= -0.5;
+    } else if (this.y < 0) {
+      this.y = 0;
+      this.speedY *= -0.5;
+    }
+
+    if (isEffectActive) {
+      const distance = Math.sqrt((this.x - mouseX) ** 2 + (this.y - mouseY) ** 2);
+      const maxDistance = 200;
+      const targetSize = this.baseSize * (1 + (1 - Math.min(distance, maxDistance) / maxDistance));
+      this.size = this.size * 0.9 + targetSize * 0.1;
+    } else {
+      this.size = this.size * 0.95 + this.baseSize * 0.05;
+    }
+  }
+
+  draw(ctx: CanvasRenderingContext2D) {
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 const ParticleVisualizer = () => {
@@ -92,133 +221,11 @@ const ParticleVisualizer = () => {
     setCanvasSize();
     window.addEventListener('resize', setCanvasSize);
 
-    class ParticleImpl implements Particle {
-      x: number = 0;
-      y: number = 0;
-      size: number = 0;
-      baseSize: number = 0;
-      speedX: number = 0;
-      speedY: number = 0;
-      baseSpeedX: number = 0;
-      baseSpeedY: number = 0;
-      color: string = '';
-      inertia: number = 0.98;
-
-      constructor() {
-        if (!canvas) return;
-        this.x = Math.random() * canvas.width;
-        this.y = Math.random() * canvas.height;
-        this.baseSize = Math.random() * 3 + 1;
-        this.size = this.baseSize;
-        this.baseSpeedX = (Math.random() * 2 - 1) * 1.2;
-        this.baseSpeedY = (Math.random() * 2 - 1) * 1.2;
-        this.speedX = this.baseSpeedX;
-        this.speedY = this.baseSpeedY;
-        this.color = `hsla(${Math.random() * 40 + 250}, 80%, 65%, 0.9)`;
-      }
-
-      update(isHovered: boolean, isEffectActive: boolean) {
-        if (!canvas) return;
-
-        this.speedX *= this.inertia;
-        this.speedY *= this.inertia;
-
-        const padding = 20;
-        const forceStrength = 0.1;
-
-        if (this.x < padding) {
-          this.speedX += forceStrength * (1 - this.x / padding);
-        } else if (this.x > canvas.width - padding) {
-          this.speedX -= forceStrength * (1 - (canvas.width - this.x) / padding);
-        }
-
-        if (this.y < padding) {
-          this.speedY += forceStrength * (1 - this.y / padding);
-        } else if (this.y > canvas.height - padding) {
-          this.speedY -= forceStrength * (1 - (canvas.height - this.y) / padding);
-        }
-
-        if (isHovered) {
-          const dx = this.x - mousePosition.current.x;
-          const dy = this.y - mousePosition.current.y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-          const maxDistance = 120;
-
-          if (distance < maxDistance) {
-            const force = (1 - distance / maxDistance) * (isEffectActive ? 4 : 1.5);
-            const directionX = distance === 0 ? 1 : dx / distance;
-            const directionY = distance === 0 ? 1 : dy / distance;
-
-            this.speedX += directionX * force * (isEffectActive ? 2 : 0.5);
-            this.speedY += directionY * force * (isEffectActive ? 2 : 0.5);
-          }
-        }
-
-        const randomForce = isEffectActive ? 0.4 : 0.1;
-        this.speedX += (Math.random() - 0.5) * randomForce;
-        this.speedY += (Math.random() - 0.5) * randomForce;
-
-        const maxSpeed = isEffectActive ? 12 : 6;
-        const currentSpeed = Math.sqrt(this.speedX * this.speedX + this.speedY * this.speedY);
-        if (currentSpeed > maxSpeed) {
-          const scale = maxSpeed / currentSpeed;
-          this.speedX *= scale;
-          this.speedY *= scale;
-        }
-
-        const minSpeed = isEffectActive ? 0.5 : 0.2;
-        if (currentSpeed < minSpeed) {
-          const scale = minSpeed / (currentSpeed || 1);
-          this.speedX *= scale;
-          this.speedY *= scale;
-        }
-
-        this.x += this.speedX;
-        this.y += this.speedY;
-
-        if (this.x > canvas.width) {
-          this.x = canvas.width;
-          this.speedX *= -0.5;
-        } else if (this.x < 0) {
-          this.x = 0;
-          this.speedX *= -0.5;
-        }
-
-        if (this.y > canvas.height) {
-          this.y = canvas.height;
-          this.speedY *= -0.5;
-        } else if (this.y < 0) {
-          this.y = 0;
-          this.speedY *= -0.5;
-        }
-
-        if (isEffectActive) {
-          const distance = Math.sqrt(
-            (this.x - mousePosition.current.x) ** 2 + (this.y - mousePosition.current.y) ** 2
-          );
-          const maxDistance = 200;
-          const targetSize =
-            this.baseSize * (1 + (1 - Math.min(distance, maxDistance) / maxDistance));
-          this.size = this.size * 0.9 + targetSize * 0.1;
-        } else {
-          this.size = this.size * 0.95 + this.baseSize * 0.05;
-        }
-      }
-
-      draw() {
-        if (!ctx) return;
-        ctx.fillStyle = this.color;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
     // Initialize particles
     if (particlesRef.current.length === 0) {
       const particleCount = 150;
       for (let i = 0; i < particleCount; i++) {
-        particlesRef.current.push(new ParticleImpl());
+        particlesRef.current.push(new ParticleImpl(canvas.width, canvas.height));
       }
     }
 
@@ -229,8 +236,15 @@ const ParticleVisualizer = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       particlesRef.current.forEach((particle) => {
-        particle.update(isHovered, isEffectActive);
-        particle.draw();
+        particle.update(
+          canvas.width,
+          canvas.height,
+          mousePosition.current.x,
+          mousePosition.current.y,
+          isHovered,
+          isEffectActive
+        );
+        particle.draw(ctx);
       });
 
       // Dessin des lignes avec dégradé de couleur

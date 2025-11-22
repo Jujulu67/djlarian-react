@@ -109,7 +109,7 @@ export default function TrackDetailView({ trackId, onClose }: TrackDetailViewPro
         <h1 className="text-xl font-bold text-red-500 mb-4">Erreur</h1>
         <p className="text-gray-400 mb-4">{error}</p>
         {onClose && (
-          <button onClick={onClose} className="text-purple-400 hover:text-purple-300">
+          <button onClick={onClose} className="text-white hover:text-gray-300">
             Fermer
           </button>
         )}
@@ -152,14 +152,14 @@ export default function TrackDetailView({ trackId, onClose }: TrackDetailViewPro
   };
 
   return (
-    <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-8">
+    <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-12">
       {/* Colonne Gauche: Image & Infos rapides */}
       <div className="md:col-span-1 flex flex-col items-center">
         {track.imageId ? (
           <div className="relative group mb-6">
             <button
               onClick={() => setIsImageFullscreen(true)}
-              className="relative rounded-lg shadow-lg overflow-hidden border-2 border-purple-500/30 transition-all duration-300 hover:border-purple-500/60 hover:shadow-xl hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+              className="relative rounded-lg shadow-lg overflow-hidden border-2 border-purple-500/30 transition-all duration-300 hover:border-purple-500/60 hover:shadow-xl hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-purple-500/50 w-[300px] h-[300px]"
             >
               <Image
                 src={
@@ -170,7 +170,7 @@ export default function TrackDetailView({ trackId, onClose }: TrackDetailViewPro
                 alt={`Pochette de ${track.title}`}
                 width={300}
                 height={300}
-                className="w-[300px] h-[300px] aspect-square object-cover"
+                className="w-full h-full object-cover"
                 priority
                 unoptimized
               />
@@ -190,7 +190,12 @@ export default function TrackDetailView({ trackId, onClose }: TrackDetailViewPro
           <p className="text-sm text-gray-400">
             Type: <span className="capitalize">{track.type}</span>
           </p>
-          {track.bpm && <p className="text-sm text-gray-400">BPM: {track.bpm}</p>}
+          {(track.bpm || track.musicalKey) && (
+            <div className="flex items-center justify-center gap-3 mt-2">
+              {track.bpm && <p className="text-sm text-gray-400">BPM: {track.bpm}</p>}
+              {track.musicalKey && <p className="text-sm text-gray-400">Clé: {track.musicalKey}</p>}
+            </div>
+          )}
         </div>
       </div>
 
@@ -336,16 +341,6 @@ export default function TrackDetailView({ trackId, onClose }: TrackDetailViewPro
                       imageRendering: 'auto',
                     }}
                   />
-                  {/* Info en bas */}
-                  <motion.div
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.2 }}
-                    className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent p-6 rounded-b-lg"
-                  >
-                    <p className="text-white font-semibold text-lg">{track.title}</p>
-                    <p className="text-gray-300 text-sm">{track.artist}</p>
-                  </motion.div>
                 </motion.div>
               </motion.div>
             )}

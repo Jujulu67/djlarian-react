@@ -43,4 +43,3 @@ Toutes les valeurs sont dans `.secrets.local.md` (fichier local, non commité).
 1. **Sauvegarder** toutes les variables
 2. **Redéployer** le projet (ou attendre le redéploiement automatique)
 3. **Tester** le site : `https://fa32fe61.djlarian-react.pages.dev/`
-

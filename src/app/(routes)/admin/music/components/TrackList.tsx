@@ -84,7 +84,7 @@ export const TrackList: React.FC<TrackListProps> = ({
                 <Image
                   src={
                     getImageUrl(track.imageId, {
-                      cacheBust: track.updatedAt ? new Date(track.updatedAt).getTime() : Date.now(),
+                      cacheBust: track.updatedAt ? new Date(track.updatedAt).getTime() : 0,
                     }) || ''
                   }
                   alt={track.title}
@@ -104,6 +104,9 @@ export const TrackList: React.FC<TrackListProps> = ({
               <h3 className="text-white font-medium truncate text-sm sm:text-base">
                 {track.title}
               </h3>
+              {track.artist && (
+                <p className="text-xs sm:text-sm text-gray-400 truncate mt-0.5">{track.artist}</p>
+              )}
               <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-1">
                 <span className="text-xs px-2 py-0.5 rounded-full bg-purple-600/30 text-purple-300">
                   {MUSIC_TYPES.find((t) => t.value === track.type)?.label || track.type}
@@ -129,7 +132,7 @@ export const TrackList: React.FC<TrackListProps> = ({
                         href={data.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-1 sm:p-1.5 bg-gray-700/60 hover:bg-gray-600 rounded-full text-gray-300 hover:text-white transition-colors platform-icon"
+                        className="p-1 sm:p-1.5 bg-gray-700/60 hover:bg-gray-600 rounded-full text-gray-300 hover:text-white transition-colors"
                         title={`Voir sur ${platformLabels[platform as MusicPlatform]}`}
                         onClick={(e) => e.stopPropagation()}
                       >

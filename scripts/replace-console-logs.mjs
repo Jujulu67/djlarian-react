@@ -3,7 +3,7 @@
 /**
  * Script pour remplacer automatiquement tous les console.log/warn/error
  * par le système de logging centralisé (logger)
- * 
+ *
  * Usage: node scripts/replace-console-logs.mjs
  */
 
@@ -16,10 +16,7 @@ const __dirname = path.dirname(__filename);
 const projectRoot = path.join(__dirname, '..');
 
 // Fichiers à exclure (système de logging lui-même)
-const excludeFiles = [
-  'src/lib/console-filters.ts',
-  'src/lib/logger.ts',
-];
+const excludeFiles = ['src/lib/console-filters.ts', 'src/lib/logger.ts'];
 
 // Fonction pour lire un fichier
 function readFile(filePath) {
@@ -44,10 +41,12 @@ function writeFile(filePath, content) {
 
 // Fonction pour vérifier si un fichier a déjà l'import logger
 function hasLoggerImport(content) {
-  return content.includes("import { logger } from '@/lib/logger'") ||
-         content.includes('import { logger } from "@/lib/logger"') ||
-         content.includes("from '@/lib/logger'") ||
-         content.includes('from "@/lib/logger"');
+  return (
+    content.includes("import { logger } from '@/lib/logger'") ||
+    content.includes('import { logger } from "@/lib/logger"') ||
+    content.includes("from '@/lib/logger'") ||
+    content.includes('from "@/lib/logger"')
+  );
 }
 
 // Fonction pour ajouter l'import logger
@@ -59,7 +58,7 @@ function addLoggerImport(content, filePath) {
   // Trouver la dernière ligne d'import
   const lines = content.split('\n');
   let lastImportIndex = -1;
-  
+
   for (let i = 0; i < lines.length; i++) {
     if (lines[i].trim().startsWith('import ')) {
       lastImportIndex = i;
@@ -85,16 +84,16 @@ function replaceConsoleLogs(content) {
 
   // Remplacer console.log par logger.debug (ou logger.info selon le contexte)
   modified = modified.replace(/console\.log\(/g, 'logger.debug(');
-  
+
   // Remplacer console.warn par logger.warn
   modified = modified.replace(/console\.warn\(/g, 'logger.warn(');
-  
+
   // Remplacer console.error par logger.error
   modified = modified.replace(/console\.error\(/g, 'logger.error(');
-  
+
   // Remplacer console.info par logger.info
   modified = modified.replace(/console\.info\(/g, 'logger.info(');
-  
+
   // Remplacer console.debug par logger.debug
   modified = modified.replace(/console\.debug\(/g, 'logger.debug(');
 
@@ -104,7 +103,7 @@ function replaceConsoleLogs(content) {
 // Fonction principale
 function processFile(filePath) {
   const fullPath = path.join(projectRoot, filePath);
-  
+
   if (!fs.existsSync(fullPath)) {
     return { success: false, reason: 'File not found' };
   }
@@ -121,7 +120,7 @@ function processFile(filePath) {
 
   // Ajouter l'import logger si nécessaire
   let modified = addLoggerImport(content, filePath);
-  
+
   // Remplacer les console.log/warn/error
   modified = replaceConsoleLogs(modified);
 
@@ -137,7 +136,7 @@ function processFile(filePath) {
 function findFiles(dir, fileList = []) {
   const files = fs.readdirSync(dir);
 
-  files.forEach(file => {
+  files.forEach((file) => {
     const filePath = path.join(dir, file);
     const relativePath = path.relative(projectRoot, filePath);
     const stat = fs.statSync(filePath);
@@ -147,8 +146,13 @@ function findFiles(dir, fileList = []) {
       if (!file.startsWith('.') && file !== 'node_modules') {
         findFiles(filePath, fileList);
       }
-    } else if ((file.endsWith('.ts') || file.endsWith('.tsx') || file.endsWith('.js') || file.endsWith('.jsx')) 
-               && !excludeFiles.includes(relativePath)) {
+    } else if (
+      (file.endsWith('.ts') ||
+        file.endsWith('.tsx') ||
+        file.endsWith('.js') ||
+        file.endsWith('.jsx')) &&
+      !excludeFiles.includes(relativePath)
+    ) {
       fileList.push(relativePath);
     }
   });
@@ -169,10 +173,10 @@ let updated = 0;
 let skipped = 0;
 let errors = 0;
 
-files.forEach(file => {
+files.forEach((file) => {
   const result = processFile(file);
   processed++;
-  
+
   if (result.success) {
     if (result.skipped) {
       skipped++;
@@ -191,4 +195,3 @@ console.log(`   ✅ Mis à jour: ${updated}`);
 console.log(`   ⏭️  Ignorés: ${skipped}`);
 console.log(`   ❌ Erreurs: ${errors}`);
 console.log(`   📝 Total: ${processed}`);
-

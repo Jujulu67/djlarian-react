@@ -40,19 +40,24 @@ export function handleApiError(error: unknown, context?: string): NextResponse {
     });
   }
 
-  // Prisma errors
-  if (error instanceof Prisma.PrismaClientKnownRequestError) {
-    return handlePrismaError(error, errorContext);
+  // Prisma errors - Vérifier par nom de classe pour éviter les problèmes d'import
+  const errorName = (error as Error)?.constructor?.name;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const errorWithCode = error as { code?: string; meta?: any };
+
+  if (errorName === 'PrismaClientKnownRequestError' || errorWithCode?.code) {
+    // C'est une erreur Prisma connue
+    return handlePrismaError(error as Prisma.PrismaClientKnownRequestError, errorContext);
   }
 
-  if (error instanceof Prisma.PrismaClientUnknownRequestError) {
+  if (errorName === 'PrismaClientUnknownRequestError') {
     logger.error(`${errorContext} Unknown Prisma error:`, error);
     return createInternalErrorResponse('Database error occurred', {
       message: (error as Error).message,
     });
   }
 
-  if (error instanceof Prisma.PrismaClientValidationError) {
+  if (errorName === 'PrismaClientValidationError') {
     logger.error(`${errorContext} Prisma validation error:`, error);
     return createBadRequestResponse('Invalid data provided', {
       message: (error as Error).message,
@@ -93,7 +98,8 @@ function handlePrismaError(
 
     case 'P2003': {
       // Foreign key constraint violation
-      const field = (error.meta?.field_name as string) ?? 'unknown relation';
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const field = ((error.meta as any)?.field_name as string) ?? 'unknown relation';
       logger.warn(`${context} Foreign key constraint violation on: ${field}`);
 
       // Provide user-friendly messages for common fields
