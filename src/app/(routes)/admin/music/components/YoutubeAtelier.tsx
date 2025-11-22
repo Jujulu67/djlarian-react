@@ -171,7 +171,9 @@ const YoutubeAtelier: React.FC<YoutubeAtelierProps> = ({ fetchTracks }) => {
   return (
     <div className="grid grid-cols-1 gap-8">
       <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg border border-gray-700/50 p-6">
-        <h2 className="text-xl font-bold mb-6 text-white">Atelier d'ajout intelligent YouTube</h2>
+        <h2 className="text-xl font-bold mb-6 text-white">
+          Atelier d&apos;ajout intelligent YouTube
+        </h2>
         <p className="text-gray-300 mb-6">
           Retrouvez vos vidéos YouTube et importez-les directement dans votre base de données
           musicale. Le système détecte automatiquement celles déjà présentes.

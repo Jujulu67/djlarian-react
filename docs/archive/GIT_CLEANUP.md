@@ -13,6 +13,7 @@ Le clonage sur Vercel prenait **5+ minutes** à cause de fichiers volumineux com
 ### 1. `.gitignore` Mis à Jour
 
 Ajouté :
+
 ```gitignore
 # Cloudflare Pages / OpenNext (build artifacts - ne pas commiter)
 .open-next/
@@ -58,18 +59,21 @@ git push
 ### Fichiers Conservés Localement
 
 Les fichiers sont **supprimés du tracking git** mais **conservés sur votre disque local** :
+
 - `.open-next/` : Toujours présent localement (utile pour les tests Cloudflare si besoin)
 - `backup.sql` : Toujours présent localement (backup local)
 
 ### Si Vous Avez Besoin de `.open-next/`
 
 Si vous devez tester localement avec OpenNext (pour Cloudflare), vous pouvez :
+
 1. Le régénérer avec `npm run pages:build` (si vous gardez les scripts)
 2. Ou simplement le supprimer (plus nécessaire maintenant qu'on est sur Vercel)
 
 ### Historique Git
 
 ⚠️ **Les fichiers restent dans l'historique Git** (pour l'instant). Pour vraiment réduire la taille :
+
 - Les prochains clones seront rapides
 - L'historique contient encore les gros fichiers
 - Si nécessaire, on peut faire un `git filter-branch` ou `git filter-repo` plus tard
@@ -77,6 +81,7 @@ Si vous devez tester localement avec OpenNext (pour Cloudflare), vous pouvez :
 ## ✅ Vérification
 
 Après le push, vérifiez sur Vercel :
+
 - Le clonage devrait prendre **< 30 secondes**
 - Le build devrait être plus rapide
 - La taille du repo GitHub devrait être réduite
@@ -84,11 +89,12 @@ Après le push, vérifiez sur Vercel :
 ## 📊 Impact
 
 **Avant** :
+
 - Clonage : 5+ minutes
 - Taille repo : ~326 MB de fichiers inutiles
 
 **Après** :
+
 - Clonage : < 30 secondes ✅
 - Taille repo : Réduite significativement ✅
 - Build : Plus rapide ✅
-

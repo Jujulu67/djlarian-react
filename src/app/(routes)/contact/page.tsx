@@ -212,7 +212,7 @@ export default function ContactPage() {
               </p>
               <a
                 href="mailto:manager@djlarian.com"
-                className="text-purple-400 hover:text-purple-300 transition-colors duration-200"
+                className="text-white hover:text-gray-300 transition-colors duration-200"
               >
                 manager@djlarian.com
               </a>
@@ -225,7 +225,7 @@ export default function ContactPage() {
               </p>
               <a
                 href="mailto:booking@djlarian.com"
-                className="text-purple-400 hover:text-purple-300 transition-colors duration-200"
+                className="text-white hover:text-gray-300 transition-colors duration-200"
               >
                 booking@djlarian.com
               </a>

@@ -3,7 +3,7 @@
 import { debounce } from 'lodash';
 import { Search, Star, RotateCcw } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 
 import { Select } from '../../../../../components/ui/Select';
 
@@ -48,15 +48,17 @@ export const UserFiltersServer = ({
   );
 
   // Debounced search function
-  const debouncedSearch = useCallback(
-    debounce((value: string) => {
-      updateSearchParams({ search: value });
-    }, 300),
+  const debouncedSearch = useMemo(
+    () =>
+      debounce((value: string) => {
+        updateSearchParams({ search: value });
+      }, 300),
     [updateSearchParams]
   );
 
   // Initialiser l'état local avec les valeurs issues des props
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSearch(searchValue);
     setRole(roleValue);
     setIsVipOnly(statusValue === 'true');

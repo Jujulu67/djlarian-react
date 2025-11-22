@@ -3,6 +3,7 @@
 ## 📊 Résumé
 
 **6 vulnérabilités détectées** :
+
 - 1 **low** (faible)
 - 2 **moderate** (modérée)
 - 3 **high** (élevée)
@@ -44,6 +45,7 @@
 ### 4. `next` (Moderate) ⚠️ **À surveiller**
 
 **Problèmes** :
+
 - Cache poisoning (omission du header Vary)
 - Cache Key Confusion pour Image Optimization
 - Content Injection pour Image Optimization
@@ -79,9 +81,11 @@
 ### ⚠️ Actions à Planifier (Breaking Changes)
 
 2. **Mettre à jour Next.js** (quand vous êtes prêt) :
+
    ```bash
    npm audit fix --force
    ```
+
    ⚠️ **Attention** : Cela mettra à jour vers Next.js 16.0.3, ce qui peut introduire des breaking changes.
 
    **Alternative** : Attendre la prochaine version stable de Next.js 15.x qui corrigera ces vulnérabilités.
@@ -120,6 +124,7 @@
 4. ✅ Vous pouvez corriger les vulnérabilités non-bloquantes avec `npm audit fix`
 
 **Action recommandée** :
+
 ```bash
 # Corriger les vulnérabilités non-bloquantes
 npm audit fix
@@ -134,4 +139,3 @@ npm audit fix
 - [npm audit documentation](https://docs.npmjs.com/cli/v8/commands/npm-audit)
 - [Next.js Security Advisories](https://github.com/vercel/next.js/security/advisories)
 - [Vercel Security](https://vercel.com/security)
-

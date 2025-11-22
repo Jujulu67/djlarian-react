@@ -11,6 +11,7 @@ export type CreateTrackInput = {
   releaseDate: string;
   imageId?: string;
   bpm?: number;
+  musicalKey?: string;
   description?: string;
   type: MusicType;
   featured?: boolean;
@@ -94,6 +95,7 @@ export async function createTrack(data: CreateTrackInput, userId?: string) {
       releaseDate: new Date(data.releaseDate),
       imageId: data.imageId as string | undefined,
       bpm: data.bpm,
+      musicalKey: data.musicalKey,
       description: data.description,
       type: data.type,
       featured: data.featured || false,
@@ -259,6 +261,7 @@ export function formatTrackData(track: TrackWithRelations | null): Track | null 
     imageId: track.imageId,
     releaseDate: track.releaseDate?.toISOString() ?? '',
     bpm: track.bpm ?? undefined,
+    musicalKey: track.musicalKey ?? undefined,
     description: track.description ?? undefined,
     type: track.type as MusicType,
     featured: track.featured,

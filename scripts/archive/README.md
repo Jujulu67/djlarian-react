@@ -14,4 +14,3 @@ Ce dossier contient les scripts qui ne sont plus utilisés dans le projet mais q
 ## Note
 
 Ces scripts ne sont plus référencés dans `package.json` et peuvent être supprimés définitivement si vous êtes sûr qu'ils ne seront plus nécessaires.
-

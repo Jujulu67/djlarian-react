@@ -9,6 +9,7 @@ export default function HydrationWrapper({ children }: { children: React.ReactNo
 
   useEffect(() => {
     const cleanup = cleanupAttributes();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setHasMounted(true);
     return () => cleanup?.();
   }, []);

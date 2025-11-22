@@ -346,7 +346,7 @@ export default async function AdminActivitiesPage({
         <div className="mb-4">
           <Link
             href="/admin"
-            className="inline-flex items-center text-purple-400 hover:text-purple-300 transition-colors text-sm"
+            className="inline-flex items-center text-white hover:text-gray-300 transition-colors text-sm"
           >
             <ArrowLeft className="mr-1 h-4 w-4" />
             Retour au Panel

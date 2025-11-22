@@ -765,25 +765,20 @@ a[class*='btn'] {
   font-weight: 600;
 }
 
-/* Platform icon utility class - simplifies selectors and reduces !important usage */
-.platform-icon {
+/* Links are white by default - no purple color unless explicitly requested */
+/* Use .link-purple class for links that should have the purple color */
+a:not([class*='btn']):not(header a):not(nav a):not(.admin-button-link):not(button):not(
+    [role='button']
+  ):not(.link-purple) {
   color: inherit;
 }
 
-.platform-icon svg {
-  color: inherit;
-}
-
-/* Better contrast for links - simplified selector excluding platform icons, header, nav, buttons, and admin buttons */
-a:not([class*='btn']):not(header a):not(nav a):not(.platform-icon):not(.admin-button-link):not(
-    button
-  ):not([role='button']) {
+/* Purple link class for links that should have the purple color (e.g., in content, descriptions, etc.) */
+a.link-purple {
   color: rgb(196, 181, 253); /* purple-300 - better contrast */
 }
 
-a:not([class*='btn']):not(header a):not(nav a):not(.platform-icon):not(.admin-button-link):not(
-    button
-  ):not([role='button']):hover {
+a.link-purple:hover {
   color: rgb(167, 139, 250); /* purple-400 */
 }
 

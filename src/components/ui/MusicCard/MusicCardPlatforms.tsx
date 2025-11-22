@@ -74,7 +74,7 @@ export const MusicCardPlatforms: React.FC<MusicCardPlatformsProps> = ({
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
-          className={`platform-icon ${platformColors[platform]} text-white p-1.5 rounded-full transition-all hover:scale-105 shadow-md`}
+          className={`${platformColors[platform]} text-white p-1.5 rounded-full transition-all hover:scale-105 shadow-md`}
           title={platformTitles[platform]}
         >
           {platformIcons[platform]}

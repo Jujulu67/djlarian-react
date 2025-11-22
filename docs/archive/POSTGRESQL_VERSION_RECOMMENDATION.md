@@ -3,17 +3,18 @@
 ## 📊 Situation Actuelle
 
 ### Votre Base de Données Actuelle
+
 - **Version utilisée** : PostgreSQL **15.12** (selon `backup.sql`)
 - **Source** : Homebrew (développement local)
 
 ### Versions PostgreSQL Disponibles
 
-| Version | Statut | Disponible sur Neon | Recommandation |
-|---------|--------|---------------------|----------------|
-| **PostgreSQL 15** | ✅ Stable | ✅ Oui | ✅ Bon choix (votre version actuelle) |
-| **PostgreSQL 16** | ✅ Stable | ✅ Oui | ✅ Bon choix |
-| **PostgreSQL 17** | ✅ Stable | ✅ **Oui** | ⭐ **Recommandé** |
-| **PostgreSQL 18** | 🔶 Preview | ⚠️ Preview | ❌ Non recommandé pour production |
+| Version           | Statut     | Disponible sur Neon | Recommandation                        |
+| ----------------- | ---------- | ------------------- | ------------------------------------- |
+| **PostgreSQL 15** | ✅ Stable  | ✅ Oui              | ✅ Bon choix (votre version actuelle) |
+| **PostgreSQL 16** | ✅ Stable  | ✅ Oui              | ✅ Bon choix                          |
+| **PostgreSQL 17** | ✅ Stable  | ✅ **Oui**          | ⭐ **Recommandé**                     |
+| **PostgreSQL 18** | 🔶 Preview | ⚠️ Preview          | ❌ Non recommandé pour production     |
 
 ---
 
@@ -22,6 +23,7 @@
 ### Option 1 : PostgreSQL 16 (Meilleur Compromis) ⭐
 
 **Avantages :**
+
 - ✅ Plus récent que votre version actuelle (15.12)
 - ✅ Stable et largement testé
 - ✅ Nouvelles fonctionnalités et améliorations de performance
@@ -30,27 +32,32 @@
 - ✅ Support jusqu'en 2028
 
 **Inconvénients :**
+
 - ⚠️ Légère différence avec votre version actuelle (15.12)
 - ⚠️ Migration mineure possible (mais généralement transparente)
 
 ### Option 2 : PostgreSQL 15 (Sécurité Maximale)
 
 **Avantages :**
+
 - ✅ **Exactement la même version** que votre base actuelle
 - ✅ Migration 100% transparente
 - ✅ Stabilité maximale
 - ✅ Support jusqu'en 2031
 
 **Inconvénients :**
+
 - ⚠️ Version plus ancienne (mais toujours supportée)
 
 ### Option 3 : PostgreSQL 17 (Si Disponible)
 
 **Avantages :**
+
 - ✅ Version très récente
 - ✅ Nouvelles fonctionnalités
 
 **Inconvénients :**
+
 - ⚠️ Peut ne pas être disponible sur Neon
 - ⚠️ Moins testé en production
 - ⚠️ Possible incompatibilité avec certaines extensions
@@ -78,9 +85,10 @@
 
 ## 🔍 Comment Vérifier les Versions Disponibles sur Neon
 
-Quand vous créez un projet Neon, l'interface vous montre les versions disponibles. 
+Quand vous créez un projet Neon, l'interface vous montre les versions disponibles.
 
 **Versions disponibles sur Neon (confirmé) :**
+
 - PostgreSQL 15 ✅ (disponible)
 - PostgreSQL 16 ✅ (disponible)
 - PostgreSQL 17 ✅ **Disponible et stable** ⭐
@@ -109,4 +117,3 @@ Quand vous créez un projet Neon, l'interface vous montre les versions disponibl
 **Alternatives : PostgreSQL 16 ou 15** (excellents choix aussi)
 
 PostgreSQL 17 est la version la plus récente disponible en stable sur Neon, avec toutes les dernières améliorations de performance et fonctionnalités. Votre schéma Prisma est 100% compatible ! 🚀
-

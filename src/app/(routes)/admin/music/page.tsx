@@ -32,6 +32,7 @@ import { MUSIC_TYPES } from '@/lib/utils/music-helpers';
 import { extractPlatformId } from '@/lib/utils/music-service';
 import type { Track } from '@/lib/utils/types';
 
+import AutoDetectAtelier from './components/AutoDetectAtelier';
 import { TrackList } from './components/TrackList';
 import YoutubeAtelier from './components/YoutubeAtelier';
 import { platformLabels, platformIcons, type AdminMusicTab } from './constants';
@@ -134,7 +135,7 @@ export default function AdminMusicPage() {
     }
     if (trackForm.currentForm.imageId) {
       // Ne pas essayer de charger l'image originale si c'est une URL externe
-      const imageId = trackForm.currentForm.imageId;
+      const { imageId } = trackForm.currentForm;
       if (imageId.startsWith('http://') || imageId.startsWith('https://')) {
         return; // URL externe, pas d'image originale locale
       }
@@ -199,7 +200,7 @@ export default function AdminMusicPage() {
     e.preventDefault();
     trackForm.setIsSubmitting(true);
     try {
-      let imageId = trackForm.currentForm.imageId;
+      let { imageId } = trackForm.currentForm;
       const fileToSend =
         imageUpload.originalImageFile ||
         imageUpload.originalImageFileRef.current ||
@@ -263,13 +264,13 @@ export default function AdminMusicPage() {
         throw new Error(responseData.error || 'Erreur API');
       }
 
-      console.log('[Admin Music] Réponse API complète:', responseData);
+      logger.debug('[Admin Music] Réponse API complète:', responseData);
 
       // L'API retourne { data: { id: ..., ... }, message: '...' }
       // L'ID est dans responseData.data.id
       const trackId = responseData.data?.id || trackForm.currentForm.id;
 
-      console.log('[Admin Music] Track créée/modifiée, ID:', trackId, 'depuis:', {
+      logger.debug('[Admin Music] Track créée/modifiée, ID:', trackId, 'depuis:', {
         'responseData.data?.id': responseData.data?.id,
         'trackForm.currentForm.id': trackForm.currentForm.id,
         'responseData structure': Object.keys(responseData),
@@ -287,12 +288,12 @@ export default function AdminMusicPage() {
       // Définir le succès AVANT de fetch pour que l'effet puisse détecter quand la track apparaît
       if (trackId) {
         success.setSuccess(trackId);
-        console.log('[Admin Music] Success défini pour trackId:', trackId);
+        logger.debug('[Admin Music] Success défini pour trackId:', trackId);
       }
 
       // Fetch les tracks et attendre qu'elles soient chargées
       await tracks.fetchTracks();
-      console.log('[Admin Music] Tracks fetchées');
+      logger.debug('[Admin Music] Tracks fetchées');
 
       // Le scroll sera géré par le useEffect qui surveille successTrackId et tracks.tracks
     } catch (err: unknown) {
@@ -383,14 +384,14 @@ export default function AdminMusicPage() {
         // Vérifier que la track est bien rendue dans le DOM avant de scroller
         const trackElement = document.querySelector(`[data-track-id="${success.successTrackId}"]`);
         if (trackElement) {
-          console.log('[Admin Music] Track trouvée et rendue, scroll vers le haut');
+          logger.debug('[Admin Music] Track trouvée et rendue, scroll vers le haut');
           // Petit délai pour s'assurer que l'animation est visible
           setTimeout(() => {
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }, 50);
           return true;
         } else {
-          console.log(
+          logger.debug(
             '[Admin Music] Track trouvée dans la liste mais pas encore rendue dans le DOM'
           );
         }
@@ -463,7 +464,7 @@ export default function AdminMusicPage() {
 
         {/* Tabs */}
         <div className="flex border-b border-gray-700 mb-8">
-          {(['tracks', 'collections', 'youtube'] as AdminMusicTab[]).map((tab) => (
+          {(['tracks', 'collections', 'youtube', 'auto-detect'] as AdminMusicTab[]).map((tab) => (
             <button
               key={tab}
               className={`px-4 py-2 font-medium text-sm focus:outline-none ${
@@ -477,7 +478,9 @@ export default function AdminMusicPage() {
                 ? 'Morceaux'
                 : tab === 'collections'
                   ? 'Collections'
-                  : 'Atelier YouTube'}
+                  : tab === 'youtube'
+                    ? 'Atelier YouTube'
+                    : 'Auto-détection'}
             </button>
           ))}
         </div>
@@ -512,6 +515,24 @@ export default function AdminMusicPage() {
                         trackForm.setCurrentForm({
                           ...trackForm.currentForm,
                           title: e.target.value,
+                        })
+                      }
+                      className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white focus:ring-purple-500"
+                      required
+                    />
+                  </div>
+
+                  {/* artiste */}
+                  <div className="mb-4">
+                    <label className="block text-gray-300 font-medium mb-2">
+                      Artiste(s) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      value={trackForm.currentForm.artist}
+                      onChange={(e) =>
+                        trackForm.setCurrentForm({
+                          ...trackForm.currentForm,
+                          artist: e.target.value,
                         })
                       }
                       className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white focus:ring-purple-500"
@@ -600,8 +621,8 @@ export default function AdminMusicPage() {
                     </div>
                   </div>
 
-                  {/* BPM + featured */}
-                  <div className="grid grid-cols-2 gap-4 mt-4">
+                  {/* BPM + Clé musicale + featured */}
+                  <div className="grid grid-cols-3 gap-4 mt-4">
                     <div>
                       <label className="block text-gray-300 font-medium mb-2">BPM</label>
                       <input
@@ -615,6 +636,21 @@ export default function AdminMusicPage() {
                         }
                         className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white focus:ring-purple-500"
                         placeholder="128"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-gray-300 font-medium mb-2">Clé musicale</label>
+                      <input
+                        type="text"
+                        value={trackForm.currentForm.musicalKey || ''}
+                        onChange={(e) =>
+                          trackForm.setCurrentForm({
+                            ...trackForm.currentForm,
+                            musicalKey: e.target.value || undefined,
+                          })
+                        }
+                        className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white focus:ring-purple-500"
+                        placeholder="Ex : C# min"
                       />
                     </div>
                     <div>
@@ -835,7 +871,7 @@ export default function AdminMusicPage() {
                                   href={v.url}
                                   target="_blank"
                                   onClick={(e) => e.stopPropagation()}
-                                  className="p-1.5 bg-gray-700/60 hover:bg-gray-600 rounded-full text-gray-300 hover:text-white platform-icon"
+                                  className="p-1.5 bg-gray-700/60 hover:bg-gray-600 rounded-full text-gray-300 hover:text-white"
                                   title={platformLabels[p as MusicPlatform]}
                                 >
                                   {platformIcons[p as MusicPlatform]}
@@ -908,7 +944,7 @@ export default function AdminMusicPage() {
                     // Utiliser tracks.tracks directement au lieu de filteredTracks pour être sûr de trouver la track
                     // même si le filtre n'est pas encore appliqué
                     const successTrack = tracks.tracks.find((t) => t.id === success.successTrackId);
-                    console.log('[Admin Music] Rendering success track:', {
+                    logger.debug('[Admin Music] Rendering success track:', {
                       successTrackId: success.successTrackId,
                       trackFound: !!successTrack,
                       trackTitle: successTrack?.title,
@@ -971,6 +1007,9 @@ export default function AdminMusicPage() {
 
         {/* --------------------------------- TAB YOUTUBE ----------------------------- */}
         {activeTab === 'youtube' && <YoutubeAtelier fetchTracks={tracks.fetchTracks} />}
+
+        {/* --------------------------------- TAB AUTO-DETECT ------------------------- */}
+        {activeTab === 'auto-detect' && <AutoDetectAtelier fetchTracks={tracks.fetchTracks} />}
 
         {/* ------------------ Modal crop ------------------------------------------- */}
         {imageUpload.showCropModal && imageUpload.uploadedImage && (

@@ -16,7 +16,9 @@ const defaultDtsPath = path.join(prismaClientPath, 'default.d.ts');
 
 // Vérifier si le répertoire .prisma/client existe
 if (!fs.existsSync(prismaClientPath)) {
-  console.warn('⚠️  Le répertoire .prisma/client n\'existe pas. Exécutez "prisma generate" d\'abord.');
+  console.warn(
+    '⚠️  Le répertoire .prisma/client n\'existe pas. Exécutez "prisma generate" d\'abord.'
+  );
   process.exit(0);
 }
 
@@ -58,9 +60,10 @@ try {
   fs.writeFileSync(defaultJsPath, defaultJsContent, 'utf-8');
   fs.writeFileSync(defaultMjsPath, defaultMjsContent, 'utf-8');
   console.log('✅ Fichiers default.d.ts, default.js et default.mjs créés/mis à jour pour Prisma 7');
-  console.log('ℹ️  default.js pointe vers client.js, default.mjs pointe vers index.js (compatible production)');
+  console.log(
+    'ℹ️  default.js pointe vers client.js, default.mjs pointe vers index.js (compatible production)'
+  );
 } catch (error) {
   console.error('❌ Erreur lors de la création des fichiers:', error);
   process.exit(1);
 }
-

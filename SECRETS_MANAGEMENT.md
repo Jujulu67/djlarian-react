@@ -5,7 +5,7 @@
 ### ✅ Ce qui est Sécurisé
 
 - ✅ `.env.local` - **N'est PAS commité** (dans `.gitignore`)
-- ✅ Variables d'environnement Cloudflare Pages - **Sécurisées** (encryptées)
+- ✅ Variables d'environnement Vercel - **Sécurisées** (encryptées)
 - ✅ Code source - **Ne contient PAS de secrets**
 
 ### ❌ Ce qui NE doit PAS être dans GitHub
@@ -18,11 +18,11 @@
 
 ---
 
-## 🔒 Configuration des Secrets dans Cloudflare Pages
+## 🔒 Configuration des Secrets dans Vercel
 
 ### Étape 1 : Aller dans les Variables d'Environnement
 
-1. Cloudflare Dashboard → **Pages** → votre projet
+1. Vercel Dashboard → votre projet
 2. **Settings** → **Environment Variables**
 
 ### Étape 2 : Ajouter les Secrets
@@ -45,6 +45,7 @@ Marquez ces variables comme **"Encrypt"** (Secret) :
 - ✅ `R2_SECRET_ACCESS_KEY` - Secret R2
 - ✅ `GOOGLE_CLIENT_SECRET` - Si utilisé
 - ✅ `TWITCH_CLIENT_SECRET` - Si utilisé
+- ✅ `SPOTIFY_CLIENT_SECRET` - Secret Spotify pour l'API (auto-détection des releases)
 
 ### Variables Non-Secrètes (pas besoin d'encrypt)
 
@@ -55,6 +56,9 @@ Marquez ces variables comme **"Encrypt"** (Secret) :
 - `NODE_ENV` - Public
 - `TWITCH_CLIENT_ID` - Public (pour vérifier le statut du stream)
 - `NEXT_PUBLIC_*` - Toutes les variables publiques
+- `SPOTIFY_ARTIST_ID` - ID de l'artiste Spotify (optionnel, peut être configuré dans l'UI)
+- `MUSICBRAINZ_USER_AGENT` - User-Agent pour MusicBrainz (requis, format: "AppName/Version (contact@email.com)")
+- `YOUTUBE_API_KEY` - Clé API YouTube (déjà utilisée pour l'atelier YouTube)
 
 **Note** : `TWITCH_CLIENT_ID` et `TWITCH_CLIENT_SECRET` sont optionnels. Si non configurés, l'écran offline personnalisé s'affichera par défaut.
 
@@ -108,6 +112,105 @@ openssl rand -base64 32
 
 **Valeur** : `production`
 
+### 8. SPOTIFY_CLIENT_ID (Non-secret, mais sensible)
+
+**Où trouver** : Spotify Developer Dashboard → https://developer.spotify.com/dashboard
+
+1. Créer une nouvelle app
+2. Copier le Client ID
+
+**Valeur** : Votre Client ID Spotify (ex: `1234567890abcdefghij1234567890ab`)
+
+**Note** : Peut être encrypté par précaution
+
+### 9. SPOTIFY_CLIENT_SECRET (Secret)
+
+**Où trouver** : Spotify Developer Dashboard → votre app → "Show client secret"
+
+**Valeur** : Votre Client Secret Spotify
+
+**⚠️ IMPORTANT** : Cocher "Encrypt" !
+
+### 10. SPOTIFY_ARTIST_ID (Non-secret, optionnel)
+
+**Où trouver** :
+
+- Sur votre profil Spotify for Artists, l'URL contient l'Artist ID
+- Exemple : `https://artists.spotify.com/c/artist/6BzYsuiPSFBMJ7YnxLeKbz/profile/overview`
+- L'Artist ID est la partie après `/artist/` : `6BzYsuiPSFBMJ7YnxLeKbz`
+- Ou utiliser le nom d'artiste dans l'interface (recherche automatique)
+
+**Valeur** : `6BzYsuiPSFBMJ7YnxLeKbz` (Larian)
+
+**Note** : Optionnel, peut être configuré directement dans l'interface admin
+
+### 11. MUSICBRAINZ_USER_AGENT (Non-secret, requis)
+
+**Format** : `AppName/Version (contact@email.com)`
+
+**Exemple** : `DJLarianApp/1.0.0 (contact@djlarian.com)`
+
+**Note** : MusicBrainz exige un User-Agent valide pour toutes les requêtes
+
+### 12. LASTFM_API_KEY (Non-secret, optionnel)
+
+**Où trouver** : https://www.last.fm/api/account/create
+
+1. Créer un compte Last.fm
+2. Créer une API key (gratuit)
+
+**Valeur** : Votre API key Last.fm
+
+**Note** : Optionnel, l'enrichissement fonctionnera sans mais sera moins complet
+
+### 13. GOOGLE_SEARCH_API_KEY (Non-secret, optionnel)
+
+**Où trouver** : Google Cloud Console
+
+**Étapes détaillées** :
+
+1. **Créer un projet Google Cloud** :
+
+   - Aller sur https://console.cloud.google.com/
+   - Cliquer sur "Sélectionner un projet" → "Nouveau projet"
+   - Donner un nom (ex: "DJLarian Search")
+   - Cliquer sur "Créer"
+
+2. **Activer l'API Custom Search** :
+
+   - Dans le menu, aller dans "APIs & Services" → "Bibliothèque"
+   - Rechercher "Custom Search API"
+   - Cliquer sur "Custom Search API" → "Activer"
+
+3. **Créer un moteur de recherche personnalisé (Programmable Search Engine)** :
+
+   - Aller sur https://programmablesearchengine.google.com/
+   - Cliquer sur "Ajouter" ou "Create a custom search engine"
+   - Dans "Sites à rechercher", entrer : `soundcloud.com`
+   - Donner un nom (ex: "SoundCloud Search")
+   - Cliquer sur "Créer"
+   - **⚠️ IMPORTANT** : Noter le **Search Engine ID (CX)** qui s'affiche (format: `xxxxxxxxxxxxxxxxxxxxxxxxx:xxxxxx`)
+
+4. **Créer une clé API** :
+   - Retourner sur https://console.cloud.google.com/
+   - Aller dans "APIs & Services" → "Identifiants"
+   - Cliquer sur "Créer des identifiants" → "Clé API"
+   - **Optionnel** : Restreindre la clé API à "Custom Search API" uniquement (plus sécurisé)
+   - Copier la clé API générée
+
+**Valeurs à configurer** :
+
+- `GOOGLE_SEARCH_API_KEY` : Votre clé API Google
+- `GOOGLE_SEARCH_CX` : Votre Search Engine ID (CX)
+
+**Limites gratuites** :
+
+- **100 requêtes/jour** gratuitement
+- Au-delà : $5 pour 1000 requêtes supplémentaires
+- Pour un usage modéré (quelques recherches par release), le quota gratuit devrait suffire
+
+**Note** : Optionnel, la recherche SoundCloud fonctionnera sans mais retournera `null` (pas de faux liens 404)
+
 ---
 
 ## 🔍 Vérification
@@ -116,7 +219,7 @@ openssl rand -base64 32
 
 ```bash
 # Chercher des secrets dans le repo
-git grep -i "r2_secret\|r2_access\|neondb_owner" -- ':!*.md' ':!.env*'
+git grep -i "spotify_client_secret\|neondb_owner\|nextauth_secret" -- ':!*.md' ':!.env*'
 ```
 
 Si rien n'est trouvé, c'est bon ! ✅

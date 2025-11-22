@@ -728,7 +728,7 @@ export default function ConfigurationPage() {
         <div className="mb-8">
           <Link
             href="/admin"
-            className="flex items-center text-purple-400 hover:text-purple-300 transition-colors mb-6"
+            className="flex items-center text-white hover:text-gray-300 transition-colors mb-6"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Retour au panel admin

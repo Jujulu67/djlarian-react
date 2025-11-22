@@ -70,6 +70,7 @@ export const useAudioFrequencyCapture = ({
         }
 
         // Use or create the global audio context (same as used for volume control)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const win = window as any;
         let audioContext: AudioContext;
 

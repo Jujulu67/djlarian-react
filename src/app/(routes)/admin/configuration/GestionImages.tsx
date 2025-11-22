@@ -250,7 +250,7 @@ export default function GestionImages({
             {showBackLink && (
               <Link
                 href="/admin/configuration"
-                className="text-purple-400 hover:text-purple-300 flex items-center"
+                className="text-white hover:text-gray-300 flex items-center"
               >
                 <ImageIcon className="w-6 h-6 mr-2" /> Retour config
               </Link>

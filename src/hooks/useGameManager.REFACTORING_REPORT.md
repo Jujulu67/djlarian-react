@@ -41,4 +41,3 @@ src/hooks/
 - Tests de base créés dans `__tests__/useGameManager.test.ts`
 - Build TypeScript réussi ✅
 - Aucune erreur de lint ✅
-

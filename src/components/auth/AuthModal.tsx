@@ -238,7 +238,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             {isLogin ? 'Pas encore de compte ?' : 'Déjà un compte ?'}{' '}
             <button
               onClick={() => setIsLogin(!isLogin)}
-              className="text-purple-400 hover:text-purple-300 transition-colors"
+              className="text-white hover:text-gray-300 transition-colors"
               disabled={isLoading}
             >
               {isLogin ? "S'inscrire" : 'Se connecter'}

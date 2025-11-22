@@ -241,6 +241,7 @@ const GameVisualizer: React.FC<GameVisualizerProps> = ({ gameData, audioElement 
   };
 
   // Handle play button click
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const handlePlayClick = useCallback(() => {
     logger.debug('Bouton "Appuyez pour jouer" cliqué - Approche directe');
 

@@ -39,7 +39,7 @@ const resetForm = () => {
 const handleSubmit = async (e: FormEvent) => {
   e.preventDefault();
   trackForm.setIsSubmitting(true);
-  
+
   try {
     // Utiliser trackForm.currentForm
     // Utiliser imageUpload.croppedImageBlob, originalImageFile, etc.
@@ -71,4 +71,3 @@ const handleSubmit = async (e: FormEvent) => {
 7. **Upload Image** : Sélectionner image → Crop → Vérifier upload
 8. **Filtrage** : Taper dans recherche → Vérifier filtrage
 9. **Édition depuis URL** : `?edit=track-id` → Vérifier ouverture formulaire
-

@@ -30,4 +30,4 @@ volumes:
 
 networks:
   umami-network: # Définir le réseau
-    driver: bridge 
+    driver: bridge

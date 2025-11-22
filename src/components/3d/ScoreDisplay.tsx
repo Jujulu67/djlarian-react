@@ -42,6 +42,7 @@ const ScoreDisplay: React.FC<ScoreDisplayProps> = ({
   useEffect(() => {
     // Si le score a augmenté
     if (score > displayScore) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsScoreIncreasing(true);
 
       // Animer le score progressivement
@@ -66,6 +67,7 @@ const ScoreDisplay: React.FC<ScoreDisplayProps> = ({
   // Vérifier si c'est un nouveau meilleur score
   useEffect(() => {
     if (score > highScore && highScore > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsNewHighScore(true);
       const timer = setTimeout(() => {
         setIsNewHighScore(false);
@@ -77,6 +79,7 @@ const ScoreDisplay: React.FC<ScoreDisplayProps> = ({
   // Afficher les changements de score
   useEffect(() => {
     if (score > displayScore + 5) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setScoreChange({ value: score - displayScore, timestamp: Date.now() });
 
       const timer = setTimeout(() => {

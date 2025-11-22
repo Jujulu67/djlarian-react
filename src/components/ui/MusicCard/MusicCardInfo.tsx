@@ -45,9 +45,10 @@ export const MusicCardInfo: React.FC<MusicCardInfoProps> = ({ track, isPlayerVis
   return (
     <div className="p-5 flex flex-col">
       <div>
-        <h3 className="text-xl font-bold text-white mb-2 line-clamp-1 group-hover:text-purple-300 transition-colors">
+        <h3 className="text-xl font-bold text-white mb-1 line-clamp-1 group-hover:text-purple-300 transition-colors">
           {track.title}
         </h3>
+        {track.artist && <p className="text-sm text-gray-400 mb-3 line-clamp-1">{track.artist}</p>}
 
         <div className="flex items-center text-gray-400 mb-3 text-sm">
           <Calendar className="w-4 h-4 mr-2 flex-shrink-0" />
@@ -66,6 +67,11 @@ export const MusicCardInfo: React.FC<MusicCardInfoProps> = ({ track, isPlayerVis
           {track.bpm && (
             <span className="text-xs px-2 py-1 rounded-full bg-gray-700/50 text-gray-300 order-4">
               {track.bpm} BPM
+            </span>
+          )}
+          {track.musicalKey && (
+            <span className="text-xs px-2 py-1 rounded-full bg-gray-700/50 text-gray-300 order-5">
+              {track.musicalKey}
             </span>
           )}
         </div>

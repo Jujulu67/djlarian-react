@@ -96,8 +96,8 @@ export default function LatestReleases({
 
         setReleases(filteredReleases);
         setError(null);
-      } catch (err: any) {
-        if (err.name === 'AbortError' || !isMounted) return;
+      } catch (err: unknown) {
+        if ((err as Error).name === 'AbortError' || !isMounted) return;
         logger.error('Erreur:', err);
         if (isMounted) {
           setError('Impossible de charger les dernières sorties');
@@ -293,7 +293,7 @@ export default function LatestReleases({
                           href={release.platforms.spotify.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="platform-icon text-2xl text-gray-300 hover:text-green-400 transition-all duration-300 transform hover:scale-125 hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-black rounded"
+                          className="text-2xl text-gray-300 hover:text-green-400 transition-all duration-300 transform hover:scale-125 hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-black rounded"
                           onClick={(e) => e.stopPropagation()}
                           aria-label={`Écouter ${release.title} sur Spotify`}
                         >
@@ -305,7 +305,7 @@ export default function LatestReleases({
                           href={release.platforms.apple.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="platform-icon text-2xl text-gray-300 hover:text-pink-400 transition-all duration-300 transform hover:scale-125 hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 focus:ring-offset-black rounded"
+                          className="text-2xl text-gray-300 hover:text-pink-400 transition-all duration-300 transform hover:scale-125 hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 focus:ring-offset-black rounded"
                           onClick={(e) => e.stopPropagation()}
                           aria-label={`Écouter ${release.title} sur Apple Music`}
                         >
@@ -317,7 +317,7 @@ export default function LatestReleases({
                           href={release.platforms.soundcloud.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="platform-icon text-2xl text-gray-300 hover:text-orange-400 transition-all duration-300 transform hover:scale-125 hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-black rounded"
+                          className="text-2xl text-gray-300 hover:text-orange-400 transition-all duration-300 transform hover:scale-125 hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-black rounded"
                           onClick={(e) => e.stopPropagation()}
                           aria-label={`Écouter ${release.title} sur SoundCloud`}
                         >

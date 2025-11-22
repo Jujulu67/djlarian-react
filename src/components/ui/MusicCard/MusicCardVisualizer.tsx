@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 
 import {
   calculateFrequencyMapping,
@@ -26,9 +26,9 @@ export const MusicCardVisualizer: React.FC<MusicCardVisualizerProps> = ({
   isRealAudio = false,
 }) => {
   const [audioData, setAudioData] = useState<number[]>(Array(20).fill(20));
-  const [currentTime, setCurrentTime] = useState<number>(Date.now() / 1000);
+  const [currentTime, setCurrentTime] = useState<number>(() => Date.now() / 1000);
   const animationFrameRef = useRef<number | null>(null);
-  const startTimeRef = useRef<number>(Date.now());
+  const startTimeRef = useRef<number>(0);
   const previousAudioDataRef = useRef<number[]>(Array(20).fill(20));
 
   // Mémoriser le mapping des fréquences (ne change que si la longueur des données change)
@@ -37,7 +37,7 @@ export const MusicCardVisualizer: React.FC<MusicCardVisualizerProps> = ({
       return calculateFrequencyMapping(frequencyData.length);
     }
     return calculateFrequencyMapping(1024); // Valeur par défaut
-  }, [frequencyData?.length]);
+  }, [frequencyData]);
 
   useEffect(() => {
     if (isVisible) {

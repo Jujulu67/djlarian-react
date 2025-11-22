@@ -114,25 +114,26 @@ model TicketInfo {
 }
 
 model Track {
-  id               String           @id @default(uuid())
-  title            String
-  artist           String
-  imageId          String?
-  releaseDate      DateTime
-  bpm              Int?
-  description      String?
-  type             String
-  featured         Boolean          @default(false)
-  isPublished      Boolean          @default(true)
-  publishAt        DateTime?
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-  userId           String?
-  collectionId     String?
-  GenresOnTracks   GenresOnTracks[]
-  MusicCollection  MusicCollection? @relation(fields: [collectionId], references: [id])
-  User             User?            @relation(fields: [userId], references: [id])
-  TrackPlatform    TrackPlatform[]
+  id              String           @id @default(uuid())
+  title           String
+  artist          String
+  imageId         String?
+  releaseDate     DateTime
+  bpm             Int?
+  musicalKey      String?
+  description     String?
+  type            String
+  featured        Boolean          @default(false)
+  isPublished     Boolean          @default(true)
+  publishAt       DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  userId          String?
+  collectionId    String?
+  GenresOnTracks  GenresOnTracks[]
+  MusicCollection MusicCollection? @relation(fields: [collectionId], references: [id])
+  User            User?            @relation(fields: [userId], references: [id])
+  TrackPlatform   TrackPlatform[]
 }
 
 model TrackPlatform {

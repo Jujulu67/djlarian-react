@@ -134,7 +134,10 @@ export default function EventDetailPage() {
           }
         }
 
-        const data = await response.json();
+        const responseData = await response.json();
+        // L'API retourne {data: {...}} via createSuccessResponse
+        const data = responseData.data || responseData;
+
         // Vérifier l'état des dates avant et après
         logger.debug(
           `Dates avant traitement - startDate: ${data.startDate}, virtualStartDate: ${data.virtualStartDate}`
@@ -169,16 +172,25 @@ export default function EventDetailPage() {
   }, [eventId]); // L'effet ne dépend plus de virtualDate car nous utilisons directement dateParam
 
   const formatEventDate = (event: Event) => {
-    // Ne plus vérifier isVirtualOccurrence, car nous avons déjà remplacé startDate
-    // par virtualStartDate dans useEffect si nécessaire
-    const dateString = event.startDate;
+    // Utiliser startDate ou virtualStartDate selon ce qui est disponible
+    const dateString = event.startDate || event.virtualStartDate;
+
+    if (!dateString) {
+      logger.warn('Événement sans date pour formatEventDate:', event);
+      return 'Date non disponible';
+    }
 
     logger.debug(
       `Formatting date from: ${dateString} (isVirtual: ${!!event.isVirtualOccurrence}, virtualDate: ${event.virtualStartDate})`
     );
 
-    const date = parseISO(dateString);
-    return format(date, "EEEE d MMMM yyyy 'à' HH'h'mm", { locale: fr });
+    try {
+      const date = parseISO(dateString);
+      return format(date, "EEEE d MMMM yyyy 'à' HH'h'mm", { locale: fr });
+    } catch (error) {
+      logger.error('Erreur lors du formatage de la date:', error, dateString);
+      return 'Date invalide';
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -236,9 +248,18 @@ export default function EventDetailPage() {
   };
 
   // Formater la date
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) {
+      logger.warn('formatDate called with undefined dateString');
+      return 'Date non disponible';
+    }
     logger.debug(`formatDate called with: ${dateString}`);
-    return format(parseISO(dateString), 'dd MMMM yyyy à HH:mm', { locale: fr });
+    try {
+      return format(parseISO(dateString), 'dd MMMM yyyy à HH:mm', { locale: fr });
+    } catch (error) {
+      logger.error('Erreur lors du formatage de la date:', error, dateString);
+      return 'Date invalide';
+    }
   };
 
   // Afficher un état de chargement
@@ -315,7 +336,41 @@ export default function EventDetailPage() {
     );
   }
 
-  const isEventPast = isPast(parseISO(event.startDate));
+  // Vérifier que la date existe avant d'appeler parseISO
+  const eventDate = event.startDate || event.virtualStartDate;
+  if (!eventDate) {
+    logger.error('Événement sans date valide:', {
+      id: event.id,
+      title: event.title,
+      startDate: event.startDate,
+      virtualStartDate: event.virtualStartDate,
+      isVirtualOccurrence: event.isVirtualOccurrence,
+    });
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-8 pt-32">
+        <div className="container mx-auto">
+          <div className="flex justify-center items-center min-h-[40vh]">
+            <div className="bg-red-500/10 border border-red-500/50 p-8 rounded-lg text-center max-w-lg">
+              <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+              <h2 className="text-2xl font-semibold text-white mb-2">Erreur de données</h2>
+              <p className="text-gray-300 mb-6">
+                Cet événement n'a pas de date valide. Veuillez contacter l'administrateur.
+              </p>
+              <Link
+                href="/events"
+                className="px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors inline-flex items-center gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Retour aux événements
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const isEventPast = isPast(parseISO(eventDate));
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-4 md:p-8 pt-32">
@@ -342,6 +397,7 @@ export default function EventDetailPage() {
                 fill
                 className="w-full h-full object-cover object-[50%_25%]"
                 priority
+                loading="eager"
                 unoptimized
                 onError={(e) => {
                   // Éviter la boucle infinie en masquant l&apos;image si elle n&apos;existe pas
@@ -525,7 +581,7 @@ export default function EventDetailPage() {
 
                   <Link
                     href="/events"
-                    className="text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-2"
+                    className="text-white hover:text-gray-300 transition-colors flex items-center gap-2"
                   >
                     Voir tous les événements
                     <ArrowLeft className="w-4 h-4 transform rotate-180" />

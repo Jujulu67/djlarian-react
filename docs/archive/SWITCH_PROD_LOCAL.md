@@ -3,6 +3,7 @@
 ## 💡 Concept
 
 Ajouter un switch dans les paramètres de l'application pour basculer entre :
+
 - **Base locale (SQLite)** : Pour le développement et les tests
 - **Base production (Neon)** : Pour accéder aux vraies données depuis localhost
 
@@ -23,7 +24,7 @@ Créer un fichier `.env.local.switch` qui peut être modifié par l'interface :
 export function getDatabaseUrl(): string {
   // Lire depuis un fichier de config ou localStorage
   const useProduction = localStorage.getItem('useProductionDb') === 'true';
-  
+
   if (useProduction) {
     return process.env.DATABASE_URL_PRODUCTION || '';
   }
@@ -48,13 +49,13 @@ export default function SettingsPage() {
   const handleToggle = async (checked: boolean) => {
     // Sauvegarder dans localStorage ou un fichier de config
     localStorage.setItem('useProductionDb', checked.toString());
-    
+
     // Redémarrer le serveur ou recharger la page
     if (checked) {
       // Avertir l'utilisateur
       alert('⚠️ Vous allez utiliser la base de production. Soyez prudent !');
     }
-    
+
     setUseProduction(checked);
     window.location.reload();
   };
@@ -64,13 +65,10 @@ export default function SettingsPage() {
       <h1>Paramètres de Base de Données</h1>
       <div>
         <label>Utiliser la base de production (Neon)</label>
-        <Switch 
-          checked={useProduction}
-          onCheckedChange={handleToggle}
-        />
+        <Switch checked={useProduction} onCheckedChange={handleToggle} />
         <p className="text-sm text-muted-foreground">
-          {useProduction 
-            ? '⚠️ Connecté à la base de production' 
+          {useProduction
+            ? '⚠️ Connecté à la base de production'
             : '✅ Connecté à la base locale (SQLite)'}
         </p>
       </div>
@@ -141,4 +139,3 @@ DATABASE_URL_PRODUCTION="postgresql://neondb_owner:xxxxx@ep-xxxxx.neon.tech/neon
 ---
 
 **Note** : Cette fonctionnalité peut être ajoutée plus tard, une fois que le système de base locale est bien établi.
-

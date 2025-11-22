@@ -90,7 +90,7 @@ export default function UpcomingEventsOld({
         >
           <a
             href="/events"
-            className="text-purple-400 hover:text-purple-300 transition-colors duration-200"
+            className="text-white hover:text-gray-300 transition-colors duration-200"
           >
             Voir tous les événements →
           </a>
