@@ -84,7 +84,28 @@ fi
 
 # Mettre à jour DATABASE_URL dans .env.local si nécessaire
 ENV_LOCAL_PATH=".env.local"
-if [ "$USE_PRODUCTION" != "true" ]; then
+if [ "$USE_PRODUCTION" = "true" ]; then
+  # Si le switch est activé (PostgreSQL), vérifier que DATABASE_URL_PRODUCTION est défini
+  if [ -f "$ENV_LOCAL_PATH" ]; then
+    # Vérifier si DATABASE_URL_PRODUCTION existe
+    if ! grep -q '^DATABASE_URL_PRODUCTION=' "$ENV_LOCAL_PATH"; then
+      echo "⚠️  ATTENTION: DATABASE_URL_PRODUCTION n'est pas défini dans .env.local"
+      echo "   Le switch PostgreSQL est activé mais DATABASE_URL_PRODUCTION est manquant."
+      echo "   Ajoutez DATABASE_URL_PRODUCTION dans .env.local pour utiliser PostgreSQL en local."
+    else
+      echo "✅ DATABASE_URL_PRODUCTION est défini dans .env.local"
+    fi
+    
+    # Vérifier si DATABASE_URL pointe vers SQLite alors que le switch est activé
+    if grep -q '^DATABASE_URL=.*file:' "$ENV_LOCAL_PATH"; then
+      echo "ℹ️  DATABASE_URL pointe vers SQLite mais le switch PostgreSQL est activé."
+      echo "   Le code utilisera automatiquement DATABASE_URL_PRODUCTION si disponible."
+    fi
+  else
+    echo "⚠️  ATTENTION: .env.local n'existe pas et le switch PostgreSQL est activé"
+    echo "   Créez .env.local avec DATABASE_URL_PRODUCTION pour utiliser PostgreSQL en local."
+  fi
+elif [ "$USE_PRODUCTION" != "true" ]; then
   # Vérifier si .env.local existe et si DATABASE_URL pointe vers PostgreSQL
   if [ -f "$ENV_LOCAL_PATH" ]; then
     if grep -q '^DATABASE_URL=.*postgresql' "$ENV_LOCAL_PATH"; then

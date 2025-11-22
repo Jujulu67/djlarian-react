@@ -36,8 +36,19 @@ type MusicTypeOption = { label: string; value: MusicType };
 
 const AutoDetectAtelier: React.FC<AutoDetectAtelierProps> = ({ fetchTracks }) => {
   /* ------------------------------ STATES --------------------------------- */
+  const [activeTab, setActiveTab] = useState<'spotify' | 'soundcloud'>('spotify');
+
+  // Spotify states
   const [artistId, setArtistId] = useState('6BzYsuiPSFBMJ7YnxLeKbz');
   const [artistName, setArtistName] = useState('');
+
+  // SoundCloud states
+  const [soundcloudArtistName, setSoundcloudArtistName] = useState('');
+  const [soundcloudProfileUrl, setSoundcloudProfileUrl] = useState(
+    'https://soundcloud.com/larian67'
+  );
+
+  // Shared states
   const [releases, setReleases] = useState<DetectedRelease[]>([]);
   const [isLoadingReleases, setIsLoadingReleases] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -119,6 +130,48 @@ const AutoDetectAtelier: React.FC<AutoDetectAtelierProps> = ({ fetchTracks }) =>
     } catch (err) {
       logger.error('Erreur:', err instanceof Error ? err.message : String(err));
       setError("Une erreur s'est produite lors de la récupération des releases");
+    } finally {
+      setIsLoadingReleases(false);
+    }
+  };
+  /* ----------------------------------------------------------------------- */
+
+  /* ---------------------------- API SOUNDCLOUD --------------------------- */
+  const fetchSoundCloudReleases = async (forceRefresh = false) => {
+    if (!soundcloudArtistName.trim() && !soundcloudProfileUrl.trim()) {
+      setError("Veuillez entrer un nom d'artiste SoundCloud ou une URL de profil");
+      return;
+    }
+    setIsLoadingReleases(true);
+    setError(null);
+    setReleases([]);
+    try {
+      const params = new URLSearchParams();
+      if (soundcloudArtistName.trim()) params.append('artistName', soundcloudArtistName.trim());
+      if (soundcloudProfileUrl.trim()) params.append('profileUrl', soundcloudProfileUrl.trim());
+      if (forceRefresh) params.append('refresh', 'true');
+      const url = `/api/soundcloud/releases?${params.toString()}`;
+      logger.debug('[AUTO-DETECT] Fetch SoundCloud - URL:', url, 'forceRefresh:', forceRefresh);
+      const res = await fetch(url);
+      const data = await res.json();
+      if (res.ok) {
+        const releasesData = data.releases || [];
+        logger.debug('[AUTO-DETECT] Fetch SoundCloud - releases reçues:', releasesData.length);
+        logger.debug(
+          '[AUTO-DETECT] Fetch SoundCloud - releases avec exists=true:',
+          releasesData.filter((r: DetectedRelease) => r.exists).length
+        );
+        logger.debug(
+          '[AUTO-DETECT] Fetch SoundCloud - releases scheduled:',
+          releasesData.filter((r: DetectedRelease) => r.isScheduled).length
+        );
+        setReleases(releasesData);
+      } else {
+        setError(`Erreur: ${data.error || 'Impossible de récupérer les tracks SoundCloud'}`);
+      }
+    } catch (err) {
+      logger.error('Erreur SoundCloud:', err instanceof Error ? err.message : String(err));
+      setError("Une erreur s'est produite lors de la récupération des tracks SoundCloud");
     } finally {
       setIsLoadingReleases(false);
     }
@@ -273,10 +326,18 @@ const AutoDetectAtelier: React.FC<AutoDetectAtelierProps> = ({ fetchTracks }) =>
         releaseDate: release.releaseDate,
         type: release.type,
         platforms: {
-          spotify: {
-            url: release.spotifyUrl,
-            embedId: release.spotifyId,
-          },
+          ...(release.spotifyUrl && {
+            spotify: {
+              url: release.spotifyUrl,
+              embedId: release.spotifyId,
+            },
+          }),
+          ...(release.soundcloudUrl && {
+            soundcloud: {
+              url: release.soundcloudUrl,
+              embedId: release.soundcloudId,
+            },
+          }),
         },
         // Ne pas mettre imageUrl dans imageId car c'est une URL, pas un imageId valide
         imageId: undefined,
@@ -420,14 +481,25 @@ const AutoDetectAtelier: React.FC<AutoDetectAtelierProps> = ({ fetchTracks }) =>
 
         // Invalider le cache de l'API pour que le prochain fetch soit à jour
         try {
-          await fetch('/api/spotify/releases', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              artistId: artistId || undefined,
-              artistName: artistName || undefined,
-            }),
-          });
+          if (activeTab === 'spotify') {
+            await fetch('/api/spotify/releases', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                artistId: artistId || undefined,
+                artistName: artistName || undefined,
+              }),
+            });
+          } else {
+            await fetch('/api/soundcloud/releases', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                artistName: soundcloudArtistName || undefined,
+                profileUrl: soundcloudProfileUrl || undefined,
+              }),
+            });
+          }
           logger.debug('[AUTO-DETECT] Cache invalidé avec succès');
         } catch (err) {
           logger.warn("[AUTO-DETECT] Erreur lors de l'invalidation du cache:", err);
@@ -477,79 +549,176 @@ const AutoDetectAtelier: React.FC<AutoDetectAtelierProps> = ({ fetchTracks }) =>
       <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg border border-gray-700/50 p-6">
         <h2 className="text-xl font-bold mb-6 text-white flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-purple-400" />
-          Auto-détection des releases Spotify
+          Auto-détection des releases
         </h2>
         <p className="text-gray-300 mb-6">
-          Détectez automatiquement vos releases sur Spotify et importez-les avec enrichissement
-          automatique des métadonnées (MusicBrainz, Last.fm) et recherche des liens sur les autres
-          plateformes.
+          Détectez automatiquement vos releases sur Spotify ou SoundCloud et importez-les avec
+          enrichissement automatique des métadonnées (MusicBrainz, Last.fm) et recherche des liens
+          sur les autres plateformes.
         </p>
-        {/* Zone de configuration */}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            fetchReleases();
-          }}
-          className="flex flex-col gap-4 mb-8"
+
+        {/* Onglets */}
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => setActiveTab(v as 'spotify' | 'soundcloud')}
+          className="w-full"
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="artistId" className="block text-gray-300 font-medium mb-2">
-                Spotify Artist ID
-              </label>
-              <input
-                id="artistId"
-                value={artistId}
-                onChange={(e) => setArtistId(e.target.value)}
-                className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white focus:ring-purple-500"
-                placeholder="Ex: 4Z8W4fKeB5YxbusRsdQVPb"
-              />
-              <p className="text-xs text-gray-400 mt-1">
-                Trouvez votre Artist ID sur votre profil Spotify
-              </p>
-            </div>
-            <div>
-              <label htmlFor="artistName" className="block text-gray-300 font-medium mb-2">
-                Ou nom d&apos;artiste
-              </label>
-              <input
-                id="artistName"
-                value={artistName}
-                onChange={(e) => setArtistName(e.target.value)}
-                className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white focus:ring-purple-500"
-                placeholder="Ex: Larian"
-              />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              disabled={isLoadingReleases || (!artistId.trim() && !artistName.trim())}
-              className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center gap-2 disabled:opacity-50 self-start"
+          <TabsList className="grid w-full grid-cols-2 bg-gray-700/50 mb-6">
+            <TabsTrigger value="spotify" className="data-[state=active]:bg-purple-600">
+              Spotify
+            </TabsTrigger>
+            <TabsTrigger value="soundcloud" className="data-[state=active]:bg-purple-600">
+              SoundCloud
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Onglet Spotify */}
+          <TabsContent value="spotify" className="space-y-6">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                fetchReleases();
+              }}
+              className="flex flex-col gap-4"
             >
-              {isLoadingReleases ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin" /> Chargement…
-                </>
-              ) : (
-                <>
-                  <Search className="w-4 h-4" /> Rechercher les releases
-                </>
-              )}
-            </button>
-            {releases.length > 0 && (
-              <button
-                type="button"
-                onClick={() => fetchReleases(true)}
-                disabled={isLoadingReleases}
-                className="px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg flex items-center gap-2 disabled:opacity-50 self-start"
-                title="Forcer le refresh (ignorer le cache)"
-              >
-                <RefreshCw className="w-4 h-4" /> Refresh
-              </button>
-            )}
-          </div>
-        </form>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="artistId" className="block text-gray-300 font-medium mb-2">
+                    Spotify Artist ID
+                  </label>
+                  <input
+                    id="artistId"
+                    value={artistId}
+                    onChange={(e) => setArtistId(e.target.value)}
+                    className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white focus:ring-purple-500"
+                    placeholder="Ex: 4Z8W4fKeB5YxbusRsdQVPb"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Trouvez votre Artist ID sur votre profil Spotify
+                  </p>
+                </div>
+                <div>
+                  <label htmlFor="artistName" className="block text-gray-300 font-medium mb-2">
+                    Ou nom d&apos;artiste
+                  </label>
+                  <input
+                    id="artistName"
+                    value={artistName}
+                    onChange={(e) => setArtistName(e.target.value)}
+                    className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white focus:ring-purple-500"
+                    placeholder="Ex: Larian"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  disabled={isLoadingReleases || (!artistId.trim() && !artistName.trim())}
+                  className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center gap-2 disabled:opacity-50 self-start"
+                >
+                  {isLoadingReleases ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" /> Chargement…
+                    </>
+                  ) : (
+                    <>
+                      <Search className="w-4 h-4" /> Rechercher les releases
+                    </>
+                  )}
+                </button>
+                {releases.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => fetchReleases(true)}
+                    disabled={isLoadingReleases}
+                    className="px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg flex items-center gap-2 disabled:opacity-50 self-start"
+                    title="Forcer le refresh (ignorer le cache)"
+                  >
+                    <RefreshCw className="w-4 h-4" /> Refresh
+                  </button>
+                )}
+              </div>
+            </form>
+          </TabsContent>
+
+          {/* Onglet SoundCloud */}
+          <TabsContent value="soundcloud" className="space-y-6">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                fetchSoundCloudReleases();
+              }}
+              className="flex flex-col gap-4"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label
+                    htmlFor="soundcloudArtistName"
+                    className="block text-gray-300 font-medium mb-2"
+                  >
+                    Nom d&apos;artiste SoundCloud
+                  </label>
+                  <input
+                    id="soundcloudArtistName"
+                    value={soundcloudArtistName}
+                    onChange={(e) => setSoundcloudArtistName(e.target.value)}
+                    className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white focus:ring-purple-500"
+                    placeholder="Ex: Larian"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="soundcloudProfileUrl"
+                    className="block text-gray-300 font-medium mb-2"
+                  >
+                    Ou URL de profil SoundCloud
+                  </label>
+                  <input
+                    id="soundcloudProfileUrl"
+                    value={soundcloudProfileUrl}
+                    onChange={(e) => setSoundcloudProfileUrl(e.target.value)}
+                    className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white focus:ring-purple-500"
+                    placeholder="Ex: soundcloud.com/larian"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    URL complète ou juste le nom d&apos;utilisateur
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2 mb-4">
+                <button
+                  type="submit"
+                  disabled={
+                    isLoadingReleases ||
+                    (!soundcloudArtistName.trim() && !soundcloudProfileUrl.trim())
+                  }
+                  className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center gap-2 disabled:opacity-50"
+                >
+                  {isLoadingReleases ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" /> Chargement…
+                    </>
+                  ) : (
+                    <>
+                      <Search className="w-4 h-4" /> Rechercher les tracks
+                    </>
+                  )}
+                </button>
+                {releases.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => fetchSoundCloudReleases(true)}
+                    disabled={isLoadingReleases}
+                    className="px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg flex items-center gap-2 disabled:opacity-50"
+                    title="Forcer le refresh (ignorer le cache)"
+                  >
+                    <RefreshCw className="w-4 h-4" /> Refresh
+                  </button>
+                )}
+              </div>
+            </form>
+          </TabsContent>
+        </Tabs>
         {/* Erreur éventuelle */}
         {error && (
           <div className="p-4 mb-6 bg-red-900/30 border border-red-700/50 rounded-lg text-red-200 flex gap-3">
@@ -744,16 +913,18 @@ const AutoDetectAtelier: React.FC<AutoDetectAtelierProps> = ({ fetchTracks }) =>
                       )}
                     </div>
                   </div>
-                  <a
-                    href={r.spotifyUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg flex-shrink-0"
-                    title="Voir sur Spotify"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <ExternalLink className="w-5 h-5" />
-                  </a>
+                  {(r.spotifyUrl || r.soundcloudUrl) && (
+                    <a
+                      href={r.spotifyUrl || r.soundcloudUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg flex-shrink-0"
+                      title={r.spotifyUrl ? 'Voir sur Spotify' : 'Voir sur SoundCloud'}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <ExternalLink className="w-5 h-5" />
+                    </a>
+                  )}
                 </div>
               ))}
             </div>
@@ -859,15 +1030,22 @@ const AutoDetectAtelier: React.FC<AutoDetectAtelierProps> = ({ fetchTracks }) =>
                     ) : null;
                   })()}
 
-                  <a
-                    href={currentReleaseForImport.spotifyUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block w-full text-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm flex items-center justify-center gap-2 transition-colors"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    Voir sur Spotify
-                  </a>
+                  {(currentReleaseForImport.spotifyUrl ||
+                    currentReleaseForImport.soundcloudUrl) && (
+                    <a
+                      href={
+                        currentReleaseForImport.spotifyUrl || currentReleaseForImport.soundcloudUrl
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block w-full text-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm flex items-center justify-center gap-2 transition-colors"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      {currentReleaseForImport.spotifyUrl
+                        ? 'Voir sur Spotify'
+                        : 'Voir sur SoundCloud'}
+                    </a>
+                  )}
 
                   {/* Afficher les plateformes trouvées */}
                   {Object.keys(platformSearchResults).length > 0 && (
