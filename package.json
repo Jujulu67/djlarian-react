@@ -24,7 +24,8 @@
     "db:reset:local": "rm -f prisma/dev.db && npm run db:setup:local",
     "db:import:backup": "node scripts/import-backup-to-sqlite.mjs",
     "db:fix:imageids": "node scripts/fix-imageids.mjs",
-    "db:studio": "npx prisma studio"
+    "db:studio": "npx prisma studio",
+    "generate:waveform-video": "node scripts/generate-waveform-video.mjs"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",

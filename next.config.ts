@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
     styledComponents: true,
   },
   images: {
+    // Loader personnalisé pour gérer les images servies via l'API
+    loader: 'custom',
+    loaderFile: './imageLoader.ts',
     // Migration de domains vers remotePatterns (Next.js 16)
     remotePatterns: [
       {
@@ -39,6 +42,9 @@ const nextConfig: NextConfig = {
     localPatterns: [
       {
         pathname: '/uploads/**',
+      },
+      {
+        pathname: '/images/**',
       },
     ],
     // Optimisations d'images pour la production

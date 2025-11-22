@@ -176,11 +176,11 @@ const Navigation = () => {
         <nav className="container mx-auto px-3 sm:px-4 h-16 flex items-center justify-between relative z-10 gap-2 sm:gap-4">
           <Link
             href="/"
-            className="text-xl sm:text-2xl font-audiowide text-white hover:text-transparent hover:bg-clip-text hover:bg-gradient-to-r hover:from-purple-400 hover:via-blue-400 hover:to-purple-400 transition-all duration-300 relative group shrink-0"
+            className="text-xl sm:text-2xl font-audiowide text-white lg:hover:text-transparent lg:hover:bg-clip-text lg:hover:bg-gradient-to-r lg:hover:from-purple-400 lg:hover:via-blue-400 lg:hover:to-purple-400 active:text-white transition-all duration-300 relative group shrink-0"
           >
             <span className="relative z-10">LARIAN</span>
             {isScrolled && (
-              <span className="absolute inset-0 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-blue-400 to-purple-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 animate-gradient-shift bg-[length:200%_100%]" />
+              <span className="hidden lg:block absolute inset-0 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-blue-400 to-purple-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 animate-gradient-shift bg-[length:200%_100%]" />
             )}
           </Link>
 
@@ -491,7 +491,11 @@ const Navigation = () => {
                             <Link
                               href="/admin"
                               className="flex items-center px-4 py-2 text-sm text-white/90 hover:text-white hover:bg-purple-500/10 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-inset"
-                              onClick={() => setIsMobileUserMenuOpen(false)}
+                              onClick={() => {
+                                setIsMobileUserMenuOpen(false);
+                                // Fermer aussi le menu burger si ouvert
+                                setIsMobileMenuOpen(false);
+                              }}
                             >
                               <Settings className="w-4 h-4 mr-2" />
                               Panel Admin

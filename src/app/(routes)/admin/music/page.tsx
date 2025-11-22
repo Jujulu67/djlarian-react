@@ -70,7 +70,7 @@ export default function AdminMusicPage() {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tracks.tracks]);
+  }, [tracks.tracks.length]);
 
   // Handlers
   const handleAddGenre = () => {
@@ -255,18 +255,46 @@ export default function AdminMusicPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-      if (!res.ok) throw new Error((await res.json()).error || 'Erreur API');
-      if (typeof window !== 'undefined') {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // Lire la réponse une seule fois
+      const responseData = await res.json();
+
+      if (!res.ok) {
+        throw new Error(responseData.error || 'Erreur API');
       }
+
+      console.log('[Admin Music] Réponse API complète:', responseData);
+
+      // L'API retourne { data: { id: ..., ... }, message: '...' }
+      // L'ID est dans responseData.data.id
+      const trackId = responseData.data?.id || trackForm.currentForm.id;
+
+      console.log('[Admin Music] Track créée/modifiée, ID:', trackId, 'depuis:', {
+        'responseData.data?.id': responseData.data?.id,
+        'trackForm.currentForm.id': trackForm.currentForm.id,
+        'responseData structure': Object.keys(responseData),
+      });
+
       if (typeof window !== 'undefined' && window.location.search.includes('edit=')) {
         const url = new URL(window.location.href);
         url.searchParams.delete('edit');
         router.replace(url.pathname + url.search, { scroll: false });
       }
-      tracks.fetchTracks();
+
+      // Réinitialiser le formulaire avant de fetch pour éviter les conflits
       resetForm();
-      success.setSuccess(trackForm.currentForm.id ?? null);
+
+      // Définir le succès AVANT de fetch pour que l'effet puisse détecter quand la track apparaît
+      if (trackId) {
+        success.setSuccess(trackId);
+        console.log('[Admin Music] Success défini pour trackId:', trackId);
+      }
+
+      // Fetch les tracks et attendre qu'elles soient chargées
+      await tracks.fetchTracks();
+      console.log('[Admin Music] Tracks fetchées');
+
+      // Le scroll sera géré par le useEffect qui surveille successTrackId et tracks.tracks
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur';
       logger.error('Erreur:', errorMessage);
@@ -343,6 +371,52 @@ export default function AdminMusicPage() {
 
   const successTrackInList =
     success.successTrackId && tracks.filteredTracks.some((t) => t.id === success.successTrackId);
+
+  // Scroller vers le haut quand une track en succès apparaît et est dans la liste
+  useEffect(() => {
+    if (!success.successTrackId) return;
+
+    // Vérifier que la track est dans tracks.tracks (pas filteredTracks car il peut y avoir un délai)
+    const checkAndScroll = () => {
+      const trackExists = tracks.tracks.some((t) => t.id === success.successTrackId);
+      if (trackExists && typeof window !== 'undefined') {
+        // Vérifier que la track est bien rendue dans le DOM avant de scroller
+        const trackElement = document.querySelector(`[data-track-id="${success.successTrackId}"]`);
+        if (trackElement) {
+          console.log('[Admin Music] Track trouvée et rendue, scroll vers le haut');
+          // Petit délai pour s'assurer que l'animation est visible
+          setTimeout(() => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }, 50);
+          return true;
+        } else {
+          console.log(
+            '[Admin Music] Track trouvée dans la liste mais pas encore rendue dans le DOM'
+          );
+        }
+      }
+      return false;
+    };
+
+    // Essayer après un court délai pour laisser le temps au DOM de se mettre à jour
+    const timer1 = setTimeout(() => {
+      if (!checkAndScroll()) {
+        // Essayer encore après un délai plus long
+        setTimeout(() => {
+          if (!checkAndScroll()) {
+            // Dernière tentative après un délai encore plus long
+            setTimeout(() => {
+              checkAndScroll();
+            }, 300);
+          }
+        }, 200);
+      }
+    }, 150);
+
+    return () => clearTimeout(timer1);
+    // Utiliser successTrackId et la longueur de tracks.tracks comme dépendances stables
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [success.successTrackId, tracks.tracks.length]);
 
   if (tracks.isLoading)
     return (
@@ -683,18 +757,19 @@ export default function AdminMusicPage() {
 
             {/* --------- Liste tracks --------- */}
             <div className="lg:col-span-2">
-              <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg border border-gray-700/50 p-6">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                    <Music className="w-5 h-5" /> Morceaux ({tracks.filteredTracks.length})
+              <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg border border-gray-700/50 p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+                  <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                    <Music className="w-4 h-4 sm:w-5 sm:h-5" /> Morceaux (
+                    {tracks.filteredTracks.length})
                   </h2>
-                  <div className="relative">
+                  <div className="relative w-full sm:w-auto">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                     <input
                       placeholder="Rechercher…"
                       value={tracks.searchTerm}
                       onChange={(e) => tracks.setSearchTerm(e.target.value)}
-                      className="pl-9 pr-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white focus:ring-purple-500 text-sm"
+                      className="w-full sm:w-auto pl-9 pr-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white focus:ring-purple-500 text-sm"
                     />
                   </div>
                 </div>
@@ -826,6 +901,49 @@ export default function AdminMusicPage() {
                     </div>
                   </div>
                 )}
+
+                {/* Track en succès affichée en haut avec effet visuel */}
+                {success.successTrackId &&
+                  (() => {
+                    // Utiliser tracks.tracks directement au lieu de filteredTracks pour être sûr de trouver la track
+                    // même si le filtre n'est pas encore appliqué
+                    const successTrack = tracks.tracks.find((t) => t.id === success.successTrackId);
+                    console.log('[Admin Music] Rendering success track:', {
+                      successTrackId: success.successTrackId,
+                      trackFound: !!successTrack,
+                      trackTitle: successTrack?.title,
+                      totalTracks: tracks.tracks.length,
+                    });
+                    return successTrack ? (
+                      <div className="mb-4">
+                        <TrackList
+                          tracks={[successTrack]}
+                          searchTerm={tracks.searchTerm}
+                          refreshingCoverId={tracks.refreshingCoverId}
+                          highlightedTrackId={null}
+                          successTrackId={success.successTrackId}
+                          onEdit={handleEdit}
+                          onDelete={tracks.deleteTrack}
+                          onToggleFeatured={tracks.toggleFeatured}
+                          onRefreshCover={tracks.refreshCover}
+                          onTogglePublish={tracks.togglePublish}
+                        />
+                      </div>
+                    ) : (
+                      <div className="mb-4 p-4 bg-yellow-600/20 border border-yellow-600/50 rounded-lg text-yellow-300 text-sm">
+                        ⚠️ Track en succès (ID: {success.successTrackId}) non trouvée dans la liste.
+                        Total tracks: {tracks.tracks.length}
+                        <div className="mt-2 text-xs">
+                          IDs disponibles:{' '}
+                          {tracks.tracks
+                            .slice(0, 5)
+                            .map((t) => t.id)
+                            .join(', ')}
+                          ...
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                 {/* Liste avec TrackList */}
                 <TrackList
