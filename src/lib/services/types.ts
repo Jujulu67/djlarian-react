@@ -71,8 +71,10 @@ export interface DetectedRelease {
   artist: string;
   releaseDate: string;
   type: 'single' | 'ep' | 'album' | 'remix' | 'live' | 'djset' | 'video';
-  spotifyUrl: string;
-  spotifyId: string;
+  spotifyUrl?: string;
+  spotifyId?: string;
+  soundcloudUrl?: string;
+  soundcloudId?: string;
   imageUrl?: string;
   duration?: number;
   exists: boolean;

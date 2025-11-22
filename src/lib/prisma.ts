@@ -26,18 +26,29 @@ function getDatabaseUrl(): string {
     const switchPath = path.join(process.cwd(), '.db-switch.json');
     if (fs.existsSync(switchPath)) {
       const switchConfig = JSON.parse(fs.readFileSync(switchPath, 'utf-8'));
-      if (switchConfig.useProduction && process.env.DATABASE_URL_PRODUCTION) {
-        // Vérifier que le schéma Prisma correspond
-        const schemaPath = path.join(process.cwd(), 'prisma', 'schema.prisma');
-        if (fs.existsSync(schemaPath)) {
-          const schemaContent = fs.readFileSync(schemaPath, 'utf-8');
-          if (!schemaContent.includes('provider = "postgresql"')) {
-            logger.warn(
-              "Le schéma Prisma est en SQLite mais le switch indique PostgreSQL. Utilisez le switch dans l'admin panel pour synchroniser le schéma."
-            );
+      if (switchConfig.useProduction) {
+        // Le switch indique PostgreSQL
+        if (!process.env.DATABASE_URL_PRODUCTION) {
+          logger.error(
+            "⚠️  ERREUR: Le switch PostgreSQL est activé mais DATABASE_URL_PRODUCTION n'est pas défini dans .env.local"
+          );
+          logger.error(
+            '   Ajoutez DATABASE_URL_PRODUCTION dans votre .env.local pour utiliser PostgreSQL en local.'
+          );
+          // Ne pas lever d'erreur ici, on la lèvera plus tard après avoir vérifié le schema
+        } else {
+          // Vérifier que le schéma Prisma correspond
+          const schemaPath = path.join(process.cwd(), 'prisma', 'schema.prisma');
+          if (fs.existsSync(schemaPath)) {
+            const schemaContent = fs.readFileSync(schemaPath, 'utf-8');
+            if (!schemaContent.includes('provider = "postgresql"')) {
+              logger.warn(
+                "Le schéma Prisma est en SQLite mais le switch indique PostgreSQL. Utilisez le switch dans l'admin panel pour synchroniser le schéma."
+              );
+            }
           }
+          return process.env.DATABASE_URL_PRODUCTION;
         }
-        return process.env.DATABASE_URL_PRODUCTION;
       }
     }
   } catch (error) {
@@ -51,9 +62,10 @@ function getDatabaseUrl(): string {
 
 // Créer le client Prisma (singleton pattern)
 // Sur Vercel, le runtime Node.js supporte nativement Prisma
-const databaseUrl = getDatabaseUrl();
+let databaseUrl = getDatabaseUrl();
 
-// Vérification de cohérence schema.prisma vs switch (uniquement en dev)
+// Vérification de cohérence schema.prisma vs switch et correction de databaseUrl si nécessaire
+// IMPORTANT: Cette vérification doit être faite AVANT la création de l'adaptateur
 if (process.env.NODE_ENV !== 'production') {
   try {
     const schemaPath = path.join(process.cwd(), 'prisma', 'schema.prisma');
@@ -107,16 +119,29 @@ if (process.env.NODE_ENV !== 'production') {
       }
 
       // Vérifier aussi la cohérence avec DATABASE_URL
+      // Si le switch indique PostgreSQL mais que databaseUrl pointe vers SQLite,
+      // forcer l'utilisation de DATABASE_URL_PRODUCTION
       const isSQLiteUrl = databaseUrl.startsWith('file:');
       const isPostgreSQLUrl =
         databaseUrl.startsWith('postgresql://') || databaseUrl.startsWith('postgres://');
 
-      // Avertir si incohérence entre schéma et URL (après synchronisation)
-      if (isPostgreSQL && isSQLiteUrl) {
-        logger.warn(
-          "⚠️  ATTENTION: schema.prisma est en PostgreSQL mais DATABASE_URL pointe vers SQLite. Utilisez le switch DB dans l'admin panel pour synchroniser."
-        );
-      } else if (isSQLite && isPostgreSQLUrl) {
+      // Si le schema est en PostgreSQL mais que l'URL est SQLite, et que le switch indique PostgreSQL
+      if (isPostgreSQL && isSQLiteUrl && expectedProvider === 'postgresql') {
+        if (process.env.DATABASE_URL_PRODUCTION) {
+          logger.warn(
+            `⚠️  Schema.prisma est en PostgreSQL mais DATABASE_URL pointe vers SQLite. Utilisation de DATABASE_URL_PRODUCTION...`
+          );
+          databaseUrl = process.env.DATABASE_URL_PRODUCTION;
+        } else {
+          logger.error(
+            "⚠️  ERREUR: schema.prisma est en PostgreSQL mais DATABASE_URL pointe vers SQLite et DATABASE_URL_PRODUCTION n'est pas défini. Impossible de continuer."
+          );
+          throw new Error(
+            'Incohérence entre schema.prisma (PostgreSQL) et DATABASE_URL (SQLite). Définissez DATABASE_URL_PRODUCTION ou changez le switch.'
+          );
+        }
+      } else if (isSQLite && isPostgreSQLUrl && expectedProvider === 'sqlite') {
+        // Si le schema est en SQLite mais que l'URL est PostgreSQL, et que le switch indique SQLite
         logger.warn(
           "⚠️  ATTENTION: schema.prisma est en SQLite mais DATABASE_URL pointe vers PostgreSQL. Utilisez le switch DB dans l'admin panel pour synchroniser."
         );
@@ -146,7 +171,12 @@ if (process.env.NODE_ENV !== 'production') {
       }
     }
   } catch (error) {
-    // Ignorer les erreurs de nettoyage
+    // Si c'est une erreur critique de configuration, la propager
+    if (error instanceof Error && error.message.includes('Incohérence entre schema.prisma')) {
+      throw error;
+    }
+    // Sinon, ignorer les erreurs de nettoyage
+    logger.warn('Erreur lors de la vérification de cohérence (non-bloquante):', error);
   }
 }
 
@@ -196,6 +226,7 @@ function createAdapter(databaseUrl: string): PrismaBetterSqlite3 | PrismaNeon | 
   }
 }
 
+// Créer l'adaptateur APRÈS avoir corrigé databaseUrl si nécessaire
 const adapter = createAdapter(databaseUrl);
 
 // Configuration des logs Prisma

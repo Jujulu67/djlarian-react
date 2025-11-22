@@ -93,6 +93,12 @@ type CreateTrackInput = z.infer<typeof trackCreateSchema>;
 // GET /api/music - Récupérer toutes les pistes
 export async function GET(): Promise<Response> {
   try {
+    // Vérifier que Prisma est correctement initialisé
+    if (!prisma) {
+      logger.error('[API MUSIC] Prisma client non initialisé');
+      return handleApiError(new Error('Database connection not available'), 'GET /api/music');
+    }
+
     const tracks = await prisma.track.findMany({
       include: {
         TrackPlatform: true,
@@ -115,11 +121,19 @@ export async function GET(): Promise<Response> {
     // Logique d'auto-publication
     for (const track of tracks) {
       if (track.publishAt && !track.isPublished && new Date(track.publishAt) <= new Date()) {
-        await prisma.track.update({
-          where: { id: track.id },
-          data: { isPublished: true },
-        });
-        track.isPublished = true;
+        try {
+          await prisma.track.update({
+            where: { id: track.id },
+            data: { isPublished: true },
+          });
+          track.isPublished = true;
+        } catch (updateError) {
+          // Logger l'erreur mais ne pas bloquer la réponse
+          logger.warn(
+            `[API MUSIC] Erreur lors de la mise à jour de la track ${track.id}:`,
+            updateError
+          );
+        }
       }
     }
 
@@ -129,6 +143,7 @@ export async function GET(): Promise<Response> {
 
     return createSuccessResponse(formattedTracks);
   } catch (error) {
+    logger.error('[API MUSIC] Erreur dans GET /api/music:', error);
     return handleApiError(error, 'GET /api/music');
   }
 }
