@@ -202,6 +202,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Snapshot non trouvé' }, { status: 404 });
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const snapshotData = snapshot.data as Record<string, Record<string, any>>;
 
       // Pour chaque configuration dans le snapshot

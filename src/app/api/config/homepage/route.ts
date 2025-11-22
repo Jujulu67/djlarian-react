@@ -29,16 +29,21 @@ export async function GET() {
 
       if (isNotEmpty(configs)) {
         // Construire l'objet de configuration depuis la base de données
-        const configObject: Record<string, any> = {};
+        const configObject: Record<string, string | number | boolean | null> = {};
         configs.forEach((config) => {
+          const typedConfig = config as { key: string; value: string | null };
           // Convertir les valeurs en types appropriés
-          let value: string | number | boolean | null = config.value;
-          if (config.value === 'true' || config.value === 'false') {
-            value = config.value === 'true';
-          } else if (config.value !== null && config.value !== '' && !isNaN(Number(config.value))) {
-            value = Number(config.value);
+          let value: string | number | boolean | null = typedConfig.value;
+          if (typedConfig.value === 'true' || typedConfig.value === 'false') {
+            value = typedConfig.value === 'true';
+          } else if (
+            typedConfig.value !== null &&
+            typedConfig.value !== '' &&
+            !isNaN(Number(typedConfig.value))
+          ) {
+            value = Number(typedConfig.value);
           }
-          configObject[config.key] = value;
+          configObject[typedConfig.key] = value;
         });
 
         // Utiliser la config de la DB si elle existe, sinon les valeurs par défaut

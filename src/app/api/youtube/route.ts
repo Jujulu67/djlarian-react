@@ -167,7 +167,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     );
 
     // Créer un ensemble d'IDs pour une recherche rapide
-    const existingVideoIds = new Set(existingVideos.map((v) => v.embedId));
+    const existingVideoIds = new Set(
+      existingVideos.map((v: { embedId: string | null }) => v.embedId)
+    );
 
     const videos = (data.items as YouTubeSearchItem[]).map((item) => ({
       id: item.id.videoId,

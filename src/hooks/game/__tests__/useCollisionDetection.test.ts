@@ -144,8 +144,10 @@ describe('useCollisionDetection', () => {
       } as GamePattern,
       {
         id: '2',
-        type: 'obstacle',
+        type: 'avoid',
         position: { x: 200, y: 200 },
+        timestamp: Date.now(),
+        size: 20,
         isDisintegrating: false,
       } as GamePattern,
     ];
@@ -162,7 +164,7 @@ describe('useCollisionDetection', () => {
   it('should handle different pattern types', () => {
     const { result } = renderHook(() => useCollisionDetection(defaultProps));
 
-    const patternTypes: GamePattern['type'][] = ['collect', 'obstacle', 'powerup'];
+    const patternTypes: GamePattern['type'][] = ['collect', 'avoid', 'golden'];
 
     patternTypes.forEach((type) => {
       jest.clearAllMocks();
@@ -171,6 +173,8 @@ describe('useCollisionDetection', () => {
           id: '1',
           type,
           position: { x: 100, y: 100 },
+          timestamp: Date.now(),
+          size: 20,
           isDisintegrating: false,
         } as GamePattern,
       ];

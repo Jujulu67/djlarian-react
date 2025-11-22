@@ -1,6 +1,6 @@
 import { renderHook, act } from '@testing-library/react';
 
-import { EventFormData } from '../types';
+import { EventFormData } from '../../types';
 import { useEventTickets } from '../useEventTickets';
 
 const mockFormData: EventFormData = {

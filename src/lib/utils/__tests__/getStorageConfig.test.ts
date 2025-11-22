@@ -27,17 +27,35 @@ describe('shouldUseBlobStorage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockIsBlobConfiguredValue.value = false;
-    // Reset NODE_ENV
-    delete (process.env as any).NODE_ENV;
+    // Reset NODE_ENV - utiliser Object.defineProperty pour éviter l'erreur readonly
+    Object.defineProperty(process, 'env', {
+      value: { ...process.env },
+      writable: true,
+      configurable: true,
+    });
+    if ('NODE_ENV' in process.env) {
+      delete (process.env as Record<string, string | undefined>).NODE_ENV;
+    }
   });
 
   afterEach(() => {
-    delete (process.env as any).NODE_ENV;
+    Object.defineProperty(process, 'env', {
+      value: { ...process.env },
+      writable: true,
+      configurable: true,
+    });
+    if ('NODE_ENV' in process.env) {
+      delete (process.env as Record<string, string | undefined>).NODE_ENV;
+    }
   });
 
   describe('in production', () => {
     beforeEach(() => {
-      process.env.NODE_ENV = 'production';
+      Object.defineProperty(process, 'env', {
+        value: { ...process.env, NODE_ENV: 'production' },
+        writable: true,
+        configurable: true,
+      });
     });
 
     it('should return true if blob is configured', () => {
@@ -55,7 +73,11 @@ describe('shouldUseBlobStorage', () => {
 
   describe('in development', () => {
     beforeEach(() => {
-      process.env.NODE_ENV = 'development';
+      Object.defineProperty(process, 'env', {
+        value: { ...process.env, NODE_ENV: 'development' },
+        writable: true,
+        configurable: true,
+      });
     });
 
     it('should return false by default (no switch file)', () => {

@@ -48,14 +48,14 @@ export function handleApiError(error: unknown, context?: string): NextResponse {
   if (error instanceof Prisma.PrismaClientUnknownRequestError) {
     logger.error(`${errorContext} Unknown Prisma error:`, error);
     return createInternalErrorResponse('Database error occurred', {
-      message: error.message,
+      message: (error as Error).message,
     });
   }
 
   if (error instanceof Prisma.PrismaClientValidationError) {
     logger.error(`${errorContext} Prisma validation error:`, error);
     return createBadRequestResponse('Invalid data provided', {
-      message: error.message,
+      message: (error as Error).message,
     });
   }
 

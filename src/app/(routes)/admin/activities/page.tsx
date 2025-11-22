@@ -154,7 +154,7 @@ export default async function AdminActivitiesPage({
         select: { id: true, title: true, createdAt: true },
       });
       const events = await query;
-      activitiesData = events.map((e) => ({
+      activitiesData = events.map((e: { id: string; title: string; createdAt: Date }) => ({
         id: e.id,
         type: 'event',
         date: e.createdAt,
@@ -169,7 +169,7 @@ export default async function AdminActivitiesPage({
         select: { id: true, title: true, createdAt: true },
       });
       const tracks = await query;
-      activitiesData = tracks.map((t) => ({
+      activitiesData = tracks.map((t: { id: string; title: string; createdAt: Date }) => ({
         id: t.id,
         type: 'track',
         date: t.createdAt,
@@ -182,14 +182,18 @@ export default async function AdminActivitiesPage({
         orderBy: { id: 'desc' },
         include: { Event: { select: { id: true, title: true, createdAt: true } } },
       });
-      const tickets = (await query).filter((ti) => ti.Event);
-      activitiesData = tickets.map((ti) => ({
-        id: ti.id,
-        type: 'ticket',
-        date: ti.Event!.createdAt,
-        title: ti.Event!.title,
-        eventId: ti.Event!.id,
-      }));
+      const tickets = (await query).filter(
+        (ti: { Event: { id: string; title: string; createdAt: Date } | null }) => ti.Event
+      );
+      activitiesData = tickets.map(
+        (ti: { id: string; Event: { id: string; title: string; createdAt: Date } | null }) => ({
+          id: ti.id,
+          type: 'ticket',
+          date: ti.Event!.createdAt,
+          title: ti.Event!.title,
+          eventId: ti.Event!.id,
+        })
+      );
     }
     // Pas besoin de trier ici, Prisma l'a déjà fait
   } else {
@@ -209,27 +213,29 @@ export default async function AdminActivitiesPage({
 
     // Combiner et mapper
     const combinedData = [
-      ...allEvents.map((e) => ({
+      ...allEvents.map((e: { id: string; title: string; createdAt: Date }) => ({
         id: e.id,
         type: 'event' as ActivityType,
         date: e.createdAt,
         title: e.title,
       })),
-      ...allTracks.map((t) => ({
+      ...allTracks.map((t: { id: string; title: string; createdAt: Date }) => ({
         id: t.id,
         type: 'track' as ActivityType,
         date: t.createdAt,
         title: t.title,
       })),
       ...allTickets
-        .filter((ti) => ti.Event)
-        .map((ti) => ({
-          id: ti.id,
-          type: 'ticket' as ActivityType,
-          date: ti.Event!.createdAt,
-          title: ti.Event!.title,
-          eventId: ti.Event!.id,
-        })),
+        .filter((ti: { Event: { id: string; title: string; createdAt: Date } | null }) => ti.Event)
+        .map(
+          (ti: { id: string; Event: { id: string; title: string; createdAt: Date } | null }) => ({
+            id: ti.id,
+            type: 'ticket' as ActivityType,
+            date: ti.Event!.createdAt,
+            title: ti.Event!.title,
+            eventId: ti.Event!.id,
+          })
+        ),
     ];
 
     // Trier le tout par date

@@ -266,7 +266,10 @@ export function formatTrackData(track: TrackWithRelations | null): Track | null 
     publishAt: track.publishAt?.toISOString(),
     createdAt: track.createdAt?.toISOString(),
     updatedAt: track.updatedAt?.toISOString(),
-    genre: track.GenresOnTracks?.map((gt) => gt.Genre?.name).filter(Boolean) || [],
+    genre:
+      track.GenresOnTracks?.map((gt: { Genre: { name: string } | null }) => gt.Genre?.name).filter(
+        (name): name is string => Boolean(name)
+      ) || [],
     platforms: {},
     collection: track.MusicCollection
       ? { id: track.MusicCollection.id, title: track.MusicCollection.title }
@@ -277,9 +280,13 @@ export function formatTrackData(track: TrackWithRelations | null): Track | null 
   if (track.TrackPlatform && Array.isArray(track.TrackPlatform)) {
     const validPlatforms: MusicPlatform[] = ['spotify', 'youtube', 'soundcloud', 'apple', 'deezer'];
     track.TrackPlatform.forEach((p) => {
-      if (p.platform && validPlatforms.includes(p.platform as MusicPlatform)) {
-        const platformKey = p.platform as MusicPlatform;
-        formattedTrack.platforms[platformKey] = { url: p.url, embedId: p.embedId ?? undefined };
+      const platform = p as { platform: string; url: string; embedId: string | null };
+      if (platform.platform && validPlatforms.includes(platform.platform as MusicPlatform)) {
+        const platformKey = platform.platform as MusicPlatform;
+        formattedTrack.platforms[platformKey] = {
+          url: platform.url,
+          embedId: platform.embedId ?? undefined,
+        };
       }
     });
   }

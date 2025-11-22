@@ -105,6 +105,7 @@ export async function GET(req: NextRequest) {
       areTablesReady = false;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let configObject: Record<string, any> = {};
 
     if (areTablesReady) {
@@ -124,7 +125,7 @@ export async function GET(req: NextRequest) {
       // Transformer les configurations en objet structuré
       // configObject = {};
 
-      configs.forEach((config) => {
+      configs.forEach((config: { section: string; key: string; value: string | null }) => {
         if (!configObject[config.section]) {
           configObject[config.section] = {};
         }

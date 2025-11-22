@@ -122,7 +122,9 @@ export async function GET(): Promise<Response> {
       }
     }
 
-    const formattedTracks = tracks.map((track) => formatTrackData(track));
+    const formattedTracks = tracks.map((track: Parameters<typeof formatTrackData>[0]) =>
+      formatTrackData(track)
+    );
 
     return createSuccessResponse(formattedTracks);
   } catch (error) {
@@ -224,91 +226,98 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   try {
-    const track = await prisma.$transaction(async (tx) => {
-      // Handle optional genreNames
-      const genres = isNotEmpty(dataForPrisma.genreNames)
-        ? await Promise.all(
-            dataForPrisma.genreNames.map(async (name: string) => {
-              const normalizedName = name.trim().toLowerCase();
-              return tx.genre.upsert({
-                where: { name: normalizedName },
-                update: {},
-                create: {
-                  id: uuidv4(),
-                  name: normalizedName,
-                  updatedAt: new Date(),
-                },
-              });
-            })
-          )
-        : [];
+    const track = await prisma.$transaction(
+      async (
+        tx: Omit<
+          typeof prisma,
+          '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
+        >
+      ) => {
+        // Handle optional genreNames
+        const genres = isNotEmpty(dataForPrisma.genreNames)
+          ? await Promise.all(
+              dataForPrisma.genreNames.map(async (name: string) => {
+                const normalizedName = name.trim().toLowerCase();
+                return tx.genre.upsert({
+                  where: { name: normalizedName },
+                  update: {},
+                  create: {
+                    id: uuidv4(),
+                    name: normalizedName,
+                    updatedAt: new Date(),
+                  },
+                });
+              })
+            )
+          : [];
 
-      let userConnect = {};
-      try {
-        const userExists = await prisma.user.findFirst({
-          where: { id: session.user.id },
-          select: { id: true },
-        });
-        if (userExists) {
-          userConnect = { User: { connect: { id: session.user.id } } };
+        let userConnect = {};
+        try {
+          const userExists = await prisma.user.findFirst({
+            where: { id: session.user.id },
+            select: { id: true },
+          });
+          if (userExists) {
+            userConnect = { User: { connect: { id: session.user.id } } };
+          }
+        } catch (userError) {
+          logger.error('Erreur vérification utilisateur', userError);
         }
-      } catch (userError) {
-        logger.error('Erreur vérification utilisateur', userError);
-      }
 
-      // Handle optional genres connection
-      const genresToConnect = isNotEmpty(genres)
-        ? genres.map((genre) => ({
-            Genre: { connect: { id: genre.id } },
-          }))
-        : undefined;
+        // Handle optional genres connection
+        const genresToConnect = isNotEmpty(genres)
+          ? genres.map((genre) => ({
+              Genre: { connect: { id: genre.id } },
+            }))
+          : undefined;
 
-      // Handle optional platforms creation
-      const platformsToCreate = isNotEmpty(dataForPrisma.platforms)
-        ? dataForPrisma.platforms.map((platform) => ({
+        // Handle optional platforms creation
+        const platformsToCreate = isNotEmpty(dataForPrisma.platforms)
+          ? dataForPrisma.platforms.map((platform) => ({
+              id: uuidv4(),
+              platform: platform.platform,
+              url: platform.url,
+              embedId: platform.embedId,
+              updatedAt: new Date(),
+            }))
+          : undefined;
+
+        const newTrack = await tx.track.create({
+          data: {
             id: uuidv4(),
-            platform: platform.platform,
-            url: platform.url,
-            embedId: platform.embedId,
+            title: dataForPrisma.title,
+            artist: dataForPrisma.artist,
+            releaseDate: new Date(dataForPrisma.releaseDate),
+            imageId: dataForPrisma.imageId,
+            bpm: dataForPrisma.bpm,
+            description: dataForPrisma.description,
+            type: dataForPrisma.type,
+            featured: dataForPrisma.featured || false,
+            isPublished: true,
+            ...(processedPublishAt !== undefined && { publishAt: processedPublishAt }),
             updatedAt: new Date(),
-          }))
-        : undefined;
+            ...userConnect,
+            MusicCollection: dataForPrisma.collectionId
+              ? { connect: { id: dataForPrisma.collectionId } }
+              : undefined,
+            ...(platformsToCreate && { TrackPlatform: { create: platformsToCreate } }),
+            ...(genresToConnect && { GenresOnTracks: { create: genresToConnect } }),
+          },
+        });
 
-      const newTrack = await tx.track.create({
-        data: {
-          id: uuidv4(),
-          title: dataForPrisma.title,
-          artist: dataForPrisma.artist,
-          releaseDate: new Date(dataForPrisma.releaseDate),
-          imageId: dataForPrisma.imageId,
-          bpm: dataForPrisma.bpm,
-          description: dataForPrisma.description,
-          type: dataForPrisma.type,
-          featured: dataForPrisma.featured || false,
-          isPublished: true,
-          ...(processedPublishAt !== undefined && { publishAt: processedPublishAt }),
-          updatedAt: new Date(),
-          ...userConnect,
-          MusicCollection: dataForPrisma.collectionId
-            ? { connect: { id: dataForPrisma.collectionId } }
-            : undefined,
-          ...(platformsToCreate && { TrackPlatform: { create: platformsToCreate } }),
-          ...(genresToConnect && { GenresOnTracks: { create: genresToConnect } }),
-        },
-      });
+        const fullTrack = await tx.track.findUniqueOrThrow({
+          where: { id: newTrack.id },
+          include: {
+            TrackPlatform: true,
+            GenresOnTracks: { include: { Genre: true } },
+            MusicCollection: true,
+            User: { select: { id: true, name: true } },
+          },
+        });
 
-      const fullTrack = await tx.track.findUniqueOrThrow({
-        where: { id: newTrack.id },
-        include: {
-          TrackPlatform: true,
-          GenresOnTracks: { include: { Genre: true } },
-          MusicCollection: true,
-          User: { select: { id: true, name: true } },
-        },
-      });
-
-      return fullTrack;
-    });
+        return fullTrack;
+      }
+    );
 
     return createSuccessResponse(formatTrackData(track), 201, 'Track created successfully');
   } catch (error) {

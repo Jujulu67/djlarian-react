@@ -65,6 +65,9 @@ const mockTrack: Track = {
   title: 'Test Track',
   artist: 'Test Artist',
   coverUrl: 'https://example.com/cover.jpg',
+  releaseDate: '2024-01-01',
+  genre: ['Electronic'],
+  type: 'single',
   platforms: {
     youtube: { url: 'https://youtube.com/watch?v=test' },
     soundcloud: { url: 'https://soundcloud.com/test' },

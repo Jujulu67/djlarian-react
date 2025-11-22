@@ -45,7 +45,11 @@ describe('useAudioFrequencyCapture', () => {
     // Setup global mocks
     (window as any).AudioContext = jest.fn(() => mockAudioContext);
     (window as any).webkitAudioContext = jest.fn(() => mockAudioContext);
-    navigator.mediaDevices = mockMediaDevices as any;
+    Object.defineProperty(navigator, 'mediaDevices', {
+      value: mockMediaDevices,
+      writable: true,
+      configurable: true,
+    });
 
     // Reset analyser mock
     mockAnalyser.getByteFrequencyData.mockImplementation((array: Uint8Array) => {
@@ -152,7 +156,7 @@ describe('useAudioFrequencyCapture', () => {
     );
 
     // Set iframe to null
-    iframeRef.current = null;
+    iframeRef.current = null as unknown as HTMLIFrameElement;
     rerender({ iframeRef });
 
     expect(result.current.isCapturing).toBe(false);

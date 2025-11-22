@@ -23,8 +23,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   // 2. Déterminer la source de cover
   let coverUrl: string | null = null;
   let source: 'soundcloud' | 'youtube' | null = null;
-  const sc = track.TrackPlatform.find((p) => p.platform === 'soundcloud');
-  const yt = track.TrackPlatform.find((p) => p.platform === 'youtube');
+  const sc = track.TrackPlatform.find((p: { platform: string }) => p.platform === 'soundcloud');
+  const yt = track.TrackPlatform.find((p: { platform: string }) => p.platform === 'youtube');
 
   // 2a. SoundCloud (prioritaire)
   if (sc) {

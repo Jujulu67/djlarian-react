@@ -67,7 +67,7 @@ describe('/api/health', () => {
 
   it('should report blob configuration status', async () => {
     (prisma.$queryRaw as jest.Mock).mockResolvedValue([{ test: 1 }]);
-    (isBlobConfigured as jest.Mock).mockReturnValue(true);
+    (isBlobConfigured as unknown as jest.Mock<boolean>).mockReturnValue(true);
 
     const response = await GET();
     const data = await response.json();

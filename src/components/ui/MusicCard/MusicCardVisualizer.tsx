@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 
 import {
   calculateFrequencyMapping,
@@ -26,6 +26,7 @@ export const MusicCardVisualizer: React.FC<MusicCardVisualizerProps> = ({
   isRealAudio = false,
 }) => {
   const [audioData, setAudioData] = useState<number[]>(Array(20).fill(20));
+  const [currentTime, setCurrentTime] = useState<number>(Date.now() / 1000);
   const animationFrameRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(Date.now());
   const previousAudioDataRef = useRef<number[]>(Array(20).fill(20));
@@ -50,6 +51,7 @@ export const MusicCardVisualizer: React.FC<MusicCardVisualizerProps> = ({
       const animateBars = () => {
         const elapsed = (Date.now() - startTimeRef.current) / 1000;
         const time = elapsed;
+        setCurrentTime(time);
 
         let newData: number[];
 
@@ -114,7 +116,7 @@ export const MusicCardVisualizer: React.FC<MusicCardVisualizerProps> = ({
       <div className="w-full h-full flex items-end justify-center px-2">
         <div className="flex items-end justify-between w-full h-full gap-[2px]">
           {audioData.map((value, index) => {
-            const time = Date.now() / 1000;
+            const time = currentTime;
             const hue = (index * 12 + time * 50) % 360;
             const saturation = 85 + Math.sin(time * 2 + index) * 10;
             const lightness = 60 + Math.sin(time * 1.5 + index) * 15;

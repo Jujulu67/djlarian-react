@@ -1,4 +1,6 @@
-import { User as PrismaUser } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+
+type PrismaUser = Prisma.UserGetPayload<{}>;
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 

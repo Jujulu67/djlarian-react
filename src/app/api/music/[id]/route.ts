@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 
 import { auth } from '@/auth';
@@ -179,34 +180,41 @@ export async function PUT(
     }
 
     // Mettre à jour la piste avec SEULEMENT les champs scalaires et les relations préparées
-    const updatedTrack = await prisma.$transaction(async (tx) => {
-      return tx.track.update({
-        where: { id },
-        data: {
-          ...baseDataToUpdate, // Contient les champs scalaires nettoyés + updatedAt
-          ...(processedPublishAt !== undefined && { publishAt: processedPublishAt }), // Utiliser la date traitée (peut être Date ou null)
-          ...(genresUpdate !== undefined && { GenresOnTracks: genresUpdate }),
-          ...(platformsUpdate !== undefined && { TrackPlatform: platformsUpdate }),
-          MusicCollection: trackData.hasOwnProperty('collectionId')
-            ? trackData.collectionId === null
-              ? { disconnect: true }
-              : trackData.collectionId // S'assurer que ce n'est pas undefined avant connect
-                ? { connect: { id: trackData.collectionId } }
-                : undefined
-            : undefined,
-          // isPublished est dans baseDataToUpdate s'il est dans trackData et booléen
-          ...(typeof baseDataToUpdate.isPublished === 'boolean' && {
-            isPublished: baseDataToUpdate.isPublished,
-          }),
-        },
-        include: {
-          TrackPlatform: true,
-          GenresOnTracks: { include: { Genre: true } },
-          MusicCollection: true,
-          User: { select: { id: true, name: true } },
-        },
-      });
-    });
+    const updatedTrack = await prisma.$transaction(
+      async (
+        tx: Omit<
+          typeof prisma,
+          '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
+        >
+      ) => {
+        return tx.track.update({
+          where: { id },
+          data: {
+            ...baseDataToUpdate, // Contient les champs scalaires nettoyés + updatedAt
+            ...(processedPublishAt !== undefined && { publishAt: processedPublishAt }), // Utiliser la date traitée (peut être Date ou null)
+            ...(genresUpdate !== undefined && { GenresOnTracks: genresUpdate }),
+            ...(platformsUpdate !== undefined && { TrackPlatform: platformsUpdate }),
+            MusicCollection: trackData.hasOwnProperty('collectionId')
+              ? trackData.collectionId === null
+                ? { disconnect: true }
+                : trackData.collectionId // S'assurer que ce n'est pas undefined avant connect
+                  ? { connect: { id: trackData.collectionId } }
+                  : undefined
+              : undefined,
+            // isPublished est dans baseDataToUpdate s'il est dans trackData et booléen
+            ...(typeof baseDataToUpdate.isPublished === 'boolean' && {
+              isPublished: baseDataToUpdate.isPublished,
+            }),
+          },
+          include: {
+            TrackPlatform: true,
+            GenresOnTracks: { include: { Genre: true } },
+            MusicCollection: true,
+            User: { select: { id: true, name: true } },
+          },
+        });
+      }
+    );
 
     return createSuccessResponse(formatTrackData(updatedTrack));
   } catch (error) {
@@ -242,17 +250,24 @@ export async function DELETE(
     }
 
     // Supprimer la piste (Prisma gère les suppressions en cascade si configuré dans le schéma)
-    await prisma.$transaction(async (tx) => {
-      // Supprimer manuellement les relations si cascade n'est pas configuré ou pour être explicite
-      await tx.trackPlatform.deleteMany({ where: { trackId: id } });
-      // La relation TrackGenre est implicite, Prisma devrait gérer la suppression des entrées
-      // dans la table jointe lors de la suppression de Track si le schéma est bien fait.
-      // Sinon : await tx.trackGenre.deleteMany({ where: { trackId: id } });
+    await prisma.$transaction(
+      async (
+        tx: Omit<
+          typeof prisma,
+          '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
+        >
+      ) => {
+        // Supprimer manuellement les relations si cascade n'est pas configuré ou pour être explicite
+        await tx.trackPlatform.deleteMany({ where: { trackId: id } });
+        // La relation TrackGenre est implicite, Prisma devrait gérer la suppression des entrées
+        // dans la table jointe lors de la suppression de Track si le schéma est bien fait.
+        // Sinon : await tx.trackGenre.deleteMany({ where: { trackId: id } });
 
-      await tx.track.delete({
-        where: { id },
-      });
-    });
+        await tx.track.delete({
+          where: { id },
+        });
+      }
+    );
 
     return createSuccessResponse({ message: 'Track deleted successfully' });
   } catch (error) {
