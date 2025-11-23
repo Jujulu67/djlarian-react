@@ -9,6 +9,58 @@ cd "$(dirname "$0")/.."
 RESTART_SIGNAL_FILE=".restart-server-signal"
 PID_FILE=".dev-server.pid"
 
+UMAMI_PID_FILE=".umami-docker.pid"
+
+# Fonction pour démarrer Umami
+start_umami() {
+    if ! command -v docker > /dev/null 2>&1; then
+        echo "⚠️  Docker n'est pas installé. Umami ne sera pas démarré."
+        return
+    fi
+    
+    if ! command -v docker-compose > /dev/null 2>&1 && ! docker compose version > /dev/null 2>&1; then
+        echo "⚠️  Docker Compose n'est pas installé. Umami ne sera pas démarré."
+        return
+    fi
+    
+    echo "📊 Démarrage d'Umami Analytics..."
+    
+    # Vérifier si Umami est déjà en cours d'exécution
+    if docker ps | grep -q "umami"; then
+        echo "   Umami est déjà en cours d'exécution"
+        return
+    fi
+    
+    # Démarrer Umami avec docker-compose (utilise .env.local)
+    if command -v docker-compose > /dev/null 2>&1; then
+        docker-compose --env-file .env.local up -d umami db > /dev/null 2>&1
+    else
+        docker compose --env-file .env.local up -d umami db > /dev/null 2>&1
+    fi
+    
+    if [ $? -eq 0 ]; then
+        echo "   ✅ Umami démarré (http://localhost:3001)"
+        echo $$ > "$UMAMI_PID_FILE"
+    else
+        echo "   ⚠️  Erreur lors du démarrage d'Umami"
+    fi
+}
+
+# Fonction pour arrêter Umami
+stop_umami() {
+    if [ ! -f "$UMAMI_PID_FILE" ]; then
+        return
+    fi
+    
+    echo "📊 Arrêt d'Umami..."
+    if command -v docker-compose > /dev/null 2>&1; then
+        docker-compose --env-file .env.local stop umami db > /dev/null 2>&1 || true
+    else
+        docker compose --env-file .env.local stop umami db > /dev/null 2>&1 || true
+    fi
+    rm -f "$UMAMI_PID_FILE"
+}
+
 # Fonction pour nettoyer à la sortie
 cleanup() {
     echo ""
@@ -26,11 +78,15 @@ cleanup() {
         fi
         rm -f "$PID_FILE"
     fi
+    stop_umami
     rm -f "$RESTART_SIGNAL_FILE"
     exit 0
 }
 
 trap cleanup SIGINT SIGTERM EXIT
+
+# Démarrer Umami au début
+start_umami
 
 # Fonction pour démarrer le serveur
 start_server() {

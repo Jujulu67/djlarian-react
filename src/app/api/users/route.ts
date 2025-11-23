@@ -33,6 +33,13 @@ type CreateUserInput = z.infer<typeof createUserSchema>;
  * Create a new user (admin only)
  */
 export async function POST(request: Request) {
+  // Rate limiting (10 users/min)
+  const { rateLimit } = await import('@/lib/api/rateLimiter');
+  const rateLimitResponse = await rateLimit(request as any, 10);
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
   const session = await auth();
 
   // 1. Verify user is admin
@@ -93,7 +100,21 @@ export async function POST(request: Request) {
       `Admin ${session.user.email} created user ${newUser.email} with isVip=${newUser.isVip}`
     );
 
-    // 6. Return created user
+    // 6. Envoyer un webhook pour la création
+    const { sendWebhook } = await import('@/lib/api/webhooks');
+    await sendWebhook(
+      'user.created',
+      {
+        userId: newUser.id,
+        email: newUser.email,
+        role: newUser.role,
+      },
+      {
+        userId: session.user.id,
+      }
+    );
+
+    // 7. Return created user
     return createCreatedResponse(newUser, 'Utilisateur créé avec succès');
   } catch (error) {
     return handleApiError(error, 'POST /api/users');

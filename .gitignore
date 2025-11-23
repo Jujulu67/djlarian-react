@@ -67,6 +67,11 @@ umami-analytics/
 umami-db-data/
 .secrets.local.md
 
+# Sentry configuration files (peuvent contenir des secrets)
+.sentryclirc
+.sentry/
+sentry.properties
+
 # Backup env files
 .env.bak
 .env.local.backup

@@ -150,6 +150,13 @@ export async function GET(): Promise<Response> {
 
 // POST /api/music - Créer une nouvelle piste
 export async function POST(request: Request): Promise<Response> {
+  // Rate limiting
+  const { rateLimit } = await import('@/lib/api/rateLimiter');
+  const rateLimitResponse = await rateLimit(request as any, 30); // 30 req/min pour les créations
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
   const session = await auth();
 
   // Vérifier l'authentification
@@ -362,6 +369,20 @@ export async function POST(request: Request): Promise<Response> {
         });
 
         return fullTrack;
+      }
+    );
+
+    // Envoyer un webhook pour la création
+    const { sendWebhook } = await import('@/lib/api/webhooks');
+    await sendWebhook(
+      'music.created',
+      {
+        trackId: track.id,
+        title: track.title,
+        artist: track.artist,
+      },
+      {
+        userId: session.user.id,
       }
     );
 

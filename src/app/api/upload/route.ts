@@ -13,6 +13,13 @@ import { shouldUseBlobStorage } from '@/lib/utils/getStorageConfig';
 // Upload endpoint - Support local (public/uploads/) et production (Vercel Blob)
 
 export async function POST(request: NextRequest) {
+  // Rate limiting (20 uploads/min)
+  const { rateLimit } = await import('@/lib/api/rateLimiter');
+  const rateLimitResponse = await rateLimit(request, 20);
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
   try {
     const session = await auth();
 
@@ -128,6 +135,21 @@ export async function POST(request: NextRequest) {
 
         const localUrl = `/uploads/${imageId}.webp`;
         logger.debug(`API UPLOAD - Upload local terminé pour imageId: ${imageId}`);
+
+        // Envoyer un webhook pour l'upload
+        const { sendWebhook } = await import('@/lib/api/webhooks');
+        await sendWebhook(
+          'upload.completed',
+          {
+            imageId,
+            url: localUrl,
+            storage: 'local',
+          },
+          {
+            userId: session.user.id,
+          }
+        );
+
         return NextResponse.json({
           success: true,
           imageId: imageId,
@@ -214,6 +236,21 @@ export async function POST(request: NextRequest) {
         }
 
         logger.debug(`API UPLOAD - Upload Vercel Blob terminé pour imageId: ${imageId}`);
+
+        // Envoyer un webhook pour l'upload
+        const { sendWebhook } = await import('@/lib/api/webhooks');
+        await sendWebhook(
+          'upload.completed',
+          {
+            imageId,
+            url: croppedUrl,
+            storage: 'blob',
+          },
+          {
+            userId: session.user.id,
+          }
+        );
+
         return NextResponse.json({
           success: true,
           imageId: imageId,
