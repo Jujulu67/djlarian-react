@@ -48,7 +48,18 @@ export const MusicCardVisualizer: React.FC<MusicCardVisualizerProps> = ({
         previousAudioDataRef.current = Array(20).fill(20);
       }
 
-      const animateBars = () => {
+      let lastUpdateTime: number | null = null;
+      const targetFPS = 30; // Réduire à 30 FPS au lieu de 60 pour améliorer les performances
+      const frameInterval = 1000 / targetFPS;
+
+      const animateBars = (timestamp: number) => {
+        // Throttle updates to target FPS to reduce CPU usage
+        if (lastUpdateTime !== null && timestamp - lastUpdateTime < frameInterval) {
+          animationFrameRef.current = requestAnimationFrame(animateBars);
+          return;
+        }
+        lastUpdateTime = timestamp;
+
         const elapsed = (Date.now() - startTimeRef.current) / 1000;
         const time = elapsed;
         setCurrentTime(time);
@@ -88,7 +99,7 @@ export const MusicCardVisualizer: React.FC<MusicCardVisualizerProps> = ({
         animationFrameRef.current = requestAnimationFrame(animateBars);
       };
 
-      animateBars();
+      animationFrameRef.current = requestAnimationFrame(animateBars);
 
       return () => {
         if (animationFrameRef.current) {
@@ -133,8 +144,8 @@ export const MusicCardVisualizer: React.FC<MusicCardVisualizerProps> = ({
                     hsla(${hue}, ${saturation}%, ${lightness - 20}%, 0.9) 0%, 
                     hsla(${hue + 25}, ${saturation}%, ${lightness}%, 1) 50%, 
                     hsla(${hue + 50}, ${saturation}%, ${lightness + 15}%, 0.95) 100%)`,
-                  boxShadow: `0 0 20px hsla(${hue}, 95%, 65%, 1)`,
-                  filter: 'blur(0.5px)',
+                  boxShadow: `0 0 10px hsla(${hue}, 95%, 65%, 0.8)`,
+                  filter: 'blur(0.3px)',
                 }}
                 initial={{ height: '30%', opacity: 0 }}
                 animate={{
@@ -142,7 +153,7 @@ export const MusicCardVisualizer: React.FC<MusicCardVisualizerProps> = ({
                   opacity: 1,
                 }}
                 transition={{
-                  duration: 0.15,
+                  duration: 0.1,
                   ease: 'easeOut',
                 }}
               />

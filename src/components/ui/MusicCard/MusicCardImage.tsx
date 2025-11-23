@@ -9,6 +9,7 @@ interface MusicCardImageProps {
   track: Track;
   imageError: boolean;
   onImageError: () => void;
+  priority?: boolean;
 }
 
 /**
@@ -18,6 +19,7 @@ export const MusicCardImage: React.FC<MusicCardImageProps> = ({
   track,
   imageError,
   onImageError,
+  priority = false,
 }) => {
   if (track.imageId && !imageError) {
     const imageSrc = getImageUrl(track.imageId, {
@@ -40,6 +42,7 @@ export const MusicCardImage: React.FC<MusicCardImageProps> = ({
         height={400}
         className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
         onError={onImageError}
+        priority={priority}
         unoptimized
       />
     );

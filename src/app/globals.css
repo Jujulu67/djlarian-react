@@ -688,6 +688,12 @@ a:focus {
   border-radius: 0.25rem;
 }
 
+/* Preserve rounded-full for links with rounded-full class */
+a[class*='rounded-full']:focus,
+a[class*='rounded-full']:active {
+  border-radius: 9999px !important;
+}
+
 /* Header navigation links - iOS style glassmorphism on focus */
 header nav a:focus,
 nav a:focus {
@@ -701,6 +707,20 @@ nav a:focus {
 button[class*='rounded-full']:focus,
 button[class*='rounded-full']:active {
   border-radius: 9999px !important;
+}
+
+/* Preserve rounded-full for all elements with rounded-full class on focus/active */
+[class*='rounded-full']:focus,
+[class*='rounded-full']:active {
+  border-radius: 9999px !important;
+}
+
+/* Preserve rounded-lg for interactive elements with rounded-lg class on focus/active */
+button[class*='rounded-lg']:focus,
+button[class*='rounded-lg']:active,
+a[class*='rounded-lg']:focus,
+a[class*='rounded-lg']:active {
+  border-radius: 0.5rem !important;
 }
 
 /* Smooth scroll between sections - Note: scroll-behavior is set to auto in @layer base to avoid warnings */

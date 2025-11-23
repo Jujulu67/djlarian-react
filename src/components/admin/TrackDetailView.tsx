@@ -22,8 +22,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import { FaSpotify, FaYoutube, FaSoundcloud, FaApple, FaMusic as FaDeezer } from 'react-icons/fa';
+import { FaSpotify, FaYoutube, FaSoundcloud, FaApple } from 'react-icons/fa';
 
+import { DeezerIcon } from '@/components/icons/DeezerIcon';
 import { logger } from '@/lib/logger';
 import { getImageUrl } from '@/lib/utils/getImageUrl';
 import { Track } from '@/lib/utils/types'; // Utiliser le type Track existant
@@ -34,7 +35,7 @@ const platformIcons: Record<string, React.ElementType> = {
   youtube: FaYoutube,
   soundcloud: FaSoundcloud,
   apple: FaApple,
-  deezer: FaDeezer,
+  deezer: DeezerIcon,
 };
 
 interface TrackDetailViewProps {

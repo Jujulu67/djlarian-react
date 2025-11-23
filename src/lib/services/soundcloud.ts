@@ -4,6 +4,11 @@
 
 import * as cheerio from 'cheerio';
 import { logger } from '@/lib/logger';
+import {
+  parseSoundCloudTitle,
+  detectTrackType,
+  normalizeArtistName,
+} from './soundcloud/parseTitle';
 
 // Types pour Puppeteer
 interface PuppeteerLike {
@@ -70,14 +75,29 @@ let puppeteer: PuppeteerLike | null = null;
 async function loadPuppeteer(): Promise<PuppeteerLike | null> {
   // Charger Puppeteer seulement si pas déjà chargé
   if (!puppeteer) {
+    const isVercel = process.env.VERCEL === '1';
+    const nodeEnv = process.env.NODE_ENV;
+
+    logger.debug('[SOUNDCLOUD] Chargement Puppeteer - Environnement:', {
+      VERCEL: process.env.VERCEL,
+      NODE_ENV: nodeEnv,
+      AWS_LAMBDA_JS_RUNTIME: process.env.AWS_LAMBDA_JS_RUNTIME,
+      isVercel,
+    });
+
     try {
       // Sur Vercel, utiliser puppeteer-core avec chromium-min
       // VERCEL est automatiquement défini par Vercel à '1'
       // NODE_ENV === 'production' peut être défini localement, donc on vérifie VERCEL en priorité
-      if (process.env.VERCEL === '1') {
+      if (isVercel) {
         try {
+          logger.debug('[SOUNDCLOUD] Tentative de chargement de @sparticuz/chromium-min...');
           const chromium = await import('@sparticuz/chromium-min');
+          logger.debug('[SOUNDCLOUD] @sparticuz/chromium-min chargé avec succès');
+
+          logger.debug('[SOUNDCLOUD] Tentative de chargement de puppeteer-core...');
           const puppeteerCore = await import('puppeteer-core');
+          logger.debug('[SOUNDCLOUD] puppeteer-core chargé avec succès');
 
           // Types pour les imports dynamiques de chromium et puppeteer-core
           type ChromiumModule = {
@@ -95,26 +115,58 @@ async function loadPuppeteer(): Promise<PuppeteerLike | null> {
             };
           };
 
+          const chromiumTyped = chromium as unknown as ChromiumModule;
+          const puppeteerCoreTyped = puppeteerCore as unknown as PuppeteerCoreModule;
+
+          // Logger la configuration Chromium
+          logger.debug('[SOUNDCLOUD] Configuration Chromium:', {
+            args: chromiumTyped.default.args?.length || 0,
+            headless: chromiumTyped.default.headless,
+            hasDefaultViewport: !!chromiumTyped.default.defaultViewport,
+          });
+
           puppeteer = {
             launch: async (options: LaunchOptions = {}) => {
-              const chromiumTyped = chromium as unknown as ChromiumModule;
-              const puppeteerCoreTyped = puppeteerCore as unknown as PuppeteerCoreModule;
-              return puppeteerCoreTyped.default.launch({
-                args: chromiumTyped.default.args,
-                defaultViewport: chromiumTyped.default.defaultViewport,
-                executablePath: await chromiumTyped.default.executablePath(),
-                headless: chromiumTyped.default.headless,
-                ...options,
-              });
+              try {
+                logger.debug('[SOUNDCLOUD] Lancement de Chromium...');
+                const executablePath = await chromiumTyped.default.executablePath();
+                logger.debug('[SOUNDCLOUD] Chemin exécutable Chromium obtenu:', executablePath);
+
+                const browser = await puppeteerCoreTyped.default.launch({
+                  args: chromiumTyped.default.args,
+                  defaultViewport: chromiumTyped.default.defaultViewport,
+                  executablePath,
+                  headless: chromiumTyped.default.headless,
+                  ...options,
+                });
+
+                logger.debug('[SOUNDCLOUD] Chromium lancé avec succès');
+                return browser;
+              } catch (launchError) {
+                logger.error('[SOUNDCLOUD] Erreur lors du lancement de Chromium:', {
+                  error: launchError instanceof Error ? launchError.message : String(launchError),
+                  stack: launchError instanceof Error ? launchError.stack : undefined,
+                  executablePath: await chromiumTyped.default.executablePath().catch(() => 'N/A'),
+                });
+                throw launchError;
+              }
             },
           };
-          logger.debug('[SOUNDCLOUD] Puppeteer-core chargé pour Vercel');
+          logger.debug('[SOUNDCLOUD] Puppeteer-core configuré pour Vercel');
         } catch (error) {
-          logger.warn('[SOUNDCLOUD] Erreur chargement puppeteer-core (Vercel):', error);
+          const errorDetails = {
+            error: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined,
+            VERCEL: process.env.VERCEL,
+            NODE_ENV: nodeEnv,
+            AWS_LAMBDA_JS_RUNTIME: process.env.AWS_LAMBDA_JS_RUNTIME,
+          };
+          logger.error('[SOUNDCLOUD] Erreur chargement puppeteer-core (Vercel):', errorDetails);
           return null;
         }
       } else {
         // En local, utiliser puppeteer standard
+        logger.debug('[SOUNDCLOUD] Chargement de puppeteer standard (local)...');
         const puppeteerModule = await import('puppeteer');
         // Puppeteer standard a une méthode launch, on l'adapte à notre interface
         puppeteer = {
@@ -125,7 +177,13 @@ async function loadPuppeteer(): Promise<PuppeteerLike | null> {
         logger.debug('[SOUNDCLOUD] Puppeteer standard chargé (local)');
       }
     } catch (error) {
-      logger.warn('[SOUNDCLOUD] Puppeteer non disponible:', error);
+      const errorDetails = {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        VERCEL: process.env.VERCEL,
+        NODE_ENV: nodeEnv,
+      };
+      logger.error('[SOUNDCLOUD] Puppeteer non disponible:', errorDetails);
       return null;
     }
   }
@@ -153,168 +211,8 @@ function extractProfileName(profileUrl: string): string | null {
   return match ? match[1] : null;
 }
 
-/**
- * Normalise le nom d'artiste (ex: "larian67" -> "Larian")
- */
-export function normalizeArtistName(name: string): string {
-  if (!name) return name;
-  // Capitaliser la première lettre et supprimer les chiffres à la fin si présents
-  const normalized = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
-  // Si c'est un nom avec des chiffres à la fin (ex: larian67), les supprimer
-  return normalized.replace(/\d+$/, '');
-}
-
-/**
- * Parse le titre SoundCloud pour extraire l'artiste et le titre
- * Gère les formats comme "Youssou N'Dour - KIRIKOU (LARIAN FLIP)"
- *
- * @param title - Le titre complet depuis SoundCloud
- * @param profileName - Le nom du profil SoundCloud (ex: "larian67")
- * @returns Un objet avec artist et title parsés
- */
-export function parseSoundCloudTitle(
-  title: string,
-  profileName: string
-): { artist: string; title: string } {
-  if (!title) {
-    const normalizedProfile = normalizeArtistName(profileName);
-    return { artist: normalizedProfile, title: '' };
-  }
-
-  const normalizedProfile = normalizeArtistName(profileName);
-  let parsedArtist = normalizedProfile;
-  let parsedTitle = title;
-
-  // Détecter les termes de remix (FLIP, REMIX, BOOTLEG, etc.)
-  const remixPatterns = [
-    /\b(FLIP|flip)\b/i,
-    /\b(REMIX|remix)\b/i,
-    /\b(BOOTLEG|bootleg)\b/i,
-    /\b(EDIT|edit)\b/i,
-    /\b(REWORK|rework)\b/i,
-  ];
-
-  // Pattern 1: "Artiste - Titre (REMIX TERM)"
-  // Ex: "Youssou N'Dour - KIRIKOU (LARIAN FLIP)"
-  const pattern1 = /^(.+?)\s*-\s*(.+?)\s*\(([^)]+)\)$/i;
-  const match1 = title.match(pattern1);
-  if (match1) {
-    const artistPart = match1[1].trim();
-    const titlePart = match1[2].trim();
-    const remixPart = match1[3].trim();
-
-    // Vérifier si le remix part contient le nom du profil ou un terme de remix
-    const hasRemixTerm = remixPatterns.some((p) => p.test(remixPart));
-    const hasProfileName = remixPart.toLowerCase().includes(profileName.toLowerCase());
-
-    if (hasRemixTerm || hasProfileName) {
-      // Garder tout le contenu des parenthèses (ex: "LARIAN FLIP" et pas juste "FLIP")
-      parsedArtist = `${artistPart} (${remixPart})`;
-      parsedTitle = titlePart;
-    } else {
-      // Pas de remix, juste artiste - titre (remix info)
-      parsedArtist = artistPart;
-      parsedTitle = titlePart;
-    }
-  } else {
-    // Pattern 2: "Artiste - Titre" (sans parenthèses)
-    const pattern2 = /^(.+?)\s*-\s*(.+)$/;
-    const match2 = title.match(pattern2);
-    if (match2) {
-      const artistPart = match2[1].trim();
-      const titlePart = match2[2].trim();
-
-      // Vérifier si le titre contient un terme de remix
-      const titleHasRemix = remixPatterns.some((p) => p.test(titlePart));
-      if (titleHasRemix) {
-        // Chercher le terme de remix
-        const remixMatch = titlePart.match(/\b(FLIP|REMIX|BOOTLEG|EDIT|REWORK)\b/i);
-        if (remixMatch) {
-          // Pour le pattern 2 (sans parenthèses), on garde seulement le terme de remix
-          // car le préfixe fait partie du titre (ex: "Song REMIX" -> artist: "Artist (REMIX)", title: "Song")
-          const remixTerm = remixMatch[1].toUpperCase();
-          parsedArtist = `${artistPart} (${remixTerm})`;
-          // Retirer le terme de remix du titre
-          parsedTitle = titlePart.replace(/\b(FLIP|REMIX|BOOTLEG|EDIT|REWORK)\b/gi, '').trim();
-        } else {
-          parsedArtist = artistPart;
-          parsedTitle = titlePart;
-        }
-      } else {
-        parsedArtist = artistPart;
-        parsedTitle = titlePart;
-      }
-    } else {
-      // Pattern 3: "Titre (Artiste REMIX)" ou "Titre [Artiste REMIX]"
-      const pattern3 = /^(.+?)\s*[\(\[](.+?)\s+(FLIP|REMIX|BOOTLEG|EDIT|REWORK)[\)\]]$/i;
-      const match3 = title.match(pattern3);
-      if (match3) {
-        const titlePart = match3[1].trim();
-        const artistPart = match3[2].trim();
-        const remixTerm = match3[3].toUpperCase();
-        parsedArtist = `${artistPart} (${remixTerm})`;
-        parsedTitle = titlePart;
-      } else {
-        // Pas de pattern reconnu, utiliser le titre tel quel et le profil comme artiste
-        parsedTitle = title;
-        parsedArtist = normalizedProfile;
-      }
-    }
-  }
-
-  // Normaliser le titre (capitaliser la première lettre de chaque mot si tout en majuscules)
-  if (parsedTitle === parsedTitle.toUpperCase() && parsedTitle.length > 1) {
-    parsedTitle = parsedTitle
-      .toLowerCase()
-      .split(' ')
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  } else {
-    // Capitaliser seulement la première lettre
-    parsedTitle = parsedTitle.charAt(0).toUpperCase() + parsedTitle.slice(1);
-  }
-
-  return { artist: parsedArtist.trim(), title: parsedTitle.trim() };
-}
-
-/**
- * Détecte le type de track depuis le titre
- */
-function detectTrackType(
-  title: string
-): 'single' | 'ep' | 'album' | 'remix' | 'live' | 'djset' | 'video' {
-  const lowerTitle = title.toLowerCase();
-
-  // Détecter les remixes (FLIP, REMIX, BOOTLEG, EDIT, REWORK)
-  if (
-    lowerTitle.includes('remix') ||
-    lowerTitle.includes('remix by') ||
-    lowerTitle.includes('flip') ||
-    lowerTitle.includes('bootleg') ||
-    lowerTitle.includes('edit') ||
-    lowerTitle.includes('rework')
-  ) {
-    return 'remix';
-  }
-  if (lowerTitle.includes('dj set') || lowerTitle.includes('djset') || lowerTitle.includes('mix')) {
-    return 'djset';
-  }
-  if (lowerTitle.includes('live')) {
-    return 'live';
-  }
-  if (lowerTitle.includes('ep')) {
-    return 'ep';
-  }
-  if (lowerTitle.includes('album')) {
-    return 'album';
-  }
-  if (lowerTitle.includes('video') || lowerTitle.includes('clip')) {
-    return 'video';
-  }
-
-  // Par défaut, single pour SoundCloud
-  return 'single';
-}
+// Re-export parse functions for backward compatibility
+export { normalizeArtistName, parseSoundCloudTitle, detectTrackType };
 
 /**
  * Récupère l'image de couverture depuis une URL SoundCloud (réutilise la logique existante)
@@ -368,12 +266,30 @@ async function fetchSoundCloudThumbnail(soundcloudUrl: string): Promise<string |
  * En local, utilise puppeteer standard
  */
 async function scrapeSoundCloudTracksPage(profileName: string): Promise<SoundCloudTrack[]> {
+  const isVercel = process.env.VERCEL === '1';
+  const nodeEnv = process.env.NODE_ENV;
+
+  logger.debug('[SOUNDCLOUD] scrapeSoundCloudTracksPage - Début', {
+    profileName,
+    VERCEL: process.env.VERCEL,
+    NODE_ENV: nodeEnv,
+    isVercel,
+  });
+
   // Charger Puppeteer de manière conditionnelle
   const puppeteerInstance = await loadPuppeteer();
 
   if (!puppeteerInstance) {
-    logger.warn("[SOUNDCLOUD] Puppeteer n'est pas disponible. Retour d'un tableau vide.");
-    return [];
+    const errorMessage = isVercel
+      ? "Puppeteer/Chromium non disponible sur Vercel. Vérifiez la configuration de @sparticuz/chromium-min et la variable d'environnement AWS_LAMBDA_JS_RUNTIME."
+      : "Puppeteer non disponible. Vérifiez l'installation de puppeteer.";
+    logger.error('[SOUNDCLOUD] Puppeteer non disponible:', {
+      error: errorMessage,
+      VERCEL: process.env.VERCEL,
+      NODE_ENV: nodeEnv,
+      AWS_LAMBDA_JS_RUNTIME: process.env.AWS_LAMBDA_JS_RUNTIME,
+    });
+    throw new Error(errorMessage);
   }
 
   let browser: Browser | undefined;
@@ -994,13 +910,51 @@ async function scrapeSoundCloudTracksPage(profileName: string): Promise<SoundClo
     logger.debug(`[SOUNDCLOUD] Aucune track trouvée via scraping direct`);
     return [];
   } catch (error) {
-    logger.error('[SOUNDCLOUD] Erreur lors du scraping direct avec Puppeteer:', error);
-    return [];
+    const errorDetails = {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      profileName,
+      VERCEL: process.env.VERCEL,
+      NODE_ENV: process.env.NODE_ENV,
+      AWS_LAMBDA_JS_RUNTIME: process.env.AWS_LAMBDA_JS_RUNTIME,
+    };
+    logger.error('[SOUNDCLOUD] Erreur lors du scraping direct avec Puppeteer:', errorDetails);
+
+    // Si c'est une erreur de timeout, lever une erreur explicite
+    if (
+      error instanceof Error &&
+      (error.message.includes('timeout') ||
+        error.message.includes('Timeout') ||
+        error.message.includes('Navigation timeout'))
+    ) {
+      throw new Error(
+        `Timeout lors du scraping SoundCloud pour ${profileName}. Le scraping a pris trop de temps.`
+      );
+    }
+
+    // Si c'est une erreur de lancement de Chromium, lever une erreur explicite
+    if (
+      error instanceof Error &&
+      (error.message.includes('Chromium') ||
+        error.message.includes('executable') ||
+        error.message.includes('launch'))
+    ) {
+      throw new Error(
+        `Erreur lors du lancement de Chromium: ${error.message}. Vérifiez la configuration de Puppeteer sur Vercel.`
+      );
+    }
+
+    // Pour les autres erreurs, propager l'erreur originale
+    throw error;
   } finally {
     // Fermer le navigateur dans tous les cas
     if (browser) {
-      await browser.close();
-      logger.debug(`[SOUNDCLOUD] Navigateur Puppeteer fermé`);
+      try {
+        await browser.close();
+        logger.debug(`[SOUNDCLOUD] Navigateur Puppeteer fermé`);
+      } catch (closeError) {
+        logger.warn('[SOUNDCLOUD] Erreur lors de la fermeture du navigateur:', closeError);
+      }
     }
   }
 }
@@ -1057,6 +1011,18 @@ export async function searchSoundCloudArtistTracks(
   profileUrl?: string,
   maxResults = 100
 ): Promise<SoundCloudTrack[]> {
+  const isVercel = process.env.VERCEL === '1';
+  const nodeEnv = process.env.NODE_ENV;
+
+  logger.debug('[SOUNDCLOUD] searchSoundCloudArtistTracks - Début', {
+    artistName,
+    profileUrl,
+    maxResults,
+    VERCEL: process.env.VERCEL,
+    NODE_ENV: nodeEnv,
+    isVercel,
+  });
+
   try {
     // Déterminer le nom d'artiste à utiliser
     let finalArtistName = artistName.trim();
@@ -1068,27 +1034,41 @@ export async function searchSoundCloudArtistTracks(
     }
 
     if (!finalArtistName) {
-      logger.error("Recherche SoundCloud: nom d'artiste ou URL de profil requis");
-      return [];
+      const errorMessage = "Recherche SoundCloud: nom d'artiste ou URL de profil requis";
+      logger.error(errorMessage);
+      throw new Error(errorMessage);
     }
 
     // Utiliser le scraping direct avec Puppeteer (si disponible)
-    // Sur Vercel, Puppeteer n'est pas disponible, donc on retourne un tableau vide
     const scrapedTracks = await scrapeSoundCloudTracksPage(finalArtistName);
 
-    // Si on n'a pas de tracks (probablement sur Vercel), retourner un tableau vide
-    // plutôt que de planter l'API
+    // Si on n'a pas de tracks, c'est que vraiment aucune track n'a été trouvée
+    // (pas une erreur Puppeteer, car celle-ci aurait été levée)
     if (scrapedTracks.length === 0) {
-      logger.warn(
-        '[SOUNDCLOUD] Aucune track trouvée (Puppeteer peut ne pas être disponible sur Vercel)'
+      logger.debug(
+        `[SOUNDCLOUD] Aucune track trouvée pour ${finalArtistName} (profil peut être vide ou privé)`
       );
       return [];
     }
 
+    logger.debug(
+      `[SOUNDCLOUD] ${scrapedTracks.length} tracks trouvées, limitation à ${maxResults}`
+    );
     return scrapedTracks.slice(0, maxResults);
   } catch (error) {
-    logger.error('Erreur lors de la recherche SoundCloud:', error);
-    // Ne pas faire planter l'API, retourner un tableau vide
-    return [];
+    const errorDetails = {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      artistName,
+      profileUrl,
+      VERCEL: process.env.VERCEL,
+      NODE_ENV: nodeEnv,
+      AWS_LAMBDA_JS_RUNTIME: process.env.AWS_LAMBDA_JS_RUNTIME,
+    };
+    logger.error('Erreur lors de la recherche SoundCloud:', errorDetails);
+
+    // Propager l'erreur au lieu de retourner un tableau vide
+    // Cela permet à l'API de distinguer entre "aucune track" et "erreur Puppeteer"
+    throw error;
   }
 }

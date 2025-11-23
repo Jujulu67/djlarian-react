@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev": "bash scripts/ensure-sqlite-schema.sh && NODE_OPTIONS='--import tsx' next dev",
     "dev:auto": "bash scripts/start-dev-with-auto-restart.sh",
@@ -49,7 +52,7 @@
     "@sparticuz/chromium-min": "^131.0.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/lodash": "^4.17.16",
-    "@types/node": "^20",
+    "@types/node": "^22",
     "@types/uuid": "^10.0.0",
     "@vercel/analytics": "^1.5.0",
     "@vercel/blob": "^0.25.1",

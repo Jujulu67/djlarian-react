@@ -2,13 +2,14 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 
 import { logger } from '@/lib/logger';
 import { sendPlayerCommand, getInitialVolume } from '@/lib/utils/audioUtils';
-import { Track } from '@/lib/utils/types';
+import { Track, TrackWithClose } from '@/lib/utils/types';
 
 interface UseSoundCloudPlayerProps {
   track: Track;
   isActive: boolean;
   isPlaying: boolean;
   onPlay: (track: Track) => void;
+  shouldActivate?: boolean;
 }
 
 interface UseSoundCloudPlayerReturn {
@@ -35,6 +36,7 @@ export const useSoundCloudPlayer = ({
   isActive,
   isPlaying,
   onPlay,
+  shouldActivate = true,
 }: UseSoundCloudPlayerProps): UseSoundCloudPlayerReturn => {
   const [soundcloudUrl, setSoundcloudUrl] = useState<string | null>(null);
   const [isSoundcloudLoaded, setIsSoundcloudLoaded] = useState(false);
@@ -52,8 +54,14 @@ export const useSoundCloudPlayer = ({
 
   // Control SoundCloud player when active state changes
   useEffect(() => {
-    if (!isActive) return;
+    if (!isActive || !shouldActivate) {
+      // When card becomes inactive, hide the player
+      setIsSoundcloudVisible(false);
+      setPlayWhenReady(false);
+      return;
+    }
 
+    // When card becomes active, ensure visibility is set
     if (isPlaying && soundcloudUrl) {
       setIsSoundcloudVisible(true);
       logger.debug(
@@ -75,8 +83,19 @@ export const useSoundCloudPlayer = ({
       sendPlayerCommand(soundcloudIframeRef.current, 'soundcloud', 'pause');
       setIsSoundcloudVisible(true);
       setPlayWhenReady(false);
+    } else if (soundcloudUrl) {
+      // If active but not playing yet, still show the player
+      setIsSoundcloudVisible(true);
     }
-  }, [isActive, isPlaying, soundcloudUrl, isSoundcloudReady, track.id, track.platforms.soundcloud]);
+  }, [
+    isActive,
+    isPlaying,
+    soundcloudUrl,
+    isSoundcloudReady,
+    track.id,
+    track.platforms.soundcloud,
+    shouldActivate,
+  ]);
 
   // Effect to play SoundCloud when it becomes ready AND play is intended
   useEffect(() => {
@@ -85,6 +104,7 @@ export const useSoundCloudPlayer = ({
       isSoundcloudReady &&
       isActive &&
       isPlaying &&
+      shouldActivate &&
       track.platforms.soundcloud &&
       soundcloudIframeRef.current
     ) {
@@ -97,11 +117,20 @@ export const useSoundCloudPlayer = ({
       sendPlayerCommand(soundcloudIframeRef.current, 'soundcloud', 'play');
       setPlayWhenReady(false);
     }
-  }, [playWhenReady, isSoundcloudReady, isActive, isPlaying, track.platforms.soundcloud, track.id]);
+  }, [
+    playWhenReady,
+    isSoundcloudReady,
+    isActive,
+    isPlaying,
+    shouldActivate,
+    track.platforms.soundcloud,
+    track.id,
+  ]);
 
   // Determine if SoundCloud is active
   const isSoundcloudActive = Boolean(
-    isActive &&
+    shouldActivate &&
+      isActive &&
       track.platforms.soundcloud &&
       soundcloudUrl &&
       (isSoundcloudVisible || isSoundcloudLoaded)
@@ -128,6 +157,20 @@ export const useSoundCloudPlayer = ({
             `[Card ${track.id}] SoundCloud iframe READY event received. Setting isSoundcloudReady to true.`
           );
           setIsSoundcloudReady(true);
+
+          // If we're supposed to play and the iframe just became ready, play immediately
+          if (isActive && isPlaying && shouldActivate && soundcloudIframeRef.current) {
+            logger.debug(`[Card ${track.id}] Iframe ready while playing. Playing immediately.`);
+            const currentVolume = getInitialVolume();
+            sendPlayerCommand(
+              soundcloudIframeRef.current,
+              'soundcloud',
+              'setVolume',
+              currentVolume
+            );
+            sendPlayerCommand(soundcloudIframeRef.current, 'soundcloud', 'play');
+            setPlayWhenReady(false);
+          }
         }
       } catch (e) {
         logger.error(`[Card ${track.id}] Error parsing SoundCloud message:`, e, event.data);
@@ -138,12 +181,10 @@ export const useSoundCloudPlayer = ({
 
     return () => {
       window.removeEventListener('message', handleSoundcloudMessage);
-      logger.debug(`[Card ${track.id}] Cleanup: Resetting isSoundcloudReady and playWhenReady.`);
       setIsSoundcloudReady(false);
       setPlayWhenReady(false);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isActive, isPlaying, shouldActivate, track.id]);
 
   // Handle iframe load
   const handleSoundcloudIframeLoad = useCallback(() => {
@@ -151,7 +192,24 @@ export const useSoundCloudPlayer = ({
       `SoundCloud iframe loaded for ${track.title}, ID: ${soundcloudIframeRef.current?.id}`
     );
     setIsSoundcloudLoaded(true);
-  }, [track.title]);
+
+    // If we're supposed to play and the iframe just loaded, try to play after a short delay
+    // This helps with cases where the iframe loads but the ready event hasn't fired yet
+    if (isActive && isPlaying && shouldActivate && playWhenReady && soundcloudIframeRef.current) {
+      logger.debug(
+        `[Card ${track.id}] Iframe loaded while playWhenReady is true. Will attempt to play after delay.`
+      );
+      // Give the iframe a moment to fully initialize, then try to play
+      setTimeout(() => {
+        if (soundcloudIframeRef.current && isActive && isPlaying) {
+          const currentVolume = getInitialVolume();
+          logger.debug(`[Card ${track.id}] Attempting to play after iframe load delay.`);
+          sendPlayerCommand(soundcloudIframeRef.current, 'soundcloud', 'setVolume', currentVolume);
+          sendPlayerCommand(soundcloudIframeRef.current, 'soundcloud', 'play');
+        }
+      }, 300); // 300ms delay to allow iframe to fully initialize
+    }
+  }, [track.title, isActive, isPlaying, shouldActivate, playWhenReady, track.id]);
 
   // Get SoundCloud embed URL
   const getSoundcloudEmbedUrl = useCallback((url: string) => {
@@ -211,7 +269,7 @@ export const useSoundCloudPlayer = ({
       setPlayWhenReady(false);
 
       if (isActive) {
-        onPlay({ ...track, close: true } as Parameters<typeof onPlay>[0] & { close: true });
+        onPlay({ ...track, close: true } as TrackWithClose);
       }
     },
     [isSoundcloudVisible, isActive, onPlay, track]

@@ -6,13 +6,14 @@ import {
   getInitialVolume,
   applyVolumeToAllPlayers,
 } from '@/lib/utils/audioUtils';
-import { Track } from '@/lib/utils/types';
+import { Track, TrackWithClose } from '@/lib/utils/types';
 
 interface UseYouTubePlayerProps {
   track: Track;
   isActive: boolean;
   isPlaying: boolean;
   onPlay: (track: Track) => void;
+  shouldActivate?: boolean;
 }
 
 interface UseYouTubePlayerReturn {
@@ -38,6 +39,7 @@ export const useYouTubePlayer = ({
   isActive,
   isPlaying,
   onPlay,
+  shouldActivate = true,
 }: UseYouTubePlayerProps): UseYouTubePlayerReturn => {
   const [youtubeVideoId, setYoutubeVideoId] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState<number>(0);
@@ -88,8 +90,13 @@ export const useYouTubePlayer = ({
 
   // Control YouTube player when active state changes
   useEffect(() => {
-    if (!isActive) return;
+    if (!isActive || !shouldActivate) {
+      // When card becomes inactive, hide the player
+      setIsYoutubeVisible(false);
+      return;
+    }
 
+    // When card becomes active, ensure visibility is set
     if (isPlaying && youtubeVideoId) {
       setIsYoutubeVisible(true);
       logger.debug(`[Card ${track.id}] YouTube selected. Visibility set. Play command delayed.`);
@@ -97,12 +104,19 @@ export const useYouTubePlayer = ({
     } else if (!isPlaying && iframeRef.current) {
       sendPlayerCommand(iframeRef.current, 'youtube', 'pause');
       setIsYoutubeVisible(true);
+    } else if (youtubeVideoId) {
+      // If active but not playing yet, still show the player
+      setIsYoutubeVisible(true);
     }
-  }, [isActive, isPlaying, youtubeVideoId, track.id]);
+  }, [isActive, isPlaying, youtubeVideoId, track.id, shouldActivate]);
 
   // Determine if YouTube is active
   const isYoutubeActive = Boolean(
-    isActive && track.platforms.youtube && youtubeVideoId && (isYoutubeVisible || isYoutubeLoaded)
+    shouldActivate &&
+      isActive &&
+      track.platforms.youtube &&
+      youtubeVideoId &&
+      (isYoutubeVisible || isYoutubeLoaded)
   );
 
   // Track and save playback position for YouTube videos
@@ -230,7 +244,7 @@ export const useYouTubePlayer = ({
       setIsYoutubeVisible(false);
 
       if (isActive) {
-        onPlay({ ...track, close: true } as Parameters<typeof onPlay>[0] & { close: true });
+        onPlay({ ...track, close: true } as TrackWithClose);
       }
     },
     [isYoutubeVisible, isActive, onPlay, track]

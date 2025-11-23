@@ -1,6 +1,7 @@
 import React from 'react';
-import { FaSpotify, FaYoutube, FaSoundcloud, FaApple, FaMusic } from 'react-icons/fa';
+import { FaSpotify, FaYoutube, FaSoundcloud, FaApple } from 'react-icons/fa';
 
+import { DeezerIcon } from '@/components/icons/DeezerIcon';
 import { Track, MusicPlatform } from '@/lib/utils/types';
 
 const platformIcons: Record<MusicPlatform, React.ReactNode> = {
@@ -8,7 +9,7 @@ const platformIcons: Record<MusicPlatform, React.ReactNode> = {
   youtube: <FaYoutube className="w-4 h-4" />,
   soundcloud: <FaSoundcloud className="w-4 h-4" />,
   apple: <FaApple className="w-4 h-4" />,
-  deezer: <FaMusic className="w-4 h-4" />,
+  deezer: <DeezerIcon className="w-4 h-4" />,
 };
 
 const platformColors: Record<MusicPlatform, string> = {
@@ -74,7 +75,7 @@ export const MusicCardPlatforms: React.FC<MusicCardPlatformsProps> = ({
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
-          className={`${platformColors[platform]} text-white p-1.5 rounded-full transition-all hover:scale-105 shadow-md`}
+          className={`${platformColors[platform]} text-white p-1.5 rounded-full focus:rounded-full active:rounded-full transition-all hover:scale-105 shadow-md focus:outline-none focus:ring-2 focus:ring-purple-500/50`}
           title={platformTitles[platform]}
         >
           {platformIcons[platform]}

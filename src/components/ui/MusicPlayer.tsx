@@ -4,8 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Music } from 'lucide-react';
 import Image from 'next/image';
 import React, { useState, useEffect } from 'react';
-import { FaSpotify, FaYoutube, FaSoundcloud, FaMusic } from 'react-icons/fa';
+import { FaSpotify, FaYoutube, FaSoundcloud, FaApple } from 'react-icons/fa';
 
+import { DeezerIcon } from '@/components/icons/DeezerIcon';
 import { getImageUrl } from '@/lib/utils/getImageUrl';
 import { getEmbedUrl } from '@/lib/utils/music-service';
 import { Track, MusicPlatform } from '@/lib/utils/types';
@@ -120,7 +121,7 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({ track, isPlaying, onClose, on
                   <button
                     key={platform}
                     onClick={() => setSelectedPlatform(platform)}
-                    className={`p-2 rounded-full transition-colors ${
+                    className={`p-2 rounded-full focus:rounded-full active:rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500/50 ${
                       selectedPlatform === platform
                         ? 'bg-purple-600 text-white'
                         : 'bg-gray-800/70 text-gray-400 hover:bg-gray-700/80'
@@ -130,15 +131,14 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({ track, isPlaying, onClose, on
                     {platform === 'spotify' && <FaSpotify className="w-5 h-5" />}
                     {platform === 'youtube' && <FaYoutube className="w-5 h-5" />}
                     {platform === 'soundcloud' && <FaSoundcloud className="w-5 h-5" />}
-                    {(platform === 'apple' || platform === 'deezer') && (
-                      <FaMusic className="w-5 h-5" />
-                    )}
+                    {platform === 'apple' && <FaApple className="w-5 h-5" />}
+                    {platform === 'deezer' && <DeezerIcon className="w-5 h-5" />}
                   </button>
                 ))}
 
                 <button
                   onClick={onClose}
-                  className="p-2 rounded-full bg-gray-800/70 text-gray-400 hover:bg-gray-700/80 ml-2"
+                  className="p-2 rounded-full focus:rounded-full active:rounded-full bg-gray-800/70 text-gray-400 hover:bg-gray-700/80 ml-2 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
                   aria-label="Fermer le lecteur"
                 >
                   <X className="w-5 h-5" />

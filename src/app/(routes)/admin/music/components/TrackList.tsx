@@ -132,7 +132,7 @@ export const TrackList: React.FC<TrackListProps> = ({
                         href={data.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-1 sm:p-1.5 bg-gray-700/60 hover:bg-gray-600 rounded-full text-gray-300 hover:text-white transition-colors"
+                        className="p-1 sm:p-1.5 bg-gray-700/60 hover:bg-gray-600 rounded-full focus:rounded-full active:rounded-full text-gray-300 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500/50"
                         title={`Voir sur ${platformLabels[platform as MusicPlatform]}`}
                         onClick={(e) => e.stopPropagation()}
                       >
