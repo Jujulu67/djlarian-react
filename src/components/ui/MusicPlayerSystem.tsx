@@ -18,8 +18,9 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { FaSpotify, FaYoutube, FaSoundcloud, FaMusic } from 'react-icons/fa';
+import { FaSpotify, FaYoutube, FaSoundcloud, FaApple } from 'react-icons/fa';
 
+import { DeezerIcon } from '@/components/icons/DeezerIcon';
 import { logger } from '@/lib/logger';
 import { isNotEmpty } from '@/lib/utils/arrayHelpers';
 import { getImageUrl } from '@/lib/utils/getImageUrl';
@@ -358,7 +359,7 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
                 {/* Lecture/Pause */}
                 <button
                   onClick={onTogglePlay}
-                  className="p-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-full transition-all transform hover:scale-105"
+                  className="p-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-full focus:rounded-full active:rounded-full transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
                   aria-label={isPlaying ? 'Pause' : 'Lecture'}
                 >
                   {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
@@ -379,7 +380,7 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
                 {selectedPlatform === 'youtube' && (
                   <button
                     onClick={openYoutubePlayer}
-                    className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-full transition-all transform hover:scale-105"
+                    className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-full focus:rounded-full active:rounded-full transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500/50"
                     aria-label="Ouvrir YouTube"
                   >
                     <FaYoutube className="w-5 h-5" />
@@ -425,14 +426,14 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
                 <div className="flex gap-2">
                   <button
                     onClick={() => setIsFullScreen(false)}
-                    className="p-2 bg-gray-800/70 hover:bg-gray-700/80 text-gray-400 rounded-full"
+                    className="p-2 bg-gray-800/70 hover:bg-gray-700/80 text-gray-400 rounded-full focus:rounded-full active:rounded-full focus:outline-none focus:ring-2 focus:ring-purple-500/50"
                     aria-label="Minimiser le lecteur"
                   >
                     <Minimize2 className="w-5 h-5" />
                   </button>
                   <button
                     onClick={onClose}
-                    className="p-2 bg-gray-800/70 hover:bg-gray-700/80 text-gray-400 rounded-full"
+                    className="p-2 bg-gray-800/70 hover:bg-gray-700/80 text-gray-400 rounded-full focus:rounded-full active:rounded-full focus:outline-none focus:ring-2 focus:ring-purple-500/50"
                     aria-label="Fermer le lecteur"
                   >
                     <X className="w-5 h-5" />
@@ -540,7 +541,7 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
                     <button
                       key={platform}
                       onClick={() => setSelectedPlatform(platform)}
-                      className={`p-3 rounded-full transition-colors ${
+                      className={`p-3 rounded-full focus:rounded-full active:rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500/50 ${
                         selectedPlatform === platform
                           ? platform === 'youtube'
                             ? 'bg-red-600 text-white'
@@ -554,9 +555,8 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
                       {platform === 'spotify' && <FaSpotify className="w-6 h-6" />}
                       {platform === 'youtube' && <FaYoutube className="w-6 h-6" />}
                       {platform === 'soundcloud' && <FaSoundcloud className="w-6 h-6" />}
-                      {(platform === 'apple' || platform === 'deezer') && (
-                        <FaMusic className="w-6 h-6" />
-                      )}
+                      {platform === 'apple' && <FaApple className="w-6 h-6" />}
+                      {platform === 'deezer' && <DeezerIcon className="w-6 h-6" />}
                     </button>
                   ))}
                 </div>
@@ -581,7 +581,7 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
                   <div className="flex justify-center my-6">
                     <button
                       onClick={openYoutubePlayer}
-                      className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-full font-medium transition-colors"
+                      className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-full focus:rounded-full active:rounded-full font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-red-500/50"
                     >
                       <FaYoutube className="w-5 h-5" />
                       Regarder sur YouTube
@@ -594,7 +594,7 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
                   {onPrevTrack && (
                     <button
                       onClick={onPrevTrack}
-                      className="p-3 bg-gray-800/70 hover:bg-gray-700/80 text-gray-300 rounded-full"
+                      className="p-3 bg-gray-800/70 hover:bg-gray-700/80 text-gray-300 rounded-full focus:rounded-full active:rounded-full focus:outline-none focus:ring-2 focus:ring-purple-500/50"
                       aria-label="Morceau précédent"
                     >
                       <SkipBack className="w-8 h-8" />
@@ -603,7 +603,7 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
 
                   <button
                     onClick={onTogglePlay}
-                    className="p-5 bg-purple-600 hover:bg-purple-700 text-white rounded-full"
+                    className="p-5 bg-purple-600 hover:bg-purple-700 text-white rounded-full focus:rounded-full active:rounded-full focus:outline-none focus:ring-2 focus:ring-purple-500/50"
                     aria-label={isPlaying ? 'Pause' : 'Lecture'}
                   >
                     {isPlaying ? (
@@ -616,7 +616,7 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
                   {onNextTrack && (
                     <button
                       onClick={onNextTrack}
-                      className="p-3 bg-gray-800/70 hover:bg-gray-700/80 text-gray-300 rounded-full"
+                      className="p-3 bg-gray-800/70 hover:bg-gray-700/80 text-gray-300 rounded-full focus:rounded-full active:rounded-full focus:outline-none focus:ring-2 focus:ring-purple-500/50"
                       aria-label="Morceau suivant"
                     >
                       <SkipForward className="w-8 h-8" />
@@ -661,7 +661,7 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
                 onClick={() => {
                   setShowYoutubeModal(false);
                 }}
-                className="p-2 bg-gray-800/70 text-white rounded-full"
+                className="p-2 bg-gray-800/70 text-white rounded-full focus:rounded-full active:rounded-full focus:outline-none focus:ring-2 focus:ring-purple-500/50"
                 aria-label="Fermer la vidéo"
               >
                 <X className="w-6 h-6" />

@@ -1,13 +1,15 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 
 import { useAudioFrequencyCapture } from '@/hooks/useAudioFrequencyCapture';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import { useSoundCloudPlayer } from '@/hooks/useSoundCloudPlayer';
 import { useYouTubePlayer } from '@/hooks/useYouTubePlayer';
 import { logger } from '@/lib/logger';
 import { sendPlayerCommand } from '@/lib/utils/audioUtils';
+import { selectPreferredPlatform } from '@/lib/utils/platformSelector';
 import { Track } from '@/lib/utils/types';
 
 import { MusicCardBadges } from './MusicCard/MusicCardBadges';
@@ -24,6 +26,7 @@ interface MusicCardProps {
   isPlaying: boolean;
   isActive: boolean;
   playerRef?: React.MutableRefObject<HTMLIFrameElement | null>;
+  priority?: boolean;
 }
 
 /**
@@ -33,25 +36,39 @@ interface MusicCardProps {
  * based on whether the card is the currently active track (`isActive`) and the global playback state (`isPlaying`).
  * It uses utility functions for sending commands and applying initial volume.
  */
-export const MusicCard: React.FC<MusicCardProps> = ({ track, onPlay, isPlaying, isActive }) => {
+const MusicCardComponent: React.FC<MusicCardProps> = ({
+  track,
+  onPlay,
+  isPlaying,
+  isActive,
+  priority = false,
+}) => {
   const [imageError, setImageError] = useState(false);
   const [localIsPlaying, setLocalIsPlaying] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
 
-  // Use YouTube player hook
+  // Determine which platform to use based on priority (YouTube > SoundCloud) - memoized
+  const preferredPlatform = useMemo(() => selectPreferredPlatform(track), [track.platforms]);
+  const shouldUseYouTube = preferredPlatform === 'youtube';
+  const shouldUseSoundCloud = preferredPlatform === 'soundcloud';
+
+  // Use YouTube player hook (only if YouTube is the preferred platform)
   const youtubePlayer = useYouTubePlayer({
     track,
     isActive,
     isPlaying,
     onPlay,
+    shouldActivate: shouldUseYouTube,
   });
 
-  // Use SoundCloud player hook
+  // Use SoundCloud player hook (only if SoundCloud is the preferred platform)
   const soundcloudPlayer = useSoundCloudPlayer({
     track,
     isActive,
     isPlaying,
     onPlay,
+    shouldActivate: shouldUseSoundCloud,
   });
 
   // Determine if any player is active
@@ -65,10 +82,11 @@ export const MusicCard: React.FC<MusicCardProps> = ({ track, onPlay, isPlaying, 
       : soundcloudPlayer.soundcloudIframeRef
     : null;
 
+  // Disable audio capture on mobile for performance
   const audioCapture = useAudioFrequencyCapture({
     iframeRef: activeIframeRef || { current: null },
-    isPlaying: isPlaying && isActive,
-    isVisible: isPlayerVisible,
+    isPlaying: isPlaying && isActive && !isMobile,
+    isVisible: isPlayerVisible && !isMobile,
   });
 
   // Synchronize local state with global state for non-active cards
@@ -81,20 +99,47 @@ export const MusicCard: React.FC<MusicCardProps> = ({ track, onPlay, isPlaying, 
       sendPlayerCommand(youtubePlayer.iframeRef.current, 'youtube', 'pause');
       sendPlayerCommand(soundcloudPlayer.soundcloudIframeRef.current, 'soundcloud', 'pause');
     } else {
+      // When card becomes active, ensure visibility is set to true
+      // Force visibility regardless of playing state to ensure card reopens
+      if (shouldUseYouTube && youtubePlayer.youtubeVideoId) {
+        youtubePlayer.setIsYoutubeVisible(true);
+      }
+      if (shouldUseSoundCloud && soundcloudPlayer.soundcloudUrl) {
+        soundcloudPlayer.setIsSoundcloudVisible(true);
+      }
+
       const syncTimeout = setTimeout(() => {
-        logger.debug(
-          `MusicCard: synchronisation de l'état local pour track ${track.id} - isPlaying=${isPlaying}`
-        );
         setLocalIsPlaying(isPlaying);
       }, 50);
 
       return () => clearTimeout(syncTimeout);
     }
-  }, [isActive, isPlaying, track.id, youtubePlayer, soundcloudPlayer]);
+  }, [
+    isActive,
+    isPlaying,
+    track.id,
+    youtubePlayer,
+    soundcloudPlayer,
+    shouldUseYouTube,
+    shouldUseSoundCloud,
+  ]);
 
-  // Auto-scroll to card when activated
+  // Force visibility when isPlaying changes from false to true (even if already active)
   useEffect(() => {
-    if (isActive && localIsPlaying && cardRef.current) {
+    if (isActive && isPlaying) {
+      // Force visibility when playing starts, even if card was already active
+      if (shouldUseYouTube && youtubePlayer.youtubeVideoId) {
+        youtubePlayer.setIsYoutubeVisible(true);
+      }
+      if (shouldUseSoundCloud && soundcloudPlayer.soundcloudUrl) {
+        soundcloudPlayer.setIsSoundcloudVisible(true);
+      }
+    }
+  }, [isPlaying, isActive, shouldUseYouTube, shouldUseSoundCloud, youtubePlayer, soundcloudPlayer]);
+
+  // Auto-scroll to card when activated (disabled on mobile for better UX)
+  useEffect(() => {
+    if (isActive && localIsPlaying && cardRef.current && !isMobile) {
       setTimeout(() => {
         cardRef.current?.scrollIntoView({
           behavior: 'smooth',
@@ -102,12 +147,16 @@ export const MusicCard: React.FC<MusicCardProps> = ({ track, onPlay, isPlaying, 
         });
       }, 100);
     }
-  }, [isActive, localIsPlaying, track.id]);
+  }, [isActive, localIsPlaying, track.id, isMobile]);
 
   // Handle play click
   const handlePlayClick = useCallback(() => {
+    logger.debug(`[MusicCard ${track.id}] handlePlayClick called for track: ${track.title}`);
+    logger.debug(
+      `[MusicCard ${track.id}] Current state - isActive: ${isActive}, isPlaying: ${isPlaying}`
+    );
     onPlay(track);
-  }, [onPlay, track]);
+  }, [onPlay, track, isActive, isPlaying]);
 
   // Handle close player (combines both platforms)
   const handleClosePlayer = useCallback(
@@ -125,11 +174,39 @@ export const MusicCard: React.FC<MusicCardProps> = ({ track, onPlay, isPlaying, 
   // Handle card click
   const handleCardClick = useCallback(
     (e: React.MouseEvent) => {
-      if (!(e.target as HTMLElement).closest('button, a, iframe')) {
-        handlePlayClick();
+      const target = e.target as HTMLElement;
+
+      // Always ignore clicks on actual buttons and links (not iframes)
+      const isButtonOrLink = target.closest('button, a');
+      if (isButtonOrLink) {
+        logger.debug(`[MusicCard ${track.id}] Card click on button/link, ignoring`);
+        return;
       }
+
+      // For iframes: allow click if card is not active or if it's paused
+      // This allows re-clicking on an old card to reactivate it
+      const isIframe = target.closest('iframe');
+      if (isIframe) {
+        if (!isActive || !isPlaying) {
+          logger.debug(
+            `[MusicCard ${track.id}] Card click on iframe - card not active or paused, allowing play`
+          );
+          handlePlayClick();
+        } else {
+          logger.debug(
+            `[MusicCard ${track.id}] Card click on iframe - card already active and playing, ignoring`
+          );
+        }
+        return;
+      }
+
+      // For other clicks (on the card itself), always allow
+      logger.debug(
+        `[MusicCard ${track.id}] Card clicked - target: ${target.tagName}, calling handlePlayClick`
+      );
+      handlePlayClick();
     },
-    [handlePlayClick]
+    [handlePlayClick, track.id, isActive, isPlaying]
   );
 
   return (
@@ -193,6 +270,7 @@ export const MusicCard: React.FC<MusicCardProps> = ({ track, onPlay, isPlaying, 
               track={track}
               imageError={imageError}
               onImageError={() => setImageError(true)}
+              priority={priority}
             />
           </>
         )}
@@ -218,7 +296,8 @@ export const MusicCard: React.FC<MusicCardProps> = ({ track, onPlay, isPlaying, 
       </div>
 
       {/* Audio Visualizer - Below player in purple section when player is active */}
-      {isPlayerVisible && (
+      {/* Disabled on mobile for performance reasons */}
+      {isPlayerVisible && !isMobile && (
         <div className="w-full bg-gradient-to-b from-purple-900/90 via-purple-800/80 to-purple-900/90 h-20 flex items-center">
           <MusicCardVisualizer
             isVisible={true}
@@ -239,5 +318,22 @@ export const MusicCard: React.FC<MusicCardProps> = ({ track, onPlay, isPlaying, 
     </motion.div>
   );
 };
+
+// Memoize MusicCard to prevent unnecessary re-renders
+// Only re-render if track.id, isPlaying, isActive, or priority changes
+export const MusicCard = React.memo(MusicCardComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.track.id === nextProps.track.id &&
+    prevProps.isPlaying === nextProps.isPlaying &&
+    prevProps.isActive === nextProps.isActive &&
+    prevProps.priority === nextProps.priority &&
+    prevProps.track.title === nextProps.track.title &&
+    prevProps.track.artist === nextProps.track.artist &&
+    prevProps.track.imageId === nextProps.track.imageId &&
+    JSON.stringify(prevProps.track.platforms) === JSON.stringify(nextProps.track.platforms)
+  );
+});
+
+MusicCard.displayName = 'MusicCard';
 
 export default MusicCard;

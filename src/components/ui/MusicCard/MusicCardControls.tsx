@@ -47,7 +47,7 @@ export const MusicCardControls: React.FC<MusicCardControlsProps> = ({
       <motion.button
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
-        className="p-4 rounded-full bg-purple-700/80 hover:bg-purple-600/90 flex items-center justify-center backdrop-blur-sm play-button focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+        className="p-4 rounded-full focus:rounded-full active:rounded-full bg-purple-700/80 hover:bg-purple-600/90 flex items-center justify-center backdrop-blur-sm play-button focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
         onClick={(e) => {
           e.stopPropagation();
           onPlayClick();

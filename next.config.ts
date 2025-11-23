@@ -102,14 +102,26 @@ const sentryConfig = {
   // For all available options, see:
   // https://github.com/getsentry/sentry-webpack-plugin#options
 
-  org: process.env.SENTRY_ORG,
-  project: process.env.SENTRY_PROJECT,
+  // Ne configurer org/project que si on veut uploader les source maps
+  // Si SENTRY_AUTH_TOKEN n'a pas les permissions, ne pas configurer org/project
+  // pour éviter les erreurs 403 lors du build
+  ...(process.env.SENTRY_AUTH_TOKEN && process.env.SENTRY_DISABLE_SOURCEMAPS !== 'true'
+    ? {
+        org: process.env.SENTRY_ORG,
+        project: process.env.SENTRY_PROJECT,
+      }
+    : {}),
 
   // Only print logs for uploading source maps in CI
   silent: !process.env.CI,
 
   // For all available options, see:
   // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
+
+  // Désactiver l'upload des source maps si le token n'est pas configuré ou si explicitement désactivé
+  // Les erreurs seront toujours capturées via le DSN, mais sans source maps
+  // Pour activer l'upload des source maps, le token doit avoir les permissions: project:releases, project:write
+  dryRun: !process.env.SENTRY_AUTH_TOKEN || process.env.SENTRY_DISABLE_SOURCEMAPS === 'true',
 
   // Upload a larger set of source maps for prettier stack traces (increases build time)
   widenClientFileUpload: true,

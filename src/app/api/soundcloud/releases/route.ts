@@ -7,6 +7,10 @@ import prisma from '@/lib/prisma';
 import { searchSoundCloudArtistTracks } from '@/lib/services/soundcloud';
 import type { DetectedRelease } from '@/lib/services/types';
 
+// Configuration pour Vercel: timeout maximum de 5 minutes (300 secondes)
+// Nécessaire car Puppeteer peut prendre du temps pour scraper SoundCloud
+export const maxDuration = 300;
+
 // Cache simple en mémoire
 const cache: Record<string, { data: DetectedRelease[]; timestamp: number }> = {};
 const CACHE_TTL = 3600000; // 1 heure
@@ -87,15 +91,79 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       clearCache(cacheKey);
     }
 
-    // Récupérer les tracks SoundCloud
-    const tracks = await searchSoundCloudArtistTracks(
-      artistName || '',
-      profileUrl || undefined,
-      maxResults
-    );
+    // Logger l'environnement pour le debug
+    logger.debug('[SOUNDCLOUD RELEASES] Environnement:', {
+      VERCEL: process.env.VERCEL,
+      NODE_ENV: process.env.NODE_ENV,
+      artistName: artistName || 'non fourni',
+      profileUrl: profileUrl || 'non fourni',
+    });
 
+    // Récupérer les tracks SoundCloud
+    let tracks: Awaited<ReturnType<typeof searchSoundCloudArtistTracks>>;
+    let puppeteerError: string | null = null;
+
+    try {
+      tracks = await searchSoundCloudArtistTracks(
+        artistName || '',
+        profileUrl || undefined,
+        maxResults
+      );
+    } catch (error) {
+      logger.error('[SOUNDCLOUD RELEASES] Erreur lors de la recherche de tracks:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Erreur inconnue lors de la recherche';
+      puppeteerError = errorMessage;
+
+      // Si l'erreur indique que Puppeteer n'est pas disponible, retourner une erreur explicite
+      if (
+        errorMessage.includes('Puppeteer') ||
+        errorMessage.includes('Chromium') ||
+        errorMessage.includes('non disponible')
+      ) {
+        return NextResponse.json(
+          {
+            error: 'Puppeteer/Chromium non disponible',
+            message:
+              "Le service de scraping SoundCloud n'est pas disponible. Vérifiez la configuration de Puppeteer sur Vercel.",
+            details: errorMessage,
+          },
+          { status: 503 }
+        );
+      }
+
+      // Pour les autres erreurs, retourner une erreur générique
+      return NextResponse.json(
+        {
+          error: 'Erreur lors de la récupération des tracks',
+          message: errorMessage,
+        },
+        { status: 500 }
+      );
+    }
+
+    // Vérifier si le tableau vide est dû à une erreur Puppeteer ou vraiment aucune track
     if (tracks.length === 0) {
-      logger.warn('[SOUNDCLOUD RELEASES] Aucune track trouvée');
+      logger.warn('[SOUNDCLOUD RELEASES] Aucune track trouvée', {
+        artistName: artistName || 'non fourni',
+        profileUrl: profileUrl || 'non fourni',
+        puppeteerError,
+      });
+
+      // Si on a une erreur Puppeteer, retourner une erreur explicite
+      if (puppeteerError) {
+        return NextResponse.json(
+          {
+            error: 'Puppeteer/Chromium non disponible',
+            message:
+              "Le service de scraping SoundCloud n'est pas disponible. Vérifiez la configuration de Puppeteer sur Vercel.",
+            details: puppeteerError,
+          },
+          { status: 503 }
+        );
+      }
+
+      // Sinon, retourner un tableau vide (aucune track trouvée)
       return NextResponse.json({ releases: [] });
     }
 

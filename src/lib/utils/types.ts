@@ -43,6 +43,23 @@ export interface Track {
   updatedAt?: string;
 }
 
+/**
+ * Track with close action - used to signal player should close
+ */
+export interface TrackWithClose extends Track {
+  close: true;
+}
+
+/**
+ * Union type for track actions (play or close)
+ */
+export type TrackAction = Track | TrackWithClose;
+
+/**
+ * Player state type
+ */
+export type PlayerState = 'idle' | 'loading' | 'playing' | 'paused' | 'error';
+
 /*
 // NOTE: Cette définition manuelle de Event est obsolète.
 // Il est préférable d'utiliser le type Event généré par Prisma Client.
