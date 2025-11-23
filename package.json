@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "bash scripts/ensure-sqlite-schema.sh && NODE_OPTIONS='--import tsx' next dev",
     "dev:auto": "bash scripts/start-dev-with-auto-restart.sh",
-    "build": "bash scripts/ensure-postgresql-schema.sh && node scripts/fix-prisma-types.mjs && NODE_OPTIONS='--import tsx' next build",
+    "build": "bash scripts/ensure-postgresql-schema.sh && node scripts/fix-prisma-types.mjs && NODE_OPTIONS='--import tsx' next build && bash scripts/migrate-after-build.sh",
     "postinstall": "node scripts/fix-prisma-types.mjs || true",
     "start": "NODE_OPTIONS='--import tsx' next start",
     "lint": "eslint --config eslint.config.mjs \"src/**/*.{ts,tsx}\"",
@@ -26,6 +26,9 @@
     "db:import:backup": "node scripts/import-backup-to-sqlite.mjs",
     "db:fix:imageids": "node scripts/fix-imageids.mjs",
     "db:studio": "npx prisma studio",
+    "db:migrate:production": "node scripts/migrate-db-production.mjs",
+    "db:migrate:blob-images": "node scripts/migrate-blob-images-production.mjs",
+    "db:migrate:all": "npm run db:migrate:production && npm run db:migrate:blob-images",
     "generate:waveform-video": "node scripts/generate-waveform-video.mjs"
   },
   "dependencies": {

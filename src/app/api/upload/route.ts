@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { uploadToBlob, getBlobPublicUrl } from '@/lib/blob';
 import { logger } from '@/lib/logger';
+import prisma from '@/lib/prisma';
 import { convertToWebP, canConvertToWebP } from '@/lib/utils/convertToWebP';
 import { shouldUseBlobStorage } from '@/lib/utils/getStorageConfig';
 
@@ -152,6 +153,7 @@ export async function POST(request: NextRequest) {
         logger.debug(`API UPLOAD - Image recadrée uploadée vers Vercel Blob: ${croppedUrl}`);
 
         // Upload de l'image originale si fournie (convertie en WebP)
+        let originalBlobUrl: string | null = null;
         if (originalImage && originalImage.type.startsWith('image/')) {
           if (originalImage.size <= 15 * 1024 * 1024) {
             try {
@@ -172,9 +174,9 @@ export async function POST(request: NextRequest) {
               }
 
               const originalKey = `uploads/${imageId}-ori.webp`;
-              await uploadToBlob(originalKey, originalBuffer, 'image/webp');
+              originalBlobUrl = await uploadToBlob(originalKey, originalBuffer, 'image/webp');
               logger.debug(
-                `API UPLOAD - Image originale uploadée vers Vercel Blob: ${originalKey}`
+                `API UPLOAD - Image originale uploadée vers Vercel Blob: ${originalBlobUrl}`
               );
             } catch (error) {
               logger.error('API UPLOAD - Erreur upload image originale vers Blob', error);
@@ -185,6 +187,30 @@ export async function POST(request: NextRequest) {
               `API UPLOAD - Fichier original trop volumineux: ${originalImage.size} bytes`
             );
           }
+        }
+
+        // OPTIMISATION: Stocker les URLs blob dans la DB pour éviter les appels list() coûteux
+        try {
+          await prisma.image.upsert({
+            where: { imageId },
+            create: {
+              imageId,
+              blobUrl: croppedUrl,
+              blobUrlOriginal: originalBlobUrl || undefined,
+              size: croppedBuffer.length,
+              contentType: 'image/webp',
+            },
+            update: {
+              blobUrl: croppedUrl,
+              blobUrlOriginal: originalBlobUrl || undefined,
+              size: croppedBuffer.length,
+              contentType: 'image/webp',
+            },
+          });
+          logger.debug(`API UPLOAD - URLs blob stockées dans la DB pour: ${imageId}`);
+        } catch (dbError) {
+          // Ne pas faire échouer l'upload si la DB échoue, juste logger
+          logger.warn('[API UPLOAD] Erreur lors du stockage des URLs blob dans la DB:', dbError);
         }
 
         logger.debug(`API UPLOAD - Upload Vercel Blob terminé pour imageId: ${imageId}`);

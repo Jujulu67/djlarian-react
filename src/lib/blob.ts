@@ -72,10 +72,26 @@ export const getBlobPublicUrl = (url: string): string => {
   return url;
 };
 
+// Cache pour listBlobFiles (évite trop d'appels list())
+let listBlobCache: {
+  data: Array<{
+    id: string;
+    name: string;
+    path: string;
+    type: string;
+    size: number;
+    lastModified: string;
+  }>;
+  timestamp: number;
+} | null = null;
+const LIST_BLOB_CACHE_TTL = 3600000; // 1 heure en millisecondes
+
 /**
  * Lister tous les fichiers dans Vercel Blob
  * Note: Vercel Blob ne supporte pas directement le listing par préfixe
  * On utilise une approche différente si nécessaire
+ *
+ * OPTIMISATION: Utilise un cache pour éviter trop d'appels list() coûteux
  */
 export const listBlobFiles = async (
   prefix: string = 'uploads/'
@@ -93,6 +109,12 @@ export const listBlobFiles = async (
     return [];
   }
 
+  // Vérifier le cache
+  if (listBlobCache && Date.now() - listBlobCache.timestamp < LIST_BLOB_CACHE_TTL) {
+    logger.debug('[BLOB] Utilisation du cache pour listBlobFiles');
+    return listBlobCache.data;
+  }
+
   try {
     // Vercel Blob list() retourne tous les blobs avec pagination
     const { blobs } = await list({
@@ -107,7 +129,7 @@ export const listBlobFiles = async (
     });
 
     // Créer un objet pour chaque image avec des métadonnées
-    return imageFiles.map((blob) => {
+    const result = imageFiles.map((blob) => {
       const filename = blob.pathname;
 
       // Déterminer le type d'image basé sur le nom du fichier
@@ -125,6 +147,16 @@ export const listBlobFiles = async (
         lastModified: blob.uploadedAt?.toISOString() || new Date().toISOString(),
       };
     });
+
+    // Mettre en cache le résultat
+    // Note: On utilise une variable module pour le cache (simple mais efficace)
+    // En production, le cache sera partagé entre les instances de la fonction
+    listBlobCache = {
+      data: result,
+      timestamp: Date.now(),
+    };
+
+    return result;
   } catch (error) {
     logger.error('[BLOB] Erreur lors de la liste des fichiers:', error);
     return [];

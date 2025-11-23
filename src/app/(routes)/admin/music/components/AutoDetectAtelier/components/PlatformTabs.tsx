@@ -57,24 +57,16 @@ export function PlatformTabs({
 
   return (
     <Tabs value={activeTab} onValueChange={handleValueChange} className="w-full">
-      <TabsList
-        className={`grid w-full bg-gray-700/50 mb-6 ${
-          process.env.NODE_ENV === 'production' ? 'grid-cols-1' : 'grid-cols-3'
-        }`}
-      >
+      <TabsList className="grid w-full bg-gray-700/50 mb-6 grid-cols-3">
         <TabsTrigger value="spotify" className="data-[state=active]:bg-purple-600">
           Spotify
         </TabsTrigger>
-        {process.env.NODE_ENV !== 'production' && (
-          <>
-            <TabsTrigger value="soundcloud" className="data-[state=active]:bg-purple-600">
-              SoundCloud
-            </TabsTrigger>
-            <TabsTrigger value="youtube" className="data-[state=active]:bg-purple-600">
-              YouTube
-            </TabsTrigger>
-          </>
-        )}
+        <TabsTrigger value="soundcloud" className="data-[state=active]:bg-purple-600">
+          SoundCloud
+        </TabsTrigger>
+        <TabsTrigger value="youtube" className="data-[state=active]:bg-purple-600">
+          YouTube
+        </TabsTrigger>
       </TabsList>
 
       {/* Onglet Spotify */}
