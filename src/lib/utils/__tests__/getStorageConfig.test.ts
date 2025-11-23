@@ -4,13 +4,6 @@ import path from 'path';
 import { shouldUseBlobStorage } from '../getStorageConfig';
 
 // Mock dependencies
-const mockIsBlobConfiguredValue = { value: false };
-jest.mock('@/lib/blob', () => ({
-  get isBlobConfigured() {
-    return mockIsBlobConfiguredValue.value;
-  },
-}));
-
 jest.mock('fs', () => ({
   existsSync: jest.fn(),
   readFileSync: jest.fn(),
@@ -23,29 +16,35 @@ jest.mock('path', () => ({
 describe('shouldUseBlobStorage', () => {
   const mockExistsSync = fs.existsSync as jest.MockedFunction<typeof fs.existsSync>;
   const mockReadFileSync = fs.readFileSync as jest.MockedFunction<typeof fs.readFileSync>;
+  const originalEnv = process.env;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockIsBlobConfiguredValue.value = false;
-    // Reset NODE_ENV - utiliser Object.defineProperty pour éviter l'erreur readonly
+    // Reset NODE_ENV et BLOB_READ_WRITE_TOKEN - utiliser Object.defineProperty pour éviter l'erreur readonly
     Object.defineProperty(process, 'env', {
-      value: { ...process.env },
+      value: { ...originalEnv },
       writable: true,
       configurable: true,
     });
     if ('NODE_ENV' in process.env) {
       delete (process.env as Record<string, string | undefined>).NODE_ENV;
     }
+    if ('BLOB_READ_WRITE_TOKEN' in process.env) {
+      delete (process.env as Record<string, string | undefined>).BLOB_READ_WRITE_TOKEN;
+    }
   });
 
   afterEach(() => {
     Object.defineProperty(process, 'env', {
-      value: { ...process.env },
+      value: { ...originalEnv },
       writable: true,
       configurable: true,
     });
     if ('NODE_ENV' in process.env) {
       delete (process.env as Record<string, string | undefined>).NODE_ENV;
+    }
+    if ('BLOB_READ_WRITE_TOKEN' in process.env) {
+      delete (process.env as Record<string, string | undefined>).BLOB_READ_WRITE_TOKEN;
     }
   });
 
@@ -59,13 +58,13 @@ describe('shouldUseBlobStorage', () => {
     });
 
     it('should return true if blob is configured', () => {
-      mockIsBlobConfiguredValue.value = true;
+      process.env.BLOB_READ_WRITE_TOKEN = 'test-token';
       const result = shouldUseBlobStorage();
       expect(result).toBe(true);
     });
 
     it('should return false if blob is not configured', () => {
-      mockIsBlobConfiguredValue.value = false;
+      delete (process.env as Record<string, string | undefined>).BLOB_READ_WRITE_TOKEN;
       const result = shouldUseBlobStorage();
       expect(result).toBe(false);
     });
@@ -81,14 +80,14 @@ describe('shouldUseBlobStorage', () => {
     });
 
     it('should return false by default (no switch file)', () => {
-      mockIsBlobConfiguredValue.value = true;
+      process.env.BLOB_READ_WRITE_TOKEN = 'test-token';
       mockExistsSync.mockReturnValue(false);
       const result = shouldUseBlobStorage();
       expect(result).toBe(false);
     });
 
     it('should return true if switch is set to useProduction and blob is configured', () => {
-      mockIsBlobConfiguredValue.value = true;
+      process.env.BLOB_READ_WRITE_TOKEN = 'test-token';
       mockExistsSync.mockReturnValue(true);
       mockReadFileSync.mockReturnValue(JSON.stringify({ useProduction: true }));
       const result = shouldUseBlobStorage();
@@ -96,7 +95,7 @@ describe('shouldUseBlobStorage', () => {
     });
 
     it('should return false if switch is set to useProduction but blob is not configured', () => {
-      mockIsBlobConfiguredValue.value = false;
+      delete (process.env as Record<string, string | undefined>).BLOB_READ_WRITE_TOKEN;
       mockExistsSync.mockReturnValue(true);
       mockReadFileSync.mockReturnValue(JSON.stringify({ useProduction: true }));
       const result = shouldUseBlobStorage();
@@ -104,7 +103,7 @@ describe('shouldUseBlobStorage', () => {
     });
 
     it('should return false if switch is set to useProduction: false', () => {
-      mockIsBlobConfiguredValue.value = true;
+      process.env.BLOB_READ_WRITE_TOKEN = 'test-token';
       mockExistsSync.mockReturnValue(true);
       mockReadFileSync.mockReturnValue(JSON.stringify({ useProduction: false }));
       const result = shouldUseBlobStorage();
@@ -112,7 +111,7 @@ describe('shouldUseBlobStorage', () => {
     });
 
     it('should handle invalid JSON gracefully', () => {
-      mockIsBlobConfiguredValue.value = true;
+      process.env.BLOB_READ_WRITE_TOKEN = 'test-token';
       mockExistsSync.mockReturnValue(true);
       mockReadFileSync.mockReturnValue('invalid json');
       // Should not throw, should return false
@@ -122,7 +121,7 @@ describe('shouldUseBlobStorage', () => {
     });
 
     it('should handle file read errors gracefully', () => {
-      mockIsBlobConfiguredValue.value = true;
+      process.env.BLOB_READ_WRITE_TOKEN = 'test-token';
       mockExistsSync.mockReturnValue(true);
       mockReadFileSync.mockImplementation(() => {
         throw new Error('File read error');

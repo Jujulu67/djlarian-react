@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
+import * as Sentry from '@sentry/nextjs';
 
 import { logger } from '@/lib/logger';
 
@@ -67,6 +68,17 @@ export function handleApiError(error: unknown, context?: string): NextResponse {
   // Standard Error objects
   if (error instanceof Error) {
     logger.error(`${errorContext} Error:`, error);
+
+    // Envoyer l'erreur à Sentry si configuré (sauf erreurs de validation)
+    if (process.env.NEXT_PUBLIC_SENTRY_DSN && !(error instanceof ZodError)) {
+      Sentry.captureException(error, {
+        tags: {
+          context: errorContext,
+          errorType: 'API_ERROR',
+        },
+      });
+    }
+
     return createInternalErrorResponse(error.message, {
       name: error.name,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
@@ -75,6 +87,18 @@ export function handleApiError(error: unknown, context?: string): NextResponse {
 
   // Unknown error type
   logger.error(`${errorContext} Unknown error:`, error);
+
+  // Envoyer l'erreur inconnue à Sentry si configuré
+  if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
+    Sentry.captureException(new Error(`Unknown error type: ${typeof error}`), {
+      extra: { originalError: error },
+      tags: {
+        context: errorContext,
+        errorType: 'UNKNOWN_ERROR',
+      },
+    });
+  }
+
   return createInternalErrorResponse('An unexpected error occurred', {
     type: typeof error,
   });
@@ -130,6 +154,21 @@ function handlePrismaError(
 
     default: {
       logger.error(`${context} Prisma error (code ${error.code}):`, error);
+
+      // Envoyer les erreurs Prisma non gérées à Sentry si configuré
+      if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
+        Sentry.captureException(error, {
+          tags: {
+            context,
+            errorType: 'PRISMA_ERROR',
+            prismaCode: error.code,
+          },
+          extra: {
+            meta: error.meta,
+          },
+        });
+      }
+
       return createInternalErrorResponse('Database operation failed', {
         code: error.code,
         meta: error.meta,

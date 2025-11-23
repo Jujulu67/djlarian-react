@@ -1,6 +1,7 @@
 'use client';
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
+import * as Sentry from '@sentry/nextjs';
 
 import { logger } from '@/lib/logger';
 
@@ -43,6 +44,17 @@ class ErrorBoundary extends Component<Props, State> {
       // Réinitialiser l'état pour permettre à l'application de continuer
       this.setState({ hasError: false });
       return;
+    }
+
+    // Envoyer l'erreur à Sentry si configuré
+    if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
+      Sentry.captureException(error, {
+        contexts: {
+          react: {
+            componentStack: errorInfo.componentStack,
+          },
+        },
+      });
     }
   }
 

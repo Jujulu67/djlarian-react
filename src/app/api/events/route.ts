@@ -202,6 +202,13 @@ function generateRecurringDates(
 
 // POST - Créer un nouvel événement
 export async function POST(request: Request): Promise<Response> {
+  // Rate limiting (20 events/min)
+  const { rateLimit } = await import('@/lib/api/rateLimiter');
+  const rateLimitResponse = await rateLimit(request as any, 20);
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
   const session = await auth();
 
   // Vérifier l'authentification et les autorisations
@@ -342,6 +349,23 @@ export async function POST(request: Request): Promise<Response> {
         );
         logger.debug("Les occurrences seront générées virtuellement lors de l'affichage");
 
+        // Envoyer un webhook pour la création
+        const { sendWebhook } = await import('@/lib/api/webhooks');
+        await sendWebhook(
+          'event.created',
+          {
+            eventId: masterEvent.id,
+            title: masterEvent.title,
+            location: masterEvent.location,
+            startDate: masterEvent.startDate.toISOString(),
+            isRecurring: true,
+            occurrencesCount: recurringDates.length,
+          },
+          {
+            userId: session.user.id,
+          }
+        );
+
         return NextResponse.json(
           {
             success: true,
@@ -367,6 +391,21 @@ export async function POST(request: Request): Promise<Response> {
       const event = await prisma.event.create({
         data: commonEventData,
       });
+
+      // Envoyer un webhook pour la création
+      const { sendWebhook } = await import('@/lib/api/webhooks');
+      await sendWebhook(
+        'event.created',
+        {
+          eventId: event.id,
+          title: event.title,
+          location: event.location,
+          startDate: event.startDate.toISOString(),
+        },
+        {
+          userId: session.user.id,
+        }
+      );
 
       return NextResponse.json({ success: true, event }, { status: 201 });
     }

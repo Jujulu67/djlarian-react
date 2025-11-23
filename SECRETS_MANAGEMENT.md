@@ -46,6 +46,8 @@ Marquez ces variables comme **"Encrypt"** (Secret) :
 - ✅ `GOOGLE_CLIENT_SECRET` - Si utilisé
 - ✅ `TWITCH_CLIENT_SECRET` - Si utilisé
 - ✅ `SPOTIFY_CLIENT_SECRET` - Secret Spotify pour l'API (auto-détection des releases)
+- ✅ `VERCEL_TOKEN` - Token d'accès API Vercel (pour récupérer les stats Analytics/Speed Insights)
+- ✅ `VERCEL_TOKEN` - Token d'accès API Vercel (pour récupérer les stats Analytics/Speed Insights)
 
 ### Variables Non-Secrètes (pas besoin d'encrypt)
 
@@ -58,7 +60,15 @@ Marquez ces variables comme **"Encrypt"** (Secret) :
 - `NEXT_PUBLIC_*` - Toutes les variables publiques
 - `SPOTIFY_ARTIST_ID` - ID de l'artiste Spotify (optionnel, peut être configuré dans l'UI)
 - `MUSICBRAINZ_USER_AGENT` - User-Agent pour MusicBrainz (requis, format: "AppName/Version (contact@email.com)")
+- `VERCEL_PROJECT_NAME` - Nom du projet Vercel (recommandé, ex: `djlarian-react`)
+- `VERCEL_TEAM_SLUG` - Slug de l'équipe Vercel (recommandé, ex: `larians-projects-a2dc5026`)
+- `VERCEL_PROJECT_ID` - ID du projet Vercel (optionnel, pour compatibilité)
+- `VERCEL_TEAM_ID` - ID de l'équipe Vercel (optionnel, pour compatibilité)
 - `YOUTUBE_API_KEY` - Clé API YouTube (déjà utilisée pour l'atelier YouTube)
+- `NEXT_PUBLIC_SENTRY_DSN` - DSN Sentry pour error tracking (optionnel)
+- `SENTRY_ORG` - Organisation Sentry (optionnel, pour source maps)
+- `SENTRY_PROJECT` - Projet Sentry (optionnel, pour source maps)
+- `SENTRY_AUTH_TOKEN` - Token d'authentification Sentry (optionnel, pour releases)
 
 **Note** : `TWITCH_CLIENT_ID` et `TWITCH_CLIENT_SECRET` sont optionnels. Si non configurés, l'écran offline personnalisé s'affichera par défaut.
 
@@ -210,6 +220,209 @@ openssl rand -base64 32
 - Pour un usage modéré (quelques recherches par release), le quota gratuit devrait suffire
 
 **Note** : Optionnel, la recherche SoundCloud fonctionnera sans mais retournera `null` (pas de faux liens 404)
+
+### 14. Sentry - Error Tracking (Optionnel)
+
+**Pourquoi** : Suivi des erreurs en production pour améliorer la stabilité de l'application
+
+**Où trouver** : https://sentry.io/
+
+1. **Créer un compte Sentry** (gratuit jusqu'à 5k erreurs/mois)
+2. **Créer un projet** :
+   - Platform : Next.js
+   - Nom du projet : `djlarian-react` (ou votre choix)
+
+**🎯 Deux options d'intégration :**
+
+#### Option A : DSN Sentry (Recommandé pour erreurs client-side)
+
+- ✅ Capture les erreurs **client-side** (React, JavaScript)
+- ✅ Capture les erreurs **serveur** (API routes, Server Components)
+- ✅ Contexte riche (stack traces, user context, session replay)
+- ❌ Nécessite le SDK dans le code (déjà intégré)
+
+#### Option B : Vercel Log Drains (Recommandé pour logs serveur)
+
+- ✅ **Automatique** - Capture tous les logs Vercel sans code
+- ✅ Capture les logs serveur (API routes, builds, fonctions)
+- ✅ Configuration simple dans Vercel Dashboard
+- ❌ **Ne capture PAS** les erreurs client-side React
+- ❌ Nécessite un endpoint Sentry ou intégration native
+
+#### 🏆 Approche Recommandée : Hybride
+
+**Utiliser les deux** pour une couverture complète :
+
+- **Vercel Log Drains** → Logs serveur automatiques
+- **DSN Sentry** → Erreurs client-side React (nécessaire)
+
+**📍 Où trouver le DSN dans Sentry :**
+
+**Méthode 1 - Depuis le Dashboard du Projet :**
+
+1. Aller sur votre projet Sentry
+2. Cliquer sur **Settings** (icône engrenage en haut à droite)
+3. Dans le menu de gauche, cliquer sur **Client Keys (DSN)**
+4. Le DSN s'affiche (format : `https://xxxxx@xxxxx.ingest.sentry.io/xxxxx`)
+5. Cliquer sur **Copy** pour copier le DSN
+
+**Méthode 2 - Depuis la page "Get Started" :**
+
+1. Sur la page d'accueil du projet
+2. Dans la section **"Set up the Sentry SDK"**
+3. Le DSN est visible dans les instructions de configuration
+
+**📋 Configuration :**
+
+#### 1. DSN Sentry (Pour erreurs client + serveur)
+
+**⚠️ SÉCURITÉ : Le DSN contient une clé publique mais reste sensible. Ne pas le commiter dans Git !**
+
+**✅ Configuration :**
+
+**Dans Vercel :**
+
+1. **Aller dans Vercel** → Votre projet → **Settings** → **Environment Variables**
+2. **Ajouter la variable** :
+   - **Nom** : `NEXT_PUBLIC_SENTRY_DSN`
+   - **Valeur** : Votre DSN Sentry (voir `.secrets.local.md` pour la valeur réelle)
+   - **⚠️ IMPORTANT** : Ne PAS cocher "Encrypt" (variable publique, mais sensible)
+   - **Environnements** : Production, Preview, Development (selon vos besoins)
+3. **Sauvegarder**
+
+**En local (`.env.local`) :**
+
+```env
+NEXT_PUBLIC_SENTRY_DSN=https://xxxxx@xxxxx.ingest.sentry.io/xxxxx
+```
+
+**💡 Note :** Le DSN fonctionne en **local ET sur Vercel**. Ajoutez-le dans `.env.local` pour tester en développement.
+
+**Variables optionnelles (pour source maps) :**
+
+- `SENTRY_ORG` : Nom de votre organisation Sentry (optionnel)
+
+  - **Où trouver** : Visible dans l'URL Sentry (ex: `https://sentry.io/organizations/[ORG_NAME]/`)
+  - **Note** : Non-secret, visible dans l'URL Sentry
+
+- `SENTRY_PROJECT` : Nom de votre projet Sentry (optionnel)
+
+  - **Où trouver** : Nom du projet que vous avez créé (ex: `djlarian-react`)
+  - **Note** : Non-secret, visible dans l'URL Sentry
+
+- `SENTRY_AUTH_TOKEN` : Token d'authentification Sentry (optionnel, pour stats détaillées dans le dashboard admin)
+
+  - **Type de token** : **Personal Access Token** (pas Organization Token)
+  - **Où trouver** :
+    1. Sentry Dashboard → **Settings** (icône engrenage en bas à gauche)
+    2. Dans le menu de gauche, cliquer sur **"Auth Tokens"** (sous "Account")
+    3. Cliquer sur **"Create New Token"** (bouton en haut à droite)
+    4. Donner un nom (ex: "Admin Dashboard")
+    5. **Permissions** : Cocher au minimum :
+       - ✅ `project:read` (pour lire les issues)
+       - ✅ `org:read` (pour lire les infos de l'organisation)
+    6. Cliquer sur **"Create Token"**
+    7. **⚠️ IMPORTANT** : Copier le token immédiatement (il ne sera plus visible après)
+  - **Dans Vercel** : Cocher "Encrypt" pour cette variable (c'est un secret)
+  - **Note** : Sans ce token, le dashboard admin fonctionnera mais affichera juste le statut (Actif/Inactif) sans le nombre d'erreurs détaillé
+
+- `SENTRY_ORG` : Nom de votre organisation Sentry (optionnel, pour source maps)
+
+  - **Où trouver** : Visible dans l'URL Sentry (ex: `https://sentry.io/organizations/[ORG_NAME]/`)
+  - **Note** : Non-secret, visible dans l'URL Sentry
+
+- `SENTRY_PROJECT` : Nom de votre projet Sentry (optionnel, pour source maps)
+
+  - **Où trouver** : Nom du projet que vous avez créé (ex: `djlarian-react`)
+  - **Note** : Non-secret, visible dans l'URL Sentry
+
+- `SENTRY_AUTH_TOKEN` : Token d'authentification Sentry (optionnel, pour stats détaillées dans le dashboard admin)
+  - **Type de token** : **Personal Access Token** (pas Organization Token)
+  - **Où trouver** :
+    1. Sentry Dashboard → **Settings** (icône engrenage en bas à gauche)
+    2. Dans le menu de gauche, cliquer sur **"Auth Tokens"** (sous "Account")
+    3. Cliquer sur **"Create New Token"** (bouton en haut à droite)
+    4. Donner un nom (ex: "Admin Dashboard")
+    5. **Permissions** : Cocher au minimum :
+       - ✅ `project:read` (pour lire les issues)
+       - ✅ `org:read` (pour lire les infos de l'organisation)
+    6. Cliquer sur **"Create Token"**
+    7. **⚠️ IMPORTANT** : Copier le token immédiatement (il ne sera plus visible après)
+  - **Dans Vercel** : Cocher "Encrypt" pour cette variable (c'est un secret)
+  - **Note** : Sans ce token, le dashboard admin fonctionnera mais affichera juste le statut (Actif/Inactif) sans le nombre d'erreurs détaillé
+
+#### 2. Vercel Log Drains avec OpenTelemetry (Pour traces serveur automatiques) - ⚠️ OPTIONNEL
+
+**⚠️ NÉCESSITE VERCEL PRO** - Si vous n'avez pas le plan Pro, ignorez cette section
+
+**⚠️ SÉCURITÉ : L'endpoint contient des identifiants sensibles. Ne pas le commiter !**
+
+**⚠️ FONCTIONNE UNIQUEMENT SUR VERCEL** - Pas en local
+
+**✅ Configuration dans Vercel Dashboard :**
+
+1. **Aller dans Vercel** → Votre projet → **Settings** → **Log Drains**
+2. **Cliquer sur "Create Log Drain"**
+3. **Sélectionner "OpenTelemetry"** ou **"HTTP Endpoint"**
+4. **Configurer l'endpoint** :
+   - **Endpoint URL** : Votre endpoint Sentry OTLP (voir `.secrets.local.md` pour la valeur réelle)
+   - **Format** : OpenTelemetry (OTLP) - pour les traces
+   - **Sources** : Cochez "Functions", "Builds", "Edge Functions"
+   - **Note** : Cet endpoint envoie les traces OpenTelemetry directement à Sentry
+5. **Sauvegarder**
+
+**💡 Notes importantes :**
+
+- L'endpoint OTLP (`/integration/otlp/v1/traces`) est spécifiquement pour les **traces OpenTelemetry**
+- Cela capture automatiquement les traces de performance des fonctions Vercel
+- **Fonctionne uniquement sur Vercel** : Les logs locaux ne passent pas par Vercel, donc pas de drain en local
+- Pour les logs bruts, vous pouvez aussi créer un drain supplémentaire avec l'endpoint envelope Sentry si nécessaire
+
+**Avantages Vercel Drains :**
+
+- ✅ Capture automatiquement tous les logs serveur
+- ✅ Pas besoin de modifier le code
+- ✅ Capture les erreurs non gérées par le SDK
+- ✅ Logs de build et déploiement
+
+**Note** : Vercel Drains complète le DSN mais ne le remplace pas. Le DSN reste nécessaire pour les erreurs client-side React.
+
+**Limites gratuites** :
+
+- **5,000 erreurs/mois** gratuitement
+- **Session replay** inclus (1 session/mois)
+- Au-delà : Plans payants disponibles
+
+**💡 Recommandation Finale :**
+
+**Minimum requis (fonctionne sans Vercel Pro) :**
+
+1. **DSN Sentry** → Configurez `NEXT_PUBLIC_SENTRY_DSN` dans Vercel (erreurs client + serveur, **fonctionne en local ET sur Vercel**)
+   - ✅ C'est suffisant pour capturer toutes les erreurs
+   - ✅ Fonctionne avec le plan Vercel gratuit
+
+**Optionnel (nécessite Vercel Pro) :** 2. **Vercel Log Drains** → Configurez dans Vercel Dashboard (traces de performance automatiques, **uniquement sur Vercel Pro**)
+
+- ⚠️ Nécessite Vercel Pro (plan payant)
+- Si vous n'avez pas Pro, ignorez cette étape
+
+**Optionnel (pour stats détaillées dans le dashboard admin) :** 3. **SENTRY_AUTH_TOKEN** → Configurez dans Vercel (pour voir le nombre d'erreurs dans `/admin/configuration`)
+
+- Sans ce token, le dashboard admin affichera juste le statut (Actif/Inactif)
+- Les erreurs seront quand même capturées dans Sentry
+
+**🔒 Sécurité :**
+
+- Les valeurs réelles (DSN et endpoint) sont stockées dans `.secrets.local.md` (déjà dans `.gitignore`)
+- Ne jamais commiter ces valeurs dans Git
+- Le DSN est "public" (d'où `NEXT_PUBLIC_`) mais reste sensible
+
+**🏠 Local vs Production :**
+
+- **DSN Sentry** : Fonctionne partout (local + Vercel). Ajoutez dans `.env.local` pour le dev local.
+- **Vercel Drains** : Fonctionne uniquement sur Vercel. Pas de configuration nécessaire en local.
+
+**Note** : Sentry est entièrement optionnel. Si `NEXT_PUBLIC_SENTRY_DSN` n'est pas configuré, l'application fonctionnera normalement sans error tracking. Vercel Drains peut être configuré indépendamment dans le dashboard Vercel.
 
 ---
 

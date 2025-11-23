@@ -72,9 +72,9 @@ const defaultConfigs = {
   api: {
     apiEnabled: 'true',
     rateLimit: '100',
-    webhookUrl: '',
+    webhookUrl: '', // À configurer dans /admin/configuration si nécessaire
     umamiEnabled: 'true',
-    umamiSiteId: 'your-umami-site-id',
+    umamiSiteId: '484ec662-e403-4498-a654-ca04b9b504c3', // ID du site Umami (local development)
   },
 };
 

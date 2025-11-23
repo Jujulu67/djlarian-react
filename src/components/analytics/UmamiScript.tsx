@@ -13,7 +13,7 @@ export default function UmamiAnalytics({
   websiteId,
   umamiUrl = 'https://analytics.umami.is/script.js',
 }: {
-  websiteId: string;
+  websiteId?: string;
   umamiUrl?: string;
 }) {
   // Check 1: Si le websiteId est vide ou la valeur par défaut, on ne charge pas
@@ -29,7 +29,7 @@ export default function UmamiAnalytics({
   // Check 2: Si c'est localhost en prod, on n'affiche pas
   if (isLocalhost && !isDevelopment) {
     logger.warn(
-      "L'URL Umami contient 'localhost', ce qui peut causer des problèmes de préchargement."
+      "L'URL Umami contient 'localhost' en production. Umami est désactivé. Configurez NEXT_PUBLIC_UMAMI_URL avec une URL de production dans Vercel."
     );
     return null;
   }
