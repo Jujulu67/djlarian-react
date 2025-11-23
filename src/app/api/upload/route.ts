@@ -4,7 +4,7 @@ import path from 'path';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { auth } from '@/auth';
-import { uploadToBlob, isBlobConfigured, getBlobPublicUrl } from '@/lib/blob';
+import { uploadToBlob, getBlobPublicUrl } from '@/lib/blob';
 import { logger } from '@/lib/logger';
 import { convertToWebP, canConvertToWebP } from '@/lib/utils/convertToWebP';
 import { shouldUseBlobStorage } from '@/lib/utils/getStorageConfig';
@@ -25,11 +25,14 @@ export async function POST(request: NextRequest) {
     const croppedImage = formData.get('croppedImage') as Blob | null;
     const originalImage = formData.get('originalImage') as File | null;
 
+    // Vérifier si Blob est configuré (vérification à la volée)
+    const blobConfigured = !!process.env.BLOB_READ_WRITE_TOKEN;
+
     // Logs de débogage (uniquement en développement)
     logger.debug('API UPLOAD - Début', {
       imageId,
       NODE_ENV: process.env.NODE_ENV,
-      blobConfigured: isBlobConfigured,
+      blobConfigured,
       croppedImage: croppedImage ? `${croppedImage.size} bytes, type: ${croppedImage.type}` : null,
       originalImage: originalImage
         ? `${originalImage.size} bytes, type: ${originalImage.type}, name: ${originalImage.name}`
@@ -66,7 +69,7 @@ export async function POST(request: NextRequest) {
     let useBlobStorage = shouldUseBlobStorage();
 
     // Si on veut utiliser Blob mais qu'il n'est pas configuré, fallback vers local
-    if (useBlobStorage && !isBlobConfigured) {
+    if (useBlobStorage && !blobConfigured) {
       logger.warn(
         'API UPLOAD - Blob demandé mais non configuré, utilisation du dossier local en fallback'
       );
@@ -132,7 +135,7 @@ export async function POST(request: NextRequest) {
       } catch (error) {
         logger.error(`API UPLOAD - Erreur sauvegarde locale pour ${imageId}`, error);
         // Fallback vers Blob si erreur locale et Blob configuré
-        if (isBlobConfigured) {
+        if (blobConfigured) {
           logger.debug('API UPLOAD - Fallback vers Vercel Blob...');
         } else {
           throw new Error("Impossible d'uploader l'image localement.");
@@ -141,7 +144,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Utiliser Vercel Blob si demandé et configuré
-    if (useBlobStorage && isBlobConfigured) {
+    if (useBlobStorage && blobConfigured) {
       // Upload vers Vercel Blob
       try {
         const croppedKey = `uploads/${imageId}.webp`;

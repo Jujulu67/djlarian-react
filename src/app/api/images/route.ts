@@ -3,7 +3,7 @@ import path from 'path';
 
 import { NextRequest, NextResponse } from 'next/server';
 
-import { listBlobFiles, deleteFromBlob, isBlobConfigured } from '@/lib/blob';
+import { listBlobFiles, deleteFromBlob } from '@/lib/blob';
 import { logger } from '@/lib/logger';
 import { shouldUseBlobStorage } from '@/lib/utils/getStorageConfig';
 
@@ -74,7 +74,9 @@ export async function GET() {
       lastModified: string;
     }> = [];
 
-    if (useBlobStorage && isBlobConfigured) {
+    // useBlobStorage vérifie déjà si Blob est configuré, mais on double-vérifie pour être sûr
+    const blobConfigured = !!process.env.BLOB_READ_WRITE_TOKEN;
+    if (useBlobStorage && blobConfigured) {
       blobImages = await listBlobFiles();
     }
 
@@ -118,7 +120,8 @@ export async function GET() {
 // DELETE - Supprimer une image spécifique
 export async function DELETE(request: NextRequest) {
   try {
-    if (!isBlobConfigured) {
+    const blobConfigured = !!process.env.BLOB_READ_WRITE_TOKEN;
+    if (!blobConfigured) {
       return NextResponse.json({ error: 'Vercel Blob not configured' }, { status: 503 });
     }
 

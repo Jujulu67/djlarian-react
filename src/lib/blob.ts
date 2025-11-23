@@ -8,9 +8,13 @@ import { logger } from '@/lib/logger';
 // Sur Vercel, BLOB_READ_WRITE_TOKEN est automatiquement disponible
 // En local avec switch production, le switch met BLOB_READ_WRITE_TOKEN dans .env.local
 // à partir de BLOB_READ_WRITE_TOKEN_PRODUCTION (après redémarrage du serveur)
-const isBlobConfigured = !!process.env.BLOB_READ_WRITE_TOKEN;
+// Utiliser un getter pour vérifier à chaque appel (au cas où les variables d'environnement changent)
+export const isBlobConfigured = !!process.env.BLOB_READ_WRITE_TOKEN;
 
-export { isBlobConfigured };
+// Fonction helper pour vérifier à la volée (utile si les variables d'environnement changent)
+export function getIsBlobConfigured(): boolean {
+  return !!process.env.BLOB_READ_WRITE_TOKEN;
+}
 
 /**
  * Upload un fichier vers Vercel Blob

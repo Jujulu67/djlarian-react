@@ -19,4 +19,4 @@ export const platformIcons: Record<MusicPlatform, React.ReactNode> = {
   deezer: React.createElement(FaMusic, { className: 'w-5 h-5' }),
 };
 
-export type AdminMusicTab = 'tracks' | 'collections' | 'youtube' | 'auto-detect';
+export type AdminMusicTab = 'tracks' | 'collections' | 'auto-detect';
