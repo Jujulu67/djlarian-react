@@ -3,6 +3,7 @@ import path from 'path';
 
 import { uploadToBlob } from '@/lib/blob';
 import { logger } from '@/lib/logger';
+import prisma from '@/lib/prisma';
 import { shouldUseBlobStorage } from '@/lib/utils/getStorageConfig';
 
 /**
@@ -24,13 +25,35 @@ export async function saveImage(
     try {
       const key = `uploads/${imageId}.webp`;
       const originalKey = `uploads/${imageId}-ori.webp`;
-      await uploadToBlob(key, imageBuffer, 'image/webp');
-      if (originalBuffer) {
-        await uploadToBlob(originalKey, originalBuffer, 'image/webp');
-      } else {
-        // Si pas d'originale fournie, sauvegarder la même image comme originale
-        await uploadToBlob(originalKey, imageBuffer, 'image/webp');
+      const blobUrl = await uploadToBlob(key, imageBuffer, 'image/webp');
+      const originalBlobUrl = originalBuffer
+        ? await uploadToBlob(originalKey, originalBuffer, 'image/webp')
+        : await uploadToBlob(originalKey, imageBuffer, 'image/webp');
+
+      // Stocker les URLs blob dans la base de données pour éviter les appels list() coûteux
+      try {
+        await prisma.image.upsert({
+          where: { imageId },
+          create: {
+            imageId,
+            blobUrl,
+            blobUrlOriginal: originalBlobUrl,
+            size: imageBuffer.length,
+            contentType: 'image/webp',
+          },
+          update: {
+            blobUrl,
+            blobUrlOriginal: originalBlobUrl,
+            size: imageBuffer.length,
+            contentType: 'image/webp',
+          },
+        });
+        logger.debug(`[SAVE IMAGE] URLs blob stockées dans la DB pour: ${imageId}`);
+      } catch (dbError) {
+        // Ne pas faire échouer l'upload si la DB échoue, juste logger
+        logger.warn('[SAVE IMAGE] Erreur lors du stockage des URLs blob dans la DB:', dbError);
       }
+
       logger.debug(`[SAVE IMAGE] Image sauvegardée dans Vercel Blob: ${imageId}`);
       return imageId;
     } catch (error) {

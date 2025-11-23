@@ -5,11 +5,12 @@ import { list } from '@vercel/blob';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { logger } from '@/lib/logger';
+import prisma from '@/lib/prisma';
 import { shouldUseBlobStorage } from '@/lib/utils/getStorageConfig';
 
 // Cache en mémoire pour les résultats de recherche Blob (évite trop d'appels list())
 const blobUrlCache: Record<string, { url: string; timestamp: number }> = {};
-const BLOB_CACHE_TTL = 3600000; // 1 heure en millisecondes
+const BLOB_CACHE_TTL = 86400000; // 24 heures en millisecondes (augmenté pour réduire les appels)
 
 function getCachedBlobUrl(key: string): string | null {
   const cached = blobUrlCache[key];
@@ -62,10 +63,6 @@ export async function GET(
     // useBlobStorage vérifie déjà si Blob est configuré, mais on double-vérifie pour être sûr
     if (useBlobStorage && blobConfigured) {
       try {
-        // Vercel Blob ajoute un hash au nom de fichier, donc on cherche avec le préfixe sans extension
-        // Exemple: uploads/b3c5d146-6c3a-4aac-b6d2-b68a2a679892.jpg devient
-        // uploads/b3c5d146-6c3a-4aac-b6d2-b68a2a679892-wceW79eYMblstqONMYlH1rdkdBIwHv.jpg
-        const basePrefix = `uploads/${imageId}${suffix}`;
         const cacheKey = `${imageId}${suffix}`;
 
         // Vérifier le cache en mémoire d'abord
@@ -81,7 +78,39 @@ export async function GET(
           });
         }
 
-        logger.debug(`[API IMAGES] Recherche blob avec préfixe: ${basePrefix}`, {
+        // OPTIMISATION: Chercher d'abord dans la base de données pour éviter les appels list() coûteux
+        try {
+          const imageRecord = await prisma.image.findUnique({
+            where: { imageId },
+            select: {
+              blobUrl: true,
+              blobUrlOriginal: true,
+            },
+          });
+
+          if (imageRecord) {
+            const blobUrl = isOriginal ? imageRecord.blobUrlOriginal : imageRecord.blobUrl;
+            if (blobUrl) {
+              logger.debug(`[API IMAGES] URL trouvée dans la DB: ${blobUrl}`);
+              // Mettre en cache l'URL trouvée
+              setCachedBlobUrl(cacheKey, blobUrl);
+              return NextResponse.redirect(blobUrl, {
+                status: 302,
+                headers: {
+                  'Cache-Control': 'public, max-age=31536000, immutable',
+                  'CDN-Cache-Control': 'public, max-age=31536000, immutable',
+                },
+              });
+            }
+          }
+        } catch (dbError) {
+          // Ne pas faire échouer si la DB échoue, continuer avec le fallback list()
+          logger.warn(`[API IMAGES] Erreur lors de la recherche DB pour ${imageId}:`, dbError);
+        }
+
+        // FALLBACK: Si pas trouvé dans la DB, utiliser list() (opération coûteuse mais nécessaire pour les anciennes images)
+        const basePrefix = `uploads/${imageId}${suffix}`;
+        logger.debug(`[API IMAGES] Recherche blob avec préfixe (fallback): ${basePrefix}`, {
           imageId,
           suffix,
           useBlobStorage,
@@ -116,10 +145,33 @@ export async function GET(
 
             if (matchingBlob) {
               logger.debug(
-                `[API IMAGES] Image trouvée: ${matchingBlob.pathname} -> ${matchingBlob.url}`
+                `[API IMAGES] Image trouvée via list(): ${matchingBlob.pathname} -> ${matchingBlob.url}`
               );
               // Mettre en cache l'URL trouvée
               setCachedBlobUrl(cacheKey, matchingBlob.url);
+
+              // OPTIMISATION: Stocker l'URL dans la DB pour les prochaines fois (évite les futurs list())
+              try {
+                await prisma.image.upsert({
+                  where: { imageId },
+                  create: {
+                    imageId,
+                    blobUrl: isOriginal ? undefined : matchingBlob.url,
+                    blobUrlOriginal: isOriginal ? matchingBlob.url : undefined,
+                  },
+                  update: {
+                    blobUrl: isOriginal ? undefined : matchingBlob.url,
+                    blobUrlOriginal: isOriginal ? matchingBlob.url : undefined,
+                  },
+                });
+              } catch (dbError) {
+                // Ne pas faire échouer si la DB échoue
+                logger.warn(
+                  "[API IMAGES] Erreur lors du stockage de l'URL blob dans la DB:",
+                  dbError
+                );
+              }
+
               // Redirection avec headers de cache pour éviter trop de requêtes vers Blob
               return NextResponse.redirect(matchingBlob.url, {
                 status: 302,
@@ -141,6 +193,28 @@ export async function GET(
               );
               // Mettre en cache l'URL trouvée
               setCachedBlobUrl(cacheKey, fallbackBlob.url);
+
+              // OPTIMISATION: Stocker l'URL dans la DB pour les prochaines fois
+              try {
+                await prisma.image.upsert({
+                  where: { imageId },
+                  create: {
+                    imageId,
+                    blobUrl: isOriginal ? undefined : fallbackBlob.url,
+                    blobUrlOriginal: isOriginal ? fallbackBlob.url : undefined,
+                  },
+                  update: {
+                    blobUrl: isOriginal ? undefined : fallbackBlob.url,
+                    blobUrlOriginal: isOriginal ? fallbackBlob.url : undefined,
+                  },
+                });
+              } catch (dbError) {
+                logger.warn(
+                  "[API IMAGES] Erreur lors du stockage de l'URL blob dans la DB:",
+                  dbError
+                );
+              }
+
               // Redirection avec headers de cache pour éviter trop de requêtes vers Blob
               return NextResponse.redirect(fallbackBlob.url, {
                 status: 302,

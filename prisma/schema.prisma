@@ -5,7 +5,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
 }
 
 model Account {
@@ -203,4 +203,17 @@ model ConfigSnapshot {
   data        Json
   createdAt   DateTime @default(now())
   createdBy   String?
+}
+
+model Image {
+  id           String   @id @default(uuid())
+  imageId      String   @unique // L'UUID de l'image (sans extension)
+  blobUrl      String?  // URL complète du blob pour l'image recadrée
+  blobUrlOriginal String? // URL complète du blob pour l'image originale (-ori)
+  size         Int?     // Taille en bytes
+  contentType  String?  // Type MIME
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([imageId])
 }
