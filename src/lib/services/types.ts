@@ -75,6 +75,8 @@ export interface DetectedRelease {
   spotifyId?: string;
   soundcloudUrl?: string;
   soundcloudId?: string;
+  youtubeUrl?: string;
+  youtubeId?: string;
   imageUrl?: string;
   duration?: number;
   exists: boolean;

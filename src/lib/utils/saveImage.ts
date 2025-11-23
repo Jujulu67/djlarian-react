@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-import { uploadToBlob, isBlobConfigured } from '@/lib/blob';
+import { uploadToBlob } from '@/lib/blob';
 import { logger } from '@/lib/logger';
 import { shouldUseBlobStorage } from '@/lib/utils/getStorageConfig';
 

@@ -5,23 +5,125 @@
 import * as cheerio from 'cheerio';
 import { logger } from '@/lib/logger';
 
-// Import conditionnel de Puppeteer (ne fonctionne pas sur Vercel)
-// On utilise un import dynamique pour éviter les erreurs au build
-let puppeteer: typeof import('puppeteer').default | null = null;
-type Browser = import('puppeteer').Browser;
+// Types pour Puppeteer
+interface PuppeteerLike {
+  launch: (options?: LaunchOptions) => Promise<Browser>;
+}
+
+interface LaunchOptions {
+  headless?: boolean;
+  args?: string[];
+  defaultViewport?: { width: number; height: number } | null;
+  executablePath?: string;
+  [key: string]: unknown;
+}
+
+interface Browser {
+  newPage: () => Promise<Page>;
+  close: () => Promise<void>;
+}
+
+interface Page {
+  goto: (url: string, options?: { waitUntil?: string; timeout?: number }) => Promise<unknown>;
+  setRequestInterception: (value: boolean) => Promise<void>;
+  on: (event: 'request', handler: (request: HTTPRequest) => void) => void;
+  setUserAgent: (userAgent: string) => Promise<void>;
+  waitForSelector: (
+    selector: string,
+    options?: { timeout?: number; visible?: boolean }
+  ) => Promise<unknown>;
+  waitForFunction: (
+    fn: (prevCount: number) => boolean,
+    options?: { timeout?: number; polling?: number },
+    ...args: unknown[]
+  ) => Promise<unknown>;
+  evaluate: <T>(fn: (profileName: string) => T, ...args: unknown[]) => Promise<T>;
+}
+
+interface HTTPRequest {
+  resourceType: () => string;
+  abort: () => void;
+  continue: () => void;
+}
+
+interface DebugData {
+  rawHtml?: string;
+  allTitleElements?: Array<{ selector: string; text: string; innerHTML: string }>;
+  allDateElements?: Array<{
+    selector: string;
+    text: string;
+    datetime?: string;
+    title?: string;
+  }>;
+  soundBodyFound?: boolean;
+  parentGroupFound?: boolean;
+  finalTitle?: string;
+  finalReleaseDate?: string;
+}
+
+// Import conditionnel de Puppeteer
+// Sur Vercel, on utilise puppeteer-core avec @sparticuz/chromium-min
+// En local, on utilise puppeteer standard
+let puppeteer: PuppeteerLike | null = null;
 
 // Fonction pour charger Puppeteer de manière conditionnelle
-async function loadPuppeteer(): Promise<typeof import('puppeteer').default | null> {
-  // Vérifier si on est sur Vercel
-  if (process.env.VERCEL === '1' || process.env.NEXT_PUBLIC_VERCEL_ENV) {
-    return null;
-  }
-
+async function loadPuppeteer(): Promise<PuppeteerLike | null> {
   // Charger Puppeteer seulement si pas déjà chargé
   if (!puppeteer) {
     try {
-      const puppeteerModule = await import('puppeteer');
-      puppeteer = puppeteerModule.default;
+      // Sur Vercel, utiliser puppeteer-core avec chromium-min
+      // VERCEL est automatiquement défini par Vercel à '1'
+      // NODE_ENV === 'production' peut être défini localement, donc on vérifie VERCEL en priorité
+      if (process.env.VERCEL === '1') {
+        try {
+          const chromium = await import('@sparticuz/chromium-min');
+          const puppeteerCore = await import('puppeteer-core');
+
+          // Types pour les imports dynamiques de chromium et puppeteer-core
+          type ChromiumModule = {
+            default: {
+              args: string[];
+              defaultViewport: { width: number; height: number } | null;
+              executablePath: () => Promise<string>;
+              headless: boolean;
+            };
+          };
+
+          type PuppeteerCoreModule = {
+            default: {
+              launch: (options: LaunchOptions) => Promise<Browser>;
+            };
+          };
+
+          puppeteer = {
+            launch: async (options: LaunchOptions = {}) => {
+              const chromiumTyped = chromium as unknown as ChromiumModule;
+              const puppeteerCoreTyped = puppeteerCore as unknown as PuppeteerCoreModule;
+              return puppeteerCoreTyped.default.launch({
+                args: chromiumTyped.default.args,
+                defaultViewport: chromiumTyped.default.defaultViewport,
+                executablePath: await chromiumTyped.default.executablePath(),
+                headless: chromiumTyped.default.headless,
+                ...options,
+              });
+            },
+          };
+          logger.debug('[SOUNDCLOUD] Puppeteer-core chargé pour Vercel');
+        } catch (error) {
+          logger.warn('[SOUNDCLOUD] Erreur chargement puppeteer-core (Vercel):', error);
+          return null;
+        }
+      } else {
+        // En local, utiliser puppeteer standard
+        const puppeteerModule = await import('puppeteer');
+        // Puppeteer standard a une méthode launch, on l'adapte à notre interface
+        puppeteer = {
+          launch: async (options: LaunchOptions = {}) => {
+            return puppeteerModule.default.launch(options) as Promise<Browser>;
+          },
+        };
+        logger.debug('[SOUNDCLOUD] Puppeteer standard chargé (local)');
+      }
     } catch (error) {
       logger.warn('[SOUNDCLOUD] Puppeteer non disponible:', error);
       return null;
@@ -52,6 +154,130 @@ function extractProfileName(profileUrl: string): string | null {
 }
 
 /**
+ * Normalise le nom d'artiste (ex: "larian67" -> "Larian")
+ */
+export function normalizeArtistName(name: string): string {
+  if (!name) return name;
+  // Capitaliser la première lettre et supprimer les chiffres à la fin si présents
+  const normalized = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+  // Si c'est un nom avec des chiffres à la fin (ex: larian67), les supprimer
+  return normalized.replace(/\d+$/, '');
+}
+
+/**
+ * Parse le titre SoundCloud pour extraire l'artiste et le titre
+ * Gère les formats comme "Youssou N'Dour - KIRIKOU (LARIAN FLIP)"
+ *
+ * @param title - Le titre complet depuis SoundCloud
+ * @param profileName - Le nom du profil SoundCloud (ex: "larian67")
+ * @returns Un objet avec artist et title parsés
+ */
+export function parseSoundCloudTitle(
+  title: string,
+  profileName: string
+): { artist: string; title: string } {
+  if (!title) {
+    const normalizedProfile = normalizeArtistName(profileName);
+    return { artist: normalizedProfile, title: '' };
+  }
+
+  const normalizedProfile = normalizeArtistName(profileName);
+  let parsedArtist = normalizedProfile;
+  let parsedTitle = title;
+
+  // Détecter les termes de remix (FLIP, REMIX, BOOTLEG, etc.)
+  const remixPatterns = [
+    /\b(FLIP|flip)\b/i,
+    /\b(REMIX|remix)\b/i,
+    /\b(BOOTLEG|bootleg)\b/i,
+    /\b(EDIT|edit)\b/i,
+    /\b(REWORK|rework)\b/i,
+  ];
+
+  // Pattern 1: "Artiste - Titre (REMIX TERM)"
+  // Ex: "Youssou N'Dour - KIRIKOU (LARIAN FLIP)"
+  const pattern1 = /^(.+?)\s*-\s*(.+?)\s*\(([^)]+)\)$/i;
+  const match1 = title.match(pattern1);
+  if (match1) {
+    const artistPart = match1[1].trim();
+    const titlePart = match1[2].trim();
+    const remixPart = match1[3].trim();
+
+    // Vérifier si le remix part contient le nom du profil ou un terme de remix
+    const hasRemixTerm = remixPatterns.some((p) => p.test(remixPart));
+    const hasProfileName = remixPart.toLowerCase().includes(profileName.toLowerCase());
+
+    if (hasRemixTerm || hasProfileName) {
+      // Garder tout le contenu des parenthèses (ex: "LARIAN FLIP" et pas juste "FLIP")
+      parsedArtist = `${artistPart} (${remixPart})`;
+      parsedTitle = titlePart;
+    } else {
+      // Pas de remix, juste artiste - titre (remix info)
+      parsedArtist = artistPart;
+      parsedTitle = titlePart;
+    }
+  } else {
+    // Pattern 2: "Artiste - Titre" (sans parenthèses)
+    const pattern2 = /^(.+?)\s*-\s*(.+)$/;
+    const match2 = title.match(pattern2);
+    if (match2) {
+      const artistPart = match2[1].trim();
+      const titlePart = match2[2].trim();
+
+      // Vérifier si le titre contient un terme de remix
+      const titleHasRemix = remixPatterns.some((p) => p.test(titlePart));
+      if (titleHasRemix) {
+        // Chercher le terme de remix
+        const remixMatch = titlePart.match(/\b(FLIP|REMIX|BOOTLEG|EDIT|REWORK)\b/i);
+        if (remixMatch) {
+          // Pour le pattern 2 (sans parenthèses), on garde seulement le terme de remix
+          // car le préfixe fait partie du titre (ex: "Song REMIX" -> artist: "Artist (REMIX)", title: "Song")
+          const remixTerm = remixMatch[1].toUpperCase();
+          parsedArtist = `${artistPart} (${remixTerm})`;
+          // Retirer le terme de remix du titre
+          parsedTitle = titlePart.replace(/\b(FLIP|REMIX|BOOTLEG|EDIT|REWORK)\b/gi, '').trim();
+        } else {
+          parsedArtist = artistPart;
+          parsedTitle = titlePart;
+        }
+      } else {
+        parsedArtist = artistPart;
+        parsedTitle = titlePart;
+      }
+    } else {
+      // Pattern 3: "Titre (Artiste REMIX)" ou "Titre [Artiste REMIX]"
+      const pattern3 = /^(.+?)\s*[\(\[](.+?)\s+(FLIP|REMIX|BOOTLEG|EDIT|REWORK)[\)\]]$/i;
+      const match3 = title.match(pattern3);
+      if (match3) {
+        const titlePart = match3[1].trim();
+        const artistPart = match3[2].trim();
+        const remixTerm = match3[3].toUpperCase();
+        parsedArtist = `${artistPart} (${remixTerm})`;
+        parsedTitle = titlePart;
+      } else {
+        // Pas de pattern reconnu, utiliser le titre tel quel et le profil comme artiste
+        parsedTitle = title;
+        parsedArtist = normalizedProfile;
+      }
+    }
+  }
+
+  // Normaliser le titre (capitaliser la première lettre de chaque mot si tout en majuscules)
+  if (parsedTitle === parsedTitle.toUpperCase() && parsedTitle.length > 1) {
+    parsedTitle = parsedTitle
+      .toLowerCase()
+      .split(' ')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  } else {
+    // Capitaliser seulement la première lettre
+    parsedTitle = parsedTitle.charAt(0).toUpperCase() + parsedTitle.slice(1);
+  }
+
+  return { artist: parsedArtist.trim(), title: parsedTitle.trim() };
+}
+
+/**
  * Détecte le type de track depuis le titre
  */
 function detectTrackType(
@@ -59,7 +285,15 @@ function detectTrackType(
 ): 'single' | 'ep' | 'album' | 'remix' | 'live' | 'djset' | 'video' {
   const lowerTitle = title.toLowerCase();
 
-  if (lowerTitle.includes('remix') || lowerTitle.includes('remix by')) {
+  // Détecter les remixes (FLIP, REMIX, BOOTLEG, EDIT, REWORK)
+  if (
+    lowerTitle.includes('remix') ||
+    lowerTitle.includes('remix by') ||
+    lowerTitle.includes('flip') ||
+    lowerTitle.includes('bootleg') ||
+    lowerTitle.includes('edit') ||
+    lowerTitle.includes('rework')
+  ) {
     return 'remix';
   }
   if (lowerTitle.includes('dj set') || lowerTitle.includes('djset') || lowerTitle.includes('mix')) {
@@ -130,17 +364,15 @@ async function fetchSoundCloudThumbnail(soundcloudUrl: string): Promise<string |
  * Scrape la page /tracks d'un profil SoundCloud avec Puppeteer
  * Optimisé pour charger toutes les tracks via lazy loading
  *
- * Note: Puppeteer ne fonctionne pas sur Vercel (serverless).
- * Cette fonction retourne un tableau vide sur Vercel.
+ * Note: Sur Vercel, utilise puppeteer-core avec @sparticuz/chromium-min
+ * En local, utilise puppeteer standard
  */
 async function scrapeSoundCloudTracksPage(profileName: string): Promise<SoundCloudTrack[]> {
   // Charger Puppeteer de manière conditionnelle
   const puppeteerInstance = await loadPuppeteer();
 
   if (!puppeteerInstance) {
-    logger.warn(
-      "[SOUNDCLOUD] Puppeteer n'est pas disponible (Vercel serverless). Retour d'un tableau vide."
-    );
+    logger.warn("[SOUNDCLOUD] Puppeteer n'est pas disponible. Retour d'un tableau vide.");
     return [];
   }
 
@@ -149,21 +381,29 @@ async function scrapeSoundCloudTracksPage(profileName: string): Promise<SoundClo
     const tracksUrl = `https://soundcloud.com/${profileName}/tracks`;
     logger.debug(`[SOUNDCLOUD] Scraping avec Puppeteer depuis ${tracksUrl}`);
 
-    browser = await puppeteerInstance.launch({
+    // Sur Vercel, les options sont déjà configurées par chromium-min
+    // En local, on peut passer des options supplémentaires
+    const launchOptions: LaunchOptions = {
       headless: true,
-      args: [
+    };
+
+    // En local seulement, ajouter les args personnalisés
+    if (process.env.VERCEL !== '1') {
+      launchOptions.args = [
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-accelerated-2d-canvas',
         '--disable-gpu',
-      ],
-    });
+      ];
+    }
+
+    browser = await puppeteerInstance.launch(launchOptions);
     const page = await browser.newPage();
 
     // Bloquer les ressources inutiles pour accélérer le chargement
     await page.setRequestInterception(true);
-    page.on('request', (req) => {
+    page.on('request', (req: HTTPRequest) => {
       const resourceType = req.resourceType();
       // Bloquer les images, fonts, media, et autres ressources non essentielles
       if (['image', 'font', 'media', 'websocket'].includes(resourceType)) {
@@ -236,7 +476,7 @@ async function scrapeSoundCloudTracksPage(profileName: string): Promise<SoundClo
       // Attendre que de nouveaux éléments soient chargés avec timeout très court
       try {
         await page.waitForFunction(
-          (prevCount) => {
+          (prevCount: number) => {
             const currentCount = document.querySelectorAll(
               '.sound_coverArt, .sound__coverArt'
             ).length;
@@ -260,18 +500,37 @@ async function scrapeSoundCloudTracksPage(profileName: string): Promise<SoundClo
 
     // Extraire directement depuis le DOM avec page.evaluate (plus rapide que cheerio)
     logger.debug(`[SOUNDCLOUD] Extraction des tracks depuis le DOM...`);
-    const tracksData = await page.evaluate((profileName) => {
+    const tracksData = await page.evaluate((profileName: string) => {
+      // Fonction pour décoder les entités HTML (définie une seule fois en dehors du forEach)
+      const decodeHtmlEntities = (str: string): string => {
+        const textarea = document.createElement('textarea');
+        textarea.innerHTML = str;
+        return textarea.value;
+      };
+
       const tracks: Array<{
         url: string;
         title: string;
         imageUrl?: string;
+        releaseDate?: string;
+        // Données de debug pour la première track
+        debug?: {
+          rawHtml?: string;
+          allTitleElements?: Array<{ selector: string; text: string; innerHTML: string }>;
+          allDateElements?: Array<{
+            selector: string;
+            text: string;
+            datetime?: string;
+            title?: string;
+          }>;
+        };
       }> = [];
       const seenUrls = new Set<string>();
 
       // Chercher tous les éléments .sound_coverArt et .sound__coverArt
       const coverArts = document.querySelectorAll('.sound_coverArt, .sound__coverArt');
 
-      coverArts.forEach((el) => {
+      coverArts.forEach((el, index) => {
         const link = el as HTMLElement;
         const href = link.getAttribute('href');
 
@@ -288,33 +547,184 @@ async function scrapeSoundCloudTracksPage(profileName: string): Promise<SoundClo
         if (seenUrls.has(trackUrl)) return;
         seenUrls.add(trackUrl);
 
-        // Extraire le titre depuis aria-label du parent
-        let title = '';
+        // Trouver le parent group d'abord
         const parentGroup = link.closest('[role="group"]');
-        if (parentGroup) {
+        // Trouver le soundBody depuis le link ou depuis le parentGroup
+        const soundBody =
+          link.closest('.sound__body') ||
+          link.closest('.sound_body') ||
+          (parentGroup ? parentGroup.querySelector('.sound__body, .sound_body') : null);
+        const isFirstTrack = index === 0;
+        const debug: DebugData | undefined = isFirstTrack ? {} : undefined;
+
+        // Extraire le titre - chercher dans plusieurs endroits et préserver tous les caractères
+        let title = '';
+        const allTitleElements: Array<{ selector: string; text: string; innerHTML: string }> = [];
+
+        if (soundBody) {
+          // 1. PRIORITÉ : Chercher dans a.soundTitle__title span (le titre complet est là)
+          const soundTitleLink = soundBody.querySelector('a.soundTitle__title');
+          if (soundTitleLink) {
+            const soundTitleSpan = soundTitleLink.querySelector('span') || soundTitleLink;
+            const text = soundTitleSpan.textContent?.trim() || '';
+            const innerHTML = soundTitleSpan.innerHTML?.trim() || '';
+            if (text) {
+              allTitleElements.push({
+                selector: 'a.soundTitle__title span',
+                text: text,
+                innerHTML: innerHTML,
+              });
+              title = text;
+            }
+          }
+
+          // 1b. Si pas trouvé, chercher dans .soundTitle__title directement
+          if (!title) {
+            const soundTitleEl = soundBody.querySelector('.soundTitle__title');
+            if (soundTitleEl) {
+              const text = soundTitleEl.textContent?.trim() || '';
+              const innerHTML = soundTitleEl.innerHTML?.trim() || '';
+              if (text) {
+                allTitleElements.push({
+                  selector: '.soundTitle__title',
+                  text: text,
+                  innerHTML: innerHTML,
+                });
+                title = text;
+              }
+            }
+          }
+
+          // 2. Chercher dans l'attribut title de .soundTitle
+          if (!title) {
+            const soundTitle = soundBody.querySelector('.soundTitle');
+            if (soundTitle) {
+              const titleAttr = soundTitle.getAttribute('title') || '';
+              if (titleAttr) {
+                const decoded = decodeHtmlEntities(titleAttr);
+                allTitleElements.push({
+                  selector: '.soundTitle[title]',
+                  text: decoded,
+                  innerHTML: '',
+                });
+                title = decoded;
+              }
+            }
+          }
+
+          // 3. Chercher dans aria-label du span de l'image (dans le sound__artwork)
+          if (!title) {
+            const artworkSpan = soundBody.querySelector('.sound__artwork span[aria-label]');
+            if (artworkSpan) {
+              const ariaLabel = artworkSpan.getAttribute('aria-label') || '';
+              if (ariaLabel) {
+                const decoded = decodeHtmlEntities(ariaLabel);
+                allTitleElements.push({
+                  selector: '.sound__artwork span[aria-label]',
+                  text: decoded,
+                  innerHTML: '',
+                });
+                title = decoded;
+              }
+            }
+          }
+
+          // 4. Chercher dans aria-label du parent group (décoder les entités HTML)
+          // Faire cette recherche même si soundBody n'est pas trouvé
+          if (!title && parentGroup) {
+            const ariaLabel = parentGroup.getAttribute('aria-label') || '';
+            if (ariaLabel) {
+              const decoded = decodeHtmlEntities(ariaLabel);
+              allTitleElements.push({
+                selector: '[role="group"] aria-label',
+                text: decoded,
+                innerHTML: '',
+              });
+              // Pattern pour extraire le titre depuis "Titre : ... par ..."
+              // Le pattern doit gérer &nbsp; et les entités HTML
+              const titleMatch = decoded.match(/Titre\s*[:\u00A0]\s*(.+?)(?:\s+par\s+|$)/i);
+              if (titleMatch && titleMatch[1]) {
+                title = titleMatch[1].trim();
+              } else {
+                // Si pas de pattern, prendre tout après "Titre" ou tout le contenu
+                const simpleMatch = decoded.match(/Titre\s*[:\u00A0]\s*(.+)/i);
+                if (simpleMatch && simpleMatch[1]) {
+                  title = simpleMatch[1].split(/\s+par\s+/i)[0].trim();
+                } else {
+                  // Si aucun pattern ne fonctionne, utiliser tout le contenu décodé
+                  title = decoded;
+                }
+              }
+            }
+          }
+
+          // 5. Chercher dans les autres éléments de titre
+          if (!title) {
+            const titleSelectors = [
+              '.soundTitle__titleHero',
+              'a.soundTitle__title',
+              '[class*="title"]',
+            ];
+
+            for (const selector of titleSelectors) {
+              const titleEls = soundBody.querySelectorAll(selector);
+              titleEls.forEach((titleEl) => {
+                const text = titleEl.textContent?.trim() || '';
+                const innerHTML = titleEl.innerHTML?.trim() || '';
+                if (text && !allTitleElements.some((e) => e.text === text)) {
+                  allTitleElements.push({
+                    selector: selector,
+                    text: text,
+                    innerHTML: innerHTML,
+                  });
+                  if (!title && text.length > 0) {
+                    title = text;
+                  }
+                }
+              });
+            }
+          }
+        }
+
+        // Si soundBody n'est pas trouvé, chercher quand même dans parentGroup
+        if (!title && !soundBody && parentGroup) {
           const ariaLabel = parentGroup.getAttribute('aria-label') || '';
-          const titleMatch = ariaLabel.match(/Titre\s*[:\u00A0]\s*(.+?)(?:\s+par\s+|$)/i);
-          if (titleMatch) {
-            title = titleMatch[1].trim();
+          if (ariaLabel) {
+            const decoded = decodeHtmlEntities(ariaLabel);
+            allTitleElements.push({
+              selector: '[role="group"] aria-label (no soundBody)',
+              text: decoded,
+              innerHTML: '',
+            });
+            const titleMatch = decoded.match(/Titre\s*[:\u00A0]\s*(.+?)(?:\s+par\s+|$)/i);
+            if (titleMatch && titleMatch[1]) {
+              title = titleMatch[1].trim();
+            } else {
+              const simpleMatch = decoded.match(/Titre\s*[:\u00A0]\s*(.+)/i);
+              if (simpleMatch && simpleMatch[1]) {
+                title = simpleMatch[1].split(/\s+par\s+/i)[0].trim();
+              } else {
+                title = decoded;
+              }
+            }
           }
         }
 
-        // Si pas de titre depuis aria-label, chercher dans les autres éléments
+        // 6. Chercher dans les attributs du lien
         if (!title) {
-          const soundBody = link.closest('.sound_body');
-          if (soundBody) {
-            const titleEl =
-              soundBody.querySelector('.soundTitle__title, .soundTitle__titleHero') ||
-              soundBody.querySelector('[class*="title"]');
-            title =
-              titleEl?.textContent?.trim() ||
-              link.getAttribute('title') ||
-              link.getAttribute('aria-label') ||
-              '';
+          const linkTitle = link.getAttribute('title') || link.getAttribute('aria-label') || '';
+          if (linkTitle) {
+            const decoded = decodeHtmlEntities(linkTitle);
+            allTitleElements.push({
+              selector: 'link attributes',
+              text: decoded,
+              innerHTML: '',
+            });
+            title = decoded.trim();
           }
         }
 
-        // Si toujours pas de titre, utiliser le slug
+        // 7. Fallback sur le slug
         if (!title) {
           title = trackMatch[2].replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
         }
@@ -334,40 +744,244 @@ async function scrapeSoundCloudTracksPage(profileName: string): Promise<SoundClo
           }
         }
 
+        // Extraire la date de publication - chercher dans plusieurs endroits
+        let releaseDate: string | undefined;
+        const allDateElements: Array<{
+          selector: string;
+          text: string;
+          datetime?: string;
+          title?: string;
+        }> = [];
+
+        if (soundBody) {
+          // 1. PRIORITÉ : Chercher dans .soundTitle__uploadTime time[datetime] (c'est là que se trouve la date)
+          const uploadTimeEl = soundBody.querySelector('.soundTitle__uploadTime time[datetime]');
+          if (uploadTimeEl) {
+            const datetime = uploadTimeEl.getAttribute('datetime') || '';
+            const text = uploadTimeEl.textContent?.trim() || '';
+            const titleAttr = uploadTimeEl.getAttribute('title') || '';
+            if (datetime || titleAttr) {
+              allDateElements.push({
+                selector: '.soundTitle__uploadTime time[datetime]',
+                text: text,
+                datetime: datetime,
+                title: titleAttr,
+              });
+              if (datetime) {
+                try {
+                  const date = new Date(datetime);
+                  if (!isNaN(date.getTime())) {
+                    releaseDate = date.toISOString().split('T')[0];
+                  }
+                } catch (e) {
+                  // Ignorer les erreurs de parsing
+                }
+              }
+            }
+          }
+
+          // 2. Chercher tous les éléments time[datetime] dans soundBody
+          if (!releaseDate) {
+            const timeEls = soundBody.querySelectorAll('time[datetime]');
+            timeEls.forEach((timeEl) => {
+              const datetime = timeEl.getAttribute('datetime') || '';
+              const text = timeEl.textContent?.trim() || '';
+              const titleAttr = timeEl.getAttribute('title') || '';
+              if (datetime || titleAttr) {
+                allDateElements.push({
+                  selector: 'time[datetime]',
+                  text: text,
+                  datetime: datetime,
+                  title: titleAttr,
+                });
+                if (!releaseDate && datetime) {
+                  try {
+                    const date = new Date(datetime);
+                    if (!isNaN(date.getTime())) {
+                      releaseDate = date.toISOString().split('T')[0];
+                    }
+                  } catch (e) {
+                    // Ignorer les erreurs de parsing
+                  }
+                }
+              }
+            });
+          }
+
+          // 3. Chercher tous les éléments time (sans datetime)
+          if (!releaseDate) {
+            const timeEls = soundBody.querySelectorAll('time:not([datetime])');
+            timeEls.forEach((timeEl) => {
+              const text = timeEl.textContent?.trim() || '';
+              const titleAttr = timeEl.getAttribute('title') || '';
+              if (titleAttr || text) {
+                allDateElements.push({
+                  selector: 'time',
+                  text: text,
+                  datetime: undefined,
+                  title: titleAttr,
+                });
+                if (!releaseDate && titleAttr) {
+                  // Essayer de parser le format "Posté le 1 août 2025"
+                  const dateMatch = titleAttr.match(/(\d{1,2})\s+(\w+)\s+(\d{4})/);
+                  if (dateMatch) {
+                    try {
+                      // Essayer de parser avec la locale française
+                      const dateStr = titleAttr.replace(/Posté le\s+/i, '').trim();
+                      const date = new Date(dateStr);
+                      if (!isNaN(date.getTime())) {
+                        releaseDate = date.toISOString().split('T')[0];
+                      }
+                    } catch (e) {
+                      // Ignorer les erreurs de parsing
+                    }
+                  } else {
+                    try {
+                      const date = new Date(titleAttr);
+                      if (!isNaN(date.getTime())) {
+                        releaseDate = date.toISOString().split('T')[0];
+                      }
+                    } catch (e) {
+                      // Ignorer les erreurs de parsing
+                    }
+                  }
+                }
+              }
+            });
+          }
+
+          // 4. Chercher dans les éléments avec des classes contenant "date" ou "time"
+          if (!releaseDate) {
+            const dateSelectors = [
+              '.sound__date',
+              '.soundDate',
+              '.soundTitle__uploadTime',
+              '[class*="date"]',
+              '[class*="Date"]',
+              '[class*="time"]',
+              '[class*="Time"]',
+            ];
+
+            for (const selector of dateSelectors) {
+              const dateEls = soundBody.querySelectorAll(selector);
+              dateEls.forEach((dateEl) => {
+                const text = dateEl.textContent?.trim() || '';
+                const titleAttr = dateEl.getAttribute('title') || '';
+                const datetime = dateEl.getAttribute('datetime') || '';
+                if (text || titleAttr || datetime) {
+                  allDateElements.push({
+                    selector: selector,
+                    text: text,
+                    datetime: datetime,
+                    title: titleAttr,
+                  });
+                  if (!releaseDate) {
+                    const dateStr = datetime || titleAttr || text;
+                    if (dateStr) {
+                      try {
+                        const date = new Date(dateStr);
+                        if (!isNaN(date.getTime())) {
+                          releaseDate = date.toISOString().split('T')[0];
+                        }
+                      } catch (e) {
+                        // Ignorer les erreurs de parsing
+                      }
+                    }
+                  }
+                }
+              });
+            }
+          }
+
+          // 5. Chercher dans les attributs data-*
+          if (!releaseDate) {
+            const dataDate =
+              soundBody.getAttribute('data-date') ||
+              soundBody.getAttribute('data-published') ||
+              soundBody.getAttribute('data-created');
+            if (dataDate) {
+              allDateElements.push({
+                selector: 'data-* attributes',
+                text: '',
+                datetime: dataDate,
+              });
+              try {
+                const date = new Date(dataDate);
+                if (!isNaN(date.getTime())) {
+                  releaseDate = date.toISOString().split('T')[0];
+                }
+              } catch (e) {
+                // Ignorer les erreurs de parsing
+              }
+            }
+          }
+        }
+
+        // Pour la première track, collecter les données de debug
+        if (isFirstTrack && debug) {
+          // Collecter le HTML brut depuis soundBody ou parentGroup
+          const htmlSource = soundBody || parentGroup || link.parentElement;
+          if (htmlSource) {
+            debug.rawHtml = htmlSource.outerHTML.substring(0, 5000); // Limiter à 5000 caractères
+          }
+          debug.allTitleElements = allTitleElements;
+          debug.allDateElements = allDateElements;
+          debug.soundBodyFound = !!soundBody;
+          debug.parentGroupFound = !!parentGroup;
+          debug.finalTitle = title;
+          debug.finalReleaseDate = releaseDate;
+        }
+
         tracks.push({
           url: trackUrl,
           title,
           imageUrl,
+          releaseDate,
+          ...(isFirstTrack && { debug }),
         });
       });
 
       return tracks;
     }, profileName);
 
+    // Logger le JSON brut de la première track pour debug
+    if (tracksData.length > 0 && tracksData[0].debug) {
+      logger.debug(
+        `[SOUNDCLOUD] JSON brut de la première track extraite du HTML:`,
+        JSON.stringify(tracksData[0], null, 2)
+      );
+    }
+
     // Convertir les données extraites en SoundCloudTrack
-    const tracks: SoundCloudTrack[] = tracksData.map((trackData) => {
-      const trackMatch = trackData.url.match(/soundcloud\.com\/([^\/]+)\/([^\/\?]+)/);
-      if (!trackMatch) {
-        throw new Error(`URL invalide: ${trackData.url}`);
+    const tracks: SoundCloudTrack[] = tracksData.map(
+      (trackData: { url: string; title: string; imageUrl?: string; releaseDate?: string }) => {
+        const trackMatch = trackData.url.match(/soundcloud\.com\/([^\/]+)\/([^\/\?]+)/);
+        if (!trackMatch) {
+          throw new Error(`URL invalide: ${trackData.url}`);
+        }
+
+        const embedId = `${trackMatch[1]}/${trackMatch[2]}`;
+        const trackId = `sc_${trackMatch[1]}_${trackMatch[2]}`.replace(/[^a-z0-9_]/gi, '_');
+
+        // Utiliser la date extraite du DOM, sinon utiliser la date actuelle
+        const releaseDate = trackData.releaseDate || new Date().toISOString().split('T')[0];
+
+        // Parser le titre pour extraire l'artiste et le titre proprement
+        const { artist, title } = parseSoundCloudTitle(trackData.title, profileName);
+        const type = detectTrackType(trackData.title);
+
+        return {
+          id: trackId,
+          title,
+          artist,
+          url: trackData.url,
+          embedId,
+          releaseDate,
+          imageUrl: trackData.imageUrl,
+          type,
+        };
       }
-
-      const embedId = `${trackMatch[1]}/${trackMatch[2]}`;
-      const trackId = `sc_${trackMatch[1]}_${trackMatch[2]}`.replace(/[^a-z0-9_]/gi, '_');
-      const now = new Date();
-      const releaseDate = now.toISOString().split('T')[0];
-      const type = detectTrackType(trackData.title);
-
-      return {
-        id: trackId,
-        title: trackData.title,
-        artist: profileName,
-        url: trackData.url,
-        embedId,
-        releaseDate,
-        imageUrl: trackData.imageUrl,
-        type,
-      };
-    });
+    );
 
     if (tracks.length > 0) {
       logger.debug(`[SOUNDCLOUD] ${tracks.length} tracks trouvées via scraping Puppeteer`);

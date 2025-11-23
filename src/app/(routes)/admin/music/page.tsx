@@ -34,7 +34,6 @@ import type { Track } from '@/lib/utils/types';
 
 import AutoDetectAtelier from './components/AutoDetectAtelier';
 import { TrackList } from './components/TrackList';
-import YoutubeAtelier from './components/YoutubeAtelier';
 import { platformLabels, platformIcons, type AdminMusicTab } from './constants';
 import { useImageUpload } from './hooks/useImageUpload';
 import { useSuccessNotification } from './hooks/useSuccessNotification';
@@ -464,7 +463,7 @@ export default function AdminMusicPage() {
 
         {/* Tabs */}
         <div className="flex border-b border-gray-700 mb-8">
-          {(['tracks', 'collections', 'youtube', 'auto-detect'] as AdminMusicTab[]).map((tab) => (
+          {(['tracks', 'collections', 'auto-detect'] as AdminMusicTab[]).map((tab) => (
             <button
               key={tab}
               className={`px-4 py-2 font-medium text-sm focus:outline-none ${
@@ -478,9 +477,7 @@ export default function AdminMusicPage() {
                 ? 'Morceaux'
                 : tab === 'collections'
                   ? 'Collections'
-                  : tab === 'youtube'
-                    ? 'Atelier YouTube'
-                    : 'Auto-détection'}
+                  : 'Auto-détection'}
             </button>
           ))}
         </div>
@@ -1004,9 +1001,6 @@ export default function AdminMusicPage() {
         {activeTab === 'collections' && (
           <div className="text-center py-12 text-gray-400">Gestion des collections à venir…</div>
         )}
-
-        {/* --------------------------------- TAB YOUTUBE ----------------------------- */}
-        {activeTab === 'youtube' && <YoutubeAtelier fetchTracks={tracks.fetchTracks} />}
 
         {/* --------------------------------- TAB AUTO-DETECT ------------------------- */}
         {activeTab === 'auto-detect' && <AutoDetectAtelier fetchTracks={tracks.fetchTracks} />}

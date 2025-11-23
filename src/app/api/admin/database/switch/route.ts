@@ -118,9 +118,24 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           } else {
             envContent += `\nBLOB_READ_WRITE_TOKEN=${prodBlobToken}\n`;
           }
+          logger.info(
+            '[DB SWITCH] BLOB_READ_WRITE_TOKEN configuré depuis BLOB_READ_WRITE_TOKEN_PRODUCTION'
+          );
+        } else {
+          // Vérifier si BLOB_READ_WRITE_TOKEN existe déjà directement
+          const existingBlobToken = envContent.match(/^BLOB_READ_WRITE_TOKEN=(.*)$/m);
+          if (!existingBlobToken || !existingBlobToken[1].trim()) {
+            logger.warn(
+              '[DB SWITCH] ⚠️  BLOB_READ_WRITE_TOKEN_PRODUCTION non défini dans .env.local. ' +
+                'Les images seront servies localement. ' +
+                'Pour utiliser Vercel Blob en mode production, ajoutez BLOB_READ_WRITE_TOKEN_PRODUCTION dans .env.local'
+            );
+          } else {
+            logger.info(
+              '[DB SWITCH] BLOB_READ_WRITE_TOKEN existe déjà dans .env.local, conservé tel quel'
+            );
+          }
         }
-        // Note: Si BLOB_READ_WRITE_TOKEN_PRODUCTION n'est pas défini, on garde BLOB_READ_WRITE_TOKEN tel quel
-        // (peut être défini directement dans .env.local pour le dev local)
       } else {
         // Utiliser SQLite local
         const sqliteUrl = 'file:./prisma/dev.db';
@@ -226,7 +241,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 }
 
 // Route pour récupérer l'état actuel
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 export async function GET(_req: NextRequest): Promise<NextResponse> {
   try {
     // Vérifier l'authentification
