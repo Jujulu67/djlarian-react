@@ -35,6 +35,10 @@ NEXTAUTH_URL="https://votre-projet.vercel.app"
 
 # Environnement
 NODE_ENV="production"
+
+# Runtime Lambda pour Puppeteer/Chromium (requis pour auto-détection SoundCloud)
+# ⚠️ IMPORTANT : Nécessaire pour que @sparticuz/chromium-min fonctionne sur Vercel avec Node.js 22
+AWS_LAMBDA_JS_RUNTIME="nodejs22.x"
 ```
 
 ---
@@ -125,6 +129,7 @@ Ces variables sont **automatiquement gérées par Vercel** :
 - [ ] `NEXTAUTH_SECRET` généré et configuré (🔒 Secret)
 - [ ] `NEXTAUTH_URL` configuré avec votre URL Vercel
 - [ ] `NODE_ENV` configuré à `production`
+- [ ] `AWS_LAMBDA_JS_RUNTIME` configuré à `nodejs22.x` (⚠️ Requis pour auto-détection SoundCloud)
 - [ ] `SPOTIFY_CLIENT_ID` configuré
 - [ ] `SPOTIFY_CLIENT_SECRET` configuré (🔒 Secret)
 - [ ] `SPOTIFY_ARTIST_ID` configuré

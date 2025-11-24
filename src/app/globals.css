@@ -67,6 +67,57 @@
       'rlig' 1,
       'calt' 1;
   }
+
+  /* Harmonisation globale des selects - flèche personnalisée positionnée */
+  select {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    padding-right: 2.5rem !important; /* pr-10 */
+  }
+
+  /* Flèche SVG personnalisée - couleur blanche pour visibilité */
+  select:not(.no-custom-arrow) {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 0.75rem center !important;
+    background-size: 1.25rem 1.25rem !important;
+  }
+
+  /* Ajustement pour les selects avec padding personnalisé */
+  select[class*='px-'] {
+    padding-right: 2.5rem !important;
+  }
+
+  /* Ajustement spécifique pour les petits selects */
+  select[class*='text-xs'],
+  select[class*='text-sm'] {
+    background-position: right 0.5rem center !important;
+    background-size: 0.875rem 0.875rem !important;
+    padding-right: 2rem !important; /* pr-8 pour les petits selects */
+  }
+  /* Masquer le header sur mobile quand le jeu est actif */
+  @media (max-width: 768px) {
+    html.sound-active header {
+      display: none !important;
+    }
+
+    /* Forcer le conteneur du jeu à être en position fixed en haut de l'écran */
+    html.sound-active #game-container {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      width: 100% !important;
+      height: 100vh !important;
+      z-index: 100 !important;
+      border-radius: 0 !important;
+      border: none !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+  }
+
   .dark {
     --background: 0 0% 3.9%;
     --foreground: 0 0% 98%;

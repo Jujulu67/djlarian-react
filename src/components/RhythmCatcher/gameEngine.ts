@@ -30,6 +30,8 @@ export interface Player {
   perfectHits: number;
   goodHits: number;
   okHits: number;
+  missHits: number; // Clics qui ne touchent aucun pattern
+  missedPatterns: number; // Patterns qui sortent de l'écran sans être frappés
   totalNotes: number;
 }
 
@@ -53,12 +55,16 @@ export interface CollisionResult {
   patternId?: string;
   quality?: HitQuality;
   points?: number;
+  patternPosition?: Point; // Position du pattern au moment de la collision
+  patternRadius?: number; // Rayon effectif du pattern au moment de la collision
+  patternColor?: string; // Couleur du pattern pour l'animation
 }
 
 // Constantes pour les paramètres du jeu
-const PERFECT_WINDOW = 80; // Fenêtre parfaite en ms
-const GOOD_WINDOW = 150; // Fenêtre bonne en ms
-const OK_WINDOW = 250; // Fenêtre OK en ms
+const PERFECT_WINDOW = 100; // Fenêtre parfaite en ms (augmentée pour plus de tolérance)
+const GOOD_WINDOW = 180; // Fenêtre bonne en ms (augmentée pour plus de tolérance)
+const OK_WINDOW = 300; // Fenêtre OK en ms (augmentée pour plus de tolérance)
+const CLICK_TOLERANCE = 8; // Tolérance supplémentaire en pixels pour les clics (réduite car on n'a plus le timing)
 const BASE_POINTS = 100; // Points de base
 const COMBO_MULTIPLIER = 0.1; // Multiplicateur combo
 const MAX_PATTERNS = 15; // Maximum de patterns à l'écran
@@ -100,13 +106,15 @@ export function initializeGame(canvasWidth: number, canvasHeight: number): GameS
     patterns: initialPatterns, // Utiliser les patterns initiaux
     player: {
       position: { x: canvasWidth / 2, y: canvasHeight - 50 },
-      radius: 20,
+      radius: 5, // Réduit encore plus pour plus de difficulté
       score: 0,
       combo: 0,
       highScore: 0,
       perfectHits: 0,
       goodHits: 0,
       okHits: 0,
+      missHits: 0,
+      missedPatterns: 0,
       totalNotes: 0,
     },
     bpm: DEFAULT_BPM,
@@ -124,6 +132,7 @@ export function addPattern(
   const now = Date.now();
 
   // Utilisation des données audio pour positionner le pattern
+  // Commence avec une position aléatoire équilibrée
   let x = Math.random() * (canvasWidth - 100) + 50;
   let speed = 2 + Math.random() * 2;
   let radius = 25 + Math.random() * 15;
@@ -139,11 +148,34 @@ export function addPattern(
     speed = 2 + avgEnergy * 4;
     radius = 25 + avgEnergy * 20;
 
-    // Utilise les fréquences pour positionner le pattern
+    // Utilise les fréquences pour influencer (pas remplacer) la position
     if (frequencyData && frequencyData.length > 0) {
-      // Trouve la fréquence dominante pour positionner horizontalement
-      const dominantFreq = findDominantFrequency(frequencyData);
-      x = (dominantFreq / 255) * canvasWidth;
+      // Trouve plusieurs fréquences dominantes pour une distribution plus équilibrée
+      const topFrequencies = findTopFrequencies(frequencyData, 3);
+
+      // Calcule une position moyenne pondérée par l'intensité des fréquences
+      let weightedSum = 0;
+      let totalWeight = 0;
+
+      for (const { index, value } of topFrequencies) {
+        // Normalise l'index de fréquence pour mapper sur toute la largeur
+        const normalizedIndex = index / frequencyData.length;
+        const position = normalizedIndex * canvasWidth;
+        const weight = value / 255; // Poids basé sur l'intensité
+
+        weightedSum += position * weight;
+        totalWeight += weight;
+      }
+
+      // Mélange la position audio avec une position aléatoire pour éviter le biais
+      const audioInfluencedX = totalWeight > 0 ? weightedSum / totalWeight : canvasWidth / 2;
+      const randomX = Math.random() * (canvasWidth - 100) + 50;
+
+      // Combine les deux positions (70% aléatoire, 30% audio) pour une distribution équilibrée
+      x = randomX * 0.7 + audioInfluencedX * 0.3;
+
+      // Assure que la position reste dans les limites du canvas
+      x = Math.max(50, Math.min(x, canvasWidth - 50));
     }
   }
 
@@ -223,8 +255,7 @@ export function updateGame(
         const newY = pattern.position.y + pattern.speed * (deltaTime / 16);
 
         // Animation de fondu et d'échelle
-        let opacity = pattern.opacity;
-        let scale = pattern.scale;
+        let { opacity, scale } = pattern;
 
         // Si le pattern vient d'être créé, on l'anime en fondu
         if (now - pattern.creation < 500) {
@@ -238,6 +269,7 @@ export function updateGame(
         // Si le pattern sort de l'écran et n'a pas été frappé, c'est un MISS
         if (!stillActive && !pattern.wasHit) {
           updatedState.player.combo = 0; // Reset combo
+          updatedState.player.missedPatterns++; // Compte les patterns manqués
           updatedState.player.totalNotes++; // Compte comme une note ratée
         }
 
@@ -278,48 +310,97 @@ export function updateGame(
 export function checkCollisions(
   state: GameState,
   playerPosition: Point,
-  clickTime: number
+  clickTime: number,
+  excludePatternIds?: Set<string>
 ): CollisionResult {
-  // Vérifie si un pattern a été cliqué
-  for (const pattern of state.patterns) {
-    if (!pattern.active || pattern.wasHit) continue;
+  // Trouve tous les patterns qui sont dans la portée du clic
+  // IMPORTANT: Filtre les patterns déjà frappés et ceux en cours de traitement pour éviter les doubles kills
+  const hitPatterns = state.patterns
+    .filter((pattern) => {
+      // Exclut les patterns déjà frappés ou désactivés
+      if (!pattern.active || pattern.wasHit) return false;
+      // Exclut les patterns en cours de traitement si la liste est fournie
+      if (excludePatternIds && excludePatternIds.has(pattern.id)) return false;
+      return true;
+    })
+    .map((pattern) => {
+      const distance = Math.sqrt(
+        Math.pow(playerPosition.x - pattern.position.x, 2) +
+          Math.pow(playerPosition.y - pattern.position.y, 2)
+      );
+      const effectiveRadius = pattern.radius * pattern.scale;
+      // IMPORTANT: playerPosition est la position du CLIC, pas du joueur
+      // Donc on n'ajoute PAS le rayon du joueur, seulement la tolérance de clic
+      const hitRadius = effectiveRadius + CLICK_TOLERANCE;
 
-    // Calcule la distance entre le joueur et le pattern
-    const distance = Math.sqrt(
-      Math.pow(playerPosition.x - pattern.position.x, 2) +
-        Math.pow(playerPosition.y - pattern.position.y, 2)
-    );
+      return { pattern, distance, hitRadius, effectiveRadius };
+    })
+    .filter(({ distance, hitRadius }) => distance <= hitRadius);
 
-    if (distance <= pattern.radius + state.player.radius) {
-      // Le joueur a cliqué sur un pattern, vérifie la précision temporelle
-      const timeDiff = Math.abs(clickTime - pattern.targetTime);
-      let quality: HitQuality = 'MISS';
-      let points = 0;
-
-      if (timeDiff <= PERFECT_WINDOW) {
-        quality = 'PERFECT';
-        points = pattern.points * 2;
-      } else if (timeDiff <= GOOD_WINDOW) {
-        quality = 'GOOD';
-        points = pattern.points * 1.5;
-      } else if (timeDiff <= OK_WINDOW) {
-        quality = 'OK';
-        points = pattern.points;
+  // Si plusieurs patterns se chevauchent, sélectionne celui avec le Y le plus bas (le plus proche du joueur)
+  // Si plusieurs ont le même Y, prend celui avec la distance euclidienne la plus petite
+  // Si Y et distance sont identiques, trie par ID pour garantir la cohérence
+  if (hitPatterns.length > 0) {
+    // Trie par Y décroissant (plus bas = plus proche du joueur), puis par distance croissante, puis par ID
+    hitPatterns.sort((a, b) => {
+      const yDiff = b.pattern.position.y - a.pattern.position.y; // Y plus bas en premier
+      if (Math.abs(yDiff) > 1) {
+        // Si la différence de Y est significative (> 1px), priorise le Y le plus bas
+        return yDiff;
       }
-
-      // Si c'est un succès, applique le combo
-      if (quality !== 'MISS') {
-        // Applique le multiplicateur de combo
-        points = Math.round(points * (1 + state.player.combo * COMBO_MULTIPLIER));
-
-        return {
-          collided: true,
-          patternId: pattern.id,
-          quality,
-          points,
-        };
+      // Si Y est similaire, priorise la distance euclidienne la plus petite
+      const distanceDiff = a.distance - b.distance;
+      if (Math.abs(distanceDiff) > 0.1) {
+        return distanceDiff;
       }
+      // Si Y et distance sont identiques, trie par ID pour garantir la cohérence
+      // Cela garantit que le même pattern est toujours sélectionné pour un même clic
+      return a.pattern.id.localeCompare(b.pattern.id);
+    });
+
+    const { pattern, distance, effectiveRadius } = hitPatterns[0];
+
+    // Calcule la qualité basée sur la distance au centre du pattern
+    // Plus le clic est proche du centre, meilleure est la qualité
+    // IMPORTANT: playerPosition est la position du CLIC, donc on n'utilise pas player.radius
+    const distanceFromCenter = Math.max(0, distance - CLICK_TOLERANCE);
+
+    // Zones de qualité basées sur le rayon effectif du pattern
+    const perfectZone = effectiveRadius * 0.3; // 30% du rayon = centre
+    const goodZone = effectiveRadius * 0.6; // 60% du rayon
+    const okZone = effectiveRadius * 0.9; // 90% du rayon
+
+    let quality: HitQuality;
+    let points: number;
+
+    if (distanceFromCenter <= perfectZone) {
+      quality = 'PERFECT';
+      points = pattern.points * 2;
+    } else if (distanceFromCenter <= goodZone) {
+      quality = 'GOOD';
+      points = Math.round(pattern.points * 1.5);
+    } else if (distanceFromCenter <= okZone) {
+      quality = 'OK';
+      points = pattern.points;
+    } else {
+      // Même si on est dans le hitRadius, si on est très loin du centre, c'est un MISS
+      // Mais on accepte quand même avec des points réduits
+      quality = 'OK';
+      points = Math.round(pattern.points * 0.7);
     }
+
+    // Applique le multiplicateur de combo
+    points = Math.round(points * (1 + state.player.combo * COMBO_MULTIPLIER));
+
+    return {
+      collided: true,
+      patternId: pattern.id,
+      quality,
+      points,
+      patternPosition: pattern.position, // Position du pattern au moment de la collision
+      patternRadius: effectiveRadius, // Rayon effectif du pattern (avec scale)
+      patternColor: pattern.color, // Couleur du pattern pour l'animation
+    };
   }
 
   return { collided: false };
@@ -369,6 +450,8 @@ export function handleCollision(state: GameState, collisionResult: CollisionResu
   } else {
     // Reset combo sur un MISS
     updatedState.player.combo = 0;
+    updatedState.player.missedPatterns++;
+    updatedState.player.totalNotes++;
   }
 
   return updatedState;
@@ -399,6 +482,25 @@ function findDominantFrequency(frequencyData: Uint8Array): number {
   }
 
   return maxIndex;
+}
+
+// Trouve les N fréquences les plus intenses pour une meilleure distribution
+function findTopFrequencies(
+  frequencyData: Uint8Array,
+  count: number
+): Array<{ index: number; value: number }> {
+  const frequencies: Array<{ index: number; value: number }> = [];
+
+  for (let i = 0; i < frequencyData.length; i++) {
+    if (frequencyData[i] > 10) {
+      // Ignore les valeurs trop faibles
+      frequencies.push({ index: i, value: frequencyData[i] });
+    }
+  }
+
+  // Trie par valeur décroissante et prend les N premières
+  frequencies.sort((a, b) => b.value - a.value);
+  return frequencies.slice(0, count);
 }
 
 // Détecte le BPM à partir des données audio

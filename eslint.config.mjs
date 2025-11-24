@@ -30,7 +30,6 @@ const eslintConfig = [
       '**/*.test.tsx',
       '**/*.spec.ts',
       '**/*.spec.tsx',
-      '**/old/**', // Fichiers dans le dossier old/
     ],
   },
   // Exceptions pour les fichiers de logging (ils utilisent console.log intentionnellement)

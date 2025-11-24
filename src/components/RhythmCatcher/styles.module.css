@@ -3,11 +3,95 @@
   position: relative;
   width: 100%;
   height: 100%;
+  min-height: 400px; /* Hauteur minimale pour s'assurer que le jeu s'affiche */
   overflow: hidden;
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   background-color: #080810;
   user-select: none;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Sur desktop, le conteneur garde sa hauteur fixe */
+@media (min-width: 769px) {
+  .gameContainer {
+    flex-direction: column;
+    overflow: hidden;
+    height: 100%;
+  }
+}
+
+/* Sur mobile, le conteneur permet le scroll si nécessaire */
+@media (max-width: 768px) {
+  .gameContainer {
+    flex-direction: column;
+    overflow: visible; /* Permet de voir la zone mobile en dessous */
+    height: auto;
+    min-height: 30vh; /* Minimum 30vh pour que le canvas soit visible */
+    max-height: none; /* Pas de limite de hauteur sur mobile */
+    position: relative; /* Permet au contenu de dépasser */
+    padding-bottom: 0; /* Pas de padding en bas pour éviter la troncature */
+  }
+
+  /* Quand le jeu est actif, le conteneur prend toute la hauteur de l'écran */
+  html.sound-active .gameContainer {
+    height: 100vh;
+    min-height: 100vh;
+    max-height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    overflow: hidden;
+    border-radius: 0;
+  }
+}
+
+/* Wrapper du canvas - contient le canvas et les overlays desktop */
+.canvasWrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  flex: 1 1 auto;
+  min-height: 400px;
+}
+
+/* Sur mobile, le canvasWrapper prend une hauteur fixe - réduite de 40% pour tenir sur les anciens iPhone */
+@media (max-width: 768px) {
+  .canvasWrapper {
+    height: 30vh;
+    flex: 0 0 30vh;
+    min-height: 30vh;
+    max-height: 30vh;
+  }
+
+  /* Quand le jeu est actif, le canvasWrapper prend toute la hauteur disponible moins les contrôles */
+  html.sound-active .canvasWrapper {
+    flex: 1 1 auto;
+    height: 100%;
+    min-height: 0;
+    max-height: none;
+  }
+}
+
+/* Éléments overlay pour desktop uniquement */
+.desktopOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 20;
+}
+
+/* Sur mobile, masquer les overlays desktop */
+@media (max-width: 768px) {
+  .desktopOverlay {
+    display: none;
+  }
 }
 
 /* Conteneur du canvas */
@@ -16,7 +100,24 @@
   width: 100%;
   height: 100%;
   overflow: hidden;
-  cursor: none;
+  cursor: none; /* Masque le curseur CSS par défaut pour utiliser le curseur personnalisé */
+}
+
+/* Sur desktop, le canvas prend toute la hauteur */
+@media (min-width: 769px) {
+  .canvasContainer {
+    height: 100%;
+    flex: 1 1 auto;
+    min-height: 400px;
+  }
+}
+
+/* Sur mobile, le canvasContainer s'adapte à son conteneur */
+@media (max-width: 768px) {
+  .canvasContainer {
+    height: 100%;
+    width: 100%;
+  }
 }
 
 /* Style du canvas */
@@ -25,6 +126,25 @@
   width: 100%;
   height: 100%;
   background: #080810;
+  pointer-events: none; /* Permet les clics sur les boutons au-dessus */
+  cursor: none; /* Masque le curseur CSS par défaut */
+}
+
+/* Sur desktop, le canvas prend toute la hauteur */
+@media (min-width: 769px) {
+  .gameCanvas {
+    width: 100%;
+    height: 100%;
+  }
+}
+
+/* Sur mobile, le canvas s'adapte à son conteneur */
+@media (max-width: 768px) {
+  .gameCanvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
 }
 
 /* Overlay de démarrage du jeu */
@@ -39,8 +159,33 @@
   justify-content: center;
   align-items: center;
   background: rgba(0, 0, 0, 0.4);
+  pointer-events: auto; /* Permet les clics sur l'overlay */
+  cursor: pointer; /* Indique que c'est cliquable */
   backdrop-filter: blur(3px);
   z-index: 10;
+}
+
+/* Sur mobile, l'overlay s'affiche aussi */
+@media (max-width: 768px) {
+  .startOverlay {
+    display: flex !important; /* Afficher l'overlay sur mobile */
+    z-index: 100; /* Au-dessus du canvas */
+    background: rgba(0, 0, 0, 0.7); /* Background plus opaque sur mobile */
+  }
+}
+
+/* Overlay de démarrage mobile */
+.mobileStartOverlay {
+  width: 100%;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.6);
+  border-bottom: 1px solid rgba(100, 100, 255, 0.3);
+}
+
+@media (min-width: 769px) {
+  .mobileStartOverlay {
+    display: none; /* Masqué sur desktop */
+  }
 }
 
 /* Message de démarrage */
@@ -53,6 +198,20 @@
   color: white;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   border: 1px solid rgba(100, 100, 255, 0.3);
+  pointer-events: none; /* Permet aux clics de passer à travers vers l'overlay */
+}
+
+/* Sur mobile, ajuster le padding et la largeur */
+@media (max-width: 768px) {
+  .startMessage {
+    padding: 1.5rem;
+    max-width: 100%;
+    width: 100%;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+  }
 }
 
 .startMessage h2 {
@@ -66,16 +225,55 @@
   margin-bottom: 1.5rem;
   font-size: 1.1rem;
   color: #d0d0ff;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Sur mobile, réduire la taille du texte */
+@media (max-width: 768px) {
+  .startMessage h2 {
+    font-size: 1.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .startMessage p {
+    font-size: 0.95rem;
+    margin-bottom: 1rem;
+    line-height: 1.4;
+  }
 }
 
 /* Style pour les instructions */
 .instruction {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   margin-top: 1rem;
   padding: 0.5rem 1rem;
   background: rgba(60, 60, 100, 0.3);
   border-radius: 0.5rem;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.instruction span {
+  flex: 1;
+  line-height: 1.4;
+}
+
+/* Sur mobile, ajuster les instructions */
+@media (max-width: 768px) {
+  .instruction {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 0.75rem;
+    margin-top: 0.75rem;
+  }
+
+  .instruction span {
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+  }
 }
 
 .instructionIcon {
@@ -110,7 +308,21 @@
   right: 1rem;
   display: flex;
   gap: 0.5rem;
-  z-index: 50;
+  z-index: 100; /* Z-index élevé pour être au-dessus de tout */
+  pointer-events: auto; /* Assure que les clics fonctionnent */
+}
+
+/* Sur mobile, dans la zone mobileControls */
+@media (max-width: 768px) {
+  .mobileControls .controls {
+    position: static;
+    width: 100%;
+    justify-content: center;
+    padding: 0;
+    background: transparent;
+    border: none;
+    gap: 1rem;
+  }
 }
 
 .controlButton {
@@ -126,6 +338,26 @@
   cursor: pointer;
   transition: all 0.2s;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  pointer-events: auto; /* Assure que les clics fonctionnent */
+  touch-action: manipulation; /* Améliore la réactivité sur mobile */
+  -webkit-tap-highlight-color: transparent; /* Supprime le highlight sur mobile */
+}
+
+/* Taille uniforme sur mobile pour tous les boutons */
+@media (max-width: 768px) {
+  .controlButton {
+    width: 3.5rem;
+    height: 3.5rem;
+    min-width: 3.5rem;
+    min-height: 3.5rem;
+  }
+
+  .volumeButton {
+    width: 3.5rem;
+    height: 3.5rem;
+    min-width: 3.5rem;
+    min-height: 3.5rem;
+  }
 }
 
 .controlButton:hover {
@@ -147,6 +379,376 @@
   align-items: flex-end;
   z-index: 20;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  pointer-events: auto; /* Permet les interactions */
+}
+
+/* Modale mobile - plein écran */
+.mobileModal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.95);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.mobileModalContent {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  gap: 0;
+}
+
+/* Zone du jeu - 70% de la hauteur */
+.mobileGameArea {
+  flex: 0 0 70%;
+  height: 70%;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  background: #080810;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.mobileGameArea .gameContainer {
+  height: 100%;
+  width: 100%;
+  border-radius: 0;
+  box-shadow: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0 !important; /* Override base min-height to prevent dead zone */
+  max-height: 100%; /* Ensure it doesn't exceed parent */
+}
+
+.mobileGameArea .canvasWrapper {
+  height: 100% !important;
+  width: 100%;
+  flex: 1 1 auto !important; /* Force fill space */
+  min-height: 0 !important; /* Permet au flex de fonctionner correctement */
+  max-height: 100% !important;
+  display: flex !important;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.mobileGameArea .canvasWrapper .canvasContainer {
+  height: 100% !important;
+  width: 100% !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.mobileGameArea .canvasWrapper .canvasContainer .gameCanvas {
+  width: 100% !important;
+  height: 100% !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+}
+
+/* Zone des contrôles - 30% de la hauteur, pas d'espace mort */
+.mobileControlsArea {
+  flex: 0 0 30%;
+  height: 30%;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.95);
+  border-top: 1px solid rgba(100, 100, 255, 0.5);
+  display: flex;
+  flex-direction: column;
+  padding: 0.3rem 0 0.3rem;
+  gap: 0.3rem;
+  overflow: hidden;
+  justify-content: space-between;
+  margin: 0;
+}
+
+.mobileControlsArea .scorePanel {
+  position: relative !important;
+  width: 100% !important;
+  align-items: center !important;
+  padding: 0.5rem 1rem 0 1rem !important; /* Add top margin, symmetric padding left and right */
+  background: transparent;
+  border: none;
+  flex-direction: column !important;
+  justify-content: flex-start;
+  gap: 0.3rem;
+  flex-shrink: 0;
+  overflow: visible;
+  flex: 1;
+  display: flex !important;
+  top: auto !important; /* Override base position absolute */
+  right: auto !important; /* Override base position absolute */
+  left: auto !important;
+  bottom: auto !important;
+  margin-top: 0.5rem; /* Additional top margin for spacing */
+}
+
+.mobileControlsArea .scorePanel .mainScore {
+  margin-bottom: 0 !important;
+  padding: 0.35rem 1rem !important; /* Symmetric padding left and right - force override */
+  width: 100% !important;
+  display: flex !important; /* Force override */
+  justify-content: space-between !important; /* Score left, combo center, best right */
+  align-items: center !important; /* Force center vertical alignment - override base flex-start */
+  flex-direction: row !important;
+  gap: 0.5rem !important; /* Reduced gap for better spacing */
+  background: rgba(30, 30, 60, 0.4) !important;
+  border-radius: 0.5rem;
+  box-sizing: border-box !important; /* Ensure padding is included in width */
+}
+
+.mobileControlsArea .scorePanel .mainScore .scoreValue {
+  font-size: 1.3rem;
+  font-weight: bold;
+  flex: 0 0 auto !important; /* Force no flex growth - score stays on left */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+  color: #ffde17;
+  min-width: 0;
+  margin: 0; /* Remove any default margins */
+  order: 1; /* Score first (left) */
+}
+
+.mobileControlsArea .scorePanel .mainScore .highScore {
+  margin-bottom: 0;
+  font-size: 0.75rem;
+  padding: 0;
+  display: inline-block;
+  flex: 0 0 auto !important; /* Force no flex growth - best score stays on right */
+  background: transparent;
+  white-space: nowrap;
+  color: #b0b0ff;
+  margin: 0; /* Remove any default margins */
+  order: 3; /* Best score last (right) */
+  margin-left: auto; /* Push to the right */
+}
+
+.mobileControlsArea .scorePanel .mainScore .combo {
+  flex: 0 0 auto !important;
+  order: 2; /* Combo in the middle */
+  margin: 0 auto; /* Center the combo */
+}
+
+/* Combo visible et plus grand */
+.mobileControlsArea .scorePanel .combo {
+  margin: 0;
+  font-size: 0.85rem;
+  padding: 0.25rem 0.5rem;
+  white-space: nowrap;
+  background: rgba(90, 80, 170, 0.7);
+  border-radius: 0.5rem;
+}
+
+.mobileControlsArea .scorePanel .statsPanel {
+  width: 100%;
+  margin: 0;
+  padding: 0.4rem 0.3rem;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.25rem;
+  background: rgba(20, 20, 40, 0.4);
+  border-radius: 0.5rem;
+}
+
+.mobileControlsArea .scorePanel .statRow {
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+  line-height: 1.2;
+  min-width: 0;
+  padding: 0 0.1rem;
+}
+
+.mobileControlsArea .scorePanel .statRow span:first-child {
+  font-size: 0.6rem;
+  opacity: 0.9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  color: #c0c0ff;
+}
+
+.mobileControlsArea .scorePanel .statRow span:last-child {
+  font-size: 0.85rem;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.mobileControlsArea .scorePanel .statDivider {
+  display: none !important; /* Masquer le diviseur sur mobile - force override */
+  border-top: none !important; /* Remove border */
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+/* Afficher précision et rang sur mobile */
+.mobileControlsArea .scorePanel .statsPanel .desktopOnly {
+  display: flex !important;
+}
+
+.mobileControlsArea .controls {
+  position: static !important;
+  width: 100%;
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+  border: none;
+  gap: 0.8rem;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  margin: 0;
+  pointer-events: auto !important; /* Ensure buttons are clickable */
+  z-index: 1000; /* High z-index to be above canvas */
+}
+
+.mobileControlsArea .controlButton,
+.mobileControlsArea .mobileAudioButton {
+  width: 3.2rem !important;
+  height: 3.2rem !important;
+  min-width: 3.2rem !important;
+  min-height: 3.2rem !important;
+  flex-shrink: 0;
+  background: rgba(40, 40, 70, 0.9) !important;
+  border: 2px solid rgba(100, 100, 255, 0.4) !important;
+  pointer-events: auto !important; /* Ensure buttons are clickable */
+  touch-action: manipulation !important; /* Improve touch responsiveness */
+  z-index: 1001 !important; /* Higher z-index than controls container */
+  position: relative; /* Ensure z-index works */
+  transition: all 0.2s !important; /* Smooth transitions */
+}
+
+.mobileControlsArea .controlButton:hover,
+.mobileControlsArea .mobileAudioButton:hover {
+  background: rgba(60, 60, 100, 0.9) !important;
+  transform: translateY(-2px) !important;
+  border-color: rgba(100, 100, 255, 0.6) !important;
+}
+
+.mobileControlsArea .controlButton:active,
+.mobileControlsArea .mobileAudioButton:active {
+  background: rgba(80, 80, 120, 0.9) !important;
+  transform: scale(0.95) !important;
+  border-color: rgba(100, 100, 255, 0.8) !important;
+}
+
+.mobileControlsArea .mobileStartOverlay {
+  display: none; /* Masquer l'overlay de démarrage dans la modale */
+}
+
+/* Zone mobile - en dessous du canvas */
+.mobileControls {
+  display: none; /* Masqué sur desktop */
+}
+
+/* Sur mobile, afficher la zone mobile */
+@media (max-width: 768px) {
+  .mobileControls {
+    display: flex !important;
+    flex-direction: column;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    border-top: 2px solid rgba(100, 100, 255, 0.5);
+    padding: 0.5rem;
+    gap: 0.5rem;
+    position: relative;
+    z-index: 10;
+    min-height: auto;
+    flex-shrink: 0; /* Empêche la zone de rétrécir */
+    margin-bottom: 0; /* Pas de marge en bas */
+    max-height: none; /* Permet au contenu de s'étendre */
+    overflow: visible; /* Permet de voir tout le contenu */
+  }
+
+  /* Quand le jeu est actif, les contrôles mobiles prennent juste l'espace nécessaire */
+  html.sound-active .mobileControls {
+    flex-shrink: 0;
+    flex-grow: 0;
+  }
+
+  .mobileControls .scorePanel {
+    position: static !important;
+    width: 100%;
+    align-items: center;
+    padding: 0;
+    background: transparent;
+    border: none;
+    font-size: 0.8rem;
+    flex-direction: column;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    gap: 0.3rem;
+    flex-shrink: 0;
+  }
+
+  /* Score et meilleur score sur la même ligne, plus compacts */
+  .mobileControls .scorePanel .mainScore {
+    margin-bottom: 0;
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-direction: row;
+    gap: 0.5rem;
+  }
+
+  .mobileControls .scorePanel .mainScore .scoreValue {
+    font-size: 0.9rem;
+    font-weight: bold;
+    flex: 0 0 auto;
+  }
+
+  .mobileControls .scorePanel .mainScore .highScore {
+    margin-bottom: 0;
+    font-size: 0.65rem;
+    padding: 0;
+    display: inline-block;
+    flex: 0 0 auto;
+    background: transparent;
+  }
+
+  .mobileControls .scorePanel .combo {
+    margin-bottom: 0;
+    font-size: 0.65rem;
+    padding: 0.15rem 0.4rem;
+  }
+
+  .mobileControls .scorePanel .statsPanel {
+    width: 100%;
+    margin-top: 0.4rem;
+    padding: 0.4rem;
+    font-size: 0.7rem;
+  }
+
+  .mobileControls .scorePanel .statRow {
+    margin-bottom: 0.15rem;
+    font-size: 0.7rem;
+  }
 }
 
 .mainScore {
@@ -154,6 +756,16 @@
   padding: 0.5rem 1rem;
   border-radius: 1rem;
   margin-bottom: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* Sur desktop, le mainScore garde sa structure normale */
+@media (min-width: 769px) {
+  .mainScore {
+    flex-direction: column;
+  }
 }
 
 .scoreValue {
@@ -198,6 +810,13 @@
   margin-bottom: 0.5rem;
 }
 
+/* Sur mobile, masquer le highScore séparé car il est dans le mainScore */
+@media (max-width: 768px) {
+  .mobileControls .scorePanel > .highScore {
+    display: none;
+  }
+}
+
 .statsPanel {
   background: rgba(0, 0, 0, 0.6);
   padding: 0.75rem;
@@ -232,6 +851,24 @@
   color: #ffde17;
   font-weight: bold;
   font-size: 1.2rem;
+  z-index: 100;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* Style pour mobile */
+.mobileControlsArea .scorePanel .scoreChange {
+  position: absolute;
+  top: -1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  right: auto;
+  color: #ffde17;
+  font-weight: bold;
+  font-size: 1rem;
+  z-index: 100;
+  pointer-events: none;
+  white-space: nowrap;
 }
 
 /* Style pour l'audio */
@@ -239,7 +876,41 @@
   position: absolute;
   top: 1rem;
   left: 1rem;
-  z-index: 20;
+  z-index: 100; /* Z-index élevé pour être au-dessus de tout */
+  pointer-events: auto; /* Assure que les clics fonctionnent */
+}
+
+/* Sur mobile, masquer le bouton audio desktop */
+@media (max-width: 768px) {
+  .audioControls {
+    display: none;
+  }
+}
+
+/* Bouton audio mobile (dans la barre de contrôle) */
+.mobileAudioButton {
+  display: none; /* Masqué sur desktop */
+}
+
+/* Sur mobile, afficher le bouton audio dans la barre de contrôle */
+@media (max-width: 768px) {
+  .mobileAudioButton {
+    display: flex;
+    width: 3.5rem;
+    height: 3.5rem;
+    min-width: 3.5rem;
+    min-height: 3.5rem;
+    background: rgba(30, 30, 40, 0.8);
+    border-radius: 50%;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    pointer-events: auto;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
 }
 
 .volumeButton {
@@ -255,6 +926,9 @@
   cursor: pointer;
   transition: all 0.2s;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  pointer-events: auto; /* Assure que les clics fonctionnent */
+  touch-action: manipulation; /* Améliore la réactivité sur mobile */
+  -webkit-tap-highlight-color: transparent; /* Supprime le highlight sur mobile */
 }
 
 .volumeButton:hover {
