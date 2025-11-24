@@ -3,6 +3,9 @@ import { withSentryConfig } from '@sentry/nextjs';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true, // Activé pour détecter les problèmes potentiels en développement
+  // Configuration pour Puppeteer/Chromium sur Vercel
+  // Ces packages doivent être externes pour fonctionner correctement dans l'environnement serverless
+  serverExternalPackages: ['puppeteer-core', '@sparticuz/chromium-min'],
   compiler: {
     styledComponents: true,
   },

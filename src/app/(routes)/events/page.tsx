@@ -402,9 +402,10 @@ export default function EventsPage() {
 
         {/* Filtres et recherche */}
         <div className="mb-12">
-          <div className="bg-gray-800/30 backdrop-blur-md border border-gray-700/50 rounded-2xl p-6 shadow-xl">
-            <div className="flex flex-col md:flex-row gap-5 justify-between items-start md:items-center">
-              <div className="relative w-full md:w-1/2">
+          <div className="bg-gray-800/30 backdrop-blur-md border border-gray-700/50 rounded-2xl p-4 sm:p-6 shadow-xl">
+            <div className="flex flex-col gap-4">
+              {/* Ligne 1: Recherche */}
+              <div className="relative w-full">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                   <Search className="h-5 w-5 text-gray-400" />
                 </div>
@@ -417,58 +418,62 @@ export default function EventsPage() {
                 />
               </div>
 
-              <div className="flex flex-wrap gap-3 w-full md:w-auto justify-end">
-                <div className="bg-gray-800/70 backdrop-blur-md rounded-xl p-1.5 flex items-center border border-gray-700/70 shadow-lg">
-                  <button
-                    onClick={() => handleStatusChange('all')}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                      selectedStatus === 'all'
-                        ? 'bg-gradient-to-r from-purple-600 to-purple-800 text-white shadow-md'
-                        : 'text-gray-300 hover:bg-gray-700/60'
-                    }`}
-                  >
-                    Tous
-                  </button>
-                  <button
-                    onClick={() => handleStatusChange('UPCOMING')}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                      selectedStatus === 'UPCOMING'
-                        ? 'bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-md'
-                        : 'text-gray-300 hover:bg-gray-700/60'
-                    }`}
-                  >
-                    À venir
-                  </button>
-                  <button
-                    onClick={() => handleStatusChange('COMPLETED')}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                      selectedStatus === 'COMPLETED'
-                        ? 'bg-gradient-to-r from-gray-600 to-gray-800 text-white shadow-md'
-                        : 'text-gray-300 hover:bg-gray-700/60'
-                    }`}
-                  >
-                    Terminés
-                  </button>
-                  <button
-                    onClick={() => handleStatusChange('CANCELLED')}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                      selectedStatus === 'CANCELLED'
-                        ? 'bg-gradient-to-r from-red-600 to-red-800 text-white shadow-md'
-                        : 'text-gray-300 hover:bg-gray-700/60'
-                    }`}
-                  >
-                    Annulés
-                  </button>
+              {/* Ligne 2: Filtres par statut et bouton filtre */}
+              <div className="flex gap-3 items-center">
+                <div className="bg-gray-800/70 backdrop-blur-md rounded-xl p-1.5 flex items-center border border-gray-700/70 shadow-lg overflow-x-auto flex-1 min-w-0">
+                  <div className="flex gap-1 min-w-max">
+                    <button
+                      onClick={() => handleStatusChange('all')}
+                      className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
+                        selectedStatus === 'all'
+                          ? 'bg-gradient-to-r from-purple-600 to-purple-800 text-white shadow-md'
+                          : 'text-gray-300 hover:bg-gray-700/60'
+                      }`}
+                    >
+                      Tous
+                    </button>
+                    <button
+                      onClick={() => handleStatusChange('UPCOMING')}
+                      className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
+                        selectedStatus === 'UPCOMING'
+                          ? 'bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-md'
+                          : 'text-gray-300 hover:bg-gray-700/60'
+                      }`}
+                    >
+                      À venir
+                    </button>
+                    <button
+                      onClick={() => handleStatusChange('COMPLETED')}
+                      className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
+                        selectedStatus === 'COMPLETED'
+                          ? 'bg-gradient-to-r from-gray-600 to-gray-800 text-white shadow-md'
+                          : 'text-gray-300 hover:bg-gray-700/60'
+                      }`}
+                    >
+                      Terminés
+                    </button>
+                    <button
+                      onClick={() => handleStatusChange('CANCELLED')}
+                      className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
+                        selectedStatus === 'CANCELLED'
+                          ? 'bg-gradient-to-r from-red-600 to-red-800 text-white shadow-md'
+                          : 'text-gray-300 hover:bg-gray-700/60'
+                      }`}
+                    >
+                      Annulés
+                    </button>
+                  </div>
                 </div>
 
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className={`bg-gray-800/70 p-3 rounded-xl border transition-all ${
+                  className={`bg-gray-800/70 p-3 rounded-xl border transition-all flex-shrink-0 ${
                     showFilters
-                      ? 'border-purple-500/70 text-purple-400'
+                      ? 'border-purple-500/70 text-purple-400 bg-purple-500/10'
                       : 'border-gray-700/70 text-gray-300 hover:border-gray-500/70'
                   }`}
                   aria-label="Plus de filtres"
+                  title="Filtres additionnels"
                 >
                   <Filter className="w-5 h-5" />
                 </button>
@@ -546,19 +551,22 @@ export default function EventsPage() {
         ) : (
           <>
             {/* Sélection du nombre d'éléments par page */}
-            <div className="flex justify-between items-center mb-6">
-              <div className="text-sm text-gray-400">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
+              <div className="text-xs sm:text-sm text-gray-400">
                 Affichage de {indexOfFirstEvent + 1}-
                 {Math.min(indexOfLastEvent, filteredEvents.length)} sur {filteredEvents.length}{' '}
                 événements
               </div>
-              <div className="flex items-center gap-3">
-                <label htmlFor="itemsPerPage" className="text-sm text-gray-300">
-                  Événements par page:
+              <div className="flex items-center gap-2 sm:gap-3">
+                <label
+                  htmlFor="itemsPerPage"
+                  className="text-xs sm:text-sm text-gray-300 whitespace-nowrap"
+                >
+                  Par page:
                 </label>
                 <select
                   id="itemsPerPage"
-                  className="bg-gray-800/70 text-white rounded-lg px-3 py-1.5 border border-gray-700/50 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  className="bg-gray-800/70 text-white rounded-lg px-2 sm:px-3 py-1.5 border border-gray-700/50 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
                   value={itemsPerPage}
                   onChange={(e) => {
                     setItemsPerPage(Number(e.target.value));
@@ -574,7 +582,7 @@ export default function EventsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
               {currentEvents.map((event) => (
                 <div
                   key={event.id}
@@ -732,19 +740,20 @@ export default function EventsPage() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="mt-10 flex justify-center">
-                <div className="flex flex-wrap justify-center gap-2">
+              <div className="mt-8 sm:mt-10 flex justify-center">
+                <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2">
                   {/* Bouton précédent */}
                   <button
                     onClick={() => paginate(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className={`px-3 py-2 rounded-lg text-sm ${
+                    className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm ${
                       currentPage === 1
                         ? 'bg-gray-800/50 text-gray-500 cursor-not-allowed'
                         : 'bg-gray-800/80 text-white hover:bg-purple-600/70'
                     }`}
                   >
-                    Précédent
+                    <span className="hidden sm:inline">Précédent</span>
+                    <span className="sm:hidden">Préc.</span>
                   </button>
 
                   {/* Numéros de page */}
@@ -759,7 +768,7 @@ export default function EventsPage() {
                         <button
                           key={pageNumber}
                           onClick={() => paginate(pageNumber)}
-                          className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm ${
+                          className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center text-xs sm:text-sm ${
                             currentPage === pageNumber
                               ? 'bg-gradient-to-r from-purple-600 to-purple-800 text-white font-semibold'
                               : 'bg-gray-800/80 text-white hover:bg-gray-700/80'
@@ -776,7 +785,7 @@ export default function EventsPage() {
                       return (
                         <span
                           key={pageNumber}
-                          className="w-10 h-10 flex items-center justify-center text-gray-400"
+                          className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-gray-400 text-xs sm:text-sm"
                         >
                           ...
                         </span>
@@ -789,7 +798,7 @@ export default function EventsPage() {
                   <button
                     onClick={() => paginate(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                    className={`px-3 py-2 rounded-lg text-sm ${
+                    className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm ${
                       currentPage === totalPages
                         ? 'bg-gray-800/50 text-gray-500 cursor-not-allowed'
                         : 'bg-gray-800/80 text-white hover:bg-purple-600/70'

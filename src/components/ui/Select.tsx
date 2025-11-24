@@ -20,7 +20,7 @@ export const Select: React.FC<SelectProps> = ({ options, className = '', ...prop
       <select
         className={cn(
           'block w-full appearance-none rounded-lg border text-sm transition-all duration-200 ease-in-out',
-          'px-4 py-2.5 pr-10',
+          'pl-4 pr-10 py-2.5',
           'bg-gray-800/80 text-gray-100 border-gray-700',
           'focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500',
           'hover:bg-gray-800 hover:border-gray-600',

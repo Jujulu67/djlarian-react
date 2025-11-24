@@ -46,7 +46,8 @@ Marquez ces variables comme **"Encrypt"** (Secret) :
 - ✅ `GOOGLE_CLIENT_SECRET` - Si utilisé
 - ✅ `TWITCH_CLIENT_SECRET` - Si utilisé
 - ✅ `SPOTIFY_CLIENT_SECRET` - Secret Spotify pour l'API (auto-détection des releases)
-- ✅ `VERCEL_TOKEN` - Token d'accès API Vercel (pour récupérer les stats Analytics/Speed Insights)
+- ✅ `INSTAGRAM_APP_SECRET` - Secret Instagram pour l'API (intégration galerie)
+- ✅ `INSTAGRAM_ACCESS_TOKEN` - Token d'accès long-lived Instagram (intégration galerie)
 - ✅ `VERCEL_TOKEN` - Token d'accès API Vercel (pour récupérer les stats Analytics/Speed Insights)
 
 ### Variables Non-Secrètes (pas besoin d'encrypt)
@@ -56,9 +57,12 @@ Marquez ces variables comme **"Encrypt"** (Secret) :
 - `R2_ACCESS_KEY_ID` - Public (mais peut être encrypté par précaution)
 - `R2_BUCKET_NAME` - Public
 - `NODE_ENV` - Public
+- `AWS_LAMBDA_JS_RUNTIME` - Runtime Lambda pour Puppeteer/Chromium (⚠️ REQUIS pour auto-détection SoundCloud, valeur: `nodejs22.x`)
 - `TWITCH_CLIENT_ID` - Public (pour vérifier le statut du stream)
 - `NEXT_PUBLIC_*` - Toutes les variables publiques
 - `SPOTIFY_ARTIST_ID` - ID de l'artiste Spotify (optionnel, peut être configuré dans l'UI)
+- `INSTAGRAM_APP_ID` - ID de l'application Instagram (intégration galerie)
+- `INSTAGRAM_USER_ID` - ID du compte Instagram Business (intégration galerie)
 - `MUSICBRAINZ_USER_AGENT` - User-Agent pour MusicBrainz (requis, format: "AppName/Version (contact@email.com)")
 - `VERCEL_PROJECT_NAME` - Nom du projet Vercel (recommandé, ex: `djlarian-react`)
 - `VERCEL_TEAM_SLUG` - Slug de l'équipe Vercel (recommandé, ex: `larians-projects-a2dc5026`)
@@ -122,6 +126,16 @@ openssl rand -base64 32
 
 **Valeur** : `production`
 
+### 7b. AWS_LAMBDA_JS_RUNTIME (Non-secret, ⚠️ REQUIS pour auto-détection SoundCloud)
+
+**⚠️ IMPORTANT** : Cette variable est **requise** pour que Puppeteer/Chromium fonctionne correctement sur Vercel avec Node.js 22.
+
+**Valeur** : `nodejs22.x`
+
+**Où configurer** : Vercel Dashboard → Settings → Environment Variables
+
+**Note** : Sans cette variable, l'auto-détection SoundCloud échouera avec l'erreur "The input directory does not exist"
+
 ### 8. SPOTIFY_CLIENT_ID (Non-secret, mais sensible)
 
 **Où trouver** : Spotify Developer Dashboard → https://developer.spotify.com/dashboard
@@ -154,7 +168,67 @@ openssl rand -base64 32
 
 **Note** : Optionnel, peut être configuré directement dans l'interface admin
 
-### 11. MUSICBRAINZ_USER_AGENT (Non-secret, requis)
+### 11. INSTAGRAM_APP_ID (Non-secret, optionnel)
+
+**Où trouver** : Facebook Developers → https://developers.facebook.com/
+
+1. Créer une nouvelle app Facebook (ou utiliser une existante)
+2. Ajouter le produit "Instagram Graph API"
+3. Dans les paramètres de l'app, copier l'App ID
+
+**Valeur** : Votre App ID Instagram (ex: `1234567890123456`)
+
+**Note** : Optionnel, nécessaire uniquement si vous voulez intégrer les posts Instagram dans la galerie
+
+### 12. INSTAGRAM_APP_SECRET (Secret)
+
+**Où trouver** : Facebook Developers → votre app → Settings → Basic
+
+1. Cliquer sur "Show" à côté de "App Secret"
+2. Copier le secret
+
+**Valeur** : Votre App Secret Instagram
+
+**⚠️ IMPORTANT** : Cocher "Encrypt" !
+
+**Note** : Optionnel, nécessaire uniquement si vous voulez intégrer les posts Instagram dans la galerie
+
+### 13. INSTAGRAM_ACCESS_TOKEN (Secret)
+
+**Où trouver** : Facebook Graph API Explorer → https://developers.facebook.com/tools/explorer/
+
+1. Sélectionner votre app Instagram
+2. Sélectionner l'utilisateur Instagram Business
+3. Générer un token d'accès
+4. **Important** : Convertir en token long-lived (60 jours) :
+   - Utiliser l'endpoint : `GET /oauth/access_token?grant_type=fb_exchange_token&client_id={app-id}&client_secret={app-secret}&fb_exchange_token={short-lived-token}`
+   - Ou utiliser le processus OAuth complet pour obtenir directement un long-lived token
+
+**Valeur** : Votre token d'accès long-lived Instagram
+
+**⚠️ IMPORTANT** : Cocher "Encrypt" !
+
+**Note** : Optionnel, nécessaire uniquement si vous voulez intégrer les posts Instagram dans la galerie. Le token doit avoir les permissions `instagram_basic` et `instagram_content_publish` (si nécessaire).
+
+### 14. INSTAGRAM_USER_ID (Non-secret, optionnel)
+
+**Où trouver** : Facebook Graph API Explorer
+
+1. Utiliser l'endpoint : `GET /me/accounts` pour obtenir les pages Facebook
+2. Pour chaque page, utiliser : `GET /{page-id}?fields=instagram_business_account` pour obtenir l'ID Instagram Business
+3. L'ID Instagram Business est l'`INSTAGRAM_USER_ID` à utiliser
+
+**Valeur** : Votre Instagram Business Account ID (ex: `17841405309211844`)
+
+**Note** : Optionnel, nécessaire uniquement si vous voulez intégrer les posts Instagram dans la galerie. Le compte Instagram doit être un compte Business ou Creator connecté à une page Facebook.
+
+**Prérequis** :
+
+- Compte Instagram Business ou Creator
+- Page Facebook associée au compte Instagram
+- App Facebook avec Instagram Graph API activé
+
+### 15. MUSICBRAINZ_USER_AGENT (Non-secret, requis)
 
 **Format** : `AppName/Version (contact@email.com)`
 
@@ -162,7 +236,7 @@ openssl rand -base64 32
 
 **Note** : MusicBrainz exige un User-Agent valide pour toutes les requêtes
 
-### 12. LASTFM_API_KEY (Non-secret, optionnel)
+### 16. LASTFM_API_KEY (Non-secret, optionnel)
 
 **Où trouver** : https://www.last.fm/api/account/create
 
@@ -173,7 +247,7 @@ openssl rand -base64 32
 
 **Note** : Optionnel, l'enrichissement fonctionnera sans mais sera moins complet
 
-### 13. GOOGLE_SEARCH_API_KEY (Non-secret, optionnel)
+### 17. GOOGLE_SEARCH_API_KEY (Non-secret, optionnel)
 
 **Où trouver** : Google Cloud Console
 
@@ -221,7 +295,7 @@ openssl rand -base64 32
 
 **Note** : Optionnel, la recherche SoundCloud fonctionnera sans mais retournera `null` (pas de faux liens 404)
 
-### 14. Sentry - Error Tracking (Optionnel)
+### 18. Sentry - Error Tracking (Optionnel)
 
 **Pourquoi** : Suivi des erreurs en production pour améliorer la stabilité de l'application
 

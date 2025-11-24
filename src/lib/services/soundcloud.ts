@@ -129,16 +129,50 @@ async function loadPuppeteer(): Promise<PuppeteerLike | null> {
             launch: async (options: LaunchOptions = {}) => {
               try {
                 logger.debug('[SOUNDCLOUD] Lancement de Chromium...');
-                const executablePath = await chromiumTyped.default.executablePath();
-                logger.debug('[SOUNDCLOUD] Chemin exécutable Chromium obtenu:', executablePath);
 
-                const browser = await puppeteerCoreTyped.default.launch({
-                  args: chromiumTyped.default.args,
+                // Obtenir le chemin exécutable avec gestion d'erreur améliorée
+                let executablePath: string | undefined;
+                try {
+                  executablePath = await chromiumTyped.default.executablePath();
+                  logger.debug('[SOUNDCLOUD] Chemin exécutable Chromium obtenu:', executablePath);
+                } catch (execPathError) {
+                  logger.error(
+                    '[SOUNDCLOUD] Erreur lors de la récupération du chemin exécutable:',
+                    {
+                      error:
+                        execPathError instanceof Error
+                          ? execPathError.message
+                          : String(execPathError),
+                    }
+                  );
+                  // Si le chemin ne peut pas être obtenu, on essaiera sans executablePath explicite
+                  // puppeteer-core pourra peut-être trouver Chromium automatiquement
+                  logger.warn('[SOUNDCLOUD] Continuation sans executablePath explicite...');
+                  executablePath = undefined;
+                }
+
+                // Configuration de lancement avec args Chromium
+                const launchConfig: LaunchOptions = {
+                  args: [
+                    ...chromiumTyped.default.args,
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-accelerated-2d-canvas',
+                    '--disable-gpu',
+                    '--single-process',
+                  ],
                   defaultViewport: chromiumTyped.default.defaultViewport,
-                  executablePath,
                   headless: chromiumTyped.default.headless,
                   ...options,
-                });
+                };
+
+                // Ajouter executablePath seulement s'il est valide
+                if (executablePath) {
+                  launchConfig.executablePath = executablePath;
+                }
+
+                const browser = await puppeteerCoreTyped.default.launch(launchConfig);
 
                 logger.debug('[SOUNDCLOUD] Chromium lancé avec succès');
                 return browser;

@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import { Player } from './gameEngine';
 import styles from './styles.module.css';
@@ -15,6 +15,9 @@ const ScorePanel: React.FC<ScorePanelProps> = ({ player, isActive }) => {
   const [displayScore, setDisplayScore] = useState(player.score);
   const [isScoreIncreasing, setIsScoreIncreasing] = useState(false);
   const [scoreChange, setScoreChange] = useState<{ value: number; timestamp: number } | null>(null);
+  const [lastPlayerScore, setLastPlayerScore] = useState(player.score);
+  const [displayCombo, setDisplayCombo] = useState(player.combo);
+  const comboTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Formater les grands nombres avec K et M
   const formatScore = (value: number): string => {
@@ -49,33 +52,101 @@ const ScorePanel: React.FC<ScorePanelProps> = ({ player, isActive }) => {
     }
   }, [player.score, displayScore]);
 
-  // Affiche les changements de score
+  // Gère l'affichage du combo avec un délai avant de disparaître
   useEffect(() => {
-    if (player.score > displayScore + 5) {
-      setScoreChange({ value: player.score - displayScore, timestamp: Date.now() });
+    // Si le combo augmente, met à jour immédiatement
+    if (player.combo > displayCombo) {
+      setDisplayCombo(player.combo);
+      // Annule le timeout précédent si le combo augmente
+      if (comboTimeoutRef.current) {
+        clearTimeout(comboTimeoutRef.current);
+        comboTimeoutRef.current = null;
+      }
+    } else if (player.combo === 0 && displayCombo > 0) {
+      // Si le combo est réinitialisé mais qu'on affichait encore un combo,
+      // attendre 2 secondes avant de le cacher
+      if (comboTimeoutRef.current) {
+        clearTimeout(comboTimeoutRef.current);
+      }
+      comboTimeoutRef.current = setTimeout(() => {
+        setDisplayCombo(0);
+        comboTimeoutRef.current = null;
+      }, 2000); // 2 secondes de délai avant de cacher le combo
+    } else if (player.combo === 0 && displayCombo === 0 && comboTimeoutRef.current) {
+      // Si le combo est déjà à 0, annule le timeout
+      clearTimeout(comboTimeoutRef.current);
+      comboTimeoutRef.current = null;
+    }
 
-      const timer = setTimeout(() => {
+    return () => {
+      if (comboTimeoutRef.current) {
+        clearTimeout(comboTimeoutRef.current);
+        comboTimeoutRef.current = null;
+      }
+    };
+  }, [player.combo, displayCombo]);
+
+  // Affiche les changements de score - basé sur le changement réel du score du joueur
+  useEffect(() => {
+    // Calcule le changement réel du score (pas basé sur displayScore qui s'anime)
+    const actualScoreChange = player.score - lastPlayerScore;
+
+    // Nettoie le timer précédent si nécessaire
+    let timer: NodeJS.Timeout | null = null;
+
+    if (actualScoreChange > 5) {
+      // Nouveau gain de score significatif - remplace l'ancien si existant
+      setScoreChange({ value: actualScoreChange, timestamp: Date.now() });
+      setLastPlayerScore(player.score);
+
+      timer = setTimeout(() => {
         setScoreChange(null);
       }, 1000);
+    } else if (actualScoreChange < 0 || player.score < lastPlayerScore) {
+      // Le score a diminué ou changé, réinitialise immédiatement
+      setScoreChange(null);
+      setLastPlayerScore(player.score);
+    } else if (actualScoreChange === 0) {
+      // Pas de changement, met à jour lastPlayerScore pour éviter les faux positifs
+      setLastPlayerScore(player.score);
 
-      return () => clearTimeout(timer);
+      // Si scoreChange existe, vérifie s'il doit être supprimé après 1 seconde
+      if (scoreChange) {
+        const timeSinceChange = Date.now() - scoreChange.timestamp;
+        if (timeSinceChange > 1000) {
+          setScoreChange(null);
+        } else {
+          // Programme la suppression si le temps n'est pas encore écoulé
+          timer = setTimeout(() => {
+            setScoreChange(null);
+          }, 1000 - timeSinceChange);
+        }
+      }
     }
-  }, [player.score, displayScore]);
 
-  // Calcule le pourcentage de précision
+    return () => {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
+  }, [player.score, lastPlayerScore, scoreChange]);
+
+  // Calcule le pourcentage de précision en incluant les misses (clics ratés + patterns manqués)
   const totalHits = player.perfectHits + player.goodHits + player.okHits;
+  const totalMisses = player.missHits + player.missedPatterns;
+  const totalAttempts = totalHits + totalMisses;
   const accuracyScore =
-    totalHits > 0
+    totalAttempts > 0
       ? Math.round(
           ((player.perfectHits * 100 + player.goodHits * 70 + player.okHits * 40) /
-            (totalHits * 100)) *
+            (totalAttempts * 100)) *
             100
         )
       : 0;
 
-  // Détermine le rang en fonction de la précision
+  // Détermine le rang en fonction de la précision (avec misses)
   const getRank = (): string => {
-    if (player.totalNotes === 0) return 'D';
+    if (totalAttempts === 0) return 'D';
     if (accuracyScore >= 95) return 'S';
     if (accuracyScore >= 85) return 'A';
     if (accuracyScore >= 70) return 'B';
@@ -102,30 +173,32 @@ const ScorePanel: React.FC<ScorePanelProps> = ({ player, isActive }) => {
 
   return (
     <div className={styles.scorePanel}>
-      {/* Score principal */}
+      {/* Score principal - sur mobile: score à gauche, combo au milieu, meilleur score à droite */}
       <div className={styles.mainScore}>
+        {/* Score à gauche */}
         <div className={styles.scoreValue}>
           {formatScore(displayScore)}
           {isScoreIncreasing && <span className={styles.scoreIncreasing}>+</span>}
         </div>
+
+        {/* Combo au milieu */}
+        {displayCombo > 1 && (
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.8, opacity: 0 }}
+            className={styles.combo}
+          >
+            {displayCombo}x Combo
+          </motion.div>
+        )}
+
+        {/* Meilleur score à droite */}
+        <div className={styles.highScore}>Meilleur: {formatScore(player.highScore)}</div>
       </div>
 
-      {/* Combo */}
-      {player.combo > 1 && (
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className={styles.combo}
-        >
-          {player.combo}x Combo
-        </motion.div>
-      )}
-
-      {/* Meilleur score */}
-      <div className={styles.highScore}>Meilleur: {formatScore(player.highScore)}</div>
-
-      {/* Statistiques de précision - visible uniquement si le jeu est actif */}
-      {isActive && player.totalNotes > 0 && (
+      {/* Statistiques de précision - visible dès que le jeu est actif */}
+      {isActive && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -133,23 +206,32 @@ const ScorePanel: React.FC<ScorePanelProps> = ({ player, isActive }) => {
           className={styles.statsPanel}
         >
           <div className={styles.statRow}>
-            <span>Parfait:</span>
-            <span className="text-yellow-400">{player.perfectHits}</span>
+            <span>Parfait</span>
+            <span style={{ color: '#facc15' }}>{player.perfectHits}</span>
           </div>
           <div className={styles.statRow}>
-            <span>Bon:</span>
-            <span className="text-green-400">{player.goodHits}</span>
+            <span>Bon</span>
+            <span style={{ color: '#4ade80' }}>{player.goodHits}</span>
           </div>
           <div className={styles.statRow}>
-            <span>OK:</span>
-            <span className="text-blue-400">{player.okHits}</span>
-          </div>
-          <div className={`${styles.statRow} ${styles.statDivider}`}>
-            <span>Précision:</span>
-            <span>{accuracyScore}%</span>
+            <span>OK</span>
+            <span style={{ color: '#60a5fa' }}>{player.okHits}</span>
           </div>
           <div className={styles.statRow}>
-            <span>Rang:</span>
+            <span>Miss (clics)</span>
+            <span style={{ color: '#ef4444' }}>{player.missHits}</span>
+          </div>
+          <div className={styles.statRow}>
+            <span>Miss (boules)</span>
+            <span style={{ color: '#f87171' }}>{player.missedPatterns}</span>
+          </div>
+          {/* Précision et rang affichés sur mobile aussi */}
+          <div className={`${styles.statRow} ${styles.desktopOnly}`}>
+            <span>Précision</span>
+            <span style={{ color: '#c084fc' }}>{accuracyScore}%</span>
+          </div>
+          <div className={styles.statRow}>
+            <span>Rang</span>
             <span className={`${styles.rank} ${getRankColor()}`}>{getRank()}</span>
           </div>
         </motion.div>

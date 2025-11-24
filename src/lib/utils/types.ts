@@ -84,3 +84,13 @@ export interface GalleryItem {
   date: string;
   description?: string;
 }
+
+export interface InstagramPost {
+  id: string;
+  mediaUrl: string;
+  caption?: string;
+  timestamp: string;
+  permalink: string;
+  mediaType: 'IMAGE' | 'VIDEO' | 'CAROUSEL_ALBUM';
+  thumbnailUrl?: string;
+}

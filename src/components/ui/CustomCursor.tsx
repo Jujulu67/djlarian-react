@@ -18,7 +18,10 @@ const CustomCursor = () => {
     const handleVisibilityChange = () => {
       const isSoundActive = document.documentElement.classList.contains('custom-cursor-active');
       const isOverVisualizer = document.documentElement.classList.contains('over-visualizer');
-      isVisibleRef.current = isSoundActive || isOverVisualizer;
+      const isRhythmCatcherActive =
+        document.documentElement.classList.contains('rhythm-catcher-active');
+      // Masque le curseur si RhythmCatcher est actif (il a son propre curseur)
+      isVisibleRef.current = (isSoundActive || isOverVisualizer) && !isRhythmCatcherActive;
       cursor.style.display = isVisibleRef.current ? 'block' : 'none';
     };
 

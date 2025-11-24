@@ -223,9 +223,57 @@ export default function HomePage() {
     }
   }, [configData, configLoading, configError]);
 
+  // Référence pour la section visualizer pour le scroll automatique
+  const visualizerSectionRef = useRef<HTMLElement | null>(null);
+
   const handleExperienceClick = () => {
     setIsSoundActive((prev) => !prev);
   };
+
+  // Scroll automatique vers le canvas du jeu quand il est lancé (sur mobile uniquement)
+  useEffect(() => {
+    if (isSoundActive && isMobile) {
+      let retryCount = 0;
+      const maxRetries = 15;
+
+      const scrollToGame = () => {
+        // Cherche le conteneur du jeu
+        const gameContainer = document.getElementById('game-container') as HTMLElement;
+
+        if (gameContainer) {
+          // Attendre que le canvas soit rendu
+          const canvas = gameContainer.querySelector('.canvasContainer') as HTMLElement;
+
+          if (canvas || retryCount >= 5) {
+            // Scroll vers le haut du conteneur (qui sera en position fixed)
+            // Comme le conteneur est fixed, on scroll juste en haut de la page
+            window.scrollTo({
+              top: 0,
+              behavior: 'smooth',
+            });
+
+            // Fallback : forcer le scroll si smooth ne fonctionne pas
+            setTimeout(() => {
+              if (window.pageYOffset > 10) {
+                window.scrollTo(0, 0);
+              }
+            }, 500);
+          } else if (retryCount < maxRetries) {
+            retryCount++;
+            setTimeout(scrollToGame, 200);
+          }
+        } else if (retryCount < maxRetries) {
+          retryCount++;
+          setTimeout(scrollToGame, 200);
+        }
+      };
+
+      // Délai initial pour laisser le composant dynamique se charger et se positionner en fixed
+      const timeout = setTimeout(scrollToGame, 1200);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [isSoundActive, isMobile]);
 
   useEffect(() => {
     if (isSoundActive) {
@@ -682,7 +730,10 @@ export default function HomePage() {
     const currentConfig = config || defaultConfigs.homepage;
 
     return (
-      <section className="py-20 relative overflow-hidden">
+      <section
+        ref={visualizerSectionRef}
+        className={`${isMobile && !isSoundActive ? 'py-10' : isMobile ? 'py-0' : 'py-20'} relative ${isMobile ? 'overflow-visible' : 'overflow-hidden'}`}
+      >
         {/* Animated Gradient Background - optimisé pour mobile */}
         <div className="absolute inset-0 bg-gradient-to-b from-black via-purple-900/10 to-black">
           <div
@@ -722,7 +773,9 @@ export default function HomePage() {
             whileInView={isMobile ? { opacity: 1, scale: 1 } : { opacity: 1, scale: 1 }}
             viewport={{ once: true, margin: '-50px' }}
             transition={isMobile ? { duration: 0.3, ease: 'easeOut' } : { duration: 0.8 }}
-            className={`relative w-full aspect-[2/1] rounded-2xl overflow-hidden glass-modern border-2 border-purple-500/30 shadow-2xl ${isMobile ? '' : 'animate-glow-border'}`}
+            className={`relative w-full ${isMobile ? 'min-h-[30vh]' : 'aspect-[2/1]'} ${isMobile ? 'overflow-visible' : 'overflow-hidden'} rounded-2xl glass-modern border-2 border-purple-500/30 shadow-2xl ${isMobile ? '' : 'animate-glow-border'} ${isSoundActive && isMobile ? 'fixed top-0 left-0 right-0 z-[100] h-screen rounded-none border-0' : ''}`}
+            id="game-container"
+            style={isMobile && !isSoundActive ? { scrollMarginTop: '80px' } : undefined}
           >
             <AnimatePresence mode="wait">
               <motion.div
@@ -741,7 +794,7 @@ export default function HomePage() {
                         ease: [0.4, 0, 0.2, 1],
                       }
                 }
-                className="w-full h-full absolute inset-0"
+                className={`w-full ${isMobile ? 'relative min-h-[30vh]' : 'absolute inset-0 h-full'}`}
               >
                 {waveformAnimationReady &&
                   (isSoundActive ? (
@@ -757,11 +810,41 @@ export default function HomePage() {
     );
   };
 
+  // Désactiver le scroll global quand le jeu est actif (sur mobile)
+  // Délai pour laisser le scroll automatique se faire d'abord
+  useEffect(() => {
+    if (isMobile && isSoundActive) {
+      // Attendre que le scroll automatique soit terminé avant de désactiver le scroll
+      const disableScrollTimeout = setTimeout(() => {
+        // Sauvegarder la position de scroll actuelle
+        const scrollY = window.scrollY;
+        // Désactiver le scroll
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${scrollY}px`;
+        document.body.style.width = '100%';
+        document.body.style.overflow = 'hidden';
+      }, 1000); // Délai plus long pour laisser le scroll automatique se terminer (300ms + 700ms de marge)
+
+      return () => {
+        clearTimeout(disableScrollTimeout);
+        // Réactiver le scroll
+        const bodyTop = document.body.style.top;
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        document.body.style.overflow = '';
+        if (bodyTop) {
+          window.scrollTo(0, parseInt(bodyTop || '0') * -1);
+        }
+      };
+    }
+  }, [isMobile, isSoundActive]);
+
   return (
     <>
       <ScrollProgress />
       <div className="scroll-snap-container">{renderSections()}</div>
-      <ScrollToTop />
+      {!isSoundActive && <ScrollToTop />}
     </>
   );
 }
