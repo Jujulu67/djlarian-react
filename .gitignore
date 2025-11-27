@@ -56,7 +56,10 @@ Thumbs.db
 mongod-*
 
 # Database backups (trop volumineux pour git)
+# Ignorer les fichiers SQL sauf les migrations Prisma
 *.sql
+!prisma/migrations/
+!prisma/migrations/**/*.sql
 backup.sql
 
 # Other websites folder

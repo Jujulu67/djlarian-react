@@ -1,0 +1,247 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+  // Configuration standard pour Vercel (Node.js runtime)
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Account {
+  id                String  @id
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  User              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Event {
+  id               String            @id @default(uuid())
+  title            String
+  description      String?
+  location         String
+  address          String?
+  startDate        DateTime
+  endDate          DateTime?
+  imageId          String?
+  status           String            @default("UPCOMING")
+  isPublished      Boolean           @default(false)
+  publishAt        DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  featured         Boolean           @default(false)
+  isMasterEvent    Boolean           @default(false)
+  masterId         String?
+  userId           String?
+  Event            Event?            @relation("EventToEvent", fields: [masterId], references: [id], onDelete: Cascade)
+  other_Event      Event[]           @relation("EventToEvent")
+  User             User?             @relation(fields: [userId], references: [id])
+  RecurrenceConfig RecurrenceConfig?
+  TicketInfo       TicketInfo?
+}
+
+model Genre {
+  id             String           @id @default(uuid())
+  name           String           @unique
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  GenresOnTracks GenresOnTracks[]
+}
+
+model GenresOnTracks {
+  trackId    String
+  genreId    String
+  assignedAt DateTime @default(now())
+  Genre      Genre    @relation(fields: [genreId], references: [id], onDelete: Cascade)
+  Track      Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  @@id([trackId, genreId])
+}
+
+model MusicCollection {
+  id          String    @id
+  title       String
+  description String?
+  coverUrl    String?
+  releaseDate DateTime?
+  type        String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime
+  Track       Track[]
+}
+
+model RecurrenceConfig {
+  id            String    @id @default(uuid())
+  frequency     String    @default("weekly")
+  day           Int?
+  endDate       DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  eventId       String    @unique
+  excludedDates Json?
+  Event         Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+model Session {
+  id           String   @id
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  User         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model TicketInfo {
+  id            String    @id
+  eventId       String    @unique
+  price         Float?
+  currency      String    @default("EUR")
+  buyUrl        String?
+  availableFrom DateTime?
+  availableTo   DateTime?
+  quantity      Int?
+  Event         Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+model Track {
+  id              String           @id @default(uuid())
+  title           String
+  artist          String
+  imageId         String?
+  releaseDate     DateTime
+  bpm             Int?
+  musicalKey      String?
+  description     String?
+  type            String
+  featured        Boolean          @default(false)
+  isPublished     Boolean          @default(true)
+  publishAt       DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  userId          String?
+  collectionId    String?
+  GenresOnTracks  GenresOnTracks[]
+  MusicCollection MusicCollection? @relation(fields: [collectionId], references: [id])
+  User            User?            @relation(fields: [userId], references: [id])
+  TrackPlatform   TrackPlatform[]
+}
+
+model TrackPlatform {
+  id        String   @id
+  platform  String
+  url       String
+  embedId   String?
+  trackId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  Track     Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id             String    @id @default(cuid())
+  name           String?
+  email          String?   @unique
+  emailVerified  DateTime?
+  image          String?
+  hashedPassword String?
+  role           String?   @default("USER")
+  isVip          Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  Account        Account[]
+  Event          Event[]
+  Session        Session[]
+  Track          Track[]
+  Project        Project[]
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model SiteConfig {
+  id            String          @id @default(cuid())
+  section       String // 'general', 'appearance', 'notifications', 'security', 'api'
+  key           String
+  value         String
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  ConfigHistory ConfigHistory[]
+
+  @@unique([section, key])
+}
+
+model ConfigHistory {
+  id            String     @id @default(cuid())
+  configId      String
+  previousValue String
+  newValue      String
+  createdAt     DateTime   @default(now())
+  createdBy     String?
+  description   String?
+  reverted      Boolean    @default(false)
+  config        SiteConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+}
+
+model ConfigSnapshot {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  data        Json
+  createdAt   DateTime @default(now())
+  createdBy   String?
+}
+
+model Image {
+  id           String   @id @default(uuid())
+  imageId      String   @unique // L'UUID de l'image (sans extension)
+  blobUrl      String?  // URL complète du blob pour l'image recadrée
+  blobUrlOriginal String? // URL complète du blob pour l'image originale (-ori)
+  size         Int?     // Taille en bytes
+  contentType  String?  // Type MIME
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([imageId])
+}
+
+// Gestion de projets musicaux - suivi des IDs et releases
+model Project {
+  id           String    @id @default(uuid())
+  userId       String
+  order        Int       @default(0) // Ordre d'affichage pour le drag-and-drop
+  name         String    // Nom du projet
+  style        String?   // Genre musical (House, Techno, etc.)
+  status       String    @default("EN_COURS") // TERMINE, EN_COURS, ANNULE, A_REWORK, GHOST_PRODUCTION
+  collab       String?   // Collaborateurs
+  label        String?   // Label ciblé
+  labelFinal   String?   // Label final (si signé)
+  releaseDate  DateTime? // Date de sortie
+  externalLink String?   // Lien vers SoundCloud, Spotify, etc.
+  streamsJ7    Int?      // Streams à J+7
+  streamsJ14   Int?      // Streams à J+14
+  streamsJ21   Int?      // Streams à J+21
+  streamsJ28   Int?      // Streams à J+28
+  streamsJ56   Int?      // Streams à J+56
+  streamsJ84   Int?      // Streams à J+84
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  User         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+}

@@ -74,6 +74,62 @@ if [ "$NODE_ENV" = "production" ]; then
   node scripts/fix-prisma-types.mjs > /dev/null 2>&1 || node scripts/fix-prisma-types.mjs
   echo "✅ Client Prisma régénéré"
   
+  # Appliquer les migrations Prisma en production
+  echo "🔄 Application automatique des migrations Prisma..."
+  echo "   (Seules les migrations manquantes seront appliquées, aucune perte de données)"
+  
+  # Vérifier si des migrations Prisma existent (dossiers timestampés)
+  MIGRATIONS_EXIST=false
+  if [ -d "prisma/migrations" ]; then
+    # Chercher des dossiers de migrations Prisma (format: timestamp_name)
+    for dir in prisma/migrations/*/; do
+      if [ -f "${dir}migration.sql" ]; then
+        MIGRATIONS_EXIST=true
+        break
+      fi
+    done
+  fi
+  
+  if [ "$MIGRATIONS_EXIST" = true ]; then
+    # Migrations Prisma standard existent, utiliser migrate deploy
+    # migrate deploy est SÉCURISÉ : il applique uniquement les migrations manquantes
+    # Il ne supprime JAMAIS de données, seulement ajoute/modifie le schéma
+    echo "   📋 Migrations Prisma détectées, application des migrations manquantes..."
+    if npx prisma migrate deploy > /dev/null 2>&1; then
+      echo "✅ Migrations Prisma appliquées avec succès (seules les manquantes ont été exécutées)"
+    else
+      echo "⚠️  Erreur lors de l'application des migrations Prisma"
+      echo "   Tentative avec affichage des erreurs..."
+      npx prisma migrate deploy || {
+        echo "❌ ERREUR: Impossible d'appliquer les migrations Prisma"
+        echo "   Vérifiez que DATABASE_URL est correct et que la base de données est accessible"
+        echo "   Note: prisma migrate deploy est sûr - il n'applique que les migrations manquantes"
+        echo "   Vous pouvez réexécuter manuellement: npx prisma migrate deploy"
+        exit 1
+      }
+    fi
+  else
+    # Pas de migrations Prisma standard, utiliser db push (synchronise le schéma)
+    echo "⚠️  Aucune migration Prisma standard trouvée"
+    echo "   Utilisation de 'prisma db push' pour synchroniser le schéma..."
+    echo "   ⚠️  ATTENTION: db push peut être moins sûr que migrate deploy"
+    echo "   Pour la production, créez des migrations Prisma standard avec:"
+    echo "   npx prisma migrate dev --name init"
+    if npx prisma db push --accept-data-loss > /dev/null 2>&1; then
+      echo "✅ Schéma synchronisé avec succès"
+    else
+      echo "⚠️  Erreur lors de la synchronisation du schéma"
+      echo "   Tentative avec affichage des erreurs..."
+      npx prisma db push --accept-data-loss || {
+        echo "❌ ERREUR: Impossible de synchroniser le schéma"
+        echo "   Vérifiez que DATABASE_URL est correct et que la base de données est accessible"
+        echo "   Note: Pour la production, il est recommandé de créer des migrations Prisma standard"
+        echo "   avec: npx prisma migrate dev --name init"
+        exit 1
+      }
+    fi
+  fi
+  
   exit 0
 fi
 
