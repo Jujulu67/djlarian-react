@@ -123,26 +123,62 @@ if [ "$NODE_ENV" = "production" ]; then
       
       if [ -n "$FAILED_MIGRATION" ]; then
         echo "   🔍 Migration échouée détectée: $FAILED_MIGRATION"
-        echo "   🔄 Tentative de résolution (marquage comme appliquée si les tables existent déjà)..."
+        echo "   🔄 Vérification si les tables existent déjà..."
         
-        # Essayer d'abord de marquer comme appliquée (cas le plus courant : migration partiellement réussie)
-        if npx prisma migrate resolve --applied "$FAILED_MIGRATION" > /dev/null 2>&1; then
-          echo "   ✅ Migration marquée comme appliquée"
-          # Réessayer migrate deploy
-          echo "   🔄 Nouvelle tentative d'application des migrations..."
-          if npx prisma migrate deploy > /dev/null 2>&1; then
-            echo "✅ Migrations Prisma appliquées avec succès"
+        # Vérifier si au moins quelques tables principales existent
+        TABLES_CHECK=$(node scripts/check-tables-exist.mjs 2>/dev/null || echo "0")
+        
+        if [ "$TABLES_CHECK" -gt "2" ]; then
+          # Des tables existent, la migration a probablement réussi partiellement
+          echo "   ✅ Des tables existent déjà ($TABLES_CHECK tables trouvées), la migration semble avoir réussi"
+          echo "   🔧 Marquage de la migration comme appliquée..."
+          if npx prisma migrate resolve --applied "$FAILED_MIGRATION" > /dev/null 2>&1; then
+            echo "   ✅ Migration marquée comme appliquée"
+            # Réessayer migrate deploy
+            echo "   🔄 Nouvelle tentative d'application des migrations..."
+            if npx prisma migrate deploy > /dev/null 2>&1; then
+              echo "✅ Migrations Prisma appliquées avec succès"
+            else
+              echo "⚠️  Erreur persistante après résolution, affichage des détails..."
+              npx prisma migrate deploy || {
+                echo "❌ ERREUR: Impossible d'appliquer les migrations Prisma après résolution"
+                echo "   La migration a été marquée comme appliquée mais migrate deploy échoue toujours"
+                exit 1
+              }
+            fi
           else
-            echo "⚠️  Erreur persistante après résolution, affichage des détails..."
-            npx prisma migrate deploy || {
-              echo "❌ ERREUR: Impossible d'appliquer les migrations Prisma après résolution"
-              echo "   La migration a été marquée comme appliquée mais migrate deploy échoue toujours"
+            echo "   ⚠️  Impossible de marquer comme appliquée, passage au rollback..."
+            # Si marquer comme appliquée échoue, essayer rollback
+            if npx prisma migrate resolve --rolled-back "$FAILED_MIGRATION" > /dev/null 2>&1; then
+              echo "   ✅ Migration marquée comme rollback"
+              # Réessayer migrate deploy
+              echo "   🔄 Nouvelle tentative d'application des migrations..."
+              if npx prisma migrate deploy > /dev/null 2>&1; then
+                echo "✅ Migrations Prisma appliquées avec succès"
+              else
+                echo "⚠️  Erreur persistante après rollback, affichage des détails..."
+                npx prisma migrate deploy || {
+                  echo "❌ ERREUR: Impossible d'appliquer les migrations Prisma"
+                  echo "   Résolvez manuellement avec:"
+                  echo "   npx prisma migrate resolve --applied $FAILED_MIGRATION"
+                  echo "   ou"
+                  echo "   npx prisma migrate resolve --rolled-back $FAILED_MIGRATION"
+                  exit 1
+                }
+              fi
+            else
+              echo "❌ ERREUR: Impossible de résoudre la migration échouée"
+              echo "   Résolvez manuellement avec:"
+              echo "   npx prisma migrate resolve --applied $FAILED_MIGRATION"
+              echo "   ou"
+              echo "   npx prisma migrate resolve --rolled-back $FAILED_MIGRATION"
               exit 1
-            }
+            fi
           fi
         else
-          # Si marquer comme appliquée échoue, essayer rollback
-          echo "   ⚠️  Impossible de marquer comme appliquée, tentative de rollback..."
+          # Aucune table ou très peu, la migration a vraiment échoué
+          echo "   ⚠️  Peu ou pas de tables trouvées ($TABLES_CHECK tables), la migration a vraiment échoué"
+          echo "   🔄 Marquage de la migration comme rollback pour la réappliquer..."
           if npx prisma migrate resolve --rolled-back "$FAILED_MIGRATION" > /dev/null 2>&1; then
             echo "   ✅ Migration marquée comme rollback"
             # Réessayer migrate deploy
