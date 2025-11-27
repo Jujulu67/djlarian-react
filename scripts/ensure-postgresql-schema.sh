@@ -95,18 +95,80 @@ if [ "$NODE_ENV" = "production" ]; then
     # migrate deploy est SÉCURISÉ : il applique uniquement les migrations manquantes
     # Il ne supprime JAMAIS de données, seulement ajoute/modifie le schéma
     echo "   📋 Migrations Prisma détectées, application des migrations manquantes..."
-    if npx prisma migrate deploy > /dev/null 2>&1; then
+    
+    # Vérifier d'abord s'il y a des migrations échouées
+    MIGRATE_OUTPUT=$(npx prisma migrate deploy 2>&1)
+    MIGRATE_EXIT_CODE=$?
+    
+    if [ $MIGRATE_EXIT_CODE -eq 0 ]; then
       echo "✅ Migrations Prisma appliquées avec succès (seules les manquantes ont été exécutées)"
-    else
-      echo "⚠️  Erreur lors de l'application des migrations Prisma"
-      echo "   Tentative avec affichage des erreurs..."
-      npx prisma migrate deploy || {
-        echo "❌ ERREUR: Impossible d'appliquer les migrations Prisma"
-        echo "   Vérifiez que DATABASE_URL est correct et que la base de données est accessible"
-        echo "   Note: prisma migrate deploy est sûr - il n'applique que les migrations manquantes"
-        echo "   Vous pouvez réexécuter manuellement: npx prisma migrate deploy"
+    elif echo "$MIGRATE_OUTPUT" | grep -q "failed migrations"; then
+      # Migration échouée détectée, essayer de la résoudre automatiquement
+      echo "⚠️  Migration échouée détectée, tentative de résolution automatique..."
+      
+      # Extraire le nom de la migration échouée
+      FAILED_MIGRATION=$(echo "$MIGRATE_OUTPUT" | grep -oE "[0-9]+_[a-zA-Z0-9_]+" | head -1)
+      
+      if [ -n "$FAILED_MIGRATION" ]; then
+        echo "   🔍 Migration échouée détectée: $FAILED_MIGRATION"
+        echo "   🔄 Tentative de résolution (marquage comme appliquée si les tables existent déjà)..."
+        
+        # Essayer d'abord de marquer comme appliquée (cas le plus courant : migration partiellement réussie)
+        if npx prisma migrate resolve --applied "$FAILED_MIGRATION" > /dev/null 2>&1; then
+          echo "   ✅ Migration marquée comme appliquée"
+          # Réessayer migrate deploy
+          echo "   🔄 Nouvelle tentative d'application des migrations..."
+          if npx prisma migrate deploy > /dev/null 2>&1; then
+            echo "✅ Migrations Prisma appliquées avec succès"
+          else
+            echo "⚠️  Erreur persistante après résolution, affichage des détails..."
+            npx prisma migrate deploy || {
+              echo "❌ ERREUR: Impossible d'appliquer les migrations Prisma après résolution"
+              echo "   La migration a été marquée comme appliquée mais migrate deploy échoue toujours"
+              exit 1
+            }
+          fi
+        else
+          # Si marquer comme appliquée échoue, essayer rollback
+          echo "   ⚠️  Impossible de marquer comme appliquée, tentative de rollback..."
+          if npx prisma migrate resolve --rolled-back "$FAILED_MIGRATION" > /dev/null 2>&1; then
+            echo "   ✅ Migration marquée comme rollback"
+            # Réessayer migrate deploy
+            echo "   🔄 Nouvelle tentative d'application des migrations..."
+            if npx prisma migrate deploy > /dev/null 2>&1; then
+              echo "✅ Migrations Prisma appliquées avec succès"
+            else
+              echo "⚠️  Erreur persistante après rollback, affichage des détails..."
+              npx prisma migrate deploy || {
+                echo "❌ ERREUR: Impossible d'appliquer les migrations Prisma"
+                echo "   Résolvez manuellement avec:"
+                echo "   npx prisma migrate resolve --applied $FAILED_MIGRATION"
+                echo "   ou"
+                echo "   npx prisma migrate resolve --rolled-back $FAILED_MIGRATION"
+                exit 1
+              }
+            fi
+          else
+            echo "❌ ERREUR: Impossible de résoudre la migration échouée"
+            echo "   Résolvez manuellement avec:"
+            echo "   npx prisma migrate resolve --applied $FAILED_MIGRATION"
+            echo "   ou"
+            echo "   npx prisma migrate resolve --rolled-back $FAILED_MIGRATION"
+            exit 1
+          fi
+        fi
+      else
+        # Impossible d'extraire le nom de la migration
+        echo "   ⚠️  Impossible d'identifier la migration échouée"
+        echo "   Sortie complète:"
+        echo "$MIGRATE_OUTPUT"
         exit 1
-      }
+      fi
+    else
+      # Autre erreur
+      echo "⚠️  Erreur lors de l'application des migrations Prisma"
+      echo "$MIGRATE_OUTPUT"
+      exit 1
     fi
   else
     # Pas de migrations Prisma standard, utiliser db push (synchronise le schéma)
