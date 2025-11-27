@@ -306,6 +306,7 @@ export const EditableCell = ({
   }
 
   const inputClasses = `bg-gray-800/80 border border-purple-500/50 rounded ${isCompact ? 'px-1 py-0.5 text-[10px]' : 'px-2 py-1 text-sm'} text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 w-full`;
+  const inputDateClasses = `bg-gray-800/80 border border-purple-500/50 rounded ${isCompact ? 'px-1 py-0.5 text-[10px]' : 'px-2 py-1 text-sm'} text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50`;
 
   // Mode édition - Input date
   if (type === 'date') {
@@ -317,7 +318,8 @@ export const EditableCell = ({
         onChange={handleChange}
         onBlur={handleSave}
         onKeyDown={handleKeyDown}
-        className={`${inputClasses} ${className}`}
+        className={`${inputDateClasses} ${className}`}
+        style={{ colorScheme: 'dark' }}
         disabled={isSaving}
       />
     );

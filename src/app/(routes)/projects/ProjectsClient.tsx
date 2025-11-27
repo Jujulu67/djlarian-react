@@ -12,6 +12,7 @@ import {
   Download,
 } from 'lucide-react';
 import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 
 import {
   ProjectTable,
@@ -42,6 +43,7 @@ interface FieldFilters {
 }
 
 export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
+  const router = useRouter();
   const [projects, setProjects] = useState<Project[]>(initialProjects);
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'ALL'>('ALL');
   const [isLoading, setIsLoading] = useState(false);
@@ -291,6 +293,10 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
       console.error("Erreur lors de l'export:", error);
       alert("Erreur lors de l'export Excel");
     }
+  };
+
+  const handleStatistics = () => {
+    router.push('/projects/statistics');
   };
 
   const handleSort = (field: SortField) => {
@@ -670,6 +676,7 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
         sortDirection={sortDirection}
         onSort={handleSort}
         onRefresh={fetchProjects}
+        onStatistics={handleStatistics}
         onImport={() => setIsImportDialogOpen(true)}
         onExport={handleExportExcel}
         onPurge={handlePurge}
