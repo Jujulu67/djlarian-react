@@ -67,12 +67,12 @@ if [ "$NODE_ENV" = "production" ]; then
     echo "✅ BLOB_READ_WRITE_TOKEN est configuré (production utilisera Vercel Blob)"
   fi
   
-  # Toujours régénérer le client Prisma en production pour s'assurer qu'il correspond au schéma
-  echo "🔄 Régénération du client Prisma pour la production..."
+  # Régénérer le client Prisma AVANT les migrations (pour avoir un client de base)
+  echo "🔄 Régénération initiale du client Prisma..."
   npx prisma generate > /dev/null 2>&1 || npx prisma generate
   # Corriger les fichiers default.js et default.mjs pour Prisma 7
   node scripts/fix-prisma-types.mjs > /dev/null 2>&1 || node scripts/fix-prisma-types.mjs
-  echo "✅ Client Prisma régénéré"
+  echo "✅ Client Prisma régénéré (pré-migration)"
   
   # Appliquer les migrations Prisma en production
   echo "🔄 Application automatique des migrations Prisma..."
@@ -95,185 +95,16 @@ if [ "$NODE_ENV" = "production" ]; then
     # migrate deploy est SÉCURISÉ : il applique uniquement les migrations manquantes
     # Il ne supprime JAMAIS de données, seulement ajoute/modifie le schéma
     echo "   📋 Migrations Prisma détectées, application des migrations manquantes..."
-    
-    # Vérifier d'abord s'il y a des migrations échouées
-    # Capturer à la fois stdout et stderr dans un fichier temporaire pour éviter les problèmes de buffering
-    TEMP_MIGRATE_OUTPUT=$(mktemp)
-    if npx prisma migrate deploy > "$TEMP_MIGRATE_OUTPUT" 2>&1; then
-      MIGRATE_EXIT_CODE=0
-      MIGRATE_OUTPUT=$(cat "$TEMP_MIGRATE_OUTPUT")
-      rm -f "$TEMP_MIGRATE_OUTPUT"
-      echo "✅ Migrations Prisma appliquées avec succès (seules les manquantes ont été exécutées)"
-      
-      # Vérifier que les tables principales existent vraiment (protection contre migrations marquées comme applied mais non exécutées)
-      echo "   🔍 Vérification que les tables ont bien été créées..."
-      TABLES_COUNT=$(node scripts/check-tables-exist.mjs 2>/dev/null || echo "0")
-      if [ "$TABLES_COUNT" -lt "2" ]; then
-        echo "   ⚠️  ATTENTION: Seulement $TABLES_COUNT table(s) trouvée(s), les migrations n'ont peut-être pas créé les tables"
-        echo "   🔄 La migration est peut-être marquée comme appliquée mais les tables n'existent pas"
-        echo "   🔧 Tentative de résolution automatique..."
-        
-        # Trouver la migration init
-        INIT_MIGRATION=$(ls -d prisma/migrations/*_init 2>/dev/null | head -1 | xargs basename 2>/dev/null || echo "")
-        if [ -n "$INIT_MIGRATION" ]; then
-          echo "   🔄 Rollback de la migration $INIT_MIGRATION pour la réappliquer..."
-          if npx prisma migrate resolve --rolled-back "$INIT_MIGRATION" > /dev/null 2>&1; then
-            echo "   ✅ Migration marquée comme rollback"
-            echo "   🔄 Réapplication de la migration..."
-            if npx prisma migrate deploy > /dev/null 2>&1; then
-              echo "   ✅ Migration réappliquée"
-              # Vérifier à nouveau
-              TABLES_COUNT=$(node scripts/check-tables-exist.mjs 2>/dev/null || echo "0")
-              if [ "$TABLES_COUNT" -lt "2" ]; then
-                echo "   ❌ ERREUR: Les tables n'existent toujours pas après réapplication"
-                echo "   Vérifiez manuellement avec: node scripts/check-db-tables.mjs"
-                exit 1
-              else
-                echo "   ✅ $TABLES_COUNT tables trouvées, tout est OK"
-              fi
-            else
-              echo "   ❌ ERREUR: Impossible de réappliquer la migration"
-              exit 1
-            fi
-          else
-            echo "   ⚠️  Impossible de rollback, les tables peuvent exister mais avec un autre nom"
-            echo "   Vérifiez manuellement avec: node scripts/check-db-tables.mjs"
-          fi
-        else
-          echo "   ⚠️  Impossible de trouver la migration init"
-          echo "   Vérifiez manuellement avec: node scripts/check-db-tables.mjs"
-        fi
-      else
-        echo "   ✅ $TABLES_COUNT tables trouvées, tout est OK"
-      fi
-      
-      # TEMPORAIRE: Diagnostic détaillé pour voir le décalage
-      echo ""
-      echo "   📊 Diagnostic détaillé de la base de données (temporaire):"
-      node scripts/diagnose-db-schema.mjs 2>&1 | head -100 || echo "   ⚠️  Impossible d'exécuter le diagnostic"
-      echo ""
-    else
-      MIGRATE_EXIT_CODE=$?
-      MIGRATE_OUTPUT=$(cat "$TEMP_MIGRATE_OUTPUT")
-      rm -f "$TEMP_MIGRATE_OUTPUT"
-      
-      # Afficher la sortie pour debug
-      echo "   ⚠️  Sortie de prisma migrate deploy:"
-      echo "$MIGRATE_OUTPUT" | head -20
-      echo ""
-      
-      if echo "$MIGRATE_OUTPUT" | grep -qi "failed migrations\|P3009"; then
-        # Migration échouée détectée, essayer de la résoudre automatiquement
-        echo "⚠️  Migration échouée détectée, tentative de résolution automatique..."
-      
-      # Extraire le nom de la migration échouée
-      FAILED_MIGRATION=$(echo "$MIGRATE_OUTPUT" | grep -oE "[0-9]+_[a-zA-Z0-9_]+" | head -1)
-      
-      if [ -n "$FAILED_MIGRATION" ]; then
-        echo "   🔍 Migration échouée détectée: $FAILED_MIGRATION"
-        echo "   🔄 Vérification si les tables existent déjà..."
-        
-        # Vérifier si au moins quelques tables principales existent
-        TABLES_CHECK=$(node scripts/check-tables-exist.mjs 2>/dev/null || echo "0")
-        
-        if [ "$TABLES_CHECK" -gt "2" ]; then
-          # Des tables existent, la migration a probablement réussi partiellement
-          echo "   ✅ Des tables existent déjà ($TABLES_CHECK tables trouvées), la migration semble avoir réussi"
-          echo "   🔧 Marquage de la migration comme appliquée..."
-          if npx prisma migrate resolve --applied "$FAILED_MIGRATION" > /dev/null 2>&1; then
-            echo "   ✅ Migration marquée comme appliquée"
-            # Réessayer migrate deploy
-            echo "   🔄 Nouvelle tentative d'application des migrations..."
-            if npx prisma migrate deploy > /dev/null 2>&1; then
-              echo "✅ Migrations Prisma appliquées avec succès"
-            else
-              echo "⚠️  Erreur persistante après résolution, affichage des détails..."
-              npx prisma migrate deploy || {
-                echo "❌ ERREUR: Impossible d'appliquer les migrations Prisma après résolution"
-                echo "   La migration a été marquée comme appliquée mais migrate deploy échoue toujours"
-                exit 1
-              }
-            fi
-          else
-            echo "   ⚠️  Impossible de marquer comme appliquée, passage au rollback..."
-            # Si marquer comme appliquée échoue, essayer rollback
-            if npx prisma migrate resolve --rolled-back "$FAILED_MIGRATION" > /dev/null 2>&1; then
-              echo "   ✅ Migration marquée comme rollback"
-              # Réessayer migrate deploy
-              echo "   🔄 Nouvelle tentative d'application des migrations..."
-              if npx prisma migrate deploy > /dev/null 2>&1; then
-                echo "✅ Migrations Prisma appliquées avec succès"
-              else
-                echo "⚠️  Erreur persistante après rollback, affichage des détails..."
-                npx prisma migrate deploy || {
-                  echo "❌ ERREUR: Impossible d'appliquer les migrations Prisma"
-                  echo "   Résolvez manuellement avec:"
-                  echo "   npx prisma migrate resolve --applied $FAILED_MIGRATION"
-                  echo "   ou"
-                  echo "   npx prisma migrate resolve --rolled-back $FAILED_MIGRATION"
-                  exit 1
-                }
-              fi
-            else
-              echo "❌ ERREUR: Impossible de résoudre la migration échouée"
-              echo "   Résolvez manuellement avec:"
-              echo "   npx prisma migrate resolve --applied $FAILED_MIGRATION"
-              echo "   ou"
-              echo "   npx prisma migrate resolve --rolled-back $FAILED_MIGRATION"
-              exit 1
-            fi
-          fi
-        else
-          # Aucune table ou très peu, la migration a vraiment échoué
-          echo "   ⚠️  Peu ou pas de tables trouvées ($TABLES_CHECK tables), la migration a vraiment échoué"
-          echo "   🔄 Marquage de la migration comme rollback pour la réappliquer..."
-          if npx prisma migrate resolve --rolled-back "$FAILED_MIGRATION" > /dev/null 2>&1; then
-            echo "   ✅ Migration marquée comme rollback"
-            # Réessayer migrate deploy
-            echo "   🔄 Nouvelle tentative d'application des migrations..."
-            if npx prisma migrate deploy > /dev/null 2>&1; then
-              echo "✅ Migrations Prisma appliquées avec succès"
-            else
-              echo "⚠️  Erreur persistante après rollback, affichage des détails..."
-              npx prisma migrate deploy || {
-                echo "❌ ERREUR: Impossible d'appliquer les migrations Prisma"
-                echo "   Résolvez manuellement avec:"
-                echo "   npx prisma migrate resolve --applied $FAILED_MIGRATION"
-                echo "   ou"
-                echo "   npx prisma migrate resolve --rolled-back $FAILED_MIGRATION"
-                exit 1
-              }
-            fi
-          else
-            echo "❌ ERREUR: Impossible de résoudre la migration échouée"
-            echo "   Résolvez manuellement avec:"
-            echo "   npx prisma migrate resolve --applied $FAILED_MIGRATION"
-            echo "   ou"
-            echo "   npx prisma migrate resolve --rolled-back $FAILED_MIGRATION"
-            exit 1
-          fi
-        fi
-      else
-        # Impossible d'extraire le nom de la migration
-        echo "   ⚠️  Impossible d'identifier la migration échouée"
-        echo "   Sortie complète:"
-        echo "$MIGRATE_OUTPUT"
-        exit 1
-      fi
-      else
-        # Autre erreur - afficher les détails
-        echo "❌ ERREUR lors de l'application des migrations Prisma"
-        echo "   Code de sortie: $MIGRATE_EXIT_CODE"
-        echo "   Détails de l'erreur:"
-        echo "$MIGRATE_OUTPUT" | head -50
-        echo ""
-        echo "   Si l'erreur persiste, vérifiez:"
-        echo "   1. Que DATABASE_URL est correct et accessible"
-        echo "   2. Que la base de données n'est pas verrouillée"
-        echo "   3. Que vous avez les permissions nécessaires"
-        exit 1
-      fi
-    fi
+    npx prisma migrate deploy || {
+      echo "❌ ERREUR lors de l'application des migrations Prisma"
+      echo "   Vérifiez que DATABASE_URL est correct et accessible"
+      echo "   Si une migration a échoué, résolvez-la avec:"
+      echo "   npx prisma migrate resolve --applied <migration_name>"
+      echo "   ou"
+      echo "   npx prisma migrate resolve --rolled-back <migration_name>"
+      exit 1
+    }
+    echo "✅ Migrations Prisma appliquées avec succès"
   else
     # Pas de migrations Prisma standard, utiliser db push (synchronise le schéma)
     echo "⚠️  Aucune migration Prisma standard trouvée"
@@ -281,20 +112,20 @@ if [ "$NODE_ENV" = "production" ]; then
     echo "   ⚠️  ATTENTION: db push peut être moins sûr que migrate deploy"
     echo "   Pour la production, créez des migrations Prisma standard avec:"
     echo "   npx prisma migrate dev --name init"
-    if npx prisma db push --accept-data-loss > /dev/null 2>&1; then
-      echo "✅ Schéma synchronisé avec succès"
-    else
-      echo "⚠️  Erreur lors de la synchronisation du schéma"
-      echo "   Tentative avec affichage des erreurs..."
-      npx prisma db push --accept-data-loss || {
-        echo "❌ ERREUR: Impossible de synchroniser le schéma"
-        echo "   Vérifiez que DATABASE_URL est correct et que la base de données est accessible"
-        echo "   Note: Pour la production, il est recommandé de créer des migrations Prisma standard"
-        echo "   avec: npx prisma migrate dev --name init"
-        exit 1
-      }
-    fi
+    npx prisma db push --accept-data-loss || {
+      echo "❌ ERREUR: Impossible de synchroniser le schéma"
+      echo "   Vérifiez que DATABASE_URL est correct et que la base de données est accessible"
+      exit 1
+    }
+    echo "✅ Schéma synchronisé avec succès"
   fi
+  
+  # IMPORTANT: Régénérer le client Prisma APRÈS les migrations pour s'assurer qu'il reflète l'état final
+  echo "🔄 Régénération finale du client Prisma (post-migration)..."
+  npx prisma generate > /dev/null 2>&1 || npx prisma generate
+  # Corriger les fichiers default.js et default.mjs pour Prisma 7
+  node scripts/fix-prisma-types.mjs > /dev/null 2>&1 || node scripts/fix-prisma-types.mjs
+  echo "✅ Client Prisma régénéré (post-migration)"
   
   exit 0
 fi
