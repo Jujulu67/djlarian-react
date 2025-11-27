@@ -59,7 +59,7 @@ export const AddProjectRow = ({ onAdd, isAdding, setIsAdding }: AddProjectRowPro
     return (
       <button
         onClick={() => setIsAdding(true)}
-        className="flex items-center gap-2 px-4 py-3 text-purple-400 hover:text-purple-300 hover:bg-white/5 transition-all rounded-lg group w-full"
+        className="flex items-center gap-2 px-4 py-3 text-purple-400 hover:text-purple-300 hover:bg-white/5 transition-all rounded-lg group"
         aria-label="Ajouter un nouveau projet"
       >
         <Plus size={18} className="group-hover:scale-110 transition-transform" aria-hidden="true" />

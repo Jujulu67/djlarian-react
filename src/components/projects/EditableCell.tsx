@@ -3,7 +3,25 @@
 import { ExternalLink } from 'lucide-react';
 import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent } from 'react';
 
-import { PROJECT_STATUSES, ProjectStatus, CellType } from './types';
+import { PROJECT_STATUSES, ProjectStatus, LABEL_OPTIONS, LabelStatus, CellType } from './types';
+
+/**
+ * Formate un texte en Title Case (première lettre de chaque mot en majuscule, reste en minuscule)
+ * Exemples: "caca prout" -> "Caca Prout", "DONT GO" -> "Dont Go"
+ */
+function formatTitleCase(text: string): string {
+  if (!text || text.trim() === '') return text;
+
+  return text
+    .trim()
+    .split(/\s+/)
+    .map((word) => {
+      if (word.length === 0) return word;
+      // Première lettre en majuscule, reste en minuscule
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
+    .join(' ');
+}
 
 interface EditableCellProps {
   value: string | number | null;
@@ -12,7 +30,37 @@ interface EditableCellProps {
   onSave: (field: string, value: string | number | null) => Promise<void>;
   placeholder?: string;
   className?: string;
+  allowWrap?: boolean;
+  isCompact?: boolean;
 }
+
+// Fonction pour normaliser les valeurs de label (anciennes vers nouvelles)
+const normalizeLabelValue = (val: string | null | undefined): string | null => {
+  if (!val) return null;
+  const normalized = val.trim();
+
+  // Mapping des anciennes valeurs (avec accents, espaces, etc.) vers les nouvelles
+  const valueMap: Record<string, string> = {
+    accepté: 'ACCEPTE',
+    accepte: 'ACCEPTE',
+    ACCEPTÉ: 'ACCEPTE',
+    ACCEPTE: 'ACCEPTE',
+    'en cours': 'EN_COURS',
+    'En cours': 'EN_COURS',
+    'EN COURS': 'EN_COURS',
+    EN_COURS: 'EN_COURS',
+    refusé: 'REFUSE',
+    refuse: 'REFUSE',
+    REFUSÉ: 'REFUSE',
+    REFUSE: 'REFUSE',
+  };
+
+  // Chercher une correspondance (insensible à la casse)
+  const lowerVal = normalized.toLowerCase();
+  return (
+    valueMap[lowerVal] || (LABEL_OPTIONS.find((l) => l.value === normalized) ? normalized : null)
+  );
+};
 
 export const EditableCell = ({
   value,
@@ -21,11 +69,13 @@ export const EditableCell = ({
   onSave,
   placeholder = '-',
   className = '',
+  allowWrap = false,
+  isCompact = false,
 }: EditableCellProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState<string>(value?.toString() ?? '');
   const [isSaving, setIsSaving] = useState(false);
-  const inputRef = useRef<HTMLInputElement | HTMLSelectElement>(null);
+  const inputRef = useRef<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(null);
 
   useEffect(() => {
     setEditValue(value?.toString() ?? '');
@@ -36,6 +86,11 @@ export const EditableCell = ({
       inputRef.current.focus();
       if (inputRef.current instanceof HTMLInputElement && type !== 'date') {
         inputRef.current.select();
+      } else if (inputRef.current instanceof HTMLTextAreaElement) {
+        inputRef.current.setSelectionRange(
+          inputRef.current.value.length,
+          inputRef.current.value.length
+        );
       }
     }
   }, [isEditing, type]);
@@ -59,6 +114,17 @@ export const EditableCell = ({
       if (type === 'number' && trimmedValue) {
         const num = parseInt(trimmedValue, 10);
         finalValue = isNaN(num) ? null : num;
+      } else if (type === 'select' && field === 'label' && trimmedValue) {
+        // Normaliser les valeurs de label lors de la sauvegarde
+        finalValue = normalizeLabelValue(trimmedValue);
+      } else if (type === 'text' && trimmedValue) {
+        // Appliquer le formatage Title Case pour les champs texte (sauf externalLink et label qui est un select)
+        const fieldsToFormat = ['name', 'style', 'collab', 'labelFinal'];
+        if (fieldsToFormat.includes(field)) {
+          finalValue = formatTitleCase(trimmedValue);
+        } else {
+          finalValue = trimmedValue;
+        }
       }
 
       await onSave(field, finalValue);
@@ -113,16 +179,84 @@ export const EditableCell = ({
       );
     }
 
-    // Cas spécial pour le statut
+    // Cas spécial pour le statut - afficher le badge cliquable qui ouvre directement le select
     if (type === 'select' && field === 'status') {
       const statusConfig = PROJECT_STATUSES.find((s) => s.value === value);
+      if (!statusConfig) return null;
+
+      const colorMap: Record<string, string> = {
+        blue: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+        green: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+        red: 'bg-red-500/20 text-red-300 border-red-500/30',
+        orange: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+        purple: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+      };
+
       return (
-        <button
-          onClick={() => setIsEditing(true)}
-          className={`text-left px-2 py-1 rounded hover:bg-white/5 transition-all cursor-pointer ${className}`}
+        <select
+          value={value?.toString() || ''}
+          onChange={(e) => {
+            // Auto-save on select change
+            onSave(field, e.target.value as ProjectStatus);
+          }}
+          className={`inline-flex items-center font-medium rounded-full border ${isCompact ? 'px-1 py-0.5 text-[10px]' : 'px-2 py-1 text-xs'} cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500/50 hover:opacity-80 transition-opacity ${colorMap[statusConfig.color] || colorMap.blue} ${className}`}
+          style={{
+            appearance: 'none',
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${isCompact ? '10' : '12'}' height='${isCompact ? '10' : '12'}' viewBox='0 0 ${isCompact ? '10' : '12'} ${isCompact ? '10' : '12'}'%3E%3Cpath fill='%23a855f7' d='M${isCompact ? '5' : '6'} ${isCompact ? '7.5' : '9'}L1 ${isCompact ? '3.5' : '4'}h${isCompact ? '8' : '10'}z'/%3E%3C/svg%3E")`,
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: `right ${isCompact ? '0.15rem' : '0.5rem'} center`,
+            paddingRight: isCompact ? '1rem' : '1.75rem',
+            maxWidth: '100%',
+          }}
+          disabled={isSaving}
         >
-          {statusConfig?.label || placeholder}
-        </button>
+          {PROJECT_STATUSES.map((status) => (
+            <option key={status.value} value={status.value}>
+              {status.label}
+            </option>
+          ))}
+        </select>
+      );
+    }
+
+    // Cas spécial pour le label - afficher le badge cliquable qui ouvre directement le select
+    if (type === 'select' && field === 'label') {
+      const normalizedValue = normalizeLabelValue(value?.toString() || null);
+      const labelConfig = normalizedValue
+        ? LABEL_OPTIONS.find((l) => l.value === normalizedValue)
+        : null;
+
+      const colorMap: Record<string, string> = {
+        blue: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+        green: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+        red: 'bg-red-500/20 text-red-300 border-red-500/30',
+      };
+
+      return (
+        <select
+          value={normalizedValue || ''}
+          onChange={(e) => {
+            // Auto-save on select change
+            onSave(field, e.target.value || null);
+          }}
+          className={`inline-flex items-center font-medium rounded-full border ${isCompact ? 'px-1 py-0.5 text-[10px]' : 'px-2 py-1 text-xs'} cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500/50 hover:opacity-80 transition-opacity ${labelConfig ? colorMap[labelConfig.color] : 'bg-gray-500/20 text-gray-300 border-gray-500/30'} ${className}`}
+          style={{
+            appearance: 'none',
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${isCompact ? '10' : '12'}' height='${isCompact ? '10' : '12'}' viewBox='0 0 ${isCompact ? '10' : '12'} ${isCompact ? '10' : '12'}'%3E%3Cpath fill='%23a855f7' d='M${isCompact ? '5' : '6'} ${isCompact ? '7.5' : '9'}L1 ${isCompact ? '3.5' : '4'}h${isCompact ? '8' : '10'}z'/%3E%3C/svg%3E")`,
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: `right ${isCompact ? '0.15rem' : '0.5rem'} center`,
+            paddingRight: isCompact ? '1rem' : '1.75rem',
+            maxWidth: '100%',
+          }}
+          disabled={isSaving}
+        >
+          <option value="">-</option>
+          {LABEL_OPTIONS.map((label) => (
+            <option key={label.value} value={label.value}>
+              {label.label}
+            </option>
+          ))}
+        </select>
       );
     }
 
@@ -132,12 +266,12 @@ export const EditableCell = ({
       const formatted = date.toLocaleDateString('fr-FR', {
         day: '2-digit',
         month: '2-digit',
-        year: 'numeric',
+        year: '2-digit',
       });
       return (
         <button
           onClick={() => setIsEditing(true)}
-          className={`text-left px-2 py-1 rounded hover:bg-white/5 transition-all cursor-pointer ${className}`}
+          className={`text-left ${isCompact ? 'px-1 py-0.5 text-[10px]' : 'px-2 py-1 text-sm'} rounded hover:bg-white/5 transition-all cursor-pointer ${className}`}
         >
           {formatted}
         </button>
@@ -150,7 +284,7 @@ export const EditableCell = ({
       return (
         <button
           onClick={() => setIsEditing(true)}
-          className={`text-left px-2 py-1 rounded hover:bg-white/5 transition-all cursor-pointer tabular-nums ${className}`}
+          className={`text-left ${isCompact ? 'px-1 py-0.5 text-[10px]' : 'px-2 py-1 text-sm'} rounded hover:bg-white/5 transition-all cursor-pointer tabular-nums ${className}`}
         >
           {formatted}
         </button>
@@ -161,41 +295,17 @@ export const EditableCell = ({
     return (
       <button
         onClick={() => setIsEditing(true)}
-        className={`text-left px-2 py-1 rounded hover:bg-white/5 transition-all cursor-pointer ${
-          !value ? 'text-gray-500' : ''
-        } ${className}`}
+        className={`text-left w-full ${isCompact ? 'px-1 py-0.5 text-[10px]' : 'px-2 py-1 text-sm'} rounded hover:bg-white/5 transition-all cursor-pointer ${
+          allowWrap ? 'leading-tight whitespace-normal' : 'truncate'
+        } ${!value ? 'text-gray-500' : 'text-gray-300'} ${className}`}
+        style={allowWrap ? { overflowWrap: 'normal', lineHeight: '1.3' } : {}}
       >
         {value?.toString() || placeholder}
       </button>
     );
   }
 
-  // Mode édition - Select pour le statut
-  if (type === 'select' && field === 'status') {
-    return (
-      <select
-        ref={inputRef as React.RefObject<HTMLSelectElement>}
-        value={editValue}
-        onChange={(e) => {
-          setEditValue(e.target.value);
-          // Auto-save on select change
-          setTimeout(() => {
-            onSave(field, e.target.value as ProjectStatus).then(() => setIsEditing(false));
-          }, 0);
-        }}
-        onBlur={handleSave}
-        onKeyDown={handleKeyDown}
-        className={`bg-gray-800/80 border border-purple-500/50 rounded px-2 py-1 text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 ${className}`}
-        disabled={isSaving}
-      >
-        {PROJECT_STATUSES.map((status) => (
-          <option key={status.value} value={status.value}>
-            {status.label}
-          </option>
-        ))}
-      </select>
-    );
-  }
+  const inputClasses = `bg-gray-800/80 border border-purple-500/50 rounded ${isCompact ? 'px-1 py-0.5 text-[10px]' : 'px-2 py-1 text-sm'} text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 w-full`;
 
   // Mode édition - Input date
   if (type === 'date') {
@@ -207,7 +317,7 @@ export const EditableCell = ({
         onChange={handleChange}
         onBlur={handleSave}
         onKeyDown={handleKeyDown}
-        className={`bg-gray-800/80 border border-purple-500/50 rounded px-2 py-1 text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 w-[130px] ${className}`}
+        className={`${inputClasses} ${className}`}
         disabled={isSaving}
       />
     );
@@ -225,13 +335,38 @@ export const EditableCell = ({
         onKeyDown={handleKeyDown}
         placeholder="0"
         min="0"
-        className={`bg-gray-800/80 border border-purple-500/50 rounded px-2 py-1 text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 w-[80px] tabular-nums ${className}`}
+        className={`${inputClasses} tabular-nums ${className}`}
         disabled={isSaving}
       />
     );
   }
 
   // Mode édition - Input texte par défaut
+  if (allowWrap && type === 'text') {
+    return (
+      <textarea
+        ref={inputRef as React.RefObject<HTMLTextAreaElement>}
+        value={editValue}
+        onChange={(e) => handleChange(e as any)}
+        onBlur={handleSave}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSave();
+          } else if (e.key === 'Escape') {
+            setEditValue(value?.toString() ?? '');
+            setIsEditing(false);
+          }
+        }}
+        placeholder={placeholder}
+        className={`${inputClasses} resize-none ${className}`}
+        disabled={isSaving}
+        rows={2}
+        style={{ minHeight: '32px', lineHeight: '1.2' }}
+      />
+    );
+  }
+
   return (
     <input
       ref={inputRef as React.RefObject<HTMLInputElement>}
@@ -241,7 +376,7 @@ export const EditableCell = ({
       onBlur={handleSave}
       onKeyDown={handleKeyDown}
       placeholder={placeholder}
-      className={`bg-gray-800/80 border border-purple-500/50 rounded px-2 py-1 text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 min-w-[100px] ${className}`}
+      className={`${inputClasses} ${className}`}
       disabled={isSaving}
     />
   );

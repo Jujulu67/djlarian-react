@@ -155,12 +155,21 @@ export async function POST(request: NextRequest) {
     const createdProjects: any[] = [];
     const updatedProjects: any[] = [];
 
+    // Calculer l'ordre de départ pour les nouveaux projets
+    const maxOrderProject = await prisma.project.findFirst({
+      where: { userId: session.user.id },
+      orderBy: { order: 'desc' },
+      select: { order: true },
+    });
+    let currentOrder = (maxOrderProject?.order ?? -1) + 1;
+
     // Créer les projets séquentiellement dans une transaction pour préserver l'ordre d'import
     await prisma.$transaction(async (tx) => {
       for (const { data } of projectsToCreate) {
         const project = await tx.project.create({
           data: {
             userId: session.user.id,
+            order: currentOrder++,
             name: data.name.trim(),
             style: data.style?.trim() || null,
             status: data.status || 'EN_COURS',

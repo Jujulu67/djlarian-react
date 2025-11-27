@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
 
     const projects = await prisma.project.findMany({
       where: whereClause,
-      orderBy: [{ createdAt: 'asc' }],
+      orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
       include: {
         User: {
           select: {
@@ -99,9 +99,18 @@ export async function POST(request: NextRequest) {
       return createBadRequestResponse('Le nom du projet est requis');
     }
 
+    // Calculer l'ordre pour le nouveau projet (max order + 1)
+    const maxOrderProject = await prisma.project.findFirst({
+      where: { userId: session.user.id },
+      orderBy: { order: 'desc' },
+      select: { order: true },
+    });
+    const newOrder = (maxOrderProject?.order ?? -1) + 1;
+
     const project = await prisma.project.create({
       data: {
         userId: session.user.id,
+        order: newOrder,
         name: name.trim(),
         style: style?.trim() || null,
         status: status || 'EN_COURS',

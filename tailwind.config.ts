@@ -89,6 +89,7 @@ export default {
         'glow-pulse': 'glow-pulse 2s ease-in-out infinite',
         'glow-border': 'glow-border 3s ease-in-out infinite',
         'float-particle': 'float-particle 15s infinite ease-in-out',
+        'highlight-purple': 'highlight-purple 2s ease-in-out',
       },
       keyframes: {
         'gradient-shift': {

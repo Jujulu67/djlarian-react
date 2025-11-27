@@ -428,6 +428,33 @@
   }
 }
 
+@keyframes highlight-purple {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-highlight-purple {
+  background: linear-gradient(
+    90deg,
+    rgba(139, 92, 246, 0.1) 0%,
+    rgba(168, 85, 247, 0.2) 25%,
+    rgba(192, 132, 252, 0.25) 50%,
+    rgba(168, 85, 247, 0.2) 75%,
+    rgba(139, 92, 246, 0.1) 100%
+  );
+  background-size: 200% 100%;
+  animation: highlight-purple 2s ease-in-out;
+  transform: translateZ(0);
+  will-change: background-position;
+}
+
 .animate-gradient-shift {
   background-size: 200% 200%;
   animation: gradient-shift 8s ease infinite;
@@ -911,4 +938,129 @@ header > nav > a:hover {
 .glass-modern h3 {
   color: white;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* ===== PROJECT MOBILE CARDS STYLES ===== */
+
+/* Card hover effect on mobile */
+@media (max-width: 768px) {
+  .project-card-mobile {
+    transition:
+      transform 0.2s ease-out,
+      box-shadow 0.2s ease-out;
+  }
+
+  .project-card-mobile:active {
+    transform: scale(0.98);
+  }
+}
+
+/* Streams section collapse animation */
+.streams-collapse-enter {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.streams-collapse-enter-active {
+  max-height: 160px;
+  opacity: 1;
+  transition:
+    max-height 300ms ease-out,
+    opacity 200ms ease-in;
+}
+
+.streams-collapse-exit {
+  max-height: 160px;
+  opacity: 1;
+}
+
+.streams-collapse-exit-active {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition:
+    max-height 300ms ease-out,
+    opacity 200ms ease-out;
+}
+
+/* Status border colors for project cards */
+.border-l-status-blue {
+  border-left-color: rgb(59, 130, 246);
+}
+
+.border-l-status-green {
+  border-left-color: rgb(16, 185, 129);
+}
+
+.border-l-status-red {
+  border-left-color: rgb(239, 68, 68);
+}
+
+.border-l-status-orange {
+  border-left-color: rgb(245, 158, 11);
+}
+
+.border-l-status-purple {
+  border-left-color: rgb(139, 92, 246);
+}
+
+/* Card shimmer effect on highlight */
+@keyframes card-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.card-shimmer {
+  background: linear-gradient(90deg, transparent 0%, rgba(139, 92, 246, 0.1) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: card-shimmer 2s ease-in-out;
+}
+
+/* Improved focus states for mobile cards */
+@media (max-width: 768px) {
+  .project-card-mobile button:focus-visible,
+  .project-card-mobile [role='button']:focus-visible {
+    outline: 2px solid rgba(139, 92, 246, 0.8);
+    outline-offset: 2px;
+    border-radius: 0.75rem;
+  }
+
+  /* Touch feedback for interactive elements */
+  .project-card-mobile button:active,
+  .project-card-mobile [role='button']:active {
+    transform: scale(0.95);
+    transition: transform 0.1s ease-out;
+  }
+}
+
+/* Streams toggle button animation */
+.streams-toggle-icon {
+  transition: transform 0.2s ease-out;
+}
+
+.streams-toggle-icon.expanded {
+  transform: rotate(180deg);
+}
+
+/* Enhanced shadow for mobile cards */
+@media (max-width: 768px) {
+  .card-shadow-mobile {
+    box-shadow:
+      0 4px 6px -1px rgba(0, 0, 0, 0.2),
+      0 2px 4px -2px rgba(0, 0, 0, 0.1),
+      0 0 0 1px rgba(255, 255, 255, 0.05);
+  }
+
+  .card-shadow-mobile:hover,
+  .card-shadow-mobile:focus-within {
+    box-shadow:
+      0 10px 15px -3px rgba(0, 0, 0, 0.3),
+      0 4px 6px -4px rgba(0, 0, 0, 0.2),
+      0 0 0 1px rgba(139, 92, 246, 0.2);
+  }
 }
