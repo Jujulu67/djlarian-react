@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { revalidateTag } from 'next/cache';
 
 import { auth } from '@/auth';
 import { handleApiError } from '@/lib/api/errorHandler';
@@ -9,6 +10,13 @@ import {
 } from '@/lib/api/responseHelpers';
 import prisma from '@/lib/prisma';
 import { serializeProjects } from '@/lib/utils/serializeProject';
+
+// Fonction helper pour invalider le cache des projets d'un utilisateur
+function invalidateProjectsCache(userId: string) {
+  revalidateTag(`projects-${userId}`);
+  revalidateTag(`projects-counts-${userId}`);
+  revalidateTag(`projects-statistics-${userId}`);
+}
 
 // PATCH /api/projects/reorder - Met à jour l'ordre de plusieurs projets
 export async function PATCH(request: NextRequest) {
@@ -73,6 +81,10 @@ export async function PATCH(request: NextRequest) {
     });
 
     const serializedProjects = serializeProjects(updatedProjects);
+
+    // Invalider le cache après réordonnancement
+    invalidateProjectsCache(session.user.id);
+
     return createSuccessResponse(
       serializedProjects,
       200,

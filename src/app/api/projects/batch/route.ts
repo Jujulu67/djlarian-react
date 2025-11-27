@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { revalidateTag } from 'next/cache';
 
 import { auth } from '@/auth';
 import { handleApiError } from '@/lib/api/errorHandler';
@@ -10,6 +11,13 @@ import {
 import prisma from '@/lib/prisma';
 import { serializeProjects } from '@/lib/utils/serializeProject';
 import { ProjectStatus } from '@/components/projects/types';
+
+// Fonction helper pour invalider le cache des projets d'un utilisateur
+function invalidateProjectsCache(userId: string) {
+  revalidateTag(`projects-${userId}`);
+  revalidateTag(`projects-counts-${userId}`);
+  revalidateTag(`projects-statistics-${userId}`);
+}
 
 interface BatchProjectData {
   name: string;
@@ -257,6 +265,9 @@ export async function POST(request: NextRequest) {
     if (result.failed > 0) {
       result.success = false;
     }
+
+    // Invalider le cache après import batch
+    invalidateProjectsCache(session.user.id);
 
     return createSuccessResponse(
       result,

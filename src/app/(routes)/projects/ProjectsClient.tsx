@@ -11,7 +11,7 @@ import {
   ArrowDown,
   Download,
 } from 'lucide-react';
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 import {
@@ -64,6 +64,9 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
     externalLink: '',
   });
 
+  // Ref pour le debounce
+  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const fetchProjects = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -89,9 +92,45 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
     }
   }, [statusFilter]);
 
+  // Debounce fetchProjects avec 300ms et éviter le double appel SSR + client
   useEffect(() => {
-    fetchProjects();
-  }, [fetchProjects]);
+    // Vérifier si les initialProjects correspondent déjà aux filtres actuels
+    // Si statusFilter est 'ALL' et qu'on a déjà des projets, pas besoin de recharger
+    if (statusFilter === 'ALL' && initialProjects.length > 0 && projects.length === 0) {
+      // Utiliser les projets initiaux si on n'a pas encore chargé
+      setProjects(initialProjects);
+      return;
+    }
+
+    // Si le filtre correspond aux projets initiaux, ne pas recharger immédiatement
+    if (statusFilter === 'ALL' && initialProjects.length > 0) {
+      const filteredInitial = initialProjects.filter(
+        (p) => p.status === statusFilter || statusFilter === 'ALL'
+      );
+      if (filteredInitial.length === initialProjects.length && projects.length === 0) {
+        // Les projets initiaux correspondent, utiliser ceux-ci
+        setProjects(initialProjects);
+        return;
+      }
+    }
+
+    // Annuler le timeout précédent si il existe
+    if (fetchTimeoutRef.current) {
+      clearTimeout(fetchTimeoutRef.current);
+    }
+
+    // Définir un nouveau timeout
+    fetchTimeoutRef.current = setTimeout(() => {
+      fetchProjects();
+    }, 300);
+
+    // Cleanup
+    return () => {
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
+    };
+  }, [fetchProjects, statusFilter, initialProjects, projects.length]);
 
   const handleUpdate = async (id: string, field: string, value: string | number | null) => {
     // Optimistic update

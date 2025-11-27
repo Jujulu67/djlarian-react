@@ -1,7 +1,7 @@
 'use client';
 
 import { Filter, RefreshCw, Users, ChevronDown } from 'lucide-react';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 
 import { ProjectTable, Project, ProjectStatus, PROJECT_STATUSES } from '@/components/projects';
 
@@ -22,6 +22,16 @@ export const AdminProjectsClient = ({ initialProjects, users }: AdminProjectsCli
   const [userFilter, setUserFilter] = useState<string>('ALL');
   const [isLoading, setIsLoading] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const [stats, setStats] = useState({
+    total: initialProjects.length,
+    users: new Set(initialProjects.map((p) => p.userId)).size,
+    enCours: initialProjects.filter((p) => p.status === 'EN_COURS').length,
+    termine: initialProjects.filter((p) => p.status === 'TERMINE').length,
+  });
+
+  // Ref pour le debounce
+  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const fetchCountsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchProjects = useCallback(async () => {
     setIsLoading(true);
@@ -53,9 +63,81 @@ export const AdminProjectsClient = ({ initialProjects, users }: AdminProjectsCli
     }
   }, [statusFilter, userFilter]);
 
+  // Fonction pour récupérer les comptes depuis l'API
+  const fetchCounts = useCallback(async () => {
+    try {
+      const params = new URLSearchParams();
+      params.set('all', 'true');
+      if (userFilter !== 'ALL') {
+        params.set('userId', userFilter);
+      }
+
+      const response = await fetch(`/api/projects/counts?${params.toString()}`);
+      if (response.ok) {
+        const result = await response.json();
+        const counts = result.data || result;
+        setStats({
+          total: counts.total || 0,
+          users: userFilter === 'ALL' ? new Set(projects.map((p) => p.userId)).size : 1,
+          enCours: counts.statusBreakdown?.EN_COURS || 0,
+          termine: counts.statusBreakdown?.TERMINE || 0,
+        });
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des comptes:', error);
+    }
+  }, [userFilter, projects]);
+
+  // Debounce fetchProjects avec 300ms
   useEffect(() => {
-    fetchProjects();
-  }, [fetchProjects]);
+    // Vérifier si les initialProjects correspondent déjà aux filtres
+    if (
+      statusFilter === 'ALL' &&
+      userFilter === 'ALL' &&
+      initialProjects.length > 0 &&
+      projects.length === 0
+    ) {
+      setProjects(initialProjects);
+      return;
+    }
+
+    // Annuler le timeout précédent si il existe
+    if (fetchTimeoutRef.current) {
+      clearTimeout(fetchTimeoutRef.current);
+    }
+
+    // Définir un nouveau timeout
+    fetchTimeoutRef.current = setTimeout(() => {
+      fetchProjects();
+    }, 300);
+
+    // Cleanup
+    return () => {
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
+    };
+  }, [fetchProjects, statusFilter, userFilter, initialProjects, projects.length]);
+
+  // Debounce fetchCounts avec 300ms
+  useEffect(() => {
+    // Annuler le timeout précédent si il existe
+    if (fetchCountsTimeoutRef.current) {
+      clearTimeout(fetchCountsTimeoutRef.current);
+    }
+
+    // Définir un nouveau timeout
+    fetchCountsTimeoutRef.current = setTimeout(() => {
+      fetchCounts();
+    }, 300);
+
+    // Cleanup
+    return () => {
+      if (fetchCountsTimeoutRef.current) {
+        clearTimeout(fetchCountsTimeoutRef.current);
+      }
+    };
+  }, [fetchCounts]);
 
   const handleUpdate = async (id: string, field: string, value: string | number | null) => {
     // Admin ne peut pas modifier les projets des autres (géré côté API)
@@ -78,14 +160,6 @@ export const AdminProjectsClient = ({ initialProjects, users }: AdminProjectsCli
     const userMatch = userFilter === 'ALL' || p.userId === userFilter;
     return statusMatch && userMatch;
   });
-
-  // Stats globales
-  const stats = {
-    total: projects.length,
-    users: new Set(projects.map((p) => p.userId)).size,
-    enCours: projects.filter((p) => p.status === 'EN_COURS').length,
-    termine: projects.filter((p) => p.status === 'TERMINE').length,
-  };
 
   const selectedUser = users.find((u) => u.id === userFilter);
 

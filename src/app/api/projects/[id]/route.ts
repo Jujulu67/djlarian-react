@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { revalidateTag } from 'next/cache';
 
 import { auth } from '@/auth';
 import { handleApiError } from '@/lib/api/errorHandler';
@@ -10,6 +11,13 @@ import {
 } from '@/lib/api/responseHelpers';
 import prisma from '@/lib/prisma';
 import { serializeProject } from '@/lib/utils/serializeProject';
+
+// Fonction helper pour invalider le cache des projets d'un utilisateur
+function invalidateProjectsCache(userId: string) {
+  revalidateTag(`projects-${userId}`);
+  revalidateTag(`projects-counts-${userId}`);
+  revalidateTag(`projects-statistics-${userId}`);
+}
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -142,6 +150,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     });
 
     const serializedProject = serializeProject(project);
+
+    // Invalider le cache après mise à jour
+    invalidateProjectsCache(existingProject.userId);
+
     return createSuccessResponse(serializedProject, 200, 'Projet mis à jour avec succès');
   } catch (error) {
     return handleApiError(error, 'PATCH /api/projects/[id]');
@@ -173,9 +185,14 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       return createForbiddenResponse('Accès refusé');
     }
 
+    const userId = existingProject.userId;
+
     await prisma.project.delete({
       where: { id },
     });
+
+    // Invalider le cache après suppression
+    invalidateProjectsCache(userId);
 
     return createSuccessResponse({ success: true }, 200, 'Projet supprimé avec succès');
   } catch (error) {
