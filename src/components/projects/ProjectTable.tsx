@@ -15,6 +15,7 @@ import {
   ChevronDown,
   Calendar,
   Music2,
+  BarChart3,
 } from 'lucide-react';
 import { useState, useCallback, useEffect, useRef } from 'react';
 
@@ -38,6 +39,7 @@ interface ProjectTableProps {
   sortDirection?: SortDirection;
   onSort?: (field: SortField) => void;
   onRefresh?: () => void;
+  onStatistics?: () => void;
   onImport?: () => void;
   onExport?: () => void;
   onPurge?: () => void;
@@ -101,6 +103,7 @@ export const ProjectTable = ({
   sortDirection = 'asc',
   onSort,
   onRefresh,
+  onStatistics,
   onImport,
   onExport,
   onPurge,
@@ -244,6 +247,17 @@ export const ProjectTable = ({
               aria-label="Rafraîchir la liste des projets"
             >
               <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} aria-hidden="true" />
+            </button>
+          )}
+          {onStatistics && (
+            <button
+              onClick={onStatistics}
+              className="px-3 py-2 h-[38px] bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+              title="Voir les statistiques"
+              aria-label="Voir les statistiques des projets"
+            >
+              <BarChart3 size={16} aria-hidden="true" />
+              <span className="hidden sm:inline">Statistiques</span>
             </button>
           )}
           {onImport && (
