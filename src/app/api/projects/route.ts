@@ -1,4 +1,6 @@
 import { NextRequest } from 'next/server';
+import { unstable_cache } from 'next/cache';
+import { revalidateTag } from 'next/cache';
 
 import { auth } from '@/auth';
 import { handleApiError } from '@/lib/api/errorHandler';
@@ -10,6 +12,13 @@ import {
 } from '@/lib/api/responseHelpers';
 import prisma from '@/lib/prisma';
 import { serializeProjects, serializeProject } from '@/lib/utils/serializeProject';
+
+// Fonction helper pour invalider le cache des projets d'un utilisateur
+function invalidateProjectsCache(userId: string) {
+  revalidateTag(`projects-${userId}`);
+  revalidateTag(`projects-counts-${userId}`);
+  revalidateTag(`projects-statistics-${userId}`);
+}
 
 // GET /api/projects - Liste les projets de l'utilisateur connecté (ou tous pour admin)
 export async function GET(request: NextRequest) {
@@ -24,6 +33,11 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const userId = searchParams.get('userId'); // Pour admin uniquement
     const all = searchParams.get('all') === 'true'; // Pour admin - voir tous les projets
+    const includeUser = searchParams.get('includeUser') !== 'false'; // Par défaut true
+    const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!, 10) : undefined;
+    const offset = searchParams.get('offset')
+      ? parseInt(searchParams.get('offset')!, 10)
+      : undefined;
 
     // Construire la clause WHERE
     const whereClause: {
@@ -46,21 +60,51 @@ export async function GET(request: NextRequest) {
       whereClause.status = status;
     }
 
-    const projects = await prisma.project.findMany({
-      where: whereClause,
-      orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
-      include: {
-        User: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-      },
-    });
+    // Créer une clé de cache unique basée sur les paramètres
+    const cacheKey = `projects-${session.user.id}-${userId || 'all'}-${all ? 'true' : 'false'}-${status || 'all'}-${includeUser ? 'withUser' : 'noUser'}-${limit || 'all'}-${offset || 0}`;
+    const cacheTag = `projects-${session.user.id}`;
 
-    const serializedProjects = serializeProjects(projects);
+    // Fonction de récupération avec cache
+    const getCachedProjects = unstable_cache(
+      async () => {
+        const queryOptions: any = {
+          where: whereClause,
+          orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
+        };
+
+        // Pagination optionnelle
+        if (limit !== undefined) {
+          queryOptions.take = limit;
+        }
+        if (offset !== undefined) {
+          queryOptions.skip = offset;
+        }
+
+        // Inclure User seulement si nécessaire
+        if (includeUser) {
+          queryOptions.include = {
+            User: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          };
+        }
+
+        const projects = await prisma.project.findMany(queryOptions);
+
+        return serializeProjects(projects);
+      },
+      [cacheKey],
+      {
+        revalidate: 60, // Cache de 60 secondes
+        tags: [cacheTag],
+      }
+    );
+
+    const serializedProjects = await getCachedProjects();
     return createSuccessResponse(serializedProjects);
   } catch (error) {
     return handleApiError(error, 'GET /api/projects');
@@ -138,6 +182,10 @@ export async function POST(request: NextRequest) {
     });
 
     const serializedProject = serializeProject(project);
+
+    // Invalider le cache après création
+    invalidateProjectsCache(session.user.id);
+
     return createCreatedResponse(serializedProject, 'Projet créé avec succès');
   } catch (error) {
     return handleApiError(error, 'POST /api/projects');
