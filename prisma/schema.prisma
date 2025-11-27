@@ -162,6 +162,7 @@ model User {
   Event          Event[]
   Session        Session[]
   Track          Track[]
+  Project        Project[]
 }
 
 model VerificationToken {
@@ -216,4 +217,30 @@ model Image {
   updatedAt    DateTime @updatedAt
 
   @@index([imageId])
+}
+
+// Gestion de projets musicaux - suivi des IDs et releases
+model Project {
+  id           String    @id @default(uuid())
+  userId       String
+  name         String    // Nom du projet
+  style        String?   // Genre musical (House, Techno, etc.)
+  status       String    @default("EN_COURS") // TERMINE, EN_COURS, ANNULE, A_REWORK, GHOST_PRODUCTION
+  collab       String?   // Collaborateurs
+  label        String?   // Label ciblé
+  labelFinal   String?   // Label final (si signé)
+  releaseDate  DateTime? // Date de sortie
+  externalLink String?   // Lien vers SoundCloud, Spotify, etc.
+  streamsJ7    Int?      // Streams à J+7
+  streamsJ14   Int?      // Streams à J+14
+  streamsJ21   Int?      // Streams à J+21
+  streamsJ28   Int?      // Streams à J+28
+  streamsJ56   Int?      // Streams à J+56
+  streamsJ84   Int?      // Streams à J+84
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  User         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
 }

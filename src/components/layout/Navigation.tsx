@@ -1,7 +1,18 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, User, LogOut, Music, Calendar, ImageIcon, Mail, Settings, Home } from 'lucide-react';
+import {
+  Menu,
+  User,
+  LogOut,
+  Music,
+  Calendar,
+  ImageIcon,
+  Mail,
+  Settings,
+  Home,
+  FolderKanban,
+} from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -374,7 +385,20 @@ const Navigation = () => {
                           <motion.div
                             initial={{ x: -5, opacity: 0 }}
                             animate={{ x: 0, opacity: 1 }}
-                            transition={{ delay: 0.15, duration: 0.1 }}
+                            transition={{ delay: 0.12, duration: 0.1 }}
+                          >
+                            <Link
+                              href="/projects"
+                              className="flex items-center px-4 py-2 text-sm text-white/90 hover:text-white hover:bg-purple-500/10 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-inset"
+                            >
+                              <FolderKanban className="w-4 h-4 mr-2" />
+                              Mes Projets
+                            </Link>
+                          </motion.div>
+                          <motion.div
+                            initial={{ x: -5, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            transition={{ delay: 0.17, duration: 0.1 }}
                           >
                             <button
                               onClick={() => signOut()}
@@ -507,6 +531,17 @@ const Navigation = () => {
                           >
                             <User className="w-4 h-4 mr-2" />
                             Profil
+                          </Link>
+                          <Link
+                            href="/projects"
+                            className="flex items-center px-4 py-2 text-sm text-white/90 hover:text-white hover:bg-purple-500/10 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-inset"
+                            onClick={() => {
+                              setIsMobileUserMenuOpen(false);
+                              setIsMobileMenuOpen(false);
+                            }}
+                          >
+                            <FolderKanban className="w-4 h-4 mr-2" />
+                            Mes Projets
                           </Link>
                           <button
                             onClick={() => {
