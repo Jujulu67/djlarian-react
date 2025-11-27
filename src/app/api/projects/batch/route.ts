@@ -57,6 +57,18 @@ export async function POST(request: NextRequest) {
       return createUnauthorizedResponse('Non autorisé');
     }
 
+    // Vérifier que l'utilisateur existe bien dans la base de données
+    const userExists = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { id: true },
+    });
+
+    if (!userExists) {
+      return createUnauthorizedResponse(
+        "L'utilisateur de la session n'existe pas dans la base de données. Veuillez vous reconnecter."
+      );
+    }
+
     const body = await request.json();
     const { projects: projectsData, overwriteDuplicates = false } = body;
 
