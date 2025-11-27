@@ -97,14 +97,26 @@ if [ "$NODE_ENV" = "production" ]; then
     echo "   📋 Migrations Prisma détectées, application des migrations manquantes..."
     
     # Vérifier d'abord s'il y a des migrations échouées
-    MIGRATE_OUTPUT=$(npx prisma migrate deploy 2>&1)
-    MIGRATE_EXIT_CODE=$?
-    
-    if [ $MIGRATE_EXIT_CODE -eq 0 ]; then
+    # Capturer à la fois stdout et stderr dans un fichier temporaire pour éviter les problèmes de buffering
+    TEMP_MIGRATE_OUTPUT=$(mktemp)
+    if npx prisma migrate deploy > "$TEMP_MIGRATE_OUTPUT" 2>&1; then
+      MIGRATE_EXIT_CODE=0
+      MIGRATE_OUTPUT=$(cat "$TEMP_MIGRATE_OUTPUT")
+      rm -f "$TEMP_MIGRATE_OUTPUT"
       echo "✅ Migrations Prisma appliquées avec succès (seules les manquantes ont été exécutées)"
-    elif echo "$MIGRATE_OUTPUT" | grep -q "failed migrations"; then
-      # Migration échouée détectée, essayer de la résoudre automatiquement
-      echo "⚠️  Migration échouée détectée, tentative de résolution automatique..."
+    else
+      MIGRATE_EXIT_CODE=$?
+      MIGRATE_OUTPUT=$(cat "$TEMP_MIGRATE_OUTPUT")
+      rm -f "$TEMP_MIGRATE_OUTPUT"
+      
+      # Afficher la sortie pour debug
+      echo "   ⚠️  Sortie de prisma migrate deploy:"
+      echo "$MIGRATE_OUTPUT" | head -20
+      echo ""
+      
+      if echo "$MIGRATE_OUTPUT" | grep -qi "failed migrations\|P3009"; then
+        # Migration échouée détectée, essayer de la résoudre automatiquement
+        echo "⚠️  Migration échouée détectée, tentative de résolution automatique..."
       
       # Extraire le nom de la migration échouée
       FAILED_MIGRATION=$(echo "$MIGRATE_OUTPUT" | grep -oE "[0-9]+_[a-zA-Z0-9_]+" | head -1)
@@ -164,11 +176,19 @@ if [ "$NODE_ENV" = "production" ]; then
         echo "$MIGRATE_OUTPUT"
         exit 1
       fi
-    else
-      # Autre erreur
-      echo "⚠️  Erreur lors de l'application des migrations Prisma"
-      echo "$MIGRATE_OUTPUT"
-      exit 1
+      else
+        # Autre erreur - afficher les détails
+        echo "❌ ERREUR lors de l'application des migrations Prisma"
+        echo "   Code de sortie: $MIGRATE_EXIT_CODE"
+        echo "   Détails de l'erreur:"
+        echo "$MIGRATE_OUTPUT" | head -50
+        echo ""
+        echo "   Si l'erreur persiste, vérifiez:"
+        echo "   1. Que DATABASE_URL est correct et accessible"
+        echo "   2. Que la base de données n'est pas verrouillée"
+        echo "   3. Que vous avez les permissions nécessaires"
+        exit 1
+      fi
     fi
   else
     # Pas de migrations Prisma standard, utiliser db push (synchronise le schéma)
