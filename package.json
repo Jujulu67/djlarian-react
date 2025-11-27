@@ -32,6 +32,7 @@
     "db:migrate:production": "node scripts/migrate-db-production.mjs",
     "db:migrate:blob-images": "node scripts/migrate-blob-images-production.mjs",
     "db:migrate:all": "npm run db:migrate:production && npm run db:migrate:blob-images",
+    "db:diagnose": "node scripts/diagnose-db-schema.mjs",
     "generate:waveform-video": "node scripts/generate-waveform-video.mjs"
   },
   "dependencies": {

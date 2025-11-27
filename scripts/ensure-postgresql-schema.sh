@@ -104,6 +104,54 @@ if [ "$NODE_ENV" = "production" ]; then
       MIGRATE_OUTPUT=$(cat "$TEMP_MIGRATE_OUTPUT")
       rm -f "$TEMP_MIGRATE_OUTPUT"
       echo "✅ Migrations Prisma appliquées avec succès (seules les manquantes ont été exécutées)"
+      
+      # Vérifier que les tables principales existent vraiment (protection contre migrations marquées comme applied mais non exécutées)
+      echo "   🔍 Vérification que les tables ont bien été créées..."
+      TABLES_COUNT=$(node scripts/check-tables-exist.mjs 2>/dev/null || echo "0")
+      if [ "$TABLES_COUNT" -lt "2" ]; then
+        echo "   ⚠️  ATTENTION: Seulement $TABLES_COUNT table(s) trouvée(s), les migrations n'ont peut-être pas créé les tables"
+        echo "   🔄 La migration est peut-être marquée comme appliquée mais les tables n'existent pas"
+        echo "   🔧 Tentative de résolution automatique..."
+        
+        # Trouver la migration init
+        INIT_MIGRATION=$(ls -d prisma/migrations/*_init 2>/dev/null | head -1 | xargs basename 2>/dev/null || echo "")
+        if [ -n "$INIT_MIGRATION" ]; then
+          echo "   🔄 Rollback de la migration $INIT_MIGRATION pour la réappliquer..."
+          if npx prisma migrate resolve --rolled-back "$INIT_MIGRATION" > /dev/null 2>&1; then
+            echo "   ✅ Migration marquée comme rollback"
+            echo "   🔄 Réapplication de la migration..."
+            if npx prisma migrate deploy > /dev/null 2>&1; then
+              echo "   ✅ Migration réappliquée"
+              # Vérifier à nouveau
+              TABLES_COUNT=$(node scripts/check-tables-exist.mjs 2>/dev/null || echo "0")
+              if [ "$TABLES_COUNT" -lt "2" ]; then
+                echo "   ❌ ERREUR: Les tables n'existent toujours pas après réapplication"
+                echo "   Vérifiez manuellement avec: node scripts/check-db-tables.mjs"
+                exit 1
+              else
+                echo "   ✅ $TABLES_COUNT tables trouvées, tout est OK"
+              fi
+            else
+              echo "   ❌ ERREUR: Impossible de réappliquer la migration"
+              exit 1
+            fi
+          else
+            echo "   ⚠️  Impossible de rollback, les tables peuvent exister mais avec un autre nom"
+            echo "   Vérifiez manuellement avec: node scripts/check-db-tables.mjs"
+          fi
+        else
+          echo "   ⚠️  Impossible de trouver la migration init"
+          echo "   Vérifiez manuellement avec: node scripts/check-db-tables.mjs"
+        fi
+      else
+        echo "   ✅ $TABLES_COUNT tables trouvées, tout est OK"
+      fi
+      
+      # TEMPORAIRE: Diagnostic détaillé pour voir le décalage
+      echo ""
+      echo "   📊 Diagnostic détaillé de la base de données (temporaire):"
+      node scripts/diagnose-db-schema.mjs 2>&1 | head -100 || echo "   ⚠️  Impossible d'exécuter le diagnostic"
+      echo ""
     else
       MIGRATE_EXIT_CODE=$?
       MIGRATE_OUTPUT=$(cat "$TEMP_MIGRATE_OUTPUT")
