@@ -95,6 +95,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       'externalLink',
     ];
     const intFields = [
+      'order',
       'streamsJ7',
       'streamsJ14',
       'streamsJ21',
@@ -141,7 +142,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     });
 
     const serializedProject = serializeProject(project);
-    return createSuccessResponse(serializedProject, 'Projet mis à jour avec succès');
+    return createSuccessResponse(serializedProject, 200, 'Projet mis à jour avec succès');
   } catch (error) {
     return handleApiError(error, 'PATCH /api/projects/[id]');
   }

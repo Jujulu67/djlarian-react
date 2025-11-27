@@ -8,9 +8,18 @@ export const PROJECT_STATUSES: { value: ProjectStatus; label: string; color: str
   { value: 'GHOST_PRODUCTION', label: 'Ghost Prod', color: 'purple' },
 ];
 
+export type LabelStatus = 'ACCEPTE' | 'EN_COURS' | 'REFUSE';
+
+export const LABEL_OPTIONS: { value: LabelStatus; label: string; color: string }[] = [
+  { value: 'ACCEPTE', label: 'Accepté', color: 'green' },
+  { value: 'EN_COURS', label: 'En cours', color: 'blue' },
+  { value: 'REFUSE', label: 'Refusé', color: 'red' },
+];
+
 export interface Project {
   id: string;
   userId: string;
+  order: number;
   name: string;
   style: string | null;
   status: ProjectStatus;

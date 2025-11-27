@@ -24,9 +24,7 @@ export default async function ProjectsPage() {
     where: {
       userId: session.user.id,
     },
-    orderBy: {
-      createdAt: 'asc',
-    },
+    orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
     include: {
       User: {
         select: {
@@ -42,7 +40,7 @@ export default async function ProjectsPage() {
   const serializedProjects = serializeProjects(projects);
 
   return (
-    <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen pt-8 pb-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-[1600px] mx-auto">
         <ProjectsClient initialProjects={serializedProjects} />
       </div>

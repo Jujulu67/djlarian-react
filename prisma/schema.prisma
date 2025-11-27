@@ -223,6 +223,7 @@ model Image {
 model Project {
   id           String    @id @default(uuid())
   userId       String
+  order        Int       @default(0) // Ordre d'affichage pour le drag-and-drop
   name         String    // Nom du projet
   style        String?   // Genre musical (House, Techno, etc.)
   status       String    @default("EN_COURS") // TERMINE, EN_COURS, ANNULE, A_REWORK, GHOST_PRODUCTION
