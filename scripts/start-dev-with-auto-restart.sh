@@ -92,6 +92,11 @@ start_umami
 start_server() {
     echo "🚀 Démarrage du serveur Next.js..."
     
+    # Rebuild better-sqlite3 pour s'assurer qu'il est compilé pour la bonne version de Node.js
+    # Important quand on travaille sur plusieurs projets avec différentes versions de Node.js
+    echo "🔧 Vérification de better-sqlite3..."
+    npm rebuild better-sqlite3 > /dev/null 2>&1 || npm rebuild better-sqlite3 || true
+    
     # Synchroniser le schéma Prisma avant de démarrer (le script npm run dev le fera aussi, mais on le fait ici pour être sûr)
     # Le script ensure-sqlite-schema.sh vérifie d'abord si c'est nécessaire, donc pas de problème de double exécution
     bash scripts/ensure-sqlite-schema.sh > /dev/null 2>&1 || bash scripts/ensure-sqlite-schema.sh
