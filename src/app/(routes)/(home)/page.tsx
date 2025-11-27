@@ -1,7 +1,6 @@
 'use client';
 
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
-import gsap from 'gsap';
 import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState } from 'react';
 import useSWR from 'swr';
@@ -615,7 +614,7 @@ export default function HomePage() {
                     transition: 'opacity 0.3s ease-in',
                   }}
                   ref={videoRef}
-                  onLoadedData={(e) => {
+                  onLoadedData={() => {
                     setVideoLoaded(true);
                     // La vidéo sera démarrée par le useEffect quand l'animation sera terminée
                   }}

@@ -2,7 +2,7 @@
  * Tests for AdminProjectsClient component
  * @jest-environment jsdom
  */
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act, findByText } from '@testing-library/react';
 
 import { AdminProjectsClient } from '../AdminProjectsClient';
 import { Project, ProjectStatus } from '@/components/projects/types';
@@ -45,10 +45,14 @@ describe('AdminProjectsClient', () => {
     });
   });
 
-  it('should render admin projects view', () => {
-    render(<AdminProjectsClient initialProjects={mockProjects} users={mockUsers} />);
+  it('should render admin projects view', async () => {
+    await act(async () => {
+      render(<AdminProjectsClient initialProjects={mockProjects} users={mockUsers} />);
+    });
 
-    expect(screen.getByText(/Vue Admin/i)).toBeInTheDocument();
+    // Il y a plusieurs éléments avec "Vue Admin", utiliser getAllByText
+    const vueAdminElements = screen.getAllByText(/Vue Admin/i);
+    expect(vueAdminElements.length).toBeGreaterThan(0);
     expect(screen.getByText('Project 1')).toBeInTheDocument();
     expect(screen.getByText('Project 2')).toBeInTheDocument();
   });
@@ -70,7 +74,9 @@ describe('AdminProjectsClient', () => {
       }),
     });
 
-    render(<AdminProjectsClient initialProjects={mockProjects} users={mockUsers} />);
+    await act(async () => {
+      render(<AdminProjectsClient initialProjects={mockProjects} users={mockUsers} />);
+    });
 
     // Wait for counts to be fetched
     await waitFor(
@@ -82,71 +88,108 @@ describe('AdminProjectsClient', () => {
   });
 
   it('should filter by user', async () => {
-    jest.useFakeTimers();
     render(<AdminProjectsClient initialProjects={mockProjects} users={mockUsers} />);
 
-    const userButton = screen.getByText(/Tous les utilisateurs/i);
-    fireEvent.click(userButton);
+    // Attendre que le composant soit complètement rendu
+    const userButton = await screen.findByText(/Tous les utilisateurs/i, {}, { timeout: 3000 });
+
+    await act(async () => {
+      fireEvent.click(userButton);
+    });
 
     // Wait for dropdown to appear and select a user
-    await waitFor(() => {
-      const userOption = screen.getByText(/User 1/i);
-      if (userOption) {
-        fireEvent.click(userOption);
-      }
+    const userOption = await screen.findByText(/User 1/i, {}, { timeout: 3000 });
+
+    await act(async () => {
+      fireEvent.click(userOption);
     });
 
-    jest.advanceTimersByTime(300);
-
-    await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('userId=user1'));
-    });
-
-    jest.useRealTimers();
+    // Attendre le debounce et la requête
+    await waitFor(
+      () => {
+        expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('userId=user1'));
+      },
+      { timeout: 2000 }
+    );
   });
 
   it('should filter by status', async () => {
-    jest.useFakeTimers();
     render(<AdminProjectsClient initialProjects={mockProjects} users={mockUsers} />);
 
-    const termineButton = screen.getByText(/Terminé/i);
-    fireEvent.click(termineButton);
+    // Attendre que le composant soit complètement rendu, puis trouver le bouton (pas le texte dans les stats)
+    await waitFor(
+      () => {
+        const buttons = screen.getAllByText(/Terminé/i);
+        const termineButton = buttons.find((btn) => btn.tagName === 'BUTTON');
+        expect(termineButton).toBeDefined();
+      },
+      { timeout: 3000 }
+    );
 
-    jest.advanceTimersByTime(300);
+    const buttons = screen.getAllByText(/Terminé/i);
+    const termineButton = buttons.find((btn) => btn.tagName === 'BUTTON');
 
-    await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('status=TERMINE'));
+    await act(async () => {
+      fireEvent.click(termineButton!);
     });
 
-    jest.useRealTimers();
+    // Attendre le debounce
+    await waitFor(
+      () => {
+        expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('status=TERMINE'));
+      },
+      { timeout: 2000 }
+    );
   });
 
   it('should debounce fetch calls', async () => {
-    jest.useFakeTimers();
     render(<AdminProjectsClient initialProjects={mockProjects} users={mockUsers} />);
 
-    const termineButton = screen.getByText(/Terminé/i);
-    fireEvent.click(termineButton);
-    fireEvent.click(termineButton);
-    fireEvent.click(termineButton);
+    // Attendre que le composant soit complètement rendu, puis trouver le bouton
+    await waitFor(
+      () => {
+        const buttons = screen.getAllByText(/Terminé/i);
+        const termineButton = buttons.find((btn) => btn.tagName === 'BUTTON');
+        expect(termineButton).toBeDefined();
+      },
+      { timeout: 3000 }
+    );
 
-    jest.advanceTimersByTime(300);
+    const buttons = screen.getAllByText(/Terminé/i);
+    const termineButton = buttons.find((btn) => btn.tagName === 'BUTTON')!;
 
-    await waitFor(() => {
-      // Should only call fetch once after debounce
-      const fetchCalls = (global.fetch as jest.Mock).mock.calls.filter((call) =>
-        call[0].includes('/api/projects?')
-      );
-      expect(fetchCalls.length).toBeLessThanOrEqual(1);
+    // Cliquer plusieurs fois rapidement
+    await act(async () => {
+      fireEvent.click(termineButton);
+      fireEvent.click(termineButton);
+      fireEvent.click(termineButton);
     });
 
-    jest.useRealTimers();
+    // Attendre le debounce (300ms)
+    await new Promise((resolve) => setTimeout(resolve, 350));
+
+    await waitFor(
+      () => {
+        // Should only call fetch once after debounce
+        const fetchCalls = (global.fetch as jest.Mock).mock.calls.filter((call) =>
+          call[0]?.includes('/api/projects?')
+        );
+        expect(fetchCalls.length).toBeLessThanOrEqual(1);
+      },
+      { timeout: 2000 }
+    );
   });
 
-  it('should display stats correctly', () => {
+  it('should display stats correctly', async () => {
     render(<AdminProjectsClient initialProjects={mockProjects} users={mockUsers} />);
 
-    // Should show stats (may need to wait for counts API)
-    expect(screen.getByText(/Projets/i)).toBeInTheDocument();
+    // Attendre que les stats soient affichées (il y a plusieurs éléments avec "Projets")
+    await waitFor(
+      () => {
+        const projetsElements = screen.getAllByText(/Projets/i);
+        expect(projetsElements.length).toBeGreaterThan(0);
+      },
+      { timeout: 3000 }
+    );
   });
 });

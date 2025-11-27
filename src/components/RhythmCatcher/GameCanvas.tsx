@@ -3,6 +3,8 @@
 import { motion } from 'framer-motion';
 import React, { useRef, useEffect, useState } from 'react';
 
+import { logger } from '@/lib/logger';
+
 import { GameState, Pattern, Point, HitQuality } from './gameEngine';
 import styles from './styles.module.css';
 
@@ -168,7 +170,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       return;
     }
     listenersAddedRef.current = true;
-    console.log('[GameCanvas] Listeners ajoutés');
+    logger.debug('[GameCanvas] Listeners ajoutés');
 
     const handleClick = (e: MouseEvent) => {
       // Ignore les clics sur les boutons

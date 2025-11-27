@@ -1,0 +1,1243 @@
+
+> dj-larian@0.1.0 lint
+> eslint --config eslint.config.mjs "src/**/*.{ts,tsx}"
+
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/(home)/page.tsx
+    4:8   warning  'gsap' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  618:34  warning  'e' is defined but never used. Allowed unused args must match /^_/u     @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/@modal/default.tsx
+  1:8  warning  'React' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/activities/page.tsx
+   15:10  warning  'Suspense' is defined but never used. Allowed unused vars must match /^_/u    @typescript-eslint/no-unused-vars
+  146:9   warning  'countQuery' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/configuration/GestionImages.tsx
+  48:3  warning  'isFullPage' is assigned a value but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/configuration/components/FusionModal.tsx
+   5:10  warning  'useState' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                         @typescript-eslint/no-unused-vars
+   7:15  warning  'ImageMeta' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                        @typescript-eslint/no-unused-vars
+  67:17  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/configuration/components/HistoryModal.tsx
+   9:3   warning  'XCircle' is defined but never used. Allowed unused vars must match /^_/u                                                 @typescript-eslint/no-unused-vars
+  13:3   warning  'PlusCircle' is defined but never used. Allowed unused vars must match /^_/u                                              @typescript-eslint/no-unused-vars
+  75:10  warning  'defaultConfigsData' is assigned a value but never used. Allowed unused elements of array destructuring must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/configuration/hooks/useImageFilters.ts
+  41:5  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/configuration/hooks/useImageFilters.ts:41:5
+  39 |     }
+  40 |
+> 41 |     setFilteredImages(result);
+     |     ^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  42 |   }, [images, searchTerm, filter, showDuplicatesState]);
+  43 |
+  44 |   // Filtrage des groupes selon showDuplicates  react-hooks/set-state-in-effect
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/configuration/hooks/useImageGrouping.ts
+  6:29  warning  'LinkedTo' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/configuration/page.tsx
+    3:10  warning  'DragDropContext' is defined but never used. Allowed unused vars must match /^_/u               @typescript-eslint/no-unused-vars
+    3:27  warning  'Droppable' is defined but never used. Allowed unused vars must match /^_/u                     @typescript-eslint/no-unused-vars
+    3:38  warning  'Draggable' is defined but never used. Allowed unused vars must match /^_/u                     @typescript-eslint/no-unused-vars
+   34:10  warning  'Tabs' is defined but never used. Allowed unused vars must match /^_/u                          @typescript-eslint/no-unused-vars
+   34:16  warning  'TabsContent' is defined but never used. Allowed unused vars must match /^_/u                   @typescript-eslint/no-unused-vars
+   34:29  warning  'TabsList' is defined but never used. Allowed unused vars must match /^_/u                      @typescript-eslint/no-unused-vars
+   34:39  warning  'TabsTrigger' is defined but never used. Allowed unused vars must match /^_/u                   @typescript-eslint/no-unused-vars
+   42:3   warning  'GeneralConfig' is defined but never used. Allowed unused vars must match /^_/u                 @typescript-eslint/no-unused-vars
+   43:3   warning  'AppearanceConfig' is defined but never used. Allowed unused vars must match /^_/u              @typescript-eslint/no-unused-vars
+   44:3   warning  'HomepageConfig' is defined but never used. Allowed unused vars must match /^_/u                @typescript-eslint/no-unused-vars
+   45:3   warning  'NotificationsConfig' is defined but never used. Allowed unused vars must match /^_/u           @typescript-eslint/no-unused-vars
+   46:3   warning  'SecurityConfig' is defined but never used. Allowed unused vars must match /^_/u                @typescript-eslint/no-unused-vars
+   47:3   warning  'ApiConfig' is defined but never used. Allowed unused vars must match /^_/u                     @typescript-eslint/no-unused-vars
+  350:9   warning  'resetConfigurations' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  378:9   warning  'createSnapshot' is assigned a value but never used. Allowed unused vars must match /^_/u       @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/configuration/tabs/ApiTab.tsx
+   3:28  warning  'Zap' is defined but never used. Allowed unused vars must match /^_/u     @typescript-eslint/no-unused-vars
+  11:10  warning  'Button' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  14:10  warning  'logger' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/configuration/tabs/SecurityTab.tsx
+  7:10  warning  'Input' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  8:10  warning  'Label' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/events/[id]/page.tsx
+  17:3  warning  'CheckCircle' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  20:3  warning  'ArrowRight' is defined but never used. Allowed unused vars must match /^_/u   @typescript-eslint/no-unused-vars
+  21:3  warning  'Users' is defined but never used. Allowed unused vars must match /^_/u        @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/events/new/page.tsx
+    4:3   warning  'Calendar' is defined but never used. Allowed unused vars must match /^_/u                                            @typescript-eslint/no-unused-vars
+    6:3   warning  'Save' is defined but never used. Allowed unused vars must match /^_/u                                                @typescript-eslint/no-unused-vars
+    7:3   warning  'Upload' is defined but never used. Allowed unused vars must match /^_/u                                              @typescript-eslint/no-unused-vars
+    8:3   warning  'X' is defined but never used. Allowed unused vars must match /^_/u                                                   @typescript-eslint/no-unused-vars
+    9:3   warning  'Clock' is defined but never used. Allowed unused vars must match /^_/u                                               @typescript-eslint/no-unused-vars
+   10:3   warning  'MapPin' is defined but never used. Allowed unused vars must match /^_/u                                              @typescript-eslint/no-unused-vars
+   11:3   warning  'PenLine' is defined but never used. Allowed unused vars must match /^_/u                                             @typescript-eslint/no-unused-vars
+   12:3   warning  'Info' is defined but never used. Allowed unused vars must match /^_/u                                                @typescript-eslint/no-unused-vars
+   13:3   warning  'Euro' is defined but never used. Allowed unused vars must match /^_/u                                                @typescript-eslint/no-unused-vars
+   14:11  warning  'LinkIcon' is defined but never used. Allowed unused vars must match /^_/u                                            @typescript-eslint/no-unused-vars
+   15:3   warning  'Globe' is defined but never used. Allowed unused vars must match /^_/u                                               @typescript-eslint/no-unused-vars
+   16:3   warning  'Eye' is defined but never used. Allowed unused vars must match /^_/u                                                 @typescript-eslint/no-unused-vars
+  108:23  warning  'setPreviewMode' is assigned a value but never used. Allowed unused elements of array destructuring must match /^_/u  @typescript-eslint/no-unused-vars
+  269:9   warning  'centerAspectCrop' is assigned a value but never used. Allowed unused vars must match /^_/u                           @typescript-eslint/no-unused-vars
+  284:9   warning  'getCroppedBlob' is assigned a value but never used. Allowed unused vars must match /^_/u                             @typescript-eslint/no-unused-vars
+  291:11  warning  'imageWidth' is assigned a value but never used. Allowed unused vars must match /^_/u                                 @typescript-eslint/no-unused-vars
+  292:11  warning  'imageHeight' is assigned a value but never used. Allowed unused vars must match /^_/u                                @typescript-eslint/no-unused-vars
+  311:32  warning  'file' is defined but never used. Allowed unused args must match /^_/u                                                @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/events/page.tsx
+  13:3   warning  'Filter' is defined but never used. Allowed unused vars must match /^_/u                                                     @typescript-eslint/no-unused-vars
+  18:3   warning  'ArrowUpDown' is defined but never used. Allowed unused vars must match /^_/u                                                @typescript-eslint/no-unused-vars
+  19:3   warning  'CheckCircle' is defined but never used. Allowed unused vars must match /^_/u                                                @typescript-eslint/no-unused-vars
+  20:3   warning  'Clock' is defined but never used. Allowed unused vars must match /^_/u                                                      @typescript-eslint/no-unused-vars
+  23:12  warning  'ImageIcon' is defined but never used. Allowed unused vars must match /^_/u                                                  @typescript-eslint/no-unused-vars
+  25:3   warning  'Euro' is defined but never used. Allowed unused vars must match /^_/u                                                       @typescript-eslint/no-unused-vars
+  34:10  warning  'FaPlus' is defined but never used. Allowed unused vars must match /^_/u                                                     @typescript-eslint/no-unused-vars
+  34:18  warning  'FaEdit' is defined but never used. Allowed unused vars must match /^_/u                                                     @typescript-eslint/no-unused-vars
+  34:26  warning  'FaTrash' is defined but never used. Allowed unused vars must match /^_/u                                                    @typescript-eslint/no-unused-vars
+  34:35  warning  'FaEye' is defined but never used. Allowed unused vars must match /^_/u                                                      @typescript-eslint/no-unused-vars
+  34:42  warning  'FaCheckCircle' is defined but never used. Allowed unused vars must match /^_/u                                              @typescript-eslint/no-unused-vars
+  34:57  warning  'FaTimesCircle' is defined but never used. Allowed unused vars must match /^_/u                                              @typescript-eslint/no-unused-vars
+  61:10  warning  'showModal' is assigned a value but never used. Allowed unused elements of array destructuring must match /^_/u              @typescript-eslint/no-unused-vars
+  62:10  warning  'currentEvent' is assigned a value but never used. Allowed unused elements of array destructuring must match /^_/u           @typescript-eslint/no-unused-vars
+  63:10  warning  'formMode' is assigned a value but never used. Allowed unused elements of array destructuring must match /^_/u               @typescript-eslint/no-unused-vars
+  64:23  warning  'setFormMessage' is assigned a value but never used. Allowed unused elements of array destructuring must match /^_/u         @typescript-eslint/no-unused-vars
+  68:10  warning  'deleteConfirmation' is assigned a value but never used. Allowed unused elements of array destructuring must match /^_/u     @typescript-eslint/no-unused-vars
+  68:30  warning  'setDeleteConfirmation' is assigned a value but never used. Allowed unused elements of array destructuring must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/loading.tsx
+  1:8  warning  'LoadingSpinner' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/music/components/AutoDetectAtelier/components/ReleaseItem.tsx
+  16:5  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/music/components/AutoDetectAtelier/hooks/useReleaseImport.ts
+  33:3  warning  'activeTab' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/music/components/AutoDetectAtelier/hooks/useReleases.ts
+  63:5  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/music/components/AutoDetectAtelier/hooks/useReleases.ts:63:5
+  61 |     }
+  62 |     logger.debug('[AUTO-DETECT] Filtrage - résultat final:', filtered.length);
+> 63 |     setFilteredReleases(filtered);
+     |     ^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  64 |   }, [releases, searchTerm, hideImported, showScheduledOnly]);
+  65 |
+  66 |   return {  react-hooks/set-state-in-effect
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/music/components/TrackList.tsx
+  56:9  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  56:9  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/music/hooks/useSuccessNotification.ts
+  14:5  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/music/hooks/useSuccessNotification.ts:14:5
+  12 |     const searchParams = new URLSearchParams(window.location.search);
+  13 |     const successId = searchParams.get('success');
+> 14 |     setShowSuccess(!!successId);
+     |     ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  15 |   }, []);
+  16 |
+  17 |   // Auto-hide après 3 secondes  react-hooks/set-state-in-effect
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/music/hooks/useTracks.ts
+  7:22  warning  'MusicPlatform' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/music/page.tsx
+   60:9  warning  'trackRefs' is assigned a value but never used. Allowed unused vars must match /^_/u        @typescript-eslint/no-unused-vars
+  164:9  warning  'handleImageLoad' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/page.tsx
+  37:5  warning  'eventsCount' is assigned a value but never used. Allowed unused elements of array destructuring must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/projects/AdminProjectsClient.tsx
+  142:31  warning  'id' is defined but never used. Allowed unused args must match /^_/u               @typescript-eslint/no-unused-vars
+  142:43  warning  'field' is defined but never used. Allowed unused args must match /^_/u            @typescript-eslint/no-unused-vars
+  142:58  warning  'value' is defined but never used. Allowed unused args must match /^_/u            @typescript-eslint/no-unused-vars
+  145:5   error    Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  148:31  warning  'id' is defined but never used. Allowed unused args must match /^_/u               @typescript-eslint/no-unused-vars
+  150:5   error    Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  155:5   error    Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/statistics/page.tsx
+   3:10  warning  'formatDistanceToNow' is defined but never used. Allowed unused vars must match /^_/u                             @typescript-eslint/no-unused-vars
+   3:31  warning  'subDays' is defined but never used. Allowed unused vars must match /^_/u                                         @typescript-eslint/no-unused-vars
+   4:10  warning  'fr' is defined but never used. Allowed unused vars must match /^_/u                                              @typescript-eslint/no-unused-vars
+   6:3   warning  'BarChart3' is defined but never used. Allowed unused vars must match /^_/u                                       @typescript-eslint/no-unused-vars
+  13:3   warning  'Clock' is defined but never used. Allowed unused vars must match /^_/u                                           @typescript-eslint/no-unused-vars
+  17:3   warning  'ToggleLeft' is defined but never used. Allowed unused vars must match /^_/u                                      @typescript-eslint/no-unused-vars
+  18:3   warning  'ToggleRight' is defined but never used. Allowed unused vars must match /^_/u                                     @typescript-eslint/no-unused-vars
+  27:10  warning  'redirect' is defined but never used. Allowed unused vars must match /^_/u                                        @typescript-eslint/no-unused-vars
+  39:10  warning  'auth' is defined but never used. Allowed unused vars must match /^_/u                                            @typescript-eslint/no-unused-vars
+  40:10  warning  'Button' is defined but never used. Allowed unused vars must match /^_/u                                          @typescript-eslint/no-unused-vars
+  51:16  warning  'TabsContent' is defined but never used. Allowed unused vars must match /^_/u                                     @typescript-eslint/no-unused-vars
+  53:3   warning  'getUmamiStats' is defined but never used. Allowed unused vars must match /^_/u                                   @typescript-eslint/no-unused-vars
+  54:3   warning  'getTopPages' is defined but never used. Allowed unused vars must match /^_/u                                     @typescript-eslint/no-unused-vars
+  55:3   warning  'getTrafficSources' is defined but never used. Allowed unused vars must match /^_/u                               @typescript-eslint/no-unused-vars
+  62:8   warning  'prisma' is defined but never used. Allowed unused vars must match /^_/u                                          @typescript-eslint/no-unused-vars
+  91:10  warning  'session' is assigned a value but never used. Allowed unused elements of array destructuring must match /^_/u     @typescript-eslint/no-unused-vars
+  91:19  warning  'setSession' is assigned a value but never used. Allowed unused elements of array destructuring must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/admin/users/page.tsx
+  14:6  warning  'UserData' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/events/[id]/page.tsx
+   6:3   warning  'Calendar' is defined but never used. Allowed unused vars must match /^_/u                                          @typescript-eslint/no-unused-vars
+   8:3   warning  'MapPin' is defined but never used. Allowed unused vars must match /^_/u                                            @typescript-eslint/no-unused-vars
+  12:3   warning  'Share2' is defined but never used. Allowed unused vars must match /^_/u                                            @typescript-eslint/no-unused-vars
+  14:3   warning  'CheckCircle' is defined but never used. Allowed unused vars must match /^_/u                                       @typescript-eslint/no-unused-vars
+  15:3   warning  'XCircle' is defined but never used. Allowed unused vars must match /^_/u                                           @typescript-eslint/no-unused-vars
+  26:3   warning  'FaTicketAlt' is defined but never used. Allowed unused vars must match /^_/u                                       @typescript-eslint/no-unused-vars
+  74:9   warning  'router' is assigned a value but never used. Allowed unused vars must match /^_/u                                   @typescript-eslint/no-unused-vars
+  78:10  warning  'searchParams' is assigned a value but never used. Allowed unused elements of array destructuring must match /^_/u  @typescript-eslint/no-unused-vars
+  79:10  warning  'virtualDate' is assigned a value but never used. Allowed unused elements of array destructuring must match /^_/u   @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/events/page.tsx
+   19:3  warning  'Music' is defined but never used. Allowed unused vars must match /^_/u                     @typescript-eslint/no-unused-vars
+  288:9  warning  'formatEventDate' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  294:9  warning  'getStatusLabel' is assigned a value but never used. Allowed unused vars must match /^_/u   @typescript-eslint/no-unused-vars
+  308:9  warning  'getStatusColor' is assigned a value but never used. Allowed unused vars must match /^_/u   @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/gallery/page.tsx
+  56:7  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/gallery/page.tsx:56:7
+  54 |   useEffect(() => {
+  55 |     if (activeTab === 'instagram') {
+> 56 |       setIsLoadingInstagram(true);
+     |       ^^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  57 |       fetch('/api/instagram/posts')
+  58 |         .then((res) => res.json())
+  59 |         .then((data) => {  react-hooks/set-state-in-effect
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/music/page.tsx
+  4:31  warning  'ChevronDown' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/projects/ProjectsClient.tsx
+    5:3   warning  'RefreshCw' is defined but never used. Allowed unused vars must match /^_/u    @typescript-eslint/no-unused-vars
+    6:3   warning  'Upload' is defined but never used. Allowed unused vars must match /^_/u       @typescript-eslint/no-unused-vars
+    7:3   warning  'Trash2' is defined but never used. Allowed unused vars must match /^_/u       @typescript-eslint/no-unused-vars
+    9:3   warning  'ArrowUpDown' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+   10:3   warning  'ArrowUp' is defined but never used. Allowed unused vars must match /^_/u      @typescript-eslint/no-unused-vars
+   11:3   warning  'ArrowDown' is defined but never used. Allowed unused vars must match /^_/u    @typescript-eslint/no-unused-vars
+   12:3   warning  'Download' is defined but never used. Allowed unused vars must match /^_/u     @typescript-eslint/no-unused-vars
+  223:21  error    Unexpected any. Specify a different type                                       @typescript-eslint/no-explicit-any
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/(routes)/projects/statistics/StatisticsClient.tsx
+   27:3   warning  'Legend' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+   29:3   warning  'Cell' is defined but never used. Allowed unused vars must match /^_/u    @typescript-eslint/no-unused-vars
+  386:54  error    Unexpected any. Specify a different type                                  @typescript-eslint/no-explicit-any
+  395:45  error    Unexpected any. Specify a different type                                  @typescript-eslint/no-explicit-any
+  399:47  error    Unexpected any. Specify a different type                                  @typescript-eslint/no-explicit-any
+  424:37  error    Unexpected any. Specify a different type                                  @typescript-eslint/no-explicit-any
+  457:39  error    Unexpected any. Specify a different type                                  @typescript-eslint/no-explicit-any
+  482:36  error    Unexpected any. Specify a different type                                  @typescript-eslint/no-explicit-any
+  514:12  error    Component definition is missing display name                              react/display-name
+  514:20  error    Unexpected any. Specify a different type                                  @typescript-eslint/no-explicit-any
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/api/admin/config/default/route.ts
+   6:8   warning  'prisma' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  18:58  warning  Unexpected any. Specify a different type                                  @typescript-eslint/no-explicit-any
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/api/admin/config/reset/route.ts
+   96:28  warning  'req' is defined but never used. Allowed unused args must match /^_/u                      @typescript-eslint/no-unused-vars
+  104:11  warning  'updatePromises' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/api/admin/database/restart-check/route.ts
+  7:27  warning  'req' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/api/admin/integrations/status/route.ts
+  6:27  warning  'request' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/api/admin/sentry/status/route.ts
+  6:27  warning  'request' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/api/admin/setup-config/route.ts
+  82:27  warning  'req' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/api/admin/stats/route.ts
+  1:10  warning  'Prisma' is defined but never used. Allowed unused vars must match /^_/u        @typescript-eslint/no-unused-vars
+  2:19  warning  'startOfDay' is defined but never used. Allowed unused vars must match /^_/u    @typescript-eslint/no-unused-vars
+  2:31  warning  'startOfWeek' is defined but never used. Allowed unused vars must match /^_/u   @typescript-eslint/no-unused-vars
+  2:44  warning  'startOfMonth' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/api/auth/register/route.ts
+  31:11  warning  'user' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/api/config/umami/route.ts
+  11:27  warning  'req' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/api/events/route.ts
+  207:56  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/api/music/[id]/route.ts
+  1:10  warning  'Prisma' is defined but never used. Allowed unused vars must match /^_/u                   @typescript-eslint/no-unused-vars
+  9:3   warning  'createForbiddenResponse' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/api/music/route.ts
+  155:56  warning  Unexpected any. Specify a different type                                                                                                                  @typescript-eslint/no-explicit-any
+  228:46  error    Replace `·await·import(⏎········'@/lib/utils/fetchThumbnailFromPlatforms'⏎······` with `⏎········await·import('@/lib/utils/fetchThumbnailFromPlatforms'`  prettier/prettier
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/api/projects/batch/route.ts
+   46:13  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   93:40  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  166:28  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  167:28  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/api/projects/purge/route.ts
+  20:30  warning  'request' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/api/projects/route.ts
+  73:29  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/api/projects/statistics/route.ts
+  10:27  warning  'request' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/api/upload/route.ts
+  7:24  warning  'getBlobPublicUrl' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/api/users/[userId]/route.ts
+  185:47  warning  'params' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  188:48  warning  'params' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  191:49  warning  'params' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/api/users/route.ts
+  38:56  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/api/youtube/route.ts
+  52:6  warning  'YouTubeReleasesData' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/components/EventForm.tsx
+    2:20  warning  'useRef' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                             @typescript-eslint/no-unused-vars
+    3:13  warning  'RadixPopover' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                       @typescript-eslint/no-unused-vars
+    4:10  warning  'Upload' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                             @typescript-eslint/no-unused-vars
+    4:18  warning  'X' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                  @typescript-eslint/no-unused-vars
+    4:30  warning  'ImageIcon' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                          @typescript-eslint/no-unused-vars
+    4:41  warning  'XCircle' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                            @typescript-eslint/no-unused-vars
+    4:50  warning  'Crop' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                               @typescript-eslint/no-unused-vars
+    6:49  warning  'addDays' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                            @typescript-eslint/no-unused-vars
+    6:68  warning  'endOfMonth' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                         @typescript-eslint/no-unused-vars
+    8:22  warning  'CalendarIcon' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                       @typescript-eslint/no-unused-vars
+    8:36  warning  'CheckCircle' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                        @typescript-eslint/no-unused-vars
+    8:49  warning  'Clock' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                              @typescript-eslint/no-unused-vars
+    8:56  warning  'PauseCircle' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                        @typescript-eslint/no-unused-vars
+   11:8   warning  'ReactCrop' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                          @typescript-eslint/no-unused-vars
+   14:18  warning  'Input' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                              @typescript-eslint/no-unused-vars
+   14:25  warning  'Label' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                              @typescript-eslint/no-unused-vars
+   14:40  warning  'Textarea' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                           @typescript-eslint/no-unused-vars
+   28:11  warning  'FormErrors' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                         @typescript-eslint/no-unused-vars
+   92:10  warning  'dragActive' is assigned a value but never used. Allowed unused elements of array destructuring must match /^_/u                                                                                                                                     @typescript-eslint/no-unused-vars
+   94:10  warning  'showCropper' is assigned a value but never used. Allowed unused elements of array destructuring must match /^_/u                                                                                                                                    @typescript-eslint/no-unused-vars
+   95:10  warning  'displayCrop' is assigned a value but never used. Allowed unused elements of array destructuring must match /^_/u                                                                                                                                    @typescript-eslint/no-unused-vars
+   98:10  warning  'isImageLoaded' is assigned a value but never used. Allowed unused elements of array destructuring must match /^_/u                                                                                                                                  @typescript-eslint/no-unused-vars
+  102:10  warning  'cachedOriginalUrl' is assigned a value but never used. Allowed unused elements of array destructuring must match /^_/u                                                                                                                              @typescript-eslint/no-unused-vars
+  113:32  warning  'e' is defined but never used. Allowed unused args must match /^_/u                                                                                                                                                                                  @typescript-eslint/no-unused-vars
+  129:9   warning  'handleImageLoad' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                                                                                                           @typescript-eslint/no-unused-vars
+  144:9   warning  'drawCroppedImage' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                                                                                                          @typescript-eslint/no-unused-vars
+  185:11  warning  'croppedImageUrl' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                                                                                                           @typescript-eslint/no-unused-vars
+  217:9   warning  'handleDrag' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                                                                                                                @typescript-eslint/no-unused-vars
+  250:11  warning  'getRootProps' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                                                                                                              @typescript-eslint/no-unused-vars
+  250:25  warning  'getInputProps' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                                                                                                             @typescript-eslint/no-unused-vars
+  552:6   warning  React Hook useEffect has a missing dependency: 'onImageFilesChange'. Either include it or remove the dependency array. If 'onImageFilesChange' changes too often, find the parent component that defines it and wrap that definition in useCallback  react-hooks/exhaustive-deps
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/app/components/EventForm/hooks/useEventTickets.ts
+  19:3  warning  'setFormData' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/3d/ParticleSystem.tsx
+   3:36  warning  'useState' is defined but never used. Allowed unused vars must match /^_/u      @typescript-eslint/no-unused-vars
+  48:19  warning  'age' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/3d/ScoreDisplay.tsx
+  27:10  warning  'isNewHighScore' is assigned a value but never used. Allowed unused elements of array destructuring must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/RhythmCatcher/GameCanvas.tsx
+    6:21  warning  'Pattern' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                                    @typescript-eslint/no-unused-vars
+   23:3   warning  'onHit' is defined but never used. Allowed unused args must match /^_/u                                                                                                                                                                                                                                      @typescript-eslint/no-unused-vars
+   77:6   warning  React Hook useEffect has a missing dependency: 'gameState.player.radius'. Either include it or remove the dependency array. If 'setHitEffect' needs the current value of 'gameState.player.radius', you can also switch to useReducer instead of useState and read 'gameState.player.radius' in the reducer  react-hooks/exhaustive-deps
+  171:5   error    Unexpected console statement. Only these console methods are allowed: warn, error                                                                                                                                                                                                                            no-console
+  552:9   warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                                                                                                                               jsx-a11y/click-events-have-key-events
+  552:9   warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element                                                                                                            jsx-a11y/no-static-element-interactions
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/RhythmCatcher/ScorePanel.tsx
+  36:7  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/RhythmCatcher/ScorePanel.tsx:36:7
+  34 |   useEffect(() => {
+  35 |     if (player.score > displayScore) {
+> 36 |       setIsScoreIncreasing(true);
+     |       ^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  37 |
+  38 |       // Calcule l'incrément pour une animation fluide
+  39 |       const difference = player.score - displayScore;                                                                   react-hooks/set-state-in-effect
+  59:7  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/RhythmCatcher/ScorePanel.tsx:59:7
+  57 |     // Si le combo augmente, met à jour immédiatement
+  58 |     if (player.combo > displayCombo) {
+> 59 |       setDisplayCombo(player.combo);
+     |       ^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  60 |       // Annule le timeout précédent si le combo augmente
+  61 |       if (comboTimeoutRef.current) {
+  62 |         clearTimeout(comboTimeoutRef.current);  react-hooks/set-state-in-effect
+  99:7  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/RhythmCatcher/ScorePanel.tsx:99:7
+   97 |     if (actualScoreChange > 5) {
+   98 |       // Nouveau gain de score significatif - remplace l'ancien si existant
+>  99 |       setScoreChange({ value: actualScoreChange, timestamp: Date.now() });
+      |       ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  100 |       setLastPlayerScore(player.score);
+  101 |
+  102 |       timer = setTimeout(() => {           react-hooks/set-state-in-effect
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/RhythmCatcher/gameEngine.ts
+   64:7   warning  'PERFECT_WINDOW' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+   65:7   warning  'GOOD_WINDOW' is assigned a value but never used. Allowed unused vars must match /^_/u     @typescript-eslint/no-unused-vars
+  473:10  warning  'findDominantFrequency' is defined but never used. Allowed unused vars must match /^_/u    @typescript-eslint/no-unused-vars
+  523:5   warning  'lastValue' is assigned a value but never used. Allowed unused vars must match /^_/u       @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/RhythmCatcher/index.tsx
+   3:18  warning  'AnimatePresence' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  17:3   warning  'CollisionResult' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/admin/AddUserForm.tsx
+  26:9  warning  'router' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/admin/DatabaseSwitch.tsx
+  68:15  warning  'data' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/admin/SentryDashboard.tsx
+  53:5  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/admin/SentryDashboard.tsx:53:5
+  51 |
+  52 |   useEffect(() => {
+> 53 |     fetchSentryStatus();
+     |     ^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  54 |   }, []);
+  55 |
+  56 |   // L'URL Sentry est retournée par l'API et stockée dans le state  react-hooks/set-state-in-effect
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/admin/TrackDetailView.tsx
+   7:3  warning  'ArrowLeft' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  11:3  warning  'User' is defined but never used. Allowed unused vars must match /^_/u       @typescript-eslint/no-unused-vars
+  22:8  warning  'Link' is defined but never used. Allowed unused vars must match /^_/u       @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/admin/UserActions.tsx
+  15:47  warning  'userName' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/admin/VercelAnalyticsDashboard.tsx
+  48:5  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/admin/VercelAnalyticsDashboard.tsx:48:5
+  46 |
+  47 |   useEffect(() => {
+> 48 |     fetchStatus();
+     |     ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  49 |   }, []);
+  50 |
+  51 |   const enabled = true; // Toujours actif si intégré  react-hooks/set-state-in-effect
+  51:9  warning  'enabled' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/admin/VercelSpeedInsightsDashboard.tsx
+  48:5  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/admin/VercelSpeedInsightsDashboard.tsx:48:5
+  46 |
+  47 |   useEffect(() => {
+> 48 |     fetchStatus();
+     |     ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  49 |   }, []);
+  50 |
+  51 |   const enabled = true; // Toujours actif si intégré  react-hooks/set-state-in-effect
+  51:9  warning  'enabled' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/auth/AuthModal.tsx
+  3:18  warning  'AnimatePresence' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  4:10  warning  'Loader2' is defined but never used. Allowed unused vars must match /^_/u          @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/layout/ClientLayout.tsx
+  3:10  warning  'useEffect' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/layout/Navigation.tsx
+  76:7  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/layout/Navigation.tsx:76:7
+  74 |   useEffect(() => {
+  75 |     try {
+> 76 |       setMounted(true);
+     |       ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  77 |       let timeout: NodeJS.Timeout | null = null;
+  78 |       const handleScroll = () => {
+  79 |         try {  react-hooks/set-state-in-effect
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/projects/EditableCell.tsx
+    6:58  warning  'LabelStatus' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  352:44  error    Unexpected any. Specify a different type                                       @typescript-eslint/no-explicit-any
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/projects/ImportProjectsDialog.tsx
+   29:14  error    Replace `projects:·ParsedProjectRow[],·overwriteDuplicates?:·boolean` with `⏎····projects:·ParsedProjectRow[],⏎····overwriteDuplicates?:·boolean⏎··`  prettier/prettier
+   85:9   warning  'formatTextForAlignment' is assigned a value but never used. Allowed unused vars must match /^_/u                                                     @typescript-eslint/no-unused-vars
+  128:49  error    Unexpected any. Specify a different type                                                                                                              @typescript-eslint/no-explicit-any
+  217:59  error    Unexpected any. Specify a different type                                                                                                              @typescript-eslint/no-explicit-any
+  286:11  warning  'totalDuplicates' is assigned a value but never used. Allowed unused vars must match /^_/u                                                            @typescript-eslint/no-unused-vars
+  331:21  error    Unexpected any. Specify a different type                                                                                                              @typescript-eslint/no-explicit-any
+  471:36  warning  'e' is defined but never used. Allowed unused args must match /^_/u                                                                                   @typescript-eslint/no-unused-vars
+  495:36  warning  'e' is defined but never used. Allowed unused args must match /^_/u                                                                                   @typescript-eslint/no-unused-vars
+  551:69  error    Unexpected any. Specify a different type                                                                                                              @typescript-eslint/no-explicit-any
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/projects/ProjectTable.tsx
+   26:10  warning  'ProjectStatusBadge' is defined but never used. Allowed unused vars must match /^_/u                                                                                                               @typescript-eslint/no-unused-vars
+  858:9   warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  858:9   warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/projects/ReleaseCalendar.tsx
+   12:10  warning  'startOfYear' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                      @typescript-eslint/no-unused-vars
+  289:9   warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  289:9   warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/sections/LatestReleases.tsx
+  4:10  warning  'Loader' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/sections/UpcomingEvents.tsx
+    5:8   warning  'Image' is defined but never used. Allowed unused vars must match /^_/u                                                                                       @typescript-eslint/no-unused-vars
+   16:11  warning  'DisplayEvent' is defined but never used. Allowed unused vars must match /^_/u                                                                                @typescript-eslint/no-unused-vars
+  129:11  warning  Do not use an `<a>` element to navigate to `/events/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/ui/AudioPlayer.tsx
+  144:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  144:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  172:13  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  172:13  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/ui/Badge.tsx
+  37:48  error  Delete `⏎···`  prettier/prettier
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/ui/Button.tsx
+  36:57  error  Delete `⏎···`  prettier/prettier
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/ui/DateTimePicker.tsx
+  3:18  warning  'parse' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/ui/ImageCropModal.tsx
+  114:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  122:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/ui/ImageDropzone.tsx
+  132:9  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/ui/ImageLibraryModal.tsx
+  65:5   warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/ui/ImageLibraryModal.tsx:65:5
+  63 |   useEffect(() => {
+  64 |     if (!open) return;
+> 65 |     setLoading(true);
+     |     ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  66 |     fetch('/api/images')
+  67 |       .then((res) => res.json())
+  68 |       .then((data) => {  react-hooks/set-state-in-effect
+  96:13  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   jsx-a11y/no-static-element-interactions
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/ui/Modal.tsx
+   5:17  warning  'useEffect' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                        @typescript-eslint/no-unused-vars
+  68:9   warning  'handleMouseDown' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                                                         @typescript-eslint/no-unused-vars
+  77:9   warning  'handleMouseUp' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                                                           @typescript-eslint/no-unused-vars
+  97:7   warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  97:7   warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/ui/MusicCard.tsx
+  52:37  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `track`, but the source dependencies were [track.platforms]. Inferred less specific property than source.
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/ui/MusicCard.tsx:52:37
+  50 |
+  51 |   // Determine which platform to use based on priority (YouTube > SoundCloud) - memoized
+> 52 |   const preferredPlatform = useMemo(() => selectPreferredPlatform(track), [track.platforms]);
+     |                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Could not preserve existing manual memoization
+  53 |   const shouldUseYouTube = preferredPlatform === 'youtube';
+  54 |   const shouldUseSoundCloud = preferredPlatform === 'soundcloud';
+  55 |                                         react-hooks/preserve-manual-memoization
+  52:75  warning  React Hook useMemo has a missing dependency: 'track'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react-hooks/exhaustive-deps
+  95:7   warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/ui/MusicCard.tsx:95:7
+  93 |   useEffect(() => {
+  94 |     if (!isActive) {
+> 95 |       setLocalIsPlaying(false);
+     |       ^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  96 |       youtubePlayer.setIsYoutubeVisible(false);
+  97 |       soundcloudPlayer.setIsSoundcloudVisible(false);
+  98 |  react-hooks/set-state-in-effect
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/ui/MusicCard/MusicCardInfo.tsx
+  16:7  warning  'getTypeLabel' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/ui/MusicCard/MusicCardVisualizer.tsx
+  113:7  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/ui/MusicCard/MusicCardVisualizer.tsx:113:7
+  111 |       const resetData = Array(20).fill(20);
+  112 |       previousAudioDataRef.current = resetData;
+> 113 |       setAudioData(resetData);
+      |       ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  114 |       if (animationFrameRef.current) {
+  115 |         cancelAnimationFrame(animationFrameRef.current);
+  116 |         animationFrameRef.current = null;  react-hooks/set-state-in-effect
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/ui/MusicPlayer.tsx
+  21:59  warning  'isPlaying' is defined but never used. Allowed unused args must match /^_/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-unused-vars
+  21:79  warning  'onTogglePlay' is defined but never used. Allowed unused args must match /^_/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-unused-vars
+  57:7   warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/ui/MusicPlayer.tsx:57:7
+  55 |       }
+  56 |
+> 57 |       setSelectedPlatform(platformToUse);
+     |       ^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  58 |       setImageError(false);
+  59 |     } else {
+  60 |       setSelectedPlatform(null);                                                                                                          react-hooks/set-state-in-effect
+  68:7   warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/ui/MusicPlayer.tsx:68:7
+  66 |     if (track && selectedPlatform && track.platforms[selectedPlatform]?.url) {
+  67 |       const url = getEmbedUrl(track.platforms[selectedPlatform]!.url, selectedPlatform);
+> 68 |       setEmbedUrl(url);
+     |       ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  69 |     } else {
+  70 |       setEmbedUrl(null);
+  71 |     }  react-hooks/set-state-in-effect
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/ui/MusicPlayerSystem.tsx
+   14:3  warning  'Maximize2' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-unused-vars
+  140:7  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/ui/MusicPlayerSystem.tsx:140:7
+  138 |       }
+  139 |
+> 140 |       setSelectedPlatform(platformToUse);
+      |       ^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  141 |
+  142 |       // Si YouTube est sélectionné, extraire l'ID de la vidéo
+  143 |       if (platformToUse === 'youtube' && track.platforms.youtube?.url) {                                                                                                                                                         react-hooks/set-state-in-effect
+  177:9  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/ui/MusicPlayerSystem.tsx:177:9
+  175 |         const videoId = extractYoutubeId(track.platforms.youtube!.url);
+  176 |         logger.debug('YouTube ID extrait:', videoId);
+> 177 |         setYoutubeVideoId(videoId);
+      |         ^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  178 |         setEmbedUrl(null); // On n'utilise pas d'iframe pour YouTube
+  179 |       } else {
+  180 |         const url = getEmbedUrl(track.platforms[selectedPlatform]!.url, selectedPlatform);  react-hooks/set-state-in-effect
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/ui/ScrollProgress.tsx
+  11:5  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/ui/ScrollProgress.tsx:11:5
+   9 |
+  10 |   useEffect(() => {
+> 11 |     setMounted(true);
+     |     ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  12 |     const checkMobile = () => {
+  13 |       setIsMobile(window.innerWidth <= 768);
+  14 |     };  react-hooks/set-state-in-effect
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/ui/SimpleMusicPlayer.tsx
+  44:5  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/ui/SimpleMusicPlayer.tsx:44:5
+  42 |
+  43 |   useEffect(() => {
+> 44 |     setInternalIsPlaying(isPlaying);
+     |     ^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  45 |     logger.debug(`SimpleMusicPlayer: état de lecture mis à jour à ${isPlaying ? 'play' : 'pause'}`);
+  46 |     isProcessingFooterToggle.current = false;
+  47 |     logger.debug('SimpleMusicPlayer: Footer toggle lock released (immediately on prop update).');  react-hooks/set-state-in-effect
+  52:7  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/ui/SimpleMusicPlayer.tsx:52:7
+  50 |   useEffect(() => {
+  51 |     if (track) {
+> 52 |       setImageError(false);
+     |       ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  53 |       logger.debug(
+  54 |         `SimpleMusicPlayer: Réinitialisation de l\'erreur d\'image pour la piste ${track.id}`
+  55 |       );                                                                                                                         react-hooks/set-state-in-effect
+  63:7  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/ui/SimpleMusicPlayer.tsx:63:7
+  61 |       logger.debug('Initialisation du lecteur musical et chargement du volume...');
+  62 |       const initialVolume = getInitialVolume();
+> 63 |       setVolume(initialVolume * 100);
+     |       ^^^^^^^^^ Avoid calling setState() directly within an effect
+  64 |       setIsMuted(initialVolume === 0);
+  65 |       applyVolumeToAllPlayers(initialVolume);
+  66 |       if (initialVolume > 0) {                           react-hooks/set-state-in-effect
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/components/ui/switch.tsx
+  13:7  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  13:7  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/hooks/game/constants.ts
+  1:15  warning  'FrequencyBand' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/hooks/game/useCanvasRenderer.ts
+   83:5   warning  Error: This value cannot be modified
+
+Modifying component props or hook arguments is not allowed. Consider using a local variable instead.
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/hooks/game/useCanvasRenderer.ts:83:5
+  81 |     gradient.addColorStop(1, 'rgba(200, 200, 255, 0.7)');
+  82 |
+> 83 |     ctx.current.fillStyle = gradient;
+     |     ^^^^^^^^^^^ `ctx` cannot be modified
+  84 |     ctx.current.fill();
+  85 |
+  86 |     // Add halo around player                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   react-hooks/immutability
+  157:9   warning  Error: This value cannot be modified
+
+Modifying component props or hook arguments is not allowed. Consider using a local variable instead.
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/hooks/game/useCanvasRenderer.ts:157:9
+  155 |         ctx.current.beginPath();
+  156 |         ctx.current.arc(pattern.position.x, pattern.position.y, size / 2, 0, Math.PI * 2);
+> 157 |         ctx.current.fillStyle = color;
+      |         ^^^^^^^^^^^ `ctx` cannot be modified
+  158 |         ctx.current.fill();
+  159 |
+  160 |         // Add glowing ring that expands                                                                                                                                                                                                                                                                                                                                                                                                     react-hooks/immutability
+  316:7   warning  Error: This value cannot be modified
+
+Modifying component props or hook arguments is not allowed. Consider using a local variable instead.
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/hooks/game/useCanvasRenderer.ts:316:7
+  314 |
+  315 |       // Draw background
+> 316 |       ctx.current.fillStyle = 'rgba(0, 0, 0, 0.2)';
+      |       ^^^^^^^^^^^ `ctx` cannot be modified
+  317 |       ctx.current.fillRect(0, 0, canvasWidth, canvasHeight);
+  318 |
+  319 |       // Draw reference grid                                                                                                                                                                                                                                                                                                                                                                                                                                                                        react-hooks/immutability
+  431:37  warning  Error: Cannot access variable before it is declared
+
+`animate` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/hooks/game/useCanvasRenderer.ts:431:37
+  429 |         drawPlayer();
+  430 |
+> 431 |         requestAnimationFrame(() => animate(isActive, gameData));
+      |                                     ^^^^^^^ `animate` accessed before it is declared
+  432 |         return;
+  433 |       }
+  434 |
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/hooks/game/useCanvasRenderer.ts:292:3
+  290 |
+  291 |   // Main animation function
+> 292 |   const animate = useCallback(
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 293 |     (
+      | ^^^^^
+> 294 |       isActive: boolean,
+      …
+      | ^^^^^
+> 526 |     ]
+      | ^^^^^
+> 527 |   );
+      | ^^^^^ `animate` is declared here
+  528 |
+  529 |   return {
+  530 |     animate,  react-hooks/immutability
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/hooks/game/usePatternManager.ts
+  20:3  warning  'patterns' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/hooks/game/useScoreManager.ts
+   23:3   warning  'endGame' is defined but never used. Allowed unused args must match /^_/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-unused-vars
+  221:11  warning  Error: This value cannot be modified
+
+Modifying component props or hook arguments is not allowed. Consider using a local variable instead.
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/hooks/game/useScoreManager.ts:221:11
+  219 |             }));
+  220 |           }
+> 221 |           isActive.current = false;
+      |           ^^^^^^^^ `isActive` cannot be modified
+  222 |           setGameState((prev) => ({
+  223 |             ...prev,
+  224 |             isActive: false,
+
+Hint: If this value is a Ref (value returned by `useRef()`), rename the variable to end in "Ref"                                                react-hooks/immutability
+  228:13  warning  Error: This value cannot be modified
+
+Modifying component props or hook arguments is not allowed. Consider using a local variable instead.
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/hooks/game/useScoreManager.ts:228:13
+  226 |           if (animationFrame.current) {
+  227 |             cancelAnimationFrame(animationFrame.current);
+> 228 |             animationFrame.current = undefined;
+      |             ^^^^^^^^^^^^^^ `animationFrame` cannot be modified
+  229 |           }
+  230 |           break;
+  231 |       }
+
+Hint: If this value is a Ref (value returned by `useRef()`), rename the variable to end in "Ref"  react-hooks/immutability
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/hooks/useAudioFrequencyCapture.ts
+  28:9  warning  'audioContextRef' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/hooks/useAudioVisualizer.tsx
+  66:7  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/hooks/useAudioVisualizer.tsx:66:7
+  64 |     } else {
+  65 |       // Reset to zero when not visible
+> 66 |       setAudioData(Array(20).fill(0));
+     |       ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  67 |       if (animationFrameRef.current) {
+  68 |         cancelAnimationFrame(animationFrameRef.current);
+  69 |         animationFrameRef.current = null;  react-hooks/set-state-in-effect
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/hooks/useGameManager.ts
+   11:3   warning  'PATTERN_LIFETIME' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+   86:5   warning  Error: This value cannot be modified
+
+Modifying a value returned from a hook is not allowed. Consider moving the modification into the hook where the value is constructed.
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/hooks/useGameManager.ts:86:5
+  84 |   // Mettre à jour patternsRef
+  85 |   useEffect(() => {
+> 86 |     patternManager.patternsRef.current = patterns;
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^ `patternManager` cannot be modified
+  87 |     logger.debug(`Synchronisation de patternsRef avec patterns: ${patterns.length} patterns`);
+  88 |   }, [patterns, patternManager.patternsRef]);
+  89 |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    react-hooks/immutability
+  123:54  warning  Error: Cannot access variable before it is declared
+
+`updateGame` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/hooks/useGameManager.ts:123:54
+  121 |       gameProgress.current += 1;
+  122 |
+> 123 |       animationFrame.current = requestAnimationFrame(updateGame);
+      |                                                      ^^^^^^^^^^ `updateGame` accessed before it is declared
+  124 |     } catch (error) {
+  125 |       logger.error('Erreur dans la boucle de jeu:', error);
+  126 |       if (isActive.current) {
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/hooks/useGameManager.ts:91:3
+   89 |
+   90 |   // Boucle principale de mise à jour
+>  91 |   const updateGame = useCallback(() => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  92 |     if (!audioAnalyser.audioAnalyser.current) {
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  93 |       logger.warn('Analyseur audio non disponible');
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 129 |     }
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 130 |   }, [audioAnalyser, patternManager]);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `updateGame` is declared here
+  131 |
+  132 |   // Mise à jour simple des patterns (pour l'animation de base)
+  133 |   const simpleUpdateGame = useCallback((): void => {  react-hooks/immutability
+  157:7   warning  Error: This value cannot be modified
+
+Modifying a value returned from a hook is not allowed. Consider moving the modification into the hook where the value is constructed.
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/hooks/useGameManager.ts:157:7
+  155 |
+  156 |       setPatterns(emergencyPatterns);
+> 157 |       patternManager.patternsRef.current = emergencyPatterns;
+      |       ^^^^^^^^^^^^^^^^^^^^^^^^^^ `patternManager` cannot be modified
+  158 |       logger.debug(`${emergencyPatterns.length} patterns d'urgence générés`);
+  159 |
+  160 |       setTimeout(() => {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  react-hooks/immutability
+  161:31  warning  Error: Cannot access variable before it is declared
+
+`simpleUpdateGame` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/hooks/useGameManager.ts:161:31
+  159 |
+  160 |       setTimeout(() => {
+> 161 |         requestAnimationFrame(simpleUpdateGame);
+      |                               ^^^^^^^^^^^^^^^^ `simpleUpdateGame` accessed before it is declared
+  162 |       }, 0);
+  163 |       return;
+  164 |     }
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/hooks/useGameManager.ts:133:3
+  131 |
+  132 |   // Mise à jour simple des patterns (pour l'animation de base)
+> 133 |   const simpleUpdateGame = useCallback((): void => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 134 |     const now = Date.now();
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 135 |
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 237 |     }
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 238 |   }, [patterns, setPatterns, patternManager, isActive]);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `simpleUpdateGame` is declared here
+  239 |
+  240 |   // Initialiser les patterns au chargement
+  241 |   useEffect(() => {                                                                                                                                                                                                            react-hooks/immutability
+  248:7   warning  Error: This value cannot be modified
+
+Modifying a value returned from a hook is not allowed. Consider moving the modification into the hook where the value is constructed.
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/hooks/useGameManager.ts:248:7
+  246 |       logger.debug(`${initialPatterns.length} patterns initiaux générés proactivement`);
+  247 |       setPatterns(initialPatterns);
+> 248 |       patternManager.patternsRef.current = initialPatterns;
+      |       ^^^^^^^^^^^^^^^^^^^^^^^^^^ `patternManager` cannot be modified
+  249 |
+  250 |       requestAnimationFrame(() => {
+  251 |         requestAnimationFrame(() => simpleUpdateGame());                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       react-hooks/immutability
+  287:7   warning  Error: This value cannot be modified
+
+Modifying a value returned from a hook is not allowed. Consider moving the modification into the hook where the value is constructed.
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/hooks/useGameManager.ts:287:7
+  285 |
+  286 |       setPatterns(preMappedPatterns);
+> 287 |       patternManager.patternsRef.current = preMappedPatterns;
+      |       ^^^^^^^^^^^^^^^^^^^^^^^^^^ `patternManager` cannot be modified
+  288 |
+  289 |       logger.debug('Le jeu est actif - Vérification de la génération de patterns...');
+  290 |       animationFrame.current = requestAnimationFrame(simpleUpdateGame);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          react-hooks/immutability
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/hooks/useMusicPlayer.ts
+  323:9  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/hooks/useMusicPlayer.ts:323:9
+  321 |       if (trackToPlay) {
+  322 |         logger.debug(`Auto-playing track from URL: ${trackToPlay.title}`);
+> 323 |         playTrack(trackToPlay);
+      |         ^^^^^^^^^ Avoid calling setState() directly within an effect
+  324 |
+  325 |         // Clean URL
+  326 |         if (window.history && window.history.replaceState) {  react-hooks/set-state-in-effect
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/hooks/useSessionOptimized.ts
+  12:7  warning  'sessionCache' is assigned a value but never used. Allowed unused vars must match /^_/u    @typescript-eslint/no-unused-vars
+  18:7  warning  'CACHE_DURATION' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/hooks/useSoundCloudPlayer.ts
+   51:7  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/hooks/useSoundCloudPlayer.ts:51:7
+  49 |   useEffect(() => {
+  50 |     if (track.platforms.soundcloud?.url) {
+> 51 |       setSoundcloudUrl(track.platforms.soundcloud.url);
+     |       ^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  52 |     }
+  53 |   }, [track]);
+  54 |                                                                                                         react-hooks/set-state-in-effect
+   59:7  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/hooks/useSoundCloudPlayer.ts:59:7
+  57 |     if (!isActive || !shouldActivate) {
+  58 |       // When card becomes inactive, hide the player
+> 59 |       setIsSoundcloudVisible(false);
+     |       ^^^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  60 |       setPlayWhenReady(false);
+  61 |       return;
+  62 |     }                                                          react-hooks/set-state-in-effect
+  118:7  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/hooks/useSoundCloudPlayer.ts:118:7
+  116 |       sendPlayerCommand(soundcloudIframeRef.current, 'soundcloud', 'setVolume', currentVolume);
+  117 |       sendPlayerCommand(soundcloudIframeRef.current, 'soundcloud', 'play');
+> 118 |       setPlayWhenReady(false);
+      |       ^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  119 |     }
+  120 |   }, [
+  121 |     playWhenReady,  react-hooks/set-state-in-effect
+  133:5  error    Delete `··`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          prettier/prettier
+  134:1  error    Delete `··`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          prettier/prettier
+  135:5  error    Delete `··`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          prettier/prettier
+  136:1  error    Delete `··`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          prettier/prettier
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/hooks/useTheme.ts
+  11:7  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/hooks/useTheme.ts:11:7
+   9 |     const savedTheme = localStorage.getItem('theme') as Theme;
+  10 |     if (savedTheme) {
+> 11 |       setTheme(savedTheme);
+     |       ^^^^^^^^ Avoid calling setState() directly within an effect
+  12 |       document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+  13 |     } else {
+  14 |       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;  react-hooks/set-state-in-effect
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/hooks/useYouTubePlayer.ts
+   79:7  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/hooks/useYouTubePlayer.ts:79:7
+  77 |     if (track.platforms.youtube?.url) {
+  78 |       const videoId = extractYoutubeId(track.platforms.youtube.url);
+> 79 |       setYoutubeVideoId(videoId);
+     |       ^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  80 |
+  81 |       // Retrieve saved playback time
+  82 |       if (videoId) {  react-hooks/set-state-in-effect
+   95:7  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/hooks/useYouTubePlayer.ts:95:7
+  93 |     if (!isActive || !shouldActivate) {
+  94 |       // When card becomes inactive, hide the player
+> 95 |       setIsYoutubeVisible(false);
+     |       ^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  96 |       return;
+  97 |     }
+  98 |                                                       react-hooks/set-state-in-effect
+  116:5  error    Delete `··`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               prettier/prettier
+  117:1  error    Delete `··`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               prettier/prettier
+  118:5  error    Delete `··`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               prettier/prettier
+  119:1  error    Delete `··`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               prettier/prettier
+  125:7  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/hooks/useYouTubePlayer.ts:125:7
+  123 |   useEffect(() => {
+  124 |     if (isYoutubeActive && youtubeVideoId) {
+> 125 |       setIsYoutubeVisible(true);
+      |       ^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  126 |
+  127 |       // Start tracking playback time
+  128 |       if (timeIntervalRef.current) {                     react-hooks/set-state-in-effect
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/lib/analytics.ts
+  6:3  warning  'subDays' is defined but never used. Allowed unused vars must match /^_/u    @typescript-eslint/no-unused-vars
+  7:3  warning  'subMonths' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/lib/api/webhooks.ts
+  3:10  warning  'defaultConfigs' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/lib/services/lastfm.ts
+  7:40  warning  'LastFmTrack' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/lib/services/platform-search.ts
+  6:10  warning  'extractPlatformId' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/lib/utils/findOriginalImageUrl.ts
+  9:3  warning  'extensions' is assigned a value but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/lib/utils/hooks/useEditEvent.ts
+  35:9  warning  'router' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/lib/utils/parseExcelData.ts
+  229:45  warning  'rowIndex' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/providers/AuthProvider.tsx
+    4:10  warning  'useEffect' is defined but never used. Allowed unused vars must match /^_/u             @typescript-eslint/no-unused-vars
+   18:7   warning  'ENABLE_LOGS' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  118:17  warning  'error' is defined but never used. Allowed unused args must match /^_/u                 @typescript-eslint/no-unused-vars
+
+/Users/juanzeiher/Visual Code/djlarian-react/src/proxy.ts
+  4:29  warning  'request' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+✖ 343 problems (31 errors, 312 warnings)
+  12 errors and 0 warnings potentially fixable with the `--fix` option.
+

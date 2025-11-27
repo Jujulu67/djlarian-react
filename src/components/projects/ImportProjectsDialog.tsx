@@ -26,11 +26,15 @@ import { ProjectStatus, PROJECT_STATUSES } from './types';
 interface ImportProjectsDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onImport: (projects: ParsedProjectRow[]) => Promise<{
+  onImport: (
+    projects: ParsedProjectRow[],
+    overwriteDuplicates?: boolean
+  ) => Promise<{
     success: boolean;
     created: number;
     failed: number;
     errors?: Array<{ index: number; error: string }>;
+    duplicatesExcluded?: number;
   }>;
 }
 
@@ -124,7 +128,9 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
         if (response.ok) {
           const result = await response.json();
           const projects = result.data || result;
-          const projectNames = projects.map((p: any) => p.name?.trim().toLowerCase() || '');
+          const projectNames = projects.map(
+            (p: { name?: string }) => p.name?.trim().toLowerCase() || ''
+          );
           setExistingProjects(projectNames);
         }
       } catch (error) {
@@ -213,11 +219,13 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
   }, [pastedText, hasHeaders, dateFormat, calculateColumnWidths]);
 
   const handleUpdateRow = useCallback(
-    (index: number, field: keyof ParsedProjectRow, value: any) => {
+    (index: number, field: keyof ParsedProjectRow, value: string | number | Date | null) => {
       setParsedRows((prev) =>
         prev.map((row, i) => {
           if (i === index) {
-            const updated = { ...row, [field]: value };
+            // Convertir undefined en null pour la cohérence
+            const normalizedValue = value === undefined ? null : value;
+            const updated = { ...row, [field]: normalizedValue };
             // Re-valider la ligne
             const errors: string[] = [];
             if (!updated.name || updated.name.trim() === '') {
@@ -327,13 +335,15 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
         });
       }
       setStep('result');
-    } catch (error: any) {
+    } catch (error) {
       console.error("Erreur lors de l'import:", error);
       setImportResult({
         success: false,
         created: 0,
         failed: uniqueRows.length,
-        errors: [{ index: 0, error: error.message || "Erreur lors de l'import" }],
+        errors: [
+          { index: 0, error: error instanceof Error ? error.message : "Erreur lors de l'import" },
+        ],
         duplicatesExcluded: duplicatesInFileCount + duplicatesInDbCount,
       });
       setStep('result');
@@ -547,9 +557,10 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
                   e.preventDefault();
 
                   // Récupérer les données collées
-                  const pastedData = (e.clipboardData || (window as any).clipboardData).getData(
-                    'text'
-                  );
+                  const clipboardData =
+                    e.clipboardData ||
+                    (window as Window & { clipboardData?: DataTransfer }).clipboardData;
+                  const pastedData = clipboardData?.getData('text') || '';
 
                   // Insérer le texte à la position du curseur
                   const target = e.currentTarget;
@@ -901,7 +912,7 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
                               handleUpdateRow(
                                 index,
                                 'streamsJ7',
-                                e.target.value ? parseInt(e.target.value, 10) : undefined
+                                e.target.value ? parseInt(e.target.value, 10) : null
                               )
                             }
                             className="w-full bg-gray-800/50 border border-purple-500/30 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500/50 tabular-nums"
@@ -917,7 +928,7 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
                               handleUpdateRow(
                                 index,
                                 'streamsJ14',
-                                e.target.value ? parseInt(e.target.value, 10) : undefined
+                                e.target.value ? parseInt(e.target.value, 10) : null
                               )
                             }
                             className="w-full bg-gray-800/50 border border-purple-500/30 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500/50 tabular-nums"
@@ -933,7 +944,7 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
                               handleUpdateRow(
                                 index,
                                 'streamsJ21',
-                                e.target.value ? parseInt(e.target.value, 10) : undefined
+                                e.target.value ? parseInt(e.target.value, 10) : null
                               )
                             }
                             className="w-full bg-gray-800/50 border border-purple-500/30 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500/50 tabular-nums"
@@ -949,7 +960,7 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
                               handleUpdateRow(
                                 index,
                                 'streamsJ28',
-                                e.target.value ? parseInt(e.target.value, 10) : undefined
+                                e.target.value ? parseInt(e.target.value, 10) : null
                               )
                             }
                             className="w-full bg-gray-800/50 border border-purple-500/30 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500/50 tabular-nums"
@@ -965,7 +976,7 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
                               handleUpdateRow(
                                 index,
                                 'streamsJ56',
-                                e.target.value ? parseInt(e.target.value, 10) : undefined
+                                e.target.value ? parseInt(e.target.value, 10) : null
                               )
                             }
                             className="w-full bg-gray-800/50 border border-purple-500/30 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500/50 tabular-nums"
@@ -981,7 +992,7 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
                               handleUpdateRow(
                                 index,
                                 'streamsJ84',
-                                e.target.value ? parseInt(e.target.value, 10) : undefined
+                                e.target.value ? parseInt(e.target.value, 10) : null
                               )
                             }
                             className="w-full bg-gray-800/50 border border-purple-500/30 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500/50 tabular-nums"

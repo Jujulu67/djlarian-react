@@ -32,7 +32,7 @@ export interface EventData {
 export const useEditEvent = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
+  const _router = useRouter();
 
   const saveEvent = async (eventId: string | undefined, data: EventData) => {
     setLoading(true);

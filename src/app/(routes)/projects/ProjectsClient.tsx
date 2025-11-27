@@ -104,10 +104,8 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
 
     // Si le filtre correspond aux projets initiaux, ne pas recharger immédiatement
     if (statusFilter === 'ALL' && initialProjects.length > 0) {
-      const filteredInitial = initialProjects.filter(
-        (p) => p.status === statusFilter || statusFilter === 'ALL'
-      );
-      if (filteredInitial.length === initialProjects.length && projects.length === 0) {
+      // Si le filtre est 'ALL', tous les projets initiaux correspondent
+      if (projects.length === 0) {
         // Les projets initiaux correspondent, utiliser ceux-ci
         setProjects(initialProjects);
         return;
@@ -222,9 +220,9 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
 
       // Rafraîchir la liste (qui sera vide maintenant)
       await fetchProjects();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Erreur lors de la purge:', error);
-      alert(error.message || 'Erreur lors de la suppression des projets.');
+      alert(error instanceof Error ? error.message : 'Erreur lors de la suppression des projets.');
     } finally {
       setIsLoading(false);
     }

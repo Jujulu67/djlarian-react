@@ -130,10 +130,10 @@ export const useSoundCloudPlayer = ({
   // Determine if SoundCloud is active
   const isSoundcloudActive = Boolean(
     shouldActivate &&
-      isActive &&
-      track.platforms.soundcloud &&
-      soundcloudUrl &&
-      (isSoundcloudVisible || isSoundcloudLoaded)
+    isActive &&
+    track.platforms.soundcloud &&
+    soundcloudUrl &&
+    (isSoundcloudVisible || isSoundcloudLoaded)
   );
 
   // Handle SoundCloud messages

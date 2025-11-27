@@ -208,7 +208,6 @@ function parseStatus(value: string): ProjectStatus | null {
     ENCOURS: 'EN_COURS',
     TERMINE: 'TERMINE',
     TERMINÉ: 'TERMINE',
-    TERMINE: 'TERMINE',
     ANNULE: 'ANNULE',
     ANNULÉ: 'ANNULE',
     ANNULÉE: 'ANNULE',
@@ -227,7 +226,7 @@ function parseStatus(value: string): ProjectStatus | null {
 /**
  * Valide une ligne parsée
  */
-function validateRow(row: ParsedProjectRow, rowIndex: number): string[] {
+function validateRow(row: ParsedProjectRow, _rowIndex: number): string[] {
   const errors: string[] = [];
 
   if (!row.name || row.name.trim() === '') {

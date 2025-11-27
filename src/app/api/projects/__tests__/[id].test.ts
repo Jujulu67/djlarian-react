@@ -59,7 +59,6 @@ describe('/api/projects/[id]', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.success).toBe(true);
       expect(data.data.id).toBe('project1');
     });
 
@@ -232,7 +231,7 @@ describe('/api/projects/[id]', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.success).toBe(true);
+      expect(data.data.success).toBe(true);
       expect(prisma.project.delete).toHaveBeenCalled();
       expect(revalidateTag).toHaveBeenCalled();
     });

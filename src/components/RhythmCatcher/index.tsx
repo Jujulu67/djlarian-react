@@ -489,11 +489,11 @@ const RhythmCatcher: React.FC<RhythmCatcherProps> = ({ audioSrc, onClose }) => {
         if (!frequencyData) {
           frequencyData = new Uint8Array(bufferLength);
         }
-        analyserRef.current.getByteFrequencyData(frequencyData);
+        analyserRef.current.getByteFrequencyData(frequencyData as Uint8Array<ArrayBuffer>);
 
         // Obtient les données temporelles pour les calculs d'énergie
         audioData = new Float32Array(bufferLength);
-        analyserRef.current.getFloatTimeDomainData(audioData);
+        analyserRef.current.getFloatTimeDomainData(audioData as Float32Array<ArrayBuffer>);
 
         // Tente de détecter le BPM
         const detectedBPM = detectBPM(audioData);

@@ -3,7 +3,7 @@ import { useState, useCallback } from 'react';
 import type { ImageMeta } from '@/app/api/admin/images/shared';
 import type { Track } from '@/lib/utils/types';
 
-import type { GroupedImage, LinkedTo } from '../types';
+import type { GroupedImage } from '../types';
 import { extractImageId } from '../utils/extractImageId';
 
 export function useImageGrouping() {

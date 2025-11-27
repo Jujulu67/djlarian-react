@@ -32,6 +32,26 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Project, PROJECT_STATUSES } from '@/components/projects/types';
 
+// Types pour les composants Recharts
+interface TooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    payload?: Record<string, unknown>;
+    value?: number;
+    dataKey?: string;
+  }>;
+  label?: string | number;
+}
+
+interface SegmentLabelProps {
+  x?: string | number;
+  y?: string | number;
+  width?: string | number;
+  height?: string | number;
+  payload?: Record<string, unknown>;
+  value?: number;
+}
+
 interface StatisticsClientProps {
   initialProjects: Project[];
 }
@@ -383,25 +403,25 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
   };
 
   // Tooltip personnalisé pour afficher les détails des projets
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
     if (!active || !payload || !payload.length) return null;
 
-    const year = label;
+    const year = String(label || '');
     const yearData = payload[0]?.payload;
-    if (!yearData || !statistics?.projectsByYearDetails[year]) return null;
+    if (!yearData || !year || !statistics?.projectsByYearDetails[year]) return null;
 
     // projectsByYearDetails contient déjà seulement TERMINE et GHOST_PRODUCTION
     const allProjects = statistics.projectsByYearDetails[year];
-    const termines = allProjects.filter((p: any) => {
+    const termines = allProjects.filter((p: { id: string }) => {
       const project = initialProjects.find((proj) => proj.id === p.id);
       return project?.status === 'TERMINE';
     });
-    const ghostProds = allProjects.filter((p: any) => {
+    const ghostProds = allProjects.filter((p: { id: string }) => {
       const project = initialProjects.find((proj) => proj.id === p.id);
       return project?.status === 'GHOST_PRODUCTION';
     });
 
-    const total = yearData.total || 0;
+    const total = typeof yearData.total === 'number' ? yearData.total : 0;
 
     return (
       <div className="bg-gray-900/95 border border-gray-700 rounded-lg p-4 shadow-xl min-w-[250px] max-w-[400px]">
@@ -421,7 +441,7 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
                   </span>
                 </div>
                 <div className="pl-5 space-y-1 max-h-[150px] overflow-y-auto">
-                  {termines.map((p: any) => (
+                  {termines.map((p: { id: string; name: string; releaseDate?: string }) => (
                     <div
                       key={p.id}
                       className="text-xs flex items-center justify-between gap-2"
@@ -454,7 +474,7 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
                   </span>
                 </div>
                 <div className="pl-5 space-y-1 max-h-[150px] overflow-y-auto">
-                  {ghostProds.map((p: any) => (
+                  {ghostProds.map((p: { id: string; name: string; releaseDate?: string }) => (
                     <div
                       key={p.id}
                       className="text-xs flex items-center justify-between gap-2"
@@ -479,26 +499,31 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
   };
 
   // Composant pour afficher le total au-dessus de la barre (seulement les barres visibles)
-  const renderTotalLabel = (props: any) => {
+  const renderTotalLabel = (props: SegmentLabelProps) => {
     const { x, y, width, payload } = props;
     if (!payload) return null;
 
     // Calculer le total des barres visibles pour cette année spécifique
     let visibleTotal = 0;
     if (!hiddenStatuses.has('TERMINE')) {
-      visibleTotal += payload.TERMINE || 0;
+      const termineValue = payload?.TERMINE;
+      visibleTotal += typeof termineValue === 'number' ? termineValue : 0;
     }
     if (!hiddenStatuses.has('GHOST_PRODUCTION')) {
-      visibleTotal += payload.GHOST_PRODUCTION || 0;
+      const ghostValue = payload?.GHOST_PRODUCTION;
+      visibleTotal += typeof ghostValue === 'number' ? ghostValue : 0;
     }
 
     if (visibleTotal === 0) return null;
 
     // Utiliser le total calculé, pas payload.total qui pourrait être incorrect
+    const xNum = typeof x === 'number' ? x : 0;
+    const yNum = typeof y === 'number' ? y : 0;
+    const widthNum = typeof width === 'number' ? width : 0;
     return (
       <text
-        x={x + width / 2}
-        y={y - 5}
+        x={xNum + widthNum / 2}
+        y={yNum - 5}
         fill="#fff"
         textAnchor="middle"
         fontSize={12}
@@ -511,7 +536,7 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
 
   // Composant pour afficher la valeur de l'année pour chaque segment
   const createSegmentLabelRenderer = (status: 'TERMINE' | 'GHOST_PRODUCTION') => {
-    return (props: any) => {
+    const SegmentLabel = (props: SegmentLabelProps) => {
       const { x, y, width, height, payload, value } = props;
       // Pour les barres empilées, payload devrait contenir toutes les données de la ligne
       // Mais si payload n'est pas disponible, value contient la valeur du segment pour cette barre spécifique
@@ -519,28 +544,31 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
 
       // Essayer d'abord payload[status]
       if (payload && typeof payload[status] === 'number') {
-        segmentValue = payload[status];
+        segmentValue = payload[status] as number;
       }
       // Sinon, pour Ghost Prod, value est le total cumulé, on doit soustraire Terminé
       else if (status === 'GHOST_PRODUCTION' && payload && typeof payload.TERMINE === 'number') {
-        segmentValue = (value || 0) - payload.TERMINE;
+        segmentValue = (value || 0) - (payload.TERMINE as number);
       }
       // Pour Terminé ou si on n'a que value, utiliser value directement
       else if (typeof value === 'number') {
         segmentValue = value;
       }
 
-      if (!segmentValue || segmentValue === 0 || !height || height < 15) return null;
+      const heightNum = typeof height === 'number' ? height : 0;
+      if (!segmentValue || segmentValue === 0 || !heightNum || heightNum < 15) return null;
 
       // Obtenir la couleur de texte (même que le contour des cartes) avec opacité augmentée
       const colors = getStatusBarColors(status);
 
       // Position au centre du segment
-      const segmentY = y + height / 2;
+      const widthNum = typeof width === 'number' ? width : 0;
+      const segmentY = (typeof y === 'number' ? y : 0) + heightNum / 2;
+      const segmentX = (typeof x === 'number' ? x : 0) + widthNum / 2;
 
       return (
         <text
-          x={x + width / 2}
+          x={segmentX}
           y={segmentY}
           fill={colors.text}
           textAnchor="middle"
@@ -556,6 +584,8 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
         </text>
       );
     };
+    SegmentLabel.displayName = `SegmentLabel-${status}`;
+    return SegmentLabel;
   };
 
   const renderTermineLabel = createSegmentLabelRenderer('TERMINE');
@@ -741,11 +771,16 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
                           }}
                         >
                           <LabelList
-                            content={renderTermineLabel}
+                            content={renderTermineLabel as (props: unknown) => React.ReactNode}
                             position="center"
                             dataKey="TERMINE"
                           />
-                          {isTopBar && <LabelList content={renderTotalLabel} position="top" />}
+                          {isTopBar && (
+                            <LabelList
+                              content={renderTotalLabel as (props: unknown) => React.ReactNode}
+                              position="top"
+                            />
+                          )}
                         </Bar>
                       );
                     })()}
@@ -769,11 +804,14 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
                           }}
                         >
                           <LabelList
-                            content={renderGhostProdLabel}
+                            content={renderGhostProdLabel as (props: unknown) => React.ReactNode}
                             position="center"
                             dataKey="GHOST_PRODUCTION"
                           />
-                          <LabelList content={renderTotalLabel} position="top" />
+                          <LabelList
+                            content={renderTotalLabel as (props: unknown) => React.ReactNode}
+                            position="top"
+                          />
                         </Bar>
                       );
                     })()}

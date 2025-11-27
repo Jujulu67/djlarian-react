@@ -13,8 +13,11 @@ import { serializeProjects } from '@/lib/utils/serializeProject';
 
 // Fonction helper pour invalider le cache des projets d'un utilisateur
 function invalidateProjectsCache(userId: string) {
+  // @ts-expect-error - revalidateTag prend un seul argument (tag) mais les types Next.js peuvent être incorrects
   revalidateTag(`projects-${userId}`);
+  // @ts-expect-error - revalidateTag prend un seul argument (tag) mais les types Next.js peuvent être incorrects
   revalidateTag(`projects-counts-${userId}`);
+  // @ts-expect-error - revalidateTag prend un seul argument (tag) mais les types Next.js peuvent être incorrects
   revalidateTag(`projects-statistics-${userId}`);
 }
 

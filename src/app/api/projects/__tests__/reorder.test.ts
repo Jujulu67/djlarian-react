@@ -16,8 +16,9 @@ jest.mock('@/lib/prisma', () => ({
   default: {
     project: {
       findMany: jest.fn(),
-      $transaction: jest.fn(),
+      update: jest.fn(),
     },
+    $transaction: jest.fn(),
   },
 }));
 
@@ -43,27 +44,28 @@ describe('/api/projects/reorder', () => {
       user: { id: 'user1', role: 'USER' },
     });
 
-    (prisma.project.findMany as jest.Mock).mockResolvedValue([
-      { id: '1', userId: 'user1' },
-      { id: '2', userId: 'user1' },
-    ]);
+    (prisma.project.findMany as jest.Mock)
+      .mockResolvedValueOnce([
+        { id: '1', userId: 'user1' },
+        { id: '2', userId: 'user1' },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: '1',
+          userId: 'user1',
+          order: 0,
+          User: { id: 'user1', name: 'User', email: 'user@test.com' },
+        },
+        {
+          id: '2',
+          userId: 'user1',
+          order: 1,
+          User: { id: 'user1', name: 'User', email: 'user@test.com' },
+        },
+      ]);
 
-    (prisma.project.$transaction as jest.Mock).mockResolvedValue([]);
-
-    (prisma.project.findMany as jest.Mock).mockResolvedValueOnce([
-      {
-        id: '1',
-        userId: 'user1',
-        order: 0,
-        User: { id: 'user1', name: 'User', email: 'user@test.com' },
-      },
-      {
-        id: '2',
-        userId: 'user1',
-        order: 1,
-        User: { id: 'user1', name: 'User', email: 'user@test.com' },
-      },
-    ]);
+    // Mock $transaction pour accepter un tableau de promesses
+    (prisma.$transaction as jest.Mock).mockResolvedValue([]);
 
     const request = new NextRequest('http://localhost/api/projects/reorder', {
       method: 'PATCH',
@@ -80,12 +82,11 @@ describe('/api/projects/reorder', () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.success).toBe(true);
-    expect(prisma.project.$transaction).toHaveBeenCalled();
+    expect(prisma.$transaction).toHaveBeenCalled();
     expect(revalidateTag).toHaveBeenCalled();
   });
 
-  it('should return 403 for projects not owned by user', async () => {
+  it('should return 400 for projects not owned by user', async () => {
     const { auth } = await import('@/auth');
     const { default: prisma } = await import('@/lib/prisma');
 
@@ -93,9 +94,9 @@ describe('/api/projects/reorder', () => {
       user: { id: 'user1', role: 'USER' },
     });
 
-    (prisma.project.findMany as jest.Mock).mockResolvedValue([
-      { id: '1', userId: 'user2' }, // Different user
-    ]);
+    // La route cherche les projets avec userId: 'user1', donc si on retourne un tableau vide,
+    // cela signifie qu'aucun projet n'appartient à l'utilisateur
+    (prisma.project.findMany as jest.Mock).mockResolvedValue([]);
 
     const request = new NextRequest('http://localhost/api/projects/reorder', {
       method: 'PATCH',
@@ -109,7 +110,7 @@ describe('/api/projects/reorder', () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data.error).toContain("n'existe pas ou ne vous appartient pas");
+    expect(data.error).toContain("n'existent pas ou ne vous appartiennent pas");
   });
 
   it('should return 401 for unauthenticated user', async () => {

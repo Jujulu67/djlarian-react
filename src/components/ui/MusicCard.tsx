@@ -49,7 +49,8 @@ const MusicCardComponent: React.FC<MusicCardProps> = ({
   const isMobile = useIsMobile();
 
   // Determine which platform to use based on priority (YouTube > SoundCloud) - memoized
-  const preferredPlatform = useMemo(() => selectPreferredPlatform(track), [track.platforms]);
+  // Utiliser track comme dépendance pour correspondre à l'inférence du React Compiler
+  const preferredPlatform = useMemo(() => selectPreferredPlatform(track), [track]);
   const shouldUseYouTube = preferredPlatform === 'youtube';
   const shouldUseSoundCloud = preferredPlatform === 'soundcloud';
 

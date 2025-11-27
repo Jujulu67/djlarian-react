@@ -9,7 +9,7 @@ import {
   Pencil,
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
-import { startOfYear, format, addWeeks, startOfWeek, isWithinInterval } from 'date-fns';
+import { startOfYear, format, addWeeks, startOfWeek, isWithinInterval, addDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 import { Project } from './types';
@@ -63,6 +63,8 @@ export const ReleaseCalendar = ({ projects, onUpdate }: ReleaseCalendarProps) =>
     for (let week = 1; week <= 52; week++) {
       const weekStart = addWeeks(firstMonday, week - 1);
       const weekEnd = addWeeks(weekStart, 1);
+      // Calculer le vendredi de la semaine (4 jours après le lundi)
+      const friday = addDays(weekStart, 4);
 
       // Déterminer le trimestre (1-4)
       let quarter = 1;
@@ -88,7 +90,7 @@ export const ReleaseCalendar = ({ projects, onUpdate }: ReleaseCalendarProps) =>
         weekNumber: week,
         weekLabel: `S${week}`,
         startDate: weekStart,
-        dateLabel: format(weekStart, 'dd/MM', { locale: fr }),
+        dateLabel: format(friday, 'dd/MM', { locale: fr }),
         projects: weekProjects,
         quarter,
       });

@@ -274,7 +274,7 @@ export function useAudioAnalyser(audioElement: HTMLAudioElement | null): UseAudi
     if (timeSinceLastAudioUpdate >= AUDIO_UPDATE_INTERVAL) {
       const { analyser, dataArray } = audioAnalyser.current;
       try {
-        analyser.getByteFrequencyData(dataArray);
+        analyser.getByteFrequencyData(dataArray as Uint8Array<ArrayBuffer>);
         audioDataRef.current = dataArray;
         lastAudioUpdate.current = now;
       } catch (error) {

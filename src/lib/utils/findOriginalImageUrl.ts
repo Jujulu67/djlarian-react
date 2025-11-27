@@ -6,7 +6,7 @@ import { getImageUrl } from './getImageUrl';
 
 export const findOriginalImageUrl = async (
   imageId: string,
-  extensions: string[] = ['jpg', 'jpeg', 'png', 'webp'],
+  _extensions: string[] = ['jpg', 'jpeg', 'png', 'webp'],
   withOriSuffix: boolean = true
 ): Promise<string | null> => {
   // Utiliser la route API avec le paramètre original si demandé

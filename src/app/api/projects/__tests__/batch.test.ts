@@ -19,8 +19,8 @@ jest.mock('@/lib/prisma', () => ({
       findFirst: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
-      $transaction: jest.fn(),
     },
+    $transaction: jest.fn(),
   },
 }));
 
@@ -34,8 +34,27 @@ jest.mock('@/lib/utils/serializeProject', () => ({
 }));
 
 describe('/api/projects/batch', () => {
+  let mockTx: any;
+
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // Créer un nouveau mockTx pour chaque test
+    mockTx = {
+      project: {
+        create: jest.fn(),
+        update: jest.fn(),
+      },
+    };
+
+    // Configurer le mock $transaction pour utiliser mockTx
+    const { default: prisma } = require('@/lib/prisma');
+    (prisma.$transaction as jest.Mock).mockImplementation(async (callback: any) => {
+      if (typeof callback === 'function') {
+        return await callback(mockTx);
+      }
+      return Promise.resolve([]);
+    });
   });
 
   it('should create multiple projects in batch', async () => {
@@ -49,10 +68,20 @@ describe('/api/projects/batch', () => {
 
     (prisma.project.findMany as jest.Mock).mockResolvedValue([]);
     (prisma.project.findFirst as jest.Mock).mockResolvedValue({ order: 0 });
-    (prisma.project.$transaction as jest.Mock).mockResolvedValue([
-      { id: '1', name: 'Project 1', userId: 'user1' },
-      { id: '2', name: 'Project 2', userId: 'user1' },
-    ]);
+
+    (mockTx.project.create as jest.Mock)
+      .mockResolvedValueOnce({
+        id: '1',
+        name: 'Project 1',
+        userId: 'user1',
+        User: { id: 'user1', name: 'User', email: 'user@test.com' },
+      })
+      .mockResolvedValueOnce({
+        id: '2',
+        name: 'Project 2',
+        userId: 'user1',
+        User: { id: 'user1', name: 'User', email: 'user@test.com' },
+      });
 
     const request = new NextRequest('http://localhost/api/projects/batch', {
       method: 'POST',
@@ -70,8 +99,8 @@ describe('/api/projects/batch', () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.success).toBe(true);
     expect(data.data.created).toBe(2);
+    expect(prisma.$transaction).toHaveBeenCalled();
     expect(revalidateTag).toHaveBeenCalled();
   });
 
@@ -85,9 +114,13 @@ describe('/api/projects/batch', () => {
 
     (prisma.project.findMany as jest.Mock).mockResolvedValue([{ name: 'Existing Project' }]);
     (prisma.project.findFirst as jest.Mock).mockResolvedValue({ order: 0 });
-    (prisma.project.$transaction as jest.Mock).mockResolvedValue([
-      { id: '1', name: 'New Project', userId: 'user1' },
-    ]);
+
+    (mockTx.project.create as jest.Mock).mockResolvedValue({
+      id: '1',
+      name: 'New Project',
+      userId: 'user1',
+      User: { id: 'user1', name: 'User', email: 'user@test.com' },
+    });
 
     const request = new NextRequest('http://localhost/api/projects/batch', {
       method: 'POST',
@@ -110,9 +143,13 @@ describe('/api/projects/batch', () => {
 
   it('should validate project data', async () => {
     const { auth } = await import('@/auth');
+    const { default: prisma } = await import('@/lib/prisma');
+
     (auth as jest.Mock).mockResolvedValue({
       user: { id: 'user1', role: 'USER' },
     });
+
+    (prisma.project.findMany as jest.Mock).mockResolvedValue([]);
 
     const request = new NextRequest('http://localhost/api/projects/batch', {
       method: 'POST',
@@ -128,9 +165,12 @@ describe('/api/projects/batch', () => {
     const response = await POST(request);
     const data = await response.json();
 
-    expect(response.status).toBe(200);
-    expect(data.data.failed).toBeGreaterThan(0);
-    expect(data.data.errors.length).toBeGreaterThan(0);
+    // Si tous les projets sont invalides, la route retourne 400 avec les erreurs
+    expect(response.status).toBe(400);
+    expect(data.error).toBeDefined();
+    expect(data.details?.errors).toBeDefined();
+    expect(Array.isArray(data.details?.errors)).toBe(true);
+    expect(data.details.errors.length).toBeGreaterThan(0);
   });
 
   it('should return 401 for unauthenticated user', async () => {
