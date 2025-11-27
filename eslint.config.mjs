@@ -110,8 +110,9 @@ const eslintConfig = [
       'react-hooks/set-state-in-effect': 'warn', // Peut être nécessaire dans certains cas
       'react-hooks/immutability': 'warn', // Peut être nécessaire dans certains cas
       'react/no-unescaped-entities': 'off', // Désactivé car courant en français avec apostrophes
-      // Note: Les erreurs React Compiler "Cannot call impure function" ne sont pas contrôlables via ESLint
-      // Elles sont générées par le compilateur React intégré dans Next.js
+      // Note: Les erreurs React Compiler "Cannot call impure function" et "Compilation Skipped" 
+      // ne sont pas contrôlables via ESLint. Elles sont générées par le compilateur React intégré dans Next.js
+      // Pour ignorer les warnings du React Compiler dans la console, ils doivent être filtrés au niveau du build
 
       // Exceptions spécifiques par fichier (doivent être après les règles générales)
       // Fichiers de logging

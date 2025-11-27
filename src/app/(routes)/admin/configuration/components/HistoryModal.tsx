@@ -6,11 +6,9 @@ import {
   RotateCcw,
   RefreshCw,
   CheckCircle,
-  XCircle,
   BookmarkIcon,
   User,
   Calendar,
-  PlusCircle,
   Settings,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -72,7 +70,7 @@ export default function HistoryModal({
   const [applyingId, setApplyingId] = useState<string | null>(null);
   const [resetting, setResetting] = useState(false);
   const [applyingBaseConfig, setApplyingBaseConfig] = useState(false);
-  const [defaultConfigsData, setDefaultConfigsData] = useState<Record<string, unknown>>({});
+  const [_defaultConfigsData, setDefaultConfigsData] = useState<Record<string, unknown>>({});
 
   // Récupérer l'historique et les snapshots
   useEffect(() => {

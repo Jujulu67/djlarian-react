@@ -1,22 +1,6 @@
 'use client';
 
-import {
-  Calendar,
-  ChevronLeft,
-  Save,
-  Upload,
-  X,
-  Clock,
-  MapPin,
-  PenLine,
-  Info,
-  Euro,
-  Link as LinkIcon,
-  Globe,
-  Eye,
-  Loader2,
-  AlertCircle,
-} from 'lucide-react';
+import { ChevronLeft, Loader2, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -105,7 +89,7 @@ export default function EventFormPage() {
   const [formData, setFormData] = useState<EventFormData>(initialFormData);
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [previewMode, setPreviewMode] = useState(false);
+  const [previewMode, _setPreviewMode] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
   const [originalImageFile, setOriginalImageFile] = useState<File | null>(null);
   const [croppedImageFile, setCroppedImageFile] = useState<File | null>(null);
@@ -266,7 +250,7 @@ export default function EventFormPage() {
   }, []);
 
   // Fonction utilitaire pour générer un crop 16/9 centré
-  const centerAspectCrop = (mediaWidth: number, mediaHeight: number, aspect: number) => {
+  const _centerAspectCrop = (mediaWidth: number, mediaHeight: number, aspect: number) => {
     const width = mediaWidth;
     const height = width / aspect;
     const x = 0;
@@ -281,15 +265,15 @@ export default function EventFormPage() {
   };
 
   // Fonction pour générer le blob recadré (16/9)
-  const getCroppedBlob = async (
+  const _getCroppedBlob = async (
     image: HTMLImageElement,
     crop: CropType,
     fileName: string,
     imageFileSource: File | null
   ): Promise<{ croppedBlob: Blob | null; originalFileToSend: File | null }> => {
     const originalFileToSend = imageFileSource;
-    const imageWidth = image.naturalWidth || image.width;
-    const imageHeight = image.naturalHeight || image.height;
+    const _imageWidth = image.naturalWidth || image.width;
+    const _imageHeight = image.naturalHeight || image.height;
     const canvas = document.createElement('canvas');
     canvas.width = crop.width;
     canvas.height = crop.height;

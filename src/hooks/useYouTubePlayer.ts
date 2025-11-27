@@ -113,10 +113,10 @@ export const useYouTubePlayer = ({
   // Determine if YouTube is active
   const isYoutubeActive = Boolean(
     shouldActivate &&
-      isActive &&
-      track.platforms.youtube &&
-      youtubeVideoId &&
-      (isYoutubeVisible || isYoutubeLoaded)
+    isActive &&
+    track.platforms.youtube &&
+    youtubeVideoId &&
+    (isYoutubeVisible || isYoutubeLoaded)
   );
 
   // Track and save playback position for YouTube videos

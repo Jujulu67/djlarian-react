@@ -4,8 +4,6 @@ import { Lock } from 'lucide-react';
 
 import NumberInput from '@/components/config/NumberInput';
 import ToggleRow from '@/components/config/ToggleRow';
-import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/label';
 import { useConfigs } from '@/stores/useConfigs';
 
 export default function SecurityTab() {

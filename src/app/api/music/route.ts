@@ -225,9 +225,8 @@ export async function POST(request: Request): Promise<Response> {
         {} as { spotify?: string; soundcloud?: string; youtube?: string }
       );
 
-      const { fetchThumbnailFromPlatforms } = await import(
-        '@/lib/utils/fetchThumbnailFromPlatforms'
-      );
+      const { fetchThumbnailFromPlatforms } =
+        await import('@/lib/utils/fetchThumbnailFromPlatforms');
       const thumbnailResult = await fetchThumbnailFromPlatforms(platforms);
 
       if (thumbnailResult) {

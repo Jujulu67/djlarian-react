@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart3, Globe, Zap, AlertCircle } from 'lucide-react';
+import { BarChart3, Globe, AlertCircle } from 'lucide-react';
 
 import NumberInput from '@/components/config/NumberInput';
 import SentryDashboard from '@/components/admin/SentryDashboard';
@@ -8,10 +8,8 @@ import UmamiDashboard from '@/components/admin/UmamiDashboard';
 import VercelAnalyticsDashboard from '@/components/admin/VercelAnalyticsDashboard';
 import VercelSpeedInsightsDashboard from '@/components/admin/VercelSpeedInsightsDashboard';
 import ToggleRow from '@/components/config/ToggleRow';
-import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/label';
-import { logger } from '@/lib/logger';
 import { useConfigs } from '@/stores/useConfigs';
 
 export default function ApiTab() {

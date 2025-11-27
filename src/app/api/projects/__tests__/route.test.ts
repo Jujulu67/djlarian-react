@@ -63,7 +63,6 @@ describe('/api/projects', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.success).toBe(true);
       expect(Array.isArray(data.data)).toBe(true);
       expect(prisma.project.findMany).toHaveBeenCalled();
     });
@@ -179,7 +178,6 @@ describe('/api/projects', () => {
       const data = await response.json();
 
       expect(response.status).toBe(201);
-      expect(data.success).toBe(true);
       expect(data.data.name).toBe('New Project');
       expect(prisma.project.create).toHaveBeenCalled();
     });

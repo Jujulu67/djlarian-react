@@ -68,7 +68,10 @@ describe('ProjectsClient', () => {
   it('should filter projects by status', async () => {
     render(<ProjectsClient initialProjects={mockProjects} />);
 
-    const termineButton = screen.getByText(/Terminé/i);
+    const termineButtons = screen.getAllByText(/Terminé/i);
+    // Prendre le bouton (pas l'option du select)
+    const termineButton =
+      termineButtons.find((btn) => btn.tagName === 'BUTTON') || termineButtons[0];
     fireEvent.click(termineButton);
 
     // Wait for debounce
@@ -84,7 +87,10 @@ describe('ProjectsClient', () => {
     jest.useFakeTimers();
     render(<ProjectsClient initialProjects={mockProjects} />);
 
-    const termineButton = screen.getByText(/Terminé/i);
+    const termineButtons = screen.getAllByText(/Terminé/i);
+    // Prendre le bouton (pas l'option du select)
+    const termineButton =
+      termineButtons.find((btn) => btn.tagName === 'BUTTON') || termineButtons[0];
     fireEvent.click(termineButton);
     fireEvent.click(termineButton);
     fireEvent.click(termineButton);

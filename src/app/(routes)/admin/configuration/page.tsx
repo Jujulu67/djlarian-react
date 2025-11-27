@@ -1,6 +1,5 @@
 'use client';
 
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import isEqual from 'lodash/isEqual'; // Import de isEqual
 import {
   ArrowLeft,
@@ -31,22 +30,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/label';
 import Modal from '@/components/ui/Modal';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { logger } from '@/lib/logger';
 import { isNotEmpty } from '@/lib/utils/arrayHelpers';
 import { useConfigs } from '@/stores/useConfigs'; // Import du store Zustand
-import {
-  AllConfigs,
-  initialConfigs,
-  GeneralConfig,
-  AppearanceConfig,
-  HomepageConfig,
-  NotificationsConfig,
-  SecurityConfig,
-  ApiConfig,
-  ConfigSection,
-} from '@/types/config'; // Import centralisé
+import { AllConfigs, initialConfigs, ConfigSection } from '@/types/config'; // Import centralisé
 
 import HistoryModal from './components/HistoryModal';
 
@@ -347,7 +335,7 @@ export default function ConfigurationPage() {
   };
 
   // Fonction pour réinitialiser les configurations (utilise le store)
-  const resetConfigurations = async () => {
+  const _resetConfigurations = async () => {
     if (
       confirm('Êtes-vous sûr de vouloir réinitialiser les configurations aux valeurs par défaut ?')
     ) {
@@ -375,7 +363,7 @@ export default function ConfigurationPage() {
   };
 
   // Fonction pour créer un snapshot des configurations actuelles (utilise le store)
-  const createSnapshot = async (name: string, description: string) => {
+  const _createSnapshot = async (name: string, description: string) => {
     setIsLoading(true);
     setError(null);
     // Lire les configurations actuelles depuis le store Zustand

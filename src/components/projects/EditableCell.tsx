@@ -148,7 +148,9 @@ export const EditableCell = ({
     }
   };
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
     setEditValue(e.target.value);
   };
 
@@ -349,7 +351,7 @@ export const EditableCell = ({
       <textarea
         ref={inputRef as React.RefObject<HTMLTextAreaElement>}
         value={editValue}
-        onChange={(e) => handleChange(e as any)}
+        onChange={handleChange}
         onBlur={handleSave}
         onKeyDown={(e) => {
           if (e.key === 'Enter' && !e.shiftKey) {

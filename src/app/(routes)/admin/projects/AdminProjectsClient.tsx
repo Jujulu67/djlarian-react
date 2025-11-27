@@ -3,6 +3,8 @@
 import { Filter, RefreshCw, Users, ChevronDown } from 'lucide-react';
 import { useState, useCallback, useEffect, useRef } from 'react';
 
+import { logger } from '@/lib/logger';
+
 import { ProjectTable, Project, ProjectStatus, PROJECT_STATUSES } from '@/components/projects';
 
 interface User {
@@ -51,7 +53,8 @@ export const AdminProjectsClient = ({ initialProjects, users }: AdminProjectsCli
         const result = await response.json();
         // Nouveau format API: { data: [...] }
         const projects = result.data || result;
-        setProjects(projects);
+        // S'assurer que projects est un tableau
+        setProjects(Array.isArray(projects) ? projects : []);
       } else {
         const error = await response.json();
         console.error('Erreur lors du chargement:', error.error || error);
@@ -142,20 +145,20 @@ export const AdminProjectsClient = ({ initialProjects, users }: AdminProjectsCli
   const handleUpdate = async (id: string, field: string, value: string | number | null) => {
     // Admin ne peut pas modifier les projets des autres (géré côté API)
     // Mais on peut afficher une notification
-    console.log('Admin view - modification non autorisée');
+    logger.debug('Admin view - modification non autorisée');
   };
 
   const handleDelete = async (id: string) => {
     // Admin ne peut pas supprimer les projets des autres
-    console.log('Admin view - suppression non autorisée');
+    logger.debug('Admin view - suppression non autorisée');
   };
 
   const handleCreate = async () => {
     // Admin view ne permet pas la création
-    console.log('Admin view - création non autorisée');
+    logger.debug('Admin view - création non autorisée');
   };
 
-  const filteredProjects = projects.filter((p) => {
+  const filteredProjects = (Array.isArray(projects) ? projects : []).filter((p) => {
     const statusMatch = statusFilter === 'ALL' || p.status === statusFilter;
     const userMatch = userFilter === 'ALL' || p.userId === userFilter;
     return statusMatch && userMatch;

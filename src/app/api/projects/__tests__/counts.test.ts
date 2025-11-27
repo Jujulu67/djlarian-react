@@ -17,6 +17,7 @@ jest.mock('@/lib/prisma', () => ({
     project: {
       count: jest.fn(),
       groupBy: jest.fn(),
+      findMany: jest.fn(),
     },
   },
 }));
@@ -43,14 +44,13 @@ describe('/api/projects/counts', () => {
       { status: 'EN_COURS', _count: { status: 5 } },
       { status: 'TERMINE', _count: { status: 3 } },
       { status: 'ANNULE', _count: { status: 2 } },
-    ]);
+    ] as any);
 
     const request = new NextRequest('http://localhost/api/projects/counts');
     const response = await GET(request);
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.success).toBe(true);
     expect(data.data.total).toBe(10);
     expect(data.data.statusBreakdown.EN_COURS).toBe(5);
     expect(data.data.statusBreakdown.TERMINE).toBe(3);

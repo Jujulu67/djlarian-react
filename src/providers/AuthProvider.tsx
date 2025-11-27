@@ -1,7 +1,6 @@
 'use client';
 
 import { SessionProvider } from 'next-auth/react';
-import { useEffect } from 'react';
 
 import ErrorBoundary from '@/components/ErrorBoundary';
 
@@ -15,7 +14,7 @@ let sessionRequestCache: {
 
 const CACHE_DURATION = 5000; // 5 secondes de cache pour dédupliquer les requêtes simultanées
 const DEDUP_WINDOW = 500; // Fenêtre de 500ms pour considérer les requêtes comme simultanées (augmenté pour mieux dédupliquer)
-const ENABLE_LOGS = false; // Désactiver les logs en production
+const _ENABLE_LOGS = false; // Désactiver les logs en production
 
 // Intercepter fetch AVANT que les composants ne se montent
 if (typeof window !== 'undefined') {

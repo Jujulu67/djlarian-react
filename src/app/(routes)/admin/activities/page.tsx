@@ -12,7 +12,6 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { Suspense } from 'react';
 
 import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
@@ -143,7 +142,6 @@ export default async function AdminActivitiesPage({
   if (filterType) {
     // --- CAS: Filtre Actif ---
     let query;
-    let countQuery;
 
     if (filterType === 'event') {
       totalItems = await prisma.event.count();

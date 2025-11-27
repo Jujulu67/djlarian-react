@@ -1,0 +1,30 @@
+
+> dj-larian@0.1.0 build
+> bash scripts/ensure-postgresql-schema.sh && node scripts/fix-prisma-types.mjs && NODE_OPTIONS='--import tsx' next build
+
+ℹ️  Mode développement avec switch off - PostgreSQL non forcé (utilise SQLite si configuré)
+✅ Fichiers default.d.ts, default.js et default.mjs créés/mis à jour pour Prisma 7
+ℹ️  default.js pointe vers client.js, default.mjs pointe vers index.js (compatible production)
+   ▲ Next.js 16.0.5 (Turbopack)
+   - Environments: .env.local
+   - Experiments (use with caution):
+     · clientTraceMetadata
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 8.7s
+   Running next.config.js provided runAfterProductionCompile ...
+ ✓ Completed runAfterProductionCompile in 4828ms
+   Running TypeScript ...
+Failed to compile.
+
+./src/app/(routes)/projects/statistics/StatisticsClient.tsx:411:57
+Type error: Type 'undefined' cannot be used as an index type.
+
+[0m [90m 409 |[39m     [36mconst[39m year [33m=[39m label[33m;[39m
+ [90m 410 |[39m     [36mconst[39m yearData [33m=[39m payload[[35m0[39m][33m?[39m[33m.[39mpayload[33m;[39m
+[31m[1m>[22m[39m[90m 411 |[39m     [36mif[39m ([33m![39myearData [33m||[39m [33m![39mstatistics[33m?[39m[33m.[39mprojectsByYearDetails[year]) [36mreturn[39m [36mnull[39m[33m;[39m
+ [90m     |[39m                                                         [31m[1m^[22m[39m
+ [90m 412 |[39m
+ [90m 413 |[39m     [90m// projectsByYearDetails contient déjà seulement TERMINE et GHOST_PRODUCTION[39m
+ [90m 414 |[39m     [36mconst[39m allProjects [33m=[39m statistics[33m.[39mprojectsByYearDetails[year][33m;[39m[0m
+Next.js build worker exited with code: 1 and signal: null

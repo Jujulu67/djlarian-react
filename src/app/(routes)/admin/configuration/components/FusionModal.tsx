@@ -2,9 +2,6 @@
 
 import { AlertTriangle } from 'lucide-react';
 import Image from 'next/image';
-import { useState } from 'react';
-
-import type { ImageMeta } from '@/app/api/admin/images/shared';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
 import Modal from '@/components/ui/Modal';
@@ -65,6 +62,8 @@ export const FusionModal = ({
                 aria-label={`Carte image ${image.name}`}
               >
                 <div
+                  role="button"
+                  tabIndex={isIgnored ? -1 : 0}
                   className={`w-full flex flex-col items-center cursor-pointer ${isIgnored ? 'pointer-events-none' : ''}`}
                   onClick={() => {
                     if (!isIgnored) setSelectedMasterId(image.id);
@@ -75,7 +74,6 @@ export const FusionModal = ({
                       e.preventDefault();
                     }
                   }}
-                  tabIndex={0}
                   aria-label={`Sélectionner comme maître ${image.name}`}
                 >
                   <Image

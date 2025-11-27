@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 
 import type { ImageMeta } from '@/app/api/admin/images/shared';
 
@@ -15,11 +15,10 @@ export function useImageFilters(
   const [sortOption, setSortOption] = useState<SortOption>('date-desc');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
-  const [filteredImages, setFilteredImages] = useState<ImageMeta[]>([]);
   const [showDuplicatesState, setShowDuplicatesState] = useState(initialShowDuplicates);
 
   // Filtrer les images en fonction du terme de recherche et du type sélectionné
-  useEffect(() => {
+  const filteredImages = useMemo(() => {
     let result = images;
 
     // Filtrer par type
@@ -38,7 +37,7 @@ export function useImageFilters(
       result = result.filter((img) => img.isDuplicate);
     }
 
-    setFilteredImages(result);
+    return result;
   }, [images, searchTerm, filter, showDuplicatesState]);
 
   // Filtrage des groupes selon showDuplicates

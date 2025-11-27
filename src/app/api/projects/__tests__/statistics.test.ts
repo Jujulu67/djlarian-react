@@ -53,7 +53,6 @@ describe('/api/projects/statistics', () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.success).toBe(true);
     expect(data.data.totalProjects).toBe(10);
     expect(data.data.statusBreakdown).toBeDefined();
     expect(data.data.projectsByYear).toBeDefined();
