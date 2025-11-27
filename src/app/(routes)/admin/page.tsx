@@ -11,6 +11,7 @@ import {
   Clock,
   Ticket,
   ArrowRight,
+  FolderKanban,
 } from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -38,6 +39,8 @@ export default async function AdminPage() {
     tracksCount,
     usersCount,
     adminCount,
+    projectsCount,
+    projectsUsersCount,
     latestEvents,
     latestTrack,
     latestTickets,
@@ -57,6 +60,15 @@ export default async function AdminPage() {
     prisma.user.count(),
     prisma.user.count({
       where: { role: 'ADMIN' },
+    }),
+    // Statistiques projets
+    prisma.project.count(),
+    prisma.user.count({
+      where: {
+        Project: {
+          some: {},
+        },
+      },
     }),
     // Activités récentes - optimiser avec select pour ne récupérer que les champs nécessaires
     prisma.event.findFirst({
@@ -343,6 +355,54 @@ export default async function AdminPage() {
                 </Link>
                 <span className="text-xs text-pink-300/70 flex items-center">
                   <Users className="h-3 w-3 mr-1" /> Actifs: {usersCount}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Carte Projets Utilisateurs */}
+          <div className="glass rounded-xl backdrop-blur-md overflow-hidden group relative transition-all duration-300 hover:shadow-[0_0_30px_rgba(139,92,246,0.3)] border border-purple-500/20">
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/5 to-teal-600/5 opacity-70 group-hover:opacity-100 transition-opacity"></div>
+            <div className="absolute -bottom-20 -right-20 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl group-hover:bg-emerald-500/20 transition-all duration-500"></div>
+
+            <div className="p-6 relative z-10">
+              <div className="bg-emerald-500/20 w-12 h-12 flex items-center justify-center rounded-lg mb-4">
+                <FolderKanban className="text-emerald-400 h-6 w-6" />
+              </div>
+              <h2 className="text-2xl font-audiowide text-white mb-2 group-hover:text-emerald-300 transition-colors">
+                Projets
+              </h2>
+              <p className="text-gray-400 mb-8">
+                Visualisez tous les projets musicaux des utilisateurs et suivez leur avancement.
+              </p>
+
+              <div className="flex space-x-2 mb-6">
+                <span className="bg-emerald-900/30 text-emerald-300 text-xs px-2 py-1 rounded-full">
+                  En cours
+                </span>
+                <span className="bg-teal-900/30 text-teal-300 text-xs px-2 py-1 rounded-full">
+                  Terminés
+                </span>
+                <span className="bg-purple-900/30 text-purple-300 text-xs px-2 py-1 rounded-full">
+                  Ghost Prod
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <Link
+                  href="/admin/projects"
+                  className="relative overflow-hidden px-6 py-2.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-medium group admin-button-link"
+                >
+                  <span className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-emerald-600 to-teal-600 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                  <span className="relative flex items-center">
+                    Voir
+                    <Zap className="ml-2 h-4 w-4" />
+                  </span>
+                </Link>
+                <span className="text-xs text-emerald-300/70 flex items-center">
+                  <Users className="h-3 w-3 mr-1" /> {projectsUsersCount} utilisateur
+                  {projectsUsersCount > 1 ? 's' : ''} • {projectsCount} projet
+                  {projectsCount > 1 ? 's' : ''}
                 </span>
               </div>
             </div>
