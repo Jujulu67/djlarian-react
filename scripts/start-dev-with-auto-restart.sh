@@ -95,7 +95,20 @@ start_server() {
     # Rebuild better-sqlite3 pour s'assurer qu'il est compilé pour la bonne version de Node.js
     # Important quand on travaille sur plusieurs projets avec différentes versions de Node.js
     echo "🔧 Vérification de better-sqlite3..."
-    npm rebuild better-sqlite3 > /dev/null 2>&1 || npm rebuild better-sqlite3 || true
+    # Supprimer le build existant pour forcer une recompilation complète
+    rm -rf node_modules/better-sqlite3/build 2>/dev/null || true
+    # Rebuild avec affichage des erreurs si échec
+    if ! npm rebuild better-sqlite3 2>&1; then
+        echo "⚠️  Erreur lors du rebuild de better-sqlite3, nouvelle tentative..."
+        npm rebuild better-sqlite3 || true
+    fi
+    # Nettoyer le cache Next.js pour forcer le rechargement du module
+    # (le cache peut contenir l'ancien module compilé)
+    if [ -d ".next" ]; then
+        echo "🧹 Nettoyage du cache Next.js pour recharger better-sqlite3..."
+        rm -rf .next/dev/server 2>/dev/null || true
+        rm -rf .next/cache 2>/dev/null || true
+    fi
     
     # Synchroniser le schéma Prisma avant de démarrer selon le switch
     # Vérifier le switch pour déterminer quel script utiliser
