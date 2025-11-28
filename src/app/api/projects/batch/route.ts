@@ -187,78 +187,85 @@ export async function POST(request: NextRequest) {
     let currentOrder = (maxOrderProject?.order ?? -1) + 1;
 
     // Créer les projets séquentiellement dans une transaction pour préserver l'ordre d'import
-    await prisma.$transaction(async (tx) => {
-      for (const { data } of projectsToCreate) {
-        const project = await tx.project.create({
-          data: {
-            userId: session.user.id,
-            order: currentOrder++,
-            name: data.name.trim(),
-            style: data.style?.trim() || null,
-            status: data.status || 'EN_COURS',
-            collab: data.collab?.trim() || null,
-            label: data.label?.trim() || null,
-            labelFinal: data.labelFinal?.trim() || null,
-            releaseDate: data.releaseDate ? new Date(data.releaseDate) : null,
-            externalLink: data.externalLink?.trim() || null,
-            streamsJ7: data.streamsJ7 ? parseInt(String(data.streamsJ7), 10) : null,
-            streamsJ14: data.streamsJ14 ? parseInt(String(data.streamsJ14), 10) : null,
-            streamsJ21: data.streamsJ21 ? parseInt(String(data.streamsJ21), 10) : null,
-            streamsJ28: data.streamsJ28 ? parseInt(String(data.streamsJ28), 10) : null,
-            streamsJ56: data.streamsJ56 ? parseInt(String(data.streamsJ56), 10) : null,
-            streamsJ84: data.streamsJ84 ? parseInt(String(data.streamsJ84), 10) : null,
-          },
-          include: {
-            User: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
+    // Timeout augmenté à 30 secondes pour gérer les imports batch volumineux
+    await prisma.$transaction(
+      async (tx) => {
+        for (const { data } of projectsToCreate) {
+          const project = await tx.project.create({
+            data: {
+              userId: session.user.id,
+              order: currentOrder++,
+              name: data.name.trim(),
+              style: data.style?.trim() || null,
+              status: data.status || 'EN_COURS',
+              collab: data.collab?.trim() || null,
+              label: data.label?.trim() || null,
+              labelFinal: data.labelFinal?.trim() || null,
+              releaseDate: data.releaseDate ? new Date(data.releaseDate) : null,
+              externalLink: data.externalLink?.trim() || null,
+              streamsJ7: data.streamsJ7 ? parseInt(String(data.streamsJ7), 10) : null,
+              streamsJ14: data.streamsJ14 ? parseInt(String(data.streamsJ14), 10) : null,
+              streamsJ21: data.streamsJ21 ? parseInt(String(data.streamsJ21), 10) : null,
+              streamsJ28: data.streamsJ28 ? parseInt(String(data.streamsJ28), 10) : null,
+              streamsJ56: data.streamsJ56 ? parseInt(String(data.streamsJ56), 10) : null,
+              streamsJ84: data.streamsJ84 ? parseInt(String(data.streamsJ84), 10) : null,
+            },
+            include: {
+              User: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
               },
             },
-          },
-        });
-        createdProjects.push(project);
-      }
-
-      // Mettre à jour les projets existants
-      for (const { data } of projectsToUpdate) {
-        const normalizedName = data.name.trim().toLowerCase();
-        const projectId = projectsToUpdateMap.get(normalizedName);
-        if (!projectId) {
-          throw new Error(`Projet "${data.name.trim()}" introuvable pour mise à jour`);
+          });
+          createdProjects.push(project);
         }
-        const updated = await tx.project.update({
-          where: { id: projectId },
-          data: {
-            name: data.name.trim(),
-            style: data.style?.trim() || null,
-            status: data.status || 'EN_COURS',
-            collab: data.collab?.trim() || null,
-            label: data.label?.trim() || null,
-            labelFinal: data.labelFinal?.trim() || null,
-            releaseDate: data.releaseDate ? new Date(data.releaseDate) : null,
-            externalLink: data.externalLink?.trim() || null,
-            streamsJ7: data.streamsJ7 ? parseInt(String(data.streamsJ7), 10) : null,
-            streamsJ14: data.streamsJ14 ? parseInt(String(data.streamsJ14), 10) : null,
-            streamsJ21: data.streamsJ21 ? parseInt(String(data.streamsJ21), 10) : null,
-            streamsJ28: data.streamsJ28 ? parseInt(String(data.streamsJ28), 10) : null,
-            streamsJ56: data.streamsJ56 ? parseInt(String(data.streamsJ56), 10) : null,
-            streamsJ84: data.streamsJ84 ? parseInt(String(data.streamsJ84), 10) : null,
-          },
-          include: {
-            User: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
+
+        // Mettre à jour les projets existants
+        for (const { data } of projectsToUpdate) {
+          const normalizedName = data.name.trim().toLowerCase();
+          const projectId = projectsToUpdateMap.get(normalizedName);
+          if (!projectId) {
+            throw new Error(`Projet "${data.name.trim()}" introuvable pour mise à jour`);
+          }
+          const updated = await tx.project.update({
+            where: { id: projectId },
+            data: {
+              name: data.name.trim(),
+              style: data.style?.trim() || null,
+              status: data.status || 'EN_COURS',
+              collab: data.collab?.trim() || null,
+              label: data.label?.trim() || null,
+              labelFinal: data.labelFinal?.trim() || null,
+              releaseDate: data.releaseDate ? new Date(data.releaseDate) : null,
+              externalLink: data.externalLink?.trim() || null,
+              streamsJ7: data.streamsJ7 ? parseInt(String(data.streamsJ7), 10) : null,
+              streamsJ14: data.streamsJ14 ? parseInt(String(data.streamsJ14), 10) : null,
+              streamsJ21: data.streamsJ21 ? parseInt(String(data.streamsJ21), 10) : null,
+              streamsJ28: data.streamsJ28 ? parseInt(String(data.streamsJ28), 10) : null,
+              streamsJ56: data.streamsJ56 ? parseInt(String(data.streamsJ56), 10) : null,
+              streamsJ84: data.streamsJ84 ? parseInt(String(data.streamsJ84), 10) : null,
+            },
+            include: {
+              User: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
               },
             },
-          },
-        });
-        updatedProjects.push(updated);
+          });
+          updatedProjects.push(updated);
+        }
+      },
+      {
+        maxWait: 30000, // 30 secondes d'attente maximum pour acquérir le verrou
+        timeout: 30000, // 30 secondes de timeout pour la transaction complète
       }
-    });
+    );
 
     // Combiner les projets créés et mis à jour (créés en premier pour préserver l'ordre)
     const allProjects = [...createdProjects, ...updatedProjects];
