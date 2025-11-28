@@ -44,7 +44,17 @@ fi
 NEXT_PIDS=$(pgrep -f "next-server" 2>/dev/null || true)
 NEXT_PIDS="$NEXT_PIDS $(pgrep -f "\.bin/next dev" 2>/dev/null || true)"
 NEXT_PIDS="$NEXT_PIDS $(pgrep -f "next dev" 2>/dev/null || true)"
+NEXT_PIDS="$NEXT_PIDS $(pgrep -f "next-server" 2>/dev/null || true)"
 NEXT_PIDS="$NEXT_PIDS $(ps aux | grep -E "node.*next|next.*dev" | grep -v grep | grep -v "restart-dev-server" | awk '{print $2}' || true)"
+
+# Trouver aussi les processus sur les ports 3000 et 3001
+PORT_PIDS=$(lsof -ti:3000,3001 2>/dev/null || true)
+if [ -n "$PORT_PIDS" ]; then
+    NEXT_PIDS="$NEXT_PIDS $PORT_PIDS"
+fi
+
+# Supprimer les doublons et les espaces
+NEXT_PIDS=$(echo $NEXT_PIDS | tr ' ' '\n' | sort -u | tr '\n' ' ')
 
 # Créer un fichier de signal pour indiquer qu'un redémarrage est nécessaire
 RESTART_SIGNAL_FILE=".restart-server-signal"
@@ -69,21 +79,29 @@ if [ -n "$NEXT_PIDS" ]; then
             # Trouver les processus enfants
             CHILD_PIDS=$(pgrep -P $pid 2>/dev/null || true)
             for child in $CHILD_PIDS; do
-                kill $child 2>/dev/null || true
+                kill -9 $child 2>/dev/null || true
             done
-            kill $pid 2>/dev/null || true
+            kill -9 $pid 2>/dev/null || true
         fi
     done
         
-        sleep 2
+    sleep 2
         
-    # Force kill si nécessaire
+    # Force kill si nécessaire (plus agressif)
     pkill -9 -f "next-server" 2>/dev/null || true
     pkill -9 -f "\.bin/next" 2>/dev/null || true
     pkill -9 -f "next dev" 2>/dev/null || true
+    pkill -9 -f "turbopack" 2>/dev/null || true
     
-            sleep 1
-        fi
+    # Tuer aussi les processus sur les ports
+    lsof -ti:3000,3001 | xargs kill -9 2>/dev/null || true
+    
+    sleep 1
+    
+    # Supprimer le verrou Next.js
+    rm -f .next/dev/lock 2>/dev/null || true
+    echo "✅ Verrou Next.js supprimé"
+fi
         
 # Attendre que tous les processus soient bien arrêtés
         sleep 1
@@ -97,8 +115,16 @@ fi
 
 if [ "$NEEDS_CACHE_CLEAN" = "true" ]; then
     echo "🧹 Nettoyage du cache Next.js..."
+    # Supprimer le verrou Next.js avant de nettoyer le cache
+    rm -f .next/dev/lock 2>/dev/null || true
     rm -rf .next 2>/dev/null || true
-    echo "✅ Cache Next.js nettoyé"
+    echo "✅ Cache Next.js nettoyé (verrou supprimé)"
+fi
+
+# Toujours supprimer le verrou Next.js si il existe (même si pas de nettoyage de cache)
+if [ -f ".next/dev/lock" ]; then
+    echo "🔓 Suppression du verrou Next.js résiduel..."
+    rm -f .next/dev/lock 2>/dev/null || true
 fi
 
 # Supprimer le marqueur

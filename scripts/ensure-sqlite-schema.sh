@@ -143,20 +143,21 @@ elif [ "$USE_PRODUCTION" != "true" ]; then
   fi
 fi
 
-# Si le schéma a été modifié, régénérer le client Prisma
-# Aussi régénérer si on est en mode production (switch activé) pour s'assurer que le client correspond
-if [ "$SCHEMA_CHANGED" = true ] || [ "$USE_PRODUCTION" = "true" ]; then
-  echo "🔄 Régénération du client Prisma..."
-  npx prisma generate > /dev/null 2>&1 || npx prisma generate
-  # Corriger les fichiers default.js et default.mjs pour Prisma 7
-  node scripts/fix-prisma-types.mjs > /dev/null 2>&1 || node scripts/fix-prisma-types.mjs
-  echo "✅ Client Prisma régénéré"
-else
-  # Même si le schéma n'a pas changé, s'assurer que les fichiers default.js et default.mjs existent
-  # (nécessaire pour Prisma 7 avec tsx)
-  if [ ! -f "node_modules/.prisma/client/default.js" ]; then
-    echo "🔄 Création des fichiers default.js et default.mjs pour Prisma 7..."
-    node scripts/fix-prisma-types.mjs > /dev/null 2>&1 || node scripts/fix-prisma-types.mjs
-  fi
+# Toujours régénérer le client Prisma pour s'assurer qu'il correspond au schéma actuel
+# (même si le schéma n'a pas changé, le client peut avoir été généré avec un autre provider)
+echo "🔄 Régénération du client Prisma pour s'assurer de la cohérence..."
+# Supprimer l'ancien client pour forcer une régénération complète
+rm -rf node_modules/.prisma 2>/dev/null || true
+npx prisma generate > /dev/null 2>&1 || npx prisma generate
+# Corriger les fichiers default.js et default.mjs pour Prisma 7
+node scripts/fix-prisma-types.mjs > /dev/null 2>&1 || node scripts/fix-prisma-types.mjs
+echo "✅ Client Prisma régénéré"
+
+# Nettoyer le cache Next.js pour forcer le rechargement du nouveau client
+# (important quand on change de provider pour éviter les incohérences)
+if [ "$SCHEMA_CHANGED" = true ]; then
+  echo "🧹 Nettoyage du cache Next.js pour recharger le nouveau client Prisma..."
+  rm -rf .next 2>/dev/null || true
+  echo "✅ Cache Next.js nettoyé"
 fi
 

@@ -69,6 +69,8 @@ if [ "$NODE_ENV" = "production" ]; then
   
   # Régénérer le client Prisma AVANT les migrations (pour avoir un client de base)
   echo "🔄 Régénération initiale du client Prisma..."
+  # Supprimer l'ancien client pour forcer une régénération complète
+  rm -rf node_modules/.prisma 2>/dev/null || true
   npx prisma generate > /dev/null 2>&1 || npx prisma generate
   # Corriger les fichiers default.js et default.mjs pour Prisma 7
   node scripts/fix-prisma-types.mjs > /dev/null 2>&1 || node scripts/fix-prisma-types.mjs
@@ -95,16 +97,51 @@ if [ "$NODE_ENV" = "production" ]; then
     # migrate deploy est SÉCURISÉ : il applique uniquement les migrations manquantes
     # Il ne supprime JAMAIS de données, seulement ajoute/modifie le schéma
     echo "   📋 Migrations Prisma détectées, application des migrations manquantes..."
-    npx prisma migrate deploy || {
-      echo "❌ ERREUR lors de l'application des migrations Prisma"
-      echo "   Vérifiez que DATABASE_URL est correct et accessible"
-      echo "   Si une migration a échoué, résolvez-la avec:"
-      echo "   npx prisma migrate resolve --applied <migration_name>"
-      echo "   ou"
-      echo "   npx prisma migrate resolve --rolled-back <migration_name>"
-      exit 1
-    }
-    echo "✅ Migrations Prisma appliquées avec succès"
+    
+    # Vérifier d'abord l'état des migrations (pour éviter les timeouts de verrous)
+    echo "   🔍 Vérification de l'état des migrations..."
+    MIGRATE_STATUS_OUTPUT=$(npx prisma migrate status 2>&1 || true)
+    
+    # Si toutes les migrations sont déjà appliquées, on peut skip migrate deploy
+    if echo "$MIGRATE_STATUS_OUTPUT" | grep -q "Database schema is up to date\|All migrations have been applied"; then
+      echo "   ✅ Toutes les migrations sont déjà appliquées, pas besoin de migrate deploy"
+    else
+      # Essayer migrate deploy avec retry en cas de timeout de verrou
+      MAX_RETRIES=3
+      RETRY_COUNT=0
+      MIGRATE_SUCCESS=false
+      
+      while [ $RETRY_COUNT -lt $MAX_RETRIES ] && [ "$MIGRATE_SUCCESS" = false ]; do
+        if [ $RETRY_COUNT -gt 0 ]; then
+          echo "   🔄 Nouvelle tentative ($RETRY_COUNT/$MAX_RETRIES) après timeout de verrou..."
+          sleep 2
+        fi
+        
+        if npx prisma migrate deploy; then
+          MIGRATE_SUCCESS=true
+          echo "✅ Migrations Prisma appliquées avec succès"
+        else
+          MIGRATE_EXIT_CODE=$?
+          RETRY_COUNT=$((RETRY_COUNT + 1))
+          
+          # Si c'est un timeout de verrou (P1002), on peut réessayer
+          if [ $MIGRATE_EXIT_CODE -ne 0 ] && [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+            echo "   ⚠️  Timeout de verrou détecté, nouvelle tentative dans 2 secondes..."
+            continue
+          fi
+        fi
+      done
+      
+      if [ "$MIGRATE_SUCCESS" = false ]; then
+        echo "❌ ERREUR lors de l'application des migrations Prisma après $MAX_RETRIES tentatives"
+        echo "   Vérifiez que DATABASE_URL est correct et accessible"
+        echo "   Si une migration a échoué, résolvez-la avec:"
+        echo "   npx prisma migrate resolve --applied <migration_name>"
+        echo "   ou"
+        echo "   npx prisma migrate resolve --rolled-back <migration_name>"
+        exit 1
+      fi
+    fi
   else
     # Pas de migrations Prisma standard, utiliser db push (synchronise le schéma)
     echo "⚠️  Aucune migration Prisma standard trouvée"
@@ -122,6 +159,8 @@ if [ "$NODE_ENV" = "production" ]; then
   
   # IMPORTANT: Régénérer le client Prisma APRÈS les migrations pour s'assurer qu'il reflète l'état final
   echo "🔄 Régénération finale du client Prisma (post-migration)..."
+  # Supprimer l'ancien client pour forcer une régénération complète
+  rm -rf node_modules/.prisma 2>/dev/null || true
   npx prisma generate > /dev/null 2>&1 || npx prisma generate
   # Corriger les fichiers default.js et default.mjs pour Prisma 7
   node scripts/fix-prisma-types.mjs > /dev/null 2>&1 || node scripts/fix-prisma-types.mjs
