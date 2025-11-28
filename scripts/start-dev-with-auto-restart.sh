@@ -97,9 +97,29 @@ start_server() {
     echo "🔧 Vérification de better-sqlite3..."
     npm rebuild better-sqlite3 > /dev/null 2>&1 || npm rebuild better-sqlite3 || true
     
-    # Synchroniser le schéma Prisma avant de démarrer (le script npm run dev le fera aussi, mais on le fait ici pour être sûr)
-    # Le script ensure-sqlite-schema.sh vérifie d'abord si c'est nécessaire, donc pas de problème de double exécution
-    bash scripts/ensure-sqlite-schema.sh > /dev/null 2>&1 || bash scripts/ensure-sqlite-schema.sh
+    # Synchroniser le schéma Prisma avant de démarrer selon le switch
+    # Vérifier le switch pour déterminer quel script utiliser
+    SWITCH_PATH=".db-switch.json"
+    USE_PRODUCTION=false
+    if [ -f "$SWITCH_PATH" ]; then
+        if command -v jq > /dev/null 2>&1; then
+            USE_PRODUCTION=$(jq -r '.useProduction // false' "$SWITCH_PATH" 2>/dev/null || echo "false")
+        else
+            if grep -q '"useProduction"[[:space:]]*:[[:space:]]*true' "$SWITCH_PATH"; then
+                USE_PRODUCTION="true"
+            fi
+        fi
+    fi
+    
+    if [ "$USE_PRODUCTION" = "true" ]; then
+        # Switch activé : utiliser PostgreSQL
+        echo "🔄 Synchronisation du schéma Prisma vers PostgreSQL..."
+        bash scripts/ensure-postgresql-schema.sh
+    else
+        # Switch désactivé : utiliser SQLite
+        echo "🔄 Synchronisation du schéma Prisma vers SQLite..."
+        bash scripts/ensure-sqlite-schema.sh
+    fi
     
     # S'assurer qu'on utilise la bonne version de Node.js depuis .nvmrc
     if [ -f .nvmrc ]; then
@@ -107,9 +127,9 @@ start_server() {
         nvm use > /dev/null 2>&1 || true
     fi
     
-    # Lancer npm run dev en arrière-plan et capturer son PID
-    # npm run dev exécute aussi ensure-sqlite-schema.sh, mais c'est rapide et garantit la synchronisation
-    npm run dev &
+    # Lancer next dev directement (le schéma a déjà été synchronisé)
+    # On évite d'appeler npm run dev qui appellerait encore ensure-sqlite-schema.sh
+    NODE_OPTIONS='--import tsx' npx next dev &
     NPM_PID=$!
     echo $NPM_PID > "$PID_FILE"
     echo "   Serveur démarré (PID: $NPM_PID)"
