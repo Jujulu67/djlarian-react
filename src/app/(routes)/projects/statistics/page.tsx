@@ -31,7 +31,7 @@ export default async function StatisticsPage() {
   const serializedProjects = serializeProjects(projects);
 
   return (
-    <div className="min-h-screen pt-8 pb-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-[calc(100vh-4rem)] pt-8 pb-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-[1600px] mx-auto">
         <StatisticsClient initialProjects={serializedProjects} />
       </div>

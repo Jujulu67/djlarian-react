@@ -49,6 +49,8 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
             hashedPassword: true,
             role: true,
             image: true,
+            createdAt: true,
+            isVip: true,
           },
         });
 

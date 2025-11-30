@@ -33,13 +33,16 @@ export const authConfig = {
     },
     async jwt({ token, user, trigger, session }) {
       if (trigger === 'update' && session?.user) {
-        // Mettre à jour le token avec toutes les données de session.user, y compris l'image
+        // Mettre à jour le token avec toutes les données de session.user, y compris l'image, createdAt et isVip
+        const userWithExtras = session.user as { createdAt?: string | Date; isVip?: boolean };
         return {
           ...token,
           ...session.user,
           image: session.user.image,
           name: session.user.name,
           email: session.user.email,
+          createdAt: userWithExtras.createdAt || token.createdAt,
+          isVip: userWithExtras.isVip !== undefined ? userWithExtras.isVip : token.isVip,
         };
       }
 
@@ -50,6 +53,14 @@ export const authConfig = {
         token.image = user.image;
         token.name = user.name;
         token.email = user.email;
+        // Ajouter createdAt et isVip si disponibles
+        const userWithExtras = user as { createdAt?: string | Date; isVip?: boolean };
+        if (userWithExtras.createdAt) {
+          token.createdAt = userWithExtras.createdAt;
+        }
+        if (userWithExtras.isVip !== undefined) {
+          token.isVip = userWithExtras.isVip;
+        }
       }
 
       // Si token.id est manquant mais sub est présent (JWT manuel)
@@ -134,6 +145,36 @@ export const authConfig = {
         }
         if (token.email) {
           session.user.email = token.email as string;
+        }
+
+        // Récupérer createdAt et isVip depuis le token si disponibles
+        if (token.createdAt) {
+          session.user.createdAt = token.createdAt as string | Date;
+        } else if (userId) {
+          // Si createdAt n'est pas dans le token, le récupérer depuis la base de données
+          try {
+            const prismaModule = await import('@/lib/prisma');
+            const prisma = prismaModule.default;
+            if (prisma) {
+              const user = await prisma.user.findUnique({
+                where: { id: userId },
+                select: { createdAt: true, isVip: true },
+              });
+              if (user?.createdAt) {
+                session.user.createdAt = user.createdAt;
+              }
+              if (user?.isVip !== undefined) {
+                session.user.isVip = user.isVip;
+              }
+            }
+          } catch (error) {
+            console.error('[AuthConfig] Erreur récupération createdAt/isVip depuis DB:', error);
+          }
+        }
+
+        // Récupérer isVip depuis le token si disponible
+        if (token.isVip !== undefined) {
+          session.user.isVip = token.isVip as boolean;
         }
 
         return session;

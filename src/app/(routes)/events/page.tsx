@@ -379,7 +379,7 @@ export default function EventsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-8 pt-28 pb-20">
+    <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-b from-gray-900 to-black p-8 pt-28 pb-20">
       <div className="container mx-auto max-w-6xl">
         {/* Titre avec animation et icône */}
         <div className="relative mb-4">

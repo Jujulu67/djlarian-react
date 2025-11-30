@@ -1,6 +1,6 @@
 'use client';
 
-import { User, Mail } from 'lucide-react';
+import { User, Mail, Calendar } from 'lucide-react';
 
 import UserActions from '@/components/admin/UserActions';
 
@@ -10,6 +10,7 @@ type UserData = {
   email?: string | null;
   role: string | null;
   isVip?: boolean;
+  createdAt?: Date | null;
 };
 
 interface UserTableProps {
@@ -30,6 +31,9 @@ export const UserTable = ({ users }: UserTableProps) => {
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-purple-300 uppercase tracking-wider">
               Rôle & Statut
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-purple-300 uppercase tracking-wider">
+              Date de création
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-purple-300 uppercase tracking-wider">
               Actions
@@ -76,6 +80,18 @@ export const UserTable = ({ users }: UserTableProps) => {
                       VIP
                     </span>
                   )}
+                </div>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap">
+                <div className="flex items-center text-sm text-gray-300">
+                  <Calendar className="h-4 w-4 text-gray-400 mr-2" />
+                  {user.createdAt
+                    ? new Date(user.createdAt).toLocaleDateString('fr-FR', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })
+                    : 'N/A'}
                 </div>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
