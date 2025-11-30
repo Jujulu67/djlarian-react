@@ -31,7 +31,17 @@ if (!process.env.DATABASE_URL) {
   process.exit(1);
 }
 
-const prisma = new PrismaClient();
+// Initialiser PrismaClient avec gestion d'erreur
+let prisma;
+try {
+  prisma = new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+  });
+} catch (error) {
+  console.error('❌ Erreur lors de l\'initialisation de PrismaClient:', error.message);
+  console.error('   Assurez-vous que le client Prisma est généré: npx prisma generate');
+  process.exit(1);
+}
 
 async function getLocalMigrations() {
   const migrationsDir = join(process.cwd(), 'prisma', 'migrations');
