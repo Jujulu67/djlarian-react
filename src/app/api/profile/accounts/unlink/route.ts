@@ -79,10 +79,6 @@ export async function POST(request: NextRequest) {
       where: { id: accountId },
     });
 
-    console.log(
-      `[Profile] Compte OAuth ${account.provider} désassocié par l'utilisateur ${session.user.id}`
-    );
-
     return NextResponse.json({
       success: true,
       message: `Compte ${account.provider} désassocié avec succès`,

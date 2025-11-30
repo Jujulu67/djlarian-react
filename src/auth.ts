@@ -1,5 +1,5 @@
 import { PrismaAdapter } from '@auth/prisma-adapter';
-import type { Adapter } from 'next-auth/adapters';
+import type { Adapter, AdapterAccount } from 'next-auth/adapters';
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 
@@ -41,7 +41,11 @@ const customAdapter: Adapter = {
 
     // Si le compte existe, retourner l'utilisateur
     if (account?.user) {
-      return account.user as Awaited<ReturnType<Adapter['getUserByAccount']>>;
+      // Convertir l'utilisateur Prisma en AdapterUser (sans Account)
+      const { Account, ...adapterUser } = account.user as typeof account.user & {
+        Account?: unknown[];
+      };
+      return adapterUser as Awaited<ReturnType<NonNullable<Adapter['getUserByAccount']>>>;
     }
 
     // Si le compte n'existe pas, retourner null (NextAuth créera un nouveau compte)
@@ -51,6 +55,9 @@ const customAdapter: Adapter = {
     // Utiliser la méthode de base pour obtenir l'utilisateur par email
     // NextAuth utilisera cette méthode pour vérifier si un utilisateur existe
     // Si un utilisateur existe, NextAuth appellera createUser qui retournera l'utilisateur existant
+    if (!baseAdapter.getUserByEmail) {
+      return null;
+    }
     return baseAdapter.getUserByEmail(email);
   },
   async createUser(user) {
@@ -58,16 +65,16 @@ const customAdapter: Adapter = {
     if (user.email) {
       const existingUser = await prisma.user.findUnique({
         where: { email: user.email },
-        include: { Account: true },
       });
 
       // Si un utilisateur existe déjà avec cet email, retourner l'utilisateur existant
       // NextAuth liera automatiquement le compte OAuth à cet utilisateur via linkAccount
       if (existingUser) {
-        console.log(
-          `[Auth] Utilisateur existant trouvé pour ${user.email}, liaison du compte OAuth...`
-        );
-        return existingUser;
+        // Convertir en AdapterUser (sans Account)
+        const { Account, ...adapterUser } = existingUser as typeof existingUser & {
+          Account?: unknown[];
+        };
+        return adapterUser as Awaited<ReturnType<NonNullable<Adapter['createUser']>>>;
       }
     }
 
@@ -83,22 +90,20 @@ const customAdapter: Adapter = {
       imageValue === 'undefined'
     ) {
       user.image = null;
-      console.log(`[Auth] Image OAuth vide/null, définie à null (comme signup normal)`);
-    } else {
-      // Accepter toutes les images OAuth, même les placeholders Google
-      // Le proxy les gère correctement
-      console.log(`[Auth] Image OAuth reçue: ${imageValue.substring(0, 50)}...`);
     }
 
     // Créer un nouvel utilisateur normalement avec l'image (ou null)
+    if (!baseAdapter.createUser) {
+      throw new Error('createUser is not available in baseAdapter');
+    }
     const createdUser = await baseAdapter.createUser(user);
-    console.log(
-      `[Auth] Utilisateur créé: ${createdUser.id}, image: ${createdUser.image ? 'URL externe' : 'null'}`
-    );
     return createdUser;
   },
-  async linkAccount(account) {
+  async linkAccount(account): Promise<AdapterAccount | null | undefined> {
     // Lier le compte OAuth à l'utilisateur
+    if (!baseAdapter.linkAccount) {
+      throw new Error('linkAccount is not available in baseAdapter');
+    }
     const linkedAccount = await baseAdapter.linkAccount(account);
 
     // Si l'utilisateur a une image dans le profil OAuth, mettre à jour l'image de l'utilisateur
@@ -113,13 +118,13 @@ const customAdapter: Adapter = {
         // Mettre à jour l'image si elle n'existe pas ou si elle est différente
         // L'image du profil OAuth est disponible dans le token JWT, on la mettra à jour via le callback jwt
         // Pour l'instant, on stocke juste l'info que le compte est lié
-        console.log(`[Auth] Compte ${account.provider} lié à l'utilisateur ${account.userId}`);
       } catch (error) {
         console.error('[Auth] Erreur lors de la mise à jour après liaison:', error);
       }
     }
 
-    return linkedAccount;
+    // S'assurer que le type de retour est cohérent
+    return linkedAccount ?? null;
   },
 };
 
@@ -185,7 +190,6 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
   pages: authConfig.pages,
   secret: secret,
   debug: false, // Désactiver le debug pour éviter les erreurs "Configuration"
-  // Permettre la liaison automatique des comptes OAuth aux comptes existants avec le même email
-  // Sécurisé car l'email est vérifié par le provider OAuth (Google/Twitch)
-  allowDangerousEmailAccountLinking: true,
+  // Note: allowDangerousEmailAccountLinking n'existe plus dans NextAuth v5
+  // La liaison automatique est gérée par l'adapter personnalisé
 });

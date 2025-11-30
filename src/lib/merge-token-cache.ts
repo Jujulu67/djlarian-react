@@ -44,10 +44,6 @@ export async function storeMergeToken(email: string, token: string): Promise<voi
         expiresAt,
       },
     });
-
-    console.log(
-      `[MergeTokenCache] Token stocké dans DB pour ${email} (key: ${key}), expiresAt: ${expiresAt.toISOString()}`
-    );
   } catch (error) {
     console.error(`[MergeTokenCache] Erreur stockage token pour ${email}:`, error);
     throw error;
@@ -79,7 +75,6 @@ export async function getMergeToken(email: string): Promise<string | null> {
       where: { id: tokenData.id },
     });
 
-    console.log(`[MergeTokenCache] Token récupéré depuis DB pour ${email}`);
     return tokenData.token;
   } catch (error) {
     console.error(`[MergeTokenCache] Erreur récupération token pour ${email}:`, error);
@@ -105,14 +100,12 @@ export async function peekAnyMergeToken(): Promise<{ token: string; email: strin
     });
 
     if (tokenData) {
-      console.log(`[MergeTokenCache] Token trouvé (peek) dans DB pour ${tokenData.email}`);
       return {
         token: tokenData.token,
         email: tokenData.email,
       };
     }
 
-    console.log(`[MergeTokenCache] Aucun token valide trouvé dans la DB`);
     return null;
   } catch (error) {
     console.error(`[MergeTokenCache] Erreur peekAnyMergeToken:`, error);
@@ -143,9 +136,6 @@ export async function getAnyMergeToken(): Promise<{ token: string; email: string
         where: { id: tokenData.id },
       });
 
-      console.log(
-        `[MergeTokenCache] Token récupéré (sans email) depuis DB pour ${tokenData.email}`
-      );
       return {
         token: tokenData.token,
         email: tokenData.email,
