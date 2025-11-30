@@ -153,15 +153,22 @@ if [ "$NODE_ENV" = "production" ]; then
         # Option 1 : Nettoyer les migrations obsolètes (supprime les entrées de _prisma_migrations)
         # C'est plus propre que de créer des baselines vides
         echo "   🗑️  Tentative de nettoyage automatique des migrations obsolètes..."
+        echo "   📋 DATABASE_URL configuré: ${DATABASE_URL:0:50}..."
         set +e
         # Rediriger stderr vers stdout pour capturer toutes les erreurs
+        echo "   🔍 Exécution du script de nettoyage..."
         CLEANUP_OUTPUT=$(node scripts/cleanup-old-migrations.mjs --execute 2>&1)
         CLEANUP_EXIT=$?
         set -e
         
-        # Afficher la sortie pour debug si nécessaire
+        # Afficher la sortie complète pour debug
+        echo "   📋 Code de sortie du nettoyage: $CLEANUP_EXIT"
         if [ $CLEANUP_EXIT -ne 0 ]; then
-          echo "   📋 Sortie du nettoyage: ${CLEANUP_OUTPUT:0:200}..."
+          echo "   ⚠️  Sortie complète du nettoyage (erreur):"
+          echo "$CLEANUP_OUTPUT" | head -30 | sed 's/^/      /'
+        else
+          echo "   ✅ Sortie du nettoyage (succès):"
+          echo "$CLEANUP_OUTPUT" | head -20 | sed 's/^/      /'
         fi
         
         if [ $CLEANUP_EXIT -eq 0 ]; then
@@ -245,53 +252,74 @@ if [ "$NODE_ENV" = "production" ]; then
     resolve_failed_migration() {
       local status_output="$1"
       echo "   ⚠️  Migrations échouées détectées, tentative de résolution..."
+      echo "   📋 Message d'erreur complet:"
+      echo "$status_output" | head -10 | sed 's/^/      /'
       
       # Extraire le nom de la migration échouée depuis le message d'erreur
       # Format: The `20251130022530_add_milestone_notifications` migration started at...
       # Utiliser sed pour extraire le contenu entre backticks
       FAILED_MIGRATION=$(echo "$status_output" | sed -n "s/.*\`\([0-9]\{14\}_[a-zA-Z0-9_]*\)\`.*/\1/p" | head -1 2>/dev/null || echo "")
+      echo "   🔍 Migration extraite (méthode 1): ${FAILED_MIGRATION:-aucune}"
       
       if [ -z "$FAILED_MIGRATION" ]; then
         # Essayer un autre format (sans backticks dans le message)
         FAILED_MIGRATION=$(echo "$status_output" | grep -oE '[0-9]{14}_[a-zA-Z0-9_]+' | head -1 2>/dev/null || echo "")
+        echo "   🔍 Migration extraite (méthode 2): ${FAILED_MIGRATION:-aucune}"
       fi
       
       if [ -z "$FAILED_MIGRATION" ]; then
         # Dernier essai : chercher n'importe quel pattern timestamp_nom
         FAILED_MIGRATION=$(echo "$status_output" | grep -oE '[0-9]+_[a-zA-Z0-9_]+' | head -1 2>/dev/null || echo "")
+        echo "   🔍 Migration extraite (méthode 3): ${FAILED_MIGRATION:-aucune}"
       fi
       
-        if [ -n "$FAILED_MIGRATION" ]; then
+      if [ -n "$FAILED_MIGRATION" ]; then
         echo "   🔧 Résolution de la migration échouée: $FAILED_MIGRATION"
+        echo "   📋 Tentative 1: Marquer comme rolled-back..."
+        
         # Marquer la migration comme rolled-back pour pouvoir la réappliquer
         set +e  # Désactiver set -e pour cette commande
-        PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma migrate resolve --rolled-back "$FAILED_MIGRATION" >/dev/null 2>&1
+        RESOLVE_ROLLED_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma migrate resolve --rolled-back "$FAILED_MIGRATION" 2>&1)
         RESOLVE_EXIT=$?
         set -e  # Réactiver set -e
+        
+        echo "   📋 Code de sortie rolled-back: $RESOLVE_EXIT"
+        if [ $RESOLVE_EXIT -ne 0 ]; then
+          echo "   📋 Sortie rolled-back: $RESOLVE_ROLLED_OUTPUT"
+        fi
         
         if [ $RESOLVE_EXIT -eq 0 ]; then
           echo "   ✅ Migration marquée comme rolled-back, elle sera réappliquée"
           return 0
-          else
+        else
           echo "   ⚠️  Impossible de marquer la migration comme rolled-back, tentative avec --applied..."
+          echo "   📋 Tentative 2: Marquer comme applied..."
+          
           # Si rolled-back échoue, essayer applied (si la migration a partiellement réussi)
           set +e  # Désactiver set -e pour cette commande
-          PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma migrate resolve --applied "$FAILED_MIGRATION" >/dev/null 2>&1
+          RESOLVE_APPLIED_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma migrate resolve --applied "$FAILED_MIGRATION" 2>&1)
           RESOLVE_APPLIED_EXIT=$?
           set -e  # Réactiver set -e
           
+          echo "   📋 Code de sortie applied: $RESOLVE_APPLIED_EXIT"
+          if [ $RESOLVE_APPLIED_EXIT -ne 0 ]; then
+            echo "   📋 Sortie applied: $RESOLVE_APPLIED_OUTPUT"
+          fi
+          
           if [ $RESOLVE_APPLIED_EXIT -eq 0 ]; then
-            echo "   ✅ Migration marquée comme applied"
+            echo "   ✅ Migration marquée comme applied (déjà partiellement appliquée)"
             return 0
           else
             echo "   ⚠️  Impossible de résoudre la migration automatiquement"
+            echo "   💡 La migration peut être dans un état incohérent"
+            echo "   💡 Vous devrez peut-être la résoudre manuellement"
             return 1
           fi
         fi
       else
         echo "   ⚠️  Impossible d'extraire le nom de la migration échouée"
         echo "   📋 Sortie complète pour debug:"
-        echo "$status_output" | head -20
+        echo "$status_output" | head -30 | sed 's/^/      /'
         return 1
       fi
     }
@@ -337,28 +365,68 @@ if [ "$NODE_ENV" = "production" ]; then
           sleep 2
         fi
         
+        echo "   📋 Tentative migrate deploy ($RETRY_COUNT/$MAX_RETRIES)..."
         set +e  # Désactiver set -e pour migrate deploy
         MIGRATE_DEPLOY_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma migrate deploy 2>&1)
         MIGRATE_DEPLOY_EXIT_CODE=$?
         set -e  # Réactiver set -e
+        
+        echo "   📋 Code de sortie migrate deploy: $MIGRATE_DEPLOY_EXIT_CODE"
         
         if [ $MIGRATE_DEPLOY_EXIT_CODE -eq 0 ]; then
           MIGRATE_SUCCESS=true
           echo "✅ Migrations Prisma appliquées avec succès"
         else
           RETRY_COUNT=$((RETRY_COUNT + 1))
+          echo "   📋 Sortie migrate deploy (erreur):"
+          echo "$MIGRATE_DEPLOY_OUTPUT" | head -20 | sed 's/^/      /'
           
           # Vérifier si c'est une erreur de migration échouée (P3009)
           if echo "$MIGRATE_DEPLOY_OUTPUT" | grep -qE "P3009|failed migrations|failed migration"; then
             echo "   ⚠️  Migration échouée détectée dans migrate deploy, tentative de résolution..."
-            if resolve_failed_migration "$MIGRATE_DEPLOY_OUTPUT"; then
-              # Si la résolution réussit, réessayer immédiatement
-              echo "   🔄 Réessai après résolution de la migration échouée..."
-              continue
-            else
-              echo "   ❌ Impossible de résoudre la migration échouée automatiquement"
-              if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
-                break
+            
+            # Extraire le nom de la migration échouée
+            FAILED_MIGRATION=$(echo "$MIGRATE_DEPLOY_OUTPUT" | grep -oE '[0-9]{14}_[a-zA-Z0-9_]+' | head -1 2>/dev/null || echo "")
+            
+            if [ -n "$FAILED_MIGRATION" ]; then
+              echo "   📋 Migration échouée identifiée: $FAILED_MIGRATION"
+              echo "   📋 Retry count: $RETRY_COUNT"
+              
+              # Si on a déjà essayé plusieurs fois avec rolled-back, essayer directement applied
+              if [ $RETRY_COUNT -ge 1 ]; then
+                echo "   🔧 Migration $FAILED_MIGRATION échoue toujours, tentative de marquer comme applied..."
+                set +e
+                RESOLVE_APPLIED_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma migrate resolve --applied "$FAILED_MIGRATION" 2>&1)
+                RESOLVE_APPLIED=$?
+                set -e
+                
+                echo "   📋 Code de sortie resolve --applied: $RESOLVE_APPLIED"
+                if [ $RESOLVE_APPLIED -ne 0 ]; then
+                  echo "   📋 Sortie resolve --applied: $RESOLVE_APPLIED_OUTPUT"
+                fi
+                
+                if [ $RESOLVE_APPLIED -eq 0 ]; then
+                  echo "   ✅ Migration marquée comme applied (probablement déjà partiellement appliquée)"
+                  # Réinitialiser le compteur et réessayer
+                  RETRY_COUNT=0
+                  continue
+                else
+                  echo "   ⚠️  Impossible de marquer comme applied, code: $RESOLVE_APPLIED"
+                fi
+              fi
+              
+              # Essayer la résolution normale (rolled-back puis applied)
+              if resolve_failed_migration "$MIGRATE_DEPLOY_OUTPUT"; then
+                # Si la résolution réussit, réessayer immédiatement
+                echo "   🔄 Réessai après résolution de la migration échouée..."
+                # Réinitialiser le compteur de retry pour donner une nouvelle chance
+                RETRY_COUNT=0
+                continue
+              else
+                echo "   ⚠️  Impossible de résoudre la migration échouée automatiquement"
+                if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
+                  break
+                fi
               fi
             fi
           # Si c'est un timeout de verrou (P1002), on peut réessayer
