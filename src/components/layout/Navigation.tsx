@@ -42,21 +42,8 @@ const Navigation = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
-  // Log de la session pour déboguer
-  useEffect(() => {
-    console.log('[Navigation] Session status:', {
-      status,
-      hasSession: !!session,
-      userId: session?.user?.id,
-      email: session?.user?.email,
-      role: session?.user?.role,
-    });
-  }, [session, status]);
-
   // Fonction de déconnexion simplifiée et fiable
   const handleSignOut = async () => {
-    console.log('[Navigation] Déconnexion en cours...');
-
     // Masquer immédiatement le profil et fermer les menus
     setIsSigningOut(true);
     setIsUserMenuOpen(false);
@@ -68,15 +55,12 @@ const Navigation = () => {
         method: 'POST',
         credentials: 'include',
       });
-
-      console.log('[Navigation] Déconnexion API réussie');
     } catch (error) {
       console.error('[Navigation] Erreur API signout:', error);
     }
 
     // Forcer un rechargement complet de la page
     // C'est la méthode la plus fiable pour s'assurer que tout est nettoyé
-    console.log('[Navigation] Redirection vers /');
     window.location.href = '/';
   };
 

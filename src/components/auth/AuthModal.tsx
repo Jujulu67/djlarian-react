@@ -66,7 +66,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
   // Fonction pour gérer le succès de connexion
   const handleLoginSuccess = useCallback(() => {
-    console.log('[AuthModal] Connexion réussie, rechargement de la page');
     toast.success('Connexion réussie !');
     onClose();
     // Recharger la page pour récupérer la nouvelle session
@@ -77,13 +76,9 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     e.preventDefault();
     setIsLoading(true);
 
-    console.log('[AuthModal] handleSubmit - Début', { isLogin, email: email ? '***' : 'vide' });
-
     try {
       if (isLogin) {
         // === CONNEXION via API custom ===
-        console.log('[AuthModal] Tentative de connexion via API custom');
-
         const response = await fetch('/api/auth/signin-credentials', {
           method: 'POST',
           headers: {
@@ -94,12 +89,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         });
 
         const data = await response.json().catch(() => ({}));
-
-        console.log('[AuthModal] Résultat connexion:', {
-          ok: response.ok,
-          status: response.status,
-          hasError: !!data.error,
-        });
 
         if (!response.ok || data.error) {
           let errorMessage = 'Email ou mot de passe incorrect';
@@ -122,8 +111,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         handleLoginSuccess();
       } else {
         // === INSCRIPTION ===
-        console.log("[AuthModal] Tentative d'inscription");
-
         const response = await fetch('/api/auth/register', {
           method: 'POST',
           headers: {
@@ -142,7 +129,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         }
 
         // Inscription réussie, connexion automatique via API custom
-        console.log('[AuthModal] Inscription réussie, connexion automatique');
         toast.success('Inscription réussie !');
 
         const loginResponse = await fetch('/api/auth/signin-credentials', {
@@ -177,7 +163,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
   const handleProviderSignIn = async (provider: string) => {
     setIsLoading(true);
-    console.log('[AuthModal] handleProviderSignIn - Début', { provider });
 
     try {
       // Fermer le modal avant la redirection OAuth
@@ -190,8 +175,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
       // Si on est sur la page d'accueil, ne pas passer de callbackUrl
       const callbackUrl = currentPath === '/' ? undefined : currentPath;
-
-      console.log('[AuthModal] OAuth redirect:', { provider, callbackUrl });
 
       // Appeler signIn avec redirect: true pour OAuth
       await signIn(provider, {

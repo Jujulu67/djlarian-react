@@ -15,15 +15,8 @@ import { EncryptJWT, base64url, calculateJwkThumbprint } from 'jose';
  */
 export async function POST(request: NextRequest) {
   try {
-    console.log('[API] /api/auth/signin-credentials - Début');
-
     const body = await request.json();
     const { email, password } = body;
-
-    console.log('[API] /api/auth/signin-credentials - Données reçues:', {
-      hasEmail: !!email,
-      hasPassword: !!password,
-    });
 
     if (!email || !password) {
       console.warn('[API] /api/auth/signin-credentials - Credentials manquants');
@@ -43,11 +36,6 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log('[API] /api/auth/signin-credentials - Utilisateur trouvé:', {
-      found: !!user,
-      hasPassword: !!user?.hashedPassword,
-    });
-
     if (!user || !user.hashedPassword) {
       console.warn(
         '[API] /api/auth/signin-credentials - Utilisateur non trouvé ou sans mot de passe'
@@ -57,8 +45,6 @@ export async function POST(request: NextRequest) {
 
     // Vérifier le mot de passe
     const isPasswordValid = await bcryptCompare(password as string, user.hashedPassword);
-
-    console.log('[API] /api/auth/signin-credentials - Mot de passe valide:', isPasswordValid);
 
     if (!isPasswordValid) {
       console.warn('[API] /api/auth/signin-credentials - Mot de passe invalide');
@@ -121,8 +107,6 @@ export async function POST(request: NextRequest) {
       .setJti(crypto.randomUUID())
       .encrypt(encryptionSecret);
 
-    console.log('[API] /api/auth/signin-credentials - JWE créé avec succès');
-
     // Créer la réponse
     const response = NextResponse.json(
       {
@@ -146,11 +130,6 @@ export async function POST(request: NextRequest) {
       path: '/',
       maxAge: maxAge,
     });
-
-    console.log(
-      '[API] /api/auth/signin-credentials - Connexion réussie, cookie défini:',
-      cookieName
-    );
 
     return response;
   } catch (error: unknown) {

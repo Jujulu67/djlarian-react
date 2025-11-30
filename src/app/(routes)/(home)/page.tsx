@@ -155,13 +155,11 @@ export default function HomePage() {
 
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has('callbackUrl')) {
-      console.log("[HomePage] callbackUrl détecté dans l'URL, nettoyage en cours");
       // Supprimer callbackUrl de l'URL sans recharger la page
       urlParams.delete('callbackUrl');
       const newUrl = urlParams.toString()
         ? `${window.location.pathname}?${urlParams.toString()}`
         : window.location.pathname;
-      console.log('[HomePage] URL nettoyée:', newUrl);
       router.replace(newUrl, { scroll: false });
     }
   }, [router]);

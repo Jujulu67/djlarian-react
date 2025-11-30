@@ -326,7 +326,8 @@ export default function ProfilePage() {
   const getMemberSince = () => {
     if (!session?.user) return 'janvier 2024';
     // Si on a une date de création, l'utiliser
-    const createdAt = (session.user as any).createdAt;
+    const userWithCreatedAt = session.user as { createdAt?: string | Date };
+    const createdAt = userWithCreatedAt.createdAt;
     if (createdAt) {
       const date = new Date(createdAt);
       return date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
@@ -337,7 +338,8 @@ export default function ProfilePage() {
   // Calculer l'ancienneté en mois
   const getMemberMonths = () => {
     if (!session?.user) return 0;
-    const createdAt = (session.user as any).createdAt;
+    const userWithCreatedAt = session.user as { createdAt?: string | Date };
+    const createdAt = userWithCreatedAt.createdAt;
     if (createdAt) {
       const created = new Date(createdAt);
       const now = new Date();
@@ -353,7 +355,7 @@ export default function ProfilePage() {
     id: string;
     name: string;
     description: string;
-    icon: React.ComponentType<any>;
+    icon: React.ComponentType<{ size?: number | string; className?: string }>;
     color: string;
     gradient: string;
     iconColor: string; // Couleur solide pour l'icône
@@ -362,7 +364,8 @@ export default function ProfilePage() {
 
   const calculateBadges = (): Badge[] => {
     const memberMonths = getMemberMonths();
-    const isVip = (session?.user as any)?.isVip || false;
+    const userWithIsVip = session?.user as { isVip?: boolean };
+    const isVip = userWithIsVip?.isVip || false;
     const isAdmin = session?.user?.role === 'ADMIN';
 
     const badges: Badge[] = [
