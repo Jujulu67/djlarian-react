@@ -8,6 +8,7 @@ import {
   createUnauthorizedResponse,
   createForbiddenResponse,
   createNotFoundResponse,
+  createBadRequestResponse,
 } from '@/lib/api/responseHelpers';
 import prisma from '@/lib/prisma';
 import { serializeProject } from '@/lib/utils/serializeProject';

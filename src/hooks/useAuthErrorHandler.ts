@@ -12,7 +12,7 @@ export function useAuthErrorHandler() {
   const router = useRouter();
   const { data: session, update, status } = useSession();
   const isRefreshingRef = useRef(false);
-  const pendingRetriesRef = useRef<Array<() => Promise<any>>>([]);
+  const pendingRetriesRef = useRef<Array<() => Promise<unknown>>>([]);
 
   /**
    * Force un refresh de la session
@@ -35,9 +35,11 @@ export function useAuthErrorHandler() {
     try {
       // Invalider le cache de session avant le refresh
       if (typeof window !== 'undefined') {
-        const sessionCache = (window as any).sessionRequestCache;
-        if (sessionCache) {
-          (window as any).sessionRequestCache = null;
+        const windowWithCache = window as typeof window & {
+          sessionRequestCache?: unknown;
+        };
+        if (windowWithCache.sessionRequestCache) {
+          windowWithCache.sessionRequestCache = null;
         }
       }
 
@@ -63,7 +65,7 @@ export function useAuthErrorHandler() {
           }
         }
       } catch (error) {
-        console.debug('Erreur lors de la vérification de session:', error);
+        // Erreur silencieuse lors de la vérification de session
       }
 
       isRefreshingRef.current = false;

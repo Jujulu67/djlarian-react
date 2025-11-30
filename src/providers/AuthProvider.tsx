@@ -131,7 +131,7 @@ if (typeof window !== 'undefined') {
               });
             } catch (error) {
               // Ignorer les erreurs de refresh silencieusement
-              console.debug('Erreur lors du refresh de session après 401:', error);
+              // Erreur silencieuse - pas besoin de logger
             }
           }
           return response;

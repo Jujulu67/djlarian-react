@@ -28,6 +28,7 @@ import { ParsedProjectRow } from '@/lib/utils/parseExcelData';
 import { exportProjectsToExcel } from '@/lib/utils/exportProjectsToExcel';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { fetchWithAuth, isAuthError, getErrorMessage } from '@/lib/api/fetchWithAuth';
+import { StreamsMilestones } from '@/lib/utils/calculateStreamsMilestones';
 
 interface ProjectsClientProps {
   initialProjects: Project[];
@@ -385,7 +386,9 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
     }
   };
 
-  const handleImportStreams = async (imports: Array<{ projectId: string; milestones: any }>) => {
+  const handleImportStreams = async (
+    imports: Array<{ projectId: string; milestones: StreamsMilestones }>
+  ) => {
     try {
       const response = await fetchWithAuth('/api/projects/streams/import', {
         method: 'POST',
@@ -606,7 +609,6 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
       const fromNotification = params.get('fromNotification') === 'true';
 
       if (highlightId && fromNotification) {
-        console.log('Highlight depuis notification:', highlightId);
         setHighlightedFromNotification(highlightId);
 
         // Nettoyer l'URL sans recharger la page
@@ -618,27 +620,26 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
           window.history.replaceState({}, '', newUrl);
         } catch (historyError) {
           // Ignorer les erreurs d'historique (peuvent être causées par des extensions)
-          console.debug("Erreur lors du nettoyage de l'URL:", historyError);
+          // Erreur silencieuse - pas besoin de logger
         }
 
         // Scroller vers le projet après un délai plus long pour laisser le temps au rendu
         setTimeout(() => {
           try {
             const element = document.getElementById(`project-${highlightId}`);
-            console.log('Élément trouvé pour scroll:', element);
             if (element) {
               element.scrollIntoView({ behavior: 'smooth', block: 'center' });
             } else {
               console.warn('Projet non trouvé dans le DOM:', highlightId);
             }
           } catch (scrollError) {
-            console.debug('Erreur lors du scroll:', scrollError);
+            // Erreur silencieuse - pas besoin de logger
           }
         }, 500); // Délai augmenté pour laisser le temps au rendu
       }
     } catch (error) {
       // Ignorer les erreurs silencieusement (peuvent être causées par des extensions)
-      console.debug('Erreur lors du traitement des paramètres URL:', error);
+      // Erreur silencieuse - pas besoin de logger
     }
   }, []);
 

@@ -16,6 +16,7 @@ export interface NotificationMetadata {
   projectName?: string;
   streams?: number;
   releaseDate?: string;
+  senderName?: string;
   [key: string]: unknown;
 }
 
@@ -28,6 +29,7 @@ export interface Notification {
   metadata: string | null; // JSON string
   isRead: boolean;
   isArchived?: boolean;
+  deletedAt?: string | null;
   createdAt: string;
   readAt: string | null;
   projectId: string | null;
@@ -130,20 +132,37 @@ export function useNotifications(
         }
 
         // Valider et normaliser les notifications
-        const notificationsList = (result.notifications || []).map((notif: any) => ({
-          ...notif,
-          isArchived: notif.isArchived ?? false,
-          deletedAt: notif.deletedAt ?? null,
-          createdAt:
-            typeof notif.createdAt === 'string'
-              ? notif.createdAt
-              : notif.createdAt?.toISOString() || new Date().toISOString(),
-          readAt: notif.readAt
-            ? typeof notif.readAt === 'string'
-              ? notif.readAt
-              : notif.readAt.toISOString()
-            : null,
-        }));
+        const notificationsList = (result.notifications || []).map((notif: unknown) => {
+          const notification = notif as Partial<Notification> & {
+            createdAt?: string | Date;
+            readAt?: string | Date | null;
+            isArchived?: boolean;
+            deletedAt?: string | null;
+          };
+          const createdAtValue =
+            typeof notification.createdAt === 'string'
+              ? notification.createdAt
+              : notification.createdAt &&
+                  typeof notification.createdAt === 'object' &&
+                  'toISOString' in notification.createdAt
+                ? (notification.createdAt as Date).toISOString()
+                : new Date().toISOString();
+          const readAtValue =
+            notification.readAt && typeof notification.readAt === 'string'
+              ? notification.readAt
+              : notification.readAt &&
+                  typeof notification.readAt === 'object' &&
+                  'toISOString' in notification.readAt
+                ? (notification.readAt as Date).toISOString()
+                : null;
+          return {
+            ...notification,
+            isArchived: notification.isArchived ?? false,
+            deletedAt: notification.deletedAt ?? null,
+            createdAt: createdAtValue,
+            readAt: readAtValue,
+          } as Notification;
+        });
 
         const newUnreadCount = result.unreadCount || 0;
 

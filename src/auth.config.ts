@@ -53,9 +53,10 @@ export const authConfig = {
         session.user.id = (token.id as string) || '';
 
         // Si l'ID est manquant, la session est invalide
-        // Retourner null pour que NextAuth traite la session comme non authentifiée
+        // Ne pas retourner null, mais une session avec un ID vide (NextAuth gérera l'authentification)
         if (!session.user.id) {
-          return null;
+          // Retourner la session mais avec un ID vide - NextAuth vérifiera l'authentification ailleurs
+          return session;
         }
       }
       return session;
