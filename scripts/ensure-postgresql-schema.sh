@@ -126,11 +126,12 @@ if [ "$NODE_ENV" = "production" ]; then
     # Vérifier s'il y a des migrations échouées et les résoudre
     if echo "$MIGRATE_STATUS_OUTPUT" | grep -qE "failed migrations|failed migration|P3009"; then
       echo "   ⚠️  Migrations échouées détectées, tentative de résolution..."
-      # Extraire le nom de la migration échouée (format: `20251130022530_add_milestone_notifications`)
-      FAILED_MIGRATION=$(echo "$MIGRATE_STATUS_OUTPUT" | grep -oE "`[0-9]+_[^`]+`" | head -1 | tr -d '`' || echo "")
+      # Extraire le nom de la migration échouée (format: 20251130022530_add_milestone_notifications)
+      # Chercher d'abord avec backticks (échappés)
+      FAILED_MIGRATION=$(echo "$MIGRATE_STATUS_OUTPUT" | grep -oE '[0-9]{14}_[a-zA-Z0-9_]+' | head -1 || echo "")
       if [ -z "$FAILED_MIGRATION" ]; then
-        # Essayer un autre format (sans backticks)
-        FAILED_MIGRATION=$(echo "$MIGRATE_STATUS_OUTPUT" | grep -oE "[0-9]{14}_[a-zA-Z0-9_]+" | head -1 || echo "")
+        # Essayer un autre format (avec underscore et timestamp)
+        FAILED_MIGRATION=$(echo "$MIGRATE_STATUS_OUTPUT" | grep -oE '[0-9]+_[a-zA-Z0-9_]+' | head -1 || echo "")
       fi
       if [ -n "$FAILED_MIGRATION" ]; then
         echo "   🔧 Résolution de la migration échouée: $FAILED_MIGRATION"
