@@ -34,6 +34,8 @@
     "db:migrate:all": "npm run db:migrate:production && npm run db:migrate:blob-images",
     "db:diagnose": "node scripts/diagnose-db-schema.mjs",
     "db:diagnose-prod": "node scripts/diagnose-prod-db.mjs",
+    "db:cleanup-migrations": "node scripts/cleanup-old-migrations.mjs",
+    "db:cleanup-migrations:execute": "node scripts/cleanup-old-migrations.mjs --execute",
     "generate:waveform-video": "node scripts/generate-waveform-video.mjs"
   },
   "dependencies": {

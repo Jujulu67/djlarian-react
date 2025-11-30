@@ -149,65 +149,99 @@ if [ "$NODE_ENV" = "production" ]; then
       if echo "$MIGRATE_STATUS_OUTPUT" | grep -qE "different|not found locally|The migrations from the database are not found locally"; then
         echo "   ⚠️  Conflit d'historique des migrations détecté"
         echo "   ℹ️  Certaines migrations sont dans la DB mais pas localement"
-        echo "   🔧 Résolution automatique : création de migrations baseline..."
         
-        # Extraire les noms des migrations manquantes localement (dans la DB mais pas localement)
-        # Format du message Prisma: "The migrations from the database are not found locally: 20250424125117_init"
-        MISSING_LOCAL=$(echo "$MIGRATE_STATUS_OUTPUT" | grep -A 100 "not found locally" | grep -oE '[0-9]{14}_[a-zA-Z0-9_]+' | sort -u || echo "")
+        # Option 1 : Nettoyer les migrations obsolètes (supprime les entrées de _prisma_migrations)
+        # C'est plus propre que de créer des baselines vides
+        echo "   🗑️  Tentative de nettoyage automatique des migrations obsolètes..."
+        set +e
+        CLEANUP_OUTPUT=$(node scripts/cleanup-old-migrations.mjs --execute 2>&1)
+        CLEANUP_EXIT=$?
+        set -e
         
-        if [ -z "$MISSING_LOCAL" ]; then
-          # Essayer une autre extraction (format différent)
-          MISSING_LOCAL=$(echo "$MIGRATE_STATUS_OUTPUT" | grep -oE '[0-9]{14}_[a-zA-Z0-9_]+' | sort -u || echo "")
+        if [ $CLEANUP_EXIT -eq 0 ]; then
+          echo "   ✅ Migrations obsolètes nettoyées automatiquement"
+          # Vérifier à nouveau l'état après nettoyage
+          echo "   🔄 Vérification de l'état après nettoyage..."
+          set +e
+          MIGRATE_STATUS_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma migrate status 2>&1)
+          MIGRATE_STATUS_EXIT_CODE=$?
+          set -e
+          
+          # Si le nettoyage a résolu le problème, on continue
+          if echo "$MIGRATE_STATUS_OUTPUT" | grep -q "Database schema is up to date\|All migrations have been applied"; then
+            echo "   ✅ Historique synchronisé après nettoyage"
+            BASELINE_CREATED=false
+          else
+            # Si le nettoyage n'a pas tout résolu, créer des baselines pour les migrations restantes
+            echo "   🔧 Certaines migrations nécessitent encore des baselines..."
+            BASELINE_CREATED=true
+          fi
+        else
+          echo "   ⚠️  Le nettoyage automatique a échoué, création de migrations baseline..."
+          BASELINE_CREATED=true
         fi
         
-        if [ -n "$MISSING_LOCAL" ]; then
-          echo "   📋 Migrations baseline détectées dans la DB:"
-          echo "$MISSING_LOCAL" | while read -r migration_name; do
-            if [ -n "$migration_name" ]; then
-              echo "      - $migration_name"
-            fi
-          done
+        # Option 2 : Si le nettoyage n'a pas tout résolu, créer des baselines
+        if [ "$BASELINE_CREATED" = true ] && echo "$MIGRATE_STATUS_OUTPUT" | grep -qE "different|not found locally"; then
+          echo "   🔧 Création de migrations baseline pour les migrations restantes..."
           
-          # Créer des migrations baseline vides pour chaque migration manquante
-          echo "   🔧 Création des migrations baseline..."
-          for migration_name in $MISSING_LOCAL; do
-            if [ -n "$migration_name" ]; then
-              BASELINE_DIR="prisma/migrations/${migration_name}"
-              
-              # Vérifier si la migration baseline existe déjà
-              if [ ! -d "$BASELINE_DIR" ]; then
-                echo "      📝 Création de la migration baseline: $migration_name"
-                mkdir -p "$BASELINE_DIR"
-                # Créer un fichier SQL vide avec un commentaire
-                echo "-- Baseline migration: Cette migration existe déjà dans la base de données de production" > "$BASELINE_DIR/migration.sql"
-                echo "-- Elle est marquée comme baseline pour synchroniser l'historique des migrations" >> "$BASELINE_DIR/migration.sql"
-                echo "-- Aucune modification SQL n'est nécessaire, le schéma est déjà à jour" >> "$BASELINE_DIR/migration.sql"
-                
-                # Marquer la migration comme appliquée (baseline)
-                set +e
-                PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma migrate resolve --applied "$migration_name" >/dev/null 2>&1
-                RESOLVE_EXIT=$?
-                set -e
-                
-                if [ $RESOLVE_EXIT -eq 0 ]; then
-                  echo "      ✅ Migration baseline créée et marquée comme appliquée: $migration_name"
-                else
-                  echo "      ⚠️  Migration baseline créée mais impossible de la marquer comme appliquée: $migration_name"
-                fi
-              else
-                echo "      ℹ️  Migration baseline existe déjà: $migration_name"
-                # Essayer quand même de la marquer comme appliquée
-                set +e
-                PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma migrate resolve --applied "$migration_name" >/dev/null 2>&1
-                set -e
+          # Extraire les noms des migrations manquantes localement (dans la DB mais pas localement)
+          # Format du message Prisma: "The migrations from the database are not found locally: 20250424125117_init"
+          MISSING_LOCAL=$(echo "$MIGRATE_STATUS_OUTPUT" | grep -A 100 "not found locally" | grep -oE '[0-9]{14}_[a-zA-Z0-9_]+' | sort -u || echo "")
+          
+          if [ -z "$MISSING_LOCAL" ]; then
+            # Essayer une autre extraction (format différent)
+            MISSING_LOCAL=$(echo "$MIGRATE_STATUS_OUTPUT" | grep -oE '[0-9]{14}_[a-zA-Z0-9_]+' | sort -u || echo "")
+          fi
+          
+          if [ -n "$MISSING_LOCAL" ]; then
+            echo "   📋 Migrations baseline détectées dans la DB:"
+            for migration_name in $MISSING_LOCAL; do
+              if [ -n "$migration_name" ]; then
+                echo "      - $migration_name"
               fi
-            fi
-          done
-          
-          echo "   ✅ Migrations baseline créées, l'historique devrait maintenant être synchronisé"
-          BASELINE_CREATED=true
-        else
-          echo "   ⚠️  Impossible d'extraire les noms des migrations manquantes"
+            done
+            
+            # Créer des migrations baseline vides pour chaque migration manquante
+            echo "   🔧 Création des migrations baseline..."
+            for migration_name in $MISSING_LOCAL; do
+              if [ -n "$migration_name" ]; then
+                BASELINE_DIR="prisma/migrations/${migration_name}"
+                
+                # Vérifier si la migration baseline existe déjà
+                if [ ! -d "$BASELINE_DIR" ]; then
+                  echo "      📝 Création de la migration baseline: $migration_name"
+                  mkdir -p "$BASELINE_DIR"
+                  # Créer un fichier SQL vide avec un commentaire
+                  echo "-- Baseline migration: Cette migration existe déjà dans la base de données de production" > "$BASELINE_DIR/migration.sql"
+                  echo "-- Elle est marquée comme baseline pour synchroniser l'historique des migrations" >> "$BASELINE_DIR/migration.sql"
+                  echo "-- Aucune modification SQL n'est nécessaire, le schéma est déjà à jour" >> "$BASELINE_DIR/migration.sql"
+                  
+                  # Marquer la migration comme appliquée (baseline)
+                  set +e
+                  PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma migrate resolve --applied "$migration_name" >/dev/null 2>&1
+                  RESOLVE_EXIT=$?
+                  set -e
+                  
+                  if [ $RESOLVE_EXIT -eq 0 ]; then
+                    echo "      ✅ Migration baseline créée et marquée comme appliquée: $migration_name"
+                  else
+                    echo "      ⚠️  Migration baseline créée mais impossible de la marquer comme appliquée: $migration_name"
+                  fi
+                else
+                  echo "      ℹ️  Migration baseline existe déjà: $migration_name"
+                  # Essayer quand même de la marquer comme appliquée
+                  set +e
+                  PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma migrate resolve --applied "$migration_name" >/dev/null 2>&1
+                  set -e
+                fi
+              fi
+            done
+            
+            echo "   ✅ Migrations baseline créées, l'historique devrait maintenant être synchronisé"
+          else
+            echo "   ⚠️  Impossible d'extraire les noms des migrations manquantes"
+          fi
         fi
       fi
     fi
