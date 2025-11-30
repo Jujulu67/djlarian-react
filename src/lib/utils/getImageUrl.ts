@@ -21,12 +21,28 @@ export function getImageUrl(
     return null;
   }
 
-  // Si c'est déjà une URL complète (http/https), la retourner telle quelle
+  // Si c'est déjà une URL complète (http/https), utiliser le proxy pour éviter les problèmes CORS
   if (imageId.startsWith('http://') || imageId.startsWith('https://')) {
+    // Pour les URLs Google OAuth, utiliser le proxy
+    if (imageId.includes('googleusercontent.com')) {
+      return `/api/images/proxy?url=${encodeURIComponent(imageId)}`;
+    }
+    // Pour les autres URLs externes, retourner directement (si pas de problème CORS)
     return imageId;
   }
 
-  // Construire l'URL de la route API
+  // Si c'est un chemin local (/uploads/, /images/), le retourner tel quel
+  // Next.js sert automatiquement ces fichiers depuis le dossier public/
+  if (imageId.startsWith('/uploads/') || imageId.startsWith('/images/')) {
+    // Ajouter le cache busting si fourni
+    if (options?.cacheBust) {
+      const separator = imageId.includes('?') ? '&' : '?';
+      return `${imageId}${separator}t=${options.cacheBust}`;
+    }
+    return imageId;
+  }
+
+  // Construire l'URL de la route API pour les imageId (UUID)
   let url = `/api/images/${imageId}`;
 
   // Ajouter le paramètre original si demandé

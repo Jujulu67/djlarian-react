@@ -74,6 +74,7 @@ Marquez ces variables comme **"Encrypt"** (Secret) :
 - `SENTRY_ORG` - Organisation Sentry (optionnel, pour source maps)
 - `SENTRY_PROJECT` - Projet Sentry (optionnel, pour source maps)
 - `SENTRY_AUTH_TOKEN` - Token d'authentification Sentry (optionnel, pour releases)
+- `REQUIRE_MERGE_CONFIRMATION` - Demander confirmation avant fusion de comptes OAuth (optionnel, par défaut: `true`, mettre `false` pour fusion automatique)
 
 **Note** : `TWITCH_CLIENT_ID` et `TWITCH_CLIENT_SECRET` sont optionnels. Si non configurés pour OAuth, les boutons de connexion Twitch ne s'afficheront pas. Pour le statut du stream, si non configurés, l'écran offline personnalisé s'affichera par défaut.
 

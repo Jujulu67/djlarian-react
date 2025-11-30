@@ -24,18 +24,11 @@ export default function imageLoader({
     return src;
   }
 
-  // Pour les images locales (/uploads/, /images/), utiliser l'optimisation Next.js
-  // Si width est fourni, utiliser l'optimisation Next.js
+  // Pour les images locales (/uploads/, /images/), retourner directement l'URL
+  // Next.js les sert automatiquement depuis le dossier public/
+  // Pas besoin de passer par /_next/image car ces fichiers sont déjà optimisés (WebP)
   if (src.startsWith('/uploads/') || src.startsWith('/images/')) {
-    const params = new URLSearchParams();
-    params.set('url', src);
-    if (width) {
-      params.set('w', width.toString());
-    }
-    if (quality) {
-      params.set('q', quality.toString());
-    }
-    return `/_next/image?${params.toString()}`;
+    return src;
   }
 
   // Par défaut, retourner l'URL telle quelle

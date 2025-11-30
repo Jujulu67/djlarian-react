@@ -18,6 +18,13 @@ type UserData = {
   role: string | null; // Accepter null pour le rôle
   isVip?: boolean;
   createdAt?: Date | null;
+  hashedPassword?: string | null; // Pour vérifier si l'utilisateur a un mot de passe
+  Account: Array<{
+    id: string;
+    provider: string;
+    providerAccountId: string;
+    type: string; // Pour vérifier si c'est OAuth
+  }>;
 };
 
 // Définir un type pour les paramètres
@@ -93,6 +100,15 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
       role: true,
       isVip: true,
       createdAt: true,
+      hashedPassword: true, // Inclure pour vérifier si l'utilisateur a un mot de passe
+      Account: {
+        select: {
+          id: true,
+          provider: true,
+          providerAccountId: true,
+          type: true, // Inclure le type pour vérifier si c'est OAuth
+        },
+      },
     },
   });
 

@@ -42,7 +42,8 @@
     "db:cleanup-duplicates": "node scripts/cleanup-duplicate-migrations.mjs",
     "db:sync-sqlite-baselines": "node scripts/sync-sqlite-baselines.mjs",
     "db:verify-alignment": "node scripts/verify-sqlite-prod-alignment.mjs",
-    "generate:waveform-video": "node scripts/generate-waveform-video.mjs"
+    "generate:waveform-video": "node scripts/generate-waveform-video.mjs",
+    "check-env": "node scripts/check-env.mjs"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",

@@ -68,7 +68,16 @@ L'application supporte l'authentification OAuth via Google et Twitch (100% gratu
 - ✅ **Connexion avec Twitch** : Création automatique de compte
 - ✅ **Authentification par email/mot de passe** : Alternative classique
 
-Voir [docs/OAUTH_SETUP.md](docs/OAUTH_SETUP.md) pour le guide complet de configuration.
+**Guides de configuration** :
+
+- 🚀 **Guide rapide** : [docs/OAUTH_QUICK_START.md](docs/OAUTH_QUICK_START.md) (10-15 min par provider)
+- 📚 **Guide complet** : [docs/OAUTH_SETUP.md](docs/OAUTH_SETUP.md) (détails et dépannage)
+
+**Vérification de la configuration** :
+
+```bash
+npm run check-env
+```
 
 ## 🛠 Installation
 

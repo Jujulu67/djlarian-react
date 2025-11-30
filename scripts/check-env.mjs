@@ -15,11 +15,28 @@ const requiredVars = {
 };
 
 const optionalVars = {
-  // OAuth (optionnel mais recommandé)
-  GOOGLE_CLIENT_ID: 'Client ID Google OAuth',
-  GOOGLE_CLIENT_SECRET: 'Client Secret Google OAuth',
-  TWITCH_CLIENT_ID: 'Client ID Twitch OAuth',
-  TWITCH_CLIENT_SECRET: 'Client Secret Twitch OAuth',
+  // OAuth (optionnel mais recommandé - 100% gratuit)
+  GOOGLE_CLIENT_ID: 'Client ID Google OAuth (voir docs/OAUTH_SETUP.md)',
+  GOOGLE_CLIENT_SECRET: 'Client Secret Google OAuth (voir docs/OAUTH_SETUP.md)',
+  TWITCH_CLIENT_ID: 'Client ID Twitch OAuth (voir docs/OAUTH_SETUP.md)',
+  TWITCH_CLIENT_SECRET: 'Client Secret Twitch OAuth (voir docs/OAUTH_SETUP.md)',
+};
+
+const instagramVars = {
+  // Instagram API (optionnel)
+  INSTAGRAM_APP_ID: 'App ID Instagram (voir TODO_INSTAGRAM.md)',
+  INSTAGRAM_APP_SECRET: 'App Secret Instagram (voir TODO_INSTAGRAM.md)',
+  INSTAGRAM_USER_ID: 'User ID Instagram Business (voir TODO_INSTAGRAM.md)',
+  INSTAGRAM_ACCESS_TOKEN: 'Access Token Instagram long-lived (voir TODO_INSTAGRAM.md)',
+};
+
+const otherOptionalVars = {
+  // Autres services optionnels
+  SPOTIFY_CLIENT_ID: 'Client ID Spotify (optionnel)',
+  SPOTIFY_CLIENT_SECRET: 'Client Secret Spotify (optionnel)',
+  YOUTUBE_API_KEY: 'API Key YouTube (optionnel)',
+  MUSICBRAINZ_USER_AGENT: 'User-Agent MusicBrainz (requis pour enrichissement)',
+  REQUIRE_MERGE_CONFIRMATION: 'Demander confirmation avant fusion de comptes OAuth (optionnel, par défaut: true, mettre false pour fusion automatique)',
 };
 
 console.log('🔍 Vérification des variables d\'environnement...\n');
@@ -76,9 +93,10 @@ Object.entries(requiredVars).forEach(([key, desc]) => {
   }
 });
 
-// Vérifier les variables optionnelles
-console.log('\n📋 Variables Optionnelles (OAuth) :\n');
-let oauthConfigured = false;
+// Vérifier les variables optionnelles OAuth
+console.log('\n📋 Variables Optionnelles - OAuth (100% Gratuit) :\n');
+let oauthGoogleConfigured = false;
+let oauthTwitchConfigured = false;
 
 Object.entries(optionalVars).forEach(([key, desc]) => {
   const value = envVars[key] || process.env[key];
@@ -89,7 +107,51 @@ Object.entries(optionalVars).forEach(([key, desc]) => {
       ? value.substring(0, 30) + '...'
       : value;
     console.log(`   ✅ ${key} = ${maskedValue}`);
-    oauthConfigured = true;
+    if (key.includes('GOOGLE')) oauthGoogleConfigured = true;
+    if (key.includes('TWITCH')) oauthTwitchConfigured = true;
+  } else {
+    console.log(`   ⚠️  ${key} - Non configuré (${desc})`);
+  }
+});
+
+// Vérifier Instagram API
+console.log('\n📋 Variables Optionnelles - Instagram API :\n');
+let instagramConfigured = false;
+let instagramPartiallyConfigured = false;
+
+Object.entries(instagramVars).forEach(([key, desc]) => {
+  const value = envVars[key] || process.env[key];
+  if (value) {
+    const maskedValue = key.includes('SECRET') || key.includes('TOKEN')
+      ? '***' + value.slice(-4)
+      : value.length > 50
+      ? value.substring(0, 30) + '...'
+      : value;
+    console.log(`   ✅ ${key} = ${maskedValue}`);
+    instagramPartiallyConfigured = true;
+  } else {
+    console.log(`   ⚠️  ${key} - Non configuré (${desc})`);
+  }
+});
+
+// Vérifier si Instagram est complètement configuré
+if (instagramPartiallyConfigured) {
+  const allInstagramVars = Object.keys(instagramVars);
+  const configuredVars = allInstagramVars.filter(key => envVars[key] || process.env[key]);
+  instagramConfigured = configuredVars.length === allInstagramVars.length;
+}
+
+// Vérifier autres variables optionnelles
+console.log('\n📋 Variables Optionnelles - Autres Services :\n');
+Object.entries(otherOptionalVars).forEach(([key, desc]) => {
+  const value = envVars[key] || process.env[key];
+  if (value) {
+    const maskedValue = key.includes('SECRET')
+      ? '***' + value.slice(-4)
+      : value.length > 50
+      ? value.substring(0, 30) + '...'
+      : value;
+    console.log(`   ✅ ${key} = ${maskedValue}`);
   } else {
     console.log(`   ⚠️  ${key} - Non configuré (${desc})`);
   }
@@ -105,10 +167,27 @@ if (allRequiredPresent) {
   console.log('   openssl rand -base64 32\n');
 }
 
-if (oauthConfigured) {
-  console.log('✅ OAuth configuré (Google et/ou Twitch)');
+// Résumé OAuth
+if (oauthGoogleConfigured && oauthTwitchConfigured) {
+  console.log('✅ OAuth Google et Twitch configurés (100% gratuit)');
+} else if (oauthGoogleConfigured) {
+  console.log('✅ OAuth Google configuré (100% gratuit)');
+  console.log('⚠️  OAuth Twitch non configuré (optionnel, voir docs/OAUTH_SETUP.md)');
+} else if (oauthTwitchConfigured) {
+  console.log('✅ OAuth Twitch configuré (100% gratuit)');
+  console.log('⚠️  OAuth Google non configuré (optionnel, voir docs/OAUTH_SETUP.md)');
 } else {
-  console.log('⚠️  OAuth non configuré (optionnel, voir docs/OAUTH_SETUP.md)');
+  console.log('⚠️  OAuth non configuré (optionnel mais recommandé, voir docs/OAUTH_SETUP.md)');
+  console.log('   💡 OAuth Google et Twitch sont 100% gratuits pour l\'authentification');
+}
+
+// Résumé Instagram
+if (instagramConfigured) {
+  console.log('✅ Instagram API complètement configuré');
+} else if (instagramPartiallyConfigured) {
+  console.log('⚠️  Instagram API partiellement configuré (voir TODO_INSTAGRAM.md)');
+} else {
+  console.log('⚠️  Instagram API non configuré (optionnel, voir TODO_INSTAGRAM.md)');
 }
 
 console.log('='.repeat(60) + '\n');

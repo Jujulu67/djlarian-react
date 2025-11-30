@@ -405,7 +405,14 @@ const Navigation = () => {
                       {session.user?.image ? (
                         <div className="relative w-11 h-11 rounded-full overflow-hidden">
                           <Image
-                            src={session.user.image}
+                            src={
+                              session.user.image.startsWith('http://') ||
+                              session.user.image.startsWith('https://')
+                                ? session.user.image.includes('googleusercontent.com')
+                                  ? `/api/images/proxy?url=${encodeURIComponent(session.user.image)}`
+                                  : session.user.image
+                                : session.user.image
+                            }
                             alt={session.user.name || 'Avatar'}
                             fill
                             className="object-cover"

@@ -27,12 +27,20 @@ import {
   BadgeCheck,
   Heart,
   Trash2,
+  Link2,
+  Unlink,
+  Shield,
+  AlertTriangle,
+  Lock,
+  Key,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useSession } from 'next-auth/react';
+import { useSession, signIn } from 'next-auth/react';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import ReactDOM from 'react-dom';
 import { toast } from 'react-hot-toast';
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
@@ -75,6 +83,32 @@ export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [recentProjects, setRecentProjects] = useState<RecentProject[]>([]);
   const [isLoadingRecentProjects, setIsLoadingRecentProjects] = useState(false);
+  const [oauthAccounts, setOauthAccounts] = useState<{
+    google: { linked: boolean; available: boolean; accountId: string | null };
+    twitch: { linked: boolean; available: boolean; accountId: string | null };
+  } | null>(null);
+  const [oauthSecurity, setOauthSecurity] = useState<{
+    hasPassword: boolean;
+    oauthCount: number;
+    canUnlink: boolean;
+    isSecure: boolean;
+  } | null>(null);
+  const [isLoadingOAuth, setIsLoadingOAuth] = useState(true);
+  const [unlinkingProvider, setUnlinkingProvider] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false,
+  });
 
   // Charger les statistiques utilisateur avec useCallback pour éviter les re-créations
   const loadUserStats = useCallback(async () => {
@@ -141,6 +175,42 @@ export default function ProfilePage() {
       loadRecentProjects();
     }
   }, [session?.user?.id, stats.projects, loadRecentProjects]);
+
+  // Charger les comptes OAuth
+  const loadOAuthAccounts = useCallback(async () => {
+    if (!session?.user?.id) return;
+    try {
+      setIsLoadingOAuth(true);
+      const response = await fetchWithAuth('/api/profile/accounts');
+      if (response.ok) {
+        const data = await response.json();
+        setOauthAccounts(data.accounts);
+        setOauthSecurity(data.security);
+      } else {
+        console.error('Erreur lors du chargement des comptes OAuth');
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des comptes OAuth:', error);
+    } finally {
+      setIsLoadingOAuth(false);
+    }
+  }, [session?.user?.id]);
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      loadOAuthAccounts();
+    }
+  }, [session?.user?.id, loadOAuthAccounts]);
+
+  // Vérifier si un compte vient d'être associé
+  useEffect(() => {
+    if (searchParams.get('linked') === 'true') {
+      toast.success('Compte OAuth associé avec succès !');
+      loadOAuthAccounts();
+      // Nettoyer l'URL
+      router.replace('/profile');
+    }
+  }, [searchParams, loadOAuthAccounts, router]);
 
   // Synchroniser les valeurs éditées avec la session
   useEffect(() => {
@@ -576,6 +646,152 @@ export default function ProfilePage() {
   const unlockedBadges = userBadges.filter((b) => b.unlocked);
   const lockedBadges = userBadges.filter((b) => !b.unlocked);
 
+  // Gérer l'association d'un compte OAuth
+  const handleLinkAccount = async (provider: 'google' | 'twitch') => {
+    try {
+      // Rediriger vers OAuth avec callbackUrl vers /profile?link=true
+      await signIn(provider, {
+        redirect: true,
+        callbackUrl: '/profile?link=true',
+      });
+    } catch (error) {
+      console.error(`[Profile] Erreur association ${provider}:`, error);
+      toast.error(`Erreur lors de l'association du compte ${provider}`);
+    }
+  };
+
+  // Gérer la désassociation d'un compte OAuth
+  const handleUnlinkAccount = async (provider: 'google' | 'twitch', accountId: string | null) => {
+    if (!accountId) return;
+
+    // Vérifier si c'est le dernier compte OAuth et s'il n'y a pas de mot de passe
+    if (oauthSecurity && oauthSecurity.oauthCount === 1 && !oauthSecurity.hasPassword) {
+      toast.error(
+        "Impossible de désassocier le dernier compte OAuth. Veuillez d'abord définir un mot de passe.",
+        { duration: 5000 }
+      );
+      return;
+    }
+
+    if (!confirm(`Êtes-vous sûr de vouloir désassocier votre compte ${provider} ?`)) {
+      return;
+    }
+
+    setUnlinkingProvider(provider);
+    try {
+      const response = await fetchWithAuth('/api/profile/accounts/unlink', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ accountId }),
+      });
+
+      if (response.ok) {
+        toast.success(`Compte ${provider} désassocié avec succès`);
+        loadOAuthAccounts();
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Erreur lors de la désassociation');
+      }
+    } catch (error) {
+      console.error(`[Profile] Erreur désassociation ${provider}:`, error);
+      toast.error('Erreur de connexion. Veuillez réessayer.');
+    } finally {
+      setUnlinkingProvider(null);
+    }
+  };
+
+  // Gérer la modification/définition du mot de passe
+  const handlePasswordSubmit = async () => {
+    if (!session?.user?.id) return;
+
+    // Réinitialiser l'erreur
+    setPasswordError(null);
+
+    // Validation
+    if (oauthSecurity?.hasPassword) {
+      // Modification : vérifier l'ancien mot de passe
+      if (!passwordData.currentPassword) {
+        setPasswordError('Veuillez entrer votre mot de passe actuel');
+        return;
+      }
+    }
+
+    if (!passwordData.newPassword) {
+      setPasswordError('Veuillez entrer un nouveau mot de passe');
+      return;
+    }
+
+    if (passwordData.newPassword.length < 6) {
+      setPasswordError('Le mot de passe doit contenir au moins 6 caractères');
+      return;
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordError('Les mots de passe ne correspondent pas');
+      return;
+    }
+
+    setIsChangingPassword(true);
+
+    try {
+      // Si l'utilisateur a déjà un mot de passe, vérifier l'ancien
+      if (oauthSecurity?.hasPassword) {
+        // Vérifier l'ancien mot de passe
+        const verifyResponse = await fetchWithAuth('/api/profile/verify-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            password: passwordData.currentPassword,
+          }),
+        });
+
+        if (!verifyResponse.ok) {
+          const error = await verifyResponse.json();
+          setPasswordError(error.error || 'Mot de passe actuel incorrect');
+          setIsChangingPassword(false);
+          return;
+        }
+      }
+
+      // Mettre à jour le mot de passe
+      const response = await fetchWithAuth(`/api/users/${session.user.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          password: passwordData.newPassword,
+        }),
+      });
+
+      if (response.ok) {
+        toast.success(
+          oauthSecurity?.hasPassword
+            ? 'Mot de passe modifié avec succès'
+            : 'Mot de passe défini avec succès'
+        );
+        setShowPasswordModal(false);
+        setPasswordError(null);
+        setPasswordData({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: '',
+        });
+        loadOAuthAccounts(); // Recharger pour mettre à jour hasPassword
+      } else {
+        const error = await response.json();
+        setPasswordError(error.error || 'Erreur lors de la modification du mot de passe');
+      }
+    } catch (error) {
+      console.error('[Profile] Erreur modification mot de passe:', error);
+      setPasswordError('Erreur de connexion. Veuillez réessayer.');
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
   return (
     <div className="h-[calc(100vh-4rem)] overflow-y-auto pt-4 sm:pt-8 pb-6 lg:pb-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
@@ -602,7 +818,48 @@ export default function ProfilePage() {
 
           {/* Carte profil avec glassmorphism */}
           <div className="relative -mt-10 sm:-mt-14 lg:-mt-12 px-4 sm:px-6">
-            <div className="glass-modern glass-modern-hover rounded-2xl p-4 sm:p-6 lg:p-5">
+            <div className="glass-modern glass-modern-hover rounded-2xl p-4 sm:p-6 lg:p-5 relative">
+              {/* Bouton Modifier en haut à droite */}
+              <div className="absolute top-4 right-4 z-10">
+                {isEditing ? (
+                  <div className="flex gap-2">
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={handleSave}
+                      disabled={isSaving}
+                      className="p-2 sm:p-2.5 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg hover:shadow-lg hover:shadow-green-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      aria-label="Sauvegarder"
+                    >
+                      {isSaving ? (
+                        <Loader2 size={18} className="text-white animate-spin" />
+                      ) : (
+                        <Save size={18} className="text-white" />
+                      )}
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={handleCancel}
+                      disabled={isSaving}
+                      className="p-2 sm:p-2.5 bg-gradient-to-r from-red-500 to-rose-500 rounded-lg hover:shadow-lg hover:shadow-red-500/30 transition-all disabled:opacity-50"
+                      aria-label="Annuler"
+                    >
+                      <X size={18} className="text-white" />
+                    </motion.button>
+                  </div>
+                ) : (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setIsEditing(true)}
+                    className="p-2 sm:p-2.5 bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/30 rounded-lg hover:from-purple-500/30 hover:to-blue-500/30 transition-all"
+                    aria-label="Modifier le profil"
+                  >
+                    <Edit size={18} className="text-white" />
+                  </motion.button>
+                )}
+              </div>
               <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 sm:gap-5 lg:gap-4">
                 {/* Avatar */}
                 <motion.div
@@ -617,7 +874,14 @@ export default function ProfilePage() {
                         onClick={() => setShowFullscreenAvatar(true)}
                       >
                         <Image
-                          src={session.user.image}
+                          src={
+                            session.user.image.startsWith('http://') ||
+                            session.user.image.startsWith('https://')
+                              ? session.user.image.includes('googleusercontent.com')
+                                ? `/api/images/proxy?url=${encodeURIComponent(session.user.image)}`
+                                : session.user.image
+                              : session.user.image
+                          }
                           alt="Avatar"
                           fill
                           sizes="(max-width: 640px) 96px, 128px"
@@ -773,100 +1037,56 @@ export default function ProfilePage() {
                       {error}
                     </motion.div>
                   )}
-                  <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-3 sm:gap-4 mb-3 sm:mb-4">
-                    <div className="flex-1 w-full">
+                  <div className="flex-1 w-full">
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={editedName}
+                        onChange={(e) => setEditedName(e.target.value)}
+                        className="text-xl sm:text-2xl lg:text-3xl font-audiowide bg-white/10 border border-purple-500/30 rounded-lg px-3 sm:px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 w-full"
+                        placeholder="Nom"
+                        disabled={isSaving}
+                      />
+                    ) : (
+                      <h1 className="text-xl sm:text-2xl lg:text-3xl font-audiowide text-white mb-2">
+                        {session.user?.name || 'Utilisateur'}
+                      </h1>
+                    )}
+                    <div className="flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-4 mt-2">
                       {isEditing ? (
                         <input
-                          type="text"
-                          value={editedName}
-                          onChange={(e) => setEditedName(e.target.value)}
-                          className="text-xl sm:text-2xl lg:text-3xl font-audiowide bg-white/10 border border-purple-500/30 rounded-lg px-3 sm:px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 w-full"
-                          placeholder="Nom"
+                          type="email"
+                          value={editedEmail}
+                          onChange={(e) => setEditedEmail(e.target.value)}
+                          className="text-xs sm:text-sm lg:text-base text-gray-300 bg-white/10 border border-purple-500/30 rounded-lg px-3 py-1.5 text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 w-full sm:w-auto"
+                          placeholder="Email"
                           disabled={isSaving}
                         />
                       ) : (
-                        <h1 className="text-xl sm:text-2xl lg:text-3xl font-audiowide text-white mb-2">
-                          {session.user?.name || 'Utilisateur'}
-                        </h1>
+                        <p className="text-xs sm:text-sm lg:text-base text-gray-300 flex items-center gap-2">
+                          <Mail size={14} className="sm:w-4 sm:h-4" />
+                          {session.user?.email}
+                        </p>
                       )}
-                      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-4 mt-2">
-                        {isEditing ? (
-                          <input
-                            type="email"
-                            value={editedEmail}
-                            onChange={(e) => setEditedEmail(e.target.value)}
-                            className="text-xs sm:text-sm lg:text-base text-gray-300 bg-white/10 border border-purple-500/30 rounded-lg px-3 py-1.5 text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 w-full sm:w-auto"
-                            placeholder="Email"
-                            disabled={isSaving}
-                          />
-                        ) : (
-                          <p className="text-xs sm:text-sm lg:text-base text-gray-300 flex items-center gap-2">
-                            <Mail size={14} className="sm:w-4 sm:h-4" />
-                            {session.user?.email}
-                          </p>
-                        )}
-                        {getMemberSince() && (
-                          <p className="text-xs sm:text-sm lg:text-base text-gray-400 flex items-center gap-2">
-                            <Calendar size={14} className="sm:w-4 sm:h-4" />
-                            Membre depuis {getMemberSince()}
-                          </p>
-                        )}
-                      </div>
-                      {/* Informations Rôle et Statut */}
-                      <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-3 sm:mt-4">
-                        <div className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-white/5 border border-white/10">
-                          <User size={12} className="sm:w-3.5 sm:h-3.5 text-gray-400" />
-                          <span className="text-xs sm:text-sm text-gray-300">
-                            {session.user?.role === 'ADMIN'
-                              ? '👑 Administrateur'
-                              : '👤 Utilisateur'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-white/5 border border-white/10">
-                          <TrendingUp size={12} className="sm:w-3.5 sm:h-3.5 text-gray-400" />
-                          <span className="text-xs sm:text-sm text-gray-300">Actif</span>
-                        </div>
-                      </div>
+                      {getMemberSince() && (
+                        <p className="text-xs sm:text-sm lg:text-base text-gray-400 flex items-center gap-2">
+                          <Calendar size={14} className="sm:w-4 sm:h-4" />
+                          Membre depuis {getMemberSince()}
+                        </p>
+                      )}
                     </div>
-                    <div className="flex gap-2">
-                      {isEditing ? (
-                        <>
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={handleSave}
-                            disabled={isSaving}
-                            className="p-2 sm:p-2.5 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg hover:shadow-lg hover:shadow-green-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                            aria-label="Sauvegarder"
-                          >
-                            {isSaving ? (
-                              <Loader2 size={18} className="text-white animate-spin" />
-                            ) : (
-                              <Save size={18} className="text-white" />
-                            )}
-                          </motion.button>
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={handleCancel}
-                            disabled={isSaving}
-                            className="p-2 sm:p-2.5 bg-gradient-to-r from-red-500 to-rose-500 rounded-lg hover:shadow-lg hover:shadow-red-500/30 transition-all disabled:opacity-50"
-                            aria-label="Annuler"
-                          >
-                            <X size={18} className="text-white" />
-                          </motion.button>
-                        </>
-                      ) : (
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => setIsEditing(true)}
-                          className="p-2 sm:p-2.5 bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/30 rounded-lg hover:from-purple-500/30 hover:to-blue-500/30 transition-all"
-                          aria-label="Modifier le profil"
-                        >
-                          <Edit size={18} className="text-white" />
-                        </motion.button>
-                      )}
+                    {/* Informations Rôle et Statut */}
+                    <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mt-3 sm:mt-4">
+                      <div className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-white/5 border border-white/10">
+                        <User size={12} className="sm:w-3.5 sm:h-3.5 text-gray-400" />
+                        <span className="text-xs sm:text-sm text-gray-300">
+                          {session.user?.role === 'ADMIN' ? '👑 Administrateur' : '👤 Utilisateur'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-white/5 border border-white/10">
+                        <TrendingUp size={12} className="sm:w-3.5 sm:h-3.5 text-gray-400" />
+                        <span className="text-xs sm:text-sm text-gray-300">Actif</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1223,7 +1443,440 @@ export default function ProfilePage() {
             </motion.div>
           </div>
         </div>
+
+        {/* Section Comptes connectés */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.6 }}
+          className="mt-4 sm:mt-6 lg:mt-6"
+        >
+          <div className="glass-modern glass-modern-hover rounded-2xl p-3 sm:p-4 lg:p-3 lift-3d">
+            <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4 lg:mb-3">
+              <div className="p-2 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-lg">
+                <Shield size={18} className="sm:w-5 sm:h-5 text-purple-400" />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-base sm:text-lg lg:text-base font-audiowide text-white">
+                  Comptes connectés
+                </h2>
+                <p className="text-xs sm:text-sm lg:text-xs text-gray-400">
+                  Gérez vos méthodes de connexion
+                </p>
+              </div>
+            </div>
+
+            {isLoadingOAuth ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="w-5 h-5 text-purple-400 animate-spin" />
+              </div>
+            ) : oauthAccounts ? (
+              <div className="space-y-3">
+                {/* Email/Mot de passe */}
+                <div className="rounded-xl bg-gradient-to-r from-purple-500/5 to-blue-500/5 border border-purple-500/10 p-3 sm:p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="relative w-10 h-10 rounded-lg bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center overflow-hidden">
+                        <Mail size={20} className="text-white" />
+                      </div>
+                      <div>
+                        <p className="text-sm sm:text-base font-medium text-white">
+                          Email / Mot de passe
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          {oauthSecurity?.hasPassword
+                            ? 'Mot de passe défini'
+                            : 'Aucun mot de passe défini'}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setPasswordError(null);
+                        setPasswordData({
+                          currentPassword: '',
+                          newPassword: '',
+                          confirmPassword: '',
+                        });
+                        setShowPasswordModal(true);
+                      }}
+                      className="px-3 sm:px-4 py-2 bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/30 rounded-lg hover:from-purple-500/30 hover:to-blue-500/30 transition-colors duration-200 flex items-center gap-2 cursor-pointer"
+                    >
+                      <Key size={16} className="text-purple-400" />
+                      <span className="text-xs sm:text-sm text-purple-400 font-medium">
+                        {oauthSecurity?.hasPassword ? 'Modifier' : 'Définir'}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Google */}
+                {oauthAccounts.google.available && (
+                  <div className="rounded-xl bg-gradient-to-r from-purple-500/5 to-blue-500/5 border border-purple-500/10 p-3 sm:p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="relative w-10 h-10 rounded-lg bg-white flex items-center justify-center overflow-hidden">
+                          <Image
+                            src="/icons/google.svg"
+                            alt="Google"
+                            width={24}
+                            height={24}
+                            className="w-6 h-6"
+                          />
+                        </div>
+                        <div>
+                          <p className="text-sm sm:text-base font-medium text-white">Google</p>
+                          <p className="text-xs text-gray-400">
+                            {oauthAccounts.google.linked ? 'Compte lié' : 'Non lié'}
+                          </p>
+                        </div>
+                      </div>
+                      {oauthAccounts.google.linked ? (
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleUnlinkAccount('google', oauthAccounts.google.accountId);
+                          }}
+                          disabled={unlinkingProvider === 'google'}
+                          className="px-3 sm:px-4 py-2 bg-gradient-to-r from-red-500/20 to-rose-500/20 border border-red-500/30 rounded-lg hover:from-red-500/30 hover:to-rose-500/30 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
+                        >
+                          {unlinkingProvider === 'google' ? (
+                            <Loader2 size={16} className="animate-spin text-red-400" />
+                          ) : (
+                            <Unlink size={16} className="text-red-400" />
+                          )}
+                          <span className="text-xs sm:text-sm text-red-400 font-medium">
+                            Désassocier
+                          </span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleLinkAccount('google');
+                          }}
+                          className="px-3 sm:px-4 py-2 bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/30 rounded-lg hover:from-purple-500/30 hover:to-blue-500/30 transition-colors duration-200 flex items-center gap-2 cursor-pointer"
+                        >
+                          <Link2 size={16} className="text-purple-400" />
+                          <span className="text-xs sm:text-sm text-purple-400 font-medium">
+                            Associer
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Twitch */}
+                {oauthAccounts.twitch.available && (
+                  <div className="rounded-xl bg-gradient-to-r from-purple-500/5 to-blue-500/5 border border-purple-500/10 p-3 sm:p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="relative w-10 h-10 rounded-lg bg-[#9146FF] flex items-center justify-center overflow-hidden">
+                          <Image
+                            src="/icons/twitch.svg"
+                            alt="Twitch"
+                            width={24}
+                            height={24}
+                            className="w-6 h-6"
+                          />
+                        </div>
+                        <div>
+                          <p className="text-sm sm:text-base font-medium text-white">Twitch</p>
+                          <p className="text-xs text-gray-400">
+                            {oauthAccounts.twitch.linked ? 'Compte lié' : 'Non lié'}
+                          </p>
+                        </div>
+                      </div>
+                      {oauthAccounts.twitch.linked ? (
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleUnlinkAccount('twitch', oauthAccounts.twitch.accountId);
+                          }}
+                          disabled={unlinkingProvider === 'twitch'}
+                          className="px-3 sm:px-4 py-2 bg-gradient-to-r from-red-500/20 to-rose-500/20 border border-red-500/30 rounded-lg hover:from-red-500/30 hover:to-rose-500/30 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
+                        >
+                          {unlinkingProvider === 'twitch' ? (
+                            <Loader2 size={16} className="animate-spin text-red-400" />
+                          ) : (
+                            <Unlink size={16} className="text-red-400" />
+                          )}
+                          <span className="text-xs sm:text-sm text-red-400 font-medium">
+                            Désassocier
+                          </span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleLinkAccount('twitch');
+                          }}
+                          className="px-3 sm:px-4 py-2 bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/30 rounded-lg hover:from-purple-500/30 hover:to-blue-500/30 transition-colors duration-200 flex items-center gap-2 cursor-pointer"
+                        >
+                          <Link2 size={16} className="text-purple-400" />
+                          <span className="text-xs sm:text-sm text-purple-400 font-medium">
+                            Associer
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Avertissement si dernier compte OAuth */}
+                {oauthSecurity && oauthSecurity.oauthCount === 1 && !oauthSecurity.hasPassword && (
+                  <div className="rounded-xl bg-amber-500/10 border border-amber-500/30 p-3 sm:p-4 flex items-start gap-3">
+                    <AlertTriangle size={18} className="text-amber-400 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-xs sm:text-sm text-amber-400 font-medium mb-1">
+                        Attention
+                      </p>
+                      <p className="text-xs text-amber-300/80">
+                        Vous n'avez qu'un seul compte OAuth lié. Assurez-vous d'avoir un mot de
+                        passe défini avant de le désassocier, sinon vous risquez de perdre l'accès à
+                        votre compte.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Message si aucun provider disponible */}
+                {!oauthAccounts.google.available && !oauthAccounts.twitch.available && (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-gray-400">
+                      Aucun provider OAuth configuré sur ce serveur
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-sm text-gray-400">Erreur lors du chargement des comptes</p>
+              </div>
+            )}
+          </div>
+        </motion.div>
       </div>
+
+      {/* Modal de modification/définition du mot de passe */}
+      {typeof window !== 'undefined' &&
+        ReactDOM.createPortal(
+          <AnimatePresence>
+            {showPasswordModal && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="fixed inset-0 z-[99999] bg-black/95 backdrop-blur-sm flex items-center justify-center p-4"
+                onMouseDown={(e) => {
+                  if (e.target === e.currentTarget) {
+                    setShowPasswordModal(false);
+                    setPasswordError(null);
+                    setPasswordData({
+                      currentPassword: '',
+                      newPassword: '',
+                      confirmPassword: '',
+                    });
+                  }
+                }}
+                style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+              >
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="glass-modern rounded-2xl p-6 sm:p-8 max-w-md w-full max-h-[90vh] overflow-y-auto"
+                  onMouseDown={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-lg">
+                        <Lock size={20} className="text-purple-400" />
+                      </div>
+                      <h2 className="text-xl font-audiowide text-white">
+                        {oauthSecurity?.hasPassword
+                          ? 'Modifier le mot de passe'
+                          : 'Définir un mot de passe'}
+                      </h2>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setShowPasswordModal(false);
+                        setPasswordError(null);
+                        setPasswordData({
+                          currentPassword: '',
+                          newPassword: '',
+                          confirmPassword: '',
+                        });
+                      }}
+                      className="p-2 hover:bg-gray-800/50 rounded-lg transition-colors"
+                      aria-label="Fermer"
+                    >
+                      <X className="w-5 h-5 text-gray-400" />
+                    </button>
+                  </div>
+
+                  {/* Affichage des erreurs */}
+                  {passwordError && (
+                    <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-3">
+                      <AlertTriangle size={18} className="text-red-400 mt-0.5 flex-shrink-0" />
+                      <p className="text-sm text-red-400 flex-1">{passwordError}</p>
+                    </div>
+                  )}
+
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handlePasswordSubmit();
+                    }}
+                    className="space-y-4"
+                  >
+                    {/* Ancien mot de passe (si déjà défini) */}
+                    {oauthSecurity?.hasPassword && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Mot de passe actuel
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showPasswords.current ? 'text' : 'password'}
+                            value={passwordData.currentPassword}
+                            onChange={(e) =>
+                              setPasswordData({ ...passwordData, currentPassword: e.target.value })
+                            }
+                            className="w-full px-4 py-3 bg-gray-900/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent"
+                            placeholder="Entrez votre mot de passe actuel"
+                            required
+                            autoComplete="current-password"
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setShowPasswords({
+                                ...showPasswords,
+                                current: !showPasswords.current,
+                              })
+                            }
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                          >
+                            {showPasswords.current ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Nouveau mot de passe */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        {oauthSecurity?.hasPassword ? 'Nouveau mot de passe' : 'Mot de passe'}
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showPasswords.new ? 'text' : 'password'}
+                          value={passwordData.newPassword}
+                          onChange={(e) =>
+                            setPasswordData({ ...passwordData, newPassword: e.target.value })
+                          }
+                          className="w-full px-4 py-3 bg-gray-900/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent"
+                          placeholder={
+                            oauthSecurity?.hasPassword
+                              ? 'Entrez votre nouveau mot de passe'
+                              : 'Entrez un mot de passe (min. 6 caractères)'
+                          }
+                          required
+                          minLength={6}
+                          autoComplete="new-password"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setShowPasswords({ ...showPasswords, new: !showPasswords.new })
+                          }
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                        >
+                          {showPasswords.new ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Confirmation du mot de passe */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Confirmer le mot de passe
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showPasswords.confirm ? 'text' : 'password'}
+                          value={passwordData.confirmPassword}
+                          onChange={(e) =>
+                            setPasswordData({ ...passwordData, confirmPassword: e.target.value })
+                          }
+                          className="w-full px-4 py-3 bg-gray-900/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent"
+                          placeholder="Confirmez votre mot de passe"
+                          required
+                          minLength={6}
+                          autoComplete="new-password"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })
+                          }
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                        >
+                          {showPasswords.confirm ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Boutons d'action */}
+                    <div className="flex gap-3 pt-4">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowPasswordModal(false);
+                          setPasswordError(null);
+                          setPasswordData({
+                            currentPassword: '',
+                            newPassword: '',
+                            confirmPassword: '',
+                          });
+                        }}
+                        className="flex-1 px-4 py-3 bg-gray-800/50 hover:bg-gray-800 border border-gray-700 rounded-lg text-gray-300 font-medium transition-colors"
+                      >
+                        Annuler
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isChangingPassword}
+                        className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 rounded-lg text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      >
+                        {isChangingPassword ? (
+                          <>
+                            <Loader2 size={18} className="animate-spin" />
+                            <span>En cours...</span>
+                          </>
+                        ) : (
+                          <span>{oauthSecurity?.hasPassword ? 'Modifier' : 'Définir'}</span>
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body
+        )}
     </div>
   );
 }
