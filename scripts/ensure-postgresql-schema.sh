@@ -123,23 +123,50 @@ if [ "$NODE_ENV" = "production" ]; then
     echo "   🔍 Vérification de l'état des migrations..."
     MIGRATE_STATUS_OUTPUT=$(npx prisma migrate status 2>&1 || true)
     
-    # Vérifier s'il y a des migrations échouées et les résoudre
-    if echo "$MIGRATE_STATUS_OUTPUT" | grep -qE "failed migrations|failed migration|P3009"; then
+    # Fonction pour résoudre une migration échouée
+    resolve_failed_migration() {
+      local status_output="$1"
       echo "   ⚠️  Migrations échouées détectées, tentative de résolution..."
-      # Extraire le nom de la migration échouée (format: 20251130022530_add_milestone_notifications)
-      # Chercher d'abord avec backticks (échappés)
-      FAILED_MIGRATION=$(echo "$MIGRATE_STATUS_OUTPUT" | grep -oE '[0-9]{14}_[a-zA-Z0-9_]+' | head -1 || echo "")
+      
+      # Extraire le nom de la migration échouée depuis le message d'erreur
+      # Format: The `20251130022530_add_milestone_notifications` migration started at...
+      # Utiliser sed pour extraire le contenu entre backticks
+      FAILED_MIGRATION=$(echo "$status_output" | sed -n "s/.*\`\([0-9]\{14\}_[a-zA-Z0-9_]*\)\`.*/\1/p" | head -1 || echo "")
+      
       if [ -z "$FAILED_MIGRATION" ]; then
-        # Essayer un autre format (avec underscore et timestamp)
-        FAILED_MIGRATION=$(echo "$MIGRATE_STATUS_OUTPUT" | grep -oE '[0-9]+_[a-zA-Z0-9_]+' | head -1 || echo "")
+        # Essayer un autre format (sans backticks dans le message)
+        FAILED_MIGRATION=$(echo "$status_output" | grep -oE '[0-9]{14}_[a-zA-Z0-9_]+' | head -1 || echo "")
       fi
+      
+      if [ -z "$FAILED_MIGRATION" ]; then
+        # Dernier essai : chercher n'importe quel pattern timestamp_nom
+        FAILED_MIGRATION=$(echo "$status_output" | grep -oE '[0-9]+_[a-zA-Z0-9_]+' | head -1 || echo "")
+      fi
+      
       if [ -n "$FAILED_MIGRATION" ]; then
         echo "   🔧 Résolution de la migration échouée: $FAILED_MIGRATION"
         # Marquer la migration comme rolled-back pour pouvoir la réappliquer
-        npx prisma migrate resolve --rolled-back "$FAILED_MIGRATION" 2>&1 || {
-          echo "   ⚠️  Impossible de marquer la migration comme rolled-back"
-        }
+        if npx prisma migrate resolve --rolled-back "$FAILED_MIGRATION" 2>&1; then
+          echo "   ✅ Migration marquée comme rolled-back, elle sera réappliquée"
+          return 0
+        else
+          echo "   ⚠️  Impossible de marquer la migration comme rolled-back, tentative avec --applied..."
+          # Si rolled-back échoue, essayer applied (si la migration a partiellement réussi)
+          npx prisma migrate resolve --applied "$FAILED_MIGRATION" 2>&1 || {
+            echo "   ⚠️  Impossible de résoudre la migration automatiquement"
+            return 1
+          }
+          return 0
+        fi
+      else
+        echo "   ⚠️  Impossible d'extraire le nom de la migration échouée"
+        return 1
       fi
+    }
+    
+    # Vérifier s'il y a des migrations échouées et les résoudre
+    if echo "$MIGRATE_STATUS_OUTPUT" | grep -qE "failed migrations|failed migration|P3009"; then
+      resolve_failed_migration "$MIGRATE_STATUS_OUTPUT"
     fi
     
     # Si toutes les migrations sont déjà appliquées, on peut skip migrate deploy
@@ -157,15 +184,30 @@ if [ "$NODE_ENV" = "production" ]; then
           sleep 2
         fi
         
-        if npx prisma migrate deploy; then
+        MIGRATE_DEPLOY_OUTPUT=$(npx prisma migrate deploy 2>&1)
+        MIGRATE_DEPLOY_EXIT_CODE=$?
+        
+        if [ $MIGRATE_DEPLOY_EXIT_CODE -eq 0 ]; then
           MIGRATE_SUCCESS=true
           echo "✅ Migrations Prisma appliquées avec succès"
         else
-          MIGRATE_EXIT_CODE=$?
           RETRY_COUNT=$((RETRY_COUNT + 1))
           
+          # Vérifier si c'est une erreur de migration échouée (P3009)
+          if echo "$MIGRATE_DEPLOY_OUTPUT" | grep -qE "P3009|failed migrations|failed migration"; then
+            echo "   ⚠️  Migration échouée détectée dans migrate deploy, tentative de résolution..."
+            if resolve_failed_migration "$MIGRATE_DEPLOY_OUTPUT"; then
+              # Si la résolution réussit, réessayer immédiatement
+              echo "   🔄 Réessai après résolution de la migration échouée..."
+              continue
+            else
+              echo "   ❌ Impossible de résoudre la migration échouée automatiquement"
+              if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
+                break
+              fi
+            fi
           # Si c'est un timeout de verrou (P1002), on peut réessayer
-          if [ $MIGRATE_EXIT_CODE -ne 0 ] && [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+          elif [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
             echo "   ⚠️  Timeout de verrou détecté, nouvelle tentative dans 2 secondes..."
             continue
           fi
