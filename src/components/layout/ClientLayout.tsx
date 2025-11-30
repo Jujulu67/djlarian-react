@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { Toaster } from 'react-hot-toast';
+import { Session } from 'next-auth';
 
 import Navigation from '@/components/layout/Navigation';
 import CustomCursor from '@/components/ui/CustomCursor';
@@ -10,11 +11,12 @@ import AuthProvider from '@/providers/AuthProvider';
 
 interface ClientLayoutProps {
   children: React.ReactNode;
+  session?: Session | null; // Session serveur passée depuis le layout
 }
 
-const ClientLayout = ({ children }: ClientLayoutProps) => {
+const ClientLayout = ({ children, session }: ClientLayoutProps) => {
   return (
-    <AuthProvider>
+    <AuthProvider session={session}>
       <CustomCursor />
       <Navigation />
       <main className="pt-16">{children}</main>

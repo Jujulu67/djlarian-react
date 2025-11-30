@@ -90,6 +90,7 @@ export default {
         'glow-border': 'glow-border 3s ease-in-out infinite',
         'float-particle': 'float-particle 15s infinite ease-in-out',
         'highlight-purple': 'highlight-purple 2s ease-in-out',
+        'highlight-gold': 'highlight-gold 2s ease-in-out infinite',
       },
       keyframes: {
         'gradient-shift': {
@@ -131,6 +132,17 @@ export default {
           '100%': {
             transform: 'translateY(-200px) translateX(100px) rotate(360deg)',
             opacity: '0',
+          },
+        },
+        'highlight-gold': {
+          '0%': {
+            'background-position': '0% 50%',
+          },
+          '50%': {
+            'background-position': '100% 50%',
+          },
+          '100%': {
+            'background-position': '0% 50%',
           },
         },
       },

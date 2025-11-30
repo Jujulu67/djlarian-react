@@ -7,10 +7,10 @@
     "node": "22.x"
   },
   "scripts": {
-    "dev": "npm rebuild better-sqlite3 > /dev/null 2>&1 || npm rebuild better-sqlite3 || true && bash scripts/ensure-sqlite-schema.sh && NODE_OPTIONS='--import tsx' next dev",
+    "dev": "bash scripts/ensure-sqlite-schema.sh && NODE_OPTIONS='--import tsx' next dev",
     "dev:auto": "bash scripts/start-dev-with-auto-restart.sh",
     "build": "bash scripts/ensure-postgresql-schema.sh && node scripts/fix-prisma-types.mjs && NODE_OPTIONS='--import tsx' next build",
-    "postinstall": "npm rebuild better-sqlite3 || true && node scripts/fix-prisma-types.mjs || true",
+    "postinstall": "bash scripts/rebuild-better-sqlite3.sh && node scripts/fix-prisma-types.mjs || true",
     "start": "NODE_OPTIONS='--import tsx' next start",
     "lint": "eslint --config eslint.config.mjs \"src/**/*.{ts,tsx}\"",
     "lint:fix": "eslint --config eslint.config.mjs \"src/**/*.{ts,tsx}\" --fix",
@@ -60,6 +60,7 @@
     "@vercel/blob": "^0.25.1",
     "@vercel/speed-insights": "^1.2.0",
     "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^12.5.0",
     "cheerio": "^1.1.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

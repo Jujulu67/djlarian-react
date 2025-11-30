@@ -140,11 +140,37 @@ export async function POST(request: NextRequest) {
       streamsJ28,
       streamsJ56,
       streamsJ84,
+      streamsJ180,
+      streamsJ365,
     } = body;
 
     if (!name || name.trim() === '') {
       return createBadRequestResponse('Le nom du projet est requis');
     }
+
+    // Valider externalLink si fourni
+    if (externalLink && externalLink.trim() !== '') {
+      const { isValidUrl, sanitizeUrl } = await import('@/lib/utils/validateUrl');
+      if (!isValidUrl(externalLink, false)) {
+        return createBadRequestResponse("L'URL externe fournie n'est pas valide");
+      }
+    }
+
+    // Valider et parser les valeurs numériques avec limites de sécurité
+    const parseStreamValue = (value: unknown): number | null => {
+      if (value === null || value === undefined || value === '') {
+        return null;
+      }
+      const parsed = typeof value === 'number' ? value : parseInt(String(value), 10);
+      if (isNaN(parsed) || parsed < 0) {
+        return null; // Rejeter les valeurs négatives ou invalides
+      }
+      // Limite de sécurité : max 2^31 - 1 (valeur max pour un entier 32 bits)
+      if (parsed > 2147483647) {
+        return null;
+      }
+      return parsed;
+    };
 
     // Calculer l'ordre pour le nouveau projet (max order + 1)
     const maxOrderProject = await prisma.project.findFirst({
@@ -153,6 +179,10 @@ export async function POST(request: NextRequest) {
       select: { order: true },
     });
     const newOrder = (maxOrderProject?.order ?? -1) + 1;
+
+    // Sanitizer externalLink
+    const { sanitizeUrl } = await import('@/lib/utils/validateUrl');
+    const sanitizedExternalLink = externalLink ? sanitizeUrl(externalLink.trim()) : null;
 
     const project = await prisma.project.create({
       data: {
@@ -165,13 +195,15 @@ export async function POST(request: NextRequest) {
         label: label?.trim() || null,
         labelFinal: labelFinal?.trim() || null,
         releaseDate: releaseDate ? new Date(releaseDate) : null,
-        externalLink: externalLink?.trim() || null,
-        streamsJ7: streamsJ7 ? parseInt(streamsJ7, 10) : null,
-        streamsJ14: streamsJ14 ? parseInt(streamsJ14, 10) : null,
-        streamsJ21: streamsJ21 ? parseInt(streamsJ21, 10) : null,
-        streamsJ28: streamsJ28 ? parseInt(streamsJ28, 10) : null,
-        streamsJ56: streamsJ56 ? parseInt(streamsJ56, 10) : null,
-        streamsJ84: streamsJ84 ? parseInt(streamsJ84, 10) : null,
+        externalLink: sanitizedExternalLink,
+        streamsJ7: parseStreamValue(streamsJ7),
+        streamsJ14: parseStreamValue(streamsJ14),
+        streamsJ21: parseStreamValue(streamsJ21),
+        streamsJ28: parseStreamValue(streamsJ28),
+        streamsJ56: parseStreamValue(streamsJ56),
+        streamsJ84: parseStreamValue(streamsJ84),
+        streamsJ180: parseStreamValue(streamsJ180),
+        streamsJ365: parseStreamValue(streamsJ365),
       },
       include: {
         User: {

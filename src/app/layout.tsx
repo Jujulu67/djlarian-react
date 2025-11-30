@@ -10,6 +10,7 @@ import ClientOnly from '@/components/ClientOnly';
 import UmamiAnalytics from '@/components/analytics/UmamiScript';
 import prisma from '@/lib/prisma';
 import { defaultConfigs } from '@/config/defaults';
+import { auth } from '@/auth';
 
 const audiowide = Audiowide({
   subsets: ['latin'],
@@ -29,6 +30,10 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const isProduction = process.env.NODE_ENV === 'production';
+
+  // Récupérer la session côté serveur pour la passer au SessionProvider
+  // Cela évite le délai de chargement initial de la session côté client
+  const session = await auth();
 
   // En local, récupérer la config depuis la DB
   // En production, utiliser les variables d'environnement
@@ -83,7 +88,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body suppressHydrationWarning className="bg-black text-white antialiased">
         <HydrationWrapper>
           <ClientOnly>
-            <ClientLayout>{children}</ClientLayout>
+            <ClientLayout session={session}>{children}</ClientLayout>
           </ClientOnly>
         </HydrationWrapper>
         <SpeedInsights />

@@ -31,6 +31,7 @@ import { useState, useEffect } from 'react';
 
 import { logger } from '@/lib/logger';
 import { getImageUrl } from '@/lib/utils/getImageUrl';
+import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
 
 // Types
 type Event = {
@@ -96,7 +97,7 @@ export default function EventDetailsPage() {
   useEffect(() => {
     const fetchEvent = async () => {
       try {
-        const response = await fetch(`/api/events/${eventId}`);
+        const response = await fetchWithAuth(`/api/events/${eventId}`);
 
         if (!response.ok) {
           if (response.status === 404) {
@@ -124,7 +125,7 @@ export default function EventDetailsPage() {
   // Supprimer l'événement
   const handleDeleteEvent = async () => {
     try {
-      const response = await fetch(`/api/events/${eventId}`, {
+      const response = await fetchWithAuth(`/api/events/${eventId}`, {
         method: 'DELETE',
       });
 
@@ -146,7 +147,7 @@ export default function EventDetailsPage() {
     if (!event) return;
 
     try {
-      const response = await fetch(`/api/events/${eventId}`, {
+      const response = await fetchWithAuth(`/api/events/${eventId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -176,7 +177,7 @@ export default function EventDetailsPage() {
     if (!event) return;
 
     try {
-      const response = await fetch(`/api/events/${eventId}`, {
+      const response = await fetchWithAuth(`/api/events/${eventId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

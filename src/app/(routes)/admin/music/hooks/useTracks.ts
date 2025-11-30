@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast';
 
 import { logger } from '@/lib/logger';
 import type { Track, MusicPlatform } from '@/lib/utils/types';
+import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
 
 export function useTracks() {
   const { data: session, status } = useSession();
@@ -29,7 +30,7 @@ export function useTracks() {
     setIsLoading(true);
     try {
       fetchCountRef.current += 1;
-      const res = await fetch('/api/music');
+      const res = await fetchWithAuth('/api/music');
       if (!res.ok) throw new Error('Failed');
       const result = await res.json();
       // La réponse API utilise createSuccessResponse qui retourne { data: [...] }
@@ -82,7 +83,7 @@ export function useTracks() {
   const refreshCover = async (id: string) => {
     setRefreshingCoverId(id);
     try {
-      const res = await fetch(`/api/music/${id}/refresh-cover`, { method: 'POST' });
+      const res = await fetchWithAuth(`/api/music/${id}/refresh-cover`, { method: 'POST' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Erreur API');
       // Mettre à jour localement
@@ -109,7 +110,7 @@ export function useTracks() {
   const deleteTrack = async (id: string) => {
     if (!window.confirm('Supprimer ?')) return;
     try {
-      const res = await fetch(`/api/music/${id}`, { method: 'DELETE' });
+      const res = await fetchWithAuth(`/api/music/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed');
       await fetchTracks();
       toast.success('Supprimé');
@@ -121,7 +122,7 @@ export function useTracks() {
 
   const toggleFeatured = async (id: string, currentStatus: boolean) => {
     try {
-      const res = await fetch(`/api/music/${id}`, {
+      const res = await fetchWithAuth(`/api/music/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, featured: !currentStatus }),
@@ -137,7 +138,7 @@ export function useTracks() {
 
   const togglePublish = async (id: string, currentStatus: boolean | undefined) => {
     try {
-      const res = await fetch(`/api/music/${id}`, {
+      const res = await fetchWithAuth(`/api/music/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isPublished: !currentStatus, publishAt: undefined }),

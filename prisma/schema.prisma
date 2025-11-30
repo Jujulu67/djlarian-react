@@ -148,21 +148,22 @@ model TrackPlatform {
 }
 
 model User {
-  id             String    @id @default(cuid())
-  name           String?
-  email          String?   @unique
-  emailVerified  DateTime?
-  image          String?
-  hashedPassword String?
-  role           String?   @default("USER")
-  isVip          Boolean   @default(false)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  Account        Account[]
-  Event          Event[]
-  Session        Session[]
-  Track          Track[]
-  Project        Project[]
+  id                   String                 @id @default(cuid())
+  name                 String?
+  email                String?                 @unique
+  emailVerified        DateTime?
+  image                String?
+  hashedPassword       String?
+  role                 String?                 @default("USER")
+  isVip                Boolean                 @default(false)
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+  Account              Account[]
+  Event                Event[]
+  Session              Session[]
+  Track                Track[]
+  Project              Project[]
+  Notification         Notification[]
 }
 
 model VerificationToken {
@@ -221,27 +222,57 @@ model Image {
 
 // Gestion de projets musicaux - suivi des IDs et releases
 model Project {
-  id           String    @id @default(uuid())
-  userId       String
-  order        Int       @default(0) // Ordre d'affichage pour le drag-and-drop
-  name         String    // Nom du projet
-  style        String?   // Genre musical (House, Techno, etc.)
-  status       String    @default("EN_COURS") // TERMINE, EN_COURS, ANNULE, A_REWORK, GHOST_PRODUCTION
-  collab       String?   // Collaborateurs
-  label        String?   // Label ciblé
-  labelFinal   String?   // Label final (si signé)
-  releaseDate  DateTime? // Date de sortie
-  externalLink String?   // Lien vers SoundCloud, Spotify, etc.
-  streamsJ7    Int?      // Streams à J+7
-  streamsJ14   Int?      // Streams à J+14
-  streamsJ21   Int?      // Streams à J+21
-  streamsJ28   Int?      // Streams à J+28
-  streamsJ56   Int?      // Streams à J+56
-  streamsJ84   Int?      // Streams à J+84
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  User         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                   String                 @id @default(uuid())
+  userId               String
+  order                Int                     @default(0) // Ordre d'affichage pour le drag-and-drop
+  name                 String                  // Nom du projet
+  style                String?                 // Genre musical (House, Techno, etc.)
+  status               String                  @default("EN_COURS") // TERMINE, EN_COURS, ANNULE, A_REWORK, GHOST_PRODUCTION
+  collab               String?                 // Collaborateurs
+  label                String?                 // Label ciblé
+  labelFinal           String?                 // Label final (si signé)
+  releaseDate          DateTime?               // Date de sortie
+  externalLink         String?                 // Lien vers SoundCloud, Spotify, etc.
+  streamsJ7            Int?                    // Streams à J+7
+  streamsJ14           Int?                    // Streams à J+14
+  streamsJ21           Int?                    // Streams à J+21
+  streamsJ28           Int?                    // Streams à J+28
+  streamsJ56           Int?                    // Streams à J+56
+  streamsJ84           Int?                    // Streams à J+84
+  streamsJ180          Int?                    // Streams à J+180 (6 mois)
+  streamsJ365          Int?                    // Streams à J+365 (1 an)
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+  User                 User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Notification         Notification[]
 
   @@index([userId])
   @@index([status])
+}
+
+// Notifications génériques pour différents types d'événements
+model Notification {
+  id          String    @id @default(uuid())
+  userId      String
+  type        String    // 'MILESTONE', 'ADMIN_MESSAGE', 'RELEASE_UPCOMING', 'INFO', etc.
+  title       String
+  message     String?
+  metadata    String?   // JSON pour stocker des données flexibles (projectId, milestoneType, etc.)
+  isRead      Boolean   @default(false)
+  isArchived  Boolean   @default(false)
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  readAt      DateTime?
+  User        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Relation optionnelle avec Project pour les notifications liées aux projets
+  projectId   String?
+  Project     Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([isRead])
+  @@index([isArchived])
+  @@index([type])
+  @@index([createdAt])
 }
