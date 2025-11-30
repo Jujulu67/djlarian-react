@@ -14,6 +14,7 @@ interface ImageCropModalProps {
   title?: string;
   cancelLabel?: string;
   zClass?: string;
+  circular?: boolean; // Pour un crop rond
 }
 
 const ImageCropModal: React.FC<ImageCropModalProps> = ({
@@ -25,6 +26,7 @@ const ImageCropModal: React.FC<ImageCropModalProps> = ({
   title,
   cancelLabel = 'Annuler',
   zClass,
+  circular = false,
 }) => {
   const [displayCrop, setDisplayCrop] = useState<CropType>();
   const [isImageLoaded, setIsImageLoaded] = useState(false);
@@ -77,9 +79,22 @@ const ImageCropModal: React.FC<ImageCropModalProps> = ({
       cropWidth = displayCrop.width;
       cropHeight = displayCrop.height;
     }
-    canvas.width = cropWidth;
-    canvas.height = cropHeight;
-    ctx.drawImage(image, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+
+    // Pour un crop rond, utiliser la plus petite dimension
+    const size = circular ? Math.min(cropWidth, cropHeight) : cropWidth;
+    canvas.width = size;
+    canvas.height = size;
+
+    if (circular) {
+      // Créer un masque circulaire
+      ctx.beginPath();
+      ctx.arc(size / 2, size / 2, size / 2, 0, 2 * Math.PI);
+      ctx.clip();
+    }
+
+    // Dessiner l'image croppée
+    ctx.drawImage(image, cropX, cropY, cropWidth, cropHeight, 0, 0, size, size);
+
     const previewUrl = canvas.toDataURL('image/jpeg', 0.95);
     canvas.toBlob(
       (blob) => {
@@ -107,25 +122,42 @@ const ImageCropModal: React.FC<ImageCropModalProps> = ({
       <div className="flex flex-col w-full">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold text-white">
-            {title ?? `Recadrer l&apos;image (${aspect === 1 ? 'carré' : '16:9'})`}
+            {title ??
+              `Recadrer l&apos;image (${circular ? 'rond' : aspect === 1 ? 'carré' : '16:9'})`}
           </h3>
         </div>
         <div className="max-h-[70vh] overflow-auto flex justify-center items-center mb-4 pb-8">
           <img src={imageToEdit} onLoad={handleImageLoad} alt="À recadrer" className="hidden" />
           {isImageLoaded && displayCrop ? (
-            <ReactCrop
-              crop={displayCrop}
-              onChange={(_, percentCrop) => setDisplayCrop(percentCrop)}
-              aspect={aspect}
-              className="max-w-full max-h-[60vh]"
-            >
-              <img
-                ref={imageRef}
-                src={imageToEdit}
-                alt="Recadrage"
-                className="max-h-[60vh] object-contain"
-              />
-            </ReactCrop>
+            <div className={circular ? 'relative' : ''}>
+              <ReactCrop
+                crop={displayCrop}
+                onChange={(_, percentCrop) => setDisplayCrop(percentCrop)}
+                aspect={aspect}
+                className={`max-w-full max-h-[60vh] ${circular ? '[&_.ReactCrop__crop-selection]:rounded-full' : ''}`}
+              >
+                <img
+                  ref={imageRef}
+                  src={imageToEdit}
+                  alt="Recadrage"
+                  className="max-h-[60vh] object-contain"
+                />
+              </ReactCrop>
+              {circular && (
+                <div
+                  className="absolute pointer-events-none"
+                  style={{
+                    top: `${displayCrop.y}%`,
+                    left: `${displayCrop.x}%`,
+                    width: `${displayCrop.width}%`,
+                    height: `${displayCrop.height}%`,
+                    borderRadius: '50%',
+                    border: '2px solid rgba(139, 92, 246, 0.5)',
+                    boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.5)',
+                  }}
+                />
+              )}
+            </div>
           ) : (
             <div className="flex items-center justify-center h-40 text-gray-400">
               Chargement de l&apos;image...

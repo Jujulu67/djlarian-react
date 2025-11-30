@@ -45,19 +45,23 @@ AWS_LAMBDA_JS_RUNTIME="nodejs22.x"
 
 ## 🟢 Variables Optionnelles (selon vos besoins)
 
-### OAuth Google (si utilisé)
+### OAuth Google (si utilisé) - 100% gratuit
 
 ```env
 GOOGLE_CLIENT_ID="[VOTRE_GOOGLE_CLIENT_ID]"
 GOOGLE_CLIENT_SECRET="[VOTRE_GOOGLE_CLIENT_SECRET]"  # 🔒 Secret
 ```
 
-### OAuth Twitch (si utilisé)
+**📚 Guide complet** : Voir [../OAUTH_SETUP.md](../OAUTH_SETUP.md) pour les instructions détaillées de configuration Google OAuth.
+
+### OAuth Twitch (si utilisé) - 100% gratuit
 
 ```env
 TWITCH_CLIENT_ID="[VOTRE_TWITCH_CLIENT_ID]"
 TWITCH_CLIENT_SECRET="[VOTRE_TWITCH_CLIENT_SECRET]"  # 🔒 Secret
 ```
+
+**📚 Guide complet** : Voir [../OAUTH_SETUP.md](../OAUTH_SETUP.md) pour les instructions détaillées de configuration Twitch OAuth.
 
 ### YouTube API (si utilisé)
 
@@ -113,7 +117,6 @@ Ces variables sont **automatiquement gérées par Vercel** :
    ```
 
 2. **NEXTAUTH_URL** : Doit correspondre exactement à l'URL de votre site Vercel
-
    - Format : `https://votre-projet.vercel.app`
    - Sans slash final
 
@@ -134,7 +137,7 @@ Ces variables sont **automatiquement gérées par Vercel** :
 - [ ] `SPOTIFY_CLIENT_SECRET` configuré (🔒 Secret)
 - [ ] `SPOTIFY_ARTIST_ID` configuré
 - [ ] `YOUTUBE_API_KEY` configuré
-- [ ] Variables OAuth configurées (si utilisées)
+- [ ] Variables OAuth configurées (si utilisées) - Voir [../OAUTH_SETUP.md](../OAUTH_SETUP.md) pour le guide complet
 - [ ] Variables Umami configurées (si utilisées)
 - [ ] Tous les secrets sont marqués comme "Encrypt"
 

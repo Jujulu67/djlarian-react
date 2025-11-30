@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { usePathname } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
 
@@ -81,6 +82,7 @@ export function useNotifications(
     refreshOnPageChange = false,
   } = options;
   const pathname = usePathname();
+  const { data: session, status: sessionStatus } = useSession();
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -95,6 +97,15 @@ export function useNotifications(
 
   const fetchNotifications = useCallback(
     async (force = false) => {
+      // Ne pas faire de requête si l'utilisateur n'est pas authentifié
+      if (sessionStatus !== 'authenticated' || !session?.user?.id) {
+        setNotifications([]);
+        setUnreadCount(0);
+        setError(null);
+        setIsLoading(false);
+        return;
+      }
+
       // Vérifier si on peut faire une requête (éviter les requêtes trop fréquentes)
       const now = Date.now();
       if (!force && now - lastFetchRef.current < MIN_FETCH_INTERVAL) {
@@ -119,6 +130,15 @@ export function useNotifications(
         const response = await fetchWithAuth(`/api/notifications?${params.toString()}`);
 
         if (!response.ok) {
+          // Si c'est une erreur 401 (Non autorisé), ignorer silencieusement
+          // car l'utilisateur n'est peut-être pas encore authentifié
+          if (response.status === 401) {
+            setNotifications([]);
+            setUnreadCount(0);
+            setError(null);
+            return;
+          }
+
           const errorData = await response.json().catch(() => ({}));
           throw new Error(errorData.error || 'Erreur lors du chargement des notifications');
         }
@@ -181,13 +201,21 @@ export function useNotifications(
 
         setNotifications(notificationsList);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Erreur inconnue');
-        console.error('Erreur lors du chargement des notifications:', err);
+        // Ignorer silencieusement les erreurs d'authentification
+        // car elles peuvent survenir si l'utilisateur n'est pas encore connecté
+        if (err instanceof Error && err.message.includes('Non autorisé')) {
+          setNotifications([]);
+          setUnreadCount(0);
+          setError(null);
+        } else {
+          setError(err instanceof Error ? err.message : 'Erreur inconnue');
+          console.error('Erreur lors du chargement des notifications:', err);
+        }
       } finally {
         setIsLoading(false);
       }
     },
-    [unreadOnly, type]
+    [unreadOnly, type, sessionStatus, session]
   );
 
   const markAsRead = useCallback(async (id: string) => {
@@ -327,10 +355,18 @@ export function useNotifications(
     [notifications]
   );
 
-  // Charger les notifications au montage (forcer le chargement initial)
+  // Charger les notifications au montage uniquement si authentifié
   useEffect(() => {
-    fetchNotifications(true); // true = forcer le chargement même si récent
-  }, [fetchNotifications]);
+    if (sessionStatus === 'authenticated' && session?.user?.id) {
+      fetchNotifications(true); // true = forcer le chargement même si récent
+    } else {
+      // Si non authentifié, réinitialiser l'état
+      setNotifications([]);
+      setUnreadCount(0);
+      setError(null);
+      setIsLoading(false);
+    }
+  }, [fetchNotifications, sessionStatus, session]);
 
   // Rafraîchir lors des changements de page (avec debounce intelligent)
   useEffect(() => {
@@ -423,16 +459,16 @@ export function useNotifications(
     };
   }, [fetchNotifications]);
 
-  // Auto-refresh optionnel (polling périodique)
+  // Auto-refresh optionnel (polling périodique) - uniquement si authentifié
   useEffect(() => {
-    if (!autoRefresh) return;
+    if (!autoRefresh || sessionStatus !== 'authenticated' || !session?.user?.id) return;
 
     const interval = setInterval(() => {
       fetchNotifications();
     }, refreshInterval);
 
     return () => clearInterval(interval);
-  }, [autoRefresh, refreshInterval, fetchNotifications]);
+  }, [autoRefresh, refreshInterval, fetchNotifications, sessionStatus, session]);
 
   // Fonction refresh publique qui force le rafraîchissement
   const refresh = useCallback(() => {

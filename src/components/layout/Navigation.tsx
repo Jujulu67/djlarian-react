@@ -13,11 +13,12 @@ import {
   Home,
   FolderKanban,
   Bell,
+  History,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useSession, signOut } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 import React from 'react';
 
@@ -39,6 +40,45 @@ const Navigation = () => {
   const [isInboxOpen, setIsInboxOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
+  // Log de la session pour déboguer
+  useEffect(() => {
+    console.log('[Navigation] Session status:', {
+      status,
+      hasSession: !!session,
+      userId: session?.user?.id,
+      email: session?.user?.email,
+      role: session?.user?.role,
+    });
+  }, [session, status]);
+
+  // Fonction de déconnexion simplifiée et fiable
+  const handleSignOut = async () => {
+    console.log('[Navigation] Déconnexion en cours...');
+
+    // Masquer immédiatement le profil et fermer les menus
+    setIsSigningOut(true);
+    setIsUserMenuOpen(false);
+    setIsMobileUserMenuOpen(false);
+
+    try {
+      // Appeler l'API de déconnexion pour nettoyer les cookies côté serveur
+      await fetch('/api/auth/signout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      console.log('[Navigation] Déconnexion API réussie');
+    } catch (error) {
+      console.error('[Navigation] Erreur API signout:', error);
+    }
+
+    // Forcer un rechargement complet de la page
+    // C'est la méthode la plus fiable pour s'assurer que tout est nettoyé
+    console.log('[Navigation] Redirection vers /');
+    window.location.href = '/';
+  };
 
   // Charger les notifications uniquement si l'utilisateur est connecté
   // Utiliser un hook conditionnel pour éviter les erreurs si l'utilisateur n'est pas connecté
@@ -317,7 +357,7 @@ const Navigation = () => {
                   transition={{ duration: 0.2 }}
                   className="w-[120px] h-[40px] animate-pulse bg-gray-800/50 rounded-full"
                 />
-              ) : session ? (
+              ) : session && !isSigningOut ? (
                 <>
                   {/* Icône de notifications */}
                   <motion.div
@@ -373,22 +413,27 @@ const Navigation = () => {
                         e.stopPropagation();
                         setIsUserMenuOpen(!isUserMenuOpen);
                       }}
-                      className="flex items-center space-x-3 text-white/90 hover:text-white transition-all duration-300
+                      className={`flex items-center text-white/90 hover:text-white transition-all duration-300
                       bg-gradient-to-r from-purple-500/10 to-blue-500/10 hover:from-purple-500/20 hover:to-blue-500/20
-                      px-4 py-2 rounded-full border border-purple-500/20 hover:border-purple-500/40 hover:scale-105"
+                      rounded-full border border-purple-500/20 hover:border-purple-500/40 hover:scale-105
+                      ${session.user?.image ? 'space-x-2 px-2 py-1' : 'space-x-3 px-4 py-2'}`}
                     >
-                      <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-purple-500/50 group-hover:border-purple-500">
-                        {session.user?.image ? (
+                      {session.user?.image ? (
+                        <div className="relative w-11 h-11 rounded-full overflow-hidden">
                           <Image
                             src={session.user.image}
                             alt={session.user.name || 'Avatar'}
                             fill
                             className="object-cover"
+                            unoptimized
+                            key={session.user.image} // Force le re-render quand l'image change
                           />
-                        ) : (
-                          <User className="w-full h-full p-1" />
-                        )}
-                      </div>
+                        </div>
+                      ) : (
+                        <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-purple-500/50">
+                          <User className="w-full h-full p-1.5" />
+                        </div>
+                      )}
                       <span>{session.user?.name || 'Utilisateur'}</span>
                     </button>
 
@@ -471,7 +516,7 @@ const Navigation = () => {
                               transition={{ delay: 0.17, duration: 0.1 }}
                             >
                               <button
-                                onClick={() => signOut()}
+                                onClick={handleSignOut}
                                 className="flex items-center w-full px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:ring-inset"
                               >
                                 <LogOut className="w-4 h-4 mr-2" />
@@ -554,7 +599,7 @@ const Navigation = () => {
                   transition={{ duration: 0.2 }}
                   className="w-10 h-10 animate-pulse bg-gray-800/50 rounded-full"
                 />
-              ) : session ? (
+              ) : session && !isSigningOut ? (
                 <motion.div
                   key="user-profile-mobile"
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -572,18 +617,22 @@ const Navigation = () => {
                       w-10 h-10 rounded-full border border-purple-500/20 hover:border-purple-500/40"
                     aria-label="Menu utilisateur"
                   >
-                    <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-purple-500/50">
-                      {session.user?.image ? (
+                    {session.user?.image ? (
+                      <div className="relative w-10 h-10 rounded-full overflow-hidden">
                         <Image
                           src={session.user.image}
                           alt={session.user.name || 'Avatar'}
                           fill
                           className="object-cover"
+                          unoptimized
+                          key={session.user.image} // Force le re-render quand l'image change
                         />
-                      ) : (
-                        <User className="w-full h-full p-1" />
-                      )}
-                    </div>
+                      </div>
+                    ) : (
+                      <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-purple-500/50">
+                        <User className="w-full h-full p-1.5" />
+                      </div>
+                    )}
                   </button>
 
                   <AnimatePresence>
@@ -650,8 +699,8 @@ const Navigation = () => {
                             Mes Projets
                           </Link>
                           <button
-                            onClick={() => {
-                              signOut();
+                            onClick={async () => {
+                              await handleSignOut();
                               setIsMobileUserMenuOpen(false);
                             }}
                             className="flex items-center w-full px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:ring-inset"
@@ -746,6 +795,21 @@ const Navigation = () => {
                     </Link>
                   </motion.div>
                 ))}
+                {/* Lien vers l'ancien profil */}
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: links.length * 0.05, duration: 0.15 }}
+                >
+                  <Link
+                    href="/profile-old"
+                    className="text-white/90 hover:text-white py-2 transition-colors flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-inset rounded border-t border-purple-500/20 pt-3 mt-2"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <History size={18} className="text-purple-400" />
+                    Ancien Profil
+                  </Link>
+                </motion.div>
               </div>
             </motion.div>
           )}

@@ -57,8 +57,18 @@ Voir [docs/PROJECTS_OPTIMIZATION.md](docs/PROJECTS_OPTIMIZATION.md) pour les dé
 - **Styling**: TailwindCSS, SCSS
 - **Animations**: GSAP, Framer Motion
 - **Base de données**: Prisma avec PostgreSQL
-- **Authentification**: NextAuth.js
+- **Authentification**: NextAuth.js avec OAuth (Google, Twitch)
 - **Déploiement**: Vercel
+
+## 🔐 Authentification OAuth
+
+L'application supporte l'authentification OAuth via Google et Twitch (100% gratuit) :
+
+- ✅ **Connexion avec Google** : Création automatique de compte
+- ✅ **Connexion avec Twitch** : Création automatique de compte
+- ✅ **Authentification par email/mot de passe** : Alternative classique
+
+Voir [docs/OAUTH_SETUP.md](docs/OAUTH_SETUP.md) pour le guide complet de configuration.
 
 ## 🛠 Installation
 

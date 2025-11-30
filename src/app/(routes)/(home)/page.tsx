@@ -2,6 +2,7 @@
 
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
+import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import useSWR from 'swr';
 
@@ -106,6 +107,7 @@ const fetcher = async (url: string) => {
 };
 
 export default function HomePage() {
+  const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const [isSoundActive, setIsSoundActive] = useState(false);
   // État pour stocker les configurations de la page d'accueil
@@ -146,6 +148,34 @@ export default function HomePage() {
     error: eventsError,
     isLoading: eventsLoading,
   } = useSWR('/api/events', fetcher);
+
+  // Nettoyer le paramètre callbackUrl de l'URL après le chargement
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('callbackUrl')) {
+      console.log("[HomePage] callbackUrl détecté dans l'URL, nettoyage en cours");
+      // Supprimer callbackUrl de l'URL sans recharger la page
+      urlParams.delete('callbackUrl');
+      const newUrl = urlParams.toString()
+        ? `${window.location.pathname}?${urlParams.toString()}`
+        : window.location.pathname;
+      console.log('[HomePage] URL nettoyée:', newUrl);
+      router.replace(newUrl, { scroll: false });
+    }
+  }, [router]);
+
+  // S'assurer que le body a une position relative pour Framer Motion (seulement si le jeu n'est pas actif)
+  useEffect(() => {
+    if (typeof document !== 'undefined' && !isSoundActive) {
+      // Si le body n'a pas de position, lui donner relative pour Framer Motion
+      // Mais seulement si le jeu n'est pas actif (pour éviter les conflits avec le code de désactivation du scroll)
+      if (!document.body.style.position || document.body.style.position === 'static') {
+        document.body.style.position = 'relative';
+      }
+    }
+  }, [isSoundActive]);
 
   // Détecter si on est sur mobile
   useEffect(() => {
@@ -330,6 +360,7 @@ export default function HomePage() {
                   exit={isMobile ? undefined : { opacity: 0, y: -40 }}
                   transition={isMobile ? undefined : { duration: 0.5, ease: 'easeOut' }}
                   className="py-20 bg-gradient-to-b from-black to-purple-900/20"
+                  style={{ position: 'relative' }}
                   aria-live="polite"
                 >
                   <div className="max-w-7xl mx-auto px-4">
@@ -358,6 +389,7 @@ export default function HomePage() {
                   exit={isMobile ? undefined : { opacity: 0, y: -40 }}
                   transition={isMobile ? undefined : { duration: 0.5, ease: 'easeOut' }}
                   className="py-20 bg-gradient-to-b from-black to-purple-900/20"
+                  style={{ position: 'relative' }}
                   aria-live="polite"
                 >
                   <div className="max-w-7xl mx-auto px-4">
@@ -374,6 +406,7 @@ export default function HomePage() {
                   exit={isMobile ? undefined : { opacity: 0, y: -40 }}
                   transition={isMobile ? undefined : { duration: 0.7, ease: 'easeOut' }}
                   className="py-20 bg-gradient-to-b from-black to-purple-900/20"
+                  style={{ position: 'relative' }}
                   aria-live="polite"
                 >
                   <div className="max-w-7xl mx-auto px-4">
@@ -533,6 +566,7 @@ export default function HomePage() {
             opacity: isMobile ? 1 : opacity,
             scale: isMobile ? 1 : scale,
             y: heroY,
+            position: 'relative',
           }}
           className="relative z-20 h-[calc(100vh-4rem)] flex flex-col items-center justify-center text-center px-4"
         >
@@ -590,6 +624,7 @@ export default function HomePage() {
               }}
               className="waveform w-full max-w-md h-16 rounded-lg glow-purple mx-auto relative overflow-hidden"
               style={{
+                position: 'relative',
                 willChange: 'transform, opacity',
                 transform: 'translateZ(0)', // Force GPU acceleration
                 backfaceVisibility: 'hidden',
@@ -674,7 +709,10 @@ export default function HomePage() {
               }
               transition={isMobile ? undefined : { duration: 0.6, ease: 'easeOut', delay: 0.8 }}
               className="flex flex-col sm:flex-row gap-4 mt-12 justify-center items-center"
-              style={{ willChange: isMobile ? 'auto' : 'transform, opacity' }}
+              style={{
+                position: 'relative',
+                willChange: isMobile ? 'auto' : 'transform, opacity',
+              }}
             >
               <a
                 href={currentConfig.heroExploreButtonUrl}
@@ -774,7 +812,11 @@ export default function HomePage() {
             transition={isMobile ? { duration: 0.3, ease: 'easeOut' } : { duration: 0.8 }}
             className={`relative w-full ${isMobile ? 'min-h-[30vh]' : 'aspect-[2/1]'} ${isMobile ? 'overflow-visible' : 'overflow-hidden'} rounded-2xl glass-modern border-2 border-purple-500/30 shadow-2xl ${isMobile ? '' : 'animate-glow-border'} ${isSoundActive && isMobile ? 'fixed top-0 left-0 right-0 z-[100] h-screen rounded-none border-0' : ''}`}
             id="game-container"
-            style={isMobile && !isSoundActive ? { scrollMarginTop: '80px' } : undefined}
+            style={
+              isMobile && !isSoundActive
+                ? { scrollMarginTop: '80px', position: 'relative' }
+                : { position: 'relative' }
+            }
           >
             <AnimatePresence mode="wait">
               <motion.div
@@ -794,6 +836,7 @@ export default function HomePage() {
                       }
                 }
                 className={`w-full ${isMobile ? 'relative min-h-[30vh]' : 'absolute inset-0 h-full'}`}
+                style={{ position: isMobile ? 'relative' : 'absolute' }}
               >
                 {waveformAnimationReady &&
                   (isSoundActive ? (
@@ -840,10 +883,12 @@ export default function HomePage() {
   }, [isMobile, isSoundActive]);
 
   return (
-    <>
+    <div style={{ position: 'relative', minHeight: '100vh' }}>
       <ScrollProgress />
-      <div className="scroll-snap-container">{renderSections()}</div>
+      <div className="scroll-snap-container" style={{ position: 'relative' }}>
+        {renderSections()}
+      </div>
       {!isSoundActive && <ScrollToTop />}
-    </>
+    </div>
   );
 }
