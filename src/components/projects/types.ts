@@ -34,6 +34,8 @@ export interface Project {
   streamsJ28: number | null;
   streamsJ56: number | null;
   streamsJ84: number | null;
+  streamsJ180: number | null;
+  streamsJ365: number | null;
   createdAt: string;
   updatedAt: string;
   User?: {
@@ -57,6 +59,8 @@ export type EditableField =
   | 'streamsJ21'
   | 'streamsJ28'
   | 'streamsJ56'
-  | 'streamsJ84';
+  | 'streamsJ84'
+  | 'streamsJ180'
+  | 'streamsJ365';
 
 export type CellType = 'text' | 'select' | 'date' | 'number' | 'link';

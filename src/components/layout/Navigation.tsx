@@ -12,27 +12,61 @@ import {
   Settings,
   Home,
   FolderKanban,
+  Bell,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 import React from 'react';
 
 import { logger } from '@/lib/logger';
+import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
 
 import AuthModal from '../auth/AuthModal';
+import { MilestoneInbox } from '@/components/projects/MilestoneInbox';
+import { useNotifications } from '@/hooks/useNotifications';
 
 const Navigation = () => {
   const { data: session, status } = useSession();
   const pathname = usePathname();
+  const router = useRouter();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileUserMenuOpen, setIsMobileUserMenuOpen] = useState(false);
+  const [isInboxOpen, setIsInboxOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+
+  // Charger les notifications uniquement si l'utilisateur est connecté
+  // Utiliser un hook conditionnel pour éviter les erreurs si l'utilisateur n'est pas connecté
+  const notificationsHook = useNotifications({
+    unreadOnly: true,
+    autoRefresh: status === 'authenticated',
+    refreshInterval: 300000, // 5 minutes (optimisé pour quotas gratuits)
+    refreshOnPageChange: false, // Désactivé par défaut pour économiser les requêtes
+  });
+  const unreadCount = status === 'authenticated' ? notificationsHook.unreadCount : 0;
+
+  // Vérifier les notifications au chargement si l'utilisateur est connecté
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user?.id) {
+      // Vérifier les notifications en arrière-plan (optimisé)
+      // Utiliser un timeout pour éviter de bloquer le rendu initial
+      const timeoutId = setTimeout(() => {
+        fetchWithAuth('/api/notifications/check-all').catch((error) => {
+          // Ignorer les erreurs silencieusement (peuvent être causées par des extensions)
+          if (error.name !== 'AbortError') {
+            console.debug('Erreur lors de la vérification des notifications:', error);
+          }
+        });
+      }, 1000); // Attendre 1 seconde après le chargement
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [status, session?.user?.id]);
 
   // Error boundary pour capturer les erreurs
   useEffect(() => {
@@ -284,135 +318,172 @@ const Navigation = () => {
                   className="w-[120px] h-[40px] animate-pulse bg-gray-800/50 rounded-full"
                 />
               ) : session ? (
-                <motion.div
-                  key="user-profile"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{
-                    duration: 0.3,
-                    ease: 'easeOut',
-                  }}
-                  className="relative user-menu"
-                >
-                  {/* Debug: Afficher le rôle */}
-                  <div className="absolute -top-6 left-0 text-xs text-purple-400">
-                    Role: {session?.user?.role || 'none'}
-                  </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsUserMenuOpen(!isUserMenuOpen);
+                <>
+                  {/* Icône de notifications */}
+                  <motion.div
+                    key="notifications"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{
+                      duration: 0.3,
+                      ease: 'easeOut',
                     }}
-                    className="flex items-center space-x-3 text-white/90 hover:text-white transition-all duration-300
+                    className="relative"
+                  >
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsInboxOpen(!isInboxOpen);
+                        setIsUserMenuOpen(false);
+                      }}
+                      className="relative p-2 text-white/90 hover:text-white transition-all duration-300
+                        bg-gradient-to-r from-purple-500/10 to-blue-500/10 hover:from-purple-500/20 hover:to-blue-500/20
+                        rounded-full border border-purple-500/20 hover:border-purple-500/40 hover:scale-105"
+                      aria-label="Notifications"
+                    >
+                      <Bell className="w-5 h-5" />
+                      {unreadCount > 0 && (
+                        <motion.span
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          className="absolute -top-1 -right-1 flex items-center justify-center min-w-[20px] h-5 px-1.5 bg-red-500 text-white text-xs font-bold rounded-full border-2 border-gray-900"
+                        >
+                          {unreadCount > 99 ? '99+' : unreadCount}
+                        </motion.span>
+                      )}
+                    </button>
+                  </motion.div>
+
+                  <motion.div
+                    key="user-profile"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{
+                      duration: 0.3,
+                      ease: 'easeOut',
+                    }}
+                    className="relative user-menu"
+                  >
+                    {/* Debug: Afficher le rôle */}
+                    <div className="absolute -top-6 left-0 text-xs text-purple-400">
+                      Role: {session?.user?.role || 'none'}
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsUserMenuOpen(!isUserMenuOpen);
+                      }}
+                      className="flex items-center space-x-3 text-white/90 hover:text-white transition-all duration-300
                       bg-gradient-to-r from-purple-500/10 to-blue-500/10 hover:from-purple-500/20 hover:to-blue-500/20
                       px-4 py-2 rounded-full border border-purple-500/20 hover:border-purple-500/40 hover:scale-105"
-                  >
-                    <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-purple-500/50 group-hover:border-purple-500">
-                      {session.user?.image ? (
-                        <Image
-                          src={session.user.image}
-                          alt={session.user.name || 'Avatar'}
-                          fill
-                          className="object-cover"
-                        />
-                      ) : (
-                        <User className="w-full h-full p-1" />
-                      )}
-                    </div>
-                    <span>{session.user?.name || 'Utilisateur'}</span>
-                  </button>
+                    >
+                      <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-purple-500/50 group-hover:border-purple-500">
+                        {session.user?.image ? (
+                          <Image
+                            src={session.user.image}
+                            alt={session.user.name || 'Avatar'}
+                            fill
+                            className="object-cover"
+                          />
+                        ) : (
+                          <User className="w-full h-full p-1" />
+                        )}
+                      </div>
+                      <span>{session.user?.name || 'Utilisateur'}</span>
+                    </button>
 
-                  <AnimatePresence>
-                    {isUserMenuOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -5, scale: 0.98 }}
-                        animate={{
-                          opacity: 1,
-                          y: 0,
-                          scale: 1,
-                          transition: {
-                            type: 'spring',
-                            damping: 25,
-                            stiffness: 400,
-                            duration: 0.2,
-                          },
-                        }}
-                        exit={{
-                          opacity: 0,
-                          y: -5,
-                          scale: 0.98,
-                          transition: {
-                            duration: 0.15,
-                          },
-                        }}
-                        className="absolute right-0 mt-2 w-48 rounded-lg bg-black/95 backdrop-blur-lg border border-purple-500/20 shadow-lg shadow-purple-500/5"
-                        style={{ padding: '0.25rem' }}
-                      >
+                    <AnimatePresence>
+                      {isUserMenuOpen && (
                         <motion.div
-                          className="py-1"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          transition={{ duration: 0.1 }}
+                          initial={{ opacity: 0, y: -5, scale: 0.98 }}
+                          animate={{
+                            opacity: 1,
+                            y: 0,
+                            scale: 1,
+                            transition: {
+                              type: 'spring',
+                              damping: 25,
+                              stiffness: 400,
+                              duration: 0.2,
+                            },
+                          }}
+                          exit={{
+                            opacity: 0,
+                            y: -5,
+                            scale: 0.98,
+                            transition: {
+                              duration: 0.15,
+                            },
+                          }}
+                          className="absolute right-0 mt-2 w-48 rounded-lg bg-black/95 backdrop-blur-lg border border-purple-500/20 shadow-lg shadow-purple-500/5"
+                          style={{ padding: '0.25rem' }}
                         >
-                          {session.user?.role === 'ADMIN' && (
+                          <motion.div
+                            className="py-1"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.1 }}
+                          >
+                            {session.user?.role === 'ADMIN' && (
+                              <motion.div
+                                initial={{ x: -5, opacity: 0 }}
+                                animate={{ x: 0, opacity: 1 }}
+                                transition={{ delay: 0.05, duration: 0.1 }}
+                              >
+                                <Link
+                                  href="/admin"
+                                  className="flex items-center px-4 py-2 text-sm text-white/90 hover:text-white hover:bg-purple-500/10 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-inset"
+                                >
+                                  <Settings className="w-4 h-4 mr-2" />
+                                  Panel Admin
+                                </Link>
+                              </motion.div>
+                            )}
                             <motion.div
                               initial={{ x: -5, opacity: 0 }}
                               animate={{ x: 0, opacity: 1 }}
-                              transition={{ delay: 0.05, duration: 0.1 }}
+                              transition={{ delay: 0.1, duration: 0.1 }}
                             >
                               <Link
-                                href="/admin"
+                                href="/profile"
                                 className="flex items-center px-4 py-2 text-sm text-white/90 hover:text-white hover:bg-purple-500/10 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-inset"
                               >
-                                <Settings className="w-4 h-4 mr-2" />
-                                Panel Admin
+                                <User className="w-4 h-4 mr-2" />
+                                Profil
                               </Link>
                             </motion.div>
-                          )}
-                          <motion.div
-                            initial={{ x: -5, opacity: 0 }}
-                            animate={{ x: 0, opacity: 1 }}
-                            transition={{ delay: 0.1, duration: 0.1 }}
-                          >
-                            <Link
-                              href="/profile"
-                              className="flex items-center px-4 py-2 text-sm text-white/90 hover:text-white hover:bg-purple-500/10 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-inset"
+                            <motion.div
+                              initial={{ x: -5, opacity: 0 }}
+                              animate={{ x: 0, opacity: 1 }}
+                              transition={{ delay: 0.12, duration: 0.1 }}
                             >
-                              <User className="w-4 h-4 mr-2" />
-                              Profil
-                            </Link>
-                          </motion.div>
-                          <motion.div
-                            initial={{ x: -5, opacity: 0 }}
-                            animate={{ x: 0, opacity: 1 }}
-                            transition={{ delay: 0.12, duration: 0.1 }}
-                          >
-                            <Link
-                              href="/projects"
-                              className="flex items-center px-4 py-2 text-sm text-white/90 hover:text-white hover:bg-purple-500/10 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-inset"
+                              <Link
+                                href="/projects"
+                                className="flex items-center px-4 py-2 text-sm text-white/90 hover:text-white hover:bg-purple-500/10 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-inset"
+                              >
+                                <FolderKanban className="w-4 h-4 mr-2" />
+                                Mes Projets
+                              </Link>
+                            </motion.div>
+                            <motion.div
+                              initial={{ x: -5, opacity: 0 }}
+                              animate={{ x: 0, opacity: 1 }}
+                              transition={{ delay: 0.17, duration: 0.1 }}
                             >
-                              <FolderKanban className="w-4 h-4 mr-2" />
-                              Mes Projets
-                            </Link>
-                          </motion.div>
-                          <motion.div
-                            initial={{ x: -5, opacity: 0 }}
-                            animate={{ x: 0, opacity: 1 }}
-                            transition={{ delay: 0.17, duration: 0.1 }}
-                          >
-                            <button
-                              onClick={() => signOut()}
-                              className="flex items-center w-full px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:ring-inset"
-                            >
-                              <LogOut className="w-4 h-4 mr-2" />
-                              Déconnexion
-                            </button>
+                              <button
+                                onClick={() => signOut()}
+                                className="flex items-center w-full px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:ring-inset"
+                              >
+                                <LogOut className="w-4 h-4 mr-2" />
+                                Déconnexion
+                              </button>
+                            </motion.div>
                           </motion.div>
                         </motion.div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                </>
               ) : (
                 <motion.div
                   key="login-button"
@@ -438,6 +509,41 @@ const Navigation = () => {
 
           {/* Version mobile/tablet - visible up to lg breakpoint */}
           <div className="flex lg:hidden items-center space-x-3 sm:space-x-4">
+            {/* Bouton de notifications mobile */}
+            {session && (
+              <motion.div
+                key="notifications-mobile"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{
+                  duration: 0.3,
+                  ease: 'easeOut',
+                }}
+                className="relative"
+              >
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsInboxOpen(!isInboxOpen);
+                  }}
+                  className="relative p-2 text-white/90 hover:text-white transition-all duration-300
+                    bg-gradient-to-r from-purple-500/10 to-blue-500/10 hover:from-purple-500/20 hover:to-blue-500/20
+                    rounded-full border border-purple-500/20 hover:border-purple-500/40 hover:scale-105"
+                  aria-label="Notifications"
+                >
+                  <Bell className="w-5 h-5" />
+                  {unreadCount > 0 && (
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute -top-1 -right-1 flex items-center justify-center min-w-[20px] h-5 px-1.5 bg-red-500 text-white text-xs font-bold rounded-full border-2 border-gray-900"
+                    >
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </motion.span>
+                  )}
+                </button>
+              </motion.div>
+            )}
             {/* Bouton d'authentification mobile */}
             <AnimatePresence mode="wait">
               {status === 'loading' ? (
@@ -647,6 +753,7 @@ const Navigation = () => {
       </header>
 
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+      {session && <MilestoneInbox isOpen={isInboxOpen} onClose={() => setIsInboxOpen(false)} />}
     </>
   );
 };

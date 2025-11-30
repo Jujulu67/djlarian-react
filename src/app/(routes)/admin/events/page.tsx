@@ -35,6 +35,7 @@ import { FaPlus, FaEdit, FaTrash, FaEye, FaCheckCircle, FaTimesCircle } from 're
 
 import { logger } from '@/lib/logger';
 import { getImageUrl } from '@/lib/utils/getImageUrl';
+import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
 
 // Créer un type local pour inclure les relations si nécessaire
 // (Alternative: utiliser Prisma.EventGetPayload avec include)
@@ -81,7 +82,7 @@ export default function AdminEventsPage() {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const response = await fetch('/api/events');
+        const response = await fetchWithAuth('/api/events');
 
         if (!response.ok) {
           throw new Error(`Erreur ${response.status}: ${response.statusText}`);
@@ -145,7 +146,7 @@ export default function AdminEventsPage() {
     if (!eventToDelete) return;
 
     try {
-      const response = await fetch(`/api/events/${eventToDelete}`, {
+      const response = await fetchWithAuth(`/api/events/${eventToDelete}`, {
         method: 'DELETE',
       });
 
@@ -166,7 +167,7 @@ export default function AdminEventsPage() {
   // Changer le statut de publication
   const togglePublishStatus = async (eventId: string, currentStatus: boolean) => {
     try {
-      const response = await fetch(`/api/events/${eventId}`, {
+      const response = await fetchWithAuth(`/api/events/${eventId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -209,7 +210,7 @@ export default function AdminEventsPage() {
   // Changer le statut de mise en avant
   const toggleFeaturedStatus = async (eventId: string, currentStatus: boolean) => {
     try {
-      const response = await fetch(`/api/events/${eventId}`, {
+      const response = await fetchWithAuth(`/api/events/${eventId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

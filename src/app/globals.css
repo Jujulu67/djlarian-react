@@ -455,6 +455,33 @@
   will-change: background-position;
 }
 
+@keyframes highlight-gold {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-highlight-gold {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 215, 0, 0.1) 0%,
+    rgba(255, 193, 7, 0.2) 25%,
+    rgba(255, 215, 0, 0.25) 50%,
+    rgba(255, 193, 7, 0.2) 75%,
+    rgba(255, 215, 0, 0.1) 100%
+  );
+  background-size: 200% 100%;
+  animation: highlight-gold 2s ease-in-out infinite;
+  transform: translateZ(0);
+  will-change: background-position;
+}
+
 .animate-gradient-shift {
   background-size: 200% 200%;
   animation: gradient-shift 8s ease infinite;

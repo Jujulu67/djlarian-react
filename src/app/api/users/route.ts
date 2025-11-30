@@ -1,3 +1,4 @@
+import { NextRequest } from 'next/server';
 import { z } from 'zod';
 
 import { auth } from '@/auth';
@@ -6,6 +7,8 @@ import {
   createCreatedResponse,
   createForbiddenResponse,
   createConflictResponse,
+  createSuccessResponse,
+  createUnauthorizedResponse,
 } from '@/lib/api/responseHelpers';
 import { hash as bcryptHash } from '@/lib/bcrypt-edge';
 import { logger } from '@/lib/logger';
@@ -27,6 +30,46 @@ const createUserSchema = z
   .strict();
 
 type CreateUserInput = z.infer<typeof createUserSchema>;
+
+/**
+ * GET /api/users
+ * Récupère la liste des utilisateurs (admin only)
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return createUnauthorizedResponse('Non autorisé');
+    }
+
+    // Vérifier que l'utilisateur est admin
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { role: true },
+    });
+
+    if (user?.role !== 'ADMIN') {
+      return createForbiddenResponse('Seuls les administrateurs peuvent accéder à cette ressource');
+    }
+
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+      },
+      orderBy: {
+        email: 'asc',
+      },
+    });
+
+    return createSuccessResponse(users, 200, 'Utilisateurs récupérés');
+  } catch (error) {
+    return handleApiError(error, 'GET /api/users');
+  }
+}
 
 /**
  * POST /api/users

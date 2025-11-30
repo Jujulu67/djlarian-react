@@ -186,11 +186,43 @@ export async function POST(request: NextRequest) {
     });
     let currentOrder = (maxOrderProject?.order ?? -1) + 1;
 
+    // Fonction helper pour parser les valeurs de streams avec validation
+    const parseStreamValue = (value: unknown): number | null => {
+      if (value === null || value === undefined || value === '') {
+        return null;
+      }
+      const parsed = typeof value === 'number' ? value : parseInt(String(value), 10);
+      if (isNaN(parsed) || parsed < 0) {
+        return null; // Rejeter les valeurs négatives ou invalides
+      }
+      // Limite de sécurité : max 2^31 - 1 (valeur max pour un entier 32 bits)
+      if (parsed > 2147483647) {
+        return null;
+      }
+      return parsed;
+    };
+
+    // Importer les fonctions de validation URL
+    const { isValidUrl, sanitizeUrl } = await import('@/lib/utils/validateUrl');
+
     // Créer les projets séquentiellement dans une transaction pour préserver l'ordre d'import
     // Timeout augmenté à 30 secondes pour gérer les imports batch volumineux
     await prisma.$transaction(
       async (tx) => {
-        for (const { data } of projectsToCreate) {
+        for (const { data, index } of projectsToCreate) {
+          // Valider externalLink si fourni
+          if (data.externalLink && data.externalLink.trim() !== '') {
+            if (!isValidUrl(data.externalLink, false)) {
+              result.errors.push({
+                index,
+                data,
+                error: "L'URL externe fournie n'est pas valide",
+              });
+              result.failed++;
+              continue;
+            }
+          }
+
           const project = await tx.project.create({
             data: {
               userId: session.user.id,
@@ -202,13 +234,15 @@ export async function POST(request: NextRequest) {
               label: data.label?.trim() || null,
               labelFinal: data.labelFinal?.trim() || null,
               releaseDate: data.releaseDate ? new Date(data.releaseDate) : null,
-              externalLink: data.externalLink?.trim() || null,
-              streamsJ7: data.streamsJ7 ? parseInt(String(data.streamsJ7), 10) : null,
-              streamsJ14: data.streamsJ14 ? parseInt(String(data.streamsJ14), 10) : null,
-              streamsJ21: data.streamsJ21 ? parseInt(String(data.streamsJ21), 10) : null,
-              streamsJ28: data.streamsJ28 ? parseInt(String(data.streamsJ28), 10) : null,
-              streamsJ56: data.streamsJ56 ? parseInt(String(data.streamsJ56), 10) : null,
-              streamsJ84: data.streamsJ84 ? parseInt(String(data.streamsJ84), 10) : null,
+              externalLink: data.externalLink ? sanitizeUrl(data.externalLink.trim()) : null,
+              streamsJ7: parseStreamValue(data.streamsJ7),
+              streamsJ14: parseStreamValue(data.streamsJ14),
+              streamsJ21: parseStreamValue(data.streamsJ21),
+              streamsJ28: parseStreamValue(data.streamsJ28),
+              streamsJ56: parseStreamValue(data.streamsJ56),
+              streamsJ84: parseStreamValue(data.streamsJ84),
+              streamsJ180: parseStreamValue(data.streamsJ180),
+              streamsJ365: parseStreamValue(data.streamsJ365),
             },
             include: {
               User: {
@@ -240,13 +274,15 @@ export async function POST(request: NextRequest) {
               label: data.label?.trim() || null,
               labelFinal: data.labelFinal?.trim() || null,
               releaseDate: data.releaseDate ? new Date(data.releaseDate) : null,
-              externalLink: data.externalLink?.trim() || null,
-              streamsJ7: data.streamsJ7 ? parseInt(String(data.streamsJ7), 10) : null,
-              streamsJ14: data.streamsJ14 ? parseInt(String(data.streamsJ14), 10) : null,
-              streamsJ21: data.streamsJ21 ? parseInt(String(data.streamsJ21), 10) : null,
-              streamsJ28: data.streamsJ28 ? parseInt(String(data.streamsJ28), 10) : null,
-              streamsJ56: data.streamsJ56 ? parseInt(String(data.streamsJ56), 10) : null,
-              streamsJ84: data.streamsJ84 ? parseInt(String(data.streamsJ84), 10) : null,
+              externalLink: data.externalLink ? sanitizeUrl(data.externalLink.trim()) : null,
+              streamsJ7: parseStreamValue(data.streamsJ7),
+              streamsJ14: parseStreamValue(data.streamsJ14),
+              streamsJ21: parseStreamValue(data.streamsJ21),
+              streamsJ28: parseStreamValue(data.streamsJ28),
+              streamsJ56: parseStreamValue(data.streamsJ56),
+              streamsJ84: parseStreamValue(data.streamsJ84),
+              streamsJ180: parseStreamValue(data.streamsJ180),
+              streamsJ365: parseStreamValue(data.streamsJ365),
             },
             include: {
               User: {

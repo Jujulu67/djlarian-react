@@ -96,15 +96,23 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     // Construire les données de mise à jour dynamiquement
     const updateData: Record<string, unknown> = {};
 
-    const stringFields = [
-      'name',
-      'style',
-      'status',
-      'collab',
-      'label',
-      'labelFinal',
-      'externalLink',
-    ];
+    // Fonction helper pour parser les valeurs de streams avec validation
+    const parseStreamValue = (value: unknown): number | null => {
+      if (value === null || value === undefined || value === '') {
+        return null;
+      }
+      const parsed = typeof value === 'number' ? value : parseInt(String(value), 10);
+      if (isNaN(parsed) || parsed < 0) {
+        return null; // Rejeter les valeurs négatives ou invalides
+      }
+      // Limite de sécurité : max 2^31 - 1 (valeur max pour un entier 32 bits)
+      if (parsed > 2147483647) {
+        return null;
+      }
+      return parsed;
+    };
+
+    const stringFields = ['name', 'style', 'status', 'collab', 'label', 'labelFinal'];
     const intFields = [
       'order',
       'streamsJ7',
@@ -113,6 +121,8 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       'streamsJ28',
       'streamsJ56',
       'streamsJ84',
+      'streamsJ180',
+      'streamsJ365',
     ];
 
     for (const field of stringFields) {
@@ -122,14 +132,41 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       }
     }
 
+    // Traiter externalLink séparément avec validation URL
+    if ('externalLink' in body) {
+      const value = body.externalLink;
+      if (value === '' || value === null || value === undefined) {
+        updateData.externalLink = null;
+      } else if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (trimmed === '') {
+          updateData.externalLink = null;
+        } else {
+          const { isValidUrl, sanitizeUrl } = await import('@/lib/utils/validateUrl');
+          if (!isValidUrl(trimmed, false)) {
+            return createBadRequestResponse("L'URL externe fournie n'est pas valide");
+          }
+          updateData.externalLink = sanitizeUrl(trimmed);
+        }
+      } else {
+        updateData.externalLink = value;
+      }
+    }
+
     for (const field of intFields) {
       if (field in body) {
         const value = body[field];
-        if (value === '' || value === null) {
-          updateData[field] = null;
+        if (field === 'order') {
+          // Pour order, utiliser la même logique mais avec validation
+          if (value === '' || value === null || value === undefined) {
+            updateData[field] = null;
+          } else {
+            const parsed = typeof value === 'number' ? value : parseInt(String(value), 10);
+            updateData[field] = isNaN(parsed) ? null : parsed;
+          }
         } else {
-          const parsed = parseInt(value, 10);
-          updateData[field] = isNaN(parsed) ? null : parsed;
+          // Pour les streams, utiliser la validation stricte
+          updateData[field] = parseStreamValue(value);
         }
       }
     }
@@ -188,7 +225,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       return createForbiddenResponse('Accès refusé');
     }
 
-    const userId = existingProject.userId;
+    const { userId } = existingProject;
 
     await prisma.project.delete({
       where: { id },

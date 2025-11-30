@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 
 import {
   ProjectTable,
@@ -20,11 +21,13 @@ import {
   ProjectStatus,
   PROJECT_STATUSES,
   ImportProjectsDialog,
+  ImportStreamsDialog,
   ReleaseCalendar,
 } from '@/components/projects';
 import { ParsedProjectRow } from '@/lib/utils/parseExcelData';
 import { exportProjectsToExcel } from '@/lib/utils/exportProjectsToExcel';
 import { Checkbox } from '@/components/ui/Checkbox';
+import { fetchWithAuth, isAuthError, getErrorMessage } from '@/lib/api/fetchWithAuth';
 
 interface ProjectsClientProps {
   initialProjects: Project[];
@@ -44,17 +47,24 @@ interface FieldFilters {
 
 export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
   const router = useRouter();
+  const { data: session, status: sessionStatus } = useSession();
   const [projects, setProjects] = useState<Project[]>(initialProjects);
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'ALL'>('ALL');
   const [isLoading, setIsLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [isImportStreamsDialogOpen, setIsImportStreamsDialogOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState<SortField>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [lastCreatedProjectId, setLastCreatedProjectId] = useState<string | null>(null);
   const [lastUpdatedProjectId, setLastUpdatedProjectId] = useState<string | null>(null);
+  const [highlightedFromNotification, setHighlightedFromNotification] = useState<string | null>(
+    null
+  );
   const [showReleasedProjects, setShowReleasedProjects] = useState<boolean>(true);
+  const [showStats, setShowStats] = useState<boolean>(false); // Masquer les stats par défaut
   const [fieldFilters, setFieldFilters] = useState<FieldFilters>({
     name: '',
     style: '',
@@ -67,30 +77,71 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
   // Ref pour le debounce
   const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Vérifier les releases en approche au chargement initial
+  useEffect(() => {
+    // Vérifier les releases en approche en arrière-plan
+    fetchWithAuth('/api/projects/releases/check').catch(() => {
+      // Ignorer les erreurs silencieusement
+    });
+  }, []); // Une seule fois au montage
+
   const fetchProjects = useCallback(async () => {
+    // Vérifier que la session est authentifiée avant de faire la requête
+    if (sessionStatus === 'unauthenticated') {
+      setAuthError('Votre session a expiré. Veuillez vous reconnecter.');
+      router.push('/');
+      return;
+    }
+
+    if (sessionStatus === 'loading') {
+      // Attendre que la session soit chargée
+      return;
+    }
+
+    if (!session?.user?.id) {
+      setAuthError('Session invalide. Veuillez vous reconnecter.');
+      return;
+    }
+
     setIsLoading(true);
+    setAuthError(null);
+
     try {
       const params = new URLSearchParams();
       if (statusFilter !== 'ALL') {
         params.set('status', statusFilter);
       }
 
-      const response = await fetch(`/api/projects?${params.toString()}`);
+      const response = await fetchWithAuth(`/api/projects?${params.toString()}`);
+
       if (response.ok) {
         const result = await response.json();
         // Nouveau format API: { data: [...] }
         const projects = result.data || result;
         setProjects(projects);
+        setAuthError(null);
+
+        // Vérifier les releases en approche en arrière-plan (ne pas bloquer l'affichage)
+        fetchWithAuth('/api/projects/releases/check').catch(() => {
+          // Ignorer les erreurs silencieusement
+        });
+      } else if (isAuthError(response)) {
+        // Erreur d'authentification - fetchWithAuth devrait déjà avoir géré la déconnexion
+        const errorMessage = await getErrorMessage(response);
+        setAuthError(errorMessage || 'Votre session a expiré. Déconnexion en cours...');
+        console.error("Erreur d'authentification:", errorMessage);
       } else {
         const error = await response.json();
         console.error('Erreur lors du chargement:', error.error || error);
+        setAuthError(error.error || 'Erreur lors du chargement des projets');
       }
     } catch (error) {
       console.error('Erreur lors du chargement:', error);
+      setAuthError('Erreur lors du chargement des projets. Veuillez réessayer.');
     } finally {
       setIsLoading(false);
     }
-  }, [statusFilter]);
+  }, [statusFilter, sessionStatus, session, router]);
 
   // Debounce fetchProjects avec 300ms et éviter le double appel SSR + client
   useEffect(() => {
@@ -139,13 +190,19 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
     );
 
     try {
-      const response = await fetch(`/api/projects/${id}`, {
+      const response = await fetchWithAuth(`/api/projects/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [field]: value }),
       });
 
       if (!response.ok) {
+        if (isAuthError(response)) {
+          const errorMessage = await getErrorMessage(response);
+          setAuthError(errorMessage || 'Votre session a expiré. Veuillez vous reconnecter.');
+          router.push('/');
+          return;
+        }
         const error = await response.json();
         throw new Error(error.error || 'Erreur lors de la mise à jour');
       }
@@ -154,7 +211,15 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
       const updated = result.data || result;
       setProjects((prev) => prev.map((p) => (p.id === id ? updated : p)));
 
-      // Déclencher l'animation pour le projet modifié
+      // Si on a modifié la releaseDate, vérifier les notifications de releases en approche
+      if (field === 'releaseDate') {
+        fetchWithAuth(`/api/projects/releases/check?projectId=${id}`).catch(() => {
+          // Ignorer les erreurs silencieusement
+        });
+      }
+
+      // Désactiver définitivement l'animation dorée et activer l'animation de modification
+      setHighlightedFromNotification(null);
       setLastUpdatedProjectId(id);
       setTimeout(() => {
         setLastUpdatedProjectId(null);
@@ -171,11 +236,17 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
     setProjects((prev) => prev.filter((p) => p.id !== id));
 
     try {
-      const response = await fetch(`/api/projects/${id}`, {
+      const response = await fetchWithAuth(`/api/projects/${id}`, {
         method: 'DELETE',
       });
 
       if (!response.ok) {
+        if (isAuthError(response)) {
+          const errorMessage = await getErrorMessage(response);
+          setAuthError(errorMessage || 'Votre session a expiré. Veuillez vous reconnecter.');
+          router.push('/');
+          return;
+        }
         const error = await response.json();
         throw new Error(error.error || 'Erreur lors de la suppression');
       }
@@ -204,11 +275,17 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
 
     setIsLoading(true);
     try {
-      const response = await fetch('/api/projects/purge', {
+      const response = await fetchWithAuth('/api/projects/purge', {
         method: 'DELETE',
       });
 
       if (!response.ok) {
+        if (isAuthError(response)) {
+          const errorMessage = await getErrorMessage(response);
+          setAuthError(errorMessage || 'Votre session a expiré. Veuillez vous reconnecter.');
+          router.push('/');
+          return;
+        }
         const error = await response.json();
         throw new Error(error.error || 'Erreur lors de la purge');
       }
@@ -230,13 +307,19 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
 
   const handleCreate = async (data: { name: string; status: ProjectStatus }) => {
     try {
-      const response = await fetch('/api/projects', {
+      const response = await fetchWithAuth('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
 
       if (!response.ok) {
+        if (isAuthError(response)) {
+          const errorMessage = await getErrorMessage(response);
+          setAuthError(errorMessage || 'Votre session a expiré. Veuillez vous reconnecter.');
+          router.push('/');
+          throw new Error(errorMessage || "Erreur d'authentification");
+        }
         const error = await response.json();
         throw new Error(error.error || 'Erreur lors de la création');
       }
@@ -247,11 +330,19 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
       // Ajouter le projet en bas de la liste
       setProjects((prev) => [...prev, newProject]);
 
+      // Si le projet a une releaseDate, vérifier les notifications de releases en approche
+      if (newProject.releaseDate) {
+        fetchWithAuth(`/api/projects/releases/check?projectId=${newProject.id}`).catch(() => {
+          // Ignorer les erreurs silencieusement
+        });
+      }
+
       // Réinitialiser les tris
       setSortField(null);
       setSortDirection('asc');
 
-      // Stocker l'ID du nouveau projet pour le scroll
+      // Désactiver l'animation dorée et activer l'animation de création
+      setHighlightedFromNotification(null);
       setLastCreatedProjectId(newProject.id);
     } catch (error) {
       console.error('Erreur:', error);
@@ -264,13 +355,19 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
     overwriteDuplicates: boolean = false
   ) => {
     try {
-      const response = await fetch('/api/projects/batch', {
+      const response = await fetchWithAuth('/api/projects/batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ projects: parsedProjects, overwriteDuplicates }),
       });
 
       if (!response.ok) {
+        if (isAuthError(response)) {
+          const errorMessage = await getErrorMessage(response);
+          setAuthError(errorMessage || 'Votre session a expiré. Veuillez vous reconnecter.');
+          router.push('/');
+          throw new Error(errorMessage || "Erreur d'authentification");
+        }
         const error = await response.json();
         throw new Error(error.error || error.message || "Erreur lors de l'import");
       }
@@ -288,6 +385,38 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
     }
   };
 
+  const handleImportStreams = async (imports: Array<{ projectId: string; milestones: any }>) => {
+    try {
+      const response = await fetchWithAuth('/api/projects/streams/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imports }),
+      });
+
+      if (!response.ok) {
+        if (isAuthError(response)) {
+          const errorMessage = await getErrorMessage(response);
+          setAuthError(errorMessage || 'Votre session a expiré. Veuillez vous reconnecter.');
+          router.push('/');
+          throw new Error(errorMessage || "Erreur d'authentification");
+        }
+        const error = await response.json();
+        throw new Error(error.error || error.message || "Erreur lors de l'import des streams");
+      }
+
+      const result = await response.json();
+      const importResult = result.data || result;
+
+      // Rafraîchir la liste pour voir les streams mis à jour
+      await fetchProjects();
+
+      return importResult;
+    } catch (error) {
+      console.error("Erreur lors de l'import des streams:", error);
+      throw error;
+    }
+  };
+
   const handleReorder = async (reorderedProjects: Project[]) => {
     // Optimistic update
     setProjects(reorderedProjects);
@@ -298,13 +427,19 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
         order: index,
       }));
 
-      const response = await fetch('/api/projects/reorder', {
+      const response = await fetchWithAuth('/api/projects/reorder', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ projectOrders }),
       });
 
       if (!response.ok) {
+        if (isAuthError(response)) {
+          const errorMessage = await getErrorMessage(response);
+          setAuthError(errorMessage || 'Votre session a expiré. Veuillez vous reconnecter.');
+          router.push('/');
+          throw new Error(errorMessage || "Erreur d'authentification");
+        }
         const error = await response.json();
         throw new Error(error.error || "Erreur lors de la mise à jour de l'ordre");
       }
@@ -363,6 +498,12 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
   // Filter and sort projects
   const filteredAndSortedProjects = useMemo(() => {
     let filtered = projects;
+    let highlightedProject: Project | undefined;
+
+    // Si un projet est mis en évidence depuis une notification, le garder en mémoire
+    if (highlightedFromNotification) {
+      highlightedProject = projects.find((p) => p.id === highlightedFromNotification);
+    }
 
     // Filter by status
     if (statusFilter !== 'ALL') {
@@ -403,6 +544,11 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
         releaseDate.setHours(0, 0, 0, 0);
         return releaseDate > today; // Keep only projects with release date > today
       });
+    }
+
+    // Si le projet mis en évidence n'est pas dans la liste filtrée, l'ajouter en premier
+    if (highlightedProject && !filtered.some((p) => p.id === highlightedProject!.id)) {
+      filtered = [highlightedProject, ...filtered];
     }
 
     // Sort
@@ -447,7 +593,54 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
     sortField,
     sortDirection,
     showReleasedProjects,
+    highlightedFromNotification, // Inclure pour forcer le recalcul si le highlight change
   ]);
+
+  // Gérer le highlight depuis les notifications (animation dorée persistante)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const highlightId = params.get('highlight');
+      const fromNotification = params.get('fromNotification') === 'true';
+
+      if (highlightId && fromNotification) {
+        console.log('Highlight depuis notification:', highlightId);
+        setHighlightedFromNotification(highlightId);
+
+        // Nettoyer l'URL sans recharger la page
+        try {
+          params.delete('highlight');
+          params.delete('fromNotification');
+          const newUrl =
+            window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+          window.history.replaceState({}, '', newUrl);
+        } catch (historyError) {
+          // Ignorer les erreurs d'historique (peuvent être causées par des extensions)
+          console.debug("Erreur lors du nettoyage de l'URL:", historyError);
+        }
+
+        // Scroller vers le projet après un délai plus long pour laisser le temps au rendu
+        setTimeout(() => {
+          try {
+            const element = document.getElementById(`project-${highlightId}`);
+            console.log('Élément trouvé pour scroll:', element);
+            if (element) {
+              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else {
+              console.warn('Projet non trouvé dans le DOM:', highlightId);
+            }
+          } catch (scrollError) {
+            console.debug('Erreur lors du scroll:', scrollError);
+          }
+        }, 500); // Délai augmenté pour laisser le temps au rendu
+      }
+    } catch (error) {
+      // Ignorer les erreurs silencieusement (peuvent être causées par des extensions)
+      console.debug('Erreur lors du traitement des paramètres URL:', error);
+    }
+  }, []);
 
   // Scroll vers le nouveau projet après création et réinitialiser l'animation après 2s
   useEffect(() => {
@@ -473,6 +666,20 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
     }
   }, [lastCreatedProjectId, filteredAndSortedProjects]);
 
+  // Afficher un message de chargement si la session est en cours de validation
+  if (sessionStatus === 'loading') {
+    return (
+      <div className="space-y-2">
+        <div className="glass-modern rounded-xl p-4 sm:p-6">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Mes Projets</h1>
+            <p className="text-gray-400 text-sm">Vérification de la session...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-2">
       {/* Header */}
@@ -482,6 +689,14 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
           <p className="text-gray-400 text-sm">Gère tes projets musicaux et suis leur évolution</p>
         </div>
       </div>
+
+      {/* Message d'erreur d'authentification */}
+      {authError && (
+        <div className="bg-red-500/20 border border-red-500/50 rounded-xl p-4 text-red-300">
+          <p className="font-medium">{authError}</p>
+          <p className="text-sm text-red-400 mt-1">Redirection en cours...</p>
+        </div>
+      )}
 
       {/* Calendrier des sorties */}
       <ReleaseCalendar projects={filteredAndSortedProjects} onUpdate={handleUpdate} />
@@ -514,6 +729,16 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
                 checked={showReleasedProjects}
                 onCheckedChange={setShowReleasedProjects}
                 label="Afficher les projets sortis"
+                labelClassName="text-sm text-gray-300 whitespace-nowrap"
+              />
+            </div>
+
+            {/* Checkbox pour masquer/afficher les stats */}
+            <div className="px-3 py-2 bg-gray-800/70 backdrop-blur-md rounded-xl border border-gray-700/70">
+              <Checkbox
+                checked={showStats}
+                onCheckedChange={setShowStats}
+                label="Afficher les stats"
                 labelClassName="text-sm text-gray-300 whitespace-nowrap"
               />
             </div>
@@ -715,11 +940,18 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
         onRefresh={fetchProjects}
         onStatistics={handleStatistics}
         onImport={() => setIsImportDialogOpen(true)}
+        onImportStreams={() => setIsImportStreamsDialogOpen(true)}
         onExport={handleExportExcel}
         onPurge={handlePurge}
         isLoading={isLoading}
         projectsCount={projects.length}
-        highlightedProjectId={lastCreatedProjectId || lastUpdatedProjectId}
+        highlightedProjectId={
+          lastCreatedProjectId || lastUpdatedProjectId || highlightedFromNotification
+        }
+        persistentHighlight={
+          !!highlightedFromNotification && !lastCreatedProjectId && !lastUpdatedProjectId
+        }
+        showStats={showStats}
       />
 
       {/* Info aide */}
@@ -732,6 +964,14 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
         isOpen={isImportDialogOpen}
         onClose={() => setIsImportDialogOpen(false)}
         onImport={handleBatchImport}
+      />
+
+      {/* Dialog d'import streams */}
+      <ImportStreamsDialog
+        isOpen={isImportStreamsDialogOpen}
+        onClose={() => setIsImportStreamsDialogOpen(false)}
+        onImport={handleImportStreams}
+        projects={projects}
       />
     </div>
   );

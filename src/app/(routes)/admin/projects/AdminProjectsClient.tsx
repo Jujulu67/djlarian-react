@@ -4,6 +4,7 @@ import { Filter, RefreshCw, Users, ChevronDown } from 'lucide-react';
 import { useState, useCallback, useEffect, useRef } from 'react';
 
 import { logger } from '@/lib/logger';
+import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
 
 import { ProjectTable, Project, ProjectStatus, PROJECT_STATUSES } from '@/components/projects';
 
@@ -48,7 +49,7 @@ export const AdminProjectsClient = ({ initialProjects, users }: AdminProjectsCli
         params.set('userId', userFilter);
       }
 
-      const response = await fetch(`/api/projects?${params.toString()}`);
+      const response = await fetchWithAuth(`/api/projects?${params.toString()}`);
       if (response.ok) {
         const result = await response.json();
         // Nouveau format API: { data: [...] }
@@ -75,7 +76,7 @@ export const AdminProjectsClient = ({ initialProjects, users }: AdminProjectsCli
         params.set('userId', userFilter);
       }
 
-      const response = await fetch(`/api/projects/counts?${params.toString()}`);
+      const response = await fetchWithAuth(`/api/projects/counts?${params.toString()}`);
       if (response.ok) {
         const result = await response.json();
         const counts = result.data || result;

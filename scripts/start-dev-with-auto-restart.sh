@@ -92,23 +92,54 @@ start_umami
 start_server() {
     echo "🚀 Démarrage du serveur Next.js..."
     
+    # S'assurer qu'on utilise la bonne version de Node.js depuis .nvmrc AVANT toute opération
+    # C'est critique pour que better-sqlite3 soit compilé avec la bonne version
+    if [ -f .nvmrc ]; then
+        echo "📦 Chargement de la version Node.js depuis .nvmrc..."
+        if [ -s "$HOME/.nvm/nvm.sh" ]; then
+            source "$HOME/.nvm/nvm.sh" 2>/dev/null || true
+            nvm use 2>&1
+            if [ $? -eq 0 ]; then
+                NODE_VERSION=$(node --version 2>/dev/null || echo "unknown")
+                echo "   ✅ Node.js version: $NODE_VERSION"
+            else
+                echo "   ⚠️  Impossible de charger la version depuis .nvmrc, utilisation de la version actuelle"
+            fi
+        else
+            echo "   ⚠️  nvm non trouvé, utilisation de la version Node.js actuelle"
+        fi
+    fi
+    
     # Rebuild better-sqlite3 pour s'assurer qu'il est compilé pour la bonne version de Node.js
     # Important quand on travaille sur plusieurs projets avec différentes versions de Node.js
+    # Utiliser npm rebuild (méthode recommandée) qui gère mieux les chemins avec espaces
     echo "🔧 Vérification de better-sqlite3..."
     # Supprimer le build existant pour forcer une recompilation complète
     rm -rf node_modules/better-sqlite3/build 2>/dev/null || true
-    # Rebuild avec affichage des erreurs si échec
-    if ! npm rebuild better-sqlite3 2>&1; then
-        echo "⚠️  Erreur lors du rebuild de better-sqlite3, nouvelle tentative..."
-        npm rebuild better-sqlite3 || true
+    echo "   Recompilation de better-sqlite3..."
+    REBUILD_SUCCESS=false
+    # Utiliser npm rebuild en premier (méthode recommandée, gère mieux les chemins avec espaces)
+    if npm rebuild better-sqlite3 2>&1; then
+        REBUILD_SUCCESS=true
+        echo "   ✅ better-sqlite3 recompilé avec succès"
+    else
+        echo "⚠️  Erreur lors du rebuild avec npm, tentative avec node-gyp..."
+        # Fallback: utiliser node-gyp directement si npm rebuild échoue
+        if [ -d "node_modules/better-sqlite3" ]; then
+            cd node_modules/better-sqlite3
+            if npx node-gyp rebuild --release 2>&1; then
+                REBUILD_SUCCESS=true
+                echo "   ✅ better-sqlite3 recompilé avec succès (via node-gyp)"
+            else
+                echo "   ⚠️  Échec de la compilation, le serveur peut ne pas fonctionner correctement"
+            fi
+            cd ../..
+        fi
     fi
-    # Nettoyer le cache Next.js pour forcer le rechargement du module
+    # Nettoyer TOUT le cache Next.js pour forcer le rechargement du module
     # (le cache peut contenir l'ancien module compilé)
-    if [ -d ".next" ]; then
-        echo "🧹 Nettoyage du cache Next.js pour recharger better-sqlite3..."
-        rm -rf .next/dev/server 2>/dev/null || true
-        rm -rf .next/cache 2>/dev/null || true
-    fi
+    echo "🧹 Nettoyage complet du cache Next.js pour recharger better-sqlite3..."
+    rm -rf .next 2>/dev/null || true
     
     # Synchroniser le schéma Prisma avant de démarrer selon le switch
     # Vérifier le switch pour déterminer quel script utiliser
@@ -132,12 +163,6 @@ start_server() {
         # Switch désactivé : utiliser SQLite
         echo "🔄 Synchronisation du schéma Prisma vers SQLite..."
         bash scripts/ensure-sqlite-schema.sh
-    fi
-    
-    # S'assurer qu'on utilise la bonne version de Node.js depuis .nvmrc
-    if [ -f .nvmrc ]; then
-        source "$HOME/.nvm/nvm.sh" 2>/dev/null || true
-        nvm use > /dev/null 2>&1 || true
     fi
     
     # Lancer next dev directement (le schéma a déjà été synchronisé)

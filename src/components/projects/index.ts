@@ -3,5 +3,7 @@ export { EditableCell } from './EditableCell';
 export { ProjectStatusBadge } from './ProjectStatusBadge';
 export { AddProjectRow } from './AddProjectRow';
 export { ImportProjectsDialog } from './ImportProjectsDialog';
+export { ImportStreamsDialog } from './ImportStreamsDialog';
 export { ReleaseCalendar } from './ReleaseCalendar';
+export { MilestoneInbox } from './MilestoneInbox';
 export * from './types';

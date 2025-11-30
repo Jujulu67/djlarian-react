@@ -1,6 +1,7 @@
 'use client';
 
 import { SessionProvider } from 'next-auth/react';
+import { Session } from 'next-auth';
 
 import ErrorBoundary from '@/components/ErrorBoundary';
 
@@ -104,6 +105,42 @@ if (typeof window !== 'undefined') {
       return promise;
     }
 
+    // Intercepter les erreurs 401 sur toutes les requêtes API
+    // Si c'est une requête vers /api/ (mais pas /api/auth/session), gérer les 401
+    if (
+      url &&
+      typeof url === 'string' &&
+      url.includes('/api/') &&
+      !url.includes('/api/auth/session')
+    ) {
+      return originalFetch(...args)
+        .then(async (response) => {
+          // Si c'est une erreur 401, invalider le cache de session
+          if (response.status === 401) {
+            // Invalider le cache de session pour forcer un refresh
+            if (sessionRequestCache) {
+              sessionRequestCache = null;
+            }
+
+            // Forcer un refresh de session en appelant l'endpoint
+            try {
+              await originalFetch('/api/auth/session', {
+                method: 'GET',
+                credentials: 'include',
+                cache: 'no-store',
+              });
+            } catch (error) {
+              // Ignorer les erreurs de refresh silencieusement
+              console.debug('Erreur lors du refresh de session après 401:', error);
+            }
+          }
+          return response;
+        })
+        .catch((error) => {
+          throw error;
+        });
+    }
+
     // Pour les autres requêtes, utiliser fetch normal
     // Intercepter les erreurs 404 sur les images -ori.* pour éviter le bruit dans la console
     // Si c'est une requête vers une image originale qui pourrait ne pas exister
@@ -127,12 +164,18 @@ if (typeof window !== 'undefined') {
   // Interception activée silencieusement
 }
 
-export default function AuthProvider({ children }: { children: React.ReactNode }) {
+interface AuthProviderProps {
+  children: React.ReactNode;
+  session?: Session | null; // Session serveur passée depuis le layout pour éviter le délai initial
+}
+
+export default function AuthProvider({ children, session }: AuthProviderProps) {
   return (
     <ErrorBoundary>
       <SessionProvider
-        refetchInterval={5 * 60} // Refetch toutes les 5 minutes au lieu de toutes les 0 secondes (désactivé)
-        refetchOnWindowFocus={false} // Ne pas refetch quand la fenêtre reprend le focus
+        session={session} // Utiliser la session serveur si disponible pour éviter le délai initial
+        refetchInterval={2 * 60} // Refetch toutes les 2 minutes pour maintenir la session à jour
+        refetchOnWindowFocus={true} // Refetch quand la fenêtre reprend le focus pour synchroniser
         basePath="/api/auth" // Spécifier le basePath pour éviter les requêtes multiples
         refetchWhenOffline={false} // Ne pas refetch quand offline
       >

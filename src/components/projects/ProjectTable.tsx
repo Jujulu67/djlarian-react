@@ -41,12 +41,15 @@ interface ProjectTableProps {
   onRefresh?: () => void;
   onStatistics?: () => void;
   onImport?: () => void;
+  onImportStreams?: () => void;
   onExport?: () => void;
   onPurge?: () => void;
   isLoading?: boolean;
   projectsCount?: number;
   highlightedProjectId?: string | null;
+  persistentHighlight?: boolean; // Si true, l'animation ne s'arrête pas (pour notifications)
   isAdmin?: boolean;
+  showStats?: boolean; // Afficher/masquer les colonnes de stats
 }
 
 interface ColumnConfig {
@@ -74,6 +77,8 @@ const columnsNormal: ColumnConfig[] = [
   { key: 'streamsJ28', label: 'J28', type: 'number', width: '65px', minWidth: '55px' },
   { key: 'streamsJ56', label: 'J56', type: 'number', width: '65px', minWidth: '55px' },
   { key: 'streamsJ84', label: 'J84', type: 'number', width: '65px', minWidth: '55px' },
+  { key: 'streamsJ180', label: 'J180', type: 'number', width: '70px', minWidth: '60px' },
+  { key: 'streamsJ365', label: 'J365', type: 'number', width: '70px', minWidth: '60px' },
 ];
 
 // Configuration des colonnes en mode compact (écran moyen)
@@ -91,6 +96,8 @@ const columnsCompact: ColumnConfig[] = [
   { key: 'streamsJ28', label: 'J28', type: 'number', width: '42px', minWidth: '42px' },
   { key: 'streamsJ56', label: 'J56', type: 'number', width: '42px', minWidth: '42px' },
   { key: 'streamsJ84', label: 'J84', type: 'number', width: '42px', minWidth: '42px' },
+  { key: 'streamsJ180', label: 'J180', type: 'number', width: '45px', minWidth: '45px' },
+  { key: 'streamsJ365', label: 'J365', type: 'number', width: '45px', minWidth: '45px' },
 ];
 
 export const ProjectTable = ({
@@ -105,12 +112,15 @@ export const ProjectTable = ({
   onRefresh,
   onStatistics,
   onImport,
+  onImportStreams,
   onExport,
   onPurge,
   isLoading = false,
   projectsCount = 0,
   highlightedProjectId = null,
+  persistentHighlight = false,
   isAdmin = false,
+  showStats = false,
 }: ProjectTableProps) => {
   const [isAdding, setIsAdding] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -171,11 +181,23 @@ export const ProjectTable = ({
       (project.streamsJ21 || 0) +
       (project.streamsJ28 || 0) +
       (project.streamsJ56 || 0) +
-      (project.streamsJ84 || 0)
+      (project.streamsJ84 || 0) +
+      (project.streamsJ180 || 0) +
+      (project.streamsJ365 || 0)
     );
   };
 
-  const columns = isCompact ? columnsCompact : columnsNormal;
+  // Filtrer les colonnes selon showStats
+  const getFilteredColumns = (cols: ColumnConfig[]): ColumnConfig[] => {
+    if (showStats) {
+      // En mode stats: garder seulement nom, stats, et actions (pas de colonne actions dans la config, géré séparément)
+      return cols.filter((col) => col.key === 'name' || col.key.startsWith('streams'));
+    }
+    // Masquer les colonnes de stats si showStats est false
+    return cols.filter((col) => !col.key.startsWith('streams'));
+  };
+
+  const columns = getFilteredColumns(isCompact ? columnsCompact : columnsNormal);
 
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination || !onReorder) {
@@ -271,6 +293,17 @@ export const ProjectTable = ({
               <span className="hidden sm:inline">Importer Excel</span>
             </button>
           )}
+          {onImportStreams && (
+            <button
+              onClick={onImportStreams}
+              className="px-3 py-2 h-[38px] bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+              title="Importer des streams depuis CSV"
+              aria-label="Importer des streams depuis CSV"
+            >
+              <Upload size={16} aria-hidden="true" />
+              <span className="hidden sm:inline">Importer Streams CSV</span>
+            </button>
+          )}
           {onExport && (
             <button
               onClick={onExport}
@@ -313,13 +346,20 @@ export const ProjectTable = ({
           ) : (
             projects.map((project) => {
               const isHighlighted = highlightedProjectId === project.id;
+              const isPersistentGold = isHighlighted && persistentHighlight;
               const isStreamsExpanded = expandedStreams.has(project.id);
               const totalStreams = getTotalStreams(project);
               const hasStreams = totalStreams > 0;
 
+              // Debug: log si c'est le projet à mettre en évidence
+              if (isPersistentGold) {
+                console.log('Animation dorée activée pour:', project.id, project.name);
+              }
+
               return (
                 <div
                   key={project.id}
+                  id={`project-${project.id}`}
                   className={`
                     relative overflow-hidden rounded-2xl
                     bg-gradient-to-br from-gray-900/90 via-gray-900/70 to-gray-800/50
@@ -327,7 +367,13 @@ export const ProjectTable = ({
                     border-l-4 ${getStatusBorderColor(project.status)}
                     shadow-lg shadow-black/20
                     transition-all duration-300
-                    ${isHighlighted ? 'animate-highlight-purple ring-2 ring-purple-500/50' : ''}
+                    ${
+                      isPersistentGold
+                        ? 'animate-highlight-gold'
+                        : isHighlighted
+                          ? 'animate-highlight-purple ring-2 ring-purple-500/50'
+                          : ''
+                    }
                   `}
                 >
                   {/* Header avec nom et actions */}
@@ -415,162 +461,205 @@ export const ProjectTable = ({
                   </div>
 
                   {/* Informations principales */}
-                  <div className="px-4 pb-3">
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                      {/* Style */}
-                      <div className="space-y-1">
-                        <label className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">
-                          Style
-                        </label>
-                        <div className="text-sm text-gray-200">
-                          <EditableCell
-                            value={project.style}
-                            field="style"
-                            type="text"
-                            onSave={(field, value) => handleUpdate(project.id, field, value)}
-                            placeholder="-"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Collab */}
-                      <div className="space-y-1">
-                        <label className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">
-                          Collab
-                        </label>
-                        <div className="text-sm text-gray-200">
-                          <EditableCell
-                            value={project.collab}
-                            field="collab"
-                            type="text"
-                            onSave={(field, value) => handleUpdate(project.id, field, value)}
-                            placeholder="-"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Label */}
-                      <div className="space-y-1">
-                        <label className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">
-                          Label
-                        </label>
-                        <div className="text-sm text-gray-200">
-                          <EditableCell
-                            value={project.label}
-                            field="label"
-                            type="select"
-                            onSave={(field, value) => handleUpdate(project.id, field, value)}
-                            placeholder="-"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Label Final */}
-                      <div className="space-y-1">
-                        <label className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">
-                          Label Final
-                        </label>
-                        <div className="text-sm text-gray-200">
-                          <EditableCell
-                            value={project.labelFinal}
-                            field="labelFinal"
-                            type="text"
-                            onSave={(field, value) => handleUpdate(project.id, field, value)}
-                            placeholder="-"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Date de sortie - mise en avant */}
-                    {project.releaseDate && (
-                      <div className="mt-3 flex items-center gap-2 text-sm">
-                        <Calendar size={14} className="text-purple-400" />
-                        <span className="text-gray-400">Sortie:</span>
-                        <EditableCell
-                          value={project.releaseDate}
-                          field="releaseDate"
-                          type="date"
-                          onSave={(field, value) => handleUpdate(project.id, field, value)}
-                          placeholder="-"
-                          className="!text-purple-300 !font-medium"
-                        />
-                      </div>
-                    )}
-                    {!project.releaseDate && (
-                      <div className="mt-3 flex items-center gap-2 text-sm">
-                        <Calendar size={14} className="text-gray-500" />
-                        <span className="text-gray-500">Date:</span>
-                        <EditableCell
-                          value={project.releaseDate}
-                          field="releaseDate"
-                          type="date"
-                          onSave={(field, value) => handleUpdate(project.id, field, value)}
-                          placeholder="Non définie"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Section Streams - Collapsible */}
-                  <div
-                    className={isStreamsExpanded ? '' : 'border-t border-white/5'}
-                    style={isStreamsExpanded ? { borderTop: 'none' } : {}}
-                  >
-                    <button
-                      onClick={() => toggleStreams(project.id)}
-                      className="w-full px-4 py-3 flex items-center justify-between text-sm hover:bg-white/5 transition-colors focus:outline-none"
-                      aria-expanded={isStreamsExpanded}
-                      aria-controls={`streams-${project.id}`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-gray-400 font-medium">Streams</span>
-                        {hasStreams && (
-                          <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-purple-500/20 text-purple-300">
-                            {totalStreams.toLocaleString('fr-FR')}
-                          </span>
-                        )}
-                      </div>
-                      <ChevronDown
-                        size={18}
-                        className={`text-gray-400 transition-transform duration-200 ${isStreamsExpanded ? 'rotate-180' : ''}`}
-                      />
-                    </button>
-
-                    {/* Contenu streams */}
-                    <div
-                      id={`streams-${project.id}`}
-                      className={`
-                        grid grid-cols-3 gap-3 px-4 overflow-hidden transition-all duration-300 ease-out
-                        ${isStreamsExpanded ? 'pb-4 pt-0.5 max-h-40 opacity-100' : 'max-h-0 opacity-0'}
-                      `}
-                    >
-                      {[
-                        { key: 'streamsJ7', label: 'J7' },
-                        { key: 'streamsJ14', label: 'J14' },
-                        { key: 'streamsJ21', label: 'J21' },
-                        { key: 'streamsJ28', label: 'J28' },
-                        { key: 'streamsJ56', label: 'J56' },
-                        { key: 'streamsJ84', label: 'J84' },
-                      ].map(({ key, label }) => (
-                        <div key={key} className="bg-white/5 rounded-lg p-2 text-center">
-                          <label className="text-[10px] uppercase tracking-wider text-gray-500 block mb-1">
-                            {label}
+                  {!showStats && (
+                    <div className="px-4 pb-3">
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                        {/* Style */}
+                        <div className="space-y-1">
+                          <label className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">
+                            Style
                           </label>
-                          <div className="text-sm font-medium text-gray-200">
+                          <div className="text-sm text-gray-200">
                             <EditableCell
-                              value={project[key as keyof Project] as number | null}
-                              field={key}
-                              type="number"
+                              value={project.style}
+                              field="style"
+                              type="text"
                               onSave={(field, value) => handleUpdate(project.id, field, value)}
-                              placeholder="0"
-                              className="text-center"
+                              placeholder="-"
                             />
                           </div>
                         </div>
-                      ))}
+
+                        {/* Collab */}
+                        <div className="space-y-1">
+                          <label className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">
+                            Collab
+                          </label>
+                          <div className="text-sm text-gray-200">
+                            <EditableCell
+                              value={project.collab}
+                              field="collab"
+                              type="text"
+                              onSave={(field, value) => handleUpdate(project.id, field, value)}
+                              placeholder="-"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Label */}
+                        <div className="space-y-1">
+                          <label className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">
+                            Label
+                          </label>
+                          <div className="text-sm text-gray-200">
+                            <EditableCell
+                              value={project.label}
+                              field="label"
+                              type="select"
+                              onSave={(field, value) => handleUpdate(project.id, field, value)}
+                              placeholder="-"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Label Final */}
+                        <div className="space-y-1">
+                          <label className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">
+                            Label Final
+                          </label>
+                          <div className="text-sm text-gray-200">
+                            <EditableCell
+                              value={project.labelFinal}
+                              field="labelFinal"
+                              type="text"
+                              onSave={(field, value) => handleUpdate(project.id, field, value)}
+                              placeholder="-"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Date de sortie - mise en avant */}
+                      {project.releaseDate && (
+                        <div className="mt-3 flex items-center gap-2 text-sm">
+                          <Calendar size={14} className="text-purple-400" />
+                          <span className="text-gray-400">Sortie:</span>
+                          <EditableCell
+                            value={project.releaseDate}
+                            field="releaseDate"
+                            type="date"
+                            onSave={(field, value) => handleUpdate(project.id, field, value)}
+                            placeholder="-"
+                            className="!text-purple-300 !font-medium"
+                          />
+                        </div>
+                      )}
+                      {!project.releaseDate && (
+                        <div className="mt-3 flex items-center gap-2 text-sm">
+                          <Calendar size={14} className="text-gray-500" />
+                          <span className="text-gray-500">Date:</span>
+                          <EditableCell
+                            value={project.releaseDate}
+                            field="releaseDate"
+                            type="date"
+                            onSave={(field, value) => handleUpdate(project.id, field, value)}
+                            placeholder="Non définie"
+                          />
+                        </div>
+                      )}
                     </div>
-                  </div>
+                  )}
+
+                  {/* Section Streams - Collapsible */}
+                  {showStats && (
+                    <div
+                      className={isStreamsExpanded ? '' : 'border-t border-white/5'}
+                      style={isStreamsExpanded ? { borderTop: 'none' } : {}}
+                    >
+                      <button
+                        onClick={() => toggleStreams(project.id)}
+                        className="w-full px-4 py-3 flex items-center justify-between text-sm hover:bg-white/5 transition-colors focus:outline-none"
+                        aria-expanded={isStreamsExpanded}
+                        aria-controls={`streams-${project.id}`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-400 font-medium">Streams</span>
+                          {hasStreams && (
+                            <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-purple-500/20 text-purple-300">
+                              {totalStreams.toLocaleString('fr-FR')}
+                            </span>
+                          )}
+                        </div>
+                        <ChevronDown
+                          size={18}
+                          className={`text-gray-400 transition-transform duration-200 ${isStreamsExpanded ? 'rotate-180' : ''}`}
+                        />
+                      </button>
+
+                      {/* Contenu streams */}
+                      {showStats && (
+                        <div
+                          id={`streams-${project.id}`}
+                          className={`
+                          grid grid-cols-3 gap-3 px-4 overflow-hidden transition-all duration-300 ease-out
+                          ${isStreamsExpanded ? 'pb-4 pt-0.5 max-h-96 opacity-100' : 'max-h-0 opacity-0'}
+                        `}
+                        >
+                          {/* Jalons court terme */}
+                          <div className="col-span-3">
+                            <p className="text-[10px] uppercase tracking-wider text-gray-500 mb-2">
+                              Court terme
+                            </p>
+                            <div className="grid grid-cols-3 gap-2">
+                              {[
+                                { key: 'streamsJ7', label: 'J7' },
+                                { key: 'streamsJ14', label: 'J14' },
+                                { key: 'streamsJ21', label: 'J21' },
+                                { key: 'streamsJ28', label: 'J28' },
+                                { key: 'streamsJ56', label: 'J56' },
+                                { key: 'streamsJ84', label: 'J84' },
+                              ].map(({ key, label }) => (
+                                <div key={key} className="bg-white/5 rounded-lg p-2 text-center">
+                                  <label className="text-[10px] uppercase tracking-wider text-gray-500 block mb-1">
+                                    {label}
+                                  </label>
+                                  <div className="text-sm font-medium text-gray-200">
+                                    <EditableCell
+                                      value={project[key as keyof Project] as number | null}
+                                      field={key}
+                                      type="number"
+                                      onSave={(field, value) => onUpdate(project.id, field, value)}
+                                      placeholder="0"
+                                      className="text-center"
+                                    />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Jalons long terme */}
+                          <div className="col-span-3 mt-2">
+                            <p className="text-[10px] uppercase tracking-wider text-gray-500 mb-2">
+                              Long terme
+                            </p>
+                            <div className="grid grid-cols-2 gap-2">
+                              {[
+                                { key: 'streamsJ180', label: 'J180 (6 mois)' },
+                                { key: 'streamsJ365', label: 'J365 (1 an)' },
+                              ].map(({ key, label }) => (
+                                <div key={key} className="bg-white/5 rounded-lg p-2 text-center">
+                                  <label className="text-[10px] uppercase tracking-wider text-gray-500 block mb-1">
+                                    {label}
+                                  </label>
+                                  <div className="text-sm font-medium text-gray-200">
+                                    <EditableCell
+                                      value={project[key as keyof Project] as number | null}
+                                      field={key}
+                                      type="number"
+                                      onSave={(field, value) => onUpdate(project.id, field, value)}
+                                      placeholder="0"
+                                      className="text-center"
+                                    />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })
@@ -669,16 +758,24 @@ export const ProjectTable = ({
                       ) : (
                         projects.map((project, index) => {
                           const isHighlighted = highlightedProjectId === project.id;
+                          const isPersistentGold = isHighlighted && persistentHighlight;
                           return (
                             <Draggable key={project.id} draggableId={project.id} index={index}>
                               {(provided, snapshot) => (
                                 <tr
+                                  id={`project-${project.id}`}
                                   ref={provided.innerRef}
                                   {...provided.draggableProps}
                                   data-project-id={project.id}
                                   className={`group hover:bg-white/5 transition-colors ${
                                     snapshot.isDragging ? 'bg-purple-500/20' : ''
-                                  } ${isHighlighted ? 'animate-highlight-purple' : ''}`}
+                                  } ${
+                                    isPersistentGold
+                                      ? 'animate-highlight-gold'
+                                      : isHighlighted
+                                        ? 'animate-highlight-purple'
+                                        : ''
+                                  }`}
                                 >
                                   {/* Poignée de drag */}
                                   <td className={`${isCompact ? 'w-6 px-0.5' : 'w-10 px-2'} py-2`}>

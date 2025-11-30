@@ -36,18 +36,35 @@ export const authConfig = {
         token.role = user.role;
         token.id = user.id;
       }
+
+      // S'assurer que token.id est toujours présent (role peut être undefined pour certains utilisateurs)
+      if (!token.id) {
+        // Si l'ID est manquant, le token est invalide
+        // NextAuth gérera cela automatiquement
+        console.warn('Token JWT invalide: ID manquant');
+      }
+
       return token;
     },
     async session({ session, token }) {
-      if (session.user) {
-        session.user.role = token.role as string | undefined;
-        session.user.id = token.id as string;
+      if (session.user && token) {
+        // S'assurer que les valeurs sont toujours définies
+        session.user.role = (token.role as string | undefined) || undefined;
+        session.user.id = (token.id as string) || '';
+
+        // Si l'ID est manquant, la session est invalide
+        // Retourner null pour que NextAuth traite la session comme non authentifiée
+        if (!session.user.id) {
+          return null;
+        }
       }
       return session;
     },
   },
   session: {
     strategy: 'jwt' as const,
+    maxAge: 30 * 24 * 60 * 60, // 30 jours en secondes
+    updateAge: 24 * 60 * 60, // Rafraîchir le token tous les 24 heures
   },
   pages: {
     signIn: '/',
