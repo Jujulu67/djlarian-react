@@ -22,7 +22,7 @@ SELECT
     'MILESTONE' as "type",
     'Jalon ' || "milestoneType" || ' atteint' as "title",
     'Le projet a atteint le jalon ' || "milestoneType" as "message",
-    json_object('milestoneType', "milestoneType") as "metadata",
+    json_build_object('milestoneType', "milestoneType")::text as "metadata",
     "isRead",
     "createdAt",
     "readAt",
