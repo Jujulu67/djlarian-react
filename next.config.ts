@@ -39,6 +39,10 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: '*.public.blob.vercel-storage.com', // Vercel Blob Storage
       },
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com', // Google OAuth avatars
+      },
     ],
     // Configuration pour les images locales avec query strings (cache busting)
     // Permet d'utiliser des query strings comme ?t=timestamp pour forcer le rechargement

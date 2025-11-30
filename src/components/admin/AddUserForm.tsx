@@ -2,6 +2,7 @@
 
 import { UserPlus, Loader2, Edit, Star } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 
 import { logger } from '@/lib/logger';
@@ -24,6 +25,7 @@ interface AddUserFormProps {
 // Ce composant contient uniquement le formulaire et sa logique
 export default function AddUserForm({ onSuccess, userToEdit }: AddUserFormProps) {
   const router = useRouter(); // Peut être utile pour rafraîchir après succès
+  const { data: session, update: updateSession } = useSession();
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
@@ -123,6 +125,27 @@ export default function AddUserForm({ onSuccess, userToEdit }: AddUserFormProps)
 
       // Succès
       logger.debug(`Utilisateur ${isEditMode ? 'modifié' : 'créé'}:`, data);
+
+      // Si c'est l'utilisateur connecté qui a été modifié, mettre à jour la session
+      if (isEditMode && session?.user?.id === userToEdit?.id) {
+        try {
+          await updateSession({
+            ...session,
+            user: {
+              ...session.user,
+              name: data.name,
+              email: data.email,
+              role: data.role,
+              isVip: data.isVip,
+            },
+          });
+          logger.debug("Session mise à jour pour l'utilisateur connecté");
+        } catch (sessionError) {
+          logger.error('Erreur lors de la mise à jour de la session:', sessionError);
+          // Ne pas bloquer le succès de la mise à jour si la session échoue
+        }
+      }
+
       if (onSuccess) {
         onSuccess(); // Appeler le callback (ex: pour fermer la modale et rafraîchir)
       }

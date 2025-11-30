@@ -21,17 +21,31 @@ L'application supporte l'authentification OAuth via :
 
 ## 🔧 Configuration Google OAuth
 
-### Étape 1 : Créer un projet Google Cloud
+### Étape 1 : Utiliser un projet Google Cloud existant ou en créer un nouveau
+
+**✅ Vous avez déjà un projet Google Cloud (ex: "DJLarian Search" pour Custom Search API) ?**
+
+Parfait ! Vous pouvez utiliser le **même projet** pour OAuth. C'est même recommandé pour centraliser la configuration.
 
 1. Aller sur https://console.cloud.google.com/
-2. Cliquer sur "Sélectionner un projet" → "Nouveau projet"
-3. Donner un nom (ex: "DJLarian Auth")
-4. Cliquer sur "Créer"
+2. **Sélectionner le projet existant** (ex: "DJLarian Search")
+3. Si vous n'avez pas encore de projet, créer un nouveau projet :
+   - Cliquer sur "Sélectionner un projet" → "Nouveau projet"
+   - Donner un nom (ex: "DJLarian" ou "DJLarian Search")
+   - Cliquer sur "Créer"
+
+**💡 Note** : Un même projet Google Cloud peut avoir plusieurs identifiants :
+
+- Une **clé API** pour Custom Search API (SoundCloud parsing)
+- Un **Client ID/Secret OAuth 2.0** pour l'authentification utilisateur
+- Les deux coexistent sans problème dans le même projet
 
 ### Étape 2 : Configurer l'écran de consentement OAuth
 
+**⚠️ Si vous utilisez un projet existant** : Vérifiez d'abord si l'écran de consentement OAuth est déjà configuré. Si oui, vous pouvez passer à l'étape 3.
+
 1. Dans le menu, aller dans **"APIs & Services"** → **"OAuth consent screen"**
-2. Choisir **"Externe"** (ou "Interne" si vous avez Google Workspace)
+2. Si c'est la première fois, choisir **"Externe"** (ou "Interne" si vous avez Google Workspace)
 3. Remplir les informations :
    - **Nom de l'application** : DJLarian (ou votre choix)
    - **Email de support utilisateur** : votre email
@@ -40,20 +54,30 @@ L'application supporte l'authentification OAuth via :
 5. **Scopes** : Les scopes `email`, `profile`, `openid` sont déjà ajoutés par défaut
 6. Cliquer sur **"Enregistrer et continuer"**
 7. **Utilisateurs de test** (si en mode test) : Ajouter votre email pour tester
-8. Cliquer sur **"Retour au tableau de bord"**
+8. Cliquer sur **"Retour au tableau de dashboard"**
 
 ### Étape 3 : Créer des identifiants OAuth 2.0
+
+**💡 Important** : Vous pouvez avoir plusieurs identifiants dans le même projet. Celui-ci sera spécifiquement pour OAuth (authentification utilisateur), différent de votre clé API Custom Search.
 
 1. Aller dans **"APIs & Services"** → **"Identifiants"**
 2. Cliquer sur **"Créer des identifiants"** → **"ID client OAuth 2.0"**
 3. **Type d'application** : Application Web
-4. **Nom** : DJLarian Web Client (ou votre choix)
+4. **Nom** : DJLarian Web Client (ou `DJLarian OAuth` pour différencier de votre clé API)
 5. **URI de redirection autorisées** :
    - Pour le développement local : `http://localhost:3000/api/auth/callback/google`
    - Pour la production : `https://votre-domaine.com/api/auth/callback/google`
    - Pour Vercel : `https://votre-projet.vercel.app/api/auth/callback/google`
+   - **⚠️ Important** : Ajoutez les URIs une par ligne, séparément
 6. Cliquer sur **"Créer"**
 7. **⚠️ IMPORTANT** : Copier immédiatement le **Client ID** et le **Client Secret**
+
+**📝 Note** :
+
+- Votre `GOOGLE_SEARCH_API_KEY` (clé API) reste inchangée et continue de fonctionner pour SoundCloud
+- Ce nouveau Client ID/Secret est uniquement pour OAuth (connexion utilisateur)
+- Les deux peuvent coexister dans le même projet sans problème
+- Le Client ID OAuth est différent de votre clé API Custom Search
 
 ### Étape 4 : Configurer les variables d'environnement
 

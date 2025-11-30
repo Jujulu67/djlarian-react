@@ -1,6 +1,7 @@
 import type { NextAuthConfig, Session } from 'next-auth';
 import Google from 'next-auth/providers/google';
 import Twitch from 'next-auth/providers/twitch';
+import { storeMergeToken } from '@/lib/merge-token-cache';
 
 // Auth.js configuration - Vercel (Node.js runtime natif)
 // Ne configurer les providers OAuth que si les credentials sont disponibles
@@ -27,8 +28,196 @@ if (process.env.TWITCH_CLIENT_ID && process.env.TWITCH_CLIENT_SECRET) {
 export const authConfig = {
   providers,
   callbacks: {
-    async signIn({ user, account }) {
-      // Autoriser la connexion pour tous les providers
+    async signIn({ user, account, profile }) {
+      // Si c'est une connexion OAuth et qu'un utilisateur existe avec le même email
+      if (account && user.email) {
+        const prismaModule = await import('@/lib/prisma');
+        const prisma = prismaModule.default;
+
+        // Vérifier si ce compte OAuth est déjà lié à un autre utilisateur
+        const existingAccount = await prisma.account.findUnique({
+          where: {
+            provider_providerAccountId: {
+              provider: account.provider,
+              providerAccountId: account.providerAccountId,
+            },
+          },
+          include: { user: true },
+        });
+
+        // Si le compte OAuth est déjà lié à un utilisateur
+        if (existingAccount) {
+          // Si l'email correspond, c'est le même utilisateur, autoriser
+          if (existingAccount.user.email === user.email) {
+            // Le compte est déjà lié, autoriser la connexion
+            // Mettre à jour l'image et le nom depuis le profil OAuth si disponibles
+            const updateData: { image?: string; name?: string } = {};
+
+            if (
+              user.image &&
+              (!existingAccount.user.image || existingAccount.user.image !== user.image)
+            ) {
+              updateData.image = user.image;
+            }
+
+            if (
+              user.name &&
+              (!existingAccount.user.name || existingAccount.user.name !== user.name)
+            ) {
+              updateData.name = user.name;
+            }
+
+            if (Object.keys(updateData).length > 0) {
+              await prisma.user.update({
+                where: { id: existingAccount.user.id },
+                data: updateData,
+              });
+              console.log(
+                `[Auth] Profil mis à jour pour ${user.email}: ${Object.keys(updateData).join(', ')}`
+              );
+            }
+
+            return true;
+          } else {
+            // Le compte OAuth est lié à un autre utilisateur avec un email différent
+            console.warn(
+              `[Auth] Tentative de connexion avec un compte OAuth déjà lié à un autre utilisateur (${existingAccount.user.email})`
+            );
+            // Autoriser quand même, NextAuth gérera la création/liaison
+            // Mais on log un avertissement
+          }
+        }
+
+        const existingUser = await prisma.user.findUnique({
+          where: { email: user.email },
+          include: { Account: true },
+        });
+
+        // Si un utilisateur existe et qu'il a déjà un compte OAuth pour ce provider, autoriser
+        if (existingUser) {
+          const hasAccountForProvider = existingUser.Account.some(
+            (acc) => acc.provider === account.provider
+          );
+
+          if (hasAccountForProvider) {
+            // Le compte est déjà lié, autoriser la connexion
+            // Mettre à jour l'image et le nom depuis le profil OAuth si disponibles
+            const updateData: { image?: string; name?: string } = {};
+
+            if (user.image && (!existingUser.image || existingUser.image !== user.image)) {
+              updateData.image = user.image;
+            }
+
+            if (user.name && (!existingUser.name || existingUser.name !== user.name)) {
+              updateData.name = user.name;
+            }
+
+            if (Object.keys(updateData).length > 0) {
+              await prisma.user.update({
+                where: { id: existingUser.id },
+                data: updateData,
+              });
+              console.log(
+                `[Auth] Profil mis à jour pour ${user.email}: ${Object.keys(updateData).join(', ')}`
+              );
+            }
+
+            return true;
+          }
+
+          // Si l'utilisateur existe mais n'a pas encore de compte OAuth pour ce provider
+          // Par défaut, demander confirmation avant fusion (peut être désactivé avec REQUIRE_MERGE_CONFIRMATION=false)
+          const requireMergeConfirmation = process.env.REQUIRE_MERGE_CONFIRMATION !== 'false';
+
+          if (requireMergeConfirmation) {
+            // Créer un token temporaire pour la fusion
+            const { hkdf } = await import('@panva/hkdf');
+            const { EncryptJWT, base64url, calculateJwkThumbprint } = await import('jose');
+
+            const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
+            if (secret) {
+              const isSecure = process.env.NODE_ENV === 'production';
+              const cookieName = isSecure
+                ? '__Secure-authjs.session-token'
+                : 'authjs.session-token';
+              const salt = cookieName;
+
+              const encryptionSecret = await hkdf(
+                'sha256',
+                secret,
+                salt,
+                `Auth.js Generated Encryption Key (${salt})`,
+                64
+              );
+
+              const thumbprint = await calculateJwkThumbprint(
+                { kty: 'oct', k: base64url.encode(encryptionSecret) },
+                'sha256'
+              );
+
+              const mergeToken = await new EncryptJWT({
+                email: user.email,
+                name: user.name,
+                image: user.image,
+                provider: account.provider,
+                providerAccountId: account.providerAccountId,
+                existingUserId: existingUser.id,
+                accountData: {
+                  type: account.type,
+                  refresh_token: account.refresh_token,
+                  access_token: account.access_token,
+                  expires_at: account.expires_at,
+                  token_type: account.token_type,
+                  scope: account.scope,
+                  id_token: account.id_token,
+                  session_state: account.session_state,
+                },
+              })
+                .setProtectedHeader({ alg: 'dir', enc: 'A256CBC-HS512', kid: thumbprint })
+                .setIssuedAt(Math.floor(Date.now() / 1000))
+                .setExpirationTime(Math.floor(Date.now() / 1000) + 3600) // 1 heure
+                .encrypt(encryptionSecret);
+
+              // Stocker le token dans la base de données (partagé entre tous les workers)
+              await storeMergeToken(user.email, mergeToken);
+
+              // Retourner false pour bloquer la connexion
+              // La page d'erreur récupérera le token depuis la base de données et redirigera
+              return false;
+            }
+          }
+
+          // Sinon, fusionner automatiquement (comportement par défaut)
+          // Mettre à jour l'image et le nom depuis le profil OAuth si disponibles
+          const updateData: { image?: string; name?: string } = {};
+
+          // Si l'image OAuth existe, l'utiliser
+          // Sinon, si l'utilisateur n'a pas d'image, laisser null (comme lors d'un signup normal)
+          if (user.image && user.image.trim() !== '') {
+            if (!existingUser.image || existingUser.image !== user.image) {
+              updateData.image = user.image;
+            }
+          }
+          // Si l'image OAuth est vide et que l'utilisateur n'a pas d'image, on ne fait rien
+          // (on laisse null, le placeholder sera géré côté UI)
+
+          if (user.name && (!existingUser.name || existingUser.name !== user.name)) {
+            updateData.name = user.name;
+          }
+
+          if (Object.keys(updateData).length > 0) {
+            await prisma.user.update({
+              where: { id: existingUser.id },
+              data: updateData,
+            });
+            console.log(
+              `[Auth] Profil mis à jour pour ${user.email}: ${Object.keys(updateData).join(', ')}`
+            );
+          }
+        }
+      }
+
+      // Autoriser la connexion
       return true;
     },
     async jwt({ token, user, trigger, session }) {
@@ -53,6 +242,16 @@ export const authConfig = {
         token.image = user.image;
         token.name = user.name;
         token.email = user.email;
+
+        // Log pour déboguer l'image OAuth
+        if (user.image) {
+          console.log(
+            `[AuthConfig] JWT callback - Image utilisateur: ${user.image.substring(0, 50)}...`
+          );
+        } else {
+          console.log(`[AuthConfig] JWT callback - Aucune image pour l'utilisateur ${user.id}`);
+        }
+
         // Ajouter createdAt et isVip si disponibles
         const userWithExtras = user as { createdAt?: string | Date; isVip?: boolean };
         if (userWithExtras.createdAt) {
@@ -120,6 +319,9 @@ export const authConfig = {
         // Récupérer l'image depuis le token si disponible (priorité au token qui est mis à jour via updateSession)
         if (token.image) {
           session.user.image = token.image as string;
+          console.log(
+            `[AuthConfig] Image récupérée depuis token: ${token.image.substring(0, 50)}...`
+          );
         } else if (userId) {
           // Si l'image n'est pas dans le token, la récupérer depuis la base de données
           try {
@@ -132,11 +334,18 @@ export const authConfig = {
               });
               if (user?.image) {
                 session.user.image = user.image;
+                console.log(
+                  `[AuthConfig] Image récupérée depuis DB: ${user.image.substring(0, 50)}...`
+                );
+              } else {
+                console.log(`[AuthConfig] Aucune image trouvée pour l'utilisateur ${userId}`);
               }
             }
           } catch (error) {
             console.error('[AuthConfig] Erreur récupération image depuis DB:', error);
           }
+        } else {
+          console.log("[AuthConfig] Pas de userId, impossible de récupérer l'image");
         }
 
         // Récupérer le nom et l'email depuis le token si disponibles
@@ -196,6 +405,21 @@ export const authConfig = {
       }
     },
     async redirect({ url, baseUrl }) {
+      // Vérifier s'il y a un token de fusion en attente et définir le cookie
+      try {
+        const { peekAnyMergeToken } = await import('@/lib/merge-token-cache');
+        const peekedToken = await peekAnyMergeToken();
+        if (peekedToken) {
+          console.log(
+            `[AuthConfig] redirect - Token de fusion détecté pour ${peekedToken.email}, cookie sera défini par NextAuth`
+          );
+          // Note: On ne peut pas définir de cookie directement ici, mais on peut utiliser l'email dans l'URL
+          // Le cookie sera défini par la page d'erreur ou l'API check
+        }
+      } catch (error) {
+        console.error('[AuthConfig] redirect - Erreur vérification token fusion:', error);
+      }
+
       // Nettoyer l'URL pour éviter les boucles de callbackUrl
       try {
         // Si l'URL est la baseUrl ou la page d'accueil, retourner baseUrl sans query params
@@ -205,8 +429,23 @@ export const authConfig = {
 
         const urlObj = new URL(url, baseUrl);
 
+        // Vérifier si c'est une association de compte (link=true)
+        const isLinking = urlObj.searchParams.get('link') === 'true';
+
         // Supprimer tous les query params callbackUrl pour éviter les boucles
         urlObj.searchParams.delete('callbackUrl');
+
+        // Si c'est une association, rediriger vers /profile avec un message de succès
+        if (isLinking) {
+          urlObj.pathname = '/profile';
+          urlObj.searchParams.delete('link');
+          urlObj.searchParams.set('linked', 'true');
+          const finalUrl = urlObj.toString();
+          console.log(
+            `[AuthConfig] redirect - Association de compte, redirection vers: ${finalUrl}`
+          );
+          return finalUrl;
+        }
 
         // Si l'URL ne contient plus que le pathname (pas de query params)
         const cleanPath = urlObj.pathname;
@@ -251,5 +490,6 @@ export const authConfig = {
   },
   pages: {
     signIn: '/',
+    error: '/auth/error',
   },
 } satisfies NextAuthConfig;
