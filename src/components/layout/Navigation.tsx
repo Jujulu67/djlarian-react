@@ -491,19 +491,6 @@ const Navigation = () => {
                             <motion.div
                               initial={{ x: -5, opacity: 0 }}
                               animate={{ x: 0, opacity: 1 }}
-                              transition={{ delay: 0.11, duration: 0.1 }}
-                            >
-                              <Link
-                                href="/profile-old"
-                                className="flex items-center px-4 py-2 text-sm text-white/90 hover:text-white hover:bg-purple-500/10 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-inset"
-                              >
-                                <User className="w-4 h-4 mr-2" />
-                                Profil (Ancien)
-                              </Link>
-                            </motion.div>
-                            <motion.div
-                              initial={{ x: -5, opacity: 0 }}
-                              animate={{ x: 0, opacity: 1 }}
                               transition={{ delay: 0.12, duration: 0.1 }}
                             >
                               <Link
@@ -692,14 +679,6 @@ const Navigation = () => {
                             Profil
                           </Link>
                           <Link
-                            href="/profile-old"
-                            className="flex items-center px-4 py-2 text-sm text-white/90 hover:text-white hover:bg-purple-500/10 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-inset"
-                            onClick={() => setIsMobileUserMenuOpen(false)}
-                          >
-                            <User className="w-4 h-4 mr-2" />
-                            Profil (Ancien)
-                          </Link>
-                          <Link
                             href="/projects"
                             className="flex items-center px-4 py-2 text-sm text-white/90 hover:text-white hover:bg-purple-500/10 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-inset"
                             onClick={() => {
@@ -807,21 +786,6 @@ const Navigation = () => {
                     </Link>
                   </motion.div>
                 ))}
-                {/* Lien vers l'ancien profil */}
-                <motion.div
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: links.length * 0.05, duration: 0.15 }}
-                >
-                  <Link
-                    href="/profile-old"
-                    className="text-white/90 hover:text-white py-2 transition-colors flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-inset rounded border-t border-purple-500/20 pt-3 mt-2"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <History size={18} className="text-purple-400" />
-                    Ancien Profil
-                  </Link>
-                </motion.div>
               </div>
             </motion.div>
           )}
