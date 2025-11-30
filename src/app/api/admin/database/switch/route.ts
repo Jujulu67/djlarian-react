@@ -47,6 +47,40 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // Sauvegarder le schéma modifié
     await fs.writeFile(schemaPath, schemaContent, 'utf-8');
 
+    // Mettre à jour migration_lock.toml pour correspondre au provider
+    const migrationLockPath = path.join(
+      process.cwd(),
+      'prisma',
+      'migrations',
+      'migration_lock.toml'
+    );
+    try {
+      if (
+        await fs
+          .access(migrationLockPath)
+          .then(() => true)
+          .catch(() => false)
+      ) {
+        let lockContent = await fs.readFile(migrationLockPath, 'utf-8');
+
+        if (useProduction) {
+          // Changer vers PostgreSQL
+          lockContent = lockContent.replace(/provider\s*=\s*"sqlite"/, 'provider = "postgresql"');
+        } else {
+          // Changer vers SQLite
+          lockContent = lockContent.replace(/provider\s*=\s*"postgresql"/, 'provider = "sqlite"');
+        }
+
+        await fs.writeFile(migrationLockPath, lockContent, 'utf-8');
+        logger.info(
+          `[DB SWITCH] migration_lock.toml mis à jour vers ${useProduction ? 'postgresql' : 'sqlite'}`
+        );
+      }
+    } catch (error) {
+      logger.warn('[DB SWITCH] Impossible de mettre à jour migration_lock.toml', error);
+      // Ne pas bloquer, mais avertir
+    }
+
     // Mettre à jour DATABASE_URL dans .env.local
     try {
       let envContent = '';

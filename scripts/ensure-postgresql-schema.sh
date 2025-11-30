@@ -392,28 +392,14 @@ if [ "$NODE_ENV" = "production" ]; then
               echo "   📋 Migration échouée identifiée: $FAILED_MIGRATION"
               echo "   📋 Retry count: $RETRY_COUNT"
               
-              # Si on a déjà essayé plusieurs fois avec rolled-back, essayer directement applied
-              if [ $RETRY_COUNT -ge 1 ]; then
-                echo "   🔧 Migration $FAILED_MIGRATION échoue toujours, tentative de marquer comme applied..."
-                set +e
-                RESOLVE_APPLIED_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma migrate resolve --applied "$FAILED_MIGRATION" 2>&1)
-                RESOLVE_APPLIED=$?
-                set -e
-                
-                echo "   📋 Code de sortie resolve --applied: $RESOLVE_APPLIED"
-                if [ $RESOLVE_APPLIED -ne 0 ]; then
-                  echo "   📋 Sortie resolve --applied: $RESOLVE_APPLIED_OUTPUT"
-                fi
-                
-                if [ $RESOLVE_APPLIED -eq 0 ]; then
-                  echo "   ✅ Migration marquée comme applied (probablement déjà partiellement appliquée)"
-                  # Réinitialiser le compteur et réessayer
-                  RETRY_COUNT=0
-                  continue
-                else
-                  echo "   ⚠️  Impossible de marquer comme applied, code: $RESOLVE_APPLIED"
-                fi
-              fi
+              # ATTENTION: Ne pas marquer comme "applied" automatiquement si la migration a vraiment échoué
+              # Cela peut créer des tables manquantes en production (comme Notification)
+              # On préfère laisser la migration échouer et utiliser le fallback db push
+              echo "   ⚠️  Migration $FAILED_MIGRATION échoue toujours après plusieurs tentatives"
+              echo "   💡 La migration ne sera PAS marquée comme applied automatiquement"
+              echo "   💡 Cela évite de créer des tables manquantes (comme ce qui s'est passé avec Notification)"
+              echo "   💡 Utilisation du fallback db push pour synchroniser le schéma"
+              echo "   💡 Si nécessaire, exécutez manuellement: npm run db:fix-notification-table"
               
               # Essayer la résolution normale (rolled-back puis applied)
               if resolve_failed_migration "$MIGRATE_DEPLOY_OUTPUT"; then

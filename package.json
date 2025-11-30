@@ -36,6 +36,12 @@
     "db:diagnose-prod": "node scripts/diagnose-prod-db.mjs",
     "db:cleanup-migrations": "node scripts/cleanup-old-migrations.mjs",
     "db:cleanup-migrations:execute": "node scripts/cleanup-old-migrations.mjs --execute",
+    "db:fix-notification-table": "node scripts/fix-notification-table.mjs",
+    "db:analyze-migrations": "node scripts/analyze-migration-state.mjs",
+    "db:create-baselines": "node scripts/create-baseline-migrations.mjs",
+    "db:cleanup-duplicates": "node scripts/cleanup-duplicate-migrations.mjs",
+    "db:sync-sqlite-baselines": "node scripts/sync-sqlite-baselines.mjs",
+    "db:verify-alignment": "node scripts/verify-sqlite-prod-alignment.mjs",
     "generate:waveform-video": "node scripts/generate-waveform-video.mjs"
   },
   "dependencies": {
