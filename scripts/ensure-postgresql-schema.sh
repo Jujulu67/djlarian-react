@@ -121,7 +121,15 @@ if [ "$NODE_ENV" = "production" ]; then
     
     # Vérifier d'abord l'état des migrations (pour éviter les timeouts de verrous)
     echo "   🔍 Vérification de l'état des migrations..."
-    MIGRATE_STATUS_OUTPUT=$(npx prisma migrate status 2>&1 || true)
+    set +e  # Désactiver temporairement set -e pour cette section
+    MIGRATE_STATUS_OUTPUT=$(npx prisma migrate status 2>&1)
+    MIGRATE_STATUS_EXIT_CODE=$?
+    set -e  # Réactiver set -e
+    
+    if [ $MIGRATE_STATUS_EXIT_CODE -ne 0 ]; then
+      echo "   ⚠️  migrate status a retourné une erreur (code: $MIGRATE_STATUS_EXIT_CODE)"
+      echo "   📋 Sortie: $MIGRATE_STATUS_OUTPUT"
+    fi
     
     # Fonction pour résoudre une migration échouée
     resolve_failed_migration() {
@@ -166,7 +174,13 @@ if [ "$NODE_ENV" = "production" ]; then
     
     # Vérifier s'il y a des migrations échouées et les résoudre
     if echo "$MIGRATE_STATUS_OUTPUT" | grep -qE "failed migrations|failed migration|P3009"; then
+      set +e  # Désactiver set -e pour la résolution
       resolve_failed_migration "$MIGRATE_STATUS_OUTPUT"
+      RESOLVE_EXIT_CODE=$?
+      set -e  # Réactiver set -e
+      if [ $RESOLVE_EXIT_CODE -ne 0 ]; then
+        echo "   ⚠️  La résolution de la migration échouée n'a pas réussi, mais on continue..."
+      fi
     fi
     
     # Si toutes les migrations sont déjà appliquées, on peut skip migrate deploy
@@ -184,8 +198,10 @@ if [ "$NODE_ENV" = "production" ]; then
           sleep 2
         fi
         
+        set +e  # Désactiver set -e pour migrate deploy
         MIGRATE_DEPLOY_OUTPUT=$(npx prisma migrate deploy 2>&1)
         MIGRATE_DEPLOY_EXIT_CODE=$?
+        set -e  # Réactiver set -e
         
         if [ $MIGRATE_DEPLOY_EXIT_CODE -eq 0 ]; then
           MIGRATE_SUCCESS=true
