@@ -1,0 +1,9 @@
+-- Baseline migration: Cette migration existe déjà dans la base de données de production
+-- Elle est marquée comme baseline pour synchroniser l'historique des migrations
+-- Aucune modification SQL n'est nécessaire, le schéma est déjà à jour
+--
+-- Cette migration a été créée automatiquement pour aligner Git avec la base de données
+-- Date de création: 2025-11-30T14:21:41.647Z
+--
+-- IMPORTANT: Cette migration est vide car elle existe déjà en production
+-- Ne pas modifier ce fichier, il sert uniquement à synchroniser l'historique

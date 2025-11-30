@@ -61,6 +61,27 @@ if [ "$USE_PRODUCTION" != "true" ]; then
   else
     echo "✅ Schema.prisma est déjà en SQLite"
   fi
+  
+  # Vérifier et corriger migration_lock.toml si nécessaire
+  MIGRATION_LOCK_PATH="prisma/migrations/migration_lock.toml"
+  if [ -f "$MIGRATION_LOCK_PATH" ]; then
+    if grep -q 'provider = "postgresql"' "$MIGRATION_LOCK_PATH"; then
+      echo "⚠️  migration_lock.toml est en PostgreSQL, correction vers SQLite pour le développement..."
+      
+      # Remplacer PostgreSQL par SQLite dans migration_lock.toml
+      if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS
+        sed -i '' 's/provider = "postgresql"/provider = "sqlite"/' "$MIGRATION_LOCK_PATH"
+      else
+        # Linux
+        sed -i 's/provider = "postgresql"/provider = "sqlite"/' "$MIGRATION_LOCK_PATH"
+      fi
+      
+      echo "✅ migration_lock.toml corrigé vers SQLite"
+    else
+      echo "✅ migration_lock.toml est déjà en SQLite"
+    fi
+  fi
 else
   # Si le switch est on (useProduction: true), forcer PostgreSQL
   if grep -q 'provider = "sqlite"' "$SCHEMA_PATH"; then
@@ -79,6 +100,27 @@ else
     SCHEMA_CHANGED=true
   else
     echo "✅ Schema.prisma est déjà en PostgreSQL"
+  fi
+  
+  # Vérifier et corriger migration_lock.toml si nécessaire
+  MIGRATION_LOCK_PATH="prisma/migrations/migration_lock.toml"
+  if [ -f "$MIGRATION_LOCK_PATH" ]; then
+    if grep -q 'provider = "sqlite"' "$MIGRATION_LOCK_PATH"; then
+      echo "⚠️  migration_lock.toml est en SQLite, correction vers PostgreSQL (switch activé)..."
+      
+      # Remplacer SQLite par PostgreSQL dans migration_lock.toml
+      if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS
+        sed -i '' 's/provider = "sqlite"/provider = "postgresql"/' "$MIGRATION_LOCK_PATH"
+      else
+        # Linux
+        sed -i 's/provider = "sqlite"/provider = "postgresql"/' "$MIGRATION_LOCK_PATH"
+      fi
+      
+      echo "✅ migration_lock.toml corrigé vers PostgreSQL"
+    else
+      echo "✅ migration_lock.toml est déjà en PostgreSQL"
+    fi
   fi
 fi
 
