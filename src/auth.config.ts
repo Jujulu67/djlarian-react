@@ -1,4 +1,4 @@
-import type { NextAuthConfig } from 'next-auth';
+import type { NextAuthConfig, Session } from 'next-auth';
 import Google from 'next-auth/providers/google';
 import Twitch from 'next-auth/providers/twitch';
 
@@ -27,28 +27,12 @@ if (process.env.TWITCH_CLIENT_ID && process.env.TWITCH_CLIENT_SECRET) {
 export const authConfig = {
   providers,
   callbacks: {
-    async signIn({ user, account, profile }) {
-      console.log('[AuthConfig] signIn callback:', {
-        userId: user?.id,
-        email: user?.email,
-        provider: account?.provider,
-        accountId: account?.providerAccountId,
-      });
+    async signIn({ user, account }) {
       // Autoriser la connexion pour tous les providers
       return true;
     },
     async jwt({ token, user, trigger, session }) {
-      console.log('[AuthConfig] jwt callback:', {
-        trigger,
-        hasUser: !!user,
-        userId: user?.id,
-        tokenSub: token?.sub,
-        tokenId: token?.id,
-        tokenRole: token?.role,
-      });
-
       if (trigger === 'update' && session?.user) {
-        console.log('[AuthConfig] jwt - Update trigger:', session.user);
         // Mettre à jour le token avec toutes les données de session.user, y compris l'image
         return {
           ...token,
@@ -66,40 +50,31 @@ export const authConfig = {
         token.image = user.image;
         token.name = user.name;
         token.email = user.email;
-        console.log('[AuthConfig] jwt - Token mis à jour avec user:', {
-          id: token.id,
-          role: token.role,
-          image: token.image,
-        });
       }
 
       // Si token.id est manquant mais sub est présent (JWT manuel)
       // Utiliser sub comme id
       if (!token.id && token.sub) {
         token.id = token.sub;
-        console.log('[AuthConfig] jwt - ID récupéré depuis sub:', token.id);
       }
 
       return token;
     },
     async session({ session, token }) {
       try {
-        console.log('[AuthConfig] session callback:', {
-          hasSession: !!session,
-          hasToken: !!token,
-          tokenSub: token?.sub,
-          tokenId: token?.id,
-          tokenRole: token?.role,
-          tokenImage: token?.image,
-        });
-
         // Vérifications défensives - s'assurer que session existe
         if (!session) {
           console.warn('[AuthConfig] session callback - session is null/undefined');
+          // Retourner une session minimale valide
           return {
-            user: null,
+            user: {
+              id: '',
+              name: undefined,
+              email: undefined,
+              image: undefined,
+            },
             expires: new Date().toISOString(),
-          } as any;
+          } as Session;
         }
 
         // Si session.user n'existe pas, retourner la session telle quelle
@@ -161,43 +136,33 @@ export const authConfig = {
           session.user.email = token.email as string;
         }
 
-        // Log sécurisé
-        console.log('[AuthConfig] session - Session mise à jour:', {
-          userId: session.user?.id,
-          role: session.user?.role,
-          email: session.user?.email,
-          image: session.user?.image,
-        });
-
         return session;
       } catch (error) {
         console.error('[AuthConfig] session callback error:', error);
-        // En cas d'erreur, retourner la session originale ou une session vide
+        // En cas d'erreur, retourner la session originale ou une session minimale valide
         return (
           session ||
           ({
-            user: null,
+            user: {
+              id: '',
+              name: undefined,
+              email: undefined,
+              image: undefined,
+            },
             expires: new Date().toISOString(),
-          } as any)
+          } as Session)
         );
       }
     },
     async redirect({ url, baseUrl }) {
-      console.log('[AuthConfig] redirect callback:', { url, baseUrl });
       // Nettoyer l'URL pour éviter les boucles de callbackUrl
       try {
         // Si l'URL est la baseUrl ou la page d'accueil, retourner baseUrl sans query params
         if (url === baseUrl || url === `${baseUrl}/` || url === '/') {
-          console.log('[AuthConfig] redirect - URL est baseUrl, retour:', baseUrl);
           return baseUrl;
         }
 
         const urlObj = new URL(url, baseUrl);
-        console.log('[AuthConfig] redirect - URL parsée:', {
-          href: urlObj.href,
-          pathname: urlObj.pathname,
-          search: urlObj.search,
-        });
 
         // Supprimer tous les query params callbackUrl pour éviter les boucles
         urlObj.searchParams.delete('callbackUrl');
@@ -207,7 +172,6 @@ export const authConfig = {
 
         // Si le pathname est juste '/' ou vide, retourner baseUrl
         if (cleanPath === '/' || cleanPath === '') {
-          console.log('[AuthConfig] redirect - Pathname est /, retour:', baseUrl);
           return baseUrl;
         }
 
@@ -218,11 +182,9 @@ export const authConfig = {
 
         // Construire l'URL finale
         const finalUrl = `${baseUrl}${cleanPath}${urlObj.search}`;
-        console.log('[AuthConfig] redirect - URL finale construite:', finalUrl);
 
         // Si l'URL finale est juste la baseUrl avec un slash, retourner baseUrl
         if (finalUrl === `${baseUrl}/` || finalUrl === baseUrl) {
-          console.log('[AuthConfig] redirect - URL finale est baseUrl, retour:', baseUrl);
           return baseUrl;
         }
 
@@ -233,7 +195,6 @@ export const authConfig = {
           return baseUrl;
         }
 
-        console.log('[AuthConfig] redirect - Retour URL finale:', finalUrl);
         return finalUrl;
       } catch (error) {
         // En cas d'erreur, retourner la baseUrl

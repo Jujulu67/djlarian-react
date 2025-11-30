@@ -53,8 +53,6 @@ function clearAllAuthCookies(request: NextRequest, response: NextResponse): void
  * GET /api/auth/signout - Nettoie les cookies (utile pour les cookies corrompus)
  */
 export async function GET(request: NextRequest) {
-  console.log('[API] /api/auth/signout GET - Nettoyage des cookies');
-
   const response = NextResponse.json(
     { success: true, message: 'Cookies nettoyés' },
     { status: 200 }
@@ -73,8 +71,6 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    console.log('[API] /api/auth/signout - Début de la déconnexion');
-
     const response = NextResponse.json({ success: true }, { status: 200 });
     clearAllAuthCookies(request, response);
 
@@ -82,14 +78,10 @@ export async function POST(request: NextRequest) {
     response.headers.set('Pragma', 'no-cache');
     response.headers.set('Clear-Site-Data', '"cookies", "storage"');
 
-    console.log('[API] /api/auth/signout - Déconnexion complète');
-
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[API] /api/auth/signout - Erreur:', error);
-    return NextResponse.json(
-      { error: error.message || 'Erreur lors de la déconnexion' },
-      { status: 500 }
-    );
+    const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la déconnexion';
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

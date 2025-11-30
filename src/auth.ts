@@ -19,8 +19,6 @@ const nextAuthUrl = process.env.NEXTAUTH_URL || process.env.AUTH_URL;
 if (!nextAuthUrl) {
   console.error('[Auth] ⚠️ NEXTAUTH_URL ou AUTH_URL non défini !');
   console.error('[Auth] ⚠️ Ajoutez NEXTAUTH_URL=http://localhost:3000 dans votre .env.local');
-} else {
-  console.log('[Auth] ✅ NEXTAUTH_URL configuré:', nextAuthUrl);
 }
 
 export const { auth, handlers, signIn, signOut } = NextAuth({
@@ -34,18 +32,12 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        console.log('[Auth] authorize - Début', {
-          hasEmail: !!credentials?.email,
-          hasPassword: !!credentials?.password,
-        });
-
         if (!credentials?.email || !credentials?.password) {
           console.warn('[Auth] authorize - Credentials manquants');
           // Retourner null au lieu de throw pour que NextAuth retourne CredentialsSignin
           return null;
         }
 
-        console.log('[Auth] authorize - Recherche utilisateur:', { email: credentials.email });
         const user = await prisma.user.findUnique({
           where: {
             email: credentials.email as string,
@@ -60,37 +52,22 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           },
         });
 
-        console.log('[Auth] authorize - Utilisateur trouvé:', {
-          found: !!user,
-          hasPassword: !!user?.hashedPassword,
-          userId: user?.id,
-        });
-
         if (!user || !user.hashedPassword) {
           console.warn('[Auth] authorize - Utilisateur non trouvé ou sans mot de passe');
           // Retourner null pour que NextAuth retourne CredentialsSignin
           return null;
         }
 
-        console.log('[Auth] authorize - Vérification du mot de passe');
         const isPasswordValid = await bcryptCompare(
           credentials.password as string,
           user.hashedPassword
         );
-
-        console.log('[Auth] authorize - Mot de passe valide:', isPasswordValid);
 
         if (!isPasswordValid) {
           console.warn('[Auth] authorize - Mot de passe invalide');
           // Retourner null pour que NextAuth retourne CredentialsSignin
           return null;
         }
-
-        console.log('[Auth] authorize - Connexion réussie:', {
-          userId: user.id,
-          email: user.email,
-          role: user.role,
-        });
 
         return {
           ...user,
