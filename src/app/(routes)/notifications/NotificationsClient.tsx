@@ -274,7 +274,7 @@ export default function NotificationsClient() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 pb-4">
+    <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 pb-4">
       <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-6xl">
         {/* Header */}
         <div className="mb-4 sm:mb-6 md:mb-8">

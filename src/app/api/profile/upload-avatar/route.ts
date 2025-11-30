@@ -46,15 +46,28 @@ export async function POST(request: NextRequest) {
     // Convertir l'image en buffer
     const imageBytes = await imageFile.arrayBuffer();
     let imageBuffer: Buffer = Buffer.from(imageBytes);
+    let isWebP = false;
+    let contentType = imageFile.type;
 
-    // Convertir en WebP si possible
+    // Convertir en WebP si possible - FORCER la conversion pour tous les types supportés
     if (canConvertToWebP(imageFile.type)) {
       try {
         imageBuffer = await convertToWebP(imageBuffer);
+        isWebP = true;
+        contentType = 'image/webp';
         logger.debug('Avatar converti en WebP');
       } catch (error) {
         logger.warn('Erreur conversion WebP, utilisation originale', error);
+        // Si la conversion échoue, on garde l'original avec son type d'origine
+        isWebP = false;
+        contentType = imageFile.type;
       }
+    } else {
+      // Type non supporté pour conversion WebP (ex: SVG, HEIC, etc.)
+      logger.warn(`Type d'image non supporté pour conversion WebP: ${imageFile.type}`);
+      // On garde l'original avec son type d'origine
+      isWebP = false;
+      contentType = imageFile.type;
     }
 
     // Déterminer si on utilise Blob Storage
@@ -64,8 +77,10 @@ export async function POST(request: NextRequest) {
     if (useBlobStorage) {
       // Upload vers Vercel Blob
       try {
-        const key = `uploads/avatars/${imageId}.webp`;
-        imageUrl = await uploadToBlob(key, imageBuffer, 'image/webp');
+        // Utiliser la bonne extension selon le type final
+        const extension = isWebP ? 'webp' : imageFile.name.split('.').pop() || 'jpg';
+        const key = `uploads/avatars/${imageId}.${extension}`;
+        imageUrl = await uploadToBlob(key, imageBuffer, contentType);
         logger.debug(`Avatar uploadé vers Vercel Blob: ${imageUrl}`);
 
         // Stocker l'URL dans la DB
@@ -75,12 +90,12 @@ export async function POST(request: NextRequest) {
             imageId,
             blobUrl: imageUrl,
             size: imageBuffer.length,
-            contentType: 'image/webp',
+            contentType,
           },
           update: {
             blobUrl: imageUrl,
             size: imageBuffer.length,
-            contentType: 'image/webp',
+            contentType,
           },
         });
       } catch (error) {
@@ -112,11 +127,12 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Sauvegarder la nouvelle image
-        const imagePath = path.join(uploadsDir, `${imageId}.webp`);
+        // Sauvegarder la nouvelle image avec la bonne extension
+        const extension = isWebP ? 'webp' : imageFile.name.split('.').pop() || 'jpg';
+        const imagePath = path.join(uploadsDir, `${imageId}.${extension}`);
         fs.writeFileSync(imagePath, imageBuffer);
-        imageUrl = `/uploads/avatars/${imageId}.webp`;
-        logger.debug(`Avatar sauvegardé localement: ${imagePath}`);
+        imageUrl = `/uploads/avatars/${imageId}.${extension}`;
+        logger.debug(`Avatar sauvegardé localement: ${imagePath} (type: ${contentType})`);
       } catch (error) {
         logger.error('Erreur sauvegarde avatar locale', error);
         return NextResponse.json({ error: "Erreur lors de l'upload" }, { status: 500 });

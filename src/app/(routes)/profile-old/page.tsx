@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { useState } from 'react';
 
-export default function ProfilePage() {
+export default function ProfilePageOld() {
   const { data: session } = useSession();
   const [isEditing, setIsEditing] = useState(false);
 

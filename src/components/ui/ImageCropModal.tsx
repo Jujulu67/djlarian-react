@@ -32,10 +32,11 @@ const ImageCropModal: React.FC<ImageCropModalProps> = ({
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const imageRef = useRef<HTMLImageElement | null>(null);
 
-  // Centrer le crop à l'ouverture
+  // Centrer le crop à l'ouverture - utiliser le même ref pour éviter le double chargement
   const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>): void => {
-    const { naturalWidth, naturalHeight } = e.currentTarget;
-    imageRef.current = e.currentTarget;
+    const img = e.currentTarget;
+    imageRef.current = img;
+    const { naturalWidth, naturalHeight } = img;
     if (naturalWidth > 0 && naturalHeight > 0) {
       const initialCrop = centerCrop(
         makeAspectCrop(
@@ -127,7 +128,6 @@ const ImageCropModal: React.FC<ImageCropModalProps> = ({
           </h3>
         </div>
         <div className="max-h-[70vh] overflow-auto flex justify-center items-center mb-4 pb-8">
-          <img src={imageToEdit} onLoad={handleImageLoad} alt="À recadrer" className="hidden" />
           {isImageLoaded && displayCrop ? (
             <div className={circular ? 'relative' : ''}>
               <ReactCrop
@@ -141,6 +141,7 @@ const ImageCropModal: React.FC<ImageCropModalProps> = ({
                   src={imageToEdit}
                   alt="Recadrage"
                   className="max-h-[60vh] object-contain"
+                  onLoad={handleImageLoad}
                 />
               </ReactCrop>
               {circular && (
@@ -160,6 +161,13 @@ const ImageCropModal: React.FC<ImageCropModalProps> = ({
             </div>
           ) : (
             <div className="flex items-center justify-center h-40 text-gray-400">
+              <img
+                ref={imageRef}
+                src={imageToEdit}
+                alt="Chargement"
+                onLoad={handleImageLoad}
+                className="hidden"
+              />
               Chargement de l&apos;image...
             </div>
           )}

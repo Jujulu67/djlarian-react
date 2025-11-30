@@ -17,6 +17,7 @@ type UserData = {
   email?: string | null;
   role: string | null; // Accepter null pour le rôle
   isVip?: boolean;
+  createdAt?: Date | null;
 };
 
 // Définir un type pour les paramètres
@@ -91,6 +92,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
       email: true,
       role: true,
       isVip: true,
+      createdAt: true,
     },
   });
 
