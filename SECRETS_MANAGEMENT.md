@@ -43,8 +43,8 @@ Marquez ces variables comme **"Encrypt"** (Secret) :
 - ✅ `DATABASE_URL` - Connection string Neon
 - ✅ `NEXTAUTH_SECRET` - Secret NextAuth
 - ✅ `R2_SECRET_ACCESS_KEY` - Secret R2
-- ✅ `GOOGLE_CLIENT_SECRET` - Si utilisé
-- ✅ `TWITCH_CLIENT_SECRET` - Si utilisé
+- ✅ `GOOGLE_CLIENT_SECRET` - Secret Google OAuth (🔒 Secret)
+- ✅ `TWITCH_CLIENT_SECRET` - Secret Twitch OAuth (🔒 Secret)
 - ✅ `SPOTIFY_CLIENT_SECRET` - Secret Spotify pour l'API (auto-détection des releases)
 - ✅ `INSTAGRAM_APP_SECRET` - Secret Instagram pour l'API (intégration galerie)
 - ✅ `INSTAGRAM_ACCESS_TOKEN` - Token d'accès long-lived Instagram (intégration galerie)
@@ -58,7 +58,8 @@ Marquez ces variables comme **"Encrypt"** (Secret) :
 - `R2_BUCKET_NAME` - Public
 - `NODE_ENV` - Public
 - `AWS_LAMBDA_JS_RUNTIME` - Runtime Lambda pour Puppeteer/Chromium (⚠️ REQUIS pour auto-détection SoundCloud, valeur: `nodejs22.x`)
-- `TWITCH_CLIENT_ID` - Public (pour vérifier le statut du stream)
+- `GOOGLE_CLIENT_ID` - Public (pour OAuth Google)
+- `TWITCH_CLIENT_ID` - Public (pour OAuth Twitch et vérifier le statut du stream)
 - `NEXT_PUBLIC_*` - Toutes les variables publiques
 - `SPOTIFY_ARTIST_ID` - ID de l'artiste Spotify (optionnel, peut être configuré dans l'UI)
 - `INSTAGRAM_APP_ID` - ID de l'application Instagram (intégration galerie)
@@ -74,7 +75,7 @@ Marquez ces variables comme **"Encrypt"** (Secret) :
 - `SENTRY_PROJECT` - Projet Sentry (optionnel, pour source maps)
 - `SENTRY_AUTH_TOKEN` - Token d'authentification Sentry (optionnel, pour releases)
 
-**Note** : `TWITCH_CLIENT_ID` et `TWITCH_CLIENT_SECRET` sont optionnels. Si non configurés, l'écran offline personnalisé s'affichera par défaut.
+**Note** : `TWITCH_CLIENT_ID` et `TWITCH_CLIENT_SECRET` sont optionnels. Si non configurés pour OAuth, les boutons de connexion Twitch ne s'afficheront pas. Pour le statut du stream, si non configurés, l'écran offline personnalisé s'affichera par défaut.
 
 ---
 
@@ -228,7 +229,110 @@ openssl rand -base64 32
 - Page Facebook associée au compte Instagram
 - App Facebook avec Instagram Graph API activé
 
-### 15. MUSICBRAINZ_USER_AGENT (Non-secret, requis)
+### 15. GOOGLE_CLIENT_ID et GOOGLE_CLIENT_SECRET (OAuth Google - Optionnel mais gratuit)
+
+**Pourquoi** : Permet aux utilisateurs de se connecter avec leur compte Google. **100% gratuit** pour l'authentification OAuth.
+
+**Où trouver** : Google Cloud Console → https://console.cloud.google.com/
+
+**Étapes détaillées** :
+
+1. **Créer un projet Google Cloud** :
+   - Aller sur https://console.cloud.google.com/
+   - Cliquer sur "Sélectionner un projet" → "Nouveau projet"
+   - Donner un nom (ex: "DJLarian Auth")
+   - Cliquer sur "Créer"
+
+2. **Configurer l'écran de consentement OAuth** :
+   - Dans le menu, aller dans "APIs & Services" → "OAuth consent screen"
+   - Choisir "Externe" (ou "Interne" si vous avez Google Workspace)
+   - Remplir les informations :
+     - **Nom de l'application** : DJLarian (ou votre choix)
+     - **Email de support utilisateur** : votre email
+     - **Email du développeur** : votre email
+   - Cliquer sur "Enregistrer et continuer"
+   - **Scopes** : Ajouter `email`, `profile`, `openid` (déjà ajoutés par défaut)
+   - Cliquer sur "Enregistrer et continuer"
+   - **Utilisateurs de test** (si en mode test) : Ajouter votre email pour tester
+   - Cliquer sur "Retour au tableau de bord"
+
+3. **Créer des identifiants OAuth 2.0** :
+   - Aller dans "APIs & Services" → "Identifiants"
+   - Cliquer sur "Créer des identifiants" → "ID client OAuth 2.0"
+   - **Type d'application** : Application Web
+   - **Nom** : DJLarian Web Client (ou votre choix)
+   - **URI de redirection autorisées** :
+     - Pour le développement local : `http://localhost:3000/api/auth/callback/google`
+     - Pour la production : `https://votre-domaine.com/api/auth/callback/google`
+     - Pour Vercel : `https://votre-projet.vercel.app/api/auth/callback/google`
+   - Cliquer sur "Créer"
+   - **⚠️ IMPORTANT** : Copier immédiatement le **Client ID** et le **Client Secret** (le secret ne sera plus visible après)
+
+**Valeurs à configurer** :
+
+- `GOOGLE_CLIENT_ID` : Votre Client ID Google (ex: `123456789-abcdefghijklmnop.apps.googleusercontent.com`)
+- `GOOGLE_CLIENT_SECRET` : Votre Client Secret Google (🔒 Secret)
+
+**Dans Vercel** :
+
+- `GOOGLE_CLIENT_ID` : Ne PAS cocher "Encrypt" (public)
+- `GOOGLE_CLIENT_SECRET` : **✅ COCHER "Encrypt"** (secret)
+
+**Limites gratuites** :
+
+- **Illimité** pour l'authentification OAuth standard
+- Aucun coût pour la connexion utilisateur
+- Quotas généreux pour la plupart des cas d'usage
+
+**Note** : Optionnel. Si non configuré, le bouton "Continuer avec Google" ne s'affichera pas dans le modal de connexion. L'authentification par email/mot de passe reste disponible.
+
+### 16. TWITCH_CLIENT_ID et TWITCH_CLIENT_SECRET (OAuth Twitch - Optionnel mais gratuit)
+
+**Pourquoi** : Permet aux utilisateurs de se connecter avec leur compte Twitch. **100% gratuit** pour l'authentification OAuth.
+
+**Où trouver** : Twitch Developers → https://dev.twitch.tv/console/apps
+
+**Étapes détaillées** :
+
+1. **Créer un compte développeur Twitch** :
+   - Aller sur https://dev.twitch.tv/
+   - Se connecter avec votre compte Twitch
+   - Accepter les conditions d'utilisation des développeurs
+
+2. **Créer une nouvelle application** :
+   - Aller sur https://dev.twitch.tv/console/apps
+   - Cliquer sur "Register Your Application"
+   - Remplir les informations :
+     - **Name** : DJLarian (ou votre choix)
+     - **OAuth Redirect URLs** :
+       - Pour le développement local : `http://localhost:3000/api/auth/callback/twitch`
+       - Pour la production : `https://votre-domaine.com/api/auth/callback/twitch`
+       - Pour Vercel : `https://votre-projet.vercel.app/api/auth/callback/twitch`
+     - **Category** : Website Integration (ou votre choix)
+   - Cliquer sur "Create"
+   - **⚠️ IMPORTANT** : Copier immédiatement le **Client ID**
+   - Cliquer sur "Manage" → "New Secret" pour générer le **Client Secret**
+   - **⚠️ IMPORTANT** : Copier immédiatement le **Client Secret** (il ne sera plus visible après)
+
+**Valeurs à configurer** :
+
+- `TWITCH_CLIENT_ID` : Votre Client ID Twitch (ex: `abcdefghijklmnopqrstuvwxyz123456`)
+- `TWITCH_CLIENT_SECRET` : Votre Client Secret Twitch (🔒 Secret)
+
+**Dans Vercel** :
+
+- `TWITCH_CLIENT_ID` : Ne PAS cocher "Encrypt" (public)
+- `TWITCH_CLIENT_SECRET` : **✅ COCHER "Encrypt"** (secret)
+
+**Limites gratuites** :
+
+- **Illimité** pour l'authentification OAuth
+- Aucun coût pour la connexion utilisateur
+- Pas de limite de requêtes pour l'authentification
+
+**Note** : Optionnel. Si non configuré, le bouton "Continuer avec Twitch" ne s'affichera pas dans le modal de connexion. L'authentification par email/mot de passe reste disponible. Si `TWITCH_CLIENT_ID` est configuré mais pas pour OAuth (juste pour vérifier le statut du stream), cela fonctionnera aussi.
+
+### 17. MUSICBRAINZ_USER_AGENT (Non-secret, requis)
 
 **Format** : `AppName/Version (contact@email.com)`
 
@@ -254,20 +358,17 @@ openssl rand -base64 32
 **Étapes détaillées** :
 
 1. **Créer un projet Google Cloud** :
-
    - Aller sur https://console.cloud.google.com/
    - Cliquer sur "Sélectionner un projet" → "Nouveau projet"
    - Donner un nom (ex: "DJLarian Search")
    - Cliquer sur "Créer"
 
 2. **Activer l'API Custom Search** :
-
    - Dans le menu, aller dans "APIs & Services" → "Bibliothèque"
    - Rechercher "Custom Search API"
    - Cliquer sur "Custom Search API" → "Activer"
 
 3. **Créer un moteur de recherche personnalisé (Programmable Search Engine)** :
-
    - Aller sur https://programmablesearchengine.google.com/
    - Cliquer sur "Ajouter" ou "Create a custom search engine"
    - Dans "Sites à rechercher", entrer : `soundcloud.com`
@@ -375,17 +476,14 @@ NEXT_PUBLIC_SENTRY_DSN=https://xxxxx@xxxxx.ingest.sentry.io/xxxxx
 **Variables optionnelles (pour source maps) :**
 
 - `SENTRY_ORG` : Nom de votre organisation Sentry (optionnel)
-
   - **Où trouver** : Visible dans l'URL Sentry (ex: `https://sentry.io/organizations/[ORG_NAME]/`)
   - **Note** : Non-secret, visible dans l'URL Sentry
 
 - `SENTRY_PROJECT` : Nom de votre projet Sentry (optionnel)
-
   - **Où trouver** : Nom du projet que vous avez créé (ex: `djlarian-react`)
   - **Note** : Non-secret, visible dans l'URL Sentry
 
 - `SENTRY_AUTH_TOKEN` : Token d'authentification Sentry (optionnel, pour stats détaillées dans le dashboard admin)
-
   - **Type de token** : **Personal Access Token** (pas Organization Token)
   - **Où trouver** :
     1. Sentry Dashboard → **Settings** (icône engrenage en bas à gauche)
@@ -401,12 +499,10 @@ NEXT_PUBLIC_SENTRY_DSN=https://xxxxx@xxxxx.ingest.sentry.io/xxxxx
   - **Note** : Sans ce token, le dashboard admin fonctionnera mais affichera juste le statut (Actif/Inactif) sans le nombre d'erreurs détaillé
 
 - `SENTRY_ORG` : Nom de votre organisation Sentry (optionnel, pour source maps)
-
   - **Où trouver** : Visible dans l'URL Sentry (ex: `https://sentry.io/organizations/[ORG_NAME]/`)
   - **Note** : Non-secret, visible dans l'URL Sentry
 
 - `SENTRY_PROJECT` : Nom de votre projet Sentry (optionnel, pour source maps)
-
   - **Où trouver** : Nom du projet que vous avez créé (ex: `djlarian-react`)
   - **Note** : Non-secret, visible dans l'URL Sentry
 

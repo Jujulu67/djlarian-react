@@ -16,12 +16,10 @@ Il y a une erreur TypeScript à corriger avant le déploiement :
 ### ✅ Étape 1 : Neon (Base de Données) - 5 minutes
 
 1. **Créer un compte** : https://neon.tech
-
    - Cliquer sur "Sign Up"
    - S'inscrire avec GitHub (recommandé)
 
 2. **Créer un projet** :
-
    - Cliquer sur "Create a project"
    - **Project name** : `djlarian`
    - **Region** : `Europe (Frankfurt)` ou la plus proche
@@ -29,7 +27,6 @@ Il y a une erreur TypeScript à corriger avant le déploiement :
    - Cliquer sur "Create project"
 
 3. **Copier la connection string** :
-
    - Format : `postgresql://user:password@host/database?sslmode=require`
    - **SAUVEGARDER** cette string, vous en aurez besoin !
 
@@ -58,11 +55,9 @@ Il y a une erreur TypeScript à corriger avant le déploiement :
 ### ✅ Étape 2 : Cloudflare R2 (Uploads) - 5 minutes
 
 1. **Créer un compte Cloudflare** : https://dash.cloudflare.com/sign-up
-
    - C'est gratuit !
 
 2. **Créer un bucket R2** :
-
    - Dashboard → **R2** (menu de gauche)
    - Cliquer sur **"Create bucket"**
    - **Bucket name** : `djlarian-uploads`
@@ -85,7 +80,6 @@ Il y a une erreur TypeScript à corriger avant le déploiement :
 ### ✅ Étape 3 : Cloudflare Pages (Déploiement) - 10 minutes
 
 1. **Connecter votre repo GitHub** :
-
    - Dashboard → **Pages** (menu de gauche)
    - Cliquer sur **"Create a project"**
    - Cliquer sur **"Connect to Git"**
@@ -94,7 +88,6 @@ Il y a une erreur TypeScript à corriger avant le déploiement :
    - Cliquer sur **"Begin setup"**
 
 2. **Configurer le build** :
-
    - **Project name** : `djlarian` (ou votre choix)
    - **Production branch** : `main`
    - **Framework preset** : `Next.js`
@@ -130,6 +123,8 @@ Il y a une erreur TypeScript à corriger avant le déploiement :
 
    **Note** : Pour marquer comme Secret, cocher la case "Encrypt" lors de l'ajout.
 
+   **📚 Guide OAuth complet** : Voir [docs/OAUTH_SETUP.md](docs/OAUTH_SETUP.md) pour les instructions détaillées de configuration Google et Twitch OAuth (100% gratuit).
+
 5. **Déployer** :
    - Cliquer sur **"Save and Deploy"**
    - Attendre 2-5 minutes
@@ -151,6 +146,8 @@ Il y a une erreur TypeScript à corriger avant le déploiement :
 
 - **Guide complet** : `DEPLOYMENT_STEP_BY_STEP.md`
 - **Quick start** : `QUICK_START.md`
+- **Configuration OAuth** : `docs/OAUTH_SETUP.md` (Google et Twitch - gratuit)
+- **Gestion des secrets** : `SECRETS_MANAGEMENT.md`
 - **Analyse technique** : `CLOUDFLARE_DEPLOYMENT_ANALYSIS.md`
 
 ---

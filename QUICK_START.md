@@ -43,6 +43,7 @@ Vercel Blob est automatiquement configuré lors du déploiement. Aucune configur
    SPOTIFY_ARTIST_ID=<votre_artist_id_spotify>
    YOUTUBE_API_KEY=<votre_cle_api_youtube>
    ```
+
    - Vos variables OAuth (Google, Twitch)
    - Variables MusicBrainz/Last.fm (optionnel, voir SECRETS_MANAGEMENT.md)
 4. **Déployer** : Save and Deploy
@@ -63,8 +64,8 @@ Vercel Blob est automatiquement configuré lors du déploiement. Aucune configur
 
 ### Optionnelles (si utilisées)
 
-- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`
-- `TWITCH_CLIENT_ID` / `TWITCH_CLIENT_SECRET`
+- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` - OAuth Google (gratuit, voir SECRETS_MANAGEMENT.md section 15)
+- `TWITCH_CLIENT_ID` / `TWITCH_CLIENT_SECRET` - OAuth Twitch (gratuit, voir SECRETS_MANAGEMENT.md section 16)
 - `R2_PUBLIC_URL` - URL publique R2 (si custom domain)
 - `NEXT_PUBLIC_UMAMI_URL` / `NEXT_PUBLIC_UMAMI_WEBSITE_ID`
 - `PRISMA_LOG_QUERIES` - Activer les logs de requêtes Prisma pour le debug (défaut: `false`)

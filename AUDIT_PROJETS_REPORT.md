@@ -354,37 +354,58 @@ export interface Project {
 - [x] **Filtrage par utilisateur (admin)**: ✅ Implémenté
 - [x] **Édition inline**: ✅ Implémenté (EditableCell)
 - [x] **Stats rapides**: ✅ Implémenté (total, en cours, terminés, ghost)
-- [ ] **Recherche**: ❌ Non implémenté
-- [ ] **Tri personnalisé**: ❌ Non implémenté (tri fixe par updatedAt)
-- [ ] **Export de données**: ❌ Non implémenté
+- [x] **Recherche**: ✅ Implémenté (recherche textuelle dans tous les champs - ProjectsClient.tsx ligne 59, 517-558)
+- [x] **Tri personnalisé**: ✅ Implémenté (tri par colonne avec toggle asc/desc - ProjectsClient.tsx ligne 60-61, 477-486, 558-593)
+- [x] **Export de données**: ✅ Implémenté (export Excel avec style - exportProjectsToExcel.ts)
+- [x] **Drag & Drop**: ✅ Implémenté (réordonnancement avec @hello-pangea/dnd - ProjectTable.tsx ligne 202-219, 733-942)
+- [x] **Import Excel**: ✅ Implémenté (ImportProjectsDialog)
+- [x] **Import Streams CSV**: ✅ Implémenté (ImportStreamsDialog)
 
-### Fonctionnalités manquantes prioritaires
+### Fonctionnalités manquantes (optionnelles)
 
-1. **Recherche**: Permettre de rechercher par nom, style, label
-2. **Tri**: Permettre de trier par colonne (nom, date, statut, etc.)
-3. **Export**: Export CSV/JSON des projets
+1. **Bulk actions**: Sélection multiple avec checkboxes (amélioration UX)
+2. **Historique**: Table d'audit pour tracking modifications (amélioration traçabilité)
+3. **Notifications**: Système de notifications pour changements de statut (amélioration UX)
 
 ---
 
 ## 7. Tests
 
-### ❌ Couverture
+### ⚠️ Couverture Partielle
 
-**Tests unitaires**: ❌ Aucun test trouvé
-**Tests d'intégration**: ❌ Aucun test API
+**Tests unitaires**: ⚠️ Tests partiels trouvés
+
+- ✅ Tests pour AdminProjectsClient (AdminProjectsClient.test.tsx)
+- ⚠️ Tests manquants pour ProjectsClient (utilisateur normal)
+- ⚠️ Tests manquants pour ProjectTable
+
+**Tests d'intégration**: ⚠️ Tests partiels
+
+- ✅ Tests API pour projets (src/app/api/**tests**/music.test.ts mentionne projets)
+- ⚠️ Tests manquants pour endpoints spécifiques projets
+
 **Tests E2E**: ❌ Aucun test Cypress
 **Tests d'accessibilité**: ❌ Aucun test
 
+### Scénarios testés
+
+- [x] Filtrage par utilisateur (AdminProjectsClient.test.tsx)
+- [x] Filtrage par statut (AdminProjectsClient.test.tsx)
+- [x] Debounce des appels API (AdminProjectsClient.test.tsx)
+
 ### Scénarios critiques non testés
 
-- [ ] Création de projet
+- [ ] Création de projet (utilisateur normal)
 - [ ] Modification avec validation
 - [ ] Suppression avec confirmation
-- [ ] Filtrage et recherche
+- [ ] Recherche textuelle
+- [ ] Tri personnalisé
+- [ ] Export Excel
+- [ ] Drag & Drop réordonnancement
 - [ ] Gestion des erreurs réseau
 - [ ] Accès non autorisé
 
-**Recommandation**: Créer suite de tests avec Jest et React Testing Library
+**Recommandation**: Étendre la suite de tests avec Jest et React Testing Library pour couvrir ProjectsClient et ProjectTable
 
 ---
 
@@ -465,9 +486,10 @@ User Project[] @relation(fields: [userId], references: [id], onDelete: Cascade)
 
 ### 🟢 Priorité Basse
 
-9. **Drag & Drop**
-   - **Note**: Icône GripVertical présente mais non fonctionnelle
-   - **Solution**: Implémenter avec react-beautiful-dnd ou dnd-kit
+9. **Drag & Drop** ✅ IMPLÉMENTÉ
+   - **Note**: Fonctionnel avec @hello-pangea/dnd
+   - **Fichier**: ProjectTable.tsx ligne 202-219, 733-942
+   - **Status**: ✅ Complet
 
 10. **Bulk actions**
     - **Solution**: Sélection multiple avec checkboxes
