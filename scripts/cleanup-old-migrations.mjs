@@ -13,6 +13,23 @@ import { PrismaClient } from '@prisma/client';
 import { readdir } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+// Charger les variables d'environnement
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const rootDir = join(__dirname, '..');
+
+dotenv.config({ path: join(rootDir, '.env.local') });
+dotenv.config({ path: join(rootDir, '.env') });
+
+// Vérifier que DATABASE_URL est défini
+if (!process.env.DATABASE_URL) {
+  console.error('❌ DATABASE_URL n\'est pas défini');
+  process.exit(1);
+}
 
 const prisma = new PrismaClient();
 
@@ -42,14 +59,20 @@ async function getLocalMigrations() {
 
 async function getDatabaseMigrations() {
   try {
-    const migrations = await prisma.$queryRaw`
+    // Utiliser $queryRawUnsafe pour éviter les problèmes de typage
+    const migrations = await prisma.$queryRawUnsafe(`
       SELECT migration_name 
       FROM _prisma_migrations 
       ORDER BY migration_name
-    `;
+    `);
     
     return migrations.map(m => m.migration_name);
   } catch (error) {
+    // Si la table n'existe pas encore, retourner un tableau vide
+    if (error.message && error.message.includes('does not exist')) {
+      console.log('ℹ️  Table _prisma_migrations n\'existe pas encore');
+      return [];
+    }
     console.error('❌ Erreur lors de la lecture des migrations de la DB:', error.message);
     throw error;
   }
@@ -90,13 +113,16 @@ async function cleanupOldMigrations(dryRun = true) {
   
   for (const migration of orphanMigrations) {
     try {
-      await prisma.$executeRaw`
-        DELETE FROM _prisma_migrations 
-        WHERE migration_name = ${migration}
-      `;
+      // Utiliser $executeRawUnsafe avec la syntaxe PostgreSQL correcte
+      // Échapper le nom de migration pour éviter les injections SQL
+      const escapedMigration = migration.replace(/'/g, "''");
+      await prisma.$executeRawUnsafe(
+        `DELETE FROM _prisma_migrations WHERE migration_name = '${escapedMigration}'`
+      );
       console.log(`   ✅ Supprimée: ${migration}`);
     } catch (error) {
       console.error(`   ❌ Erreur lors de la suppression de ${migration}:`, error.message);
+      // Ne pas faire échouer le script pour une seule migration
     }
   }
 
@@ -117,8 +143,12 @@ async function main() {
 
   try {
     await cleanupOldMigrations(dryRun);
+    // Exit avec succès même si aucune migration n'a été nettoyée
+    process.exit(0);
   } catch (error) {
     console.error('\n❌ Erreur:', error.message);
+    // En mode exécution depuis le build, ne pas faire échouer
+    // Le script de build gérera l'échec et utilisera le fallback
     process.exit(1);
   } finally {
     await prisma.$disconnect();

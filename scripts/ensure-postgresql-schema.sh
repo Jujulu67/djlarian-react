@@ -154,9 +154,15 @@ if [ "$NODE_ENV" = "production" ]; then
         # C'est plus propre que de créer des baselines vides
         echo "   🗑️  Tentative de nettoyage automatique des migrations obsolètes..."
         set +e
+        # Rediriger stderr vers stdout pour capturer toutes les erreurs
         CLEANUP_OUTPUT=$(node scripts/cleanup-old-migrations.mjs --execute 2>&1)
         CLEANUP_EXIT=$?
         set -e
+        
+        # Afficher la sortie pour debug si nécessaire
+        if [ $CLEANUP_EXIT -ne 0 ]; then
+          echo "   📋 Sortie du nettoyage: ${CLEANUP_OUTPUT:0:200}..."
+        fi
         
         if [ $CLEANUP_EXIT -eq 0 ]; then
           echo "   ✅ Migrations obsolètes nettoyées automatiquement"
@@ -217,24 +223,13 @@ if [ "$NODE_ENV" = "production" ]; then
                   echo "-- Elle est marquée comme baseline pour synchroniser l'historique des migrations" >> "$BASELINE_DIR/migration.sql"
                   echo "-- Aucune modification SQL n'est nécessaire, le schéma est déjà à jour" >> "$BASELINE_DIR/migration.sql"
                   
-                  # Marquer la migration comme appliquée (baseline)
-                  set +e
-                  PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma migrate resolve --applied "$migration_name" >/dev/null 2>&1
-                  RESOLVE_EXIT=$?
-                  set -e
-                  
-                  if [ $RESOLVE_EXIT -eq 0 ]; then
-                    echo "      ✅ Migration baseline créée et marquée comme appliquée: $migration_name"
-                  else
-                    echo "      ⚠️  Migration baseline créée mais impossible de la marquer comme appliquée: $migration_name"
-                  fi
-                else
-                  echo "      ℹ️  Migration baseline existe déjà: $migration_name"
-                  # Essayer quand même de la marquer comme appliquée
-                  set +e
-                  PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma migrate resolve --applied "$migration_name" >/dev/null 2>&1
-                  set -e
-                fi
+                # Ne pas essayer de marquer comme appliquée si elle existe déjà dans la DB
+                # La migration baseline est juste pour synchroniser l'historique local
+                echo "      ✅ Migration baseline créée: $migration_name"
+                echo "      ℹ️  Elle existe déjà dans la DB, pas besoin de la marquer comme appliquée"
+              else
+                echo "      ℹ️  Migration baseline existe déjà: $migration_name"
+              fi
               fi
             done
             
