@@ -123,6 +123,24 @@ if [ "$NODE_ENV" = "production" ]; then
     echo "   🔍 Vérification de l'état des migrations..."
     MIGRATE_STATUS_OUTPUT=$(npx prisma migrate status 2>&1 || true)
     
+    # Vérifier s'il y a des migrations échouées et les résoudre
+    if echo "$MIGRATE_STATUS_OUTPUT" | grep -qE "failed migrations|failed migration|P3009"; then
+      echo "   ⚠️  Migrations échouées détectées, tentative de résolution..."
+      # Extraire le nom de la migration échouée (format: `20251130022530_add_milestone_notifications`)
+      FAILED_MIGRATION=$(echo "$MIGRATE_STATUS_OUTPUT" | grep -oE "`[0-9]+_[^`]+`" | head -1 | tr -d '`' || echo "")
+      if [ -z "$FAILED_MIGRATION" ]; then
+        # Essayer un autre format (sans backticks)
+        FAILED_MIGRATION=$(echo "$MIGRATE_STATUS_OUTPUT" | grep -oE "[0-9]{14}_[a-zA-Z0-9_]+" | head -1 || echo "")
+      fi
+      if [ -n "$FAILED_MIGRATION" ]; then
+        echo "   🔧 Résolution de la migration échouée: $FAILED_MIGRATION"
+        # Marquer la migration comme rolled-back pour pouvoir la réappliquer
+        npx prisma migrate resolve --rolled-back "$FAILED_MIGRATION" 2>&1 || {
+          echo "   ⚠️  Impossible de marquer la migration comme rolled-back"
+        }
+      fi
+    fi
+    
     # Si toutes les migrations sont déjà appliquées, on peut skip migrate deploy
     if echo "$MIGRATE_STATUS_OUTPUT" | grep -q "Database schema is up to date\|All migrations have been applied"; then
       echo "   ✅ Toutes les migrations sont déjà appliquées, pas besoin de migrate deploy"
