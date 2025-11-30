@@ -127,7 +127,7 @@ export default function AddUserForm({ onSuccess, userToEdit }: AddUserFormProps)
       logger.debug(`Utilisateur ${isEditMode ? 'modifié' : 'créé'}:`, data);
 
       // Si c'est l'utilisateur connecté qui a été modifié, mettre à jour la session
-      if (isEditMode && session?.user?.id === userToEdit?.id) {
+      if (isEditMode && session?.user?.id === userToEdit?.id && session) {
         try {
           await updateSession({
             ...session,

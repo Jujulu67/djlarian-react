@@ -72,9 +72,6 @@ export const authConfig = {
                 where: { id: existingAccount.user.id },
                 data: updateData,
               });
-              console.log(
-                `[Auth] Profil mis à jour pour ${user.email}: ${Object.keys(updateData).join(', ')}`
-              );
             }
 
             return true;
@@ -117,9 +114,6 @@ export const authConfig = {
                 where: { id: existingUser.id },
                 data: updateData,
               });
-              console.log(
-                `[Auth] Profil mis à jour pour ${user.email}: ${Object.keys(updateData).join(', ')}`
-              );
             }
 
             return true;
@@ -210,9 +204,6 @@ export const authConfig = {
               where: { id: existingUser.id },
               data: updateData,
             });
-            console.log(
-              `[Auth] Profil mis à jour pour ${user.email}: ${Object.keys(updateData).join(', ')}`
-            );
           }
         }
       }
@@ -242,15 +233,6 @@ export const authConfig = {
         token.image = user.image;
         token.name = user.name;
         token.email = user.email;
-
-        // Log pour déboguer l'image OAuth
-        if (user.image) {
-          console.log(
-            `[AuthConfig] JWT callback - Image utilisateur: ${user.image.substring(0, 50)}...`
-          );
-        } else {
-          console.log(`[AuthConfig] JWT callback - Aucune image pour l'utilisateur ${user.id}`);
-        }
 
         // Ajouter createdAt et isVip si disponibles
         const userWithExtras = user as { createdAt?: string | Date; isVip?: boolean };
@@ -318,10 +300,8 @@ export const authConfig = {
 
         // Récupérer l'image depuis le token si disponible (priorité au token qui est mis à jour via updateSession)
         if (token.image) {
-          session.user.image = token.image as string;
-          console.log(
-            `[AuthConfig] Image récupérée depuis token: ${token.image.substring(0, 50)}...`
-          );
+          const imageUrl = token.image as string;
+          session.user.image = imageUrl;
         } else if (userId) {
           // Si l'image n'est pas dans le token, la récupérer depuis la base de données
           try {
@@ -334,18 +314,11 @@ export const authConfig = {
               });
               if (user?.image) {
                 session.user.image = user.image;
-                console.log(
-                  `[AuthConfig] Image récupérée depuis DB: ${user.image.substring(0, 50)}...`
-                );
-              } else {
-                console.log(`[AuthConfig] Aucune image trouvée pour l'utilisateur ${userId}`);
               }
             }
           } catch (error) {
             console.error('[AuthConfig] Erreur récupération image depuis DB:', error);
           }
-        } else {
-          console.log("[AuthConfig] Pas de userId, impossible de récupérer l'image");
         }
 
         // Récupérer le nom et l'email depuis le token si disponibles
@@ -410,9 +383,6 @@ export const authConfig = {
         const { peekAnyMergeToken } = await import('@/lib/merge-token-cache');
         const peekedToken = await peekAnyMergeToken();
         if (peekedToken) {
-          console.log(
-            `[AuthConfig] redirect - Token de fusion détecté pour ${peekedToken.email}, cookie sera défini par NextAuth`
-          );
           // Note: On ne peut pas définir de cookie directement ici, mais on peut utiliser l'email dans l'URL
           // Le cookie sera défini par la page d'erreur ou l'API check
         }
@@ -441,9 +411,6 @@ export const authConfig = {
           urlObj.searchParams.delete('link');
           urlObj.searchParams.set('linked', 'true');
           const finalUrl = urlObj.toString();
-          console.log(
-            `[AuthConfig] redirect - Association de compte, redirection vers: ${finalUrl}`
-          );
           return finalUrl;
         }
 

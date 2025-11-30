@@ -19,16 +19,13 @@ export default function AuthErrorPage() {
 
         while (attempts < maxAttempts) {
           attempts++;
-          console.log(`[AuthError] Tentative ${attempts}/${maxAttempts} de récupération du token`);
 
           // Récupérer le token depuis le cache
           // On essaie d'abord sans email, puis avec l'email du cookie si disponible
           const response = await fetch('/api/auth/merge-accounts/check');
           if (response.ok) {
             const data = await response.json();
-            console.log('[AuthError] Réponse check merge token:', data);
             if (data.hasToken && data.token) {
-              console.log('[AuthError] Redirection vers la page de fusion');
               // Rediriger immédiatement vers la page de fusion avec le token
               router.replace(`/auth/merge-accounts?token=${encodeURIComponent(data.token)}`);
               return;
@@ -42,8 +39,6 @@ export default function AuthErrorPage() {
             await new Promise((resolve) => setTimeout(resolve, delay));
           }
         }
-
-        console.log('[AuthError] Aucun token de fusion trouvé après toutes les tentatives');
       } catch (error) {
         console.error('[AuthError] Erreur lors de la vérification du token:', error);
       }

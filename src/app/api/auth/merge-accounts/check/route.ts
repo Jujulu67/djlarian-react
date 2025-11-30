@@ -21,8 +21,6 @@ export async function GET(request: NextRequest) {
       email = request.cookies.get('pending-merge-email')?.value || null;
     }
 
-    console.log('[API] Check merge token - Email recherché:', email);
-
     let mergeToken: string | null = null;
     let tokenEmail: string | null = null;
 
@@ -32,29 +30,17 @@ export async function GET(request: NextRequest) {
         // Récupérer le token depuis la base de données avec l'email (supprime après récupération)
         mergeToken = await getMergeToken(email);
         tokenEmail = email;
-        console.log('[API] Token trouvé pour email:', email);
-      } else {
-        console.log('[API] Aucun token trouvé pour email:', email);
       }
     } else {
       // Si on n'a pas l'email, vérifier d'abord s'il y a un token (sans le supprimer)
-      console.log("[API] Pas d'email fourni, utilisation de peekAnyMergeToken()");
       const peekedToken = await peekAnyMergeToken();
       if (peekedToken) {
-        console.log('[API] Token peek trouvé, récupération avec getAnyMergeToken()');
         // Récupérer le token (supprime après récupération)
         const tokenData = await getAnyMergeToken();
         if (tokenData) {
           mergeToken = tokenData.token;
           tokenEmail = tokenData.email;
-          console.log('[API] Token trouvé (sans email) pour:', tokenData.email);
-        } else {
-          console.log(
-            "[API] Erreur: peekAnyMergeToken a trouvé un token mais getAnyMergeToken ne l'a pas trouvé"
-          );
         }
-      } else {
-        console.log('[API] Aucun token disponible dans la base de données');
       }
     }
 
@@ -76,11 +62,8 @@ export async function GET(request: NextRequest) {
         maxAge: 3600, // 1 heure
       });
 
-      console.log('[API] Token retourné avec succès, cookie défini pour:', tokenEmail);
       return response;
     }
-
-    console.log('[API] Aucun token disponible');
     return NextResponse.json({
       hasToken: false,
     });

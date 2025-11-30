@@ -1,5 +1,5 @@
 import { PrismaAdapter } from '@auth/prisma-adapter';
-import type { Adapter } from 'next-auth/adapters';
+import type { Adapter, AdapterAccount } from 'next-auth/adapters';
 import type { PrismaClient } from '@prisma/client';
 
 /**
@@ -13,6 +13,9 @@ export function CustomPrismaAdapter(prisma: PrismaClient): Adapter {
     ...baseAdapter,
     async getUserByEmail(email) {
       // Utiliser la méthode de base pour obtenir l'utilisateur par email
+      if (!baseAdapter.getUserByEmail) {
+        return null;
+      }
       return baseAdapter.getUserByEmail(email);
     },
     async createUser(user) {
@@ -20,23 +23,26 @@ export function CustomPrismaAdapter(prisma: PrismaClient): Adapter {
       if (user.email) {
         const existingUser = await prisma.user.findUnique({
           where: { email: user.email },
-          include: { accounts: true },
         });
 
         // Si un utilisateur existe déjà avec cet email, retourner l'utilisateur existant
         // NextAuth liera automatiquement le compte OAuth à cet utilisateur via linkAccount
         if (existingUser) {
-          console.log(
-            `[Auth Adapter] Utilisateur existant trouvé pour ${user.email}, liaison du compte OAuth...`
-          );
-          return existingUser;
+          // Convertir en AdapterUser (sans Account)
+          const { Account, ...adapterUser } = existingUser as typeof existingUser & {
+            Account?: unknown[];
+          };
+          return adapterUser as Awaited<ReturnType<NonNullable<Adapter['createUser']>>>;
         }
       }
 
       // Sinon, créer un nouvel utilisateur normalement
+      if (!baseAdapter.createUser) {
+        throw new Error('createUser is not available in baseAdapter');
+      }
       return baseAdapter.createUser(user);
     },
-    async linkAccount(account) {
+    async linkAccount(account): Promise<AdapterAccount | null | undefined> {
       // Vérifier si un compte existe déjà avec ce provider et providerAccountId
       const existingAccount = await prisma.account.findUnique({
         where: {
@@ -49,20 +55,19 @@ export function CustomPrismaAdapter(prisma: PrismaClient): Adapter {
 
       // Si le compte existe déjà, ne pas le créer à nouveau
       if (existingAccount) {
-        console.log(
-          `[Auth Adapter] Compte ${account.provider} déjà lié pour ${account.providerAccountId}`
-        );
-        return existingAccount;
+        return existingAccount as AdapterAccount;
       }
 
       // Le userId devrait déjà être défini par createUser
       // Si createUser a retourné un utilisateur existant, le userId sera correct
-      console.log(
-        `[Auth Adapter] Liaison du compte ${account.provider} à l'utilisateur ${account.userId}`
-      );
 
       // Créer le compte normalement
-      return baseAdapter.linkAccount(account);
+      if (!baseAdapter.linkAccount) {
+        throw new Error('linkAccount is not available in baseAdapter');
+      }
+      const result = await baseAdapter.linkAccount(account);
+      // S'assurer que le type de retour est cohérent
+      return result ?? null;
     },
   };
 }

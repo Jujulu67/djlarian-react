@@ -57,7 +57,6 @@ export default function MergeAccountsPage() {
         }
 
         const data = await response.json();
-        console.log('[MergeAccounts] Données reçues:', data);
         setMergeData(data);
 
         // Options par défaut intelligentes

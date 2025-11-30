@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Award } from 'lucide-react';
 import type { Badge } from '../utils/badgeCalculations';
@@ -11,6 +12,11 @@ interface ProfileBadgesProps {
 }
 
 export function ProfileBadges({ unlockedBadges, lockedBadges, totalBadges }: ProfileBadgesProps) {
+  // Générer les delays de manière déterministe pour éviter Math.random() dans le render
+  const badgeDelays = useMemo(() => {
+    return unlockedBadges.map((_, index) => (index * 0.1) % 0.5);
+  }, [unlockedBadges]);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -34,8 +40,9 @@ export function ProfileBadges({ unlockedBadges, lockedBadges, totalBadges }: Pro
       {unlockedBadges.length > 0 && (
         <div className="mb-3 lg:mb-2">
           <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-2 sm:gap-3 lg:gap-2">
-            {unlockedBadges.map((badge) => {
+            {unlockedBadges.map((badge, index) => {
               const Icon = badge.icon;
+              const delay = badgeDelays[index] ?? 0;
               return (
                 <motion.div
                   key={badge.id}
@@ -79,7 +86,7 @@ export function ProfileBadges({ unlockedBadges, lockedBadges, totalBadges }: Pro
                         duration: 2,
                         repeat: Infinity,
                         ease: 'easeInOut',
-                        delay: Math.random() * 0.5,
+                        delay,
                       }}
                     >
                       <Icon
