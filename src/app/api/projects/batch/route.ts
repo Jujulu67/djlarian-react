@@ -9,7 +9,8 @@ import {
   createUnauthorizedResponse,
 } from '@/lib/api/responseHelpers';
 import prisma from '@/lib/prisma';
-import { serializeProjects } from '@/lib/utils/serializeProject';
+import { serializeProjects, serializeProject } from '@/lib/utils/serializeProject';
+import { Project } from '@/components/projects/types';
 import { ProjectStatus } from '@/components/projects/types';
 
 // Fonction helper pour invalider le cache des projets d'un utilisateur
@@ -37,13 +38,15 @@ interface BatchProjectData {
   streamsJ28?: number | null;
   streamsJ56?: number | null;
   streamsJ84?: number | null;
+  streamsJ180?: number | null;
+  streamsJ365?: number | null;
 }
 
 interface BatchCreateResult {
   success: boolean;
   created: number;
   failed: number;
-  projects: any[];
+  projects: Project[];
   errors: Array<{ index: number; data: BatchProjectData; error: string }>;
   duplicatesExcluded?: number;
 }
@@ -102,7 +105,11 @@ export async function POST(request: NextRequest) {
     };
 
     // Valider chaque projet avant de créer
-    const validProjects: Array<{ data: any; index: number; isUpdate?: boolean }> = [];
+    const validProjects: Array<{
+      data: BatchProjectData & { userId: string };
+      index: number;
+      isUpdate?: boolean;
+    }> = [];
 
     for (let i = 0; i < projectsData.length; i++) {
       const projectData = projectsData[i];
@@ -175,8 +182,8 @@ export async function POST(request: NextRequest) {
 
     // Créer et mettre à jour les projets en batch avec Prisma
     // Utiliser une transaction pour garantir la cohérence, mais créer séquentiellement pour préserver l'ordre
-    const createdProjects: any[] = [];
-    const updatedProjects: any[] = [];
+    const createdProjects: Project[] = [];
+    const updatedProjects: Project[] = [];
 
     // Calculer l'ordre de départ pour les nouveaux projets
     const maxOrderProject = await prisma.project.findFirst({
@@ -254,7 +261,7 @@ export async function POST(request: NextRequest) {
               },
             },
           });
-          createdProjects.push(project);
+          createdProjects.push(serializeProject(project));
         }
 
         // Mettre à jour les projets existants
@@ -294,7 +301,7 @@ export async function POST(request: NextRequest) {
               },
             },
           });
-          updatedProjects.push(updated);
+          updatedProjects.push(serializeProject(updated));
         }
       },
       {
@@ -303,12 +310,9 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    // Combiner les projets créés et mis à jour (créés en premier pour préserver l'ordre)
-    const allProjects = [...createdProjects, ...updatedProjects];
-
-    const serializedProjects = serializeProjects(allProjects);
-    result.created = serializedProjects.length;
-    result.projects = serializedProjects;
+    // Les projets sont déjà sérialisés
+    result.created = createdProjects.length;
+    result.projects = [...createdProjects, ...updatedProjects];
 
     // Compter les doublons (projets qui existent déjà en base)
     const duplicatesFromDb = result.errors.filter((err) =>

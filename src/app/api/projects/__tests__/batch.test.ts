@@ -14,6 +14,9 @@ jest.mock('@/auth', () => ({
 jest.mock('@/lib/prisma', () => ({
   __esModule: true,
   default: {
+    user: {
+      findUnique: jest.fn(),
+    },
     project: {
       findMany: jest.fn(),
       findFirst: jest.fn(),
@@ -66,6 +69,7 @@ describe('/api/projects/batch', () => {
       user: { id: 'user1', role: 'USER' },
     });
 
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue({ id: 'user1' });
     (prisma.project.findMany as jest.Mock).mockResolvedValue([]);
     (prisma.project.findFirst as jest.Mock).mockResolvedValue({ order: 0 });
 
@@ -112,6 +116,7 @@ describe('/api/projects/batch', () => {
       user: { id: 'user1', role: 'USER' },
     });
 
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue({ id: 'user1' });
     (prisma.project.findMany as jest.Mock).mockResolvedValue([{ name: 'Existing Project' }]);
     (prisma.project.findFirst as jest.Mock).mockResolvedValue({ order: 0 });
 
@@ -149,6 +154,7 @@ describe('/api/projects/batch', () => {
       user: { id: 'user1', role: 'USER' },
     });
 
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue({ id: 'user1' });
     (prisma.project.findMany as jest.Mock).mockResolvedValue([]);
 
     const request = new NextRequest('http://localhost/api/projects/batch', {
@@ -192,9 +198,13 @@ describe('/api/projects/batch', () => {
 
   it('should enforce maximum 100 projects per batch', async () => {
     const { auth } = await import('@/auth');
+    const { default: prisma } = await import('@/lib/prisma');
+
     (auth as jest.Mock).mockResolvedValue({
       user: { id: 'user1', role: 'USER' },
     });
+
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue({ id: 'user1' });
 
     const largeBatch = Array.from({ length: 101 }, (_, i) => ({
       name: `Project ${i}`,

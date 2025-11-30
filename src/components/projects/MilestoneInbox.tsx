@@ -248,7 +248,6 @@ export function MilestoneInbox({ isOpen, onClose }: MilestoneInboxProps) {
         : null);
 
     if (projectId) {
-      console.log('Redirection vers projet depuis notification:', projectId);
       // Passer le projectId dans l'URL pour déclencher l'animation dorée persistante
       router.push(`/projects?highlight=${projectId}&fromNotification=true`);
     } else if (notification.type === 'MILESTONE' || notification.type === 'RELEASE_UPCOMING') {
@@ -395,7 +394,7 @@ export function MilestoneInbox({ isOpen, onClose }: MilestoneInboxProps) {
                             )}
                             {notification.type === 'ADMIN_MESSAGE' && metadata?.senderName && (
                               <p className="text-xs text-blue-400 mb-2 truncate">
-                                De: {metadata.senderName}
+                                De: {String(metadata.senderName)}
                               </p>
                             )}
                             {projectName && (

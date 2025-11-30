@@ -59,7 +59,7 @@ const Navigation = () => {
         fetchWithAuth('/api/notifications/check-all').catch((error) => {
           // Ignorer les erreurs silencieusement (peuvent être causées par des extensions)
           if (error.name !== 'AbortError') {
-            console.debug('Erreur lors de la vérification des notifications:', error);
+            // Erreur silencieuse - pas besoin de logger
           }
         });
       }, 1000); // Attendre 1 seconde après le chargement

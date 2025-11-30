@@ -16,7 +16,10 @@ import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 
 import Modal from '@/components/ui/Modal';
 import { parseStreamsCsv, StreamsCsvData } from '@/lib/utils/parseStreamsCsv';
-import { calculateStreamsMilestones } from '@/lib/utils/calculateStreamsMilestones';
+import {
+  calculateStreamsMilestones,
+  StreamsMilestones,
+} from '@/lib/utils/calculateStreamsMilestones';
 import { findProjectCandidates, ProjectCandidate } from '@/lib/utils/findProjectCandidates';
 import { Project } from './types';
 
@@ -40,7 +43,7 @@ function formatDateFrench(dateString: string | null): string {
 interface ImportStreamsDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onImport: (imports: Array<{ projectId: string; milestones: any }>) => Promise<{
+  onImport: (imports: Array<{ projectId: string; milestones: StreamsMilestones }>) => Promise<{
     success: boolean;
     updated: number;
     failed: number;

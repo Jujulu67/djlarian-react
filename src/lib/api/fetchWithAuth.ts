@@ -24,9 +24,11 @@ async function refreshSession(): Promise<boolean> {
     try {
       // Invalider le cache de session
       if (typeof window !== 'undefined') {
-        const sessionCache = (window as any).sessionRequestCache;
-        if (sessionCache) {
-          (window as any).sessionRequestCache = null;
+        const windowWithCache = window as typeof window & {
+          sessionRequestCache?: unknown;
+        };
+        if (windowWithCache.sessionRequestCache) {
+          windowWithCache.sessionRequestCache = null;
         }
       }
 

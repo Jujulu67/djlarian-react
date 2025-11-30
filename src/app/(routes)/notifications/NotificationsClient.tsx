@@ -249,7 +249,6 @@ export default function NotificationsClient() {
         : null);
 
     if (projectId) {
-      console.log('Redirection vers projet depuis notification:', projectId);
       router.push(`/projects?highlight=${projectId}&fromNotification=true`);
     } else if (notification.type === 'MILESTONE' || notification.type === 'RELEASE_UPCOMING') {
       router.push('/projects');
@@ -456,7 +455,8 @@ export default function NotificationsClient() {
                             )}
                             {notification.type === 'ADMIN_MESSAGE' && metadata?.senderName && (
                               <p className="text-xs sm:text-sm text-blue-400 mb-1.5 sm:mb-2 truncate">
-                                <span className="font-medium">De:</span> {metadata.senderName}
+                                <span className="font-medium">De:</span>{' '}
+                                {String(metadata.senderName)}
                               </p>
                             )}
                           </div>
@@ -596,7 +596,8 @@ export default function NotificationsClient() {
                                 )}
                                 {notification.type === 'ADMIN_MESSAGE' && metadata?.senderName && (
                                   <p className="text-xs sm:text-sm text-blue-400 mb-1.5 sm:mb-2 truncate">
-                                    <span className="font-medium">De:</span> {metadata.senderName}
+                                    <span className="font-medium">De:</span>{' '}
+                                    {String(metadata.senderName)}
                                   </p>
                                 )}
                               </div>

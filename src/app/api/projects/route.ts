@@ -70,7 +70,13 @@ export async function GET(request: NextRequest) {
     // Fonction de récupération avec cache
     const getCachedProjects = unstable_cache(
       async () => {
-        const queryOptions: any = {
+        const queryOptions: {
+          where: typeof whereClause;
+          orderBy: Array<{ order: 'asc' } | { createdAt: 'asc' }>;
+          take?: number;
+          skip?: number;
+          include?: { User?: { select: { id: true; name: true; email: true } } };
+        } = {
           where: whereClause,
           orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
         };

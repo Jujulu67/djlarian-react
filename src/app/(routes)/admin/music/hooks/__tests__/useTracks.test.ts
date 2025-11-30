@@ -82,7 +82,7 @@ describe('useTracks', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(global.fetch).toHaveBeenCalledWith('/api/music');
+    expect(global.fetch).toHaveBeenCalledWith('/api/music', { credentials: 'include' });
     expect(result.current.tracks).toEqual(mockTracks);
   });
 

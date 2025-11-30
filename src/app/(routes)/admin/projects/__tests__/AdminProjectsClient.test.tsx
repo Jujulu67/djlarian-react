@@ -2,6 +2,15 @@
  * Tests for AdminProjectsClient component
  * @jest-environment jsdom
  */
+
+// Mock next-auth/react before imports
+jest.mock('next-auth/react', () => ({
+  useSession: jest.fn(() => ({
+    data: { user: { role: 'ADMIN' } },
+    status: 'authenticated',
+  })),
+}));
+
 import { render, screen, waitFor, fireEvent, act, findByText } from '@testing-library/react';
 
 import { AdminProjectsClient } from '../AdminProjectsClient';
@@ -81,7 +90,11 @@ describe('AdminProjectsClient', () => {
     // Wait for counts to be fetched
     await waitFor(
       () => {
-        expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/api/projects/counts'));
+        const fetchCalls = (global.fetch as jest.Mock).mock.calls;
+        const hasCountsCall = fetchCalls.some(
+          (call) => call[0] && String(call[0]).includes('/api/projects/counts')
+        );
+        expect(hasCountsCall).toBe(true);
       },
       { timeout: 500 }
     );
@@ -107,7 +120,11 @@ describe('AdminProjectsClient', () => {
     // Attendre le debounce et la requête
     await waitFor(
       () => {
-        expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('userId=user1'));
+        const fetchCalls = (global.fetch as jest.Mock).mock.calls;
+        const hasUserFilter = fetchCalls.some(
+          (call) => call[0] && String(call[0]).includes('userId=user1')
+        );
+        expect(hasUserFilter).toBe(true);
       },
       { timeout: 2000 }
     );
@@ -136,7 +153,11 @@ describe('AdminProjectsClient', () => {
     // Attendre le debounce
     await waitFor(
       () => {
-        expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('status=TERMINE'));
+        const fetchCalls = (global.fetch as jest.Mock).mock.calls;
+        const hasStatusFilter = fetchCalls.some(
+          (call) => call[0] && String(call[0]).includes('status=TERMINE')
+        );
+        expect(hasStatusFilter).toBe(true);
       },
       { timeout: 2000 }
     );
@@ -171,8 +192,8 @@ describe('AdminProjectsClient', () => {
     await waitFor(
       () => {
         // Should only call fetch once after debounce
-        const fetchCalls = (global.fetch as jest.Mock).mock.calls.filter((call) =>
-          call[0]?.includes('/api/projects?')
+        const fetchCalls = (global.fetch as jest.Mock).mock.calls.filter(
+          (call) => call[0] && String(call[0]).includes('/api/projects?')
         );
         expect(fetchCalls.length).toBeLessThanOrEqual(1);
       },

@@ -351,11 +351,6 @@ export const ProjectTable = ({
               const totalStreams = getTotalStreams(project);
               const hasStreams = totalStreams > 0;
 
-              // Debug: log si c'est le projet à mettre en évidence
-              if (isPersistentGold) {
-                console.log('Animation dorée activée pour:', project.id, project.name);
-              }
-
               return (
                 <div
                   key={project.id}

@@ -33,7 +33,13 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type') as NotificationType | null;
     const limit = parseInt(searchParams.get('limit') || '50', 10);
 
-    const where: any = {
+    const where: {
+      userId: string;
+      isArchived?: boolean;
+      deletedAt?: null;
+      type?: NotificationType;
+      isRead?: boolean;
+    } = {
       userId: session.user.id,
     };
 

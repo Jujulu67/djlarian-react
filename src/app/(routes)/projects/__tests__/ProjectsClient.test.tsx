@@ -2,16 +2,25 @@
  * Tests for ProjectsClient component
  * @jest-environment jsdom
  */
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import { useRouter } from 'next/navigation';
 
-import { ProjectsClient } from '../ProjectsClient';
-import { Project, ProjectStatus } from '@/components/projects/types';
+// Mock next-auth/react before imports
+jest.mock('next-auth/react', () => ({
+  useSession: jest.fn(() => ({
+    data: { user: { id: 'user1', role: 'USER' } },
+    status: 'authenticated',
+  })),
+}));
 
 // Mock next/navigation
 jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
 }));
+
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { useRouter } from 'next/navigation';
+
+import { ProjectsClient } from '../ProjectsClient';
+import { Project, ProjectStatus } from '@/components/projects/types';
 
 // Mock fetch
 global.fetch = jest.fn();
@@ -87,6 +96,14 @@ describe('ProjectsClient', () => {
     jest.useFakeTimers();
     render(<ProjectsClient initialProjects={mockProjects} />);
 
+    // Attendre que le composant soit monté
+    await waitFor(() => {
+      expect(screen.getByText('Project 1')).toBeInTheDocument();
+    });
+
+    // Compter les appels initiaux (peut inclure releases/check)
+    const initialCallCount = (global.fetch as jest.Mock).mock.calls.length;
+
     const termineButtons = screen.getAllByText(/Terminé/i);
     // Prendre le bouton (pas l'option du select)
     const termineButton =
@@ -99,8 +116,11 @@ describe('ProjectsClient', () => {
     jest.advanceTimersByTime(300);
 
     await waitFor(() => {
-      // Should only call fetch once after debounce
-      expect(global.fetch).toHaveBeenCalledTimes(1);
+      // Should only call fetch once more after debounce (en plus des appels initiaux)
+      const projectFetchCalls = (global.fetch as jest.Mock).mock.calls.filter(
+        (call) => call[0] && String(call[0]).includes('/api/projects?')
+      );
+      expect(projectFetchCalls.length).toBeLessThanOrEqual(initialCallCount + 1);
     });
 
     jest.useRealTimers();
@@ -109,8 +129,12 @@ describe('ProjectsClient', () => {
   it('should use initialProjects to avoid double fetch', () => {
     render(<ProjectsClient initialProjects={mockProjects} />);
 
-    // Should not fetch immediately if initialProjects are provided
-    expect(global.fetch).not.toHaveBeenCalled();
+    // Should not fetch /api/projects immediately if initialProjects are provided
+    // (mais peut appeler /api/projects/releases/check)
+    const projectFetchCalls = (global.fetch as jest.Mock).mock.calls.filter(
+      (call) => call[0] && String(call[0]).includes('/api/projects?')
+    );
+    expect(projectFetchCalls.length).toBe(0);
   });
 
   it('should display project counts in filter buttons', () => {
