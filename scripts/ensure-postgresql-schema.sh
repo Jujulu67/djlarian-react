@@ -96,6 +96,59 @@ if [ "$NODE_ENV" = "production" ]; then
     echo "✅ BLOB_READ_WRITE_TOKEN est configuré (production utilisera Vercel Blob)"
   fi
   
+  # Fonction pour corriger automatiquement les migrations pour PostgreSQL
+  fix_migrations_for_postgresql() {
+    echo "🔧 Correction automatique des migrations pour PostgreSQL..."
+    local fixed_count=0
+    
+    if [ -d "prisma/migrations" ]; then
+      # Parcourir toutes les migrations
+      for migration_dir in prisma/migrations/*/; do
+        if [ -d "$migration_dir" ]; then
+          local migration_file="${migration_dir}migration.sql"
+          
+          if [ -f "$migration_file" ]; then
+            local modified=false
+            
+            # Lire le contenu
+            local content=$(cat "$migration_file")
+            
+            # 1. Supprimer CREATE SCHEMA (SQLite ne le supporte pas, PostgreSQL l'ignore si le schéma existe)
+            if echo "$content" | grep -q "CREATE SCHEMA"; then
+              # Supprimer les lignes CREATE SCHEMA (compatible macOS et Linux)
+              content=$(echo "$content" | sed '/-- CreateSchema/,/CREATE SCHEMA IF NOT EXISTS "public";/d')
+              modified=true
+              echo "   ✅ Supprimé CREATE SCHEMA de $(basename "$migration_dir")"
+            fi
+            
+            # 2. Remplacer DATETIME par TIMESTAMP(3) (compatible avec PostgreSQL)
+            if echo "$content" | grep -q "DATETIME"; then
+              # Remplacer DATETIME par TIMESTAMP(3) (compatible macOS et Linux)
+              content=$(echo "$content" | sed 's/DATETIME/TIMESTAMP(3)/g')
+              modified=true
+              echo "   ✅ Remplacé DATETIME par TIMESTAMP(3) dans $(basename "$migration_dir")"
+            fi
+            
+            # Écrire le contenu modifié si nécessaire
+            if [ "$modified" = true ]; then
+              echo "$content" > "$migration_file"
+              fixed_count=$((fixed_count + 1))
+            fi
+          fi
+        fi
+      done
+    fi
+    
+    if [ $fixed_count -gt 0 ]; then
+      echo "✅ $fixed_count migration(s) corrigée(s) pour PostgreSQL"
+    else
+      echo "✅ Toutes les migrations sont déjà compatibles avec PostgreSQL"
+    fi
+  }
+  
+  # Corriger les migrations avant de les appliquer
+  fix_migrations_for_postgresql
+  
   # Régénérer le client Prisma AVANT les migrations (pour avoir un client de base)
   echo "🔄 Régénération initiale du client Prisma..."
   # Supprimer l'ancien client pour forcer une régénération complète
