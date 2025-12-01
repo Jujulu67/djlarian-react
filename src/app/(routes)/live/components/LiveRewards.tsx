@@ -13,7 +13,7 @@ export function LiveRewards() {
     const item = inventory?.unactivatedItems.find((item) => item.LiveItem?.type === itemType);
 
     if (item) {
-      await updateItem({ itemId: item.itemId, isActivated: true });
+      await updateItem({ itemId: item.itemId, action: 'activate' });
     }
   };
 

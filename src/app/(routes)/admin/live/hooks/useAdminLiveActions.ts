@@ -60,14 +60,6 @@ export function useAdminLiveActions(
               itemType === 'queue_skip' ||
               itemType === 'skip_queue'
             ) {
-              console.log(
-                '[Queue Skip] ID trouvé dans soumissions:',
-                item.LiveItem.id,
-                'Name:',
-                item.LiveItem.name,
-                'Type:',
-                item.LiveItem.type
-              );
               return item.LiveItem.id;
             }
           }
@@ -84,7 +76,6 @@ export function useAdminLiveActions(
       const queueSkipIdFromSubmissions = extractQueueSkipIdFromSubmissions(submissions);
       if (queueSkipIdFromSubmissions) {
         setQueueSkipItemId(queueSkipIdFromSubmissions);
-        console.log('[Queue Skip] ID extrait depuis soumissions:', queueSkipIdFromSubmissions);
       }
     }
   }, [submissions, extractQueueSkipIdFromSubmissions]);
@@ -300,7 +291,6 @@ export function useAdminLiveActions(
         finalQueueSkipItemId = extractQueueSkipIdFromSubmissions(nonRolledSubmissions);
         if (finalQueueSkipItemId) {
           setQueueSkipItemId(finalQueueSkipItemId);
-          console.log('[Queue Skip] ID extrait depuis soumissions:', finalQueueSkipItemId);
         }
       }
 
@@ -308,23 +298,6 @@ export function useAdminLiveActions(
       // Note: L'API filtre déjà pour ne retourner que les items activés (where: { isActivated: true })
       const submissionsWithQueueSkip = nonRolledSubmissions.filter((submission) => {
         const userItems = submission.User?.UserLiveItem || [];
-
-        // Debug: Log tous les items avec leurs IDs et types
-        console.log('[Queue Skip] Analyse pour', submission.User?.name, ':', {
-          totalItems: userItems.length,
-          queueSkipItemId: finalQueueSkipItemId,
-          items: userItems.map((item) => ({
-            id: item.id,
-            itemId: item.itemId,
-            liveItemId: item.LiveItem?.id,
-            type: item.LiveItem?.type,
-            name: item.LiveItem?.name,
-            isQueueSkipById: finalQueueSkipItemId
-              ? item.LiveItem?.id === finalQueueSkipItemId || item.itemId === finalQueueSkipItemId
-              : false,
-            isQueueSkipByType: String(item.LiveItem?.type) === String(LiveItemType.QUEUE_SKIP),
-          })),
-        });
 
         const hasQueueSkip = userItems.some((item) => {
           if (!item.LiveItem) return false;
@@ -342,20 +315,7 @@ export function useAdminLiveActions(
           return itemType === queueSkipType;
         });
 
-        if (hasQueueSkip) {
-          console.log('[Queue Skip] ✓ Soumission avec Queue Skip trouvée:', submission.User?.name);
-        } else {
-          console.log('[Queue Skip] ✗ Aucun Queue Skip pour:', submission.User?.name);
-        }
-
         return hasQueueSkip;
-      });
-
-      // Debug: Log pour vérifier la détection
-      console.log('[Queue Skip] Résumé:', {
-        totalNonRolled: nonRolledSubmissions.length,
-        totalWithQueueSkip: submissionsWithQueueSkip.length,
-        withQueueSkipNames: submissionsWithQueueSkip.map((s) => s.User?.name),
       });
 
       // Pour l'affichage : garder toutes les soumissions (pour l'aspect visuel)
@@ -463,18 +423,6 @@ export function useAdminLiveActions(
         }
       }
 
-      // Debug: Vérifier que la sélection est correcte
-      const selectedHasQueueSkip = weightedSubmissions.find(
-        (w) => w.submission.id === selectedSubmission.id
-      )?.hasQueueSkip;
-      console.log('[Queue Skip] Sélection:', {
-        selectedId: selectedSubmission.id,
-        selectedName: selectedSubmission.User?.name,
-        hasQueueSkip: selectedHasQueueSkip,
-        totalEligible: eligibleSubmissions.length,
-        totalWithQueueSkip: submissionsWithQueueSkip.length,
-      });
-
       // Ouvrir la modale avec la soumission sélectionnée
       setSelectedSubmissionId(selectedSubmission.id);
       // Stocker toutes les soumissions pour l'affichage (aspect visuel)
@@ -486,13 +434,6 @@ export function useAdminLiveActions(
       const queueSkipFlags = nonRolledSubmissions.map((submission) => {
         const weighted = weightedSubmissions.find((w) => w.submission.id === submission.id);
         return weighted?.hasQueueSkip || false;
-      });
-
-      console.log('[Queue Skip] Flags mappés:', {
-        totalSubmissions: nonRolledSubmissions.length,
-        flags: queueSkipFlags,
-        flagsWithTrue: queueSkipFlags.filter((f) => f).length,
-        submissionNames: nonRolledSubmissions.map((s) => s.User?.name),
       });
 
       setSelectedQueueSkipFlags(queueSkipFlags);
@@ -573,7 +514,6 @@ export function useAdminLiveActions(
                     );
                   }
                 } else {
-                  console.warn('Queue Skip UserLiveItem non trouvé pour la consommation');
                   toast.success('Soumission sélectionnée et pinée !');
                 }
               } catch (error) {

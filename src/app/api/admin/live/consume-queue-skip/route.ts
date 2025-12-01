@@ -32,9 +32,15 @@ export async function POST(request: NextRequest) {
       queueSkipItemId = itemId;
     } else {
       // Trouver l'item Queue Skip dans la base de données (type: SKIP_QUEUE)
+      // Note: SQLite ne supporte pas mode: 'insensitive', on fait la recherche par type principalement
       const queueSkipItem = await prisma.liveItem.findFirst({
         where: {
-          OR: [{ type: 'SKIP_QUEUE' }, { name: { contains: 'Skip Queue', mode: 'insensitive' } }],
+          OR: [
+            { type: 'SKIP_QUEUE' },
+            { name: { contains: 'Skip Queue' } },
+            { name: { contains: 'skip queue' } },
+            { name: { contains: 'SKIP QUEUE' } },
+          ],
         },
       });
 

@@ -93,7 +93,7 @@ export async function GET() {
 
         // Transformer les données de la DB au format attendu
         blobImages = dbImages
-          .filter((img) => img.blobUrl) // Ne garder que les images avec URL blob
+          .filter((img): img is typeof img & { blobUrl: string } => !!img.blobUrl) // Ne garder que les images avec URL blob
           .map((img) => {
             // Extraire le nom du fichier depuis le pathname de l'URL blob
             // Format: uploads/{imageId}.webp ou uploads/{imageId}-ori.png
