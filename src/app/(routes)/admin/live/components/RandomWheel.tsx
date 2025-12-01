@@ -233,15 +233,6 @@ export function RandomWheel({
             const isSelected = selectedIndex === index && !isSpinning;
             const hasQueueSkip = queueSkipFlags[index] || false;
 
-            // Debug: Log pour vérifier les flags
-            if (hasQueueSkip) {
-              console.log(
-                '[RandomWheel] Queue Skip détecté pour:',
-                submission.User?.name,
-                'index:',
-                index
-              );
-            }
             return (
               <g key={submission.id}>
                 <path

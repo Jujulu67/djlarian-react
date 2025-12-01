@@ -22,7 +22,13 @@ export type SubmissionWithUser = {
     image: string | null;
     UserLiveItem: {
       id: string;
+      itemId: string;
       quantity: number;
+      activatedQuantity: number;
+      activatedAt: Date | null;
+      metadata: string | null;
+      createdAt: Date;
+      updatedAt: Date;
       LiveItem: {
         id: string;
         type: string;

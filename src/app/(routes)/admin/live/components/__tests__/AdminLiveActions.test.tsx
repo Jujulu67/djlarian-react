@@ -58,6 +58,8 @@ jest.mock('lucide-react', () => ({
   CheckCircle: () => <div data-testid="check-icon" />,
   FileText: () => <div data-testid="file-icon" />,
   Package: () => <div data-testid="package-icon" />,
+  Clock: () => <div data-testid="clock-icon" />,
+  RotateCw: () => <div data-testid="rotate-cw-icon" />,
 }));
 
 describe('AdminLiveActions', () => {
