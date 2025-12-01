@@ -13,7 +13,9 @@ module.exports = {
       },
     ],
   },
-  transformIgnorePatterns: ['node_modules/(?!(next-auth|cheerio)/)'],
+  transformIgnorePatterns: [
+    'node_modules/(?!(next-auth|cheerio|@auth))',
+  ],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   testMatch: [
     '**/__tests__/**/*.test.ts',

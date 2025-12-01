@@ -1,5 +1,20 @@
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent } from '@testing-library/react';
+
+// Mock dependencies - MUST be before component imports
+jest.mock('@/auth', () => ({
+  auth: jest.fn(),
+}));
+
+jest.mock('@/actions/inventory', () => ({
+  searchUsers: jest.fn(),
+  getInventory: jest.fn(),
+  getAllItems: jest.fn(),
+  addItemToUser: jest.fn(),
+  removeItemFromUser: jest.fn(),
+  toggleItemActivation: jest.fn(),
+}));
+
 import { AdminLiveActions } from '../AdminLiveActions';
 import { useAdminLiveActions } from '../../hooks/useAdminLiveActions';
 import { useAdminLiveSubmissionsContext } from '../../context/AdminLiveSubmissionsContext';
@@ -18,6 +33,9 @@ jest.mock('../../context/AdminLivePlayerContext', () => ({
 }));
 jest.mock('../RandomWheelModal', () => ({
   RandomWheelModal: () => <div data-testid="wheel-modal" />,
+}));
+jest.mock('../GlobalInventoryManager', () => ({
+  GlobalInventoryManager: () => <div data-testid="global-inventory-manager" />,
 }));
 jest.mock('framer-motion', () => ({
   motion: {
@@ -39,6 +57,7 @@ jest.mock('lucide-react', () => ({
   MessageSquare: () => <div data-testid="message-icon" />,
   CheckCircle: () => <div data-testid="check-icon" />,
   FileText: () => <div data-testid="file-icon" />,
+  Package: () => <div data-testid="package-icon" />,
 }));
 
 describe('AdminLiveActions', () => {

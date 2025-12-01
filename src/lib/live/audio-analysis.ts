@@ -15,7 +15,14 @@ export interface AudioAnalysisResult {
  */
 export async function analyzeAudioFile(file: File): Promise<AudioAnalysisResult> {
   return new Promise((resolve, reject) => {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) {
+      reject(new Error('AudioContext not supported'));
+      return;
+    }
+    const audioContext = new AudioContextClass();
     const fileReader = new FileReader();
 
     fileReader.onload = async (e) => {
