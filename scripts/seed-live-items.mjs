@@ -11,7 +11,6 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaNeon } from '@prisma/adapter-neon';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
-import { neon } from '@neondatabase/serverless';
 import pg from 'pg';
 import Database from 'better-sqlite3';
 import dotenv from 'dotenv';
@@ -27,38 +26,49 @@ dotenv.config({ path: join(rootDir, '.env.local') });
 dotenv.config({ path: join(rootDir, '.env') });
 
 // Fonction pour créer l'adaptateur Prisma approprié
+// Utilise la même logique que src/lib/prisma.ts
 function createPrismaAdapter(databaseUrl) {
   if (!databaseUrl) {
     throw new Error('DATABASE_URL n\'est pas défini');
   }
 
-  // PostgreSQL (Neon)
-  if (databaseUrl.startsWith('postgresql://') || databaseUrl.startsWith('postgres://')) {
-    // Vérifier si c'est une connection string Neon (contient @ ou pooler)
-    if (databaseUrl.includes('@') || databaseUrl.includes('pooler')) {
-      try {
-        const sql = neon(databaseUrl);
-        return new PrismaNeon(sql);
-      } catch (error) {
-        // Fallback vers pg si Neon échoue
-        const pool = new pg.Pool({ connectionString: databaseUrl });
-        return new PrismaPg(pool);
-      }
-    } else {
-      // PostgreSQL standard
+  const isSQLiteUrl = databaseUrl.startsWith('file:');
+  const isPostgreSQLUrl =
+    databaseUrl.startsWith('postgresql://') || databaseUrl.startsWith('postgres://');
+  const isNeonUrl =
+    databaseUrl.includes('neon.tech') ||
+    databaseUrl.includes('neon') ||
+    databaseUrl.includes('pooler');
+
+  if (isSQLiteUrl) {
+    // SQLite - utiliser better-sqlite3 adapter
+    try {
+      const sqlitePath = databaseUrl.replace('file:', '');
+      const sqlite = new Database(sqlitePath);
+      return new PrismaBetterSqlite3(sqlite);
+    } catch (error) {
+      throw new Error(`Erreur lors de l'initialisation de l'adaptateur SQLite: ${error.message}`);
+    }
+  } else if (isNeonUrl) {
+    // Neon - utiliser Neon adapter avec connectionString
+    // PrismaNeon attend un objet avec connectionString, pas la fonction neon()
+    try {
+      return new PrismaNeon({
+        connectionString: databaseUrl,
+      });
+    } catch (error) {
+      // Fallback vers pg si Neon échoue
+      console.warn(`⚠️  Erreur avec l'adaptateur Neon, utilisation de pg: ${error.message}`);
       const pool = new pg.Pool({ connectionString: databaseUrl });
       return new PrismaPg(pool);
     }
+  } else if (isPostgreSQLUrl) {
+    // PostgreSQL standard - utiliser pg adapter
+    const pool = new pg.Pool({ connectionString: databaseUrl });
+    return new PrismaPg(pool);
+  } else {
+    throw new Error(`Format de DATABASE_URL non supporté: ${databaseUrl.substring(0, 30)}...`);
   }
-
-  // SQLite
-  if (databaseUrl.startsWith('file:')) {
-    const sqlitePath = databaseUrl.replace('file:', '');
-    const sqlite = new Database(sqlitePath);
-    return new PrismaBetterSqlite3(sqlite);
-  }
-
-  throw new Error(`Format de DATABASE_URL non supporté: ${databaseUrl.substring(0, 20)}...`);
 }
 
 // Définitions des items (copiées depuis src/lib/live/items.ts pour éviter les imports TypeScript)
@@ -130,15 +140,23 @@ const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
   console.error('❌ ERREUR: DATABASE_URL n\'est pas défini');
   console.error('   Assurez-vous que DATABASE_URL est configuré dans les variables d\'environnement');
+  console.error('   Variables d\'environnement chargées:', Object.keys(process.env).filter(k => k.includes('DATABASE')).join(', ') || 'aucune');
   process.exit(1);
 }
+
+// Debug: afficher le type de base de données détecté (sans exposer les credentials)
+const dbType = databaseUrl.startsWith('file:') ? 'SQLite' : 
+               databaseUrl.includes('neon') ? 'Neon' : 
+               databaseUrl.startsWith('postgres') ? 'PostgreSQL' : 'Inconnu';
+console.log(`   🔗 Type de base de données détecté: ${dbType}`);
 
 let adapter;
 try {
   adapter = createPrismaAdapter(databaseUrl);
 } catch (error) {
   console.error('❌ ERREUR lors de la création de l\'adaptateur Prisma:', error.message);
-  console.error('   DATABASE_URL:', databaseUrl.substring(0, 30) + '...');
+  console.error('   Type de base de données:', dbType);
+  console.error('   DATABASE_URL (masqué):', databaseUrl.substring(0, 20) + '...' + databaseUrl.substring(databaseUrl.length - 10));
   process.exit(1);
 }
 
