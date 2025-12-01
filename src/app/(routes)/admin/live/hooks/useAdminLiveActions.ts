@@ -1,6 +1,9 @@
 import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import type { SubmissionWithUser } from './useAdminLiveSubmissions';
+import { calculateTicketWeight, calculateMultiplier } from '@/lib/live/calculations';
+import type { UserTicket, UserLiveItem } from '@/types/live';
+import { TicketSource, LiveItemType } from '@/types/live';
 
 export type AdminLiveActionsState = {
   downloadsEnabled: boolean;
@@ -40,9 +43,59 @@ export function useAdminLiveActions(
     loadSettings();
   }, [loadSettings]);
 
+  // Fonction helper pour extraire l'ID de Queue Skip depuis les soumissions
+  const extractQueueSkipIdFromSubmissions = useCallback(
+    (subs: SubmissionWithUser[]): string | null => {
+      for (const submission of subs) {
+        const userItems = submission.User?.UserLiveItem || [];
+        for (const item of userItems) {
+          if (item.LiveItem) {
+            const itemName = item.LiveItem.name?.toLowerCase() || '';
+            const itemType = String(item.LiveItem.type).toLowerCase();
+
+            // Vérifier si c'est Queue Skip par nom ou type
+            if (
+              itemName.includes('queue skip') ||
+              itemName.includes('skip queue') ||
+              itemType === 'queue_skip' ||
+              itemType === 'skip_queue'
+            ) {
+              console.log(
+                '[Queue Skip] ID trouvé dans soumissions:',
+                item.LiveItem.id,
+                'Name:',
+                item.LiveItem.name,
+                'Type:',
+                item.LiveItem.type
+              );
+              return item.LiveItem.id;
+            }
+          }
+        }
+      }
+      return null;
+    },
+    []
+  );
+
+  // Extraire l'ID de Queue Skip depuis les soumissions (pas besoin d'API)
+  useEffect(() => {
+    if (submissions.length > 0) {
+      const queueSkipIdFromSubmissions = extractQueueSkipIdFromSubmissions(submissions);
+      if (queueSkipIdFromSubmissions) {
+        setQueueSkipItemId(queueSkipIdFromSubmissions);
+        console.log('[Queue Skip] ID extrait depuis soumissions:', queueSkipIdFromSubmissions);
+      }
+    }
+  }, [submissions, extractQueueSkipIdFromSubmissions]);
+
   // État pour la modale de roue
   const [isWheelModalOpen, setIsWheelModalOpen] = useState(false);
   const [selectedSubmissionId, setSelectedSubmissionId] = useState<string | null>(null);
+  const [selectedSubmissions, setSelectedSubmissions] = useState<SubmissionWithUser[]>([]);
+  const [selectedWeights, setSelectedWeights] = useState<number[]>([]);
+  const [selectedQueueSkipFlags, setSelectedQueueSkipFlags] = useState<boolean[]>([]);
+  const [queueSkipItemId, setQueueSkipItemId] = useState<string | null>(null);
 
   const updateAction = useCallback(async (key: keyof AdminLiveActionsState, value: boolean) => {
     // Mettre à jour l'état local immédiatement
@@ -221,35 +274,188 @@ export function useAdminLiveActions(
         return;
       }
 
-      // Calculer les poids pour chaque soumission
-      // Poids de base = 1
-      // Chaque item activé ajoute +1 au poids
-      const weightedSubmissions = nonRolledSubmissions.map((submission) => {
-        let weight = 1;
+      // Trier par date de création pour trouver la première (début de séance)
+      const sortedSubmissions = [...nonRolledSubmissions].sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      );
+      const sessionStartTime = sortedSubmissions[0]?.createdAt || new Date();
 
-        // Vérifier si UserLiveItem existe sur la soumission (ajouté récemment au type)
-        if (submission.User && 'UserLiveItem' in submission.User) {
-          const userItems = submission.User.UserLiveItem || [];
-          // Compter les items activés
-          // On suppose que l'API renvoie déjà uniquement les items activés ou on filtre
-          const activeItemsCount = userItems.reduce(
-            (acc: number, item) => acc + (item.quantity || 1),
-            0
-          );
-          weight += activeItemsCount;
+      // Récupérer l'offset de temps simulé
+      let timeOffsetMinutes = 0;
+      try {
+        const offsetResponse = await fetch('/api/admin/live/time-offset');
+        if (offsetResponse.ok) {
+          const offsetData = await offsetResponse.json();
+          timeOffsetMinutes = offsetData.data?.timeOffsetMinutes || 0;
+        }
+      } catch (error) {
+        console.error('Erreur lors de la récupération du time offset:', error);
+      }
+
+      // Extraire l'ID de Queue Skip directement depuis les soumissions
+      let finalQueueSkipItemId = queueSkipItemId;
+
+      // Si pas encore chargé, extraire depuis les soumissions actuelles
+      if (!finalQueueSkipItemId && nonRolledSubmissions.length > 0) {
+        finalQueueSkipItemId = extractQueueSkipIdFromSubmissions(nonRolledSubmissions);
+        if (finalQueueSkipItemId) {
+          setQueueSkipItemId(finalQueueSkipItemId);
+          console.log('[Queue Skip] ID extrait depuis soumissions:', finalQueueSkipItemId);
+        }
+      }
+
+      // Détecter les soumissions avec Queue Skip activé en utilisant l'ID
+      // Note: L'API filtre déjà pour ne retourner que les items activés (where: { isActivated: true })
+      const submissionsWithQueueSkip = nonRolledSubmissions.filter((submission) => {
+        const userItems = submission.User?.UserLiveItem || [];
+
+        // Debug: Log tous les items avec leurs IDs et types
+        console.log('[Queue Skip] Analyse pour', submission.User?.name, ':', {
+          totalItems: userItems.length,
+          queueSkipItemId: finalQueueSkipItemId,
+          items: userItems.map((item) => ({
+            id: item.id,
+            itemId: item.itemId,
+            liveItemId: item.LiveItem?.id,
+            type: item.LiveItem?.type,
+            name: item.LiveItem?.name,
+            isQueueSkipById: finalQueueSkipItemId
+              ? item.LiveItem?.id === finalQueueSkipItemId || item.itemId === finalQueueSkipItemId
+              : false,
+            isQueueSkipByType: String(item.LiveItem?.type) === String(LiveItemType.QUEUE_SKIP),
+          })),
+        });
+
+        const hasQueueSkip = userItems.some((item) => {
+          if (!item.LiveItem) return false;
+
+          // Comparer avec l'ID si disponible, sinon avec le type
+          if (finalQueueSkipItemId) {
+            return (
+              item.LiveItem.id === finalQueueSkipItemId || item.itemId === finalQueueSkipItemId
+            );
+          }
+
+          // Fallback: comparer le type
+          const itemType = String(item.LiveItem.type);
+          const queueSkipType = String(LiveItemType.QUEUE_SKIP);
+          return itemType === queueSkipType;
+        });
+
+        if (hasQueueSkip) {
+          console.log('[Queue Skip] ✓ Soumission avec Queue Skip trouvée:', submission.User?.name);
+        } else {
+          console.log('[Queue Skip] ✗ Aucun Queue Skip pour:', submission.User?.name);
         }
 
-        return { submission, weight };
+        return hasQueueSkip;
       });
 
-      // Calculer le poids total
-      const totalWeight = weightedSubmissions.reduce((acc, item) => acc + item.weight, 0);
+      // Debug: Log pour vérifier la détection
+      console.log('[Queue Skip] Résumé:', {
+        totalNonRolled: nonRolledSubmissions.length,
+        totalWithQueueSkip: submissionsWithQueueSkip.length,
+        withQueueSkipNames: submissionsWithQueueSkip.map((s) => s.User?.name),
+      });
 
-      // Sélection aléatoire pondérée
+      // Pour l'affichage : garder toutes les soumissions (pour l'aspect visuel)
+      // Pour le tirage : utiliser uniquement ceux avec Queue Skip s'il y en a
+      const eligibleSubmissions =
+        submissionsWithQueueSkip.length > 0 ? submissionsWithQueueSkip : nonRolledSubmissions;
+
+      // Calculer les poids pour chaque soumission en utilisant calculateTicketWeight avec multiplier
+      const weightedSubmissions = nonRolledSubmissions.map((submission) => {
+        // Récupérer les tickets actifs de l'utilisateur
+        const activeTickets: UserTicket[] = (submission.User?.UserTicket || []).map((ticket) => ({
+          id: ticket.id,
+          userId: submission.User.id,
+          quantity: ticket.quantity,
+          source: ticket.source as TicketSource,
+          expiresAt: ticket.expiresAt,
+          createdAt: ticket.createdAt,
+        }));
+
+        // Récupérer les items activés de l'utilisateur
+        // Note: L'API filtre déjà pour ne retourner que les items activés (activatedQuantity > 0)
+        const activatedItems: UserLiveItem[] = (submission.User?.UserLiveItem || [])
+          .filter((item) => item.LiveItem && (item.activatedQuantity || 0) > 0) // Filtrer les items activés
+          .map((item) => ({
+            id: item.id,
+            userId: submission.User.id,
+            itemId: item.LiveItem?.id || '',
+            quantity: item.quantity,
+            activatedQuantity: item.activatedQuantity || 0,
+            isActivated: (item.activatedQuantity || 0) > 0,
+            activatedAt: item.activatedAt,
+            metadata: item.metadata,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt,
+            LiveItem: item.LiveItem
+              ? {
+                  id: item.LiveItem.id,
+                  type: item.LiveItem.type as LiveItemType,
+                  name: item.LiveItem.name,
+                  description: null,
+                  icon: null,
+                  isActive: true,
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
+                }
+              : undefined,
+          }));
+
+        // Vérifier si cette soumission a Queue Skip en utilisant l'ID
+        const hasQueueSkip = (submission.User?.UserLiveItem || []).some((item) => {
+          if (!item.LiveItem) return false;
+
+          // Comparer avec l'ID si disponible, sinon avec le type
+          if (finalQueueSkipItemId) {
+            return (
+              item.LiveItem.id === finalQueueSkipItemId || item.itemId === finalQueueSkipItemId
+            );
+          }
+
+          // Fallback: comparer le type
+          const itemType = String(item.LiveItem.type);
+          const queueSkipType = String(LiveItemType.QUEUE_SKIP);
+          return itemType === queueSkipType;
+        });
+
+        // Calculer le multiplier basé sur le temps depuis la soumission
+        const submissionCreatedAt = new Date(submission.createdAt);
+        const multiplier = calculateMultiplier(
+          submissionCreatedAt,
+          sessionStartTime,
+          timeOffsetMinutes
+        );
+
+        // Calculer le poids de base
+        const baseWeight = calculateTicketWeight(activeTickets, activatedItems);
+
+        // Appliquer le multiplier au poids
+        const weight = baseWeight * multiplier;
+
+        return { submission, weight, hasQueueSkip };
+      });
+
+      // Filtrer les weightedSubmissions pour ne garder que les éligibles pour le tirage
+      const eligibleWeightedSubmissions = weightedSubmissions.filter((item) =>
+        eligibleSubmissions.some((sub) => sub.id === item.submission.id)
+      );
+
+      // Calculer le poids total uniquement pour les éligibles
+      const totalWeight = eligibleWeightedSubmissions.reduce((acc, item) => acc + item.weight, 0);
+
+      if (totalWeight === 0) {
+        toast.error('Aucun poids disponible pour le tirage');
+        return;
+      }
+
+      // Sélection aléatoire pondérée parmi les éligibles
       let randomValue = Math.random() * totalWeight;
-      let selectedSubmission = nonRolledSubmissions[0];
+      let selectedSubmission = eligibleSubmissions[0];
 
-      for (const item of weightedSubmissions) {
+      for (const item of eligibleWeightedSubmissions) {
         randomValue -= item.weight;
         if (randomValue <= 0) {
           selectedSubmission = item.submission;
@@ -257,18 +463,66 @@ export function useAdminLiveActions(
         }
       }
 
+      // Debug: Vérifier que la sélection est correcte
+      const selectedHasQueueSkip = weightedSubmissions.find(
+        (w) => w.submission.id === selectedSubmission.id
+      )?.hasQueueSkip;
+      console.log('[Queue Skip] Sélection:', {
+        selectedId: selectedSubmission.id,
+        selectedName: selectedSubmission.User?.name,
+        hasQueueSkip: selectedHasQueueSkip,
+        totalEligible: eligibleSubmissions.length,
+        totalWithQueueSkip: submissionsWithQueueSkip.length,
+      });
+
       // Ouvrir la modale avec la soumission sélectionnée
       setSelectedSubmissionId(selectedSubmission.id);
+      // Stocker toutes les soumissions pour l'affichage (aspect visuel)
+      setSelectedSubmissions(nonRolledSubmissions);
+      // Stocker les poids pour toutes les soumissions (pour l'affichage)
+      setSelectedWeights(weightedSubmissions.map((w) => w.weight));
+      // Stocker les informations Queue Skip pour chaque soumission
+      // IMPORTANT: L'ordre doit correspondre à nonRolledSubmissions
+      const queueSkipFlags = nonRolledSubmissions.map((submission) => {
+        const weighted = weightedSubmissions.find((w) => w.submission.id === submission.id);
+        return weighted?.hasQueueSkip || false;
+      });
+
+      console.log('[Queue Skip] Flags mappés:', {
+        totalSubmissions: nonRolledSubmissions.length,
+        flags: queueSkipFlags,
+        flagsWithTrue: queueSkipFlags.filter((f) => f).length,
+        submissionNames: nonRolledSubmissions.map((s) => s.User?.name),
+      });
+
+      setSelectedQueueSkipFlags(queueSkipFlags);
       setIsWheelModalOpen(true);
     } catch (error) {
       toast.error('Erreur lors du roll random');
       console.error(error);
     }
-  }, [submissions]);
+  }, [submissions, queueSkipItemId, extractQueueSkipIdFromSubmissions]);
 
   const handleWheelSelectionComplete = useCallback(
     async (submissionId: string) => {
       try {
+        // Trouver la soumission sélectionnée pour vérifier si elle a Queue Skip
+        const selectedSubmission = submissions.find((s) => s.id === submissionId);
+        // Note: L'API filtre déjà pour ne retourner que les items activés
+        // Utiliser l'ID de Queue Skip depuis le state
+        const currentQueueSkipId = queueSkipItemId;
+        const hasQueueSkip = selectedSubmission?.User?.UserLiveItem?.some((item) => {
+          if (!item.LiveItem) return false;
+
+          // Comparer avec l'ID si disponible, sinon avec le type
+          if (currentQueueSkipId) {
+            return item.LiveItem.id === currentQueueSkipId || item.itemId === currentQueueSkipId;
+          }
+
+          // Fallback: comparer le type
+          return String(item.LiveItem.type) === String(LiveItemType.QUEUE_SKIP);
+        });
+
         // Pinner la soumission sélectionnée et la marquer comme rolled
         // L'API dépinnera automatiquement les autres
         if (updateSubmissionPinned && updateSubmissionRolled) {
@@ -278,7 +532,63 @@ export function useAdminLiveActions(
           ]);
 
           if (pinSuccess && rolledSuccess) {
-            toast.success('Soumission sélectionnée et pinée !');
+            // Si le gagnant a Queue Skip, le consommer
+            if (hasQueueSkip && selectedSubmission?.User?.id && currentQueueSkipId) {
+              try {
+                // Trouver le UserLiveItem à supprimer
+                const queueSkipUserItem = selectedSubmission.User.UserLiveItem?.find(
+                  (item) =>
+                    item.LiveItem?.id === currentQueueSkipId || item.itemId === currentQueueSkipId
+                );
+
+                if (queueSkipUserItem) {
+                  const consumeResponse = await fetch('/api/admin/live/consume-queue-skip', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      userId: selectedSubmission.User.id,
+                      itemId: currentQueueSkipId,
+                    }),
+                  });
+
+                  if (consumeResponse.ok) {
+                    toast.success('Soumission sélectionnée et pinée ! Queue Skip consommé.');
+                  } else {
+                    // Essayer de parser l'erreur
+                    let errorMessage = 'Erreur inconnue';
+                    try {
+                      const errorData = await consumeResponse.json();
+                      errorMessage =
+                        errorData.error || errorData.message || JSON.stringify(errorData);
+                    } catch (parseError) {
+                      errorMessage = `Erreur ${consumeResponse.status}: ${consumeResponse.statusText}`;
+                    }
+                    console.error('Erreur lors de la consommation du Queue Skip:', {
+                      status: consumeResponse.status,
+                      statusText: consumeResponse.statusText,
+                      error: errorMessage,
+                    });
+                    toast.success(
+                      'Soumission sélectionnée et pinée ! (Erreur consommation Queue Skip)'
+                    );
+                  }
+                } else {
+                  console.warn('Queue Skip UserLiveItem non trouvé pour la consommation');
+                  toast.success('Soumission sélectionnée et pinée !');
+                }
+              } catch (error) {
+                console.error('Erreur lors de la consommation du Queue Skip:', {
+                  error: error instanceof Error ? error.message : String(error),
+                  stack: error instanceof Error ? error.stack : undefined,
+                });
+                toast.success(
+                  'Soumission sélectionnée et pinée ! (Erreur consommation Queue Skip)'
+                );
+              }
+            } else {
+              toast.success('Soumission sélectionnée et pinée !');
+            }
+
             // Rafraîchir immédiatement pour mettre à jour l'état
             if (fetchSubmissions) {
               await fetchSubmissions();
@@ -292,17 +602,72 @@ export function useAdminLiveActions(
         console.error(error);
       }
     },
-    [updateSubmissionRolled, updateSubmissionPinned, fetchSubmissions]
+    [updateSubmissionRolled, updateSubmissionPinned, fetchSubmissions, submissions]
   );
 
   const handleCloseWheelModal = useCallback(async () => {
     setIsWheelModalOpen(false);
     setSelectedSubmissionId(null);
+    setSelectedSubmissions([]);
+    setSelectedWeights([]);
+    setSelectedQueueSkipFlags([]);
     // Recharger la liste des soumissions pour voir le nouveau pin et l'état rolled
     // Attendre un peu pour s'assurer que les opérations API sont terminées
     if (fetchSubmissions) {
       await new Promise((resolve) => setTimeout(resolve, 500));
       await fetchSubmissions();
+    }
+  }, [fetchSubmissions]);
+
+  const advanceTime = useCallback(
+    async (minutes: number) => {
+      try {
+        const response = await fetch('/api/admin/live/time-offset', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ increment: minutes }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          toast.success(
+            `Temps avancé de ${minutes} minutes (Total: ${data.data.timeOffsetMinutes} min)`
+          );
+          // Rafraîchir les soumissions pour voir les nouveaux multipliers
+          if (fetchSubmissions) {
+            await fetchSubmissions();
+          }
+        } else {
+          const error = await response.json();
+          toast.error(error.error || "Erreur lors de l'avancement du temps");
+        }
+      } catch (error) {
+        toast.error("Erreur lors de l'avancement du temps");
+        console.error(error);
+      }
+    },
+    [fetchSubmissions]
+  );
+
+  const resetTimeOffset = useCallback(async () => {
+    try {
+      const response = await fetch('/api/admin/live/time-offset', {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        toast.success('Offset de temps réinitialisé');
+        // Rafraîchir les soumissions pour voir les nouveaux multipliers
+        if (fetchSubmissions) {
+          await fetchSubmissions();
+        }
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Erreur lors de la réinitialisation');
+      }
+    } catch (error) {
+      toast.error('Erreur lors de la réinitialisation');
+      console.error(error);
     }
   }, [fetchSubmissions]);
 
@@ -322,11 +687,17 @@ export function useAdminLiveActions(
     // État et handlers pour la modale de roue
     isWheelModalOpen,
     selectedSubmissionId,
+    selectedSubmissions,
+    selectedWeights,
+    selectedQueueSkipFlags,
     handleWheelSelectionComplete,
     handleCloseWheelModal,
     purgeAllSubmissions,
     // Inventory Manager
     isInventoryManagerOpen,
     setIsInventoryManagerOpen,
+    // Time offset functions
+    advanceTime,
+    resetTimeOffset,
   };
 }

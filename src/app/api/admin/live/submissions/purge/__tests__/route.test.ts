@@ -33,7 +33,6 @@ jest.mock('@/lib/blob', () => ({
 }));
 
 jest.mock('@vercel/blob', () => ({
-  list: jest.fn(),
   del: jest.fn(),
 }));
 
@@ -73,7 +72,7 @@ describe('/api/admin/live/submissions/purge', () => {
       const { auth } = await import('@/auth');
       const { default: prisma } = await import('@/lib/prisma');
       const { getIsBlobConfigured } = await import('@/lib/blob');
-      const { list, del } = await import('@vercel/blob');
+      const { del } = await import('@vercel/blob');
 
       (auth as jest.Mock).mockResolvedValue({
         user: { id: 'admin-123', role: 'ADMIN' },
@@ -82,18 +81,13 @@ describe('/api/admin/live/submissions/purge', () => {
       // Mock blob configuration
       (getIsBlobConfigured as jest.Mock).mockReturnValue(true);
 
-      // Mock finding submissions
+      // Mock finding submissions with blob URLs
       (prisma.liveSubmission.findMany as jest.Mock).mockResolvedValue([
-        { id: 'sub-1', fileUrl: 'https://blob.com/1.mp3' },
-        { id: 'sub-2', fileUrl: 'https://blob.com/2.mp3' },
+        { id: 'sub-1', fileUrl: 'https://blob.com/live-audio/1.mp3' },
+        { id: 'sub-2', fileUrl: 'https://blob.com/live-audio/2.mp3' },
       ]);
 
-      // Mock blob list and delete
-      (list as jest.Mock).mockResolvedValue({
-        blobs: [{ url: 'https://blob.com/1.mp3' }, { url: 'https://blob.com/2.mp3' }],
-        hasMore: false,
-        cursor: undefined,
-      });
+      // Mock blob delete (OPTIMISATION: No longer uses list(), uses URLs from DB)
       (del as jest.Mock).mockResolvedValue(undefined);
 
       (prisma.liveSubmission.deleteMany as jest.Mock).mockResolvedValue({ count: 2 });
@@ -107,14 +101,14 @@ describe('/api/admin/live/submissions/purge', () => {
 
       expect(response.status).toBe(200);
       expect(data.data.dbDeleted).toBe(2);
+      expect(data.data.filesDeleted).toBe(2);
 
       // Should fetch all submissions
       expect(prisma.liveSubmission.findMany).toHaveBeenCalled();
 
-      // Should list and delete blobs
-      expect(list).toHaveBeenCalledWith({ prefix: 'live-audio/', cursor: undefined });
-      expect(del).toHaveBeenCalledWith('https://blob.com/1.mp3');
-      expect(del).toHaveBeenCalledWith('https://blob.com/2.mp3');
+      // OPTIMISATION: Should delete blobs using URLs from DB (no list() called)
+      expect(del).toHaveBeenCalledWith('https://blob.com/live-audio/1.mp3');
+      expect(del).toHaveBeenCalledWith('https://blob.com/live-audio/2.mp3');
 
       // Should delete records
       expect(prisma.liveSubmission.deleteMany).toHaveBeenCalled();

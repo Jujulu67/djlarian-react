@@ -2,10 +2,26 @@
 
 import { motion } from 'framer-motion';
 import { Download, Loader2 } from 'lucide-react';
+import { useEffect } from 'react';
 import { useLiveChances } from '../hooks/useLiveChances';
 
 export function LiveChances() {
-  const { chances, isLoading } = useLiveChances();
+  const { chances, isLoading, loadChances } = useLiveChances();
+
+  // Écouter les événements de soumission pour recharger les chances immédiatement
+  useEffect(() => {
+    const handleSubmissionSuccess = () => {
+      // Recharger les chances immédiatement après une soumission
+      loadChances();
+    };
+
+    // Écouter l'événement personnalisé
+    window.addEventListener('liveSubmissionSuccess', handleSubmissionSuccess);
+
+    return () => {
+      window.removeEventListener('liveSubmissionSuccess', handleSubmissionSuccess);
+    };
+  }, [loadChances]);
 
   return (
     <motion.div

@@ -11,6 +11,8 @@ import {
   RotateCcw,
   RefreshCw,
   Trash2,
+  Clock,
+  RotateCw,
 } from 'lucide-react';
 import { useAdminLiveActions } from '../hooks/useAdminLiveActions';
 import { useAdminLiveSubmissionsContext } from '../context/AdminLiveSubmissionsContext';
@@ -41,10 +43,15 @@ export function AdminLiveActions() {
     purgeAllSubmissions,
     isWheelModalOpen,
     selectedSubmissionId,
+    selectedSubmissions,
+    selectedWeights,
+    selectedQueueSkipFlags,
     handleWheelSelectionComplete,
     handleCloseWheelModal,
     isInventoryManagerOpen,
     setIsInventoryManagerOpen,
+    advanceTime,
+    resetTimeOffset,
   } = useAdminLiveActions(
     submissions,
     updateSubmissionRolled,
@@ -188,7 +195,7 @@ export function AdminLiveActions() {
         </button>
       </div>
 
-      <div className="flex justify-start mb-4 gap-4">
+      <div className="flex justify-start mb-4 gap-4 flex-wrap">
         <button
           onClick={deleteNgrok}
           className="bg-red-600 hover:bg-red-700 px-3 sm:px-4 py-2 rounded-lg text-sm font-medium text-white transition-colors"
@@ -203,6 +210,27 @@ export function AdminLiveActions() {
           <Trash2 className="w-4 h-4" />
           <span className="hidden sm:inline">Purge All</span>
           <span className="sm:hidden">Purge</span>
+        </button>
+
+        {/* Boutons de simulation du temps */}
+        <button
+          onClick={() => advanceTime(15)}
+          className="bg-green-600 hover:bg-green-700 px-3 sm:px-4 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium text-white transition-colors"
+          title="Avancer le temps de 15 minutes pour tester le système de multiplier"
+        >
+          <Clock className="w-4 h-4" />
+          <span className="hidden sm:inline">+15 min</span>
+          <span className="sm:hidden">+15</span>
+        </button>
+
+        <button
+          onClick={resetTimeOffset}
+          className="bg-yellow-600 hover:bg-yellow-700 px-3 sm:px-4 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium text-white transition-colors"
+          title="Réinitialiser l'offset de temps à 0"
+        >
+          <RotateCw className="w-4 h-4" />
+          <span className="hidden sm:inline">Reset Time</span>
+          <span className="sm:hidden">Reset</span>
         </button>
       </div>
 
@@ -222,7 +250,9 @@ export function AdminLiveActions() {
       {/* Modale de la roue */}
       <RandomWheelModal
         isOpen={isWheelModalOpen}
-        submissions={nonRolledSubmissions}
+        submissions={selectedSubmissions}
+        weights={selectedWeights}
+        queueSkipFlags={selectedQueueSkipFlags}
         selectedSubmissionId={selectedSubmissionId}
         onClose={handleCloseWheelModal}
         onSelectionComplete={handleWheelSelectionComplete}

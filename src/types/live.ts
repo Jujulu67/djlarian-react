@@ -54,7 +54,8 @@ export interface UserLiveItem {
   userId: string;
   itemId: string;
   quantity: number;
-  isActivated: boolean;
+  activatedQuantity: number;
+  isActivated: boolean; // Deprecated: utiliser activatedQuantity > 0
   activatedAt: Date | null;
   metadata: string | null;
   createdAt: Date;
@@ -121,7 +122,7 @@ export interface CreateSubmissionInput {
 
 export interface UpdateInventoryInput {
   itemId: string;
-  isActivated: boolean;
+  action: 'activate' | 'deactivate';
 }
 
 export interface CreateTicketInput {

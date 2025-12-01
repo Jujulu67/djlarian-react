@@ -2,11 +2,11 @@
 
 import { motion } from 'framer-motion';
 import { useLiveRewards } from '../hooks/useLiveRewards';
-import { useLiveInventory } from '../hooks/useLiveInventory';
+import { useLiveInventoryContext } from '../context/LiveInventoryContext';
 
 export function LiveRewards() {
   const { rewards, isLoading } = useLiveRewards();
-  const { updateItem, inventory } = useLiveInventory();
+  const { updateItem, inventory } = useLiveInventoryContext();
 
   const handleClaimBonus = async (itemType: string) => {
     // Trouver l'item correspondant dans l'inventaire

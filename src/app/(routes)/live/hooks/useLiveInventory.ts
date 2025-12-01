@@ -45,9 +45,16 @@ export function useLiveInventory() {
           await loadInventory();
           return { success: true, data: data.data };
         } else {
-          const errorData = await response.json();
-          setError(errorData.error || 'Erreur lors de la mise à jour');
-          return { success: false, error: errorData.error };
+          let errorMessage = 'Erreur lors de la mise à jour';
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorMessage;
+          } catch (e) {
+            // Si le parsing JSON échoue, utiliser le statusText
+            errorMessage = response.statusText || errorMessage;
+          }
+          setError(errorMessage);
+          return { success: false, error: errorMessage };
         }
       } catch (err) {
         setError('Erreur de connexion');

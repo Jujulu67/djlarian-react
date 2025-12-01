@@ -212,7 +212,8 @@ async function updateRewardProgress(
         userId,
         itemId: item.id,
         quantity: 1,
-        isActivated: false,
+        activatedQuantity: 0,
+        isActivated: false, // Pour compatibilité
         metadata,
       },
     });

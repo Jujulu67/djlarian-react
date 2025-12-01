@@ -45,45 +45,39 @@ export async function DELETE(request: NextRequest) {
     const useBlobStorage = getIsBlobConfigured();
 
     if (useBlobStorage) {
-      // Nettoyage Blob Storage
+      // OPTIMISATION: Utiliser les URLs de la DB au lieu de list() pour éviter les Advanced Operations
       try {
-        const { list, del } = await import('@vercel/blob');
+        const { del } = await import('@vercel/blob');
 
-        // Lister tous les blobs avec le préfixe live-audio/
-        // Note: On boucle tant qu'il y a des pages si nécessaire, mais list() retourne tout par défaut jusqu'à 1000
-        let hasMore = true;
-        let cursor: string | undefined;
+        // Utiliser les URLs stockées dans la DB au lieu de lister tous les blobs
+        const fileUrls = allSubmissions
+          .map((sub) => sub.fileUrl)
+          .filter((url): url is string => !!url && url.startsWith('http')); // Filtrer les URLs blob valides
 
-        while (hasMore) {
-          const {
-            blobs,
-            hasMore: more,
-            cursor: nextCursor,
-          } = await list({
-            prefix: 'live-audio/',
-            cursor,
-          });
+        logger.debug(
+          `[Admin Purge] Suppression de ${fileUrls.length} fichiers depuis la DB (0 list() appelé)`
+        );
 
-          hasMore = more;
-          cursor = nextCursor;
-
-          if (blobs.length > 0) {
-            // Supprimer les blobs trouvés
-            await Promise.all(
-              blobs.map(async (blob) => {
-                try {
-                  await del(blob.url);
-                  deletedFilesCount++;
-                } catch (error) {
-                  logger.warn(`[Admin Purge] Erreur suppression blob ${blob.url}:`, error);
-                  errorsCount++;
-                }
-              })
-            );
-          }
+        if (fileUrls.length > 0) {
+          // Supprimer les blobs en utilisant les URLs de la DB
+          await Promise.all(
+            fileUrls.map(async (url) => {
+              try {
+                await del(url);
+                deletedFilesCount++;
+              } catch (error) {
+                logger.warn(`[Admin Purge] Erreur suppression blob ${url}:`, error);
+                errorsCount++;
+              }
+            })
+          );
         }
+
+        // Note: Il peut y avoir des fichiers orphelins dans Blob qui ne sont plus dans la DB
+        // Pour les supprimer, on pourrait faire un list() optionnel, mais on évite pour réduire les Advanced Operations
+        // Les fichiers orphelins peuvent être nettoyés manuellement si nécessaire
       } catch (error) {
-        logger.error('[Admin Purge] Erreur lors du listing/suppression Blob:', error);
+        logger.error('[Admin Purge] Erreur lors de la suppression Blob:', error);
         errorsCount++;
       }
     } else {

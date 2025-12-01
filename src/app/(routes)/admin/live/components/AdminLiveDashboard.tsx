@@ -3,6 +3,7 @@
 import { AdminLiveActions } from './AdminLiveActions';
 import { AdminLivePlayer } from './AdminLivePlayer';
 import { AdminLiveSubmissionsTable } from './AdminLiveSubmissionsTable';
+import { LivePoolStats } from './LivePoolStats';
 import { AdminLivePlayerProvider } from '../context/AdminLivePlayerContext';
 import { AdminLiveSubmissionsProvider } from '../context/AdminLiveSubmissionsContext';
 
@@ -12,6 +13,9 @@ export function AdminLiveDashboard() {
       <AdminLiveSubmissionsProvider>
         <div className="h-[calc(100vh-4rem)] overflow-y-auto pt-4 sm:pt-8 pb-6 lg:pb-8 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
+            {/* Pool Stats */}
+            <LivePoolStats />
+
             {/* Section ACTIONS */}
             <AdminLiveActions />
 

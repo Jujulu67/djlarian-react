@@ -10,13 +10,13 @@ import { LiveChances } from './components/LiveChances';
 import { LiveInventory } from './components/LiveInventory';
 import { LiveItemShop } from './components/LiveItemShop';
 import { LiveRewards } from './components/LiveRewards';
-import { useLiveInventory } from './hooks/useLiveInventory';
+import { LiveInventoryProvider, useLiveInventoryContext } from './context/LiveInventoryContext';
 import { useLiveRewards } from './hooks/useLiveRewards';
 
-export default function LivePage() {
+function LivePageContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const { loadInventory } = useLiveInventory();
+  const { loadInventory } = useLiveInventoryContext();
   const { loadRewards } = useLiveRewards();
 
   // Charger les données au montage
@@ -99,5 +99,13 @@ export default function LivePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LivePage() {
+  return (
+    <LiveInventoryProvider>
+      <LivePageContent />
+    </LiveInventoryProvider>
   );
 }
