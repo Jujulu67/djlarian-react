@@ -14,6 +14,7 @@ import {
   FolderKanban,
   Bell,
   History,
+  Radio,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -161,6 +162,7 @@ const Navigation = () => {
     { href: '/', label: 'Home', icon: Home },
     { href: '/music', label: 'Music', icon: Music },
     { href: '/events', label: 'Events', icon: Calendar },
+    { href: '/live', label: 'Live', icon: Radio },
     { href: '/gallery', label: 'Gallery', icon: ImageIcon },
     { href: '/contact', label: 'Contact', icon: Mail },
   ];
