@@ -622,15 +622,21 @@ if [ "$NODE_ENV" = "production" ]; then
     if [ -d "node_modules/.prisma/client" ]; then
       echo "🌱 Initialisation des LiveItem (seed)..."
       set +e
+      # Exécuter le seed et capturer la sortie
       SEED_OUTPUT=$(node scripts/seed-live-items.mjs 2>&1)
       SEED_EXIT=$?
       set -e
       
       if [ $SEED_EXIT -eq 0 ]; then
-        echo "$SEED_OUTPUT" | grep -E "(✅|✨|📊)" | head -20 || echo "   ✅ Seed terminé avec succès"
+        # Afficher la sortie du seed (toutes les lignes importantes)
+        if [ -n "$SEED_OUTPUT" ]; then
+          echo "$SEED_OUTPUT" | sed 's/^/   /'
+        else
+          echo "   ✅ Seed terminé avec succès (aucune sortie)"
+        fi
       else
         echo "   ⚠️  Le seed des LiveItem a échoué, mais le build continue"
-        echo "$SEED_OUTPUT" | head -10 | sed 's/^/      /'
+        echo "$SEED_OUTPUT" | head -15 | sed 's/^/      /'
         echo "   💡 Vous pouvez exécuter manuellement: npm run db:seed:live-items"
       fi
     else
