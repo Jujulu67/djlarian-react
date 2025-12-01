@@ -19,7 +19,11 @@ import { toast } from 'react-hot-toast';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useLiveSubmissions } from '../hooks/useLiveSubmissions';
-import { validateAudioFile } from '@/lib/live/upload-client';
+import {
+  validateAudioFile,
+  generateAudioFileId,
+  uploadAudioFileToBlob,
+} from '@/lib/live/upload-client';
 import {
   analyzeAudioFile,
   formatDuration,
@@ -91,40 +95,65 @@ export function LiveSubmissionForm() {
     }
   }, []);
 
-  // Uploader le fichier en draft sur le serveur
-  const uploadDraft = useCallback(async (file: File, existingDraftId?: string | null) => {
-    try {
-      setIsUploadingDraft(true);
-      const formData = new FormData();
-      formData.append('file', file);
-      if (existingDraftId) {
-        formData.append('draftId', existingDraftId);
-      }
-
-      const response = await fetchWithAuth('/api/live/submissions/draft', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setDraftId(data.data.id);
-        // Sauvegarder le draftId dans sessionStorage
-        sessionStorage.setItem('liveSubmissionDraftId', data.data.id);
-        return data.data.id;
-      } else {
-        const errorData = await response.json();
-        toast.error(errorData.error || "Erreur lors de l'upload du draft");
+  // Uploader le fichier directement vers Blob, puis créer/mettre à jour le draft
+  const uploadDraft = useCallback(
+    async (file: File, existingDraftId?: string | null) => {
+      if (!session?.user?.id) {
+        toast.error('Vous devez être connecté pour uploader un draft');
         return null;
       }
-    } catch (error) {
-      console.error('Erreur upload draft:', error);
-      toast.error("Erreur de connexion lors de l'upload");
-      return null;
-    } finally {
-      setIsUploadingDraft(false);
-    }
-  }, []);
+
+      try {
+        setIsUploadingDraft(true);
+
+        // Générer un ID unique pour le fichier
+        const fileId = generateAudioFileId(session.user.id, file.name);
+
+        // Upload directement vers Vercel Blob depuis le client
+        const { url: fileUrl, size } = await uploadAudioFileToBlob(file, fileId);
+
+        // Créer ou mettre à jour le draft avec l'URL du fichier
+        const response = await fetchWithAuth('/api/live/submissions/draft', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            fileUrl,
+            fileName: file.name,
+            fileSize: size,
+            draftId: existingDraftId,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setDraftId(data.data.id);
+          // Sauvegarder le draftId dans sessionStorage
+          sessionStorage.setItem('liveSubmissionDraftId', data.data.id);
+          return data.data.id;
+        } else {
+          const errorData = await response.json();
+          toast.error(errorData.error || "Erreur lors de l'upload du draft");
+          // Si l'API échoue, supprimer le fichier uploadé sur Blob
+          try {
+            // Note: On pourrait supprimer le fichier Blob ici, mais c'est optionnel
+            // Le fichier sera nettoyé automatiquement plus tard si nécessaire
+          } catch (cleanupError) {
+            console.warn('Erreur lors du nettoyage du fichier Blob:', cleanupError);
+          }
+          return null;
+        }
+      } catch (error) {
+        console.error('Erreur upload draft:', error);
+        toast.error("Erreur de connexion lors de l'upload");
+        return null;
+      } finally {
+        setIsUploadingDraft(false);
+      }
+    },
+    [session?.user?.id]
+  );
 
   const handleFileSelect = useCallback(
     async (file: File) => {

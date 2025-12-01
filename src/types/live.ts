@@ -112,7 +112,11 @@ export interface LiveRewards {
 export interface CreateSubmissionInput {
   title: string;
   description?: string;
-  file: File;
+  file?: File; // Optionnel si draftId ou fileUrl est fourni
+  draftId?: string; // ID du draft à convertir en soumission
+  fileUrl?: string; // URL du fichier déjà uploadé vers Blob
+  fileName?: string; // Nom du fichier (si fileUrl est fourni)
+  fileSize?: number; // Taille du fichier (si fileUrl est fourni)
 }
 
 export interface UpdateInventoryInput {

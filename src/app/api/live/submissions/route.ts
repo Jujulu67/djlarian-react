@@ -10,6 +10,10 @@ import { createSuccessResponse, createUnauthorizedResponse } from '@/lib/api/res
 import { handleApiError } from '@/lib/api/errorHandler';
 import { LiveSubmissionStatus } from '@/types/live';
 
+// Configuration pour les routes API App Router
+export const maxDuration = 60; // 60 secondes max pour l'upload
+export const runtime = 'nodejs'; // Utiliser Node.js runtime (nécessaire pour les gros fichiers)
+
 const submissionSchema = z.object({
   title: z.string().min(1).max(100),
   description: z.string().max(320).optional(),
@@ -78,11 +82,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const formData = await request.formData();
-    const file = formData.get('file') as File | null;
-    const title = formData.get('title') as string | null;
-    const description = formData.get('description') as string | null;
-    const draftId = formData.get('draftId') as string | null; // ID du draft à convertir
+    // Détecter si c'est du JSON ou FormData
+    const contentType = request.headers.get('content-type') || '';
+    let file: File | null = null;
+    let title: string | null = null;
+    let description: string | null = null;
+    let draftId: string | null = null;
+    let fileUrl: string | null = null;
+    let fileName: string | null = null;
+    let fileSize: number | null = null;
+
+    if (contentType.includes('application/json')) {
+      // Cas JSON : fichier déjà uploadé vers Blob
+      const body = await request.json();
+      title = body.title;
+      description = body.description;
+      draftId = body.draftId;
+      fileUrl = body.fileUrl;
+      fileName = body.fileName;
+      fileSize = body.fileSize;
+    } else {
+      // Cas FormData : compatibilité avec l'ancien code
+      const formData = await request.formData();
+      file = formData.get('file') as File | null;
+      title = formData.get('title') as string | null;
+      description = formData.get('description') as string | null;
+      draftId = formData.get('draftId') as string | null;
+    }
 
     // Si un draftId est fourni, convertir le draft en soumission
     if (draftId) {
@@ -135,14 +161,50 @@ export async function POST(request: NextRequest) {
       return createSuccessResponse(submission, 201, 'Soumission créée avec succès');
     }
 
-    // Sinon, comportement classique (upload nouveau fichier)
+    // Sinon, créer une nouvelle soumission
     // Valider les données
-    if (!file) {
-      return NextResponse.json({ error: 'Fichier audio requis' }, { status: 400 });
-    }
-
     if (!title) {
       return NextResponse.json({ error: 'Titre requis' }, { status: 400 });
+    }
+
+    // Si fileUrl est fourni, le fichier est déjà uploadé vers Blob
+    if (fileUrl && fileName) {
+      // Valider les données du formulaire
+      const validationResult = submissionSchema.safeParse({
+        title,
+        description: description || undefined,
+      });
+
+      if (!validationResult.success) {
+        return NextResponse.json(
+          { error: 'Données invalides', details: validationResult.error.flatten() },
+          { status: 400 }
+        );
+      }
+
+      const { title: validatedTitle, description: validatedDescription } = validationResult.data;
+
+      // Créer la soumission avec l'URL du fichier déjà uploadé
+      const submission = await prisma.liveSubmission.create({
+        data: {
+          userId: session.user.id,
+          fileName,
+          fileUrl,
+          title: validatedTitle,
+          description: validatedDescription || null,
+          status: LiveSubmissionStatus.PENDING,
+          isDraft: false,
+        },
+      });
+
+      logger.debug(`[Live] Soumission créée avec fichier uploadé: ${submission.id}`);
+
+      return createSuccessResponse(submission, 201, 'Soumission créée avec succès');
+    }
+
+    // Sinon, comportement classique (upload nouveau fichier via FormData)
+    if (!file) {
+      return NextResponse.json({ error: 'Fichier audio requis' }, { status: 400 });
     }
 
     // Valider le fichier
@@ -170,14 +232,14 @@ export async function POST(request: NextRequest) {
     const fileId = generateAudioFileId(session.user.id, file.name);
 
     // Upload le fichier
-    const { url: fileUrl, size } = await uploadAudioFile(file, fileId, session.user.id);
+    const { url: uploadedFileUrl, size } = await uploadAudioFile(file, fileId, session.user.id);
 
     // Créer la soumission dans la base de données
     const submission = await prisma.liveSubmission.create({
       data: {
         userId: session.user.id,
         fileName: file.name,
-        fileUrl,
+        fileUrl: uploadedFileUrl,
         title: validatedTitle,
         description: validatedDescription || null,
         status: LiveSubmissionStatus.PENDING,
