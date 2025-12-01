@@ -3,11 +3,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
-import { uploadAudioFile, deleteAudioFile } from '@/lib/live/upload';
-import { validateAudioFile, generateAudioFileId } from '@/lib/live/upload-client';
+import { deleteAudioFile } from '@/lib/live/upload';
 import { createSuccessResponse, createUnauthorizedResponse } from '@/lib/api/responseHelpers';
 import { handleApiError } from '@/lib/api/errorHandler';
 import { LiveSubmissionStatus } from '@/types/live';
+
+// Configuration pour les routes API App Router
+export const maxDuration = 60; // 60 secondes max pour l'upload
+export const runtime = 'nodejs'; // Utiliser Node.js runtime (nécessaire pour les gros fichiers)
 
 /**
  * POST /api/live/submissions/draft
@@ -28,22 +31,15 @@ export async function POST(request: NextRequest) {
       return createUnauthorizedResponse('Non authentifié');
     }
 
-    const formData = await request.formData();
-    const file = formData.get('file') as File | null;
-    const draftId = formData.get('draftId') as string | null; // ID du draft existant à mettre à jour
+    // Le fichier est maintenant uploadé directement depuis le client vers Blob
+    // On reçoit juste l'URL du fichier, le nom et la taille
+    const body = await request.json();
+    const { fileUrl, fileName, fileSize, draftId } = body;
 
-    // Valider le fichier
-    if (!file) {
-      return NextResponse.json({ error: 'Fichier audio requis' }, { status: 400 });
+    // Valider les données
+    if (!fileUrl || !fileName) {
+      return NextResponse.json({ error: 'URL et nom de fichier requis' }, { status: 400 });
     }
-
-    const validation = validateAudioFile(file);
-    if (!validation.valid) {
-      return NextResponse.json({ error: validation.error }, { status: 400 });
-    }
-
-    // Générer un ID unique pour le fichier
-    const fileId = generateAudioFileId(session.user.id, file.name);
 
     // Vérifier que le modèle liveSubmission est disponible
     if (!prisma.liveSubmission) {
@@ -94,15 +90,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Upload le fichier
-    const { url: fileUrl, size } = await uploadAudioFile(file, fileId, session.user.id);
-
-    // Créer ou mettre à jour le draft
+    // Créer ou mettre à jour le draft avec l'URL du fichier déjà uploadé
     const draft = existingDraftId
       ? await prisma.liveSubmission.update({
           where: { id: existingDraftId },
           data: {
-            fileName: file.name,
+            fileName,
             fileUrl,
             updatedAt: new Date(),
           },
@@ -110,7 +103,7 @@ export async function POST(request: NextRequest) {
       : await prisma.liveSubmission.create({
           data: {
             userId: session.user.id,
-            fileName: file.name,
+            fileName,
             fileUrl,
             title: '', // Titre vide pour les drafts
             status: LiveSubmissionStatus.PENDING, // Status PENDING même pour les drafts

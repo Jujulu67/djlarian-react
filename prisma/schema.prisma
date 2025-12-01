@@ -178,10 +178,12 @@ model VerificationToken {
 }
 
 // Token temporaire pour la fusion de comptes OAuth
+// Note: token n'a pas @unique car trop grand pour index PostgreSQL
+// L'unicité est garantie par un index fonctionnel MD5 dans la migration
 model MergeToken {
   id        String   @id @default(cuid())
   email     String
-  token     String   @unique
+  token     String   // JWT encrypté (peut être très long, pas d'index unique direct)
   expiresAt DateTime
   createdAt DateTime @default(now())
 
