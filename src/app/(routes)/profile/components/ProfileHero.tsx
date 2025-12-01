@@ -301,7 +301,7 @@ export function ProfileHero({
                   )}
                 </div>
                 {/* Informations Rôle et Statut */}
-                <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mt-3 sm:mt-4">
+                <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 sm:gap-3 mt-3 sm:mt-4">
                   <div className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-white/5 border border-white/10">
                     <User size={12} className="sm:w-3.5 sm:h-3.5 text-gray-400" />
                     <span className="text-xs sm:text-sm text-gray-300">
