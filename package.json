@@ -36,6 +36,7 @@
     "db:diagnose-prod": "node scripts/diagnose-prod-db.mjs",
     "db:cleanup-migrations": "node scripts/cleanup-old-migrations.mjs",
     "db:cleanup-migrations:execute": "node scripts/cleanup-old-migrations.mjs --execute",
+    "db:seed:live-items": "node scripts/seed-live-items.mjs",
     "db:fix-notification-table": "node scripts/fix-notification-table.mjs",
     "db:analyze-migrations": "node scripts/analyze-migration-state.mjs",
     "db:create-baselines": "node scripts/create-baseline-migrations.mjs",
