@@ -174,6 +174,43 @@ export function useAdminLiveActions(
     }
   }, []);
 
+  const purgeAllSubmissions = useCallback(async () => {
+    if (
+      !confirm(
+        'ATTENTION: Cette action est irréversible !\n\nCela va supprimer TOUTES les soumissions et TOUS les fichiers associés.\n\nÊtes-vous sûr de vouloir continuer ?'
+      )
+    ) {
+      return;
+    }
+
+    if (!confirm('Vraiment sûr ? Cette action ne peut pas être annulée.')) {
+      return;
+    }
+
+    try {
+      toast.info('Purge en cours...');
+      const response = await fetch('/api/admin/live/submissions/purge', {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        toast.success('Toutes les soumissions ont été supprimées');
+        if (fetchSubmissions) {
+          await fetchSubmissions();
+        }
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Erreur lors de la purge');
+      }
+    } catch (error) {
+      console.error('Erreur purge:', error);
+      toast.error('Erreur lors de la purge');
+    }
+  }, [fetchSubmissions]);
+
+  // État pour le gestionnaire d'inventaire global
+  const [isInventoryManagerOpen, setIsInventoryManagerOpen] = useState(false);
+
   const rollRandom = useCallback(async () => {
     try {
       // Filtrer les soumissions non rollées
@@ -184,9 +221,41 @@ export function useAdminLiveActions(
         return;
       }
 
-      // Sélectionner aléatoirement une soumission
-      const randomIndex = Math.floor(Math.random() * nonRolledSubmissions.length);
-      const selectedSubmission = nonRolledSubmissions[randomIndex];
+      // Calculer les poids pour chaque soumission
+      // Poids de base = 1
+      // Chaque item activé ajoute +1 au poids
+      const weightedSubmissions = nonRolledSubmissions.map((submission) => {
+        let weight = 1;
+
+        // Vérifier si UserLiveItem existe sur la soumission (ajouté récemment au type)
+        if (submission.User && 'UserLiveItem' in submission.User) {
+          const userItems = (submission.User as any).UserLiveItem || [];
+          // Compter les items activés
+          // On suppose que l'API renvoie déjà uniquement les items activés ou on filtre
+          const activeItemsCount = userItems.reduce(
+            (acc: number, item: any) => acc + (item.quantity || 1),
+            0
+          );
+          weight += activeItemsCount;
+        }
+
+        return { submission, weight };
+      });
+
+      // Calculer le poids total
+      const totalWeight = weightedSubmissions.reduce((acc, item) => acc + item.weight, 0);
+
+      // Sélection aléatoire pondérée
+      let randomValue = Math.random() * totalWeight;
+      let selectedSubmission = nonRolledSubmissions[0];
+
+      for (const item of weightedSubmissions) {
+        randomValue -= item.weight;
+        if (randomValue <= 0) {
+          selectedSubmission = item.submission;
+          break;
+        }
+      }
 
       // Ouvrir la modale avec la soumission sélectionnée
       setSelectedSubmissionId(selectedSubmission.id);
@@ -255,5 +324,9 @@ export function useAdminLiveActions(
     selectedSubmissionId,
     handleWheelSelectionComplete,
     handleCloseWheelModal,
+    purgeAllSubmissions,
+    // Inventory Manager
+    isInventoryManagerOpen,
+    setIsInventoryManagerOpen,
   };
 }

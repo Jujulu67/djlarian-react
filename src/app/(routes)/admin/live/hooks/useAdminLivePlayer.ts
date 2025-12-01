@@ -31,43 +31,70 @@ export function useAdminLivePlayer() {
     }
   }, [selectedSubmission]);
 
-  // Mettre à jour currentTime depuis l'audio et synchroniser volume/playbackRate
+  // Mettre à jour currentTime depuis l'audio
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    // Synchroniser volume et playbackRate avec l'audio
-    audio.volume = volume;
-    audio.playbackRate = playbackRate;
+    let rafId: number;
 
     const updateTime = () => {
       setCurrentTime(audio.currentTime);
       setDuration(audio.duration || 0);
+      if (!audio.paused) {
+        rafId = requestAnimationFrame(updateTime);
+      }
     };
-    const updateMetadata = () => {
-      setDuration(audio.duration || 0);
+
+    const handlePlay = () => {
+      setIsPlaying(true);
+      rafId = requestAnimationFrame(updateTime);
     };
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
+
+    const handlePause = () => {
+      setIsPlaying(false);
+      cancelAnimationFrame(rafId);
+    };
+
     const handleEnded = () => {
       setIsPlaying(false);
       setCurrentTime(0);
+      cancelAnimationFrame(rafId);
     };
 
-    audio.addEventListener('timeupdate', updateTime);
-    audio.addEventListener('loadedmetadata', updateMetadata);
+    // Initial check in case it's already playing (e.g. after re-render)
+    if (!audio.paused) {
+      setIsPlaying(true);
+      rafId = requestAnimationFrame(updateTime);
+    }
+
+    audio.addEventListener('loadedmetadata', updateTime);
     audio.addEventListener('play', handlePlay);
     audio.addEventListener('pause', handlePause);
     audio.addEventListener('ended', handleEnded);
 
     return () => {
-      audio.removeEventListener('timeupdate', updateTime);
-      audio.removeEventListener('loadedmetadata', updateMetadata);
+      cancelAnimationFrame(rafId);
+      audio.removeEventListener('loadedmetadata', updateTime);
       audio.removeEventListener('play', handlePlay);
       audio.removeEventListener('pause', handlePause);
       audio.removeEventListener('ended', handleEnded);
     };
-  }, [selectedSubmission, volume, playbackRate]);
+  }, [selectedSubmission]);
+
+  // Synchroniser le volume
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume;
+    }
+  }, [volume]);
+
+  // Synchroniser le playbackRate
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.playbackRate = playbackRate;
+    }
+  }, [playbackRate]);
 
   const loadAudioAnalysis = useCallback(
     async (fileUrl: string) => {

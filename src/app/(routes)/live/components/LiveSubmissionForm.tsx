@@ -13,6 +13,10 @@ import {
   Pause,
   Trash2,
   LayoutDashboard,
+  Edit,
+  Save,
+  Lock,
+  Unlock,
 } from 'lucide-react';
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
@@ -47,7 +51,17 @@ export function LiveSubmissionForm() {
   const [trackSubmissionsEnabled, setTrackSubmissionsEnabled] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const { submitFile, isSubmitting } = useLiveSubmissions();
+
+  const {
+    submitFile,
+    isSubmitting,
+    submissions,
+    loadSubmissions,
+    updateSubmission,
+    deleteSubmission,
+  } = useLiveSubmissions();
+  const [activeSubmission, setActiveSubmission] = useState<any | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
   const isAdmin = session?.user?.role === 'ADMIN';
 
   // Vérifier si les soumissions sont activées
@@ -74,6 +88,50 @@ export function LiveSubmissionForm() {
     const interval = setInterval(checkTrackSubmissions, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  // Charger les soumissions existantes
+  useEffect(() => {
+    if (session?.user?.id) {
+      loadSubmissions();
+    }
+  }, [session?.user?.id, loadSubmissions]);
+
+  // Vérifier si une soumission active existe
+  useEffect(() => {
+    if (submissions.length > 0) {
+      const submission = submissions[0]; // Prendre la plus récente
+      setActiveSubmission(submission);
+      setTitle(submission.title);
+      setDescription(submission.description || '');
+
+      // Si on a une URL de fichier, on peut essayer de charger l'analyse
+      // Note: On ne télécharge pas le fichier complet tout de suite pour économiser la bande passante
+      // sauf si l'utilisateur veut jouer le son
+      if (submission.fileUrl && !audioAnalysis) {
+        // On pourrait charger l'analyse ici si on l'avait stockée côté serveur
+        // Pour l'instant, on va simuler une analyse ou la charger à la demande
+        // Option: Charger le fichier pour l'analyse
+        fetch(submission.fileUrl)
+          .then((res) => res.blob())
+          .then((blob) => {
+            const file = new File([blob], submission.fileName, { type: blob.type });
+            setSelectedFile(file);
+            analyzeAudioFile(file).then((analysis) => {
+              setAudioAnalysis(analysis);
+            });
+
+            // Préparer l'audio ref
+            const audioUrl = URL.createObjectURL(file);
+            if (audioRef.current) {
+              audioRef.current.src = audioUrl;
+            }
+          })
+          .catch((err) => console.error('Erreur chargement fichier soumis:', err));
+      }
+    } else {
+      setActiveSubmission(null);
+    }
+  }, [submissions]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -237,6 +295,28 @@ export function LiveSubmissionForm() {
     async (e: React.FormEvent) => {
       e.preventDefault();
 
+      if (activeSubmission && isEditing) {
+        // Mode édition : mise à jour
+        if (!title.trim()) {
+          toast.error('Veuillez entrer un titre');
+          return;
+        }
+
+        const result = await updateSubmission(activeSubmission.id, {
+          title: title.trim(),
+          description: description.trim() || undefined,
+        });
+
+        if (result.success) {
+          toast.success('Soumission mise à jour !');
+          setIsEditing(false);
+        } else {
+          toast.error(result.error || 'Erreur lors de la mise à jour');
+        }
+        return;
+      }
+
+      // Mode création (code existant)
       if (!selectedFile && !draftId) {
         toast.error('Veuillez sélectionner un fichier audio');
         return;
@@ -267,21 +347,14 @@ export function LiveSubmissionForm() {
           if (response.ok) {
             const data = await response.json();
             toast.success('Soumission envoyée avec succès !');
-            setTitle('');
-            setDescription('');
-            setSelectedFile(null);
+            // Recharger les soumissions pour passer en mode "Submitted"
+            await loadSubmissions();
+
+            // Nettoyer le formulaire
             setDraftId(null);
-            setAudioAnalysis(null);
-            setIsPlaying(false);
-            setCurrentTime(0);
-            if (audioRef.current) {
-              audioRef.current.pause();
-              audioRef.current.src = '';
-            }
-            if (fileInputRef.current) {
-              fileInputRef.current.value = '';
-            }
-            // Nettoyer sessionStorage après soumission réussie
+            // On garde title/desc/file pour l'affichage en mode "Submitted"
+
+            // Nettoyer sessionStorage
             try {
               sessionStorage.removeItem('liveSubmissionForm');
               sessionStorage.removeItem('liveSubmissionDraftId');
@@ -306,21 +379,11 @@ export function LiveSubmissionForm() {
 
           if (result.success) {
             toast.success('Soumission envoyée avec succès !');
-            setTitle('');
-            setDescription('');
-            setSelectedFile(null);
+            // Le hook a déjà rechargé les soumissions, donc l'effet va se déclencher
+
             setDraftId(null);
-            setAudioAnalysis(null);
-            setIsPlaying(false);
-            setCurrentTime(0);
-            if (audioRef.current) {
-              audioRef.current.pause();
-              audioRef.current.src = '';
-            }
-            if (fileInputRef.current) {
-              fileInputRef.current.value = '';
-            }
-            // Nettoyer sessionStorage après soumission réussie
+
+            // Nettoyer sessionStorage
             try {
               sessionStorage.removeItem('liveSubmissionForm');
               sessionStorage.removeItem('liveSubmissionDraftId');
@@ -336,8 +399,41 @@ export function LiveSubmissionForm() {
         toast.error('Erreur de connexion');
       }
     },
-    [selectedFile, draftId, title, description, submitFile]
+    [
+      selectedFile,
+      draftId,
+      title,
+      description,
+      submitFile,
+      activeSubmission,
+      isEditing,
+      updateSubmission,
+      loadSubmissions,
+    ]
   );
+
+  const handleDeleteSubmission = useCallback(async () => {
+    if (!activeSubmission) return;
+
+    if (confirm('Êtes-vous sûr de vouloir supprimer votre soumission ?')) {
+      const result = await deleteSubmission(activeSubmission.id);
+      if (result.success) {
+        toast.success('Soumission supprimée');
+        setActiveSubmission(null);
+        setSelectedFile(null);
+        setAudioAnalysis(null);
+        setTitle('');
+        setDescription('');
+        setIsPlaying(false);
+        setCurrentTime(0);
+        if (audioRef.current) {
+          audioRef.current.src = '';
+        }
+      } else {
+        toast.error(result.error || 'Erreur lors de la suppression');
+      }
+    }
+  }, [activeSubmission, deleteSubmission]);
 
   const handlePlayPause = useCallback(async () => {
     if (!audioRef.current) {
@@ -744,19 +840,20 @@ export function LiveSubmissionForm() {
                 </button>
               </div>
               <div
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
+                onDragOver={!activeSubmission ? handleDragOver : undefined}
+                onDragLeave={!activeSubmission ? handleDragLeave : undefined}
+                onDrop={!activeSubmission ? handleDrop : undefined}
                 onClick={() => {
-                  // Ne pas ouvrir le sélecteur si une track est déjà chargée
-                  if (!audioAnalysis) {
+                  // Ne pas ouvrir le sélecteur si une track est déjà chargée ou soumise
+                  if (!audioAnalysis && !activeSubmission) {
                     fileInputRef.current?.click();
                   }
                 }}
                 className={`
               relative border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200
-              ${audioAnalysis ? 'cursor-default' : 'cursor-pointer'}
-              ${isDragging ? 'border-purple-500 bg-purple-500/10' : 'border-gray-600 hover:border-purple-500/50'}
+              ${audioAnalysis || activeSubmission ? 'cursor-default' : 'cursor-pointer'}
+              ${isDragging && !activeSubmission ? 'border-purple-500 bg-purple-500/10' : 'border-gray-600 hover:border-purple-500/50'}
+              ${activeSubmission ? 'border-purple-500/50 bg-purple-500/5' : ''}
             `}
               >
                 <input
@@ -765,6 +862,7 @@ export function LiveSubmissionForm() {
                   accept=".mp3,.wav,audio/mpeg,audio/wav"
                   onChange={handleFileInputChange}
                   className="hidden"
+                  disabled={!!activeSubmission}
                 />
 
                 {isAnalyzing ? (
@@ -858,13 +956,6 @@ export function LiveSubmissionForm() {
                           </p>
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={handleDelete}
-                        className="flex items-center gap-1.5 px-2 py-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors flex-shrink-0"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
                     </div>
 
                     {/* Audio element caché */}
@@ -912,66 +1003,148 @@ export function LiveSubmissionForm() {
               </div>
             </div>
 
-            {/* Titre */}
-            <div className="relative">
-              <label className="block text-sm font-medium text-gray-300 mb-2">Song Title *</label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                maxLength={100}
-                placeholder="Artist Names - Title (Version)"
-                className="w-full bg-white/10 border border-purple-500/30 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
-                disabled={isSubmitting}
-              />
-              <div className="absolute bottom-2 right-2 text-xs text-gray-400">
-                {title.length}/100
+            {/* Inputs - Désactivés si soumis et pas en mode édition */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Title</label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Track Title"
+                  disabled={activeSubmission && !isEditing}
+                  className={`w-full bg-gray-800/50 border rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all ${
+                    activeSubmission && !isEditing
+                      ? 'border-transparent cursor-default'
+                      : 'border-gray-600'
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  Description <span className="text-gray-500 text-xs">(Optional)</span>
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Tell us about your track..."
+                  rows={3}
+                  disabled={activeSubmission && !isEditing}
+                  className={`w-full bg-gray-800/50 border rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all resize-none ${
+                    activeSubmission && !isEditing
+                      ? 'border-transparent cursor-default'
+                      : 'border-gray-600'
+                  }`}
+                />
               </div>
             </div>
 
-            {/* Description */}
-            <div className="relative">
-              <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                maxLength={320}
-                placeholder="Anything else you want to say, ask (optional)"
-                rows={4}
-                className="w-full bg-white/10 border border-purple-500/30 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 resize-none"
-                disabled={isSubmitting}
-              />
-              <div className="absolute bottom-2 right-2 text-xs text-gray-400">
-                {description.length}/320
-              </div>
-            </div>
-
-            {/* Bouton Submit */}
-            <motion.button
-              type="submit"
-              disabled={isSubmitting || !selectedFile || !title.trim()}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="w-full bg-black text-white py-3 px-6 rounded-lg font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-900 transition-colors"
-            >
-              {isSubmitting ? (
+            {/* Actions */}
+            <div className="flex items-center gap-3 pt-2">
+              {activeSubmission ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>Submitting...</span>
+                  {isEditing ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsEditing(false);
+                          // Restaurer les valeurs originales
+                          setTitle(activeSubmission.title);
+                          setDescription(activeSubmission.description || '');
+                        }}
+                        className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-3 px-6 rounded-xl font-audiowide transition-all duration-200 flex items-center justify-center gap-2"
+                      >
+                        <X className="w-5 h-5" />
+                        CANCEL
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="flex-1 bg-purple-600 hover:bg-purple-500 text-white py-3 px-6 rounded-xl font-audiowide transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-purple-900/20"
+                        aria-label="Sauvegarder les modifications"
+                      >
+                        {isSubmitting ? (
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                          <Save className="w-5 h-5" />
+                        )}
+                        SAVE CHANGES
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleDeleteSubmission}
+                        className="bg-red-500/10 hover:bg-red-500/20 text-red-500 py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center"
+                        title="Delete Submission"
+                        aria-label="Supprimer la soumission"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setIsEditing(true);
+                        }}
+                        className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-3 px-6 rounded-xl font-audiowide transition-all duration-200 flex items-center justify-center gap-2"
+                        aria-label="Modifier les informations"
+                      >
+                        <Edit className="w-5 h-5" />
+                        EDIT DETAILS
+                      </button>
+                      <div className="flex items-center gap-2 px-4 py-2 bg-green-500/10 rounded-lg border border-green-500/20">
+                        <Lock className="w-4 h-4 text-green-500" />
+                        <span className="text-green-500 font-medium text-sm">SUBMITTED</span>
+                      </div>
+                    </>
+                  )}
                 </>
               ) : (
                 <>
-                  <Send className="w-5 h-5" />
-                  <span>Submit</span>
+                  {/* Bouton Delete Draft (si draft existe) */}
+                  {(draftId || selectedFile) && (
+                    <button
+                      type="button"
+                      onClick={handleDelete}
+                      className="bg-red-500/10 hover:bg-red-500/20 text-red-500 py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center"
+                      title="Clear Form"
+                      aria-label="Effacer le formulaire"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  )}
+
+                  {/* Bouton Submit */}
+                  <button
+                    type="submit"
+                    disabled={(!selectedFile && !draftId) || isSubmitting || isUploadingDraft}
+                    className={`
+                  flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500
+                  text-white py-3 px-6 rounded-xl font-audiowide transition-all duration-200
+                  flex items-center justify-center gap-2 shadow-lg shadow-purple-900/20
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                `}
+                    aria-label="Soumettre la piste"
+                  >
+                    {isSubmitting || isUploadingDraft ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        {isUploadingDraft ? 'UPLOADING...' : 'SENDING...'}
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-5 h-5" />
+                        SUBMIT TRACK
+                      </>
+                    )}
+                  </button>
                 </>
               )}
-            </motion.button>
-
-            {/* Disclaimer */}
-            <p className="text-xs text-gray-400 text-center mt-auto">
-              Tracks are chosen randomly. The more tickets you have, the higher your chances. Don't
-              forget to be active in chat to get rolled!
-            </p>
+            </div>
           </form>
         </>
       )}
@@ -1006,6 +1179,7 @@ export function LiveSubmissionForm() {
                   <button
                     onClick={() => setShowInfoModal(false)}
                     className="text-gray-400 hover:text-white transition-colors"
+                    aria-label="Fermer les informations"
                   >
                     <X className="w-5 h-5" />
                   </button>

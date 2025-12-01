@@ -94,9 +94,6 @@ export function AdminLivePlayer() {
     if (!isPlaying) {
       try {
         await audioRef.current.play();
-        // Forcer la mise à jour de l'état en déclenchant l'événement play
-        // L'event listener dans le hook mettra à jour isPlaying
-        audioRef.current.dispatchEvent(new Event('play'));
       } catch (error) {
         console.error('Erreur lors du démarrage de la lecture:', error);
       }
@@ -188,7 +185,7 @@ export function AdminLivePlayer() {
               })}
             </div>
 
-            {/* Timestamp en bas à gauche */}
+            {/* Timestamp combiné en bas à gauche */}
             <div
               className="absolute bottom-1.5 left-3 font-mono pointer-events-none select-none"
               style={{
@@ -198,20 +195,7 @@ export function AdminLivePlayer() {
                 textShadow: '0 1px 2px rgba(0,0,0,0.5)',
               }}
             >
-              {formatDuration(currentTime)}
-            </div>
-
-            {/* Durée totale en bas à droite */}
-            <div
-              className="absolute bottom-1.5 right-3 font-mono pointer-events-none select-none"
-              style={{
-                fontSize: '11px',
-                letterSpacing: '0.5px',
-                color: 'rgba(180, 180, 185, 0.9)',
-                textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-              }}
-            >
-              {formatDuration(duration || audioAnalysis.duration)}
+              {formatDuration(currentTime)} / {formatDuration(duration || audioAnalysis.duration)}
             </div>
           </div>
 
