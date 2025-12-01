@@ -34,6 +34,7 @@ import {
   type AudioAnalysisResult,
 } from '@/lib/live/audio-analysis';
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
+import type { LiveSubmission } from '@/types/live';
 
 export function LiveSubmissionForm() {
   const { data: session } = useSession();
@@ -60,7 +61,7 @@ export function LiveSubmissionForm() {
     updateSubmission,
     deleteSubmission,
   } = useLiveSubmissions();
-  const [activeSubmission, setActiveSubmission] = useState<any | null>(null);
+  const [activeSubmission, setActiveSubmission] = useState<LiveSubmission | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const isAdmin = session?.user?.role === 'ADMIN';
 
@@ -492,9 +493,10 @@ export function LiveSubmissionForm() {
         try {
           await audioRef.current.play();
           setIsPlaying(true);
-        } catch (playError: any) {
+        } catch (playError: unknown) {
           // Ignorer les erreurs d'interruption (AbortError)
-          if (playError.name !== 'AbortError' && playError.name !== 'NotAllowedError') {
+          const error = playError as { name?: string };
+          if (error.name !== 'AbortError' && error.name !== 'NotAllowedError') {
             console.error('Erreur lecture audio:', playError);
             toast.error('Erreur lors de la lecture audio');
           }
@@ -571,9 +573,10 @@ export function LiveSubmissionForm() {
           try {
             await audioRef.current.play();
             setIsPlaying(true);
-          } catch (playError: any) {
+          } catch (playError: unknown) {
             // Ignorer les erreurs d'interruption (AbortError)
-            if (playError.name !== 'AbortError' && playError.name !== 'NotAllowedError') {
+            const error = playError as { name?: string };
+            if (error.name !== 'AbortError' && error.name !== 'NotAllowedError') {
               console.error('Erreur lecture audio:', playError);
               toast.error('Erreur lors de la lecture audio');
             }
@@ -964,7 +967,8 @@ export function LiveSubmissionForm() {
                       preload="metadata"
                       onLoadedMetadata={() => {
                         if (audioRef.current) {
-                          console.log('Audio metadata loaded:', audioRef.current.duration);
+                          // Audio metadata loaded successfully
+                          // Duration available: audioRef.current.duration
                         }
                       }}
                       onError={(e) => {
@@ -1012,7 +1016,7 @@ export function LiveSubmissionForm() {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Track Title"
-                  disabled={activeSubmission && !isEditing}
+                  disabled={!!(activeSubmission && !isEditing)}
                   className={`w-full bg-gray-800/50 border rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all ${
                     activeSubmission && !isEditing
                       ? 'border-transparent cursor-default'
@@ -1030,7 +1034,7 @@ export function LiveSubmissionForm() {
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Tell us about your track..."
                   rows={3}
-                  disabled={activeSubmission && !isEditing}
+                  disabled={!!(activeSubmission && !isEditing)}
                   className={`w-full bg-gray-800/50 border rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all resize-none ${
                     activeSubmission && !isEditing
                       ? 'border-transparent cursor-default'

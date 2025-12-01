@@ -19,7 +19,7 @@ const nextConfig = require('eslint-config-next/core-web-vitals');
 const eslintConfig = [
   {
     ignores: [
-      '.next/',
+      '.next/**',
       'node_modules/',
       'public/',
       'dist/',
@@ -31,6 +31,13 @@ const eslintConfig = [
       '**/*.spec.ts',
       '**/*.spec.tsx',
     ],
+  },
+  // Désactiver les règles Next.js pour les fichiers générés .next/
+  {
+    files: ['**/.next/**'],
+    rules: {
+      '@next/next/no-assign-module-variable': 'off',
+    },
   },
   // Exceptions pour les fichiers de logging (ils utilisent console.log intentionnellement)
   {
@@ -89,6 +96,8 @@ const eslintConfig = [
       // jsx-handler-names désactivé : convention de nommage, pas critique
       'react/jsx-handler-names': 'off',
       'react/jsx-no-bind': 'off', // Désactivé : impact performance négligeable en 2025, trop de bruit
+      // Désactivé car courant en français avec apostrophes - DOIT être après nextConfig pour écraser
+      'react/no-unescaped-entities': 'off',
 
       // Règles d'import
       // import/order désactivé : règle de style, pas critique pour le fonctionnement
@@ -109,19 +118,9 @@ const eslintConfig = [
       'react-hooks/exhaustive-deps': 'warn',
       'react-hooks/set-state-in-effect': 'warn', // Peut être nécessaire dans certains cas
       'react-hooks/immutability': 'warn', // Peut être nécessaire dans certains cas
-      'react/no-unescaped-entities': 'off', // Désactivé car courant en français avec apostrophes
       // Note: Les erreurs React Compiler "Cannot call impure function" et "Compilation Skipped" 
       // ne sont pas contrôlables via ESLint. Elles sont générées par le compilateur React intégré dans Next.js
       // Pour ignorer les warnings du React Compiler dans la console, ils doivent être filtrés au niveau du build
-
-      // Exceptions spécifiques par fichier (doivent être après les règles générales)
-      // Fichiers de logging
-      'no-console': [
-        'error',
-        {
-          allow: ['warn', 'error'],
-        },
-      ],
     },
     settings: {
       react: {

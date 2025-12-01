@@ -229,11 +229,11 @@ export function useAdminLiveActions(
 
         // Vérifier si UserLiveItem existe sur la soumission (ajouté récemment au type)
         if (submission.User && 'UserLiveItem' in submission.User) {
-          const userItems = (submission.User as any).UserLiveItem || [];
+          const userItems = submission.User.UserLiveItem || [];
           // Compter les items activés
           // On suppose que l'API renvoie déjà uniquement les items activés ou on filtre
           const activeItemsCount = userItems.reduce(
-            (acc: number, item: any) => acc + (item.quantity || 1),
+            (acc: number, item) => acc + (item.quantity || 1),
             0
           );
           weight += activeItemsCount;

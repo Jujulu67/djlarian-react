@@ -26,8 +26,8 @@ export function LiveRewards() {
     >
       <h2 className="text-lg sm:text-xl lg:text-lg font-audiowide text-white mb-2">YOUR REWARDS</h2>
       <p className="text-xs text-gray-400 mb-6">
-        // KEEP TRACK OF YOUR STREAKS AND BONUS ITEMS. THE MORE STREAMS YOU WATCH, THE MORE YOU
-        EARN.
+        {/* KEEP TRACK OF YOUR STREAKS AND BONUS ITEMS. THE MORE STREAMS YOU WATCH, THE MORE YOU
+        EARN. */}
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">

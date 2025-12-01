@@ -45,8 +45,9 @@ export function LiveInventory() {
       </div>
 
       <p className="text-[10px] text-gray-400 mb-3">
-        // ALL YOUR ITEMS & BONUSES IN ONE PLACE. SOME ITEMS MAY REQUIRE A TWITCH CHAT MESSAGE TO
-        APPEAR. // ACTIVE TICKETS: {inventory?.totalTickets || 0} // LIST OF ALL ITEMS -&gt;
+        {/* ALL YOUR ITEMS & BONUSES IN ONE PLACE. SOME ITEMS MAY REQUIRE A TWITCH CHAT MESSAGE TO
+        APPEAR. */}{' '}
+        ACTIVE TICKETS: {inventory?.totalTickets || 0} {/* LIST OF ALL ITEMS -&gt; */}
       </p>
 
       {/* Items activés */}

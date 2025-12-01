@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import Image from 'next/image';
 import { Play, Pause, Volume2, VolumeX, Download, X, RotateCcw, Gauge, User } from 'lucide-react';
 import { useAdminLivePlayerContext } from '../context/AdminLivePlayerContext';
@@ -32,9 +32,11 @@ export function AdminLivePlayer() {
   const rafRef = useRef<number | null>(null);
 
   // Synchroniser le volume local avec le volume global quand on ne drag pas
-  if (!isDraggingRef.current && localVolume !== volume) {
-    setLocalVolume(volume);
-  }
+  useEffect(() => {
+    if (!isDraggingRef.current && localVolume !== volume) {
+      setLocalVolume(volume);
+    }
+  }, [volume, localVolume]);
 
   const handleVolumeInput = useCallback(
     (e: React.FormEvent<HTMLInputElement>) => {

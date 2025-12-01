@@ -13,6 +13,13 @@ import {
   toggleItemActivation,
 } from '@/actions/inventory';
 import { toast } from 'sonner';
+import type { UserLiveItem, LiveItem } from '@/types/live';
+import type { Prisma } from '@prisma/client';
+
+type LiveItemWithRelations = Prisma.LiveItemGetPayload<Record<string, never>>;
+type UserLiveItemWithRelations = Prisma.UserLiveItemGetPayload<{
+  include: { LiveItem: true };
+}>;
 
 interface InventoryContentProps {
   userId: string;
@@ -20,8 +27,8 @@ interface InventoryContentProps {
 }
 
 export function InventoryContent({ userId, userName }: InventoryContentProps) {
-  const [inventory, setInventory] = useState<any[]>([]);
-  const [allItems, setAllItems] = useState<any[]>([]);
+  const [inventory, setInventory] = useState<UserLiveItemWithRelations[]>([]);
+  const [allItems, setAllItems] = useState<LiveItemWithRelations[]>([]);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
@@ -99,7 +106,7 @@ export function InventoryContent({ userId, userName }: InventoryContentProps) {
       <div className="mb-6">
         <h2 className="text-2xl font-bold flex items-center gap-2">
           INVENTORY{' '}
-          <span className="text-gray-500 text-sm font-normal">// {userName || userId}</span>
+          <span className="text-gray-500 text-sm font-normal">{/* {userName || userId} */}</span>
         </h2>
       </div>
 
@@ -118,8 +125,8 @@ export function InventoryContent({ userId, userName }: InventoryContentProps) {
                   <div className="aspect-square rounded-xl bg-gradient-to-br from-purple-900/50 to-blue-900/50 border border-purple-500/50 p-2 flex flex-col items-center justify-center relative overflow-hidden shadow-[0_0_15px_rgba(168,85,247,0.4)]">
                     <div className="absolute inset-0 bg-purple-500/10 animate-pulse" />
                     <Image
-                      src={`/images/items/${item.LiveItem.type.toLowerCase()}.png`}
-                      alt={item.LiveItem.name}
+                      src={`/images/items/${item.LiveItem?.type.toLowerCase() || 'default'}.png`}
+                      alt={item.LiveItem?.name || 'Unknown'}
                       width={80}
                       height={80}
                       className="object-cover z-10 drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]"
@@ -153,7 +160,7 @@ export function InventoryContent({ userId, userName }: InventoryContentProps) {
                     </Button>
                   </div>
                   <p className="text-xs text-center mt-2 font-medium text-purple-300 truncate w-full">
-                    {item.LiveItem.name}
+                    {item.LiveItem?.name || 'Unknown'}
                   </p>
                 </div>
               ))}
@@ -175,8 +182,8 @@ export function InventoryContent({ userId, userName }: InventoryContentProps) {
                     <div className="aspect-square rounded-xl bg-gray-900/50 border border-gray-800 p-2 flex flex-col items-center justify-center relative overflow-hidden hover:border-gray-600 transition-colors">
                       <div className="relative">
                         <Image
-                          src={`/images/items/${item.LiveItem.type.toLowerCase()}.png`}
-                          alt={item.LiveItem.name}
+                          src={`/images/items/${item.LiveItem?.type.toLowerCase() || 'default'}.png`}
+                          alt={item.LiveItem?.name || 'Unknown'}
                           width={80}
                           height={80}
                           className="object-cover z-10 opacity-80 group-hover:opacity-100 transition-opacity"
@@ -209,13 +216,13 @@ export function InventoryContent({ userId, userName }: InventoryContentProps) {
                         size="icon"
                         variant="ghost"
                         className="h-8 w-8 hover:bg-red-500/20 hover:text-red-400"
-                        onClick={() => handleRemoveItem(item.LiveItem.id)}
+                        onClick={() => item.LiveItem && handleRemoveItem(item.LiveItem.id)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                     <p className="text-xs text-center mt-2 text-gray-400 truncate w-full">
-                      {item.LiveItem.name}
+                      {item.LiveItem?.name || 'Unknown'}
                     </p>
                   </div>
                 ))}

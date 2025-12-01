@@ -49,7 +49,7 @@ export function useAdminLiveSubmissions() {
       }
       const result = await response.json();
       // S'assurer que toutes les soumissions ont isPinned défini
-      const submissionsWithDefaults = (result.data || []).map((submission: any) => ({
+      const submissionsWithDefaults = (result.data || []).map((submission: SubmissionWithUser) => ({
         ...submission,
         isRolled: submission.isRolled ?? false,
         isPinned: submission.isPinned ?? false,

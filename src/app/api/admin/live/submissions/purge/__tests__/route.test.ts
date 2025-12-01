@@ -28,8 +28,13 @@ jest.mock('@/lib/logger', () => ({
   },
 }));
 
-jest.mock('@/lib/live/upload', () => ({
-  deleteAudioFile: jest.fn(),
+jest.mock('@/lib/blob', () => ({
+  getIsBlobConfigured: jest.fn(),
+}));
+
+jest.mock('@vercel/blob', () => ({
+  list: jest.fn(),
+  del: jest.fn(),
 }));
 
 describe('/api/admin/live/submissions/purge', () => {
@@ -67,17 +72,29 @@ describe('/api/admin/live/submissions/purge', () => {
     it('should purge all submissions and files', async () => {
       const { auth } = await import('@/auth');
       const { default: prisma } = await import('@/lib/prisma');
-      const { deleteAudioFile } = await import('@/lib/live/upload');
+      const { getIsBlobConfigured } = await import('@/lib/blob');
+      const { list, del } = await import('@vercel/blob');
 
       (auth as jest.Mock).mockResolvedValue({
         user: { id: 'admin-123', role: 'ADMIN' },
       });
+
+      // Mock blob configuration
+      (getIsBlobConfigured as jest.Mock).mockReturnValue(true);
 
       // Mock finding submissions
       (prisma.liveSubmission.findMany as jest.Mock).mockResolvedValue([
         { id: 'sub-1', fileUrl: 'https://blob.com/1.mp3' },
         { id: 'sub-2', fileUrl: 'https://blob.com/2.mp3' },
       ]);
+
+      // Mock blob list and delete
+      (list as jest.Mock).mockResolvedValue({
+        blobs: [{ url: 'https://blob.com/1.mp3' }, { url: 'https://blob.com/2.mp3' }],
+        hasMore: false,
+        cursor: undefined,
+      });
+      (del as jest.Mock).mockResolvedValue(undefined);
 
       (prisma.liveSubmission.deleteMany as jest.Mock).mockResolvedValue({ count: 2 });
 
@@ -94,9 +111,10 @@ describe('/api/admin/live/submissions/purge', () => {
       // Should fetch all submissions
       expect(prisma.liveSubmission.findMany).toHaveBeenCalled();
 
-      // Should delete files
-      expect(deleteAudioFile).toHaveBeenCalledWith('https://blob.com/1.mp3');
-      expect(deleteAudioFile).toHaveBeenCalledWith('https://blob.com/2.mp3');
+      // Should list and delete blobs
+      expect(list).toHaveBeenCalledWith({ prefix: 'live-audio/', cursor: undefined });
+      expect(del).toHaveBeenCalledWith('https://blob.com/1.mp3');
+      expect(del).toHaveBeenCalledWith('https://blob.com/2.mp3');
 
       // Should delete records
       expect(prisma.liveSubmission.deleteMany).toHaveBeenCalled();

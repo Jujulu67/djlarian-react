@@ -20,18 +20,14 @@ export function RandomWheel({
   const rotation = useMotionValue(0);
   const hasCompletedRef = useRef(false);
 
-  if (submissions.length === 0) {
-    return <div className="text-gray-400 text-center py-8">Aucune soumission disponible</div>;
-  }
-
   const numSegments = submissions.length;
-  const segmentAngle = 360 / numSegments;
+  const segmentAngle = numSegments > 0 ? 360 / numSegments : 0;
 
   // Calculer l'angle de rotation final pour que la sélection soit en haut
   // On veut que le segment sélectionné soit aligné avec le pointeur (en haut)
   // Avec une variation aléatoire pour que ça ne tombe pas toujours exactement au centre
   const calculateFinalRotation = () => {
-    if (selectedIndex === null) return 0;
+    if (selectedIndex === null || numSegments === 0) return 0;
 
     // L'angle du centre du segment sélectionné
     const selectedSegmentCenterAngle = selectedIndex * segmentAngle + segmentAngle / 2;
@@ -61,29 +57,44 @@ export function RandomWheel({
   }, [isSpinning]);
 
   useEffect(() => {
-    if (isSpinning && selectedIndex !== null && !hasCompletedRef.current) {
+    if (isSpinning && selectedIndex !== null && !hasCompletedRef.current && numSegments > 0) {
       hasCompletedRef.current = true;
       // Réinitialiser la rotation au début
       rotation.set(0);
-      const finalRotation = calculateFinalRotation();
 
-      // Animation de rotation avec décélération réaliste (départ rapide, ralentissement progressif)
-      // Utiliser will-change et requestAnimationFrame pour une animation plus fluide
-      const animation = animate(rotation, finalRotation, {
-        duration: 4.5,
-        ease: [0.23, 1, 0.32, 1], // Easing plus smooth (easeOutQuint-like) pour une animation fluide
-        onComplete: () => {
-          setTimeout(() => {
-            onSpinComplete();
-          }, 300);
-        },
-      });
+      // Calculer l'angle de rotation final (inline pour éviter les dépendances)
+      if (selectedIndex !== null && numSegments > 0) {
+        const selectedSegmentCenterAngle = selectedIndex * segmentAngle + segmentAngle / 2;
+        const randomValue = Math.random();
+        const normalizedValue = Math.pow(randomValue, 0.7);
+        const randomVariation = (normalizedValue - 0.5) * segmentAngle * 0.98;
+        const adjustedAngle = selectedSegmentCenterAngle + randomVariation;
+        const baseRotation = 360 - adjustedAngle;
+        const fullRotations = 4 * 360;
+        const finalRotation = baseRotation + fullRotations;
 
-      return () => {
-        animation.stop();
-      };
+        // Animation de rotation avec décélération réaliste (départ rapide, ralentissement progressif)
+        // Utiliser will-change et requestAnimationFrame pour une animation plus fluide
+        const animation = animate(rotation, finalRotation, {
+          duration: 4.5,
+          ease: [0.23, 1, 0.32, 1], // Easing plus smooth (easeOutQuint-like) pour une animation fluide
+          onComplete: () => {
+            setTimeout(() => {
+              onSpinComplete();
+            }, 300);
+          },
+        });
+
+        return () => {
+          animation.stop();
+        };
+      }
     }
-  }, [isSpinning, selectedIndex, rotation, onSpinComplete]);
+  }, [isSpinning, selectedIndex, rotation, onSpinComplete, numSegments, segmentAngle]);
+
+  if (submissions.length === 0) {
+    return <div className="text-gray-400 text-center py-8">Aucune soumission disponible</div>;
+  }
 
   // Générer les couleurs pour chaque segment (alternance de couleurs glassmorphism avec plus de contraste)
   const getSegmentColor = (index: number) => {
