@@ -618,13 +618,25 @@ if [ "$NODE_ENV" = "production" ]; then
     echo "✅ Client Prisma régénéré (post-migration)"
     
     # Initialiser les LiveItem si la table existe (non-bloquant)
-    echo "🌱 Initialisation des LiveItem (seed)..."
-    set +e
-    node scripts/seed-live-items.mjs > /dev/null 2>&1 || {
-      echo "   ⚠️  Le seed des LiveItem a échoué, mais le build continue"
-      echo "   Vous pouvez exécuter manuellement: npm run db:seed:live-items"
-    }
-    set -e
+    # Vérifier que le client Prisma existe avant d'essayer le seed
+    if [ -d "node_modules/.prisma/client" ]; then
+      echo "🌱 Initialisation des LiveItem (seed)..."
+      set +e
+      SEED_OUTPUT=$(node scripts/seed-live-items.mjs 2>&1)
+      SEED_EXIT=$?
+      set -e
+      
+      if [ $SEED_EXIT -eq 0 ]; then
+        echo "$SEED_OUTPUT" | grep -E "(✅|✨|📊)" | head -20 || echo "   ✅ Seed terminé avec succès"
+      else
+        echo "   ⚠️  Le seed des LiveItem a échoué, mais le build continue"
+        echo "$SEED_OUTPUT" | head -10 | sed 's/^/      /'
+        echo "   💡 Vous pouvez exécuter manuellement: npm run db:seed:live-items"
+      fi
+    else
+      echo "   ⏭️  Client Prisma non trouvé, seed des LiveItem ignoré"
+      echo "   💡 Le seed sera exécuté lors du prochain build ou manuellement: npm run db:seed:live-items"
+    fi
   else
     echo "⚠️  ATTENTION: La génération du client Prisma a échoué"
     echo "   Tentative de récupération..."
