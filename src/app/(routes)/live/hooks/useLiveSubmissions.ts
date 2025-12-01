@@ -117,6 +117,69 @@ export function useLiveSubmissions() {
     [loadSubmissions, session?.user?.id]
   );
 
+  const updateSubmission = useCallback(
+    async (id: string, data: { title: string; description?: string }) => {
+      try {
+        setIsSubmitting(true);
+        setError(null);
+
+        const response = await fetchWithAuth('/api/live/submissions', {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ id, ...data }),
+        });
+
+        if (response.ok) {
+          const responseData = await response.json();
+          await loadSubmissions();
+          return { success: true, data: responseData.data };
+        } else {
+          const errorData = await response.json();
+          setError(errorData.error || 'Erreur lors de la mise à jour');
+          return { success: false, error: errorData.error };
+        }
+      } catch (err) {
+        setError('Erreur de connexion');
+        console.error('[Live] Erreur mise à jour:', err);
+        return { success: false, error: 'Erreur de connexion' };
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [loadSubmissions]
+  );
+
+  const deleteSubmission = useCallback(
+    async (id: string) => {
+      try {
+        setIsSubmitting(true);
+        setError(null);
+
+        const response = await fetchWithAuth(`/api/live/submissions?id=${id}`, {
+          method: 'DELETE',
+        });
+
+        if (response.ok) {
+          await loadSubmissions();
+          return { success: true };
+        } else {
+          const errorData = await response.json();
+          setError(errorData.error || 'Erreur lors de la suppression');
+          return { success: false, error: errorData.error };
+        }
+      } catch (err) {
+        setError('Erreur de connexion');
+        console.error('[Live] Erreur suppression:', err);
+        return { success: false, error: 'Erreur de connexion' };
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [loadSubmissions]
+  );
+
   return {
     submissions,
     isLoading,
@@ -124,5 +187,7 @@ export function useLiveSubmissions() {
     error,
     loadSubmissions,
     submitFile,
+    updateSubmission,
+    deleteSubmission,
   };
 }

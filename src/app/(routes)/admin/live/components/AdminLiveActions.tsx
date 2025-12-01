@@ -10,9 +10,12 @@ import {
   Eye,
   RotateCcw,
   RefreshCw,
+  Trash2,
 } from 'lucide-react';
 import { useAdminLiveActions } from '../hooks/useAdminLiveActions';
 import { useAdminLiveSubmissionsContext } from '../context/AdminLiveSubmissionsContext';
+import { GlobalInventoryManager } from './GlobalInventoryManager';
+import { Package } from 'lucide-react';
 import { RandomWheelModal } from './RandomWheelModal';
 
 export function AdminLiveActions() {
@@ -35,10 +38,13 @@ export function AdminLiveActions() {
     deleteNgrok,
     rollRandom,
     downloadAll,
+    purgeAllSubmissions,
     isWheelModalOpen,
     selectedSubmissionId,
     handleWheelSelectionComplete,
     handleCloseWheelModal,
+    isInventoryManagerOpen,
+    setIsInventoryManagerOpen,
   } = useAdminLiveActions(
     submissions,
     updateSubmissionRolled,
@@ -65,6 +71,15 @@ export function AdminLiveActions() {
 
       {/* Première ligne de boutons/checkboxes */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-4">
+        <button
+          onClick={() => setIsInventoryManagerOpen(true)}
+          className="bg-blue-600 hover:bg-blue-700 px-3 sm:px-4 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium text-white transition-colors"
+        >
+          <Package className="w-4 h-4" />
+          <span className="hidden sm:inline">Inventories</span>
+          <span className="sm:hidden">Inv.</span>
+        </button>
+
         <button
           onClick={addLoyalty}
           className="bg-purple-600 hover:bg-purple-700 px-3 sm:px-4 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium text-white transition-colors"
@@ -114,17 +129,17 @@ export function AdminLiveActions() {
           />
           <span className="text-sm text-gray-300">Kool Kids</span>
         </label>
+      </div>
 
+      {/* Deuxième ligne de boutons/checkboxes */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-4">
         <button
           onClick={pasteNgrokUrl}
           className="bg-gray-700 hover:bg-gray-600 px-3 sm:px-4 py-2 rounded-lg text-sm font-medium text-gray-300 transition-colors"
         >
           ngrok Paste URL
         </button>
-      </div>
 
-      {/* Deuxième ligne de boutons/checkboxes */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-4">
         <button
           onClick={getAllNames}
           className="bg-gray-700 hover:bg-gray-600 px-3 sm:px-4 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium text-gray-300 transition-colors"
@@ -171,12 +186,23 @@ export function AdminLiveActions() {
           <span className="hidden sm:inline">Edit Genres</span>
           <span className="sm:hidden">Genres</span>
         </button>
+      </div>
 
+      <div className="flex justify-start mb-4 gap-4">
         <button
           onClick={deleteNgrok}
           className="bg-red-600 hover:bg-red-700 px-3 sm:px-4 py-2 rounded-lg text-sm font-medium text-white transition-colors"
         >
           ngrok Delete
+        </button>
+
+        <button
+          onClick={purgeAllSubmissions}
+          className="bg-red-600 hover:bg-red-700 px-3 sm:px-4 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium text-white transition-colors"
+        >
+          <Trash2 className="w-4 h-4" />
+          <span className="hidden sm:inline">Purge All</span>
+          <span className="sm:hidden">Purge</span>
         </button>
       </div>
 
@@ -200,6 +226,12 @@ export function AdminLiveActions() {
         selectedSubmissionId={selectedSubmissionId}
         onClose={handleCloseWheelModal}
         onSelectionComplete={handleWheelSelectionComplete}
+      />
+
+      {/* Modale de gestion d'inventaire */}
+      <GlobalInventoryManager
+        isOpen={isInventoryManagerOpen}
+        onClose={() => setIsInventoryManagerOpen(false)}
       />
     </motion.div>
   );

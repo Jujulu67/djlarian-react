@@ -20,6 +20,15 @@ export type SubmissionWithUser = {
     name: string | null;
     email: string | null;
     image: string | null;
+    UserLiveItem: {
+      id: string;
+      quantity: number;
+      LiveItem: {
+        id: string;
+        type: string;
+        name: string;
+      };
+    }[];
   };
 };
 

@@ -307,3 +307,56 @@ export async function DELETE(request: NextRequest) {
     return handleApiError(error, 'DELETE /api/live/submissions');
   }
 }
+
+/**
+ * PATCH /api/live/submissions
+ * Met à jour une soumission existante (titre/description)
+ */
+export async function PATCH(request: NextRequest) {
+  try {
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return createUnauthorizedResponse('Non authentifié');
+    }
+
+    const body = await request.json();
+    const { id, title, description } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: 'ID de soumission requis' }, { status: 400 });
+    }
+
+    if (!title) {
+      return NextResponse.json({ error: 'Titre requis' }, { status: 400 });
+    }
+
+    // Vérifier que la soumission existe et appartient à l'utilisateur
+    const submission = await prisma.liveSubmission.findUnique({
+      where: { id },
+    });
+
+    if (!submission) {
+      return NextResponse.json({ error: 'Soumission non trouvée' }, { status: 404 });
+    }
+
+    if (submission.userId !== session.user.id) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
+    }
+
+    // Mettre à jour la soumission
+    const updatedSubmission = await prisma.liveSubmission.update({
+      where: { id },
+      data: {
+        title,
+        description: description || null,
+      },
+    });
+
+    logger.debug(`[Live] Soumission mise à jour: ${id}`);
+
+    return createSuccessResponse(updatedSubmission, 200, 'Soumission mise à jour avec succès');
+  } catch (error) {
+    return handleApiError(error, 'PATCH /api/live/submissions');
+  }
+}

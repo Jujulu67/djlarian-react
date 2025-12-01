@@ -6,7 +6,9 @@ import { RefreshCw, Trash2, ExternalLink, ArrowUpDown, Pin } from 'lucide-react'
 import { useAdminLiveSubmissionsContext } from '../context/AdminLiveSubmissionsContext';
 import { useAdminLiveFilters } from '../hooks/useAdminLiveFilters';
 import { useAdminLivePlayerContext } from '../context/AdminLivePlayerContext';
+import { useAdminLiveActions } from '../hooks/useAdminLiveActions';
 import Link from 'next/link';
+import { InventoryModal } from './InventoryModal';
 
 export function AdminLiveSubmissionsTable() {
   const {
@@ -28,6 +30,13 @@ export function AdminLiveSubmissionsTable() {
     filteredSubmissions,
     resetFilters,
   } = useAdminLiveFilters(submissions);
+
+  const { purgeAllSubmissions } = useAdminLiveActions(
+    submissions,
+    updateSubmissionRolled,
+    updateSubmissionPinned,
+    fetchSubmissions
+  );
 
   const { setSelectedSubmission, restoreSelectedSubmission } = useAdminLivePlayerContext();
 
@@ -88,11 +97,16 @@ export function AdminLiveSubmissionsTable() {
           <span className="text-sm text-gray-300">Only Active</span>
         </label>
         <button
-          onClick={resetFilters}
-          className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium text-white transition-colors"
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            purgeAllSubmissions();
+          }}
+          className="bg-red-900/50 hover:bg-red-900/80 border border-red-500/30 px-4 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium text-red-200 transition-colors"
         >
           <Trash2 className="w-4 h-4" />
-          Reset All
+          Purge All
         </button>
       </div>
 
@@ -178,12 +192,15 @@ export function AdminLiveSubmissionsTable() {
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-400">--</td>
                 <td className="px-4 py-3">
-                  <Link
-                    href={`/live?userId=${submission.userId}`}
-                    className="text-purple-400 hover:text-purple-300 flex items-center gap-1 text-sm transition-colors"
-                  >
-                    Inventory <ExternalLink className="w-3 h-3" />
-                  </Link>
+                  <InventoryModal
+                    userId={submission.userId}
+                    userName={submission.User.name || 'Unknown'}
+                    trigger={
+                      <button className="text-purple-400 hover:text-purple-300 flex items-center gap-1 text-sm transition-colors">
+                        Inventory <ExternalLink className="w-3 h-3" />
+                      </button>
+                    }
+                  />
                 </td>
               </tr>
             ))}

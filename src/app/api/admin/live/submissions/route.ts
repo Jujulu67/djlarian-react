@@ -38,6 +38,12 @@ export async function GET(request: NextRequest) {
             name: true,
             email: true,
             image: true,
+            UserLiveItem: {
+              where: { isActivated: true },
+              include: {
+                LiveItem: true,
+              },
+            },
           },
         },
       },
