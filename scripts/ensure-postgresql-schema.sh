@@ -616,6 +616,15 @@ if [ "$NODE_ENV" = "production" ]; then
     # Corriger les fichiers default.js et default.mjs pour Prisma 7
     node scripts/fix-prisma-types.mjs > /dev/null 2>&1 || node scripts/fix-prisma-types.mjs
     echo "✅ Client Prisma régénéré (post-migration)"
+    
+    # Initialiser les LiveItem si la table existe (non-bloquant)
+    echo "🌱 Initialisation des LiveItem (seed)..."
+    set +e
+    node scripts/seed-live-items.mjs > /dev/null 2>&1 || {
+      echo "   ⚠️  Le seed des LiveItem a échoué, mais le build continue"
+      echo "   Vous pouvez exécuter manuellement: npm run db:seed:live-items"
+    }
+    set -e
   else
     echo "⚠️  ATTENTION: La génération du client Prisma a échoué"
     echo "   Tentative de récupération..."
