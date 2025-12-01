@@ -8,6 +8,12 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { PrismaNeon } from '@prisma/adapter-neon';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+import { neon } from '@neondatabase/serverless';
+import pg from 'pg';
+import Database from 'better-sqlite3';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -19,6 +25,41 @@ const rootDir = join(__dirname, '..');
 
 dotenv.config({ path: join(rootDir, '.env.local') });
 dotenv.config({ path: join(rootDir, '.env') });
+
+// Fonction pour créer l'adaptateur Prisma approprié
+function createPrismaAdapter(databaseUrl) {
+  if (!databaseUrl) {
+    throw new Error('DATABASE_URL n\'est pas défini');
+  }
+
+  // PostgreSQL (Neon)
+  if (databaseUrl.startsWith('postgresql://') || databaseUrl.startsWith('postgres://')) {
+    // Vérifier si c'est une connection string Neon (contient @ ou pooler)
+    if (databaseUrl.includes('@') || databaseUrl.includes('pooler')) {
+      try {
+        const sql = neon(databaseUrl);
+        return new PrismaNeon(sql);
+      } catch (error) {
+        // Fallback vers pg si Neon échoue
+        const pool = new pg.Pool({ connectionString: databaseUrl });
+        return new PrismaPg(pool);
+      }
+    } else {
+      // PostgreSQL standard
+      const pool = new pg.Pool({ connectionString: databaseUrl });
+      return new PrismaPg(pool);
+    }
+  }
+
+  // SQLite
+  if (databaseUrl.startsWith('file:')) {
+    const sqlitePath = databaseUrl.replace('file:', '');
+    const sqlite = new Database(sqlitePath);
+    return new PrismaBetterSqlite3(sqlite);
+  }
+
+  throw new Error(`Format de DATABASE_URL non supporté: ${databaseUrl.substring(0, 20)}...`);
+}
 
 // Définitions des items (copiées depuis src/lib/live/items.ts pour éviter les imports TypeScript)
 const LIVE_ITEMS = {
@@ -84,7 +125,24 @@ const LIVE_ITEMS = {
   },
 };
 
-const prisma = new PrismaClient();
+// Créer le client Prisma avec l'adaptateur approprié
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) {
+  console.error('❌ ERREUR: DATABASE_URL n\'est pas défini');
+  console.error('   Assurez-vous que DATABASE_URL est configuré dans les variables d\'environnement');
+  process.exit(1);
+}
+
+let adapter;
+try {
+  adapter = createPrismaAdapter(databaseUrl);
+} catch (error) {
+  console.error('❌ ERREUR lors de la création de l\'adaptateur Prisma:', error.message);
+  console.error('   DATABASE_URL:', databaseUrl.substring(0, 30) + '...');
+  process.exit(1);
+}
+
+const prisma = new PrismaClient({ adapter });
 
 async function seedLiveItems() {
   console.log('🌱 Initialisation des LiveItem...\n');
@@ -152,6 +210,12 @@ async function seedLiveItems() {
     console.log('\n✅ Seed terminé avec succès!');
   } catch (error) {
     console.error('\n❌ Erreur lors du seed:', error);
+    if (error.message) {
+      console.error('   Message:', error.message);
+    }
+    if (error.stack) {
+      console.error('   Stack:', error.stack.split('\n').slice(0, 5).join('\n'));
+    }
     throw error;
   } finally {
     await prisma.$disconnect();
