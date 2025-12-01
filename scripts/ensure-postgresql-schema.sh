@@ -103,6 +103,7 @@ if [ "$NODE_ENV" = "production" ]; then
     local checked_count=0
     local datetime_found=0
     local schema_found=0
+    local boolean_found=0
     
     if [ -d "prisma/migrations" ]; then
       # Parcourir toutes les migrations
@@ -115,6 +116,7 @@ if [ "$NODE_ENV" = "production" ]; then
             local modified=false
             local has_datetime=false
             local has_schema=false
+            local has_boolean=false
             
             # Lire le contenu
             local content=$(cat "$migration_file")
@@ -139,6 +141,36 @@ if [ "$NODE_ENV" = "production" ]; then
               content=$(echo "$content" | sed 's/DATETIME/TIMESTAMP(3)/g')
               modified=true
               echo "   ⚠️  Migration $migration_name : $datetime_count occurrence(s) de DATETIME détectée(s) et convertie(s) en TIMESTAMP(3)"
+            fi
+            
+            # 3. Vérifier et corriger les comparaisons booléennes avec des entiers (SQLite: boolean = 1, PostgreSQL: boolean = true)
+            # Détecter les patterns comme "column" = 1 ou "column" = 0 dans les contextes SQL
+            # On cherche spécifiquement les colonnes booléennes (commençant par "is", "has", etc.) comparées à 0 ou 1
+            local boolean_pattern_count=0
+            # Pattern 1: "columnName" = 1 (remplacer par = true)
+            if echo "$content" | grep -qE '"[a-zA-Z_][a-zA-Z0-9_]*"\s*=\s*1'; then
+              has_boolean=true
+              boolean_found=$((boolean_found + 1))
+              # Compter les occurrences
+              boolean_pattern_count=$(echo "$content" | grep -oE '"[a-zA-Z_][a-zA-Z0-9_]*"\s*=\s*1' | wc -l | tr -d ' ')
+              # Remplacer "column" = 1 par "column" = true (compatible macOS et Linux)
+              # Utiliser une regex plus précise pour éviter de remplacer les comparaisons d'entiers
+              content=$(echo "$content" | sed -E 's/("([a-zA-Z_][a-zA-Z0-9_]*)") = 1/\1 = true/g')
+              modified=true
+              echo "   ⚠️  Migration $migration_name : $boolean_pattern_count comparaison(s) booléenne(s) avec = 1 détectée(s) et convertie(s) en = true"
+            fi
+            # Pattern 2: "columnName" = 0 (remplacer par = false)
+            if echo "$content" | grep -qE '"[a-zA-Z_][a-zA-Z0-9_]*"\s*=\s*0'; then
+              if [ "$has_boolean" = false ]; then
+                has_boolean=true
+                boolean_found=$((boolean_found + 1))
+              fi
+              # Compter les occurrences
+              local boolean_zero_count=$(echo "$content" | grep -oE '"[a-zA-Z_][a-zA-Z0-9_]*"\s*=\s*0' | wc -l | tr -d ' ')
+              # Remplacer "column" = 0 par "column" = false (compatible macOS et Linux)
+              content=$(echo "$content" | sed -E 's/("([a-zA-Z_][a-zA-Z0-9_]*)") = 0/\1 = false/g')
+              modified=true
+              echo "   ⚠️  Migration $migration_name : $boolean_zero_count comparaison(s) booléenne(s) avec = 0 détectée(s) et convertie(s) en = false"
             fi
             
             # Afficher le statut si la migration est OK
@@ -169,6 +201,11 @@ if [ "$NODE_ENV" = "production" ]; then
       echo "   - ⚠️  $schema_found migration(s) avec CREATE SCHEMA → supprimé"
     else
       echo "   - ✅ Aucun CREATE SCHEMA trouvé"
+    fi
+    if [ $boolean_found -gt 0 ]; then
+      echo "   - ⚠️  $boolean_found migration(s) avec comparaisons booléennes → convertie(s) (1→true, 0→false)"
+    else
+      echo "   - ✅ Aucune comparaison booléenne avec entier trouvée (toutes utilisent true/false)"
     fi
     if [ $fixed_count -gt 0 ]; then
       echo "   - ✅ $fixed_count migration(s) corrigée(s) pour PostgreSQL"
