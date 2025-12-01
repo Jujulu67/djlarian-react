@@ -4,7 +4,7 @@ import path from 'path';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { auth } from '@/auth';
-import { uploadToBlob, getBlobPublicUrl } from '@/lib/blob';
+import { uploadToBlobWithCheck, getBlobPublicUrl } from '@/lib/blob';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import { convertToWebP, canConvertToWebP } from '@/lib/utils/convertToWebP';
@@ -171,11 +171,19 @@ export async function POST(request: NextRequest) {
       // Upload vers Vercel Blob
       try {
         const croppedKey = `uploads/${imageId}.webp`;
-        const croppedUrl = await uploadToBlob(croppedKey, croppedBuffer, 'image/webp');
-        logger.debug(`API UPLOAD - Image recadrée uploadée vers Vercel Blob: ${croppedUrl}`);
+        // OPTIMISATION: Vérifier si l'image existe déjà avant d'uploader (évite put() redondant)
+        const { url: croppedUrl, hash: croppedHash } = await uploadToBlobWithCheck(
+          croppedKey,
+          croppedBuffer,
+          'image/webp',
+          imageId,
+          false
+        );
+        logger.debug(`API UPLOAD - Image recadrée: ${croppedUrl}`);
 
         // Upload de l'image originale si fournie (convertie en WebP)
         let originalBlobUrl: string | null = null;
+        let originalHash: string | null = null;
         if (originalImage && originalImage.type.startsWith('image/')) {
           if (originalImage.size <= 15 * 1024 * 1024) {
             try {
@@ -196,10 +204,17 @@ export async function POST(request: NextRequest) {
               }
 
               const originalKey = `uploads/${imageId}-ori.webp`;
-              originalBlobUrl = await uploadToBlob(originalKey, originalBuffer, 'image/webp');
-              logger.debug(
-                `API UPLOAD - Image originale uploadée vers Vercel Blob: ${originalBlobUrl}`
+              // OPTIMISATION: Vérifier si l'originale existe déjà avant d'uploader
+              const originalResult = await uploadToBlobWithCheck(
+                originalKey,
+                originalBuffer,
+                'image/webp',
+                imageId,
+                true
               );
+              originalBlobUrl = originalResult.url;
+              originalHash = originalResult.hash;
+              logger.debug(`API UPLOAD - Image originale: ${originalBlobUrl}`);
             } catch (error) {
               logger.error('API UPLOAD - Erreur upload image originale vers Blob', error);
               // Ne pas bloquer si l'originale échoue
@@ -211,7 +226,7 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // OPTIMISATION: Stocker les URLs blob dans la DB pour éviter les appels list() coûteux
+        // OPTIMISATION: Stocker les URLs blob et les hashs dans la DB pour éviter les appels list() coûteux
         try {
           await prisma.image.upsert({
             where: { imageId },
@@ -221,12 +236,16 @@ export async function POST(request: NextRequest) {
               blobUrlOriginal: originalBlobUrl || undefined,
               size: croppedBuffer.length,
               contentType: 'image/webp',
+              hash: croppedHash,
+              hashOriginal: originalBlobUrl ? originalHash : undefined,
             },
             update: {
               blobUrl: croppedUrl,
               blobUrlOriginal: originalBlobUrl || undefined,
               size: croppedBuffer.length,
               contentType: 'image/webp',
+              hash: croppedHash,
+              hashOriginal: originalBlobUrl ? originalHash : undefined,
             },
           });
           logger.debug(`API UPLOAD - URLs blob stockées dans la DB pour: ${imageId}`);

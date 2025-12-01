@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-import { uploadToBlob } from '@/lib/blob';
+import { uploadToBlobWithCheck } from '@/lib/blob';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import { shouldUseBlobStorage } from '@/lib/utils/getStorageConfig';
@@ -24,13 +24,34 @@ export async function saveImage(
     // Sauvegarder dans Vercel Blob
     try {
       const key = `uploads/${imageId}.webp`;
-      const originalKey = `uploads/${imageId}-ori.webp`;
-      const blobUrl = await uploadToBlob(key, imageBuffer, 'image/webp');
-      const originalBlobUrl = originalBuffer
-        ? await uploadToBlob(originalKey, originalBuffer, 'image/webp')
-        : await uploadToBlob(originalKey, imageBuffer, 'image/webp');
+      // OPTIMISATION: Vérifier si l'image existe déjà avant d'uploader (évite put() redondant)
+      const { url: blobUrl, hash } = await uploadToBlobWithCheck(
+        key,
+        imageBuffer,
+        'image/webp',
+        imageId,
+        false
+      );
 
-      // Stocker les URLs blob dans la base de données pour éviter les appels list() coûteux
+      // OPTIMISATION: Ne pas uploader l'originale si elle n'est pas fournie (évite un put() inutile)
+      // Si originalBuffer n'est pas fourni, on ne crée pas de fichier -ori.webp
+      let originalBlobUrl: string | null = null;
+      let originalHash: string | null = null;
+      if (originalBuffer) {
+        const originalKey = `uploads/${imageId}-ori.webp`;
+        // OPTIMISATION: Vérifier si l'originale existe déjà avant d'uploader
+        const originalResult = await uploadToBlobWithCheck(
+          originalKey,
+          originalBuffer,
+          'image/webp',
+          imageId,
+          true
+        );
+        originalBlobUrl = originalResult.url;
+        originalHash = originalResult.hash;
+      }
+
+      // Stocker les URLs blob et les hashs dans la base de données pour éviter les appels list() coûteux
       try {
         await prisma.image.upsert({
           where: { imageId },
@@ -40,12 +61,16 @@ export async function saveImage(
             blobUrlOriginal: originalBlobUrl,
             size: imageBuffer.length,
             contentType: 'image/webp',
+            hash,
+            hashOriginal: originalHash,
           },
           update: {
             blobUrl,
             blobUrlOriginal: originalBlobUrl,
             size: imageBuffer.length,
             contentType: 'image/webp',
+            hash,
+            hashOriginal: originalHash,
           },
         });
         logger.debug(`[SAVE IMAGE] URLs blob stockées dans la DB pour: ${imageId}`);

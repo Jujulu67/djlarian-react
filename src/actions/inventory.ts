@@ -126,6 +126,149 @@ export async function removeItemFromUser(userId: string, itemId: string, quantit
   }
 }
 
+/**
+ * Active un item (incrémente activatedQuantity de 1)
+ */
+export async function activateItem(userItemId: string) {
+  try {
+    const session = await auth();
+    if (!session?.user || session.user.role !== 'ADMIN') {
+      throw new Error('Unauthorized');
+    }
+
+    const item = await prisma.userLiveItem.findUnique({
+      where: { id: userItemId },
+      include: {
+        LiveItem: true,
+      },
+    });
+
+    if (!item) {
+      return { success: false, error: 'Item not found' };
+    }
+
+    // Vérifier qu'on peut encore activer (activatedQuantity < quantity)
+    if (item.activatedQuantity >= item.quantity) {
+      return { success: false, error: 'Tous les items sont déjà activés' };
+    }
+
+    const itemType = item.LiveItem?.type || '';
+    const itemName = item.LiveItem?.name || '';
+    const isQueueSkip =
+      itemType === 'SKIP_QUEUE' ||
+      itemName.toLowerCase().includes('skip queue') ||
+      itemName.toLowerCase().includes('queue skip');
+
+    // Pour Skip_Queue: vérifier qu'aucun autre n'est activé
+    if (isQueueSkip) {
+      // Si on essaie d'activer (activatedQuantity va passer de 0 à 1)
+      if (item.activatedQuantity === 0) {
+        // Vérifier qu'aucun autre Queue Skip n'a activatedQuantity > 0
+        const otherQueueSkips = await prisma.userLiveItem.findMany({
+          where: {
+            userId: item.userId,
+            id: { not: userItemId },
+            activatedQuantity: { gt: 0 },
+          },
+          include: {
+            LiveItem: true,
+          },
+        });
+
+        const existingActivatedQueueSkip = otherQueueSkips.find((userItem) => {
+          const itemType = userItem.LiveItem?.type || '';
+          const itemName = userItem.LiveItem?.name?.toLowerCase() || '';
+          return (
+            itemType === 'SKIP_QUEUE' ||
+            itemName.includes('skip queue') ||
+            itemName.includes('queue skip')
+          );
+        });
+
+        if (existingActivatedQueueSkip) {
+          return {
+            success: false,
+            error:
+              "Un Queue Skip est déjà activé. Désactivez-le d'abord avant d'en activer un autre.",
+          };
+        }
+      }
+
+      // Pour Skip_Queue, limiter activatedQuantity à 1 max
+      if (item.activatedQuantity >= 1) {
+        return { success: false, error: 'Un seul Queue Skip peut être activé à la fois' };
+      }
+    }
+
+    const wasInactive = item.activatedQuantity === 0;
+    const newActivatedQuantity = item.activatedQuantity + 1;
+
+    await prisma.userLiveItem.update({
+      where: { id: userItemId },
+      data: {
+        activatedQuantity: newActivatedQuantity,
+        isActivated: newActivatedQuantity > 0, // Mettre à jour pour compatibilité
+        activatedAt: wasInactive ? new Date() : item.activatedAt,
+      },
+    });
+
+    revalidatePath('/admin/live');
+    return { success: true };
+  } catch (error) {
+    console.error('Error activating item:', error);
+    return { success: false, error: 'Failed to activate item' };
+  }
+}
+
+/**
+ * Désactive un item (décrémente activatedQuantity de 1)
+ */
+export async function deactivateItem(userItemId: string) {
+  try {
+    const session = await auth();
+    if (!session?.user || session.user.role !== 'ADMIN') {
+      throw new Error('Unauthorized');
+    }
+
+    const item = await prisma.userLiveItem.findUnique({
+      where: { id: userItemId },
+      include: {
+        LiveItem: true,
+      },
+    });
+
+    if (!item) {
+      return { success: false, error: 'Item not found' };
+    }
+
+    // Vérifier qu'on peut désactiver (activatedQuantity > 0)
+    if (item.activatedQuantity <= 0) {
+      return { success: false, error: "Aucun item n'est activé" };
+    }
+
+    const newActivatedQuantity = item.activatedQuantity - 1;
+    const becomesInactive = newActivatedQuantity === 0;
+
+    await prisma.userLiveItem.update({
+      where: { id: userItemId },
+      data: {
+        activatedQuantity: newActivatedQuantity,
+        isActivated: newActivatedQuantity > 0, // Mettre à jour pour compatibilité
+        activatedAt: becomesInactive ? null : item.activatedAt,
+      },
+    });
+
+    revalidatePath('/admin/live');
+    return { success: true };
+  } catch (error) {
+    console.error('Error deactivating item:', error);
+    return { success: false, error: 'Failed to deactivate item' };
+  }
+}
+
+/**
+ * @deprecated Utiliser activateItem ou deactivateItem à la place
+ */
 export async function toggleItemActivation(userItemId: string) {
   try {
     const session = await auth();
@@ -135,22 +278,21 @@ export async function toggleItemActivation(userItemId: string) {
 
     const item = await prisma.userLiveItem.findUnique({
       where: { id: userItemId },
+      include: {
+        LiveItem: true,
+      },
     });
 
     if (!item) {
       return { success: false, error: 'Item not found' };
     }
 
-    await prisma.userLiveItem.update({
-      where: { id: userItemId },
-      data: {
-        isActivated: !item.isActivated,
-        activatedAt: !item.isActivated ? new Date() : null,
-      },
-    });
-
-    revalidatePath('/admin/live');
-    return { success: true };
+    // Utiliser activateItem ou deactivateItem selon l'état actuel
+    if (item.activatedQuantity === 0) {
+      return activateItem(userItemId);
+    } else {
+      return deactivateItem(userItemId);
+    }
   } catch (error) {
     console.error('Error toggling item activation:', error);
     return { success: false, error: 'Failed to toggle item activation' };

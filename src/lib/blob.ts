@@ -1,8 +1,11 @@
 // Vercel Blob Storage - Remplacement de R2
 // Plan gratuit : 5 GB de stockage, 100 GB de bande passante/mois
-import { put, del, list, head } from '@vercel/blob';
+// OPTIMISATION: Suppression des imports list() et head() pour éviter les Advanced Operations
+import { put, del } from '@vercel/blob';
+import crypto from 'crypto';
 
 import { logger } from '@/lib/logger';
+import prisma from '@/lib/prisma';
 
 // Vérifier si Vercel Blob est configuré
 // Sur Vercel, BLOB_READ_WRITE_TOKEN est automatiquement disponible
@@ -17,7 +20,98 @@ export function getIsBlobConfigured(): boolean {
 }
 
 /**
- * Upload un fichier vers Vercel Blob
+ * Calcule le hash SHA-256 d'un buffer (pour détecter les doublons)
+ */
+function calculateBufferHash(buffer: Buffer): string {
+  return crypto.createHash('sha256').update(buffer).digest('hex');
+}
+
+/**
+ * Upload un fichier vers Vercel Blob avec vérification pour éviter les uploads redondants
+ * OPTIMISATION: Vérifie si l'image existe déjà dans la DB avec le même hash avant d'uploader
+ * @param key - La clé du fichier dans Blob
+ * @param buffer - Le buffer du fichier
+ * @param contentType - Le type MIME
+ * @param imageId - L'ID de l'image (optionnel, pour vérification dans la DB)
+ * @param isOriginal - Si c'est l'image originale (pour vérifier blobUrlOriginal)
+ * @returns L'URL du fichier (existante ou nouvellement uploadée) et le hash calculé
+ */
+export const uploadToBlobWithCheck = async (
+  key: string,
+  buffer: Buffer,
+  contentType: string = 'image/jpeg',
+  imageId?: string,
+  isOriginal: boolean = false
+): Promise<{ url: string; hash: string }> => {
+  if (!isBlobConfigured) {
+    throw new Error('Vercel Blob not configured. BLOB_READ_WRITE_TOKEN is required.');
+  }
+
+  // Calculer le hash une seule fois (utilisé pour la vérification et le retour)
+  const bufferHash = calculateBufferHash(buffer);
+
+  // OPTIMISATION: Vérifier si l'image existe déjà dans la DB avant d'uploader
+  if (imageId) {
+    try {
+      const existingImage = await prisma.image.findUnique({
+        where: { imageId },
+        select: {
+          blobUrl: true,
+          blobUrlOriginal: true,
+          size: true,
+          hash: true,
+          hashOriginal: true,
+        },
+      });
+
+      if (existingImage) {
+        const existingUrl = isOriginal ? existingImage.blobUrlOriginal : existingImage.blobUrl;
+        const existingHash = isOriginal ? existingImage.hashOriginal : existingImage.hash;
+        const existingSize = existingImage.size;
+
+        // Vérifier si le hash correspond (vérification précise)
+        // Si le hash correspond, c'est exactement la même image, on peut réutiliser l'URL
+        if (existingUrl && existingHash === bufferHash) {
+          logger.debug(
+            `[BLOB] Image ${imageId} existe déjà dans la DB avec le même hash (${bufferHash.substring(0, 8)}...), réutilisation de l'URL existante (0 put() appelé)`
+          );
+          return { url: existingUrl, hash: bufferHash };
+        }
+
+        // Vérification de fallback: si la taille correspond mais pas le hash, c'est probablement une image différente
+        // On continue avec l'upload
+        if (existingUrl && existingSize === buffer.length && existingHash !== bufferHash) {
+          logger.debug(
+            `[BLOB] Image ${imageId} a la même taille mais un hash différent, upload nécessaire`
+          );
+        }
+      }
+    } catch (dbError) {
+      // Ne pas bloquer si la vérification DB échoue, continuer avec l'upload
+      logger.warn('[BLOB] Erreur lors de la vérification DB, continuation avec upload:', dbError);
+    }
+  }
+
+  // Upload si l'image n'existe pas ou si la vérification a échoué
+  try {
+    const blob = await put(key, buffer, {
+      access: 'public',
+      contentType,
+    });
+
+    logger.debug(
+      `[BLOB] Image uploadée vers Blob: ${key} (${buffer.length} bytes, hash: ${bufferHash.substring(0, 8)}...)`
+    );
+    return { url: blob.url, hash: bufferHash };
+  } catch (error) {
+    logger.error("[BLOB] Erreur lors de l'upload:", error);
+    throw error;
+  }
+};
+
+/**
+ * Upload un fichier vers Vercel Blob (sans vérification)
+ * Utilisez uploadToBlobWithCheck() pour éviter les uploads redondants
  */
 export const uploadToBlob = async (
   key: string,
@@ -72,120 +166,6 @@ export const getBlobPublicUrl = (url: string): string => {
   return url;
 };
 
-// Cache pour listBlobFiles (évite trop d'appels list())
-let listBlobCache: {
-  data: Array<{
-    id: string;
-    name: string;
-    path: string;
-    type: string;
-    size: number;
-    lastModified: string;
-  }>;
-  timestamp: number;
-} | null = null;
-const LIST_BLOB_CACHE_TTL = 3600000; // 1 heure en millisecondes
-
-/**
- * Lister tous les fichiers dans Vercel Blob
- * Note: Vercel Blob ne supporte pas directement le listing par préfixe
- * On utilise une approche différente si nécessaire
- *
- * OPTIMISATION: Utilise un cache pour éviter trop d'appels list() coûteux
- */
-export const listBlobFiles = async (
-  prefix: string = 'uploads/'
-): Promise<
-  Array<{
-    id: string;
-    name: string;
-    path: string;
-    type: string;
-    size: number;
-    lastModified: string;
-  }>
-> => {
-  if (!isBlobConfigured) {
-    return [];
-  }
-
-  // Vérifier le cache
-  if (listBlobCache && Date.now() - listBlobCache.timestamp < LIST_BLOB_CACHE_TTL) {
-    logger.debug('[BLOB] Utilisation du cache pour listBlobFiles');
-    return listBlobCache.data;
-  }
-
-  try {
-    // Vercel Blob list() retourne tous les blobs avec pagination
-    const { blobs } = await list({
-      prefix,
-    });
-
-    // Filtrer pour ne garder que les images
-    const imageExtensions = ['.webp', '.jpg', '.jpeg', '.png', '.gif']; // WebP en priorité
-    const imageFiles = blobs.filter((blob) => {
-      const ext = blob.pathname.toLowerCase().substring(blob.pathname.lastIndexOf('.'));
-      return imageExtensions.includes(ext);
-    });
-
-    // Créer un objet pour chaque image avec des métadonnées
-    const result = imageFiles.map((blob) => {
-      const filename = blob.pathname;
-
-      // Déterminer le type d'image basé sur le nom du fichier
-      let type = 'Autre';
-      if (filename.includes('cover')) type = 'Couverture';
-      else if (filename.includes('event')) type = 'Événement';
-      else if (filename.includes('staff')) type = 'Staff';
-
-      return {
-        id: filename,
-        name: filename,
-        path: blob.url,
-        type,
-        size: blob.size || 0,
-        lastModified: blob.uploadedAt?.toISOString() || new Date().toISOString(),
-      };
-    });
-
-    // Mettre en cache le résultat
-    // Note: On utilise une variable module pour le cache (simple mais efficace)
-    // En production, le cache sera partagé entre les instances de la fonction
-    listBlobCache = {
-      data: result,
-      timestamp: Date.now(),
-    };
-
-    return result;
-  } catch (error) {
-    logger.error('[BLOB] Erreur lors de la liste des fichiers:', error);
-    return [];
-  }
-};
-
-/**
- * Obtenir les métadonnées d'un fichier Blob
- */
-export const getBlobMetadata = async (
-  url: string
-): Promise<{
-  size: number;
-  uploadedAt: Date;
-  contentType: string;
-} | null> => {
-  if (!isBlobConfigured) {
-    return null;
-  }
-
-  try {
-    const blob = await head(url);
-    return {
-      size: blob.size,
-      uploadedAt: blob.uploadedAt,
-      contentType: blob.contentType || 'application/octet-stream',
-    };
-  } catch (error) {
-    logger.error('[BLOB] Erreur lors de la récupération des métadonnées:', error);
-    return null;
-  }
-};
+// OPTIMISATION: Suppression de listBlobFiles() et getBlobMetadata()
+// Ces fonctions utilisaient list() et head() (Advanced Operations coûteuses)
+// Elles ont été remplacées par des requêtes DB pour éviter les Advanced Operations

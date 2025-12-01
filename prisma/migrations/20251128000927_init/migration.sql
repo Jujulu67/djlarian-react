@@ -285,41 +285,12 @@ CREATE INDEX "Project_userId_idx" ON "Project"("userId");
 CREATE INDEX "Project_status_idx" ON "Project"("status");
 
 -- AddForeignKey
-ALTER TABLE "Account" ADD CONSTRAINT "Account_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Event" ADD CONSTRAINT "Event_masterId_fkey" FOREIGN KEY ("masterId") REFERENCES "Event"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Event" ADD CONSTRAINT "Event_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "GenresOnTracks" ADD CONSTRAINT "GenresOnTracks_genreId_fkey" FOREIGN KEY ("genreId") REFERENCES "Genre"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "GenresOnTracks" ADD CONSTRAINT "GenresOnTracks_trackId_fkey" FOREIGN KEY ("trackId") REFERENCES "Track"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "RecurrenceConfig" ADD CONSTRAINT "RecurrenceConfig_eventId_fkey" FOREIGN KEY ("eventId") REFERENCES "Event"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Session" ADD CONSTRAINT "Session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "TicketInfo" ADD CONSTRAINT "TicketInfo_eventId_fkey" FOREIGN KEY ("eventId") REFERENCES "Event"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Track" ADD CONSTRAINT "Track_collectionId_fkey" FOREIGN KEY ("collectionId") REFERENCES "MusicCollection"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Track" ADD CONSTRAINT "Track_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "TrackPlatform" ADD CONSTRAINT "TrackPlatform_trackId_fkey" FOREIGN KEY ("trackId") REFERENCES "Track"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "ConfigHistory" ADD CONSTRAINT "ConfigHistory_configId_fkey" FOREIGN KEY ("configId") REFERENCES "SiteConfig"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Project" ADD CONSTRAINT "Project_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+-- Note: Les foreign keys sont définies directement dans les CREATE TABLE pour SQLite et PostgreSQL
+-- Les ALTER TABLE ... ADD CONSTRAINT ont été supprimés car :
+-- 1. SQLite ne supporte pas ALTER TABLE ... ADD CONSTRAINT
+-- 2. Prisma génère les foreign keys dans CREATE TABLE pour les deux bases de données
+-- 3. Les ALTER TABLE étaient redondants et causaient des erreurs en SQLite
+-- 
+-- Si en production PostgreSQL les foreign keys ne sont pas dans CREATE TABLE,
+-- elles seront ajoutées automatiquement par Prisma lors de la prochaine migration
 

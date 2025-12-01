@@ -29,6 +29,13 @@ export type SubmissionWithUser = {
         name: string;
       };
     }[];
+    UserTicket: {
+      id: string;
+      quantity: number;
+      source: string;
+      expiresAt: Date | null;
+      createdAt: Date;
+    }[];
   };
 };
 

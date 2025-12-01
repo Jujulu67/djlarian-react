@@ -231,10 +231,13 @@ model Image {
   blobUrlOriginal String? // URL complète du blob pour l'image originale (-ori)
   size         Int?     // Taille en bytes
   contentType  String?  // Type MIME
+  hash         String?  // Hash SHA-256 de l'image recadrée (pour détecter les doublons)
+  hashOriginal String?  // Hash SHA-256 de l'image originale (pour détecter les doublons)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   @@index([imageId])
+  @@index([hash])
 }
 
 // Gestion de projets musicaux - suivi des IDs et releases
@@ -344,22 +347,24 @@ model LiveItem {
 }
 
 model UserLiveItem {
-  id          String       @id @default(cuid())
-  userId      String
-  itemId      String
-  quantity    Int          @default(1)
-  isActivated Boolean      @default(false)
-  activatedAt DateTime?
-  metadata    String?      // JSON pour stocker des données flexibles
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  User        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  LiveItem    LiveItem     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  id                String       @id @default(cuid())
+  userId            String
+  itemId            String
+  quantity          Int          @default(1)
+  activatedQuantity Int          @default(0)
+  isActivated       Boolean      @default(false) // Deprecated: utiliser activatedQuantity > 0
+  activatedAt       DateTime?
+  metadata          String?      // JSON pour stocker des données flexibles
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  User              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  LiveItem          LiveItem     @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   @@unique([userId, itemId])
   @@index([userId])
   @@index([itemId])
   @@index([isActivated])
+  @@index([activatedQuantity])
 }
 
 model UserTicket {

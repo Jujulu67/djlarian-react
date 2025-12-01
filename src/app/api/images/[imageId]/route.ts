@@ -1,7 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 
-import { list } from '@vercel/blob';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { logger } from '@/lib/logger';
@@ -104,132 +103,16 @@ export async function GET(
             }
           }
         } catch (dbError) {
-          // Ne pas faire échouer si la DB échoue, continuer avec le fallback list()
-          logger.warn(`[API IMAGES] Erreur lors de la recherche DB pour ${imageId}:`, dbError);
+          // Ne pas faire échouer si la DB échoue, logger l'erreur et retourner 404
+          logger.error(`[API IMAGES] Erreur lors de la recherche DB pour ${imageId}:`, dbError);
         }
 
-        // FALLBACK: Si pas trouvé dans la DB, utiliser list() (opération coûteuse mais nécessaire pour les anciennes images)
-        const basePrefix = `uploads/${imageId}${suffix}`;
-        logger.debug(`[API IMAGES] Recherche blob avec préfixe (fallback): ${basePrefix}`, {
-          imageId,
-          suffix,
-          useBlobStorage,
-          blobConfigured,
-        });
-
-        try {
-          // Chercher tous les fichiers qui commencent par ce préfixe
-          const { blobs } = await list({
-            prefix: basePrefix,
-          });
-
-          logger.debug(`[API IMAGES] Blobs trouvés: ${blobs.length}`, {
-            blobs: blobs.map((b) => ({ pathname: b.pathname, url: b.url })),
-          });
-
-          if (blobs.length > 0) {
-            // Filtrer par extension pour trouver le bon fichier
-            // Pour l'image normale (sans -ori), chercher jpg/jpeg
-            // Pour l'image originale (-ori), chercher png ou l'extension originale
-            const targetExtensions = isOriginal
-              ? ['png', 'jpg', 'jpeg', 'webp'] // Les originales sont souvent en PNG
-              : ['jpg', 'jpeg', 'png', 'webp']; // Les recadrées sont en JPG
-
-            const matchingBlob = blobs.find((blob) => {
-              const pathname = blob.pathname.toLowerCase();
-              // Vérifier si le pathname contient l'imageId et se termine par une extension valide
-              const hasImageId = pathname.includes(imageId.toLowerCase());
-              const hasValidExt = targetExtensions.some((ext) => pathname.endsWith(`.${ext}`));
-              return hasImageId && hasValidExt;
-            });
-
-            if (matchingBlob) {
-              logger.debug(
-                `[API IMAGES] Image trouvée via list(): ${matchingBlob.pathname} -> ${matchingBlob.url}`
-              );
-              // Mettre en cache l'URL trouvée
-              setCachedBlobUrl(cacheKey, matchingBlob.url);
-
-              // OPTIMISATION: Stocker l'URL dans la DB pour les prochaines fois (évite les futurs list())
-              try {
-                await prisma.image.upsert({
-                  where: { imageId },
-                  create: {
-                    imageId,
-                    blobUrl: isOriginal ? undefined : matchingBlob.url,
-                    blobUrlOriginal: isOriginal ? matchingBlob.url : undefined,
-                  },
-                  update: {
-                    blobUrl: isOriginal ? undefined : matchingBlob.url,
-                    blobUrlOriginal: isOriginal ? matchingBlob.url : undefined,
-                  },
-                });
-              } catch (dbError) {
-                // Ne pas faire échouer si la DB échoue
-                logger.warn(
-                  "[API IMAGES] Erreur lors du stockage de l'URL blob dans la DB:",
-                  dbError
-                );
-              }
-
-              // Redirection avec headers de cache pour éviter trop de requêtes vers Blob
-              return NextResponse.redirect(matchingBlob.url, {
-                status: 302,
-                headers: {
-                  'Cache-Control': 'public, max-age=31536000, immutable',
-                  'CDN-Cache-Control': 'public, max-age=31536000, immutable',
-                },
-              });
-            }
-
-            // Si aucun ne correspond aux extensions attendues, prendre le premier qui contient l'imageId
-            const fallbackBlob = blobs.find((blob) =>
-              blob.pathname.toLowerCase().includes(imageId.toLowerCase())
-            );
-
-            if (fallbackBlob) {
-              logger.warn(
-                `[API IMAGES] Image trouvée mais extension non reconnue: ${fallbackBlob.pathname}, utilisation quand même`
-              );
-              // Mettre en cache l'URL trouvée
-              setCachedBlobUrl(cacheKey, fallbackBlob.url);
-
-              // OPTIMISATION: Stocker l'URL dans la DB pour les prochaines fois
-              try {
-                await prisma.image.upsert({
-                  where: { imageId },
-                  create: {
-                    imageId,
-                    blobUrl: isOriginal ? undefined : fallbackBlob.url,
-                    blobUrlOriginal: isOriginal ? fallbackBlob.url : undefined,
-                  },
-                  update: {
-                    blobUrl: isOriginal ? undefined : fallbackBlob.url,
-                    blobUrlOriginal: isOriginal ? fallbackBlob.url : undefined,
-                  },
-                });
-              } catch (dbError) {
-                logger.warn(
-                  "[API IMAGES] Erreur lors du stockage de l'URL blob dans la DB:",
-                  dbError
-                );
-              }
-
-              // Redirection avec headers de cache pour éviter trop de requêtes vers Blob
-              return NextResponse.redirect(fallbackBlob.url, {
-                status: 302,
-                headers: {
-                  'Cache-Control': 'public, max-age=31536000, immutable',
-                  'CDN-Cache-Control': 'public, max-age=31536000, immutable',
-                },
-              });
-            }
-          }
-        } catch (listError) {
-          logger.error(`[API IMAGES] Erreur lors de la recherche blob pour ${imageId}:`, listError);
-        }
-
-        logger.warn(`[API IMAGES] Image non trouvée dans blob: ${imageId}${suffix}`);
+        // OPTIMISATION: Suppression du fallback list() pour éviter les Advanced Operations
+        // Si l'image n'est pas dans la DB, elle doit être migrée ou n'existe pas
+        logger.warn(
+          `[API IMAGES] Image ${imageId}${suffix} non trouvée dans la DB. ` +
+            `Migration requise ou image inexistante. (0 list() appelé)`
+        );
         return NextResponse.json({ error: 'Image non trouvée' }, { status: 404 });
       } catch (error) {
         logger.error(`[API IMAGES] Erreur récupération blob pour ${imageId}:`, error);

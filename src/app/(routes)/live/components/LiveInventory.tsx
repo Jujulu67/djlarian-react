@@ -1,28 +1,26 @@
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Package, ExternalLink } from 'lucide-react';
-import { useLiveInventory } from '../hooks/useLiveInventory';
-import { LiveItemType } from '@/types/live';
+import { Package, ExternalLink, Zap } from 'lucide-react';
+import Image from 'next/image';
+import { Badge } from '@/components/ui/Badge';
+import { useLiveInventoryContext } from '../context/LiveInventoryContext';
+import toast from 'react-hot-toast';
 
 export function LiveInventory() {
-  const { inventory, isLoading, updateItem } = useLiveInventory();
+  const { inventory, isLoading, updateItem } = useLiveInventoryContext();
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
 
   const handleItemClick = async (itemId: string, isActivated: boolean) => {
-    await updateItem({ itemId, isActivated: !isActivated });
-  };
+    // Si l'item est activé, on désactive un item. Sinon, on active un item.
+    const result = await updateItem({ itemId, action: isActivated ? 'deactivate' : 'activate' });
 
-  const getItemIcon = (type: string) => {
-    const icons: Record<string, string> = {
-      [LiveItemType.SUBSCRIBER_BONUS]: '👑',
-      [LiveItemType.LOYALTY_BONUS]: '💎',
-      [LiveItemType.ETERNAL_TICKET]: '🎫',
-      [LiveItemType.WAVEFORM_COLOR]: '🎨',
-      [LiveItemType.BACKGROUND_IMAGE]: '🖼️',
-      [LiveItemType.SUB_GIFT_BONUS]: '🎁',
-      [LiveItemType.MARBLES_WINNER_BONUS]: '🎲',
-    };
-    return icons[type] || '📦';
+    // Afficher un message d'erreur si l'opération a échoué
+    if (!result?.success) {
+      const errorMessage = result?.error || "Erreur lors de la mise à jour de l'item";
+      toast.error(errorMessage);
+    }
   };
 
   const activatedItems = inventory?.activatedItems || [];
@@ -58,32 +56,71 @@ export function LiveInventory() {
             const item = activatedItems[index];
             return (
               <motion.div
-                key={index}
+                key={item?.id || index}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => item && handleItemClick(item.itemId, true)}
-                className={`
-                  aspect-square rounded border p-0.5 flex flex-col items-center justify-center cursor-pointer relative
-                  ${item ? 'border-purple-500/50 bg-purple-500/10' : 'border-gray-700 bg-gray-800/30'}
-                `}
+                className="flex flex-col"
               >
-                {item ? (
-                  <>
-                    <span className="text-2xl mb-0.5">
-                      {getItemIcon(item.LiveItem?.type || '')}
-                    </span>
-                    <span className="text-[8px] text-white text-center line-clamp-2 leading-tight">
-                      {item.LiveItem?.name || 'Item'}
-                    </span>
-                    {item.quantity > 1 && (
-                      <span className="absolute bottom-0 right-0 text-[8px] text-purple-400 font-bold">
-                        {item.quantity}
-                      </span>
-                    )}
-                  </>
-                ) : (
-                  <Package className="w-6 h-6 text-gray-600" />
-                )}
+                <div
+                  className={`
+                  aspect-square rounded-lg relative overflow-hidden flex flex-col cursor-pointer
+                  ${item ? 'bg-gradient-to-br from-purple-900/50 to-blue-900/50 border-2 border-purple-500/50 shadow-[0_0_8px_rgba(168,85,247,0.4)]' : 'border border-gray-700 bg-gray-800/30'}
+                `}
+                >
+                  {item && (
+                    <>
+                      {/* Animation pulse background */}
+                      <div className="absolute inset-0 bg-purple-500/10 animate-pulse" />
+
+                      {/* Image remplissant toute la div */}
+                      <div className="absolute inset-0 w-full h-full">
+                        {failedImages.has(`activated-${item.id}`) ? (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Package className="w-8 h-8 text-gray-600 z-10" />
+                          </div>
+                        ) : (
+                          <Image
+                            src={`/images/items/${item.LiveItem?.type.toLowerCase() || 'default'}.png`}
+                            alt={item.LiveItem?.name || 'Unknown'}
+                            fill
+                            className="object-cover z-10 drop-shadow-[0_0_4px_rgba(255,255,255,0.3)]"
+                            onError={() => {
+                              setFailedImages((prev) => new Set(prev).add(`activated-${item.id}`));
+                            }}
+                          />
+                        )}
+                      </div>
+
+                      {/* Icône Zap en haut à gauche */}
+                      <div className="absolute top-1 left-1 z-20">
+                        <Zap className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                      </div>
+
+                      {/* Badge quantité activée en bas à droite */}
+                      {(item.quantity > 1 || (item.activatedQuantity || 0) > 0) && (
+                        <div className="absolute bottom-1 right-1 z-20">
+                          <Badge
+                            variant="secondary"
+                            className="bg-black/70 backdrop-blur-md border-none text-[10px] px-1 py-0.5 leading-none"
+                          >
+                            {item.quantity > 1
+                              ? `${item.activatedQuantity || 0}/${item.quantity}`
+                              : `${item.activatedQuantity || 0}`}
+                          </Badge>
+                        </div>
+                      )}
+                    </>
+                  )}
+                  {!item && (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Package className="w-6 h-6 text-gray-600" />
+                    </div>
+                  )}
+                </div>
+                <span className="text-[10px] text-white text-center line-clamp-2 leading-tight mt-1 font-medium text-purple-300">
+                  {item?.LiveItem?.name || ''}
+                </span>
               </motion.div>
             );
           })}
@@ -98,32 +135,65 @@ export function LiveInventory() {
             const item = unactivatedItems[index];
             return (
               <motion.div
-                key={index}
+                key={item?.id || index}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => item && handleItemClick(item.itemId, false)}
-                className={`
-                  aspect-square rounded border p-0.5 flex flex-col items-center justify-center cursor-pointer relative
-                  ${item ? 'border-gray-600 bg-gray-800/30 hover:border-purple-500/50' : 'border-gray-700 bg-gray-800/20'}
-                `}
+                className="flex flex-col"
               >
-                {item ? (
-                  <>
-                    <span className="text-2xl mb-0.5">
-                      {getItemIcon(item.LiveItem?.type || '')}
-                    </span>
-                    <span className="text-[8px] text-gray-300 text-center line-clamp-2 leading-tight">
-                      {item.LiveItem?.name || 'Item'}
-                    </span>
-                    {item.quantity > 1 && (
-                      <span className="absolute bottom-0 right-0 text-[8px] text-purple-400 font-bold">
-                        {item.quantity}
-                      </span>
-                    )}
-                  </>
-                ) : (
-                  <Package className="w-6 h-6 text-gray-600" />
-                )}
+                <div
+                  className={`
+                  aspect-square rounded-lg relative overflow-hidden cursor-pointer
+                  ${item ? 'bg-gray-900/50 border border-gray-800 hover:border-gray-600 transition-colors' : 'border border-gray-700 bg-gray-800/20'}
+                `}
+                >
+                  {item ? (
+                    <>
+                      {/* Image remplissant toute la div */}
+                      <div className="absolute inset-0 w-full h-full">
+                        {failedImages.has(`inactive-${item.id}`) ? (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Package className="w-8 h-8 text-gray-600 z-10" />
+                          </div>
+                        ) : (
+                          <Image
+                            src={`/images/items/${item.LiveItem?.type.toLowerCase() || 'default'}.png`}
+                            alt={item.LiveItem?.name || 'Unknown'}
+                            fill
+                            className="object-cover z-10 opacity-80 hover:opacity-100 transition-opacity"
+                            onError={() => {
+                              setFailedImages((prev) => new Set(prev).add(`inactive-${item.id}`));
+                            }}
+                          />
+                        )}
+                      </div>
+
+                      {/* Badge quantité restante en bas à droite */}
+                      {(() => {
+                        const remainingQuantity = item.quantity - (item.activatedQuantity || 0);
+                        return (
+                          remainingQuantity > 0 && (
+                            <div className="absolute bottom-1 right-1 z-20">
+                              <Badge
+                                variant="secondary"
+                                className="bg-black/70 backdrop-blur-md border-none text-[10px] px-1 py-0.5 leading-none"
+                              >
+                                {remainingQuantity > 1 ? `x${remainingQuantity}` : ''}
+                              </Badge>
+                            </div>
+                          )
+                        );
+                      })()}
+                    </>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Package className="w-6 h-6 text-gray-600" />
+                    </div>
+                  )}
+                </div>
+                <span className="text-[10px] text-gray-300 text-center line-clamp-2 leading-tight mt-1">
+                  {item?.LiveItem?.name || ''}
+                </span>
               </motion.div>
             );
           })}
@@ -138,32 +208,62 @@ export function LiveInventory() {
               const item = unactivatedItems[index + 5];
               return (
                 <motion.div
-                  key={index + 5}
+                  key={item?.id || index + 5}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => item && handleItemClick(item.itemId, false)}
-                  className={`
-                    aspect-square rounded border p-0.5 flex flex-col items-center justify-center cursor-pointer relative
-                    ${item ? 'border-gray-600 bg-gray-800/30 hover:border-purple-500/50' : 'border-gray-700 bg-gray-800/20'}
-                  `}
+                  className="flex flex-col"
                 >
-                  {item ? (
-                    <>
-                      <span className="text-2xl mb-0.5">
-                        {getItemIcon(item.LiveItem?.type || '')}
-                      </span>
-                      <span className="text-[8px] text-gray-300 text-center line-clamp-2 leading-tight">
-                        {item.LiveItem?.name || 'Item'}
-                      </span>
-                      {item.quantity > 1 && (
-                        <span className="absolute bottom-0 right-0 text-[8px] text-purple-400 font-bold">
-                          {item.quantity}
-                        </span>
-                      )}
-                    </>
-                  ) : (
-                    <Package className="w-6 h-6 text-gray-600" />
-                  )}
+                  <div
+                    className={`
+                    aspect-square rounded-lg relative overflow-hidden cursor-pointer
+                    ${item ? 'bg-gray-900/50 border border-gray-800 hover:border-gray-600 transition-colors' : 'border border-gray-700 bg-gray-800/20'}
+                  `}
+                  >
+                    {item ? (
+                      <>
+                        {/* Image remplissant toute la div */}
+                        <div className="absolute inset-0 w-full h-full">
+                          {failedImages.has(`inactive-${item.id}`) ? (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Package className="w-8 h-8 text-gray-600 z-10" />
+                            </div>
+                          ) : (
+                            <Image
+                              src={`/images/items/${item.LiveItem?.type.toLowerCase() || 'default'}.png`}
+                              alt={item.LiveItem?.name || 'Unknown'}
+                              fill
+                              className="object-cover z-10 opacity-80 hover:opacity-100 transition-opacity"
+                              onError={() => {
+                                setFailedImages((prev) => new Set(prev).add(`inactive-${item.id}`));
+                              }}
+                            />
+                          )}
+                        </div>
+
+                        {/* Badge quantité en bas à droite */}
+                        {item.quantity > 1 && (
+                          <div className="absolute bottom-1 right-1 z-20">
+                            <Badge
+                              variant="secondary"
+                              className="bg-black/70 backdrop-blur-md border-none text-[10px] px-1 py-0.5 leading-none"
+                            >
+                              {item.activatedQuantity > 0
+                                ? `${item.activatedQuantity}/${item.quantity}`
+                                : `x${item.quantity}`}
+                            </Badge>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Package className="w-6 h-6 text-gray-600" />
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-[10px] text-gray-300 text-center line-clamp-2 leading-tight mt-1">
+                    {item?.LiveItem?.name || ''}
+                  </span>
                 </motion.div>
               );
             })}

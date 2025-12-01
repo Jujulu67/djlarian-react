@@ -3,13 +3,14 @@ import path from 'path';
 
 import { NextRequest, NextResponse } from 'next/server';
 
-import { listBlobFiles, deleteFromBlob } from '@/lib/blob';
+import { deleteFromBlob } from '@/lib/blob';
 import { logger } from '@/lib/logger';
+import prisma from '@/lib/prisma';
 import { shouldUseBlobStorage } from '@/lib/utils/getStorageConfig';
 
 /**
  * Lister les fichiers locaux depuis public/uploads/
- * Retourne le même format que listBlobFiles() pour compatibilité
+ * Retourne le même format que les images de la DB pour compatibilité
  */
 function listLocalFiles(): Array<{
   id: string;
@@ -64,7 +65,7 @@ export async function GET() {
   try {
     const useBlobStorage = shouldUseBlobStorage();
 
-    // Si on doit utiliser le blob (prod ou switch activé), récupérer depuis Blob
+    // OPTIMISATION: Utiliser la DB au lieu de list() pour éviter les Advanced Operations
     let blobImages: Array<{
       id: string;
       name: string;
@@ -77,7 +78,53 @@ export async function GET() {
     // useBlobStorage vérifie déjà si Blob est configuré, mais on double-vérifie pour être sûr
     const blobConfigured = !!process.env.BLOB_READ_WRITE_TOKEN;
     if (useBlobStorage && blobConfigured) {
-      blobImages = await listBlobFiles();
+      try {
+        // Récupérer toutes les images depuis la DB (évite list() coûteux)
+        const dbImages = await prisma.image.findMany({
+          select: {
+            imageId: true,
+            blobUrl: true,
+            blobUrlOriginal: true,
+            size: true,
+            contentType: true,
+            updatedAt: true,
+          },
+        });
+
+        // Transformer les données de la DB au format attendu
+        blobImages = dbImages
+          .filter((img) => img.blobUrl) // Ne garder que les images avec URL blob
+          .map((img) => {
+            // Extraire le nom du fichier depuis le pathname de l'URL blob
+            // Format: uploads/{imageId}.webp ou uploads/{imageId}-ori.png
+            const url = img.blobUrl;
+            const urlParts = url.split('/');
+            const filename = urlParts[urlParts.length - 1] || `uploads/${img.imageId}.webp`;
+            const fullPath = filename.startsWith('uploads/') ? filename : `uploads/${filename}`;
+
+            // Déterminer le type d'image basé sur le nom du fichier
+            let type = 'Autre';
+            if (filename.includes('cover')) type = 'Couverture';
+            else if (filename.includes('event')) type = 'Événement';
+            else if (filename.includes('staff')) type = 'Staff';
+
+            return {
+              id: fullPath,
+              name: fullPath,
+              path: url,
+              type,
+              size: img.size || 0,
+              lastModified: img.updatedAt.toISOString(),
+            };
+          });
+
+        logger.debug(
+          `[API IMAGES] ${blobImages.length} images récupérées depuis la DB (0 list() appelé)`
+        );
+      } catch (dbError) {
+        logger.error('[API IMAGES] Erreur lors de la récupération depuis la DB:', dbError);
+        // En cas d'erreur DB, on continue avec les fichiers locaux uniquement
+      }
     }
 
     // Lister aussi les fichiers locaux (pour le développement et la compatibilité)

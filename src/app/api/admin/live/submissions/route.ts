@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
       where.status = status;
     }
 
+    const now = new Date();
     const submissions = await prisma.liveSubmission.findMany({
       where,
       include: {
@@ -39,9 +40,14 @@ export async function GET(request: NextRequest) {
             email: true,
             image: true,
             UserLiveItem: {
-              where: { isActivated: true },
+              where: { activatedQuantity: { gt: 0 } },
               include: {
                 LiveItem: true,
+              },
+            },
+            UserTicket: {
+              where: {
+                OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
               },
             },
           },

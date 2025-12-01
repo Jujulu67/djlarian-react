@@ -15,6 +15,7 @@ interface ModalProps {
   onClose?: () => void; // nouveau
   zClass?: string; // nouveau, pour personnaliser le z-index
   fullscreenContent?: boolean; // Si true, désactive padding/margin/overflow pour un contenu 100% écran
+  noScroll?: boolean; // Si true, désactive le scroll du contenu
 }
 
 export default function Modal({
@@ -27,6 +28,7 @@ export default function Modal({
   onClose,
   zClass,
   fullscreenContent = false,
+  noScroll = false,
 }: ModalProps) {
   const router = useRouter();
   const modalRef = useRef<HTMLDivElement>(null);
@@ -110,7 +112,7 @@ export default function Modal({
           className={
             fullscreenContent
               ? 'w-full h-full p-0 m-0'
-              : 'p-6 md:p-8 lg:p-10 max-h-[80vh] overflow-y-auto'
+              : `p-6 md:p-8 lg:p-10 max-h-[80vh] ${noScroll ? 'overflow-y-auto md:overflow-hidden' : 'overflow-y-auto'}`
           }
         >
           {isReady ? (

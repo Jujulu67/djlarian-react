@@ -351,6 +351,9 @@ export function LiveSubmissionForm() {
             // Recharger les soumissions pour passer en mode "Submitted"
             await loadSubmissions();
 
+            // Déclencher un événement pour recharger les chances immédiatement
+            window.dispatchEvent(new CustomEvent('liveSubmissionSuccess'));
+
             // Nettoyer le formulaire
             setDraftId(null);
             // On garde title/desc/file pour l'affichage en mode "Submitted"
@@ -381,6 +384,9 @@ export function LiveSubmissionForm() {
           if (result.success) {
             toast.success('Soumission envoyée avec succès !');
             // Le hook a déjà rechargé les soumissions, donc l'effet va se déclencher
+
+            // Déclencher un événement pour recharger les chances immédiatement
+            window.dispatchEvent(new CustomEvent('liveSubmissionSuccess'));
 
             setDraftId(null);
 

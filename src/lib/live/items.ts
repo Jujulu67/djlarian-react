@@ -5,7 +5,6 @@ export interface ItemDefinition {
   name: string;
   description: string;
   icon: string;
-  multiplier?: number; // Multiplier pour les chances
   givesTickets?: number; // Nombre de tickets donnés
 }
 
@@ -15,28 +14,24 @@ export const LIVE_ITEMS: Record<LiveItemType, ItemDefinition> = {
     name: 'Subscriber Bonus',
     description: 'Bonus pour les abonnés Twitch',
     icon: '👑',
-    multiplier: 1.5,
   },
   [LiveItemType.LOYALTY_BONUS]: {
     type: LiveItemType.LOYALTY_BONUS,
     name: 'Loyalty Bonus',
     description: 'Bonus de fidélité (au-dessus de 6)',
     icon: '💎',
-    multiplier: 1.2,
   },
   [LiveItemType.WATCH_STREAK]: {
     type: LiveItemType.WATCH_STREAK,
     name: 'Watch Streak Bonus',
     description: 'Bonus pour avoir regardé plusieurs streams consécutifs',
     icon: '🔥',
-    multiplier: 1.1,
   },
   [LiveItemType.CHEER_PROGRESS]: {
     type: LiveItemType.CHEER_PROGRESS,
     name: 'Cheer Bonus',
     description: 'Bonus pour avoir cheer sur Twitch',
     icon: '💜',
-    multiplier: 1.15,
   },
   [LiveItemType.ETERNAL_TICKET]: {
     type: LiveItemType.ETERNAL_TICKET,
@@ -68,14 +63,12 @@ export const LIVE_ITEMS: Record<LiveItemType, ItemDefinition> = {
     name: 'Sub Gift Bonus',
     description: 'Bonus pour avoir offert un abonnement',
     icon: '🎁',
-    multiplier: 1.3,
   },
   [LiveItemType.MARBLES_WINNER_BONUS]: {
     type: LiveItemType.MARBLES_WINNER_BONUS,
     name: 'Marbles Winner Bonus',
     description: 'Bonus pour avoir gagné un jeu de marbles',
     icon: '🎲',
-    multiplier: 1.25,
   },
 };
 

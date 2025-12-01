@@ -4,7 +4,7 @@ import path from 'path';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { auth } from '@/auth';
-import { uploadToBlob } from '@/lib/blob';
+import { uploadToBlobWithCheck } from '@/lib/blob';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import { convertToWebP, canConvertToWebP } from '@/lib/utils/convertToWebP';
@@ -80,10 +80,18 @@ export async function POST(request: NextRequest) {
         // Utiliser la bonne extension selon le type final
         const extension = isWebP ? 'webp' : imageFile.name.split('.').pop() || 'jpg';
         const key = `uploads/avatars/${imageId}.${extension}`;
-        imageUrl = await uploadToBlob(key, imageBuffer, contentType);
-        logger.debug(`Avatar uploadé vers Vercel Blob: ${imageUrl}`);
+        // OPTIMISATION: Vérifier si l'avatar existe déjà avant d'uploader (évite put() redondant)
+        const { url, hash } = await uploadToBlobWithCheck(
+          key,
+          imageBuffer,
+          contentType,
+          imageId,
+          false
+        );
+        imageUrl = url;
+        logger.debug(`Avatar: ${imageUrl}`);
 
-        // Stocker l'URL dans la DB
+        // Stocker l'URL et le hash dans la DB
         await prisma.image.upsert({
           where: { imageId },
           create: {
@@ -91,11 +99,13 @@ export async function POST(request: NextRequest) {
             blobUrl: imageUrl,
             size: imageBuffer.length,
             contentType,
+            hash,
           },
           update: {
             blobUrl: imageUrl,
             size: imageBuffer.length,
             contentType,
+            hash,
           },
         });
       } catch (error) {

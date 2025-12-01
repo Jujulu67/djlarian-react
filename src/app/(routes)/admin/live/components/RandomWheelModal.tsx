@@ -10,6 +10,8 @@ import type { SubmissionWithUser } from '../hooks/useAdminLiveSubmissions';
 interface RandomWheelModalProps {
   isOpen: boolean;
   submissions: SubmissionWithUser[];
+  weights: number[]; // Poids correspondant à chaque soumission
+  queueSkipFlags?: boolean[]; // Indique si chaque soumission a Queue Skip activé
   selectedSubmissionId: string | null;
   onClose: () => void;
   onSelectionComplete: (submissionId: string) => void;
@@ -18,6 +20,8 @@ interface RandomWheelModalProps {
 export function RandomWheelModal({
   isOpen,
   submissions,
+  weights,
+  queueSkipFlags = [],
   selectedSubmissionId,
   onClose,
   onSelectionComplete,
@@ -110,6 +114,8 @@ export function RandomWheelModal({
                 {submissions.length > 0 ? (
                   <RandomWheel
                     submissions={submissions}
+                    weights={weights}
+                    queueSkipFlags={queueSkipFlags}
                     selectedIndex={selectedIndex}
                     isSpinning={isSpinning}
                     onSpinComplete={handleSpinComplete}
@@ -124,7 +130,37 @@ export function RandomWheelModal({
                     animate={{ opacity: 1, y: 0 }}
                     className="text-center"
                   >
-                    <p className="text-lg text-purple-300 font-semibold">
+                    {queueSkipFlags[selectedIndex] && (
+                      <motion.div
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ delay: 0.2 }}
+                        className="mb-3"
+                      >
+                        <motion.p
+                          className="text-2xl sm:text-3xl font-audiowide font-bold text-yellow-400"
+                          animate={{
+                            textShadow: [
+                              '0 0 10px rgba(251, 191, 36, 0.8)',
+                              '0 0 20px rgba(251, 191, 36, 1)',
+                              '0 0 10px rgba(251, 191, 36, 0.8)',
+                            ],
+                          }}
+                          transition={{
+                            duration: 2,
+                            repeat: Infinity,
+                            ease: 'easeInOut',
+                          }}
+                        >
+                          QUEUE SKIP!
+                        </motion.p>
+                      </motion.div>
+                    )}
+                    <p
+                      className={`text-lg font-semibold ${
+                        queueSkipFlags[selectedIndex] ? 'text-yellow-400' : 'text-purple-300'
+                      }`}
+                    >
                       {submissions[selectedIndex]?.User.name || 'Unknown'}
                     </p>
                     <p className="text-sm text-gray-400 mt-1">

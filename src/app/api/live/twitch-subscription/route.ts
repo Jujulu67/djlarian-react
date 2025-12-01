@@ -65,7 +65,8 @@ export async function GET(request: NextRequest) {
             userId: session.user.id,
             itemId: subscriberItem.id,
             quantity: 1,
-            isActivated: false, // L'utilisateur doit l'activer manuellement
+            activatedQuantity: 0, // L'utilisateur doit l'activer manuellement
+            isActivated: false, // Pour compatibilité
           },
         });
       }
