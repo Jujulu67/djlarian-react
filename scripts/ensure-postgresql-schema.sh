@@ -100,6 +100,9 @@ if [ "$NODE_ENV" = "production" ]; then
   fix_migrations_for_postgresql() {
     echo "🔧 Correction automatique des migrations pour PostgreSQL..."
     local fixed_count=0
+    local checked_count=0
+    local datetime_found=0
+    local schema_found=0
     
     if [ -d "prisma/migrations" ]; then
       # Parcourir toutes les migrations
@@ -108,25 +111,39 @@ if [ "$NODE_ENV" = "production" ]; then
           local migration_file="${migration_dir}migration.sql"
           
           if [ -f "$migration_file" ]; then
+            local migration_name=$(basename "$migration_dir")
             local modified=false
+            local has_datetime=false
+            local has_schema=false
             
             # Lire le contenu
             local content=$(cat "$migration_file")
+            checked_count=$((checked_count + 1))
             
-            # 1. Supprimer CREATE SCHEMA (SQLite ne le supporte pas, PostgreSQL l'ignore si le schéma existe)
+            # 1. Vérifier et supprimer CREATE SCHEMA (SQLite ne le supporte pas, PostgreSQL l'ignore si le schéma existe)
             if echo "$content" | grep -q "CREATE SCHEMA"; then
+              has_schema=true
+              schema_found=$((schema_found + 1))
               # Supprimer les lignes CREATE SCHEMA (compatible macOS et Linux)
               content=$(echo "$content" | sed '/-- CreateSchema/,/CREATE SCHEMA IF NOT EXISTS "public";/d')
               modified=true
-              echo "   ✅ Supprimé CREATE SCHEMA de $(basename "$migration_dir")"
+              echo "   ⚠️  Migration $migration_name : CREATE SCHEMA détecté et supprimé (non compatible SQLite)"
             fi
             
-            # 2. Remplacer DATETIME par TIMESTAMP(3) (compatible avec PostgreSQL)
+            # 2. Vérifier et remplacer DATETIME par TIMESTAMP(3) (compatible avec PostgreSQL)
             if echo "$content" | grep -q "DATETIME"; then
+              has_datetime=true
+              datetime_found=$((datetime_found + 1))
+              local datetime_count=$(echo "$content" | grep -o "DATETIME" | wc -l | tr -d ' ')
               # Remplacer DATETIME par TIMESTAMP(3) (compatible macOS et Linux)
               content=$(echo "$content" | sed 's/DATETIME/TIMESTAMP(3)/g')
               modified=true
-              echo "   ✅ Remplacé DATETIME par TIMESTAMP(3) dans $(basename "$migration_dir")"
+              echo "   ⚠️  Migration $migration_name : $datetime_count occurrence(s) de DATETIME détectée(s) et convertie(s) en TIMESTAMP(3)"
+            fi
+            
+            # Afficher le statut si la migration est OK
+            if [ "$modified" = false ]; then
+              echo "   ✅ Migration $migration_name : déjà compatible avec PostgreSQL"
             fi
             
             # Écrire le contenu modifié si nécessaire
@@ -139,10 +156,24 @@ if [ "$NODE_ENV" = "production" ]; then
       done
     fi
     
-    if [ $fixed_count -gt 0 ]; then
-      echo "✅ $fixed_count migration(s) corrigée(s) pour PostgreSQL"
+    # Résumé détaillé
+    echo ""
+    echo "📊 Résumé de la vérification des migrations :"
+    echo "   - $checked_count migration(s) vérifiée(s)"
+    if [ $datetime_found -gt 0 ]; then
+      echo "   - ⚠️  $datetime_found migration(s) avec DATETIME → convertie(s) en TIMESTAMP(3)"
     else
-      echo "✅ Toutes les migrations sont déjà compatibles avec PostgreSQL"
+      echo "   - ✅ Aucun DATETIME trouvé (toutes utilisent TIMESTAMP(3))"
+    fi
+    if [ $schema_found -gt 0 ]; then
+      echo "   - ⚠️  $schema_found migration(s) avec CREATE SCHEMA → supprimé"
+    else
+      echo "   - ✅ Aucun CREATE SCHEMA trouvé"
+    fi
+    if [ $fixed_count -gt 0 ]; then
+      echo "   - ✅ $fixed_count migration(s) corrigée(s) pour PostgreSQL"
+    else
+      echo "   - ✅ Toutes les migrations sont déjà compatibles avec PostgreSQL"
     fi
   }
   
