@@ -7,7 +7,6 @@ import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 import { PrismaNeon } from '@prisma/adapter-neon';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
-import { neon } from '@neondatabase/serverless';
 
 import { logger } from '@/lib/logger';
 
@@ -208,20 +207,14 @@ function createAdapter(databaseUrl: string): PrismaBetterSqlite3 | PrismaNeon | 
       throw error;
     }
   } else if (isNeonUrl) {
-    // Neon - utiliser Neon adapter avec le driver serverless
+    // Neon - utiliser Neon adapter
+    // PrismaNeon utilise automatiquement le driver serverless Neon (@neondatabase/serverless)
+    // quand la connectionString pointe vers Neon avec pooler
     // Le driver serverless est optimisé pour les environnements serverless comme Vercel
     // Il gère automatiquement le pooling et les connexions HTTP/WebSocket
-    try {
-      const neonClient = neon(databaseUrl);
-      return new PrismaNeon(neonClient);
-    } catch (error) {
-      logger.error("Erreur lors de l'initialisation du client Neon serverless:", error);
-      // Fallback vers l'ancienne méthode si le driver serverless échoue
-      logger.warn('Fallback vers connectionString direct pour Neon');
-      return new PrismaNeon({
-        connectionString: databaseUrl,
-      });
-    }
+    return new PrismaNeon({
+      connectionString: databaseUrl,
+    });
   } else if (isPostgreSQLUrl) {
     // PostgreSQL standard - utiliser pg adapter
     return new PrismaPg({
