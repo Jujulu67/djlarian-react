@@ -3,14 +3,18 @@
 import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { createDbPerformanceLogger } from '@/lib/db-performance';
 
 export async function getInventory(userId: string) {
+  const perf = createDbPerformanceLogger('getInventory');
+  const t0 = perf.start();
   try {
     const session = await auth();
     if (!session?.user || session.user.role !== 'ADMIN') {
       throw new Error('Unauthorized');
     }
 
+    const t1 = Date.now();
     const inventory = await prisma.userLiveItem.findMany({
       where: { userId },
       include: {
@@ -20,10 +24,18 @@ export async function getInventory(userId: string) {
         createdAt: 'desc',
       },
     });
+    const t2 = Date.now();
+
+    perf.logQuery(t1, t2, 'userLiveItem.findMany');
+    perf.end(t0, {
+      queryTime: t2 - t1,
+      query: 'userLiveItem.findMany',
+    });
 
     return { success: true, data: inventory };
   } catch (error) {
     console.error('Error fetching inventory:', error);
+    perf.end(t0, { metadata: { error: error instanceof Error ? error.message : String(error) } });
     return { success: false, error: 'Failed to fetch inventory' };
   }
 }
@@ -48,6 +60,8 @@ export async function getAllItems() {
 }
 
 export async function addItemToUser(userId: string, itemId: string, quantity: number = 1) {
+  const perf = createDbPerformanceLogger('addItemToUser');
+  const t0 = perf.start();
   try {
     const session = await auth();
     if (!session?.user || session.user.role !== 'ADMIN') {
@@ -55,6 +69,7 @@ export async function addItemToUser(userId: string, itemId: string, quantity: nu
     }
 
     // Check if user already has this item
+    const t1 = Date.now();
     const existingItem = await prisma.userLiveItem.findUnique({
       where: {
         userId_itemId: {
@@ -63,7 +78,10 @@ export async function addItemToUser(userId: string, itemId: string, quantity: nu
         },
       },
     });
+    const t2 = Date.now();
+    perf.logQuery(t1, t2, 'userLiveItem.findUnique');
 
+    const t3 = Date.now();
     if (existingItem) {
       await prisma.userLiveItem.update({
         where: { id: existingItem.id },
@@ -78,22 +96,35 @@ export async function addItemToUser(userId: string, itemId: string, quantity: nu
         },
       });
     }
+    const t4 = Date.now();
+    perf.logQuery(t3, t4, existingItem ? 'userLiveItem.update' : 'userLiveItem.create');
 
     revalidatePath('/admin/live');
+
+    perf.end(t0, {
+      queryTime: t2 - t1 + (t4 - t3),
+      query: existingItem ? 'findUnique+update' : 'findUnique+create',
+      operation: 'addItemToUser',
+    });
+
     return { success: true };
   } catch (error) {
     console.error('Error adding item:', error);
+    perf.end(t0, { metadata: { error: error instanceof Error ? error.message : String(error) } });
     return { success: false, error: 'Failed to add item' };
   }
 }
 
 export async function removeItemFromUser(userId: string, itemId: string, quantity: number = 1) {
+  const perf = createDbPerformanceLogger('removeItemFromUser');
+  const t0 = perf.start();
   try {
     const session = await auth();
     if (!session?.user || session.user.role !== 'ADMIN') {
       throw new Error('Unauthorized');
     }
 
+    const t1 = Date.now();
     const existingItem = await prisma.userLiveItem.findUnique({
       where: {
         userId_itemId: {
@@ -102,11 +133,15 @@ export async function removeItemFromUser(userId: string, itemId: string, quantit
         },
       },
     });
+    const t2 = Date.now();
+    perf.logQuery(t1, t2, 'userLiveItem.findUnique');
 
     if (!existingItem) {
+      perf.end(t0, { queryTime: t2 - t1, query: 'findUnique (not found)' });
       return { success: false, error: 'Item not found in user inventory' };
     }
 
+    const t3 = Date.now();
     if (existingItem.quantity <= quantity) {
       await prisma.userLiveItem.delete({
         where: { id: existingItem.id },
@@ -117,11 +152,25 @@ export async function removeItemFromUser(userId: string, itemId: string, quantit
         data: { quantity: { decrement: quantity } },
       });
     }
+    const t4 = Date.now();
+    perf.logQuery(
+      t3,
+      t4,
+      existingItem.quantity <= quantity ? 'userLiveItem.delete' : 'userLiveItem.update'
+    );
 
     revalidatePath('/admin/live');
+
+    perf.end(t0, {
+      queryTime: t2 - t1 + (t4 - t3),
+      query: existingItem.quantity <= quantity ? 'findUnique+delete' : 'findUnique+update',
+      operation: 'removeItemFromUser',
+    });
+
     return { success: true };
   } catch (error) {
     console.error('Error removing item:', error);
+    perf.end(t0, { metadata: { error: error instanceof Error ? error.message : String(error) } });
     return { success: false, error: 'Failed to remove item' };
   }
 }
