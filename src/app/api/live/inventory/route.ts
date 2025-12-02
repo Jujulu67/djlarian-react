@@ -9,6 +9,7 @@ import { createSuccessResponse, createUnauthorizedResponse } from '@/lib/api/res
 import { handleApiError } from '@/lib/api/errorHandler';
 import type { LiveInventory, UserLiveItem, UserTicket } from '@/types/live';
 import { calculateTicketWeight } from '@/lib/live/calculations';
+import { createDbPerformanceLogger } from '@/lib/db-performance';
 
 const updateInventorySchema = z.object({
   itemId: z.string(),
@@ -20,14 +21,18 @@ const updateInventorySchema = z.object({
  * Récupère l'inventaire complet de l'utilisateur
  */
 export async function GET(request: NextRequest) {
+  const perf = createDbPerformanceLogger('GET /api/live/inventory');
+  const t0 = perf.start();
   try {
     const session = await auth();
 
     if (!session?.user?.id) {
+      perf.end(t0, { metadata: { error: 'Unauthorized' } });
       return createUnauthorizedResponse('Non authentifié');
     }
 
     // Récupérer tous les items de l'utilisateur avec leurs détails
+    const t1 = Date.now();
     const userItems = await prisma.userLiveItem.findMany({
       where: {
         userId: session.user.id,
@@ -39,6 +44,8 @@ export async function GET(request: NextRequest) {
         createdAt: 'desc',
       },
     });
+    const t2 = Date.now();
+    perf.logQuery(t1, t2, 'userLiveItem.findMany');
 
     // Séparer les items activés et non activés (basé sur activatedQuantity)
     // activatedItems: items avec au moins un item activé
@@ -51,12 +58,15 @@ export async function GET(request: NextRequest) {
     ) as UserLiveItem[];
 
     // Récupérer les tickets actifs
+    const t3 = Date.now();
     const tickets = await prisma.userTicket.findMany({
       where: {
         userId: session.user.id,
         OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
       },
     });
+    const t4 = Date.now();
+    perf.logQuery(t3, t4, 'userTicket.findMany');
 
     // Debug: Vérifier les données
     logger.debug('[Live Inventory] Activated items:', {
@@ -82,8 +92,15 @@ export async function GET(request: NextRequest) {
       totalTickets,
     };
 
+    perf.end(t0, {
+      queryTime: t2 - t1 + (t4 - t3),
+      query: 'userLiveItem.findMany + userTicket.findMany',
+      operation: 'GET /api/live/inventory',
+    });
+
     return createSuccessResponse(inventory, 200, 'Inventaire récupéré');
   } catch (error) {
+    perf.end(t0, { metadata: { error: error instanceof Error ? error.message : String(error) } });
     return handleApiError(error, 'GET /api/live/inventory');
   }
 }
@@ -93,10 +110,13 @@ export async function GET(request: NextRequest) {
  * Active ou désactive un item
  */
 export async function PUT(request: NextRequest) {
+  const perf = createDbPerformanceLogger('PUT /api/live/inventory');
+  const t0 = perf.start();
   try {
     const session = await auth();
 
     if (!session?.user?.id) {
+      perf.end(t0, { metadata: { error: 'Unauthorized' } });
       return createUnauthorizedResponse('Non authentifié');
     }
 
@@ -104,6 +124,7 @@ export async function PUT(request: NextRequest) {
     const validationResult = updateInventorySchema.safeParse(body);
 
     if (!validationResult.success) {
+      perf.end(t0, { metadata: { error: 'Validation failed' } });
       return NextResponse.json(
         { error: 'Données invalides', details: validationResult.error.flatten() },
         { status: 400 }
@@ -113,6 +134,7 @@ export async function PUT(request: NextRequest) {
     const { itemId, action } = validationResult.data;
 
     // Vérifier que l'utilisateur possède cet item
+    const t1 = Date.now();
     const userItem = await prisma.userLiveItem.findUnique({
       where: {
         userId_itemId: {
@@ -124,8 +146,11 @@ export async function PUT(request: NextRequest) {
         LiveItem: true,
       },
     });
+    const t2 = Date.now();
+    perf.logQuery(t1, t2, 'userLiveItem.findUnique');
 
     if (!userItem) {
+      perf.end(t0, { queryTime: t2 - t1, query: 'findUnique (not found)' });
       return NextResponse.json({ error: 'Item non trouvé dans votre inventaire' }, { status: 404 });
     }
 
@@ -158,6 +183,7 @@ export async function PUT(request: NextRequest) {
         // Si on essaie d'activer (activatedQuantity va passer de 0 à 1)
         if (userItem.activatedQuantity === 0) {
           // Vérifier qu'aucun autre Queue Skip n'a activatedQuantity > 0
+          const t3 = Date.now();
           const otherQueueSkips = await prisma.userLiveItem.findMany({
             where: {
               userId: session.user.id,
@@ -168,6 +194,8 @@ export async function PUT(request: NextRequest) {
               LiveItem: true,
             },
           });
+          const t4 = Date.now();
+          perf.logQuery(t3, t4, 'userLiveItem.findMany (queue skip check)');
 
           const existingActivatedQueueSkip = otherQueueSkips.find((item) => {
             const itemType = item.LiveItem?.type || '';
@@ -202,6 +230,7 @@ export async function PUT(request: NextRequest) {
       const wasInactive = userItem.activatedQuantity === 0;
       const newActivatedQuantity = userItem.activatedQuantity + 1;
 
+      const t5 = Date.now();
       const updatedItem = await prisma.userLiveItem.update({
         where: {
           id: userItem.id,
@@ -215,12 +244,21 @@ export async function PUT(request: NextRequest) {
           LiveItem: true,
         },
       });
+      const t6 = Date.now();
+      perf.logQuery(t5, t6, 'userLiveItem.update (activate)');
 
       logger.debug(
         `[Live] Item ${itemId} activé (${newActivatedQuantity}/${userItem.quantity}) pour l'utilisateur ${session.user.id}`
       );
 
       revalidatePath('/admin/live');
+
+      perf.end(t0, {
+        queryTime: t2 - t1 + (t6 - t5),
+        query: 'findUnique + update (activate)',
+        operation: 'PUT /api/live/inventory (activate)',
+      });
+
       return createSuccessResponse(
         updatedItem,
         200,
@@ -235,6 +273,7 @@ export async function PUT(request: NextRequest) {
       const newActivatedQuantity = userItem.activatedQuantity - 1;
       const becomesInactive = newActivatedQuantity === 0;
 
+      const t7 = Date.now();
       const updatedItem = await prisma.userLiveItem.update({
         where: {
           id: userItem.id,
@@ -248,12 +287,21 @@ export async function PUT(request: NextRequest) {
           LiveItem: true,
         },
       });
+      const t8 = Date.now();
+      perf.logQuery(t7, t8, 'userLiveItem.update (deactivate)');
 
       logger.debug(
         `[Live] Item ${itemId} désactivé (${newActivatedQuantity}/${userItem.quantity}) pour l'utilisateur ${session.user.id}`
       );
 
       revalidatePath('/admin/live');
+
+      perf.end(t0, {
+        queryTime: t2 - t1 + (t8 - t7),
+        query: 'findUnique + update (deactivate)',
+        operation: 'PUT /api/live/inventory (deactivate)',
+      });
+
       return createSuccessResponse(
         updatedItem,
         200,
@@ -261,6 +309,7 @@ export async function PUT(request: NextRequest) {
       );
     }
   } catch (error) {
+    perf.end(t0, { metadata: { error: error instanceof Error ? error.message : String(error) } });
     return handleApiError(error, 'PUT /api/live/inventory');
   }
 }

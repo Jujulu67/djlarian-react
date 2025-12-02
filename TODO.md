@@ -1,131 +1,133 @@
-# 📋 TODO - État Actuel de l'Application
+# TODO - Fonctionnalités à Implémenter
 
-**Dernière mise à jour** : Après audit des fonctionnalités projets
+Ce fichier liste tous les TODOs restants dans le codebase, organisés par domaine fonctionnel.
 
-## ✅ Fonctionnalités Complètes
+## 📋 Vue d'ensemble
 
-### Projets Musicaux
+**Total**: 9 TODOs restants
 
-- ✅ **CRUD complet** : Création, lecture, modification, suppression
-- ✅ **Recherche** : Recherche textuelle dans tous les champs (nom, style, label, etc.)
-- ✅ **Tri personnalisé** : Tri par colonne avec toggle asc/desc
-- ✅ **Export Excel** : Export vers Excel avec style et formatage
-- ✅ **Import Excel** : Import de projets depuis Excel
-- ✅ **Import Streams CSV** : Import des streams depuis CSV
-- ✅ **Drag & Drop** : Réordonnancement des projets
-- ✅ **Filtrage** : Par statut et par utilisateur (admin)
-- ✅ **Édition inline** : Modification directe dans le tableau
-- ✅ **Statistiques** : Vue d'ensemble avec graphiques
-- ✅ **Calendrier des sorties** : Visualisation des dates de release
-- ✅ **Notifications** : Système de notifications pour milestones
-
-### Authentification
-
-- ✅ **OAuth Google** : Connexion avec Google (100% gratuit)
-- ✅ **OAuth Twitch** : Connexion avec Twitch (100% gratuit)
-- ✅ **Credentials** : Authentification par email/mot de passe
-- ✅ **Création automatique de compte** : Via OAuth
+- **Administration Live**: 8 TODOs
+- **Intégration Spotify**: 1 TODO
 
 ---
 
-## ⏳ En Attente / À Configurer
+## 🎮 Administration Live
 
-### 1. Configuration Instagram API
+### Actions (useAdminLiveActions.ts)
 
-**Priorité** : Moyenne  
-**Statut** : Code prêt, en attente de configuration Meta Business Suite
+#### 1. Refresh des sockets
 
-- [ ] Finaliser l'association Page Facebook / Instagram
-- [ ] Résoudre le problème du portefeuille business "Bertram Beer" dans Meta Business Suite
-- [ ] Obtenir les credentials Instagram :
-  - [ ] `INSTAGRAM_APP_SECRET`
-  - [ ] `INSTAGRAM_USER_ID`
-  - [ ] `INSTAGRAM_ACCESS_TOKEN` (long-lived)
+- **Fichier**: `src/app/(routes)/admin/live/hooks/useAdminLiveActions.ts:112`
+- **Description**: Implémenter le refresh des sockets pour rafraîchir les connexions WebSocket actives
+- **État actuel**: Fonction vide avec toast de succès factice
+- **Priorité**: Basse
 
-**Fichier** : `TODO_INSTAGRAM.md` (détails complets)
+#### 2. Ajout de loyalty
+
+- **Fichier**: `src/app/(routes)/admin/live/hooks/useAdminLiveActions.ts:121`
+- **Description**: Implémenter l'ajout de points de fidélité (loyalty) aux utilisateurs
+- **État actuel**: Fonction vide avec toast informatif
+- **Priorité**: Basse
+
+#### 3. Notification Discord
+
+- **Fichier**: `src/app/(routes)/admin/live/hooks/useAdminLiveActions.ts:126`
+- **Description**: Implémenter l'envoi de notifications Discord (probablement via webhook)
+- **État actuel**: Fonction vide avec toast informatif
+- **Priorité**: Moyenne
+- **Notes**: Nécessite configuration d'un webhook Discord
+
+#### 4. Paste ngrok URL
+
+- **Fichier**: `src/app/(routes)/admin/live/hooks/useAdminLiveActions.ts:131`
+- **Description**: Implémenter la fonctionnalité de coller une URL ngrok (probablement pour le développement/testing)
+- **État actuel**: Fonction vide avec toast informatif
+- **Priorité**: Basse
+- **Notes**: Utile principalement en développement
+
+#### 5. Édition des genres
+
+- **Fichier**: `src/app/(routes)/admin/live/hooks/useAdminLiveActions.ts:185`
+- **Description**: Implémenter l'édition des genres musicaux dans l'interface admin
+- **État actuel**: Fonction vide avec toast informatif
+- **Priorité**: Moyenne
+
+#### 6. Suppression ngrok
+
+- **Fichier**: `src/app/(routes)/admin/live/hooks/useAdminLiveActions.ts:190`
+- **Description**: Implémenter la suppression d'une URL ngrok configurée
+- **État actuel**: Fonction vide avec toast informatif
+- **Priorité**: Basse
+- **Notes**: Utile principalement en développement
+
+### Table des soumissions (AdminLiveSubmissionsTable.tsx)
+
+#### 7. Vérification du statut subscription Twitch
+
+- **Fichier**: `src/app/(routes)/admin/live/components/AdminLiveSubmissionsTable.tsx:296`
+- **Description**: Implémenter la vérification du statut d'abonnement Twitch pour chaque utilisateur
+- **État actuel**: Checkbox présente mais non fonctionnelle
+- **Priorité**: Haute
+- **Notes**: Fonctionnalité importante pour la modération
+
+### Filtres (useAdminLiveFilters.ts)
+
+#### 8. Filtre "Only Active"
+
+- **Fichier**: `src/app/(routes)/admin/live/hooks/useAdminLiveFilters.ts:27`
+- **Description**: Implémenter le filtre pour afficher uniquement les utilisateurs actifs dans le chat Twitch (activité < 10 minutes)
+- **État actuel**: Filtre présent dans l'UI mais non fonctionnel (commenté)
+- **Priorité**: Haute
+- **Notes**: Améliore l'expérience utilisateur pour filtrer les soumissions
 
 ---
 
-## 🔧 Améliorations Optionnelles
+## 🎵 Intégration Spotify
 
-### Projets Musicaux
+### API Spotify for Artists
 
-**Priorité** : Basse
+#### 9. Spotify for Artists API
 
-- [ ] **Bulk actions** : Sélection multiple avec checkboxes pour actions groupées
-- [ ] **Historique** : Table d'audit pour tracking des modifications
-- [ ] **Notifications avancées** : Notifications pour changements de statut (au-delà des milestones)
-
-### Tests
-
-**Priorité** : Moyenne
-
-- [ ] **Tests ProjectsClient** : Tests unitaires pour le composant utilisateur
-- [ ] **Tests ProjectTable** : Tests unitaires pour le tableau
-- [ ] **Tests API projets** : Tests d'intégration pour tous les endpoints
-- [ ] **Tests E2E** : Tests Cypress pour les workflows complets
-- [ ] **Tests d'accessibilité** : Vérification de l'accessibilité
-
-**Note** : Des tests existent déjà pour AdminProjectsClient, mais pas pour ProjectsClient.
-
-### Spotify for Artists API
-
-**Priorité** : Basse
-
-- [ ] Implémenter l'accès à Spotify for Artists API
-- [ ] Nécessite :
-  - OAuth flow avec Spotify
+- **Fichier**: `src/app/api/spotify/scheduled/route.ts:43`
+- **Description**: Implémenter l'accès à l'API Spotify for Artists pour récupérer les releases planifiées
+- **État actuel**: Route retourne un message indiquant que la fonctionnalité nécessite une configuration supplémentaire
+- **Priorité**: Basse
+- **Prérequis**:
+  - Configuration OAuth avec Spotify
   - Accès vérifié au compte artiste
-  - Utilisation de l'API Spotify for Artists (endpoint spécifique)
-
-**Fichier** : `src/app/api/spotify/scheduled/route.ts` ligne 43
-
-### Refactorisation Technique
-
-**Priorité** : Basse (amélioration technique)
-
-- [ ] **useGameManager** : Refactoriser pour réduire la complexité
-  - [ ] Créer `usePatternManager.ts`
-  - [ ] Créer `useScoreManager.ts`
-  - [ ] Réduire de 1185 lignes à ~400-500 lignes
-
-**Fichier** : `src/hooks/useGameManager.PROGRESS.md`
+  - Utilisation de l'endpoint spécifique Spotify for Artists
+- **Notes**: Nécessite configuration externe complexe
 
 ---
 
-## 📊 Résumé par Priorité
+## 🎯 Priorités suggérées
 
 ### Priorité Haute
 
-Aucun
+1. ✅ **Filtre "Only Active"** - Améliore l'expérience utilisateur pour filtrer les soumissions
+2. ✅ **Vérification subscription Twitch** - Fonctionnalité importante pour la modération
 
 ### Priorité Moyenne
 
-1. Configuration Instagram API (code prêt, besoin de credentials)
-2. Tests : Étendre la suite de tests pour ProjectsClient et ProjectTable
+3. ⚠️ **Notification Discord** - Utile pour les alertes automatiques
+4. ⚠️ **Édition des genres** - Fonctionnalité admin importante
 
 ### Priorité Basse
 
-1. Spotify for Artists API (OAuth nécessaire)
-2. Bulk actions projets
-3. Historique et notifications avancées
-4. Refactorisation useGameManager
+5. 📝 **Refresh des sockets** - Fonctionnalité de maintenance
+6. 📝 **Ajout de loyalty** - Fonctionnalité bonus
+7. 📝 **Paste/Suppression ngrok** - Utile principalement en développement
+8. 📝 **Spotify for Artists API** - Nécessite configuration externe complexe
 
 ---
 
-## 📝 Notes
+## 📝 Notes techniques
 
-- **La plupart des fonctionnalités sont complètes** : L'application est fonctionnelle et prête pour la production
-- **Les TODOs restants sont principalement** :
-  - Configuration externe (Instagram - Meta Business Suite)
-  - Améliorations UX optionnelles
-  - Tests pour améliorer la robustesse
-  - Optimisations techniques
+- Tous les TODOs sont dans le domaine de l'administration live (sauf Spotify)
+- La plupart nécessitent des intégrations avec des services externes (Twitch, Discord, Spotify)
+- Certaines fonctionnalités (ngrok) semblent être des outils de développement/testing
+- Les fonctions avec toast informatif sont déjà intégrées dans l'UI mais non fonctionnelles
 
 ---
 
-## 🔍 Fichiers de Référence
-
-- **Instagram** : `TODO_INSTAGRAM.md`
-- **Audit Projets** : `AUDIT_PROJETS_REPORT.md`
-- **Refactorisation GameManager** : `src/hooks/useGameManager.PROGRESS.md`
+**Dernière mise à jour**: $(date)
