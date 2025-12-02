@@ -44,7 +44,8 @@ class DbPerformanceLogger {
   logConnection(t0: number, t1: number): number {
     const connectTime = t1 - t0;
     if (this.enabled && connectTime > 0) {
-      logger.info(`[DB Perf] ${this.handlerName} - connect: ${connectTime}ms`);
+      // Utiliser console.log directement pour que ça apparaisse dans Vercel
+      console.log(`[DB Perf] ${this.handlerName} - connect: ${connectTime}ms`);
     }
     return connectTime;
   }
@@ -56,7 +57,8 @@ class DbPerformanceLogger {
     const queryTime = t2 - t1;
     if (this.enabled && queryTime > 0) {
       const queryInfo = query ? ` (${query})` : '';
-      logger.info(`[DB Perf] ${this.handlerName} - query: ${queryTime}ms${queryInfo}`);
+      // Utiliser console.log directement pour que ça apparaisse dans Vercel
+      console.log(`[DB Perf] ${this.handlerName} - query: ${queryTime}ms${queryInfo}`);
     }
     return queryTime;
   }
@@ -101,17 +103,18 @@ class DbPerformanceLogger {
       parts.push(`total: ${totalTime}ms`);
 
       const queryInfo = options?.query ? ` [${options.query}]` : '';
-      logger.info(`[DB Perf] ${this.handlerName}${queryInfo} - ${parts.join(', ')}`);
+      // Utiliser console.log directement pour que ça apparaisse dans Vercel
+      console.log(`[DB Perf] ${this.handlerName}${queryInfo} - ${parts.join(', ')}`);
 
       // Avertissement si le temps total est suspect (> 1000ms)
       if (totalTime > 1000) {
-        logger.warn(`[DB Perf] ⚠️ ${this.handlerName} est lent: ${totalTime}ms (seuil: 1000ms)`);
+        console.warn(`[DB Perf] ⚠️ ${this.handlerName} est lent: ${totalTime}ms (seuil: 1000ms)`);
       }
 
-      // Avertissement si la query est lente mais le handler total est OK
+      // Avertissement si la query est rapide mais le handler total est lent
       // Cela indique un problème de cold start Vercel
       if (queryTime !== undefined && queryTime < 100 && totalTime > 500) {
-        logger.warn(
+        console.warn(
           `[DB Perf] ⚠️ ${this.handlerName}: query rapide (${queryTime}ms) mais handler lent (${totalTime}ms) - possible cold start Vercel`
         );
       }
