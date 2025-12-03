@@ -90,11 +90,14 @@ export async function POST(request: NextRequest) {
       },
       select: {
         name: true,
+        status: true,
       },
     });
 
-    // Créer un Set des noms existants (normalisés en lowercase pour comparaison)
-    const existingNames = new Set(existingProjects.map((p) => p.name.trim().toLowerCase()));
+    // Créer un Set des clés existantes (nom + statut, normalisés en lowercase pour comparaison)
+    const existingKeys = new Set(
+      existingProjects.map((p) => `${p.name.trim().toLowerCase()}|${p.status || 'EN_COURS'}`)
+    );
 
     const result: BatchCreateResult = {
       success: true,
@@ -129,9 +132,11 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
-      // Vérifier si le projet existe déjà (comparaison case-insensitive)
+      // Vérifier si le projet existe déjà (comparaison case-insensitive sur nom + statut)
       const normalizedName = projectData.name.trim().toLowerCase();
-      if (existingNames.has(normalizedName)) {
+      const projectStatus = projectData.status || 'EN_COURS';
+      const projectKey = `${normalizedName}|${projectStatus}`;
+      if (existingKeys.has(projectKey)) {
         if (overwriteDuplicates) {
           // Si on veut écraser, ajouter à la liste des projets à mettre à jour
           validProjects.push({ data: projectData, index: i, isUpdate: true });
@@ -139,7 +144,7 @@ export async function POST(request: NextRequest) {
           result.errors.push({
             index: i,
             data: projectData,
-            error: `Un projet avec le nom "${projectData.name.trim()}" existe déjà`,
+            error: `Un projet avec le nom "${projectData.name.trim()}" et le statut "${projectStatus}" existe déjà`,
           });
           result.failed++;
         }
@@ -161,7 +166,7 @@ export async function POST(request: NextRequest) {
     const projectsToUpdate = validProjects.filter((p) => p.isUpdate);
 
     // Récupérer les IDs des projets à mettre à jour
-    const projectsToUpdateMap = new Map<string, string>(); // normalizedName -> projectId
+    const projectsToUpdateMap = new Map<string, string>(); // projectKey (nom|statut) -> projectId
     if (projectsToUpdate.length > 0) {
       // Récupérer tous les projets de l'utilisateur pour faire une correspondance case-insensitive
       const allUserProjects = await prisma.project.findMany({
@@ -171,12 +176,14 @@ export async function POST(request: NextRequest) {
         select: {
           id: true,
           name: true,
+          status: true,
         },
       });
 
-      // Créer un map des noms normalisés vers les IDs
+      // Créer un map des clés (nom + statut) normalisées vers les IDs
       allUserProjects.forEach((p) => {
-        projectsToUpdateMap.set(p.name.trim().toLowerCase(), p.id);
+        const projectKey = `${p.name.trim().toLowerCase()}|${p.status || 'EN_COURS'}`;
+        projectsToUpdateMap.set(projectKey, p.id);
       });
     }
 
@@ -267,9 +274,13 @@ export async function POST(request: NextRequest) {
         // Mettre à jour les projets existants
         for (const { data } of projectsToUpdate) {
           const normalizedName = data.name.trim().toLowerCase();
-          const projectId = projectsToUpdateMap.get(normalizedName);
+          const projectStatus = data.status || 'EN_COURS';
+          const projectKey = `${normalizedName}|${projectStatus}`;
+          const projectId = projectsToUpdateMap.get(projectKey);
           if (!projectId) {
-            throw new Error(`Projet "${data.name.trim()}" introuvable pour mise à jour`);
+            throw new Error(
+              `Projet "${data.name.trim()}" avec statut "${projectStatus}" introuvable pour mise à jour`
+            );
           }
           const updated = await tx.project.update({
             where: { id: projectId },

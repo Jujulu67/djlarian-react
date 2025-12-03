@@ -58,7 +58,9 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
     errors?: Array<{ index: number; error: string }>;
     duplicatesExcluded?: number;
   } | null>(null);
-  const [existingProjects, setExistingProjects] = useState<string[]>([]);
+  const [existingProjects, setExistingProjects] = useState<Array<{ name: string; status: string }>>(
+    []
+  );
   const [overwriteDuplicates, setOverwriteDuplicates] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [isSpotifyCsv, setIsSpotifyCsv] = useState(false);
@@ -179,11 +181,12 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
 
       const rows = parseExcelData(pastedText, hasHeaders, dateFormat);
 
-      // Si c'est un CSV Spotify, mettre le statut à TERMINE par défaut
+      // Si c'est un CSV Spotify, mettre le statut à TERMINE et le label à "Accepté" par défaut
       const rowsWithStatus = detectedSpotifyCsv
         ? rows.map((row) => ({
             ...row,
             status: (row.status || 'TERMINE') as ProjectStatus,
+            label: row.label || 'Accepté',
           }))
         : rows;
 
@@ -200,10 +203,11 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
         if (response.ok) {
           const result = await response.json();
           const projects = result.data || result;
-          const projectNames = projects.map(
-            (p: { name?: string }) => p.name?.trim().toLowerCase() || ''
-          );
-          setExistingProjects(projectNames);
+          const projectsWithStatus = projects.map((p: { name?: string; status?: string }) => ({
+            name: p.name?.trim().toLowerCase() || '',
+            status: p.status || 'EN_COURS',
+          }));
+          setExistingProjects(projectsWithStatus);
         }
       } catch (error) {
         console.error('Erreur lors de la récupération des projets existants:', error);
@@ -335,8 +339,8 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
       name: formatTitleCase(row.name.trim()),
     }));
 
-    // Exclure les doublons basés sur le nom (case-insensitive, après formatage)
-    const seenNames = new Set<string>();
+    // Exclure les doublons basés sur le nom + statut (case-insensitive, après formatage)
+    const seenKeys = new Set<string>();
     const uniqueRows: ParsedProjectRow[] = [];
     const rowsToOverwrite: ParsedProjectRow[] = [];
     let duplicatesInFileCount = 0;
@@ -344,15 +348,21 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
 
     for (const row of formattedRows) {
       const normalizedName = row.name.trim().toLowerCase();
+      const rowStatus = row.status || 'EN_COURS';
+      const rowKey = `${normalizedName}|${rowStatus}`;
 
       // Vérifier si c'est un doublon dans le fichier
-      if (seenNames.has(normalizedName)) {
+      if (seenKeys.has(rowKey)) {
         duplicatesInFileCount++;
         continue;
       }
 
-      // Vérifier si c'est un doublon dans la base de données
-      if (existingProjects.includes(normalizedName)) {
+      // Vérifier si c'est un doublon dans la base de données (nom + statut)
+      const isDuplicateInDb = existingProjects.some(
+        (p) => p.name === normalizedName && p.status === rowStatus
+      );
+
+      if (isDuplicateInDb) {
         duplicatesInDbCount++;
         if (overwriteDuplicates) {
           // Si on veut écraser, ajouter à la liste des projets à mettre à jour
@@ -361,7 +371,7 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
         continue;
       }
 
-      seenNames.add(normalizedName);
+      seenKeys.add(rowKey);
       uniqueRows.push(row);
     }
 
@@ -601,22 +611,28 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
       name: formatTitleCase(row.name.trim()),
     }));
 
-    const seenNames = new Set<string>();
+    const seenKeys = new Set<string>();
     let duplicatesInFile = 0;
     let duplicatesInDb = 0;
     let uniqueCount = 0;
 
     for (const row of formattedRows) {
       const normalizedName = row.name.trim().toLowerCase();
+      const rowStatus = row.status || 'EN_COURS';
+      const rowKey = `${normalizedName}|${rowStatus}`;
 
       // Vérifier si c'est un doublon dans le fichier
-      if (seenNames.has(normalizedName)) {
+      if (seenKeys.has(rowKey)) {
         duplicatesInFile++;
       } else {
-        seenNames.add(normalizedName);
+        seenKeys.add(rowKey);
 
-        // Vérifier si c'est un doublon dans la base de données
-        if (existingProjects.includes(normalizedName)) {
+        // Vérifier si c'est un doublon dans la base de données (nom + statut)
+        const isDuplicateInDb = existingProjects.some(
+          (p) => p.name === normalizedName && p.status === rowStatus
+        );
+
+        if (isDuplicateInDb) {
           duplicatesInDb++;
         } else {
           uniqueCount++;
@@ -1054,11 +1070,28 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
                 <tbody className="divide-y divide-white/5">
                   {parsedRows.map((row, index) => {
                     const hasErrors = row.errors && row.errors.length > 0;
+                    const normalizedName = row.name?.trim().toLowerCase() || '';
+                    const rowStatus = row.status || 'EN_COURS';
+                    const isDuplicateInFile = parsedRows
+                      .slice(0, index)
+                      .some(
+                        (r) =>
+                          r.name?.trim().toLowerCase() === normalizedName &&
+                          (r.status || 'EN_COURS') === rowStatus
+                      );
+                    const isDuplicateInDb = existingProjects.some(
+                      (p) => p.name === normalizedName && p.status === rowStatus
+                    );
+                    const isDuplicate = isDuplicateInFile || isDuplicateInDb;
                     return (
                       <tr
                         key={index}
                         className={`${
-                          hasErrors ? 'bg-red-500/10 border-l-4 border-red-500' : 'hover:bg-white/5'
+                          hasErrors
+                            ? 'bg-red-500/10 border-l-4 border-red-500'
+                            : isDuplicate
+                              ? 'bg-yellow-500/10 border-l-4 border-yellow-500'
+                              : 'hover:bg-white/5'
                         }`}
                       >
                         <td className="px-2 py-2" style={{ width: '45px' }}>
@@ -1070,6 +1103,24 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
                                   {row.errors?.map((err, i) => (
                                     <div key={i}>{err}</div>
                                   ))}
+                                </div>
+                              </div>
+                            </div>
+                          ) : isDuplicate ? (
+                            <div className="group relative">
+                              <AlertCircle size={16} className="text-yellow-400 cursor-help" />
+                              <div className="absolute left-0 top-6 z-20 hidden group-hover:block bg-gray-900 border border-yellow-500/50 rounded-lg p-2 shadow-lg min-w-[250px]">
+                                <div className="text-xs text-yellow-400 space-y-1">
+                                  <div className="font-semibold mb-1">Doublon détecté</div>
+                                  {isDuplicateInFile && (
+                                    <div>• Doublon dans le fichier (même nom + statut)</div>
+                                  )}
+                                  {isDuplicateInDb && <div>• Existe déjà en base de données</div>}
+                                  <div className="text-gray-400 mt-1 text-xs">
+                                    Statut:{' '}
+                                    {PROJECT_STATUSES.find((s) => s.value === rowStatus)?.label ||
+                                      rowStatus}
+                                  </div>
                                 </div>
                               </div>
                             </div>
