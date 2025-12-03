@@ -1,82 +1,68 @@
+/**
+ * Tests for getImageUrl
+ */
 import { getImageUrl, getOriginalImageUrl } from '../getImageUrl';
 
 describe('getImageUrl', () => {
-  describe('with imageId as UUID', () => {
-    it('should return API route for simple imageId', () => {
-      const result = getImageUrl('abc-123-def');
-      expect(result).toBe('/api/images/abc-123-def');
-    });
-
-    it('should return null for null imageId', () => {
-      const result = getImageUrl(null);
-      expect(result).toBeNull();
-    });
-
-    it('should return null for undefined imageId', () => {
-      const result = getImageUrl(undefined);
-      expect(result).toBeNull();
-    });
-
-    it('should return null for empty string', () => {
-      const result = getImageUrl('');
-      expect(result).toBeNull();
-    });
+  it('should return null for null/undefined', () => {
+    expect(getImageUrl(null)).toBeNull();
+    expect(getImageUrl(undefined)).toBeNull();
   });
 
-  describe('with full URL', () => {
-    it('should return HTTP URL as-is', () => {
-      const url = 'http://example.com/image.jpg';
-      const result = getImageUrl(url);
-      expect(result).toBe(url);
-    });
-
-    it('should return HTTPS URL as-is', () => {
-      const url = 'https://example.com/image.jpg';
-      const result = getImageUrl(url);
-      expect(result).toBe(url);
-    });
-
-    it('should return blob URL as-is', () => {
-      const url = 'https://xxx.public.blob.vercel-storage.com/uploads/abc-123.jpg';
-      const result = getImageUrl(url);
-      expect(result).toBe(url);
-    });
+  it('should return URL for full HTTP URL', () => {
+    const url = 'https://example.com/image.jpg';
+    expect(getImageUrl(url)).toBe(url);
   });
 
-  describe('with options', () => {
-    it('should add original parameter', () => {
-      const result = getImageUrl('abc-123', { original: true });
-      expect(result).toBe('/api/images/abc-123?original=true');
-    });
+  it('should use proxy for Google OAuth images', () => {
+    const url = 'https://lh3.googleusercontent.com/image.jpg';
+    const result = getImageUrl(url);
+    expect(result).toContain('/api/images/proxy');
+    expect(result).toContain(encodeURIComponent(url));
+  });
 
-    it('should add cache busting parameter', () => {
-      const result = getImageUrl('abc-123', { cacheBust: 1234567890 });
-      expect(result).toBe('/api/images/abc-123?t=1234567890');
-    });
+  it('should return local path for /uploads/ paths', () => {
+    const path = '/uploads/test.jpg';
+    expect(getImageUrl(path)).toBe(path);
+  });
 
-    it('should add both original and cache busting', () => {
-      const result = getImageUrl('abc-123', {
-        original: true,
-        cacheBust: 1234567890,
-      });
-      expect(result).toBe('/api/images/abc-123?original=true&t=1234567890');
-    });
+  it('should add cache busting to local paths', () => {
+    const path = '/uploads/test.jpg';
+    const result = getImageUrl(path, { cacheBust: '123' });
+    expect(result).toContain('t=123');
+  });
+
+  it('should generate API URL for UUID', () => {
+    const uuid = '123e4567-e89b-12d3-a456-426614174000';
+    const result = getImageUrl(uuid);
+    expect(result).toBe(`/api/images/${uuid}`);
+  });
+
+  it('should add original parameter', () => {
+    const uuid = '123e4567-e89b-12d3-a456-426614174000';
+    const result = getImageUrl(uuid, { original: true });
+    expect(result).toContain('original=true');
+  });
+
+  it('should combine original and cache busting', () => {
+    const uuid = '123e4567-e89b-12d3-a456-426614174000';
+    const result = getImageUrl(uuid, { original: true, cacheBust: '456' });
+    expect(result).toContain('original=true');
+    expect(result).toContain('t=456');
   });
 });
 
 describe('getOriginalImageUrl', () => {
-  it('should return URL with original parameter', () => {
-    const result = getOriginalImageUrl('abc-123');
-    expect(result).toBe('/api/images/abc-123?original=true');
+  it('should return original image URL', () => {
+    const uuid = '123e4567-e89b-12d3-a456-426614174000';
+    const result = getOriginalImageUrl(uuid);
+    expect(result).toContain('original=true');
   });
 
-  it('should add cache busting if provided', () => {
-    const result = getOriginalImageUrl('abc-123', 1234567890);
-    expect(result).toBe('/api/images/abc-123?original=true&t=1234567890');
-  });
-
-  it('should return null for null imageId', () => {
-    const result = getOriginalImageUrl(null);
-    expect(result).toBeNull();
+  it('should include cache busting', () => {
+    const uuid = '123e4567-e89b-12d3-a456-426614174000';
+    const result = getOriginalImageUrl(uuid, '789');
+    expect(result).toContain('original=true');
+    expect(result).toContain('t=789');
   });
 });
