@@ -65,6 +65,7 @@ function getNotificationStyle(type: NotificationType): {
         iconColor: 'text-purple-400',
       };
     case 'ADMIN_MESSAGE':
+    case 'USER_MESSAGE':
       return {
         icon: MessageSquare,
         bgColor: 'bg-blue-500/20',
@@ -231,28 +232,14 @@ export function MilestoneInbox({ isOpen, onClose }: MilestoneInboxProps) {
       }
     }
 
-    // Rediriger selon le type de notification avec paramètre pour animation dorée
+    // Fermer le burger avant de naviguer
     onClose();
 
-    const projectId =
-      notification.projectId ||
-      (notification.metadata
-        ? (() => {
-            try {
-              const meta = parseMetadata(notification.metadata);
-              return meta?.projectId;
-            } catch {
-              return null;
-            }
-          })()
-        : null);
-
-    if (projectId) {
-      // Passer le projectId dans l'URL pour déclencher l'animation dorée persistante
-      router.push(`/projects?highlight=${projectId}&fromNotification=true`);
-    } else if (notification.type === 'MILESTONE' || notification.type === 'RELEASE_UPCOMING') {
-      // Fallback: rediriger vers la page projets même sans projectId
-      router.push('/projects');
+    // Messages -> vue messages, autres notifs -> vue notifications
+    if (notification.type === 'ADMIN_MESSAGE' || notification.type === 'USER_MESSAGE') {
+      router.push('/notifications?view=messages');
+    } else {
+      router.push('/notifications?view=notifications');
     }
   };
 
@@ -476,7 +463,7 @@ export function MilestoneInbox({ isOpen, onClose }: MilestoneInboxProps) {
               <button
                 onClick={() => {
                   onClose();
-                  router.push('/notifications');
+                  router.push('/notifications?view=messages');
                 }}
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 sm:py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded-lg text-purple-300 text-sm font-medium transition-colors touch-manipulation"
               >

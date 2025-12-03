@@ -17,8 +17,10 @@ import {
   Archive,
   ArchiveRestore,
   Send,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useState, useMemo, useEffect } from 'react';
 
@@ -94,6 +96,14 @@ function getNotificationStyle(type: NotificationType): {
         iconColor: 'text-blue-400',
         label: 'Message',
       };
+    case 'USER_MESSAGE':
+      return {
+        icon: MessageSquare,
+        bgColor: 'bg-green-500/20',
+        borderColor: 'border-green-500/30',
+        iconColor: 'text-green-400',
+        label: 'Message',
+      };
     case 'RELEASE_UPCOMING':
       return {
         icon: Calendar,
@@ -136,10 +146,27 @@ function parseMetadata(metadata: string | null): NotificationMetadata | null {
 
 export default function NotificationsClient() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session } = useSession();
+
+  // Déterminer la vue initiale depuis l'URL (par défaut: 'notifications')
+  const initialView = searchParams.get('view') === 'messages' ? 'messages' : 'notifications';
+  const [activeView, setActiveView] = useState<'messages' | 'notifications'>(initialView);
+
   const [filter, setFilter] = useState<'all' | 'unread' | NotificationType>('all');
   const [showFilters, setShowFilters] = useState(false);
   const [isSendModalOpen, setIsSendModalOpen] = useState(false);
+  const [replyToNotification, setReplyToNotification] = useState<Notification | null>(null);
+  // État pour gérer l'ouverture/fermeture des threads
+  const [expandedThreads, setExpandedThreads] = useState<Set<string>>(new Set());
+
+  // Synchroniser avec l'URL si le paramètre change
+  useEffect(() => {
+    const viewParam = searchParams.get('view');
+    if (viewParam === 'messages' || viewParam === 'notifications') {
+      setActiveView(viewParam);
+    }
+  }, [searchParams]);
 
   const isAdmin = session?.user?.role === 'ADMIN';
 
@@ -217,12 +244,53 @@ export default function NotificationsClient() {
     }
   };
 
-  // Filtrer les notifications
+  // Filtrer les notifications selon la vue active et les filtres
   const filteredNotifications = useMemo(() => {
-    if (filter === 'all') return notifications;
-    if (filter === 'unread') return notifications.filter((n) => !n.isRead);
-    return notifications.filter((n) => n.type === filter);
+    let filtered = notifications;
+
+    // Appliquer les filtres
+    if (filter === 'unread') {
+      filtered = notifications.filter((n) => !n.isRead);
+    } else if (filter !== 'all') {
+      filtered = notifications.filter((n) => n.type === filter);
+    }
+
+    // Exclure les notifications qui sont des réponses (parentId existe) de la liste principale
+    // Elles seront affichées dans les threads
+    return filtered.filter((n) => !n.parentId);
   }, [notifications, filter]);
+
+  // Séparer les messages des autres notifications
+  const messages = useMemo(
+    () =>
+      filteredNotifications.filter((n) => n.type === 'ADMIN_MESSAGE' || n.type === 'USER_MESSAGE'),
+    [filteredNotifications]
+  );
+
+  const otherNotifications = useMemo(
+    () =>
+      filteredNotifications.filter((n) => n.type !== 'ADMIN_MESSAGE' && n.type !== 'USER_MESSAGE'),
+    [filteredNotifications]
+  );
+
+  // Notifications à afficher selon la vue active
+  const displayedNotifications = useMemo(
+    () => (activeView === 'messages' ? messages : otherNotifications),
+    [activeView, messages, otherNotifications]
+  );
+
+  // Fonction pour toggle l'état d'un thread
+  const toggleThread = (notificationId: string) => {
+    setExpandedThreads((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(notificationId)) {
+        newSet.delete(notificationId);
+      } else {
+        newSet.add(notificationId);
+      }
+      return newSet;
+    });
+  };
 
   const handleNotificationClick = async (notification: Notification) => {
     // Marquer comme lu
@@ -232,6 +300,11 @@ export default function NotificationsClient() {
       } catch (err) {
         console.error('Erreur lors de la mise à jour:', err);
       }
+    }
+
+    // Sur la page /notifications, on reste sur place pour les messages
+    if (notification.type === 'ADMIN_MESSAGE' || notification.type === 'USER_MESSAGE') {
+      return;
     }
 
     // Rediriger selon le type de notification avec paramètre pour animation dorée
@@ -268,10 +341,268 @@ export default function NotificationsClient() {
     { value: 'unread', label: 'Non lues' },
     { value: 'MILESTONE', label: 'Jalons' },
     { value: 'RELEASE_UPCOMING', label: 'Sorties' },
-    { value: 'ADMIN_MESSAGE', label: 'Messages' },
+    { value: 'ADMIN_MESSAGE', label: 'Messages Admin' },
+    { value: 'USER_MESSAGE', label: 'Messages Utilisateurs' },
     { value: 'WARNING', label: 'Alertes' },
     { value: 'INFO', label: 'Infos' },
   ];
+
+  // Fonction helper pour rendre une notification
+  const renderNotification = (notification: Notification) => {
+    const style = getNotificationStyle(notification.type);
+    const Icon = style.icon;
+    const metadata = parseMetadata(notification.metadata);
+    const isUnread = !notification.isRead;
+    const projectName = notification.Project?.name || metadata?.projectName || '';
+
+    const isSentMessage = metadata?.isSent === true;
+    const hasReplies = notification.replies && notification.replies.length > 0;
+    const isThreadExpanded = expandedThreads.has(notification.id);
+
+    return (
+      <div
+        key={notification.id}
+        className={`w-full p-3 sm:p-4 md:p-6 hover:bg-gray-800/50 transition-colors touch-manipulation ${
+          isUnread
+            ? 'bg-purple-500/5 border-l-2 sm:border-l-4 border-purple-500'
+            : isSentMessage
+              ? 'bg-green-500/5 border-l-2 sm:border-l-4 border-green-500/50'
+              : 'border-l-2 sm:border-l-4 border-transparent'
+        }`}
+      >
+        <div className="flex items-start gap-2 sm:gap-3 md:gap-4">
+          {/* Badge de type */}
+          <div
+            className={`flex-shrink-0 p-2 sm:p-2.5 md:p-3 rounded-lg ${style.bgColor} border ${style.borderColor}`}
+          >
+            <Icon className={`w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 ${style.iconColor}`} />
+          </div>
+
+          {/* Contenu */}
+          <button
+            onClick={() => handleNotificationClick(notification)}
+            className="flex-1 min-w-0 text-left touch-manipulation"
+          >
+            <div className="flex items-start justify-between gap-2 mb-1.5 sm:mb-2">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 sm:gap-2 mb-1 flex-wrap">
+                  <h3 className="text-sm sm:text-base md:text-lg font-semibold text-white line-clamp-2">
+                    {notification.title}
+                  </h3>
+                  <span className="px-1.5 sm:px-2 py-0.5 text-xs font-medium rounded-full bg-gray-700/50 text-gray-300 flex-shrink-0">
+                    {style.label}
+                  </span>
+                </div>
+                {notification.message && (
+                  <p className="text-xs sm:text-sm md:text-base text-gray-400 mb-1.5 sm:mb-2 line-clamp-3">
+                    {notification.message}
+                  </p>
+                )}
+                {(notification.type === 'ADMIN_MESSAGE' || notification.type === 'USER_MESSAGE') &&
+                  (metadata?.isSent ? (
+                    <p className="text-xs sm:text-sm text-green-400 mb-1.5 sm:mb-2 truncate">
+                      <span className="font-medium">À:</span>{' '}
+                      {String(metadata.recipientName || 'Utilisateur')}
+                    </p>
+                  ) : (
+                    metadata?.senderName && (
+                      <p className="text-xs sm:text-sm text-blue-400 mb-1.5 sm:mb-2 truncate">
+                        <span className="font-medium">De:</span> {String(metadata.senderName)}
+                      </p>
+                    )
+                  ))}
+              </div>
+              {isUnread && (
+                <span className="flex-shrink-0 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-purple-500 rounded-full mt-1" />
+              )}
+            </div>
+
+            {/* Détails du projet */}
+            {projectName && (
+              <div className="mb-1.5 sm:mb-2">
+                <p className="text-xs sm:text-sm text-gray-500 truncate">
+                  <span className="font-medium">Projet:</span> {projectName}
+                </p>
+              </div>
+            )}
+
+            {/* Métadonnées spécifiques */}
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 md:gap-4 mb-1.5 sm:mb-2">
+              {notification.type === 'MILESTONE' && metadata?.streams !== undefined && (
+                <div className="flex items-center gap-1 text-xs sm:text-sm text-purple-400">
+                  <TrendingUp className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 flex-shrink-0" />
+                  <span>{Number(metadata.streams).toLocaleString()} streams</span>
+                </div>
+              )}
+              {notification.Project?.releaseDate && (
+                <div className="text-xs sm:text-sm text-gray-500">
+                  <span className="font-medium">Sortie:</span>{' '}
+                  {formatDateFrench(notification.Project.releaseDate)}
+                </div>
+              )}
+            </div>
+
+            {/* Date */}
+            <div className="flex items-center justify-between mt-2 sm:mt-3 pt-2 border-t border-gray-700/30">
+              <p className="text-xs text-gray-500">
+                {formatDateTimeFrench(notification.createdAt)}
+              </p>
+              {!isUnread && notification.readAt && (
+                <p className="text-xs text-gray-600 hidden sm:inline">
+                  Lu le {formatDateTimeFrench(notification.readAt)}
+                </p>
+              )}
+            </div>
+          </button>
+
+          {/* Actions */}
+          <div className="flex flex-col sm:flex-row items-center gap-1.5 sm:gap-2 flex-shrink-0">
+            {/* Bouton collapse/expand thread (si réponses existent) */}
+            {hasReplies && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleThread(notification.id);
+                }}
+                className="p-2 text-gray-400 hover:text-purple-400 hover:bg-purple-500/10 rounded-lg transition-colors touch-manipulation"
+                title={isThreadExpanded ? 'Réduire le thread' : 'Développer le thread'}
+                aria-label={isThreadExpanded ? 'Réduire le thread' : 'Développer le thread'}
+              >
+                {isThreadExpanded ? (
+                  <ChevronUp className="w-4 h-4 sm:w-5 sm:h-5" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5" />
+                )}
+              </button>
+            )}
+            {/* Bouton répondre (pour les messages reçus uniquement) */}
+            {(notification.type === 'ADMIN_MESSAGE' || notification.type === 'USER_MESSAGE') &&
+              !isSentMessage && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setReplyToNotification(notification);
+                    setIsSendModalOpen(true);
+                  }}
+                  className="p-2 text-gray-400 hover:text-green-400 hover:bg-green-500/10 rounded-lg transition-colors touch-manipulation"
+                  title="Répondre"
+                  aria-label="Répondre au message"
+                >
+                  <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+              )}
+            {/* Bouton archiver */}
+            <button
+              onClick={async (e) => {
+                e.stopPropagation();
+                await handleArchive(notification.id);
+              }}
+              className="p-2 text-gray-400 hover:text-orange-400 hover:bg-orange-500/10 rounded-lg transition-colors touch-manipulation"
+              title="Archiver"
+              aria-label="Archiver la notification"
+            >
+              <Archive className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
+
+            {/* Icône de statut */}
+            {isUnread ? (
+              <div className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 rounded-full bg-purple-500/20 flex items-center justify-center">
+                <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-purple-500 rounded-full" />
+              </div>
+            ) : (
+              <div className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 rounded-full bg-gray-700/50 flex items-center justify-center">
+                <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-600" />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Afficher les réponses en thread (collapse/expand) */}
+        {hasReplies && (
+          <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+            <span>
+              {notification.replies.length}{' '}
+              {notification.replies.length === 1 ? 'réponse' : 'réponses'}
+            </span>
+            {!isThreadExpanded && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleThread(notification.id);
+                }}
+                className="text-purple-400 hover:text-purple-300 underline"
+              >
+                Afficher
+              </button>
+            )}
+          </div>
+        )}
+        {hasReplies && isThreadExpanded && (
+          <div className="mt-4 ml-4 sm:ml-6 md:ml-8 pl-4 sm:pl-6 border-l-2 border-gray-700/50 space-y-3">
+            {notification.replies.map((reply) => {
+              const replyMetadata = parseMetadata(reply.metadata);
+              const replyStyle = getNotificationStyle(reply.type as NotificationType);
+              const ReplyIcon = replyStyle.icon;
+
+              return (
+                <div
+                  key={reply.id}
+                  className="p-3 sm:p-4 bg-gray-800/30 rounded-lg border border-gray-700/30"
+                >
+                  <div className="flex items-start gap-2 sm:gap-3">
+                    <div
+                      className={`flex-shrink-0 p-1.5 sm:p-2 rounded-lg ${replyStyle.bgColor} border ${replyStyle.borderColor}`}
+                    >
+                      <ReplyIcon className={`w-3 h-3 sm:w-4 sm:h-4 ${replyStyle.iconColor}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="text-xs sm:text-sm font-semibold text-white">
+                          {reply.title}
+                        </h4>
+                        {replyMetadata?.isSent ? (
+                          <span className="text-xs text-green-400">
+                            à {String(replyMetadata.recipientName || 'Utilisateur')}
+                          </span>
+                        ) : (
+                          replyMetadata?.senderName && (
+                            <span className="text-xs text-gray-400">
+                              par {String(replyMetadata.senderName)}
+                            </span>
+                          )
+                        )}
+                      </div>
+                      {reply.message && (
+                        <p className="text-xs sm:text-sm text-gray-400 mb-2">{reply.message}</p>
+                      )}
+                      <p className="text-xs text-gray-500">
+                        {formatDateTimeFrench(reply.createdAt)}
+                      </p>
+                    </div>
+                    {(reply.type === 'ADMIN_MESSAGE' || reply.type === 'USER_MESSAGE') &&
+                      !replyMetadata?.isSent && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setReplyToNotification(reply);
+                            setIsSendModalOpen(true);
+                          }}
+                          className="p-1.5 text-gray-500 hover:text-green-400 hover:bg-green-500/10 rounded transition-colors"
+                          title="Répondre"
+                          aria-label="Répondre"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 pb-4">
@@ -303,6 +634,46 @@ export default function NotificationsClient() {
             </div>
           </div>
 
+          {/* Onglets Messages / Notifications */}
+          <div className="flex items-center gap-2 mb-4 sm:mb-6">
+            <button
+              onClick={() => {
+                setActiveView('notifications');
+                const params = new URLSearchParams(searchParams.toString());
+                params.set('view', 'notifications');
+                router.push(`/notifications?${params.toString()}`);
+              }}
+              className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg border transition-colors touch-manipulation ${
+                activeView === 'notifications'
+                  ? 'bg-purple-500/20 border-purple-500/50 text-purple-300'
+                  : 'bg-gray-800/50 border-gray-700/50 text-gray-300 hover:bg-gray-700/50'
+              }`}
+            >
+              <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-sm sm:text-base font-medium">
+                Notifications {otherNotifications.length > 0 && `(${otherNotifications.length})`}
+              </span>
+            </button>
+            <button
+              onClick={() => {
+                setActiveView('messages');
+                const params = new URLSearchParams(searchParams.toString());
+                params.set('view', 'messages');
+                router.push(`/notifications?${params.toString()}`);
+              }}
+              className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg border transition-colors touch-manipulation ${
+                activeView === 'messages'
+                  ? 'bg-blue-500/20 border-blue-500/50 text-blue-300'
+                  : 'bg-gray-800/50 border-gray-700/50 text-gray-300 hover:bg-gray-700/50'
+              }`}
+            >
+              <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-sm sm:text-base font-medium">
+                Messages {messages.length > 0 && `(${messages.length})`}
+              </span>
+            </button>
+          </div>
+
           {/* Actions */}
           <div className="flex flex-col gap-2 sm:gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2 flex-wrap">
@@ -326,9 +697,12 @@ export default function NotificationsClient() {
                   <span className="hidden sm:inline">Réinitialiser</span>
                 </button>
               )}
-              {isAdmin && (
+              {activeView === 'messages' && (
                 <button
-                  onClick={() => setIsSendModalOpen(true)}
+                  onClick={() => {
+                    setReplyToNotification(null);
+                    setIsSendModalOpen(true);
+                  }}
                   className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded-lg text-blue-300 text-xs sm:text-sm font-medium transition-colors touch-manipulation"
                 >
                   <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
@@ -390,149 +764,46 @@ export default function NotificationsClient() {
                 Réessayer
               </button>
             </div>
-          ) : filteredNotifications.length === 0 ? (
+          ) : displayedNotifications.length === 0 ? (
             <div className="p-8 sm:p-12 text-center">
-              <Bell className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-gray-500" />
-              <p className="text-gray-400 text-base sm:text-lg mb-2">
-                {filter === 'unread' ? 'Aucune notification non lue' : 'Aucune notification'}
-              </p>
-              {filter !== 'all' && (
-                <button
-                  onClick={() => setFilter('all')}
-                  className="mt-3 sm:mt-4 px-3 sm:px-4 py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded-lg text-purple-300 text-xs sm:text-sm font-medium transition-colors touch-manipulation"
-                >
-                  Voir toutes les notifications
-                </button>
+              {activeView === 'messages' ? (
+                <>
+                  <MessageSquare className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-gray-500" />
+                  <p className="text-gray-400 text-base sm:text-lg mb-2">Aucun message</p>
+                  <button
+                    onClick={() => {
+                      setReplyToNotification(null);
+                      setIsSendModalOpen(true);
+                    }}
+                    className="mt-3 sm:mt-4 px-3 sm:px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded-lg text-blue-300 text-xs sm:text-sm font-medium transition-colors touch-manipulation"
+                  >
+                    Envoyer un message
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Bell className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-gray-500" />
+                  <p className="text-gray-400 text-base sm:text-lg mb-2">
+                    {filter === 'unread' ? 'Aucune notification non lue' : 'Aucune notification'}
+                  </p>
+                  {filter !== 'all' && (
+                    <button
+                      onClick={() => setFilter('all')}
+                      className="mt-3 sm:mt-4 px-3 sm:px-4 py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded-lg text-purple-300 text-xs sm:text-sm font-medium transition-colors touch-manipulation"
+                    >
+                      Voir toutes les notifications
+                    </button>
+                  )}
+                </>
               )}
             </div>
           ) : (
-            <div className="divide-y divide-gray-700/50 max-h-[calc(100vh-16rem)] sm:max-h-[calc(100vh-20rem)] overflow-y-auto">
-              {filteredNotifications.map((notification) => {
-                const style = getNotificationStyle(notification.type);
-                const Icon = style.icon;
-                const metadata = parseMetadata(notification.metadata);
-                const isUnread = !notification.isRead;
-                const projectName = notification.Project?.name || metadata?.projectName || '';
-
-                return (
-                  <div
-                    key={notification.id}
-                    className={`w-full p-3 sm:p-4 md:p-6 hover:bg-gray-800/50 transition-colors touch-manipulation ${
-                      isUnread
-                        ? 'bg-purple-500/5 border-l-2 sm:border-l-4 border-purple-500'
-                        : 'border-l-2 sm:border-l-4 border-transparent'
-                    }`}
-                  >
-                    <div className="flex items-start gap-2 sm:gap-3 md:gap-4">
-                      {/* Badge de type */}
-                      <div
-                        className={`flex-shrink-0 p-2 sm:p-2.5 md:p-3 rounded-lg ${style.bgColor} border ${style.borderColor}`}
-                      >
-                        <Icon
-                          className={`w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 ${style.iconColor}`}
-                        />
-                      </div>
-
-                      {/* Contenu */}
-                      <button
-                        onClick={() => handleNotificationClick(notification)}
-                        className="flex-1 min-w-0 text-left touch-manipulation"
-                      >
-                        <div className="flex items-start justify-between gap-2 mb-1.5 sm:mb-2">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5 sm:gap-2 mb-1 flex-wrap">
-                              <h3 className="text-sm sm:text-base md:text-lg font-semibold text-white line-clamp-2">
-                                {notification.title}
-                              </h3>
-                              <span className="px-1.5 sm:px-2 py-0.5 text-xs font-medium rounded-full bg-gray-700/50 text-gray-300 flex-shrink-0">
-                                {style.label}
-                              </span>
-                            </div>
-                            {notification.message && (
-                              <p className="text-xs sm:text-sm md:text-base text-gray-400 mb-1.5 sm:mb-2 line-clamp-3">
-                                {notification.message}
-                              </p>
-                            )}
-                            {notification.type === 'ADMIN_MESSAGE' && metadata?.senderName && (
-                              <p className="text-xs sm:text-sm text-blue-400 mb-1.5 sm:mb-2 truncate">
-                                <span className="font-medium">De:</span>{' '}
-                                {String(metadata.senderName)}
-                              </p>
-                            )}
-                          </div>
-                          {isUnread && (
-                            <span className="flex-shrink-0 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-purple-500 rounded-full mt-1" />
-                          )}
-                        </div>
-
-                        {/* Détails du projet */}
-                        {projectName && (
-                          <div className="mb-1.5 sm:mb-2">
-                            <p className="text-xs sm:text-sm text-gray-500 truncate">
-                              <span className="font-medium">Projet:</span> {projectName}
-                            </p>
-                          </div>
-                        )}
-
-                        {/* Métadonnées spécifiques */}
-                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 md:gap-4 mb-1.5 sm:mb-2">
-                          {notification.type === 'MILESTONE' && metadata?.streams !== undefined && (
-                            <div className="flex items-center gap-1 text-xs sm:text-sm text-purple-400">
-                              <TrendingUp className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 flex-shrink-0" />
-                              <span>{Number(metadata.streams).toLocaleString()} streams</span>
-                            </div>
-                          )}
-                          {notification.Project?.releaseDate && (
-                            <div className="text-xs sm:text-sm text-gray-500">
-                              <span className="font-medium">Sortie:</span>{' '}
-                              {formatDateFrench(notification.Project.releaseDate)}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Date */}
-                        <div className="flex items-center justify-between mt-2 sm:mt-3 pt-2 border-t border-gray-700/30">
-                          <p className="text-xs text-gray-500">
-                            {formatDateTimeFrench(notification.createdAt)}
-                          </p>
-                          {!isUnread && notification.readAt && (
-                            <p className="text-xs text-gray-600 hidden sm:inline">
-                              Lu le {formatDateTimeFrench(notification.readAt)}
-                            </p>
-                          )}
-                        </div>
-                      </button>
-
-                      {/* Actions */}
-                      <div className="flex flex-col sm:flex-row items-center gap-1.5 sm:gap-2 flex-shrink-0">
-                        {/* Bouton archiver */}
-                        <button
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            await handleArchive(notification.id);
-                          }}
-                          className="p-2 text-gray-400 hover:text-orange-400 hover:bg-orange-500/10 rounded-lg transition-colors touch-manipulation"
-                          title="Archiver"
-                          aria-label="Archiver la notification"
-                        >
-                          <Archive className="w-4 h-4 sm:w-5 sm:h-5" />
-                        </button>
-
-                        {/* Icône de statut */}
-                        {isUnread ? (
-                          <div className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 rounded-full bg-purple-500/20 flex items-center justify-center">
-                            <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-purple-500 rounded-full" />
-                          </div>
-                        ) : (
-                          <div className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 rounded-full bg-gray-700/50 flex items-center justify-center">
-                            <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-600" />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="max-h-[calc(100vh-16rem)] sm:max-h-[calc(100vh-20rem)] overflow-y-auto">
+              <div className="divide-y divide-gray-700/50">
+                {displayedNotifications.map((notification) => {
+                  return renderNotification(notification);
+                })}
+              </div>
             </div>
           )}
         </div>
@@ -658,20 +929,23 @@ export default function NotificationsClient() {
         )}
       </div>
 
-      {/* Modale d'envoi de message (admin seulement) */}
-      {isAdmin && (
-        <SendMessageModal
-          isOpen={isSendModalOpen}
-          onClose={() => setIsSendModalOpen(false)}
-          onSuccess={async () => {
-            // Attendre un peu pour que la notification soit bien créée en DB
-            await new Promise((resolve) => setTimeout(resolve, 500));
-            // Forcer le refresh (ignore le cache)
-            await refresh();
-            await fetchArchivedNotifications();
-          }}
-        />
-      )}
+      {/* Modale d'envoi de message (tous les utilisateurs) */}
+      <SendMessageModal
+        isOpen={isSendModalOpen}
+        onClose={() => {
+          setIsSendModalOpen(false);
+          setReplyToNotification(null);
+        }}
+        replyTo={replyToNotification}
+        onSuccess={async () => {
+          // Attendre un peu pour que la notification soit bien créée en DB
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          // Forcer le refresh (ignore le cache)
+          await refresh();
+          await fetchArchivedNotifications();
+          setReplyToNotification(null);
+        }}
+      />
     </div>
   );
 }

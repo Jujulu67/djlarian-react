@@ -1,8 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 
-import { uploadToBlob, getIsBlobConfigured } from '@/lib/blob';
+import { uploadToBlob } from '@/lib/blob';
 import { logger } from '@/lib/logger';
+import { shouldUseBlobStorage } from '@/lib/utils/getStorageConfig';
 
 /**
  * Upload un fichier audio vers Blob Storage ou local
@@ -13,7 +14,7 @@ export async function uploadAudioFile(
   fileId: string,
   userId: string
 ): Promise<{ url: string; size: number }> {
-  const useBlobStorage = getIsBlobConfigured();
+  const useBlobStorage = shouldUseBlobStorage();
 
   // Convertir le fichier en buffer
   const arrayBuffer = await file.arrayBuffer();
@@ -63,7 +64,7 @@ export async function uploadAudioFile(
  * SERVER-ONLY: Utilise fs et path (modules Node.js)
  */
 export async function deleteAudioFile(fileUrl: string): Promise<void> {
-  const useBlobStorage = getIsBlobConfigured();
+  const useBlobStorage = shouldUseBlobStorage();
 
   if (useBlobStorage) {
     // Supprimer de Blob Storage

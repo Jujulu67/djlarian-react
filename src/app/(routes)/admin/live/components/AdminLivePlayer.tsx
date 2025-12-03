@@ -90,15 +90,27 @@ export function AdminLivePlayer() {
     const clickX = e.clientX - rect.left;
     const percentage = Math.max(0, Math.min(1, clickX / rect.width));
     const newTime = percentage * audioAnalysis.duration;
-    handleSeek(newTime);
 
-    // Déclencher la lecture après le seek si pas déjà en lecture
-    if (!isPlaying) {
-      try {
-        await audioRef.current.play();
-      } catch (error) {
-        console.error('Erreur lors du démarrage de la lecture:', error);
+    try {
+      // Mettre à jour la position directement (comme dans /live)
+      audioRef.current.currentTime = newTime;
+      handleSeek(newTime); // Pour mettre à jour le state aussi
+
+      // Si on est en pause, lancer la lecture directement
+      if (!isPlaying) {
+        try {
+          await audioRef.current.play();
+          // setIsPlaying sera mis à jour par l'event listener 'play'
+        } catch (playError: unknown) {
+          // Ignorer les erreurs d'interruption (AbortError)
+          const error = playError as { name?: string };
+          if (error.name !== 'AbortError' && error.name !== 'NotAllowedError') {
+            console.error('Erreur lecture audio:', playError);
+          }
+        }
       }
+    } catch (error) {
+      console.error('Erreur lors du clic sur la waveform:', error);
     }
   };
 

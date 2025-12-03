@@ -156,3 +156,53 @@ export function calculateTicketWeight(
 
   return weight;
 }
+
+/**
+ * Calcule le poids total des tickets côté client (pour optimistic updates)
+ * Version simplifiée de calculateTicketWeight qui ne prend en compte que les activatedItems
+ * Poids de base : 1 ticket par utilisateur
+ * Eternal tickets : +1 par activatedQuantity de l'item ETERNAL_TICKET activé
+ * Subscriber bonus : +20 par activatedQuantity
+ * Loyalty bonus : +10 par activatedQuantity
+ * @param activatedItems Items activés de l'utilisateur
+ * @param baseTickets Tickets de base (par défaut 1, mais peut être ajusté si on connaît les UserTicket)
+ * @returns Poids final calculé uniquement à partir des items activés
+ */
+export function calculateTicketWeightClient(
+  activatedItems: UserLiveItem[],
+  baseTickets: number = 1
+): number {
+  let weight = baseTickets; // Base
+
+  // Eternal tickets: +1 par ticket (activatedQuantity de l'item ETERNAL_TICKET activé)
+  const eternalTicketItem = activatedItems.find((item) => {
+    if (!item.LiveItem) return false;
+    const itemType = String(item.LiveItem.type);
+    return itemType === String(LiveItemType.ETERNAL_TICKET);
+  });
+
+  if (eternalTicketItem) {
+    // Utiliser la activatedQuantity de l'item ETERNAL_TICKET activé
+    weight += eternalTicketItem.activatedQuantity || 0;
+  }
+
+  // Subscriber bonus: +20 par item activé
+  const subscriberItems = activatedItems.filter((item) => {
+    if (!item.LiveItem) return false;
+    return String(item.LiveItem.type) === String(LiveItemType.SUBSCRIBER_BONUS);
+  });
+  subscriberItems.forEach((item) => {
+    weight += 20 * (item.activatedQuantity || 0);
+  });
+
+  // Loyalty bonus: +10 par item activé
+  const loyaltyItems = activatedItems.filter((item) => {
+    if (!item.LiveItem) return false;
+    return String(item.LiveItem.type) === String(LiveItemType.LOYALTY_BONUS);
+  });
+  loyaltyItems.forEach((item) => {
+    weight += 10 * (item.activatedQuantity || 0);
+  });
+
+  return weight;
+}

@@ -3,7 +3,11 @@ import { useSession } from 'next-auth/react';
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
 import type { LiveSubmission, CreateSubmissionInput } from '@/types/live';
 
-export function useLiveSubmissions() {
+interface UseLiveSubmissionsOptions {
+  useBlobStorage?: boolean;
+}
+
+export function useLiveSubmissions(options?: UseLiveSubmissionsOptions) {
   const { data: session } = useSession();
   const [submissions, setSubmissions] = useState<LiveSubmission[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -61,7 +65,7 @@ export function useLiveSubmissions() {
           }
         }
 
-        // Sinon, uploader directement vers Blob puis créer la soumission
+        // Sinon, uploader le fichier et créer la soumission
         if (!input.file) {
           setError('Fichier requis');
           return { success: false, error: 'Fichier requis' };
@@ -72,7 +76,32 @@ export function useLiveSubmissions() {
           return { success: false, error: 'Vous devez être connecté' };
         }
 
-        // Importer les fonctions d'upload client
+        // Si le stockage Blob n'est pas utilisé (dev/test), laisser le serveur gérer l'upload
+        if (options?.useBlobStorage === false) {
+          const formData = new FormData();
+          formData.append('file', input.file);
+          formData.append('title', input.title);
+          if (input.description) {
+            formData.append('description', input.description);
+          }
+
+          const response = await fetchWithAuth('/api/live/submissions', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            await loadSubmissions();
+            return { success: true, data: data.data };
+          } else {
+            const errorData = await response.json();
+            setError(errorData.error || 'Erreur lors de la soumission');
+            return { success: false, error: errorData.error };
+          }
+        }
+
+        // Sinon, uploader directement vers Blob puis créer la soumission
         const { generateAudioFileId, uploadAudioFileToBlob } =
           await import('@/lib/live/upload-client');
 
@@ -114,7 +143,7 @@ export function useLiveSubmissions() {
         setIsSubmitting(false);
       }
     },
-    [loadSubmissions, session?.user?.id]
+    [loadSubmissions, options?.useBlobStorage, session?.user?.id]
   );
 
   const updateSubmission = useCallback(

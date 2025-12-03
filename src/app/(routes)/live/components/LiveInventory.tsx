@@ -56,7 +56,7 @@ export function LiveInventory() {
             const item = activatedItems[index];
             return (
               <motion.div
-                key={item?.id || index}
+                key={`activated-${index}-${item?.id || index}`}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => item && handleItemClick(item.itemId, true)}
@@ -135,7 +135,7 @@ export function LiveInventory() {
             const item = unactivatedItems[index];
             return (
               <motion.div
-                key={item?.id || index}
+                key={`unactivated-${index}-${item?.id || index}`}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => item && handleItemClick(item.itemId, false)}
@@ -208,7 +208,7 @@ export function LiveInventory() {
               const item = unactivatedItems[index + 5];
               return (
                 <motion.div
-                  key={item?.id || index + 5}
+                  key={`unactivated-${index + 5}-${item?.id || index + 5}`}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => item && handleItemClick(item.itemId, false)}

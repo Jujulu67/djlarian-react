@@ -274,7 +274,7 @@ model Project {
 model Notification {
   id          String    @id @default(uuid())
   userId      String
-  type        String    // 'MILESTONE', 'ADMIN_MESSAGE', 'RELEASE_UPCOMING', 'INFO', etc.
+  type        String    // 'MILESTONE', 'ADMIN_MESSAGE', 'USER_MESSAGE', 'RELEASE_UPCOMING', 'INFO', etc.
   title       String
   message     String?
   metadata    String?   // JSON pour stocker des données flexibles (projectId, milestoneType, etc.)
@@ -288,6 +288,16 @@ model Notification {
   // Relation optionnelle avec Project pour les notifications liées aux projets
   projectId   String?
   Project     Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  // Relation pour les threads de conversation (réponses)
+  parentId    String?
+  Parent      Notification? @relation("NotificationReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  Replies     Notification[] @relation("NotificationReplies")
+  
+  // ThreadId pour regrouper toutes les notifications d'une même conversation
+  // Le premier message d'un thread a threadId = son propre id
+  // Les réponses héritent du threadId du message parent
+  threadId    String?
 
   @@index([userId])
   @@index([projectId])
@@ -295,6 +305,8 @@ model Notification {
   @@index([isArchived])
   @@index([type])
   @@index([createdAt])
+  @@index([parentId])
+  @@index([threadId])
 }
 
 // Live Panel Models

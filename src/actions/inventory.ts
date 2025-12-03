@@ -99,8 +99,8 @@ export async function addItemToUser(userId: string, itemId: string, quantity: nu
     const t4 = Date.now();
     perf.logQuery(t3, t4, existingItem ? 'userLiveItem.update' : 'userLiveItem.create');
 
-    revalidatePath('/admin/live');
-
+    // Plus de revalidatePath ici : l'UI admin gère déjà les mises à jour via optimistic update
+    // et refresh manuel/automatique si nécessaire.
     perf.end(t0, {
       queryTime: t2 - t1 + (t4 - t3),
       query: existingItem ? 'findUnique+update' : 'findUnique+create',
@@ -159,8 +159,8 @@ export async function removeItemFromUser(userId: string, itemId: string, quantit
       existingItem.quantity <= quantity ? 'userLiveItem.delete' : 'userLiveItem.update'
     );
 
-    revalidatePath('/admin/live');
-
+    // Plus de revalidatePath ici : l'UI admin gère déjà les mises à jour via optimistic update
+    // et refresh manuel/automatique si nécessaire.
     perf.end(t0, {
       queryTime: t2 - t1 + (t4 - t3),
       query: existingItem.quantity <= quantity ? 'findUnique+delete' : 'findUnique+update',
@@ -260,8 +260,8 @@ export async function activateItem(userItemId: string) {
         activatedAt: wasInactive ? new Date() : item.activatedAt,
       },
     });
-
-    revalidatePath('/admin/live');
+    // Plus de revalidatePath ici : l'UI admin gère déjà les mises à jour via optimistic update
+    // et refresh manuel/automatique si nécessaire.
     return { success: true };
   } catch (error) {
     console.error('Error activating item:', error);
@@ -306,8 +306,8 @@ export async function deactivateItem(userItemId: string) {
         activatedAt: becomesInactive ? null : item.activatedAt,
       },
     });
-
-    revalidatePath('/admin/live');
+    // Plus de revalidatePath ici : l'UI admin gère déjà les mises à jour via optimistic update
+    // et refresh manuel/automatique si nécessaire.
     return { success: true };
   } catch (error) {
     console.error('Error deactivating item:', error);

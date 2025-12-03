@@ -8,17 +8,19 @@ import prisma from '@/lib/prisma';
 export type NotificationType =
   | 'MILESTONE'
   | 'ADMIN_MESSAGE'
+  | 'USER_MESSAGE'
   | 'RELEASE_UPCOMING'
   | 'INFO'
   | 'WARNING';
 
 /**
  * GET /api/notifications
- * Récupère les notifications de l'utilisateur
+ * Récupère les notifications de l'utilisateur avec système de threads simplifié
  * Query params optionnels:
  * - unreadOnly: ne récupérer que les non lues (default: false)
  * - type: filtrer par type de notification
  * - limit: nombre maximum de notifications (default: 50)
+ * - includeArchived: inclure les notifications archivées
  */
 export async function GET(request: NextRequest) {
   try {
@@ -32,35 +34,37 @@ export async function GET(request: NextRequest) {
     const unreadOnly = searchParams.get('unreadOnly') === 'true';
     const type = searchParams.get('type') as NotificationType | null;
     const limit = parseInt(searchParams.get('limit') || '50', 10);
+    const includeArchived = searchParams.get('includeArchived') === 'true';
 
-    const where: {
+    // Construire les filtres pour les messages principaux (pas des réponses)
+    const baseWhere: {
       userId: string;
       isArchived?: boolean;
       deletedAt?: null;
       type?: NotificationType;
       isRead?: boolean;
+      parentId: null;
     } = {
       userId: session.user.id,
+      parentId: null, // Seulement les messages principaux
     };
 
-    // Exclure les notifications archivées et supprimées par défaut
-    // Permettre de récupérer les archivées si demandé
-    const includeArchived = searchParams.get('includeArchived') === 'true';
     if (!includeArchived) {
-      where.isArchived = false;
-      where.deletedAt = null;
+      baseWhere.isArchived = false;
+      baseWhere.deletedAt = null;
     }
 
     if (unreadOnly) {
-      where.isRead = false;
+      baseWhere.isRead = false;
     }
 
     if (type) {
-      where.type = type;
+      baseWhere.type = type;
     }
 
+    // Récupérer les notifications principales de l'utilisateur
     const notifications = await prisma.notification.findMany({
-      where,
+      where: baseWhere,
       select: {
         id: true,
         userId: true,
@@ -74,6 +78,8 @@ export async function GET(request: NextRequest) {
         createdAt: true,
         readAt: true,
         projectId: true,
+        parentId: true,
+        threadId: true,
         Project: {
           select: {
             id: true,
@@ -90,7 +96,73 @@ export async function GET(request: NextRequest) {
       take: limit,
     });
 
-    // Compter les notifications non lues (non archivées)
+    // Collecter tous les threadIds pour récupérer les réponses
+    const threadIds = notifications
+      .map((n) => n.threadId)
+      .filter((id): id is string => id !== null);
+
+    // Récupérer toutes les réponses (parentId non null) pour ces threads
+    // appartenant à l'utilisateur actuel
+    let replies: Array<{
+      id: string;
+      userId: string;
+      type: string;
+      title: string;
+      message: string | null;
+      metadata: string | null;
+      isRead: boolean;
+      isArchived: boolean;
+      deletedAt: Date | null;
+      createdAt: Date;
+      readAt: Date | null;
+      projectId: string | null;
+      parentId: string | null;
+      threadId: string | null;
+    }> = [];
+
+    if (threadIds.length > 0) {
+      replies = await prisma.notification.findMany({
+        where: {
+          userId: session.user.id,
+          threadId: { in: threadIds },
+          parentId: { not: null }, // Seulement les réponses
+          isArchived: false,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          userId: true,
+          type: true,
+          title: true,
+          message: true,
+          metadata: true,
+          isRead: true,
+          isArchived: true,
+          deletedAt: true,
+          createdAt: true,
+          readAt: true,
+          projectId: true,
+          parentId: true,
+          threadId: true,
+        },
+        orderBy: {
+          createdAt: 'asc',
+        },
+      });
+    }
+
+    // Grouper les réponses par threadId
+    const repliesByThreadId = new Map<string, typeof replies>();
+    replies.forEach((reply) => {
+      if (reply.threadId) {
+        if (!repliesByThreadId.has(reply.threadId)) {
+          repliesByThreadId.set(reply.threadId, []);
+        }
+        repliesByThreadId.get(reply.threadId)!.push(reply);
+      }
+    });
+
+    // Compter les notifications non lues (toutes, pas seulement les principales)
     const unreadCount = await prisma.notification.count({
       where: {
         userId: session.user.id,
@@ -100,9 +172,37 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // S'assurer que toutes les notifications ont les champs requis et sérialiser les dates
+    // Formatter et sérialiser les notifications avec leurs réponses
     const sanitizedNotifications = notifications.map((notif) => {
-      // Convertir les dates en strings ISO et s'assurer que les booléens sont corrects
+      // Récupérer les réponses par threadId
+      const notificationReplies = notif.threadId
+        ? (repliesByThreadId.get(notif.threadId) || []).map((reply) => ({
+            id: reply.id,
+            userId: reply.userId,
+            type: reply.type,
+            title: reply.title,
+            message: reply.message,
+            metadata: reply.metadata,
+            isRead: Boolean(reply.isRead),
+            isArchived: Boolean(reply.isArchived ?? false),
+            deletedAt: reply.deletedAt
+              ? reply.deletedAt instanceof Date
+                ? reply.deletedAt.toISOString()
+                : reply.deletedAt
+              : null,
+            createdAt:
+              reply.createdAt instanceof Date ? reply.createdAt.toISOString() : reply.createdAt,
+            readAt: reply.readAt
+              ? reply.readAt instanceof Date
+                ? reply.readAt.toISOString()
+                : reply.readAt
+              : null,
+            projectId: reply.projectId,
+            parentId: reply.parentId,
+            threadId: reply.threadId,
+          }))
+        : [];
+
       return {
         id: notif.id,
         userId: notif.userId,
@@ -125,6 +225,9 @@ export async function GET(request: NextRequest) {
             : notif.readAt
           : null,
         projectId: notif.projectId,
+        parentId: notif.parentId,
+        threadId: notif.threadId,
+        replies: notificationReplies,
         Project: notif.Project
           ? {
               id: notif.Project.id,
