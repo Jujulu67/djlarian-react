@@ -85,11 +85,14 @@ export async function GET(request: NextRequest) {
                 { streamsJ28: { not: null } },
                 { streamsJ56: { not: null } },
                 { streamsJ84: { not: null } },
+                { streamsJ180: { not: null } },
+                { streamsJ365: { not: null } },
               ],
             },
             select: {
               id: true,
               name: true,
+              style: true,
               releaseDate: true,
               streamsJ7: true,
               streamsJ14: true,
@@ -97,6 +100,8 @@ export async function GET(request: NextRequest) {
               streamsJ28: true,
               streamsJ56: true,
               streamsJ84: true,
+              streamsJ180: true,
+              streamsJ365: true,
             },
           }),
         ]);
@@ -208,6 +213,7 @@ export async function GET(request: NextRequest) {
         const streamsEvolution = projectsWithStreamsData.map((p) => ({
           projectId: p.id,
           projectName: p.name,
+          style: p.style,
           releaseDate: p.releaseDate ? new Date(p.releaseDate).toISOString() : null,
           streams: [
             { day: 7, value: p.streamsJ7 || 0 },
@@ -216,6 +222,8 @@ export async function GET(request: NextRequest) {
             { day: 28, value: p.streamsJ28 || 0 },
             { day: 56, value: p.streamsJ56 || 0 },
             { day: 84, value: p.streamsJ84 || 0 },
+            { day: 180, value: p.streamsJ180 || 0 },
+            { day: 365, value: p.streamsJ365 || 0 },
           ],
         }));
 
@@ -223,7 +231,14 @@ export async function GET(request: NextRequest) {
         const calculateAverage = (day: number) => {
           const fieldMap: Record<
             number,
-            'streamsJ7' | 'streamsJ14' | 'streamsJ21' | 'streamsJ28' | 'streamsJ56' | 'streamsJ84'
+            | 'streamsJ7'
+            | 'streamsJ14'
+            | 'streamsJ21'
+            | 'streamsJ28'
+            | 'streamsJ56'
+            | 'streamsJ84'
+            | 'streamsJ180'
+            | 'streamsJ365'
           > = {
             7: 'streamsJ7',
             14: 'streamsJ14',
@@ -231,6 +246,8 @@ export async function GET(request: NextRequest) {
             28: 'streamsJ28',
             56: 'streamsJ56',
             84: 'streamsJ84',
+            180: 'streamsJ180',
+            365: 'streamsJ365',
           };
           const field = fieldMap[day];
           const values = projectsWithStreamsData.map((p) => p[field] || 0).filter((s) => s > 0);
@@ -246,12 +263,16 @@ export async function GET(request: NextRequest) {
           J28: calculateAverage(28),
           J56: calculateAverage(56),
           J84: calculateAverage(84),
+          J180: calculateAverage(180),
+          J365: calculateAverage(365),
         };
 
         const totalStreams = projectsWithStreamsData.reduce((sum, p) => {
           return (
             sum +
-            (p.streamsJ84 ||
+            (p.streamsJ365 ||
+              p.streamsJ180 ||
+              p.streamsJ84 ||
               p.streamsJ56 ||
               p.streamsJ28 ||
               p.streamsJ21 ||
@@ -264,6 +285,8 @@ export async function GET(request: NextRequest) {
         const maxStreams = Math.max(
           ...projectsWithStreamsData.map(
             (p) =>
+              p.streamsJ365 ||
+              p.streamsJ180 ||
               p.streamsJ84 ||
               p.streamsJ56 ||
               p.streamsJ28 ||
@@ -276,10 +299,17 @@ export async function GET(request: NextRequest) {
         );
 
         // Calculer les streams totaux par jalon pour le mode global
-        const globalStreamsEvolution = [7, 14, 21, 28, 56, 84].map((day) => {
+        const globalStreamsEvolution = [7, 14, 21, 28, 56, 84, 180, 365].map((day) => {
           const fieldMap: Record<
             number,
-            'streamsJ7' | 'streamsJ14' | 'streamsJ21' | 'streamsJ28' | 'streamsJ56' | 'streamsJ84'
+            | 'streamsJ7'
+            | 'streamsJ14'
+            | 'streamsJ21'
+            | 'streamsJ28'
+            | 'streamsJ56'
+            | 'streamsJ84'
+            | 'streamsJ180'
+            | 'streamsJ365'
           > = {
             7: 'streamsJ7',
             14: 'streamsJ14',
@@ -287,6 +317,8 @@ export async function GET(request: NextRequest) {
             28: 'streamsJ28',
             56: 'streamsJ56',
             84: 'streamsJ84',
+            180: 'streamsJ180',
+            365: 'streamsJ365',
           };
           const field = fieldMap[day];
           const total = projectsWithStreamsData.reduce((sum, p) => sum + (p[field] || 0), 0);

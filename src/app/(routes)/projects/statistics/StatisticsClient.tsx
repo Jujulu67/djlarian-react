@@ -13,7 +13,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Fragment } from 'react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -75,6 +75,7 @@ interface StatisticsData {
   streamsEvolution: Array<{
     projectId: string;
     projectName: string;
+    style: string | null;
     releaseDate: string | null;
     streams: Array<{ day: number; value: number }>;
   }>;
@@ -87,6 +88,8 @@ interface StatisticsData {
       J28: number;
       J56: number;
       J84: number;
+      J180?: number;
+      J365?: number;
     };
     totalStreams: number;
     maxStreams: number;
@@ -94,14 +97,21 @@ interface StatisticsData {
   };
 }
 
+// Constante pour les jalons de jours
+const MILESTONE_DAYS = [7, 14, 21, 28, 56, 84, 180, 365] as const;
+const MILESTONE_LABELS = ['J7', 'J14', 'J21', 'J28', 'J56', 'J84', 'J180', 'J365'] as const;
+
 export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => {
   const [statistics, setStatistics] = useState<StatisticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'project' | 'global'>('project');
+  const [viewMode, setViewMode] = useState<'project' | 'global' | 'comparison'>('project');
   const [yearViewMode, setYearViewMode] = useState<'global' | 'year'>('global');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [hiddenStatuses, setHiddenStatuses] = useState<Set<string>>(new Set());
+  const [selectedProjectsForComparison, setSelectedProjectsForComparison] = useState<string[]>([]);
+  const [comparisonMode, setComparisonMode] = useState<'two' | 'all'>('two');
+  const [comparisonYearFilter, setComparisonYearFilter] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchStatistics = async () => {
@@ -164,14 +174,28 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
     // Projets avec streams pour l'année
     const projectsWithStreams = filteredProjects.filter(
       (p) =>
-        p.streamsJ7 || p.streamsJ14 || p.streamsJ21 || p.streamsJ28 || p.streamsJ56 || p.streamsJ84
+        p.streamsJ7 ||
+        p.streamsJ14 ||
+        p.streamsJ21 ||
+        p.streamsJ28 ||
+        p.streamsJ56 ||
+        p.streamsJ84 ||
+        p.streamsJ180 ||
+        p.streamsJ365
     );
 
     // Calculer les moyennes pour tous les jalons
     const calculateAverage = (day: number) => {
       const fieldMap: Record<
         number,
-        'streamsJ7' | 'streamsJ14' | 'streamsJ21' | 'streamsJ28' | 'streamsJ56' | 'streamsJ84'
+        | 'streamsJ7'
+        | 'streamsJ14'
+        | 'streamsJ21'
+        | 'streamsJ28'
+        | 'streamsJ56'
+        | 'streamsJ84'
+        | 'streamsJ180'
+        | 'streamsJ365'
       > = {
         7: 'streamsJ7',
         14: 'streamsJ14',
@@ -179,6 +203,8 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
         28: 'streamsJ28',
         56: 'streamsJ56',
         84: 'streamsJ84',
+        180: 'streamsJ180',
+        365: 'streamsJ365',
       };
       const field = fieldMap[day];
       const values = projectsWithStreams.map((p) => p[field] || 0).filter((s) => s > 0);
@@ -192,12 +218,16 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
       J28: calculateAverage(28),
       J56: calculateAverage(56),
       J84: calculateAverage(84),
+      J180: calculateAverage(180),
+      J365: calculateAverage(365),
     };
 
     const totalStreams = projectsWithStreams.reduce((sum, p) => {
       return (
         sum +
-        (p.streamsJ84 ||
+        (p.streamsJ365 ||
+          p.streamsJ180 ||
+          p.streamsJ84 ||
           p.streamsJ56 ||
           p.streamsJ28 ||
           p.streamsJ21 ||
@@ -217,27 +247,87 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
             p.streamsJ21 ||
             p.streamsJ28 ||
             p.streamsJ56 ||
-            p.streamsJ84)
+            p.streamsJ84 ||
+            p.streamsJ180 ||
+            p.streamsJ365)
       )
       .map((p) => ({
         projectId: p.id,
         projectName: p.name,
         releaseDate: p.releaseDate ? new Date(p.releaseDate).toISOString() : null,
+        style: p.style,
         streams: [
-          { day: 7, value: p.streamsJ7 || 0 },
-          { day: 14, value: p.streamsJ14 || 0 },
-          { day: 21, value: p.streamsJ21 || 0 },
-          { day: 28, value: p.streamsJ28 || 0 },
-          { day: 56, value: p.streamsJ56 || 0 },
-          { day: 84, value: p.streamsJ84 || 0 },
+          {
+            day: 7,
+            value:
+              p.streamsJ7 != null && Number.isFinite(p.streamsJ7) && p.streamsJ7 >= 0
+                ? p.streamsJ7
+                : 0,
+          },
+          {
+            day: 14,
+            value:
+              p.streamsJ14 != null && Number.isFinite(p.streamsJ14) && p.streamsJ14 >= 0
+                ? p.streamsJ14
+                : 0,
+          },
+          {
+            day: 21,
+            value:
+              p.streamsJ21 != null && Number.isFinite(p.streamsJ21) && p.streamsJ21 >= 0
+                ? p.streamsJ21
+                : 0,
+          },
+          {
+            day: 28,
+            value:
+              p.streamsJ28 != null && Number.isFinite(p.streamsJ28) && p.streamsJ28 >= 0
+                ? p.streamsJ28
+                : 0,
+          },
+          {
+            day: 56,
+            value:
+              p.streamsJ56 != null && Number.isFinite(p.streamsJ56) && p.streamsJ56 >= 0
+                ? p.streamsJ56
+                : 0,
+          },
+          {
+            day: 84,
+            value:
+              p.streamsJ84 != null && Number.isFinite(p.streamsJ84) && p.streamsJ84 >= 0
+                ? p.streamsJ84
+                : 0,
+          },
+          {
+            day: 180,
+            value:
+              p.streamsJ180 != null && Number.isFinite(p.streamsJ180) && p.streamsJ180 >= 0
+                ? p.streamsJ180
+                : 0,
+          },
+          {
+            day: 365,
+            value:
+              p.streamsJ365 != null && Number.isFinite(p.streamsJ365) && p.streamsJ365 >= 0
+                ? p.streamsJ365
+                : 0,
+          },
         ],
       }));
 
     // Streams totaux par jalon pour l'année
-    const globalStreamsEvolution = [7, 14, 21, 28, 56, 84].map((day) => {
+    const globalStreamsEvolution = MILESTONE_DAYS.map((day) => {
       const fieldMap: Record<
         number,
-        'streamsJ7' | 'streamsJ14' | 'streamsJ21' | 'streamsJ28' | 'streamsJ56' | 'streamsJ84'
+        | 'streamsJ7'
+        | 'streamsJ14'
+        | 'streamsJ21'
+        | 'streamsJ28'
+        | 'streamsJ56'
+        | 'streamsJ84'
+        | 'streamsJ180'
+        | 'streamsJ365'
       > = {
         7: 'streamsJ7',
         14: 'streamsJ14',
@@ -245,6 +335,8 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
         28: 'streamsJ28',
         56: 'streamsJ56',
         84: 'streamsJ84',
+        180: 'streamsJ180',
+        365: 'streamsJ365',
       };
       const field = fieldMap[day];
       const total = projectsWithStreams.reduce((sum, p) => sum + (p[field] || 0), 0);
@@ -283,7 +375,13 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
   // Obtenir les années disponibles
   const availableYears = useMemo(() => {
     if (!statistics?.projectsByYear) return [];
-    return statistics.projectsByYear.map((p) => parseInt(p.year)).sort((a, b) => b - a);
+    return statistics.projectsByYear
+      .map((p) => {
+        const year = parseInt(p.year, 10);
+        return Number.isFinite(year) ? year : null;
+      })
+      .filter((year): year is number => year !== null)
+      .sort((a, b) => b - a);
   }, [statistics]);
 
   // Ajuster l'année sélectionnée si elle n'est pas disponible
@@ -312,20 +410,271 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
     }
   }, [displayStats, selectedProjectId]);
 
+  // Fonction pour filtrer les projets selon l'année
+  const getFilteredProjectsForComparison = useMemo(() => {
+    if (!displayStats) return [];
+    let projects: Array<{
+      projectId: string;
+      projectName: string;
+      style: string | null;
+      releaseDate: string | null;
+      streams: Array<{ day: number; value: number }>;
+    }> = displayStats.streamsEvolution;
+
+    // Filtrer par année si une année est sélectionnée
+    if (comparisonYearFilter !== null) {
+      projects = projects.filter((project) => {
+        if (!project.releaseDate) return false;
+        const projectYear = new Date(project.releaseDate).getFullYear();
+        return projectYear === comparisonYearFilter;
+      });
+    }
+
+    return projects;
+  }, [displayStats, comparisonYearFilter]);
+
+  // Créer le mapping des projets pour le mode comparaison (AVANT les données)
+  const comparisonProjectMapping = useMemo(() => {
+    if (!displayStats || viewMode !== 'comparison') return [];
+    const filteredProjects = getFilteredProjectsForComparison;
+
+    if (comparisonMode === 'all') {
+      return filteredProjects.map((project, index) => ({
+        index,
+        projectId: project.projectId,
+        projectName: project.projectName,
+        style: project.style,
+        dataKey: `project${index}`,
+      }));
+    } else {
+      if (selectedProjectsForComparison.length < 2) return [];
+      const project1 = filteredProjects.find(
+        (p) => p.projectId === selectedProjectsForComparison[0]
+      );
+      const project2 = filteredProjects.find(
+        (p) => p.projectId === selectedProjectsForComparison[1]
+      );
+      if (!project1 || !project2) return [];
+
+      return [
+        {
+          index: 0,
+          projectId: project1.projectId,
+          projectName: project1.projectName,
+          style: project1.style,
+          dataKey: 'project0',
+        },
+        {
+          index: 1,
+          projectId: project2.projectId,
+          projectName: project2.projectName,
+          style: project2.style,
+          dataKey: 'project1',
+        },
+      ];
+    }
+  }, [
+    displayStats,
+    viewMode,
+    comparisonMode,
+    selectedProjectsForComparison,
+    getFilteredProjectsForComparison,
+  ]);
+
+  // Fonction pour transformer les données en mode comparaison
+  const getComparisonChartData = useMemo(() => {
+    if (!displayStats || viewMode !== 'comparison') return [];
+    const filteredProjects = getFilteredProjectsForComparison;
+
+    if (comparisonMode === 'all') {
+      // Tous les projets (filtrés par année si nécessaire)
+      if (filteredProjects.length === 0) return [];
+
+      // Créer un objet avec tous les jalons et les valeurs de chaque projet
+      // Utiliser des noms de propriétés fixes (project0, project1, etc.) au lieu des UUIDs
+      const days = [...MILESTONE_DAYS];
+      const chartData = days
+        .map((day) => {
+          const dataPoint: Record<string, string | number | null> = { day: `J${day}` };
+          let hasData = false;
+          filteredProjects.forEach((project, index) => {
+            const streamValue = project.streams.find((s) => s.day === day);
+            const value = streamValue?.value;
+            if (value != null && Number.isFinite(value) && value > 0) {
+              hasData = true;
+              dataPoint[`project${index}`] = value;
+            } else {
+              dataPoint[`project${index}`] = null;
+            }
+          });
+          // Ne retourner que les jalons qui ont au moins une donnée
+          return hasData ? dataPoint : null;
+        })
+        .filter((point) => point !== null);
+
+      return chartData;
+    } else {
+      // 2 projets sélectionnés (filtrés par année si nécessaire)
+      if (selectedProjectsForComparison.length < 2) return [];
+      const project1 = filteredProjects.find(
+        (p) => p.projectId === selectedProjectsForComparison[0]
+      );
+      const project2 = filteredProjects.find(
+        (p) => p.projectId === selectedProjectsForComparison[1]
+      );
+      if (!project1 || !project2) return [];
+
+      const days = [...MILESTONE_DAYS];
+      return days
+        .map((day) => {
+          const stream1 = project1.streams.find((s) => s.day === day);
+          const stream2 = project2.streams.find((s) => s.day === day);
+          const value1 = stream1?.value;
+          const value2 = stream2?.value;
+          const hasValue1 = value1 != null && Number.isFinite(value1) && value1 > 0;
+          const hasValue2 = value2 != null && Number.isFinite(value2) && value2 > 0;
+
+          // Ne retourner que les jalons qui ont au moins une donnée
+          if (!hasValue1 && !hasValue2) return null;
+
+          return {
+            day: `J${day}`,
+            project0: hasValue1 ? value1 : null,
+            project1: hasValue2 ? value2 : null,
+          };
+        })
+        .filter((point) => point !== null);
+    }
+  }, [
+    displayStats,
+    viewMode,
+    comparisonMode,
+    selectedProjectsForComparison,
+    getFilteredProjectsForComparison,
+  ]);
+
   const streamsChartData = useMemo(() => {
     if (!displayStats) return [];
-    if (viewMode === 'global' && displayStats.globalStreamsEvolution) {
-      return displayStats.globalStreamsEvolution.map((s) => ({
+
+    if (viewMode === 'comparison') {
+      return getComparisonChartData;
+    }
+
+    if (viewMode === 'global') {
+      if (!displayStats.globalStreamsEvolution) return [];
+      return displayStats.globalStreamsEvolution
+        .filter((s) => Number.isFinite(s.value) && s.value > 0)
+        .map((s) => ({
+          day: `J${s.day}`,
+          streams: s.value,
+        }));
+    }
+
+    // Mode 'project'
+    if (!selectedProject || !selectedProject.streams) return [];
+    return selectedProject.streams
+      .filter((s) => Number.isFinite(s.value) && s.value > 0)
+      .map((s) => ({
         day: `J${s.day}`,
         streams: s.value,
       }));
+  }, [selectedProject, viewMode, displayStats, getComparisonChartData]);
+
+  // Fonction pour générer des couleurs distinctes (jusqu'à 25+ projets)
+  const getColorForIndex = (index: number, total: number): string => {
+    // Palette de base avec 8 couleurs distinctes
+    const baseColors = [
+      '#a855f7', // purple
+      '#3b82f6', // blue
+      '#10b981', // green
+      '#f59e0b', // orange
+      '#ef4444', // red
+      '#8b5cf6', // violet
+      '#06b6d4', // cyan
+      '#f97316', // orange-500
+    ];
+
+    // Si on a moins de 8 projets, utiliser la palette de base
+    if (total <= baseColors.length) {
+      return baseColors[index % baseColors.length];
     }
-    if (!selectedProject) return [];
-    return selectedProject.streams.map((s) => ({
-      day: `J${s.day}`,
-      streams: s.value,
-    }));
-  }, [selectedProject, viewMode, displayStats]);
+
+    // Pour plus de 8 projets, générer des couleurs HSL équitablement réparties
+    // Utiliser un angle de base pour chaque couleur
+    const hue = (index * 360) / Math.max(total, 8);
+    // Varier la saturation et la luminosité pour plus de distinction
+    const saturation = 65 + (index % 3) * 10; // Entre 65% et 85%
+    const lightness = 50 + (Math.floor(index / 3) % 3) * 5; // Entre 50% et 60%
+
+    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+  };
+
+  // Calculer l'évolution annuelle des performances
+  const yearlyProgressionData = useMemo(() => {
+    if (!displayStats || !statistics) return [];
+    const projectsByYearMap: Record<
+      string,
+      {
+        year: number;
+        totalStreams: number;
+        averageStreams: number;
+        projectCount: number;
+      }
+    > = {};
+
+    // Grouper les projets par année de sortie
+    displayStats.streamsEvolution.forEach((project) => {
+      if (!project.releaseDate) return;
+      const year = new Date(project.releaseDate).getFullYear();
+      const yearKey = year.toString();
+
+      if (!projectsByYearMap[yearKey]) {
+        projectsByYearMap[yearKey] = {
+          year,
+          totalStreams: 0,
+          averageStreams: 0,
+          projectCount: 0,
+        };
+      }
+
+      // Utiliser J84 comme référence (ou le dernier jalon disponible)
+      const streamValues = project.streams
+        .map((s) => s.value)
+        .filter((v) => typeof v === 'number' && !isNaN(v) && v >= 0);
+
+      if (streamValues.length === 0) return; // Ignorer les projets sans données valides
+
+      const maxStreams = Math.max(...streamValues, 0);
+      if (isNaN(maxStreams) || maxStreams < 0) return; // Ignorer les valeurs invalides
+
+      projectsByYearMap[yearKey].totalStreams += maxStreams;
+      projectsByYearMap[yearKey].projectCount += 1;
+    });
+
+    // Calculer les moyennes
+    Object.values(projectsByYearMap).forEach((data) => {
+      if (data.projectCount > 0 && !isNaN(data.totalStreams)) {
+        data.averageStreams = Math.round(data.totalStreams / data.projectCount);
+      } else {
+        data.averageStreams = 0;
+      }
+      // S'assurer que les valeurs ne sont pas NaN
+      if (isNaN(data.totalStreams)) data.totalStreams = 0;
+      if (isNaN(data.averageStreams)) data.averageStreams = 0;
+      if (isNaN(data.projectCount)) data.projectCount = 0;
+    });
+
+    // Convertir en tableau et trier par année, filtrer les valeurs invalides
+    return Object.values(projectsByYearMap)
+      .filter((data) => !isNaN(data.year) && data.projectCount > 0)
+      .sort((a, b) => a.year - b.year)
+      .map((data) => ({
+        year: data.year.toString(),
+        totalStreams: Number.isFinite(data.totalStreams) ? data.totalStreams : 0,
+        averageStreams: Number.isFinite(data.averageStreams) ? data.averageStreams : 0,
+        projectCount: Number.isFinite(data.projectCount) ? data.projectCount : 0,
+      }));
+  }, [displayStats, statistics]);
 
   if (loading) {
     return (
@@ -901,9 +1250,10 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-            {(['J7', 'J14', 'J21', 'J28', 'J56', 'J84'] as const).map((jalon) => {
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {MILESTONE_LABELS.map((jalon) => {
               const value = displayStats.metrics.averageStreams[jalon];
+              if (value === undefined) return null;
               return (
                 <div
                   key={jalon}
@@ -966,7 +1316,7 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {/* Toggle mode global/projet */}
+              {/* Toggle mode global/projet/comparaison */}
               <div className="flex items-center gap-4">
                 <label className="text-sm text-gray-400">Mode d'affichage :</label>
                 <div className="flex gap-2">
@@ -989,6 +1339,16 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
                     }`}
                   >
                     Global
+                  </button>
+                  <button
+                    onClick={() => setViewMode('comparison')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      viewMode === 'comparison'
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50'
+                    }`}
+                  >
+                    Comparaison
                   </button>
                 </div>
               </div>
@@ -1015,6 +1375,154 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
                 </div>
               )}
 
+              {/* Sélecteurs de projets (uniquement en mode comparaison) */}
+              {viewMode === 'comparison' && displayStats.streamsEvolution.length > 0 && (
+                <div className="space-y-4">
+                  {/* Toggle entre 2 projets et tous les projets */}
+                  <div className="flex items-center gap-4">
+                    <label className="text-sm text-gray-400">Type de comparaison :</label>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setComparisonMode('two');
+                          setSelectedProjectsForComparison([]);
+                        }}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                          comparisonMode === 'two'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50'
+                        }`}
+                      >
+                        2 projets
+                      </button>
+                      <button
+                        onClick={() => {
+                          setComparisonMode('all');
+                          // Ne pas mettre à jour selectedProjectsForComparison ici,
+                          // on utilisera getFilteredProjectsForComparison directement dans le rendu
+                        }}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                          comparisonMode === 'all'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50'
+                        }`}
+                      >
+                        Tous les projets
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Filtre par année */}
+                  <div className="flex items-center gap-4">
+                    <label className="text-sm text-gray-400">Filtrer par année :</label>
+                    <div className="flex gap-2 items-center">
+                      <button
+                        onClick={() => setComparisonYearFilter(null)}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                          comparisonYearFilter === null
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50'
+                        }`}
+                      >
+                        Toutes
+                      </button>
+                      <select
+                        value={comparisonYearFilter || ''}
+                        onChange={(e) => {
+                          const year = e.target.value ? parseInt(e.target.value, 10) : null;
+                          setComparisonYearFilter(
+                            year !== null && Number.isFinite(year) ? year : null
+                          );
+                        }}
+                        className="px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      >
+                        <option value="">Sélectionner une année</option>
+                        {availableYears.map((year) => (
+                          <option key={year} value={year}>
+                            {year}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Sélecteurs pour 2 projets */}
+                  {comparisonMode === 'two' && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm text-gray-400 mb-2 block">Projet 1 :</label>
+                        <select
+                          value={selectedProjectsForComparison[0] || ''}
+                          onChange={(e) => {
+                            const newSelection = [...selectedProjectsForComparison];
+                            newSelection[0] = e.target.value;
+                            if (newSelection.length > 1 && newSelection[0] === newSelection[1]) {
+                              newSelection[1] = '';
+                            }
+                            setSelectedProjectsForComparison(newSelection);
+                          }}
+                          className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        >
+                          <option value="">Sélectionner un projet</option>
+                          {getFilteredProjectsForComparison.map((project) => (
+                            <option
+                              key={project.projectId}
+                              value={project.projectId}
+                              disabled={selectedProjectsForComparison[1] === project.projectId}
+                            >
+                              {project.projectName}
+                              {project.style ? ` - ${project.style}` : ''}
+                              {project.releaseDate &&
+                                ` (${format(new Date(project.releaseDate), 'yyyy', { locale: fr })})`}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-sm text-gray-400 mb-2 block">Projet 2 :</label>
+                        <select
+                          value={selectedProjectsForComparison[1] || ''}
+                          onChange={(e) => {
+                            const newSelection = [...selectedProjectsForComparison];
+                            newSelection[1] = e.target.value;
+                            if (newSelection.length > 0 && newSelection[0] === newSelection[1]) {
+                              newSelection[1] = '';
+                            }
+                            setSelectedProjectsForComparison(newSelection);
+                          }}
+                          className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        >
+                          <option value="">Sélectionner un projet</option>
+                          {getFilteredProjectsForComparison.map((project) => (
+                            <option
+                              key={project.projectId}
+                              value={project.projectId}
+                              disabled={selectedProjectsForComparison[0] === project.projectId}
+                            >
+                              {project.projectName}
+                              {project.style ? ` - ${project.style}` : ''}
+                              {project.releaseDate &&
+                                ` (${format(new Date(project.releaseDate), 'yyyy', { locale: fr })})`}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Message pour tous les projets */}
+                  {comparisonMode === 'all' && (
+                    <div className="p-3 rounded-lg border border-blue-500/30 bg-blue-500/10">
+                      <p className="text-sm text-blue-400">
+                        Comparaison de tous les projets ({getFilteredProjectsForComparison.length}{' '}
+                        projet{getFilteredProjectsForComparison.length > 1 ? 's' : ''}
+                        {comparisonYearFilter !== null && ` en ${comparisonYearFilter}`})
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Graphique */}
               {streamsChartData.length > 0 && (
                 <div className="h-[300px]">
@@ -1035,26 +1543,189 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
                         axisLine={false}
                         allowDecimals={false}
                       />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                          border: 'none',
-                          borderRadius: '8px',
-                          color: '#fff',
-                        }}
-                        formatter={(value: number) => [
-                          `${value.toLocaleString()} streams`,
-                          viewMode === 'global' ? 'Total' : null,
-                        ]}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="streams"
-                        stroke="#a855f7"
-                        strokeWidth={2}
-                        dot={{ r: 4, fill: '#a855f7' }}
-                        activeDot={{ r: 6, strokeWidth: 2, fill: '#a855f7' }}
-                      />
+                      {viewMode === 'comparison' && (
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                            border: '1px solid rgba(255, 255, 255, 0.2)',
+                            borderRadius: '8px',
+                            color: '#fff',
+                          }}
+                          content={({ active, payload, label }) => {
+                            if (!active || !payload || !payload.length) return null;
+                            const projectMapping = comparisonProjectMapping;
+                            const projectsToShow =
+                              comparisonMode === 'all'
+                                ? projectMapping
+                                : projectMapping.filter((m: any) =>
+                                    selectedProjectsForComparison.includes(m.projectId)
+                                  );
+
+                            if (projectsToShow.length === 0) return null;
+
+                            return (
+                              <div className="bg-gray-900/95 border border-gray-700 rounded-lg p-3 shadow-xl">
+                                <div className="text-white font-semibold mb-2 text-center border-b border-gray-700 pb-2">
+                                  {label}
+                                </div>
+                                <div className="space-y-1">
+                                  {projectsToShow.map((mapping: any, index: number) => {
+                                    const data = payload.find((p) => p.dataKey === mapping.dataKey);
+                                    if (!data || data.value === null || data.value === undefined)
+                                      return null;
+                                    const numValue = Number(data.value);
+                                    if (!Number.isFinite(numValue) || numValue < 0) return null;
+                                    const color = getColorForIndex(index, projectsToShow.length);
+                                    return (
+                                      <div
+                                        key={mapping.projectId}
+                                        className="flex items-center justify-between gap-3 text-sm"
+                                      >
+                                        <div className="flex items-center gap-2">
+                                          <div
+                                            className="w-3 h-3 rounded-full"
+                                            style={{ backgroundColor: color }}
+                                          />
+                                          <span className="text-white">
+                                            {mapping.projectName}
+                                            {mapping.style && (
+                                              <span className="text-gray-400 ml-1">
+                                                ({mapping.style})
+                                              </span>
+                                            )}
+                                          </span>
+                                        </div>
+                                        <span className="text-white font-medium">
+                                          {numValue.toLocaleString()} streams
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          }}
+                        />
+                      )}
+                      {viewMode === 'comparison' && (
+                        <Legend
+                          content={({ payload }) => {
+                            if (!payload || payload.length === 0) return null;
+                            const projectMapping = comparisonProjectMapping;
+                            const projectsToShow =
+                              comparisonMode === 'all'
+                                ? projectMapping
+                                : projectMapping.filter((m: any) =>
+                                    selectedProjectsForComparison.includes(m.projectId)
+                                  );
+
+                            if (projectsToShow.length === 0) return null;
+
+                            return (
+                              <div className="flex flex-wrap items-center justify-center gap-4 mt-4">
+                                {projectsToShow.map((mapping: any, index: number) => {
+                                  const color = getColorForIndex(index, projectsToShow.length);
+                                  return (
+                                    <div
+                                      key={mapping.projectId}
+                                      className="flex items-center gap-2"
+                                    >
+                                      <div
+                                        className="w-4 h-4 rounded-full"
+                                        style={{ backgroundColor: color }}
+                                      />
+                                      <span className="text-sm text-gray-300">
+                                        {mapping.projectName}
+                                        {mapping.style && (
+                                          <span className="text-gray-500 ml-1">
+                                            ({mapping.style})
+                                          </span>
+                                        )}
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            );
+                          }}
+                        />
+                      )}
+                      {viewMode === 'comparison' &&
+                        comparisonMode === 'all' &&
+                        comparisonProjectMapping.map((mapping: any, index: number) => {
+                          const color = getColorForIndex(index, comparisonProjectMapping.length);
+                          return (
+                            <Line
+                              key={mapping.projectId}
+                              type="monotone"
+                              dataKey={mapping.dataKey}
+                              stroke={color}
+                              strokeWidth={2}
+                              dot={{ r: 4, fill: color }}
+                              activeDot={{ r: 6, strokeWidth: 2, fill: color }}
+                              name={`${mapping.projectName}${mapping.style ? ` (${mapping.style})` : ''}`}
+                              connectNulls={false}
+                              isAnimationActive={false}
+                            />
+                          );
+                        })}
+                      {viewMode === 'comparison' &&
+                        comparisonMode === 'two' &&
+                        comparisonProjectMapping
+                          .filter((m: any) => selectedProjectsForComparison.includes(m.projectId))
+                          .map((mapping: any, index: number) => {
+                            const filteredProjects = comparisonProjectMapping.filter((m: any) =>
+                              selectedProjectsForComparison.includes(m.projectId)
+                            );
+                            const color = getColorForIndex(index, filteredProjects.length);
+                            return (
+                              <Line
+                                key={mapping.projectId}
+                                type="monotone"
+                                dataKey={mapping.dataKey}
+                                stroke={color}
+                                strokeWidth={2}
+                                dot={{ r: 4, fill: color }}
+                                activeDot={{ r: 6, strokeWidth: 2, fill: color }}
+                                name={`${mapping.projectName}${mapping.style ? ` (${mapping.style})` : ''}`}
+                                connectNulls={true}
+                                isAnimationActive={false}
+                              />
+                            );
+                          })}
+                      {viewMode !== 'comparison' && (
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            border: 'none',
+                            borderRadius: '8px',
+                            color: '#fff',
+                          }}
+                          formatter={(value: number) => {
+                            const numValue = Number.isFinite(value) && value >= 0 ? value : 0;
+                            return [
+                              `${numValue.toLocaleString()} streams`,
+                              viewMode === 'global' ? 'Total' : 'Streams',
+                            ];
+                          }}
+                        />
+                      )}
+                      {viewMode !== 'comparison' && (
+                        <Legend
+                          formatter={() => (viewMode === 'global' ? 'Total Streams' : 'Streams')}
+                        />
+                      )}
+                      {viewMode !== 'comparison' && (
+                        <Line
+                          type="monotone"
+                          dataKey="streams"
+                          stroke="#a855f7"
+                          strokeWidth={2}
+                          dot={{ r: 4, fill: '#a855f7' }}
+                          activeDot={{ r: 6, strokeWidth: 2, fill: '#a855f7' }}
+                          name={viewMode === 'global' ? 'Total Streams' : 'Streams'}
+                        />
+                      )}
                     </RechartsLineChart>
                   </ResponsiveContainer>
                 </div>
@@ -1068,6 +1739,130 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
                     Sélectionnez un projet pour voir son évolution
                   </div>
                 )}
+
+              {/* Message si aucune donnée en mode comparaison */}
+              {viewMode === 'comparison' &&
+                streamsChartData.length === 0 &&
+                displayStats.streamsEvolution.length > 0 && (
+                  <div className="text-center text-gray-400 py-8">
+                    {comparisonMode === 'two'
+                      ? 'Sélectionnez 2 projets pour les comparer'
+                      : getFilteredProjectsForComparison.length === 0
+                        ? `Aucun projet trouvé${comparisonYearFilter !== null ? ` pour l'année ${comparisonYearFilter}` : ''}`
+                        : 'Aucune donnée disponible'}
+                  </div>
+                )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Graphique d'évolution annuelle */}
+      {yearlyProgressionData.length > 0 && (
+        <Card className="glass border border-purple-500/20 bg-black/30 backdrop-blur-md text-white">
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <TrendingUp className="mr-2 h-5 w-5 text-purple-400" />
+              Évolution annuelle des performances
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <RechartsLineChart data={yearlyProgressionData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
+                  <XAxis
+                    dataKey="year"
+                    stroke="rgba(255, 255, 255, 0.5)"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fill: 'rgba(255, 255, 255, 0.7)' }}
+                  />
+                  <YAxis
+                    stroke="rgba(255, 255, 255, 0.5)"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                    allowDecimals={false}
+                    tick={{ fill: 'rgba(255, 255, 255, 0.7)' }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                      border: '1px solid rgba(255, 255, 255, 0.2)',
+                      borderRadius: '8px',
+                      color: '#fff',
+                    }}
+                    formatter={(value: number, name: string) => {
+                      const numValue = Number(value);
+                      if (!Number.isFinite(numValue) || numValue < 0) {
+                        return [
+                          '0',
+                          name === 'totalStreams'
+                            ? 'Total'
+                            : name === 'averageStreams'
+                              ? 'Moyenne'
+                              : name,
+                        ];
+                      }
+                      if (name === 'totalStreams') {
+                        return [`${numValue.toLocaleString()} streams`, 'Total'];
+                      }
+                      if (name === 'averageStreams') {
+                        return [`${numValue.toLocaleString()} streams`, 'Moyenne'];
+                      }
+                      return [numValue.toString(), name];
+                    }}
+                    labelFormatter={(label) => `Année ${label}`}
+                  />
+                  <Legend
+                    formatter={(value) => {
+                      if (value === 'totalStreams') return 'Total streams';
+                      if (value === 'averageStreams') return 'Moyenne streams';
+                      return value;
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="totalStreams"
+                    stroke="#a855f7"
+                    strokeWidth={2}
+                    dot={{ r: 4, fill: '#a855f7' }}
+                    activeDot={{ r: 6, strokeWidth: 2, fill: '#a855f7' }}
+                    name="totalStreams"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="averageStreams"
+                    stroke="#3b82f6"
+                    strokeWidth={2}
+                    dot={{ r: 4, fill: '#3b82f6' }}
+                    activeDot={{ r: 6, strokeWidth: 2, fill: '#3b82f6' }}
+                    name="averageStreams"
+                  />
+                </RechartsLineChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {yearlyProgressionData.map((data) => (
+                <div
+                  key={data.year}
+                  className="p-3 rounded-lg border border-gray-700/50 bg-gray-800/30"
+                >
+                  <div className="text-sm text-gray-400 mb-1">{data.year}</div>
+                  <div className="text-lg font-bold text-purple-400">
+                    {Number.isFinite(data.totalStreams) ? data.totalStreams.toLocaleString() : '0'}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    Moyenne:{' '}
+                    {Number.isFinite(data.averageStreams)
+                      ? data.averageStreams.toLocaleString()
+                      : '0'}{' '}
+                    ({data.projectCount} projet{data.projectCount > 1 ? 's' : ''})
+                  </div>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
