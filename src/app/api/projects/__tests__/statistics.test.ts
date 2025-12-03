@@ -146,6 +146,7 @@ describe('/api/projects/statistics', () => {
     expect(secondCall[0].select).toEqual({
       id: true,
       name: true,
+      style: true,
       releaseDate: true,
       streamsJ7: true,
       streamsJ14: true,
@@ -153,6 +154,8 @@ describe('/api/projects/statistics', () => {
       streamsJ28: true,
       streamsJ56: true,
       streamsJ84: true,
+      streamsJ180: true,
+      streamsJ365: true,
     });
   });
 
