@@ -167,6 +167,8 @@ model User {
   LiveSubmission       LiveSubmission[]
   UserLiveItem         UserLiveItem[]
   UserTicket           UserTicket[]
+  FriendshipRequests  Friendship[]            @relation("FriendshipRequester")
+  FriendshipReceived  Friendship[]            @relation("FriendshipRecipient")
 }
 
 model VerificationToken {
@@ -390,4 +392,21 @@ model UserTicket {
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+model Friendship {
+  id          String   @id @default(uuid())
+  requesterId String
+  recipientId String
+  status      String   @default("PENDING") // PENDING, ACCEPTED, REJECTED
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  Requester   User     @relation("FriendshipRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  Recipient   User     @relation("FriendshipRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, recipientId])
+  @@index([requesterId])
+  @@index([recipientId])
+  @@index([status])
 }

@@ -19,6 +19,9 @@ import {
   Send,
   ChevronDown,
   ChevronUp,
+  UserPlus,
+  UserCheck,
+  UserX,
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -31,6 +34,7 @@ import {
   NotificationMetadata,
 } from '@/hooks/useNotifications';
 import { SendMessageModal } from '@/components/notifications/SendMessageModal';
+import { FriendsList } from '@/components/notifications/FriendsList';
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
 
 /**
@@ -121,13 +125,44 @@ function getNotificationStyle(type: NotificationType): {
         label: 'Alerte',
       };
     case 'INFO':
-    default:
       return {
         icon: Info,
+        bgColor: 'bg-blue-500/20',
+        borderColor: 'border-blue-500/30',
+        iconColor: 'text-blue-400',
+        label: 'Information',
+      };
+    case 'FRIEND_REQUEST':
+      return {
+        icon: UserPlus,
+        bgColor: 'bg-purple-500/20',
+        borderColor: 'border-purple-500/30',
+        iconColor: 'text-purple-400',
+        label: "Demande d'ami",
+      };
+    case 'FRIEND_ACCEPTED':
+      return {
+        icon: UserCheck,
+        bgColor: 'bg-green-500/20',
+        borderColor: 'border-green-500/30',
+        iconColor: 'text-green-400',
+        label: 'Ami accepté',
+      };
+    case 'FRIEND_REJECTED':
+      return {
+        icon: UserX,
+        bgColor: 'bg-red-500/20',
+        borderColor: 'border-red-500/30',
+        iconColor: 'text-red-400',
+        label: 'Ami rejeté',
+      };
+    default:
+      return {
+        icon: Bell,
         bgColor: 'bg-gray-500/20',
         borderColor: 'border-gray-500/30',
         iconColor: 'text-gray-400',
-        label: 'Info',
+        label: 'Notification',
       };
   }
 }
@@ -150,8 +185,12 @@ export default function NotificationsClient() {
   const { data: session } = useSession();
 
   // Déterminer la vue initiale depuis l'URL (par défaut: 'notifications')
-  const initialView = searchParams.get('view') === 'messages' ? 'messages' : 'notifications';
-  const [activeView, setActiveView] = useState<'messages' | 'notifications'>(initialView);
+  const viewParam = searchParams.get('view');
+  const initialView =
+    viewParam === 'messages' ? 'messages' : viewParam === 'friends' ? 'friends' : 'notifications';
+  const [activeView, setActiveView] = useState<'messages' | 'notifications' | 'friends'>(
+    initialView
+  );
 
   const [filter, setFilter] = useState<'all' | 'unread' | NotificationType>('all');
   const [showFilters, setShowFilters] = useState(false);
@@ -163,7 +202,7 @@ export default function NotificationsClient() {
   // Synchroniser avec l'URL si le paramètre change
   useEffect(() => {
     const viewParam = searchParams.get('view');
-    if (viewParam === 'messages' || viewParam === 'notifications') {
+    if (viewParam === 'messages' || viewParam === 'notifications' || viewParam === 'friends') {
       setActiveView(viewParam);
     }
   }, [searchParams]);
@@ -184,7 +223,7 @@ export default function NotificationsClient() {
   } = useNotifications({
     unreadOnly: false,
     autoRefresh: true,
-    refreshInterval: 300000, // 5 minutes (optimisé pour quotas gratuits)
+    refreshInterval: 30000, // 30 secondes pour une mise à jour plus rapide des messages
     refreshOnPageChange: true, // Activé uniquement sur la page notifications
   });
 
@@ -207,6 +246,27 @@ export default function NotificationsClient() {
       console.error('Erreur lors du chargement des notifications archivées:', err);
     }
   };
+
+  // Filtrer les notifications archivées selon la vue active
+  const filteredArchivedNotifications = useMemo(() => {
+    if (activeView === 'friends') {
+      // Ne rien afficher pour la vue amis
+      return [];
+    }
+
+    if (activeView === 'messages') {
+      // Afficher uniquement les messages archivés
+      return archivedNotifications.filter(
+        (n) => n.type === 'ADMIN_MESSAGE' || n.type === 'USER_MESSAGE'
+      );
+    }
+
+    // activeView === 'notifications'
+    // Afficher uniquement les notifications archivées (non messages)
+    return archivedNotifications.filter(
+      (n) => n.type !== 'ADMIN_MESSAGE' && n.type !== 'USER_MESSAGE'
+    );
+  }, [archivedNotifications, activeView]);
 
   useEffect(() => {
     fetchArchivedNotifications();
@@ -634,8 +694,8 @@ export default function NotificationsClient() {
             </div>
           </div>
 
-          {/* Onglets Messages / Notifications */}
-          <div className="flex items-center gap-2 mb-4 sm:mb-6">
+          {/* Onglets Messages / Notifications / Amis */}
+          <div className="flex items-center gap-2 mb-4 sm:mb-6 flex-wrap">
             <button
               onClick={() => {
                 setActiveView('notifications');
@@ -671,6 +731,22 @@ export default function NotificationsClient() {
               <span className="text-sm sm:text-base font-medium">
                 Messages {messages.length > 0 && `(${messages.length})`}
               </span>
+            </button>
+            <button
+              onClick={() => {
+                setActiveView('friends');
+                const params = new URLSearchParams(searchParams.toString());
+                params.set('view', 'friends');
+                router.push(`/notifications?${params.toString()}`);
+              }}
+              className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg border transition-colors touch-manipulation ${
+                activeView === 'friends'
+                  ? 'bg-green-500/20 border-green-500/50 text-green-300'
+                  : 'bg-gray-800/50 border-gray-700/50 text-gray-300 hover:bg-gray-700/50'
+              }`}
+            >
+              <UserPlus className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-sm sm:text-base font-medium">Amis</span>
             </button>
           </div>
 
@@ -750,7 +826,11 @@ export default function NotificationsClient() {
 
         {/* Content */}
         <div className="bg-gradient-to-br from-gray-900/95 via-gray-800/95 to-gray-900/95 backdrop-blur-xl border border-purple-500/30 rounded-lg sm:rounded-xl shadow-2xl overflow-hidden">
-          {isLoading ? (
+          {activeView === 'friends' ? (
+            <div className="p-4 sm:p-6">
+              <FriendsList />
+            </div>
+          ) : isLoading ? (
             <div className="flex items-center justify-center py-8 sm:py-12">
               <Loader2 className="w-6 h-6 animate-spin text-purple-500" />
             </div>
@@ -809,12 +889,15 @@ export default function NotificationsClient() {
         </div>
 
         {/* Section Notifications archivées */}
-        {archivedNotifications.length > 0 && (
+        {filteredArchivedNotifications.length > 0 && (
           <div className="mt-6 sm:mt-8">
             <div className="flex items-center justify-between mb-3 sm:mb-4 gap-2">
               <h2 className="text-lg sm:text-xl font-semibold text-white flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
                 <Archive className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />
-                <span className="truncate">Archivées ({archivedNotifications.length})</span>
+                <span className="truncate">
+                  {activeView === 'messages' ? 'Messages archivés' : 'Notifications archivées'} (
+                  {filteredArchivedNotifications.length})
+                </span>
               </h2>
               <button
                 onClick={() => setShowArchived(!showArchived)}
@@ -827,7 +910,7 @@ export default function NotificationsClient() {
             {showArchived && (
               <div className="bg-gradient-to-br from-gray-900/95 via-gray-800/95 to-gray-900/95 backdrop-blur-xl border border-gray-700/50 rounded-lg sm:rounded-xl shadow-2xl overflow-hidden">
                 <div className="divide-y divide-gray-700/50 max-h-[calc(100vh-24rem)] sm:max-h-[calc(100vh-30rem)] overflow-y-auto">
-                  {archivedNotifications.map((notification) => {
+                  {filteredArchivedNotifications.map((notification) => {
                     const style = getNotificationStyle(notification.type);
                     const Icon = style.icon;
                     const metadata = parseMetadata(notification.metadata);
@@ -865,12 +948,21 @@ export default function NotificationsClient() {
                                     {notification.message}
                                   </p>
                                 )}
-                                {notification.type === 'ADMIN_MESSAGE' && metadata?.senderName && (
-                                  <p className="text-xs sm:text-sm text-blue-400 mb-1.5 sm:mb-2 truncate">
-                                    <span className="font-medium">De:</span>{' '}
-                                    {String(metadata.senderName)}
-                                  </p>
-                                )}
+                                {(notification.type === 'ADMIN_MESSAGE' ||
+                                  notification.type === 'USER_MESSAGE') &&
+                                  (metadata?.isSent ? (
+                                    <p className="text-xs sm:text-sm text-green-400 mb-1.5 sm:mb-2 truncate">
+                                      <span className="font-medium">À:</span>{' '}
+                                      {String(metadata.recipientName || 'Utilisateur')}
+                                    </p>
+                                  ) : (
+                                    metadata?.senderName && (
+                                      <p className="text-xs sm:text-sm text-blue-400 mb-1.5 sm:mb-2 truncate">
+                                        <span className="font-medium">De:</span>{' '}
+                                        {String(metadata.senderName)}
+                                      </p>
+                                    )
+                                  ))}
                               </div>
                             </div>
 

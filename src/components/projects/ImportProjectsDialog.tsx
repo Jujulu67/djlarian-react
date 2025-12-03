@@ -60,29 +60,73 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
   } | null>(null);
   const [existingProjects, setExistingProjects] = useState<string[]>([]);
   const [overwriteDuplicates, setOverwriteDuplicates] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isSpotifyCsv, setIsSpotifyCsv] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Parser une ligne CSV en gérant les guillemets
+  const parseCsvLine = useCallback((line: string, separator: string): string[] => {
+    if (separator !== ',') {
+      return line.split(separator).map((cell) => cell.trim());
+    }
+
+    const cells: string[] = [];
+    let currentCell = '';
+    let insideQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      const nextChar = line[i + 1];
+
+      if (char === '"') {
+        if (insideQuotes && nextChar === '"') {
+          // Guillemet échappé (double guillemet)
+          currentCell += '"';
+          i++; // Skip le prochain guillemet
+        } else {
+          // Toggle insideQuotes
+          insideQuotes = !insideQuotes;
+        }
+      } else if (char === separator && !insideQuotes) {
+        // Fin de cellule
+        cells.push(currentCell.trim().replace(/^"|"$/g, '')); // Retirer les guillemets de début/fin
+        currentCell = '';
+      } else {
+        currentCell += char;
+      }
+    }
+
+    // Ajouter la dernière cellule
+    cells.push(currentCell.trim().replace(/^"|"$/g, '')); // Retirer les guillemets de début/fin
+
+    return cells;
+  }, []);
 
   // Calculer les largeurs de colonnes pour l'alignement
-  const calculateColumnWidths = useCallback((text: string, separator: string) => {
-    const lines = text.split('\n').filter((line) => line.trim());
-    if (lines.length === 0) return [];
+  const calculateColumnWidths = useCallback(
+    (text: string, separator: string) => {
+      const lines = text.split('\n').filter((line) => line.trim());
+      if (lines.length === 0) return [];
 
-    const numColumns = Math.max(...lines.map((line) => line.split(separator).length));
-    const widths: number[] = new Array(numColumns).fill(0);
+      const numColumns = Math.max(...lines.map((line) => parseCsvLine(line, separator).length));
+      const widths: number[] = new Array(numColumns).fill(0);
 
-    lines.forEach((line) => {
-      const cells = line.split(separator);
-      cells.forEach((cell, index) => {
-        const trimmed = cell.trim();
-        if (trimmed.length > widths[index]) {
-          widths[index] = trimmed.length;
-        }
+      lines.forEach((line) => {
+        const cells = parseCsvLine(line, separator);
+        cells.forEach((cell, index) => {
+          const trimmed = cell.trim();
+          if (trimmed.length > widths[index]) {
+            widths[index] = trimmed.length;
+          }
+        });
       });
-    });
 
-    // Ajouter un peu de padding
-    return widths.map((w) => Math.min(w + 3, 50)); // Max 50 caractères par colonne
-  }, []);
+      // Ajouter un peu de padding
+      return widths.map((w) => Math.min(w + 3, 50)); // Max 50 caractères par colonne
+    },
+    [parseCsvLine]
+  );
 
   // Formater le texte pour aligner les colonnes
   const formatTextForAlignment = useCallback(
@@ -93,7 +137,7 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
       return lines
         .map((line) => {
           if (!line.trim()) return line;
-          const cells = line.split(separator);
+          const cells = parseCsvLine(line, separator);
           return cells
             .map((cell, index) => {
               const trimmed = cell.trim();
@@ -105,7 +149,7 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
         })
         .join('\n');
     },
-    []
+    [parseCsvLine]
   );
 
   const handleParse = useCallback(async () => {
@@ -114,8 +158,36 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
     }
 
     try {
+      // Détecter si c'est un CSV Spotify (colonnes song et release_date)
+      let detectedSpotifyCsv = isSpotifyCsv;
+      if (!detectedSpotifyCsv && hasHeaders) {
+        const lines = pastedText.split('\n').filter((line) => line.trim());
+        if (lines.length > 0) {
+          const headerLine = lines[0];
+          const separator = pastedText.includes('\t') ? '\t' : ',';
+          const headerCells =
+            separator === ','
+              ? parseCsvLine(headerLine, separator)
+              : headerLine.split(separator).map((cell) => cell.trim());
+          const normalizedHeaders = headerCells.map((h) => h.trim().toLowerCase());
+          detectedSpotifyCsv =
+            normalizedHeaders.includes('song') &&
+            (normalizedHeaders.includes('release_date') ||
+              normalizedHeaders.includes('release date'));
+        }
+      }
+
       const rows = parseExcelData(pastedText, hasHeaders, dateFormat);
-      setParsedRows(rows);
+
+      // Si c'est un CSV Spotify, mettre le statut à TERMINE par défaut
+      const rowsWithStatus = detectedSpotifyCsv
+        ? rows.map((row) => ({
+            ...row,
+            status: (row.status || 'TERMINE') as ProjectStatus,
+          }))
+        : rows;
+
+      setParsedRows(rowsWithStatus);
 
       // Calculer les largeurs de colonnes
       const separator = pastedText.includes('\t') ? '\t' : ',';
@@ -142,7 +214,7 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
         const lines = pastedText.split('\n').filter((line) => line.trim());
         if (lines.length > 0) {
           const headerLine = lines[0];
-          const headerCells = headerLine.split(separator).map((cell) => cell.trim());
+          const headerCells = parseCsvLine(headerLine, separator);
 
           // Mapping des colonnes détectées (utiliser la même logique que le parser)
           const columns = headerCells.map((header) => {
@@ -154,6 +226,7 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
               'nom projet': 'Nom Projet',
               nom: 'Nom Projet',
               name: 'Nom Projet',
+              song: 'Nom Projet', // CSV Spotify
               style: 'Style',
               statut: 'Statut',
               status: 'Statut',
@@ -164,6 +237,8 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
               labelfinal: 'Label Final',
               'date sortie': 'Date Sortie',
               datesortie: 'Date Sortie',
+              release_date: 'Date Sortie', // CSV Spotify
+              'release date': 'Date Sortie', // CSV Spotify (avec espace)
               date: 'Date Sortie',
               lien: 'Lien',
               link: 'Lien',
@@ -216,7 +291,7 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
       console.error('Erreur lors du parsing:', error);
       alert('Erreur lors du parsing des données. Vérifiez le format.');
     }
-  }, [pastedText, hasHeaders, dateFormat, calculateColumnWidths]);
+  }, [pastedText, hasHeaders, dateFormat, calculateColumnWidths, isSpotifyCsv, parseCsvLine]);
 
   const handleUpdateRow = useCallback(
     (index: number, field: keyof ParsedProjectRow, value: string | number | Date | null) => {
@@ -364,8 +439,147 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
     setColumnWidths([]);
     setExistingProjects([]);
     setOverwriteDuplicates(false);
+    setIsDragging(false);
+    setIsSpotifyCsv(false);
     onClose();
   }, [onClose]);
+
+  const readFileContent = useCallback(
+    (file: File) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target?.result as string;
+        if (content) {
+          // Détecter si c'est un CSV Spotify (avec colonnes song, release_date, etc.)
+          const lines = content.split('\n').filter((line) => line.trim());
+          if (lines.length > 0) {
+            const headerLine = lines[0];
+            const headerCells = parseCsvLine(headerLine, ',');
+            const normalizedHeaders = headerCells.map((h) => h.trim().toLowerCase());
+
+            // Vérifier si c'est un CSV Spotify (contient song et release_date)
+            const isSpotifyCsv =
+              normalizedHeaders.includes('song') &&
+              (normalizedHeaders.includes('release_date') ||
+                normalizedHeaders.includes('release date'));
+
+            if (isSpotifyCsv) {
+              // Reformater pour ne garder que song et release_date
+              const songIndex = normalizedHeaders.indexOf('song');
+              const releaseDateIndex = normalizedHeaders.findIndex(
+                (h) => h === 'release_date' || h === 'release date'
+              );
+
+              if (songIndex !== -1 && releaseDateIndex !== -1) {
+                // Reformater avec tabulation pour un meilleur alignement
+                const formattedLines = lines.map((line, lineIndex) => {
+                  if (lineIndex === 0) {
+                    // En-tête : Nom Projet\tDate Sortie
+                    return 'Nom Projet\tDate Sortie';
+                  }
+
+                  const cells = parseCsvLine(line, ',');
+                  const song = cells[songIndex]?.trim() || '';
+                  const releaseDate = cells[releaseDateIndex]?.trim() || '';
+
+                  // Formater la date si nécessaire (YYYY-MM-DD)
+                  let formattedDate = releaseDate;
+                  if (releaseDate && !/^\d{4}-\d{2}-\d{2}$/.test(releaseDate)) {
+                    // Essayer de parser la date
+                    const date = new Date(releaseDate);
+                    if (!isNaN(date.getTime())) {
+                      const year = date.getFullYear();
+                      const month = String(date.getMonth() + 1).padStart(2, '0');
+                      const day = String(date.getDate()).padStart(2, '0');
+                      formattedDate = `${year}-${month}-${day}`;
+                    }
+                  }
+
+                  return `${song}\t${formattedDate}`;
+                });
+
+                const formattedContent = formattedLines.join('\n');
+                setPastedText(formattedContent);
+                setIsSpotifyCsv(true); // Marquer comme CSV Spotify
+
+                // Recalculer les largeurs
+                if (formattedContent.trim()) {
+                  const widths = calculateColumnWidths(formattedContent, '\t');
+                  setColumnWidths(widths);
+                }
+                return;
+              }
+            }
+          }
+
+          // Sinon, utiliser le contenu tel quel
+          setPastedText(content);
+          setIsSpotifyCsv(false); // Pas un CSV Spotify
+          // Recalculer les largeurs si on a du texte
+          if (content.trim()) {
+            const separator = content.includes('\t') ? '\t' : ',';
+            const widths = calculateColumnWidths(content, separator);
+            setColumnWidths(widths);
+          }
+        }
+      };
+      reader.onerror = () => {
+        alert('Erreur lors de la lecture du fichier');
+      };
+      reader.readAsText(file);
+    },
+    [calculateColumnWidths, parseCsvLine]
+  );
+
+  const handleFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        // Vérifier que c'est un fichier texte ou CSV
+        if (file.type === 'text/csv' || file.type === 'text/plain' || file.name.endsWith('.csv')) {
+          readFileContent(file);
+        } else {
+          alert('Veuillez sélectionner un fichier CSV ou texte');
+        }
+      }
+      // Réinitialiser l'input pour permettre de sélectionner le même fichier
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    },
+    [readFileContent]
+  );
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(false);
+
+      const file = e.dataTransfer.files?.[0];
+      if (file) {
+        // Vérifier que c'est un fichier texte ou CSV
+        if (file.type === 'text/csv' || file.type === 'text/plain' || file.name.endsWith('.csv')) {
+          readFileContent(file);
+        } else {
+          alert('Veuillez déposer un fichier CSV ou texte');
+        }
+      }
+    },
+    [readFileContent]
+  );
 
   // Calculer les statistiques avec détection des doublons
   const validRowsCount = parsedRows.filter(
@@ -438,7 +652,7 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
       >
         {/* Header */}
         <div className="flex-shrink-0 mb-4">
-          <h2 className="text-2xl font-bold text-white">Importer des projets depuis Excel</h2>
+          <h2 className="text-2xl font-bold text-white">Importer des projets depuis Excel/CSV</h2>
         </div>
 
         {/* Step 1: Paste */}
@@ -446,7 +660,7 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
           <div className="flex-1 flex flex-col min-h-0">
             <div className="flex-shrink-0 mb-4">
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Collez les données depuis Excel
+                Collez les données depuis Excel ou importez un fichier CSV
               </label>
               <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3 mb-2">
                 <p className="text-xs text-purple-300 font-medium mb-1">
@@ -458,10 +672,27 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
                   l'ordre des colonnes doit suivre : Nom, Style, Statut, Collab, Label, Label Final,
                   Date Sortie, Lien, J7, J14, J21, J28, J56, J84.
                 </p>
+                <p className="text-xs text-gray-400 mt-2">
+                  Pour les fichiers CSV Spotify, les colonnes{' '}
+                  <code className="bg-gray-800/50 px-1 rounded">song</code> et{' '}
+                  <code className="bg-gray-800/50 px-1 rounded">release_date</code> seront
+                  automatiquement mappées.
+                </p>
               </div>
               <p className="text-xs text-gray-500 mb-3">
-                Les formats tabulations et virgules sont supportés automatiquement.
+                Les formats tabulations et virgules sont supportés automatiquement. Vous pouvez
+                également glisser-déposer un fichier CSV dans la zone ci-dessous.
               </p>
+              <div className="mb-3 flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-3 py-1.5 text-sm bg-purple-600/50 hover:bg-purple-600 text-white rounded-lg transition-colors border border-purple-500/30 hover:border-purple-500/50 flex items-center gap-2"
+                >
+                  <Upload size={14} aria-hidden="true" />
+                  Sélectionner un fichier CSV
+                </button>
+              </div>
               <div className="mb-3">
                 <Checkbox
                   checked={hasHeaders}
@@ -523,16 +754,29 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
                 </div>
               </div>
             </div>
-            <div className="flex-1 min-h-0 flex flex-col mb-4">
+            <div className="flex-1 min-h-0 flex flex-col mb-4 relative">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv,.txt,text/csv,text/plain"
+                onChange={handleFileSelect}
+                className="hidden"
+                aria-label="Sélectionner un fichier CSV"
+              />
               <textarea
                 ref={textareaRef}
                 value={pastedText}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
                 onChange={(e) => {
                   const target = e.target;
                   if (!target) return;
 
                   const newValue = target.value || '';
                   setPastedText(newValue);
+                  // Réinitialiser isSpotifyCsv si le texte change manuellement
+                  setIsSpotifyCsv(false);
                   // Recalculer les largeurs si on a du texte
                   if (newValue.trim()) {
                     const separator = newValue.includes('\t') ? '\t' : ',';
@@ -570,6 +814,8 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
                     pastedText.substring(0, start) + pastedData + pastedText.substring(end);
 
                   setPastedText(newValue);
+                  // Réinitialiser isSpotifyCsv si le texte change manuellement
+                  setIsSpotifyCsv(false);
 
                   // Recalculer les largeurs si on a du texte
                   if (newValue.trim()) {
@@ -596,8 +842,10 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
                     }
                   }, 100);
                 }}
-                placeholder="Collez vos données ici..."
-                className="w-full h-full bg-gray-800/50 border border-purple-500/30 rounded-lg px-4 py-3 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent font-mono leading-relaxed whitespace-pre overflow-x-auto resize-none"
+                placeholder="Collez vos données ici ou glissez-déposez un fichier CSV..."
+                className={`w-full h-full bg-gray-800/50 border rounded-lg px-4 py-3 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent font-mono leading-relaxed whitespace-pre overflow-x-auto resize-none transition-colors ${
+                  isDragging ? 'border-purple-500 bg-purple-500/20' : 'border-purple-500/30'
+                }`}
                 style={{
                   tabSize:
                     columnWidths.length > 0 ? Math.max(...columnWidths.map((w) => w + 2)) : 8,
@@ -661,31 +909,37 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
                         Colonnes détectées : {detectedColumns.filter((c) => c.mapped).length}/
                         {detectedColumns.length} mappées
                       </span>
-                      {detectedColumns.filter((c) => !c.mapped).length > 0 && (
-                        <div className="group relative inline-flex items-center">
-                          <span className="text-yellow-400 cursor-help underline decoration-dotted">
-                            ({detectedColumns.filter((c) => !c.mapped).length} non reconnue(s))
-                          </span>
-                          <div className="absolute left-0 top-6 z-20 hidden group-hover:block bg-gray-900 border border-yellow-500/50 rounded-lg p-3 shadow-lg min-w-[250px]">
-                            <div className="text-xs font-semibold text-yellow-400 mb-2">
-                              Colonnes non reconnues :
-                            </div>
-                            <div className="text-xs text-gray-300 space-y-1">
-                              {detectedColumns
-                                .filter((c) => !c.mapped)
-                                .map((col, i) => (
-                                  <div key={i} className="flex items-center gap-2">
-                                    <span className="text-yellow-400">•</span>
-                                    <span className="font-mono">{col.original}</span>
-                                  </div>
-                                ))}
-                            </div>
-                            <div className="text-xs text-gray-500 mt-2 pt-2 border-t border-white/10">
-                              Ces colonnes seront ignorées lors de l'import
+                      {/* Ne pas afficher les colonnes non mappées si on a exactement 2 colonnes mappées (Nom Projet et Date Sortie) = CSV Spotify reformaté */}
+                      {detectedColumns.filter((c) => !c.mapped).length > 0 &&
+                        !(
+                          detectedColumns.filter((c) => c.mapped).length === 2 &&
+                          detectedColumns.some((c) => c.mapped === 'Nom Projet') &&
+                          detectedColumns.some((c) => c.mapped === 'Date Sortie')
+                        ) && (
+                          <div className="group relative inline-flex items-center">
+                            <span className="text-yellow-400 cursor-help underline decoration-dotted">
+                              ({detectedColumns.filter((c) => !c.mapped).length} non reconnue(s))
+                            </span>
+                            <div className="absolute left-0 top-6 z-20 hidden group-hover:block bg-gray-900 border border-yellow-500/50 rounded-lg p-3 shadow-lg min-w-[250px]">
+                              <div className="text-xs font-semibold text-yellow-400 mb-2">
+                                Colonnes non reconnues :
+                              </div>
+                              <div className="text-xs text-gray-300 space-y-1">
+                                {detectedColumns
+                                  .filter((c) => !c.mapped)
+                                  .map((col, i) => (
+                                    <div key={i} className="flex items-center gap-2">
+                                      <span className="text-yellow-400">•</span>
+                                      <span className="font-mono">{col.original}</span>
+                                    </div>
+                                  ))}
+                              </div>
+                              <div className="text-xs text-gray-500 mt-2 pt-2 border-t border-white/10">
+                                Ces colonnes seront ignorées lors de l'import
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      )}
+                        )}
                     </div>
                   </div>
                 )}
@@ -702,96 +956,96 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
               className="overflow-x-auto flex-1 min-h-0 border border-white/10 rounded-lg"
               style={{ overflowY: 'auto' }}
             >
-              <table className="w-full border-collapse min-w-[1400px]">
+              <table className="w-full border-collapse min-w-[1150px]">
                 <thead className="sticky top-0 bg-gray-900/95 z-10">
                   <tr className="border-b border-white/10">
                     <th
-                      className="px-3 py-2 text-left text-xs font-semibold text-purple-300 uppercase whitespace-nowrap"
-                      style={{ minWidth: '60px', width: '60px' }}
+                      className="px-2 py-2 text-left text-xs font-semibold text-purple-300 uppercase whitespace-nowrap"
+                      style={{ minWidth: '45px', width: '45px' }}
                     >
                       Etat
                     </th>
                     <th
-                      className="px-3 py-2 text-left text-xs font-semibold text-purple-300 uppercase whitespace-nowrap"
-                      style={{ minWidth: '150px' }}
+                      className="px-2 py-2 text-left text-xs font-semibold text-purple-300 uppercase whitespace-nowrap"
+                      style={{ minWidth: '130px' }}
                     >
                       Nom *
                     </th>
                     <th
-                      className="px-3 py-2 text-left text-xs font-semibold text-purple-300 uppercase whitespace-nowrap"
-                      style={{ minWidth: '120px' }}
+                      className="px-2 py-2 text-left text-xs font-semibold text-purple-300 uppercase whitespace-nowrap"
+                      style={{ minWidth: '100px' }}
                     >
                       Style
                     </th>
                     <th
-                      className="px-3 py-2 text-left text-xs font-semibold text-purple-300 uppercase whitespace-nowrap"
-                      style={{ minWidth: '120px' }}
+                      className="px-2 py-2 text-left text-xs font-semibold text-purple-300 uppercase whitespace-nowrap"
+                      style={{ minWidth: '110px' }}
                     >
                       Statut
                     </th>
                     <th
-                      className="px-3 py-2 text-left text-xs font-semibold text-purple-300 uppercase whitespace-nowrap"
-                      style={{ minWidth: '120px' }}
+                      className="px-2 py-2 text-left text-xs font-semibold text-purple-300 uppercase whitespace-nowrap"
+                      style={{ minWidth: '100px' }}
                     >
                       Collab
                     </th>
                     <th
-                      className="px-3 py-2 text-left text-xs font-semibold text-purple-300 uppercase whitespace-nowrap"
-                      style={{ minWidth: '120px' }}
+                      className="px-2 py-2 text-left text-xs font-semibold text-purple-300 uppercase whitespace-nowrap"
+                      style={{ minWidth: '100px' }}
                     >
                       Label
                     </th>
                     <th
-                      className="px-3 py-2 text-left text-xs font-semibold text-purple-300 uppercase whitespace-nowrap"
-                      style={{ minWidth: '120px' }}
+                      className="px-2 py-2 text-left text-xs font-semibold text-purple-300 uppercase whitespace-nowrap"
+                      style={{ minWidth: '100px' }}
                     >
                       Label Final
                     </th>
                     <th
-                      className="px-3 py-2 text-left text-xs font-semibold text-purple-300 uppercase whitespace-nowrap"
-                      style={{ minWidth: '130px' }}
+                      className="px-2 py-2 text-left text-xs font-semibold text-purple-300 uppercase whitespace-nowrap"
+                      style={{ minWidth: '120px' }}
                     >
                       Date Sortie
                     </th>
                     <th
-                      className="px-3 py-2 text-left text-xs font-semibold text-purple-300 uppercase whitespace-nowrap"
-                      style={{ minWidth: '150px' }}
+                      className="px-2 py-2 text-left text-xs font-semibold text-purple-300 uppercase whitespace-nowrap"
+                      style={{ minWidth: '120px' }}
                     >
                       Lien
                     </th>
                     <th
-                      className="px-3 py-2 text-left text-xs font-semibold text-purple-300 uppercase whitespace-nowrap"
-                      style={{ minWidth: '70px' }}
+                      className="px-2 py-2 text-left text-xs font-semibold text-purple-300 uppercase whitespace-nowrap"
+                      style={{ minWidth: '60px' }}
                     >
                       J7
                     </th>
                     <th
-                      className="px-3 py-2 text-left text-xs font-semibold text-purple-300 uppercase whitespace-nowrap"
-                      style={{ minWidth: '70px' }}
+                      className="px-2 py-2 text-left text-xs font-semibold text-purple-300 uppercase whitespace-nowrap"
+                      style={{ minWidth: '60px' }}
                     >
                       J14
                     </th>
                     <th
-                      className="px-3 py-2 text-left text-xs font-semibold text-purple-300 uppercase whitespace-nowrap"
-                      style={{ minWidth: '70px' }}
+                      className="px-2 py-2 text-left text-xs font-semibold text-purple-300 uppercase whitespace-nowrap"
+                      style={{ minWidth: '60px' }}
                     >
                       J21
                     </th>
                     <th
-                      className="px-3 py-2 text-left text-xs font-semibold text-purple-300 uppercase whitespace-nowrap"
-                      style={{ minWidth: '70px' }}
+                      className="px-2 py-2 text-left text-xs font-semibold text-purple-300 uppercase whitespace-nowrap"
+                      style={{ minWidth: '60px' }}
                     >
                       J28
                     </th>
                     <th
-                      className="px-3 py-2 text-left text-xs font-semibold text-purple-300 uppercase whitespace-nowrap"
-                      style={{ minWidth: '70px' }}
+                      className="px-2 py-2 text-left text-xs font-semibold text-purple-300 uppercase whitespace-nowrap"
+                      style={{ minWidth: '60px' }}
                     >
                       J56
                     </th>
                     <th
-                      className="px-3 py-2 text-left text-xs font-semibold text-purple-300 uppercase whitespace-nowrap"
-                      style={{ minWidth: '70px' }}
+                      className="px-2 py-2 text-left text-xs font-semibold text-purple-300 uppercase whitespace-nowrap"
+                      style={{ minWidth: '60px' }}
                     >
                       J84
                     </th>
@@ -807,7 +1061,7 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
                           hasErrors ? 'bg-red-500/10 border-l-4 border-red-500' : 'hover:bg-white/5'
                         }`}
                       >
-                        <td className="px-3 py-2" style={{ width: '60px' }}>
+                        <td className="px-2 py-2" style={{ width: '45px' }}>
                           {hasErrors ? (
                             <div className="group relative">
                               <AlertCircle size={16} className="text-red-400 cursor-help" />
@@ -823,7 +1077,7 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
                             <Check size={16} className="text-green-400" />
                           )}
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-2 py-2">
                           <input
                             type="text"
                             value={row.name || ''}
@@ -832,26 +1086,26 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
                               !row.name || row.name.trim() === ''
                                 ? 'border-red-500/50'
                                 : 'border-purple-500/30'
-                            } focus:outline-none focus:ring-1 focus:ring-purple-500/50 min-w-[140px]`}
+                            } focus:outline-none focus:ring-1 focus:ring-purple-500/50 min-w-[120px]`}
                             placeholder="Nom requis"
                           />
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-2 py-2">
                           <input
                             type="text"
                             value={row.style || ''}
                             onChange={(e) => handleUpdateRow(index, 'style', e.target.value)}
-                            className="w-full bg-gray-800/50 border border-purple-500/30 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500/50 min-w-[100px]"
+                            className="w-full bg-gray-800/50 border border-purple-500/30 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500/50 min-w-[90px]"
                             placeholder="Style"
                           />
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-2 py-2">
                           <select
                             value={row.status || 'EN_COURS'}
                             onChange={(e) =>
                               handleUpdateRow(index, 'status', e.target.value as ProjectStatus)
                             }
-                            className="w-full bg-gray-800/50 border border-purple-500/30 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500/50 min-w-[110px]"
+                            className="w-full bg-gray-800/50 border border-purple-500/30 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500/50 min-w-[100px]"
                           >
                             {PROJECT_STATUSES.map((s) => (
                               <option key={s.value} value={s.value}>
@@ -860,51 +1114,51 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
                             ))}
                           </select>
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-2 py-2">
                           <input
                             type="text"
                             value={row.collab || ''}
                             onChange={(e) => handleUpdateRow(index, 'collab', e.target.value)}
-                            className="w-full bg-gray-800/50 border border-purple-500/30 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500/50 min-w-[100px]"
+                            className="w-full bg-gray-800/50 border border-purple-500/30 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500/50 min-w-[90px]"
                             placeholder="Collab"
                           />
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-2 py-2">
                           <input
                             type="text"
                             value={row.label || ''}
                             onChange={(e) => handleUpdateRow(index, 'label', e.target.value)}
-                            className="w-full bg-gray-800/50 border border-purple-500/30 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500/50 min-w-[100px]"
+                            className="w-full bg-gray-800/50 border border-purple-500/30 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500/50 min-w-[90px]"
                             placeholder="Label"
                           />
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-2 py-2">
                           <input
                             type="text"
                             value={row.labelFinal || ''}
                             onChange={(e) => handleUpdateRow(index, 'labelFinal', e.target.value)}
-                            className="w-full bg-gray-800/50 border border-purple-500/30 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500/50 min-w-[100px]"
+                            className="w-full bg-gray-800/50 border border-purple-500/30 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500/50 min-w-[90px]"
                             placeholder="Label Final"
                           />
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-2 py-2">
                           <input
                             type="date"
                             value={row.releaseDate || ''}
                             onChange={(e) => handleUpdateRow(index, 'releaseDate', e.target.value)}
-                            className="w-full bg-gray-800/50 border border-purple-500/30 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500/50 min-w-[120px]"
+                            className="w-full bg-gray-800/50 border border-purple-500/30 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500/50 min-w-[110px]"
                           />
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-2 py-2">
                           <input
                             type="text"
                             value={row.externalLink || ''}
                             onChange={(e) => handleUpdateRow(index, 'externalLink', e.target.value)}
-                            className="w-full bg-gray-800/50 border border-purple-500/30 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500/50 min-w-[120px]"
+                            className="w-full bg-gray-800/50 border border-purple-500/30 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500/50 min-w-[110px]"
                             placeholder="URL"
                           />
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-2 py-2">
                           <input
                             type="number"
                             value={row.streamsJ7 ?? ''}
@@ -920,7 +1174,7 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
                             min="0"
                           />
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-2 py-2">
                           <input
                             type="number"
                             value={row.streamsJ14 ?? ''}
@@ -936,7 +1190,7 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
                             min="0"
                           />
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-2 py-2">
                           <input
                             type="number"
                             value={row.streamsJ21 ?? ''}
@@ -952,7 +1206,7 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
                             min="0"
                           />
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-2 py-2">
                           <input
                             type="number"
                             value={row.streamsJ28 ?? ''}
@@ -968,7 +1222,7 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
                             min="0"
                           />
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-2 py-2">
                           <input
                             type="number"
                             value={row.streamsJ56 ?? ''}
@@ -984,7 +1238,7 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
                             min="0"
                           />
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-2 py-2">
                           <input
                             type="number"
                             value={row.streamsJ84 ?? ''}

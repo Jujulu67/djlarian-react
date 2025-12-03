@@ -13,6 +13,11 @@ import {
   Info,
   AlertCircle,
   Archive,
+  ChevronDown,
+  ChevronUp,
+  UserPlus,
+  UserCheck,
+  UserX,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
@@ -87,9 +92,36 @@ function getNotificationStyle(type: NotificationType): {
         iconColor: 'text-yellow-400',
       };
     case 'INFO':
-    default:
       return {
         icon: Info,
+        bgColor: 'bg-blue-500/20',
+        borderColor: 'border-blue-500/30',
+        iconColor: 'text-blue-400',
+      };
+    case 'FRIEND_REQUEST':
+      return {
+        icon: UserPlus,
+        bgColor: 'bg-purple-500/20',
+        borderColor: 'border-purple-500/30',
+        iconColor: 'text-purple-400',
+      };
+    case 'FRIEND_ACCEPTED':
+      return {
+        icon: UserCheck,
+        bgColor: 'bg-green-500/20',
+        borderColor: 'border-green-500/30',
+        iconColor: 'text-green-400',
+      };
+    case 'FRIEND_REJECTED':
+      return {
+        icon: UserX,
+        bgColor: 'bg-red-500/20',
+        borderColor: 'border-red-500/30',
+        iconColor: 'text-red-400',
+      };
+    default:
+      return {
+        icon: Bell,
         bgColor: 'bg-gray-500/20',
         borderColor: 'border-gray-500/30',
         iconColor: 'text-gray-400',
@@ -125,6 +157,9 @@ export function MilestoneInbox({ isOpen, onClose }: MilestoneInboxProps) {
     unreadOnly: false,
     autoRefresh: false,
   });
+
+  // État pour gérer l'ouverture/fermeture des threads
+  const [expandedThreads, setExpandedThreads] = useState<Set<string>>(new Set());
 
   // Détecter si on est sur mobile
   const [isMobile, setIsMobile] = useState(false);
@@ -215,10 +250,33 @@ export function MilestoneInbox({ isOpen, onClose }: MilestoneInboxProps) {
     return () => window.removeEventListener('focus', handleFocus);
   }, [isOpen, refresh]);
 
+  const toggleThread = (threadId: string | null) => {
+    if (!threadId) return;
+    setExpandedThreads((prev) => {
+      const next = new Set(prev);
+      if (next.has(threadId)) {
+        next.delete(threadId);
+      } else {
+        next.add(threadId);
+      }
+      return next;
+    });
+  };
+
   const handleNotificationClick = async (notification: Notification) => {
     // Vérifier que l'ID existe
     if (!notification.id) {
       console.error('Notification sans ID:', notification);
+      return;
+    }
+
+    // Pour les messages, toggle le thread au lieu de rediriger
+    if (
+      (notification.type === 'ADMIN_MESSAGE' || notification.type === 'USER_MESSAGE') &&
+      notification.replies &&
+      notification.replies.length > 0
+    ) {
+      toggleThread(notification.threadId || notification.id);
       return;
     }
 
@@ -235,9 +293,16 @@ export function MilestoneInbox({ isOpen, onClose }: MilestoneInboxProps) {
     // Fermer le burger avant de naviguer
     onClose();
 
-    // Messages -> vue messages, autres notifs -> vue notifications
+    // Rediriger selon le type de notification
     if (notification.type === 'ADMIN_MESSAGE' || notification.type === 'USER_MESSAGE') {
       router.push('/notifications?view=messages');
+    } else if (
+      notification.type === 'FRIEND_REQUEST' ||
+      notification.type === 'FRIEND_ACCEPTED' ||
+      notification.type === 'FRIEND_REJECTED'
+    ) {
+      // Rediriger vers l'onglet amis pour les notifications d'amis
+      router.push('/notifications?view=friends');
     } else {
       router.push('/notifications?view=notifications');
     }
@@ -347,6 +412,9 @@ export function MilestoneInbox({ isOpen, onClose }: MilestoneInboxProps) {
                     const metadata = parseMetadata(notification.metadata);
                     const isUnread = !notification.isRead;
                     const projectName = notification.Project?.name || metadata?.projectName || '';
+                    const hasReplies = notification.replies && notification.replies.length > 0;
+                    const threadId = notification.threadId || notification.id;
+                    const isThreadExpanded = expandedThreads.has(threadId);
 
                     return (
                       <div
@@ -364,47 +432,141 @@ export function MilestoneInbox({ isOpen, onClose }: MilestoneInboxProps) {
                           </div>
 
                           {/* Contenu */}
-                          <button
-                            onClick={() => handleNotificationClick(notification)}
-                            className="flex-1 min-w-0 text-left touch-manipulation"
-                            title={isUnread ? 'Cliquer pour marquer comme lu' : ''}
-                          >
+                          <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2 mb-1">
-                              <h3 className="text-sm sm:text-base font-semibold text-white line-clamp-2">
-                                {notification.title}
-                              </h3>
-                            </div>
-                            {notification.message && (
-                              <p className="text-xs sm:text-sm text-gray-400 mb-2 line-clamp-3">
-                                {notification.message}
-                              </p>
-                            )}
-                            {notification.type === 'ADMIN_MESSAGE' && metadata?.senderName && (
-                              <p className="text-xs text-blue-400 mb-2 truncate">
-                                De: {String(metadata.senderName)}
-                              </p>
-                            )}
-                            {projectName && (
-                              <p className="text-xs text-gray-500 mb-2 truncate">
-                                Projet: {projectName}
-                              </p>
-                            )}
-                            {notification.type === 'MILESTONE' &&
-                              metadata?.streams !== undefined && (
-                                <div className="flex items-center gap-1 text-xs text-purple-400">
-                                  <TrendingUp className="w-3 h-3 flex-shrink-0" />
-                                  <span>{Number(metadata.streams).toLocaleString()} streams</span>
-                                </div>
+                              <button
+                                onClick={() => handleNotificationClick(notification)}
+                                className="flex-1 text-left touch-manipulation"
+                                title={isUnread ? 'Cliquer pour marquer comme lu' : ''}
+                              >
+                                <h3 className="text-sm sm:text-base font-semibold text-white line-clamp-2">
+                                  {notification.title}
+                                </h3>
+                                {notification.message && (
+                                  <p className="text-xs sm:text-sm text-gray-400 mb-2 mt-1 line-clamp-3">
+                                    {notification.message}
+                                  </p>
+                                )}
+                                {notification.type === 'ADMIN_MESSAGE' && metadata?.senderName && (
+                                  <p className="text-xs text-blue-400 mb-2 truncate">
+                                    De: {String(metadata.senderName)}
+                                  </p>
+                                )}
+                                {notification.type === 'USER_MESSAGE' && metadata?.senderName && (
+                                  <p className="text-xs text-green-400 mb-2 truncate">
+                                    De: {String(metadata.senderName)}
+                                  </p>
+                                )}
+                                {projectName && (
+                                  <p className="text-xs text-gray-500 mb-2 truncate">
+                                    Projet: {projectName}
+                                  </p>
+                                )}
+                                {notification.type === 'MILESTONE' &&
+                                  metadata?.streams !== undefined && (
+                                    <div className="flex items-center gap-1 text-xs text-purple-400">
+                                      <TrendingUp className="w-3 h-3 flex-shrink-0" />
+                                      <span>
+                                        {Number(metadata.streams).toLocaleString()} streams
+                                      </span>
+                                    </div>
+                                  )}
+                                {notification.Project?.releaseDate && (
+                                  <p className="text-xs text-gray-500 mb-2">
+                                    Sortie: {formatDateFrench(notification.Project.releaseDate)}
+                                  </p>
+                                )}
+                                <p className="text-xs text-gray-500 mt-2">
+                                  {formatDateFrench(notification.createdAt)}
+                                </p>
+                                {hasReplies && (
+                                  <p className="text-xs text-gray-400 mt-1">
+                                    {notification.replies.length}{' '}
+                                    {notification.replies.length === 1 ? 'réponse' : 'réponses'}
+                                  </p>
+                                )}
+                              </button>
+                              {hasReplies && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleThread(threadId);
+                                  }}
+                                  className="p-1 text-gray-400 hover:text-white transition-colors flex-shrink-0"
+                                  title={
+                                    isThreadExpanded
+                                      ? 'Masquer les réponses'
+                                      : 'Afficher les réponses'
+                                  }
+                                >
+                                  {isThreadExpanded ? (
+                                    <ChevronUp className="w-4 h-4" />
+                                  ) : (
+                                    <ChevronDown className="w-4 h-4" />
+                                  )}
+                                </button>
                               )}
-                            {notification.Project?.releaseDate && (
-                              <p className="text-xs text-gray-500 mb-2">
-                                Sortie: {formatDateFrench(notification.Project.releaseDate)}
-                              </p>
+                            </div>
+
+                            {/* Afficher les réponses si le thread est développé */}
+                            {hasReplies && isThreadExpanded && (
+                              <div className="mt-3 ml-2 pl-3 border-l-2 border-gray-700/50 space-y-2">
+                                {notification.replies.map((reply) => {
+                                  const replyMetadata = parseMetadata(reply.metadata);
+                                  const replyStyle = getNotificationStyle(
+                                    reply.type as NotificationType
+                                  );
+                                  const ReplyIcon = replyStyle.icon;
+
+                                  return (
+                                    <div
+                                      key={reply.id}
+                                      className="p-2 bg-gray-800/30 rounded-lg border border-gray-700/30"
+                                    >
+                                      <div className="flex items-start gap-2">
+                                        <div
+                                          className={`flex-shrink-0 p-1 rounded-lg ${replyStyle.bgColor} border ${replyStyle.borderColor}`}
+                                        >
+                                          <ReplyIcon
+                                            className={`w-3 h-3 ${replyStyle.iconColor}`}
+                                          />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex items-center gap-2 mb-1">
+                                            <h4 className="text-xs font-semibold text-white">
+                                              {reply.title}
+                                            </h4>
+                                            {replyMetadata?.isSent ? (
+                                              <span className="text-xs text-green-400">
+                                                à{' '}
+                                                {String(
+                                                  replyMetadata.recipientName || 'Utilisateur'
+                                                )}
+                                              </span>
+                                            ) : (
+                                              replyMetadata?.senderName && (
+                                                <span className="text-xs text-gray-400">
+                                                  par {String(replyMetadata.senderName)}
+                                                </span>
+                                              )
+                                            )}
+                                          </div>
+                                          {reply.message && (
+                                            <p className="text-xs text-gray-400 mb-1">
+                                              {reply.message}
+                                            </p>
+                                          )}
+                                          <p className="text-xs text-gray-500">
+                                            {formatDateFrench(reply.createdAt)}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
                             )}
-                            <p className="text-xs text-gray-500 mt-2">
-                              {formatDateFrench(notification.createdAt)}
-                            </p>
-                          </button>
+                          </div>
 
                           {/* Actions */}
                           <div className="flex flex-col items-center gap-1.5 sm:gap-2 flex-shrink-0">

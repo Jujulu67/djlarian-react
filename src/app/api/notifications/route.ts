@@ -11,7 +11,10 @@ export type NotificationType =
   | 'USER_MESSAGE'
   | 'RELEASE_UPCOMING'
   | 'INFO'
-  | 'WARNING';
+  | 'WARNING'
+  | 'FRIEND_REQUEST'
+  | 'FRIEND_ACCEPTED'
+  | 'FRIEND_REJECTED';
 
 /**
  * GET /api/notifications

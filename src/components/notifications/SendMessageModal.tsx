@@ -3,7 +3,9 @@
 import { Loader2, X, Send, Search } from 'lucide-react';
 import { useEffect, useState, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
+import ReactDOM from 'react-dom';
 import { Notification } from '@/hooks/useNotifications';
+import { useFriends } from '@/hooks/useFriends';
 
 interface User {
   id: string;
@@ -17,11 +19,19 @@ interface SendMessageModalProps {
   onClose: () => void;
   onSuccess?: () => void;
   replyTo?: Notification | null;
+  initialUserId?: string | null;
 }
 
-export function SendMessageModal({ isOpen, onClose, onSuccess, replyTo }: SendMessageModalProps) {
+export function SendMessageModal({
+  isOpen,
+  onClose,
+  onSuccess,
+  replyTo,
+  initialUserId,
+}: SendMessageModalProps) {
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === 'ADMIN';
+  const { friends } = useFriends();
   const [selectedUserId, setSelectedUserId] = useState<string>('ALL'); // 'ALL' par défaut
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
@@ -36,7 +46,8 @@ export function SendMessageModal({ isOpen, onClose, onSuccess, replyTo }: SendMe
     if (isOpen) {
       loadUsers();
     }
-  }, [isOpen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, isAdmin, friends]);
 
   // Pré-remplir les champs si c'est une réponse
   useEffect(() => {
@@ -53,11 +64,16 @@ export function SendMessageModal({ isOpen, onClose, onSuccess, replyTo }: SendMe
       }
     } else if (isOpen && !replyTo) {
       // Réinitialiser si ce n'est pas une réponse
-      setSelectedUserId(isAdmin ? 'ALL' : '');
+      // Utiliser initialUserId si fourni, sinon valeur par défaut
+      if (initialUserId) {
+        setSelectedUserId(initialUserId);
+      } else {
+        setSelectedUserId(isAdmin ? 'ALL' : '');
+      }
       setTitle('');
       setMessage('');
     }
-  }, [isOpen, replyTo, isAdmin]);
+  }, [isOpen, replyTo, isAdmin, initialUserId]);
 
   // Filtrer les utilisateurs selon la recherche
   const filteredUsers = useMemo(() => {
@@ -72,13 +88,25 @@ export function SendMessageModal({ isOpen, onClose, onSuccess, replyTo }: SendMe
     setIsLoadingUsers(true);
     setError(null);
     try {
-      const response = await fetch('/api/users');
-      if (!response.ok) {
-        throw new Error('Erreur lors du chargement des utilisateurs');
+      if (isAdmin) {
+        // Les admins voient tous les utilisateurs
+        const response = await fetch('/api/users');
+        if (!response.ok) {
+          throw new Error('Erreur lors du chargement des utilisateurs');
+        }
+        const data = await response.json();
+        const result = data?.data || data;
+        setUsers(Array.isArray(result) ? result : []);
+      } else {
+        // Les non-admins ne voient que leurs amis
+        const friendsList = friends.map((friend) => ({
+          id: friend.user.id,
+          name: friend.user.name,
+          email: friend.user.email || '',
+          role: friend.user.role || 'USER',
+        }));
+        setUsers(friendsList);
       }
-      const data = await response.json();
-      const result = data?.data || data;
-      setUsers(Array.isArray(result) ? result : []);
     } catch (err) {
       console.error('Erreur lors du chargement des utilisateurs:', err);
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
@@ -122,11 +150,29 @@ export function SendMessageModal({ isOpen, onClose, onSuccess, replyTo }: SendMe
         throw new Error(errorData.error || "Erreur lors de l'envoi");
       }
 
+      // Récupérer les données de la réponse pour obtenir le threadId
+      const responseData = await response.json();
+      const notificationData = responseData?.data || responseData;
+
       // Réinitialiser le formulaire
       setTitle('');
       setMessage('');
       setSelectedUserId(isAdmin ? 'ALL' : '');
       setSearchQuery('');
+
+      // Émettre un événement pour forcer le refresh des notifications
+      // Cela rafraîchira les notifications pour l'expéditeur immédiatement
+      // Le destinataire verra le message dans les 30 secondes grâce au polling
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('notification-sent', {
+            detail: {
+              threadId: notificationData?.threadId || null,
+              recipientId: sendToAll ? null : selectedUserId,
+            },
+          })
+        );
+      }
 
       if (onSuccess) {
         onSuccess();
@@ -153,19 +199,19 @@ export function SendMessageModal({ isOpen, onClose, onSuccess, replyTo }: SendMe
 
   if (!isOpen) return null;
 
-  return (
+  const modalContent = (
     <>
       {/* Overlay */}
       <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[10000]"
         onClick={handleClose}
         aria-hidden="true"
       />
 
       {/* Modal */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
         <div
-          className="w-full max-w-md bg-gradient-to-br from-gray-900/95 via-gray-800/95 to-gray-900/95 backdrop-blur-xl border border-purple-500/30 rounded-xl shadow-2xl"
+          className="w-full max-w-md bg-gradient-to-br from-gray-900/95 via-gray-800/95 to-gray-900/95 backdrop-blur-xl border border-purple-500/30 rounded-xl shadow-2xl max-h-[90vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -244,6 +290,17 @@ export function SendMessageModal({ isOpen, onClose, onSuccess, replyTo }: SendMe
                   {searchQuery && filteredUsers.length === 0 && (
                     <p className="text-xs text-gray-400">Aucun utilisateur trouvé</p>
                   )}
+
+                  {/* Message si aucun ami disponible pour les non-admins */}
+                  {!isAdmin && !replyTo && users.length === 0 && !isLoadingUsers && (
+                    <div className="p-3 bg-yellow-500/20 border border-yellow-500/30 rounded-lg text-yellow-400 text-sm">
+                      <p>Vous n'avez pas encore d'amis.</p>
+                      <p className="text-xs mt-1">
+                        Allez dans l'onglet "Amis" pour ajouter des amis et pouvoir leur envoyer des
+                        messages.
+                      </p>
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -320,4 +377,7 @@ export function SendMessageModal({ isOpen, onClose, onSuccess, replyTo }: SendMe
       </div>
     </>
   );
+
+  if (typeof window === 'undefined') return null;
+  return ReactDOM.createPortal(modalContent, document.body);
 }

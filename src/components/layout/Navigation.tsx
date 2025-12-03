@@ -70,7 +70,7 @@ const Navigation = () => {
   const notificationsHook = useNotifications({
     unreadOnly: true,
     autoRefresh: status === 'authenticated',
-    refreshInterval: 300000, // 5 minutes (optimisé pour quotas gratuits)
+    refreshInterval: 30000, // 30 secondes pour une mise à jour plus rapide des messages
     refreshOnPageChange: false, // Désactivé par défaut pour économiser les requêtes
   });
   const unreadCount = status === 'authenticated' ? notificationsHook.unreadCount : 0;
