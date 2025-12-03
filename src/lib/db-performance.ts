@@ -44,8 +44,7 @@ class DbPerformanceLogger {
   logConnection(t0: number, t1: number): number {
     const connectTime = t1 - t0;
     if (this.enabled && connectTime > 0) {
-      // Utiliser console.log directement pour que ça apparaisse dans Vercel
-      console.log(`[DB Perf] ${this.handlerName} - connect: ${connectTime}ms`);
+      logger.debug(`[DB Perf] ${this.handlerName} - connect: ${connectTime}ms`);
     }
     return connectTime;
   }
@@ -57,8 +56,7 @@ class DbPerformanceLogger {
     const queryTime = t2 - t1;
     if (this.enabled && queryTime > 0) {
       const queryInfo = query ? ` (${query})` : '';
-      // Utiliser console.log directement pour que ça apparaisse dans Vercel
-      console.log(`[DB Perf] ${this.handlerName} - query: ${queryTime}ms${queryInfo}`);
+      logger.debug(`[DB Perf] ${this.handlerName} - query: ${queryTime}ms${queryInfo}`);
     }
     return queryTime;
   }
@@ -103,8 +101,7 @@ class DbPerformanceLogger {
       parts.push(`total: ${totalTime}ms`);
 
       const queryInfo = options?.query ? ` [${options.query}]` : '';
-      // Utiliser console.log directement pour que ça apparaisse dans Vercel
-      console.log(`[DB Perf] ${this.handlerName}${queryInfo} - ${parts.join(', ')}`);
+      logger.debug(`[DB Perf] ${this.handlerName}${queryInfo} - ${parts.join(', ')}`);
 
       // Avertissement si le temps total est suspect (> 1000ms)
       if (totalTime > 1000) {

@@ -80,7 +80,12 @@ export async function POST(request: NextRequest) {
     logger.debug('[Admin Inventory Batch] Processing batch:', {
       adminId: session.user.id,
       actionCount: actions.length,
-      actions: actions.map((a) => `${a.type}:${a.userItemId || a.itemId}`),
+      actions: actions.map((a) => {
+        if (a.type === 'activate' || a.type === 'deactivate') {
+          return `${a.type}:${a.userItemId}`;
+        }
+        return `${a.type}:${a.itemId}`;
+      }),
     });
 
     // Séparer les actions par type

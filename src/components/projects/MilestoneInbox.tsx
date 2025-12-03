@@ -479,7 +479,7 @@ export function MilestoneInbox({ isOpen, onClose }: MilestoneInboxProps) {
                                 <p className="text-xs text-gray-500 mt-2">
                                   {formatDateFrench(notification.createdAt)}
                                 </p>
-                                {hasReplies && (
+                                {hasReplies && notification.replies && (
                                   <p className="text-xs text-gray-400 mt-1">
                                     {notification.replies.length}{' '}
                                     {notification.replies.length === 1 ? 'réponse' : 'réponses'}
@@ -509,7 +509,7 @@ export function MilestoneInbox({ isOpen, onClose }: MilestoneInboxProps) {
                             </div>
 
                             {/* Afficher les réponses si le thread est développé */}
-                            {hasReplies && isThreadExpanded && (
+                            {hasReplies && isThreadExpanded && notification.replies && (
                               <div className="mt-3 ml-2 pl-3 border-l-2 border-gray-700/50 space-y-2">
                                 {notification.replies.map((reply) => {
                                   const replyMetadata = parseMetadata(reply.metadata);
