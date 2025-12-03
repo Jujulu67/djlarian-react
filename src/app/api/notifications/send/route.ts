@@ -167,6 +167,31 @@ export async function POST(request: NextRequest) {
         return createBadRequestResponse('Impossible de déterminer le destinataire de la réponse');
       }
 
+      // Pour les utilisateurs non-admin, vérifier qu'ils sont amis
+      if (!isAdmin) {
+        const friendship = await prisma.friendship.findFirst({
+          where: {
+            status: 'ACCEPTED',
+            OR: [
+              {
+                requesterId: session.user.id,
+                recipientId: targetUserId,
+              },
+              {
+                requesterId: targetUserId,
+                recipientId: session.user.id,
+              },
+            ],
+          },
+        });
+
+        if (!friendship) {
+          return createUnauthorizedResponse(
+            'Vous devez être ami avec cet utilisateur pour lui répondre'
+          );
+        }
+      }
+
       // Utiliser le threadId existant ou en créer un nouveau (cas de migration)
       const conversationThreadId = parentNotification.threadId || providedThreadId || uuidv4();
 
@@ -263,6 +288,31 @@ export async function POST(request: NextRequest) {
 
     if (!recipientUser) {
       return createBadRequestResponse('Destinataire non trouvé');
+    }
+
+    // Pour les utilisateurs non-admin, vérifier qu'ils sont amis
+    if (!isAdmin) {
+      const friendship = await prisma.friendship.findFirst({
+        where: {
+          status: 'ACCEPTED',
+          OR: [
+            {
+              requesterId: session.user.id,
+              recipientId: userId,
+            },
+            {
+              requesterId: userId,
+              recipientId: session.user.id,
+            },
+          ],
+        },
+      });
+
+      if (!friendship) {
+        return createUnauthorizedResponse(
+          'Vous devez être ami avec cet utilisateur pour lui envoyer un message'
+        );
+      }
     }
 
     // Métadonnées pour le destinataire

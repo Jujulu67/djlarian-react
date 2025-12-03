@@ -10,7 +10,10 @@ export type NotificationType =
   | 'USER_MESSAGE'
   | 'RELEASE_UPCOMING'
   | 'INFO'
-  | 'WARNING';
+  | 'WARNING'
+  | 'FRIEND_REQUEST'
+  | 'FRIEND_ACCEPTED'
+  | 'FRIEND_REJECTED';
 
 export interface NotificationMetadata {
   milestoneType?: string;
@@ -19,6 +22,12 @@ export interface NotificationMetadata {
   streams?: number;
   releaseDate?: string;
   senderName?: string;
+  friendshipId?: string;
+  requesterId?: string;
+  recipientId?: string;
+  requesterName?: string;
+  recipientName?: string;
+  type?: string;
   [key: string]: unknown;
 }
 
@@ -453,9 +462,18 @@ export function useNotifications(
       setUnreadCount(newCount);
     };
 
+    const handleNotificationSent = () => {
+      // Quand un message est envoyé, forcer un refresh immédiat
+      // Cela permet de mettre à jour les notifications pour l'expéditeur et le destinataire
+      // Réinitialiser le cache pour forcer le refresh
+      lastFetchRef.current = 0;
+      fetchNotifications(true); // true = forcer le refresh même si récent
+    };
+
     window.addEventListener('notification-read', handleNotificationRead);
     window.addEventListener('notifications-all-read', handleAllRead);
     window.addEventListener('notifications-updated', handleNotificationsUpdated as EventListener);
+    window.addEventListener('notification-sent', handleNotificationSent);
 
     return () => {
       window.removeEventListener('notification-read', handleNotificationRead);
@@ -464,6 +482,7 @@ export function useNotifications(
         'notifications-updated',
         handleNotificationsUpdated as EventListener
       );
+      window.removeEventListener('notification-sent', handleNotificationSent);
     };
   }, [fetchNotifications]);
 

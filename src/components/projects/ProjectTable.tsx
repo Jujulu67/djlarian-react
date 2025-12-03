@@ -286,11 +286,11 @@ export const ProjectTable = ({
             <button
               onClick={onImport}
               className="px-3 py-2 h-[38px] bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
-              title="Importer depuis Excel"
-              aria-label="Importer des projets depuis Excel"
+              title="Importer depuis Excel ou CSV"
+              aria-label="Importer des projets depuis Excel ou CSV"
             >
               <Upload size={16} aria-hidden="true" />
-              <span className="hidden sm:inline">Importer Excel</span>
+              <span className="hidden sm:inline">Importer Excel/CSV</span>
             </button>
           )}
           {onImportStreams && (

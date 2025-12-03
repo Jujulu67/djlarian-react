@@ -30,6 +30,7 @@ function findMappedField(columnName: string): keyof ParsedProjectRow | null {
     'nom projet': 'name',
     nom: 'name',
     name: 'name',
+    song: 'name', // CSV Spotify
     style: 'style',
     statut: 'status',
     status: 'status',
@@ -42,6 +43,8 @@ function findMappedField(columnName: string): keyof ParsedProjectRow | null {
     'date sortie': 'releaseDate',
     datesortie: 'releaseDate',
     releaseDate: 'releaseDate',
+    release_date: 'releaseDate', // CSV Spotify
+    'release date': 'releaseDate', // CSV Spotify (avec espace)
     date: 'releaseDate',
     lien: 'externalLink',
     link: 'externalLink',
@@ -94,6 +97,45 @@ function detectSeparator(text: string): string {
 
   // Si plus de tabulations, utiliser tabulation, sinon virgule
   return tabCount >= commaCount ? '\t' : ',';
+}
+
+/**
+ * Parse une ligne CSV en gérant les guillemets
+ * @param line - Ligne à parser
+ * @param separator - Séparateur utilisé
+ * @returns Tableau de cellules
+ */
+function parseCsvLine(line: string, separator: string): string[] {
+  const cells: string[] = [];
+  let currentCell = '';
+  let insideQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    const nextChar = line[i + 1];
+
+    if (char === '"') {
+      if (insideQuotes && nextChar === '"') {
+        // Guillemet échappé (double guillemet)
+        currentCell += '"';
+        i++; // Skip le prochain guillemet
+      } else {
+        // Toggle insideQuotes
+        insideQuotes = !insideQuotes;
+      }
+    } else if (char === separator && !insideQuotes) {
+      // Fin de cellule
+      cells.push(currentCell.trim().replace(/^"|"$/g, '')); // Retirer les guillemets de début/fin
+      currentCell = '';
+    } else {
+      currentCell += char;
+    }
+  }
+
+  // Ajouter la dernière cellule
+  cells.push(currentCell.trim().replace(/^"|"$/g, '')); // Retirer les guillemets de début/fin
+
+  return cells;
 }
 
 /**
@@ -302,7 +344,10 @@ export function parseExcelData(
 
   if (hasHeaders && lines.length > 0) {
     const headerLine = lines[0];
-    const headerCells = headerLine.split(separator).map((cell) => cell.trim());
+    const headerCells =
+      separator === ','
+        ? parseCsvLine(headerLine, separator)
+        : headerLine.split(separator).map((cell) => cell.trim());
 
     headerMap = new Map();
     headerCells.forEach((header, index) => {
@@ -318,7 +363,10 @@ export function parseExcelData(
   // Parser les lignes de données
   for (let i = startIndex; i < lines.length; i++) {
     const line = lines[i];
-    const cells = line.split(separator).map((cell) => cell.trim());
+    const cells =
+      separator === ','
+        ? parseCsvLine(line, separator)
+        : line.split(separator).map((cell) => cell.trim());
 
     const row: ParsedProjectRow = {
       name: '',
