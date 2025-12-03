@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "bash scripts/ensure-sqlite-schema.sh && NODE_OPTIONS='--import tsx' next dev",
     "dev:auto": "bash scripts/start-dev-with-auto-restart.sh",
-    "build": "bash scripts/ensure-postgresql-schema.sh && node scripts/fix-prisma-types.mjs && NODE_OPTIONS='--import tsx' next build",
+    "build": "bash scripts/ensure-postgresql-schema.sh && node scripts/fix-prisma-types.mjs && (NODE_OPTIONS='--import tsx' next build 2>&1 | grep -v '\\[baseline-browser-mapping\\]'; exit ${PIPESTATUS[0]})",
     "postinstall": "bash scripts/rebuild-better-sqlite3.sh && node scripts/fix-prisma-types.mjs || true",
     "start": "NODE_OPTIONS='--import tsx' next start",
     "lint": "eslint --config eslint.config.mjs \"src/**/*.{ts,tsx}\" --quiet",

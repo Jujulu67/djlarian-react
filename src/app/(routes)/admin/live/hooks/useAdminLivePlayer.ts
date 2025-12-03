@@ -21,26 +21,16 @@ export function useAdminLivePlayer() {
 
   // Charger l'audio quand une soumission est sélectionnée
   useEffect(() => {
-    console.log('[AdminLivePlayer] selectedSubmission changé', {
-      selectedSubmission: selectedSubmission?.id,
-      fileUrl: selectedSubmission?.fileUrl,
-    });
-
     if (selectedSubmission) {
       loadAudioAnalysis(selectedSubmission.fileUrl);
       // Forcer le chargement de l'audio après un court délai pour s'assurer que le src est mis à jour
       setTimeout(() => {
         if (audioRef.current) {
-          console.log('[AdminLivePlayer] Chargement audio forcé', {
-            src: audioRef.current.src,
-            readyState: audioRef.current.readyState,
-          });
           audioRef.current.load();
         }
         // Note: audioRef peut être null si l'élément n'est pas encore rendu, c'est normal
       }, 0);
     } else {
-      console.log('[AdminLivePlayer] Aucune soumission sélectionnée, reset');
       setAudioAnalysis(null);
       setIsPlaying(false);
       setCurrentTime(0);
@@ -58,7 +48,6 @@ export function useAdminLivePlayer() {
   useEffect(() => {
     // Attendre que l'audio soit rendu dans le DOM
     if (!audioAnalysis) {
-      console.log('[AdminLivePlayer] useEffect audio: audioAnalysis pas encore chargé');
       return;
     }
 
@@ -68,17 +57,8 @@ export function useAdminLivePlayer() {
     const timeoutId = setTimeout(() => {
       const audio = audioRef.current;
       if (!audio) {
-        console.log('[AdminLivePlayer] useEffect audio: audioRef.current est null après délai');
         return;
       }
-
-      console.log('[AdminLivePlayer] useEffect audio: audio trouvé', {
-        src: audio.src,
-        readyState: audio.readyState,
-        paused: audio.paused,
-        currentTime: audio.currentTime,
-        duration: audio.duration,
-      });
 
       const handleTimeUpdate = () => {
         const time = audio.currentTime;
@@ -86,29 +66,24 @@ export function useAdminLivePlayer() {
         if (audio.duration && !isNaN(audio.duration)) {
           setDuration(audio.duration);
         }
-        console.log('[AdminLivePlayer] timeupdate:', { time, duration: audio.duration });
       };
 
       const handleLoadedMetadata = () => {
         if (audio.duration && !isNaN(audio.duration)) {
           setDuration(audio.duration);
-          console.log('[AdminLivePlayer] loadedmetadata:', { duration: audio.duration });
         }
       };
 
       const handleEnded = () => {
-        console.log('[AdminLivePlayer] ended');
         setIsPlaying(false);
         setCurrentTime(0);
       };
 
       const handlePlay = () => {
-        console.log('[AdminLivePlayer] play event déclenché');
         setIsPlaying(true);
       };
 
       const handlePause = () => {
-        console.log('[AdminLivePlayer] pause event déclenché');
         setIsPlaying(false);
       };
 
@@ -120,14 +95,12 @@ export function useAdminLivePlayer() {
 
       // Mettre à jour immédiatement si l'audio est déjà chargé
       if (audio.readyState >= 2) {
-        console.log('[AdminLivePlayer] audio déjà chargé, mise à jour immédiate');
         handleTimeUpdate();
         handleLoadedMetadata();
       }
 
       // Cleanup function pour retirer les listeners
       cleanup = () => {
-        console.log('[AdminLivePlayer] cleanup event listeners');
         audio.removeEventListener('timeupdate', handleTimeUpdate);
         audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
         audio.removeEventListener('ended', handleEnded);
@@ -177,76 +150,55 @@ export function useAdminLivePlayer() {
   );
 
   const handlePlayPause = useCallback(async () => {
-    console.log('[AdminLivePlayer] handlePlayPause appelé', {
-      isPlaying,
-      audioRefExists: !!audioRef.current,
-      readyState: audioRef.current?.readyState,
-      paused: audioRef.current?.paused,
-      src: audioRef.current?.src,
-    });
-
     if (!audioRef.current) {
-      console.error('[AdminLivePlayer] handlePlayPause: audioRef.current est null');
       return;
     }
 
     try {
       if (isPlaying) {
-        console.log('[AdminLivePlayer] Pause demandé');
         audioRef.current.pause();
-        console.log('[AdminLivePlayer] pause() appelé, paused:', audioRef.current.paused);
       } else {
-        console.log('[AdminLivePlayer] Play demandé');
         // S'assurer que l'audio est chargé avant de jouer
         if (audioRef.current.readyState < 2) {
-          console.log('[AdminLivePlayer] Audio pas prêt, attente canplay...');
           await new Promise<void>((resolve, reject) => {
+            if (!audioRef.current) {
+              reject(new Error('Audio ref is null'));
+              return;
+            }
+            const audio = audioRef.current;
             const onCanPlay = () => {
-              console.log('[AdminLivePlayer] canplay event reçu');
-              audioRef.current?.removeEventListener('canplay', onCanPlay);
-              audioRef.current?.removeEventListener('error', onError);
+              audio.removeEventListener('canplay', onCanPlay);
+              audio.removeEventListener('error', onError);
               resolve();
             };
-            const onError = (e: Event) => {
-              console.error('[AdminLivePlayer] error event reçu', e);
-              audioRef.current?.removeEventListener('canplay', onCanPlay);
-              audioRef.current?.removeEventListener('error', onError);
+            const onError = () => {
+              audio.removeEventListener('canplay', onCanPlay);
+              audio.removeEventListener('error', onError);
               reject(new Error('Erreur lors du chargement audio'));
             };
-            audioRef.current.addEventListener('canplay', onCanPlay);
-            audioRef.current.addEventListener('error', onError);
-            audioRef.current.load();
+            audio.addEventListener('canplay', onCanPlay);
+            audio.addEventListener('error', onError);
+            audio.load();
           });
         }
-        console.log('[AdminLivePlayer] Appel play()...');
-        await audioRef.current.play();
-        console.log('[AdminLivePlayer] play() réussi, paused:', audioRef.current.paused);
+        if (audioRef.current) {
+          await audioRef.current.play();
+        }
       }
     } catch (error) {
-      console.error('[AdminLivePlayer] Erreur lecture audio:', error);
       toast.error('Erreur lors de la lecture audio');
     }
   }, [isPlaying]);
 
   const handleSeek = useCallback(
     (newTime: number) => {
-      console.log('[AdminLivePlayer] handleSeek appelé', {
-        newTime,
-        audioRefExists: !!audioRef.current,
-        audioAnalysisExists: !!audioAnalysis,
-        duration: audioAnalysis?.duration,
-      });
-
       if (!audioRef.current || !audioAnalysis) {
-        console.error('[AdminLivePlayer] handleSeek: audioRef ou audioAnalysis manquant');
         return;
       }
 
       const clampedTime = Math.max(0, Math.min(newTime, audioAnalysis.duration));
-      console.log('[AdminLivePlayer] Seek à', clampedTime);
       audioRef.current.currentTime = clampedTime;
       setCurrentTime(clampedTime);
-      console.log('[AdminLivePlayer] currentTime après seek:', audioRef.current.currentTime);
     },
     [audioAnalysis]
   );

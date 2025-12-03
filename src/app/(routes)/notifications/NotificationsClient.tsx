@@ -578,7 +578,7 @@ export default function NotificationsClient() {
         </div>
 
         {/* Afficher les réponses en thread (collapse/expand) */}
-        {hasReplies && (
+        {hasReplies && notification.replies && (
           <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
             <span>
               {notification.replies.length}{' '}
@@ -597,7 +597,7 @@ export default function NotificationsClient() {
             )}
           </div>
         )}
-        {hasReplies && isThreadExpanded && (
+        {hasReplies && isThreadExpanded && notification.replies && (
           <div className="mt-4 ml-4 sm:ml-6 md:ml-8 pl-4 sm:pl-6 border-l-2 border-gray-700/50 space-y-3">
             {notification.replies.map((reply) => {
               const replyMetadata = parseMetadata(reply.metadata);

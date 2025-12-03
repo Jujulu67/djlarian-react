@@ -27,6 +27,10 @@ jest.mock('@/lib/blob', () => ({
   uploadToBlob: jest.fn(),
 }));
 
+jest.mock('@/lib/utils/getStorageConfig', () => ({
+  shouldUseBlobStorage: jest.fn(() => true),
+}));
+
 describe('/api/live/submissions', () => {
   beforeEach(() => {
     jest.clearAllMocks();
