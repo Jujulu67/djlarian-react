@@ -50,6 +50,9 @@ export function LiveSubmissionForm() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [trackSubmissionsEnabled, setTrackSubmissionsEnabled] = useState(true);
+  // En environnement de test/développement, on préfère par défaut le stockage local;
+  // le fetch /api/live/storage-mode forcera à true si Blob doit être utilisé.
+  const [useBlobStorage, setUseBlobStorage] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -60,13 +63,32 @@ export function LiveSubmissionForm() {
     loadSubmissions,
     updateSubmission,
     deleteSubmission,
-  } = useLiveSubmissions();
+  } = useLiveSubmissions({ useBlobStorage });
   const [activeSubmission, setActiveSubmission] = useState<LiveSubmission | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const isAdmin = session?.user?.role === 'ADMIN';
 
-  // Vérifier si les soumissions sont activées
+  // Charger le mode de stockage (Blob vs local) et l'état des soumissions
   useEffect(() => {
+    // Charger le mode de stockage
+    const loadStorageMode = async () => {
+      try {
+        const storageRes = await fetch('/api/live/storage-mode');
+        if (storageRes.ok) {
+          const data = await storageRes.json();
+          setUseBlobStorage(!!data.useBlobStorage);
+        } else {
+          // En cas d'erreur, on reste sur la valeur par défaut (local en test)
+          console.warn('Impossible de charger le mode de stockage, utilisation valeur locale');
+        }
+      } catch (error) {
+        console.error('Erreur lors du chargement du mode de stockage:', error);
+      }
+    };
+
+    loadStorageMode();
+
+    // Vérifier si les soumissions sont activées
     const checkTrackSubmissions = async () => {
       try {
         const response = await fetch('/api/live/submissions/status');
@@ -83,6 +105,7 @@ export function LiveSubmissionForm() {
         setTrackSubmissionsEnabled(true);
       }
     };
+
     checkTrackSubmissions();
 
     // Vérifier périodiquement (toutes les 5 secondes) pour mettre à jour l'état
@@ -154,11 +177,17 @@ export function LiveSubmissionForm() {
     }
   }, []);
 
-  // Uploader le fichier directement vers Blob, puis créer/mettre à jour le draft
+  // Uploader le fichier (Blob ou local selon le mode), puis créer/mettre à jour le draft
   const uploadDraft = useCallback(
     async (file: File, existingDraftId?: string | null) => {
       if (!session?.user?.id) {
         toast.error('Vous devez être connecté pour uploader un draft');
+        return null;
+      }
+
+      // En mode local (pas de Blob), on ne crée pas de draft côté serveur pour éviter de
+      // multiplier les fichiers; seul l'upload final passera par l'API serveur.
+      if (!useBlobStorage) {
         return null;
       }
 
@@ -211,7 +240,7 @@ export function LiveSubmissionForm() {
         setIsUploadingDraft(false);
       }
     },
-    [session?.user?.id]
+    [session?.user?.id, useBlobStorage]
   );
 
   const handleFileSelect = useCallback(

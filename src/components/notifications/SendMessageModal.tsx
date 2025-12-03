@@ -2,6 +2,8 @@
 
 import { Loader2, X, Send, Search } from 'lucide-react';
 import { useEffect, useState, useMemo } from 'react';
+import { useSession } from 'next-auth/react';
+import { Notification } from '@/hooks/useNotifications';
 
 interface User {
   id: string;
@@ -14,9 +16,12 @@ interface SendMessageModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  replyTo?: Notification | null;
 }
 
-export function SendMessageModal({ isOpen, onClose, onSuccess }: SendMessageModalProps) {
+export function SendMessageModal({ isOpen, onClose, onSuccess, replyTo }: SendMessageModalProps) {
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === 'ADMIN';
   const [selectedUserId, setSelectedUserId] = useState<string>('ALL'); // 'ALL' par défaut
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
@@ -32,6 +37,27 @@ export function SendMessageModal({ isOpen, onClose, onSuccess }: SendMessageModa
       loadUsers();
     }
   }, [isOpen]);
+
+  // Pré-remplir les champs si c'est une réponse
+  useEffect(() => {
+    if (isOpen && replyTo) {
+      try {
+        const metadata = replyTo.metadata ? JSON.parse(replyTo.metadata) : null;
+        const senderId = metadata?.senderId;
+        if (senderId) {
+          setSelectedUserId(senderId);
+        }
+        setTitle(`Re: ${replyTo.title}`);
+      } catch (err) {
+        console.error('Erreur lors du parsing des métadonnées:', err);
+      }
+    } else if (isOpen && !replyTo) {
+      // Réinitialiser si ce n'est pas une réponse
+      setSelectedUserId(isAdmin ? 'ALL' : '');
+      setTitle('');
+      setMessage('');
+    }
+  }, [isOpen, replyTo, isAdmin]);
 
   // Filtrer les utilisateurs selon la recherche
   const filteredUsers = useMemo(() => {
@@ -82,10 +108,12 @@ export function SendMessageModal({ isOpen, onClose, onSuccess }: SendMessageModa
         },
         body: JSON.stringify({
           userId: sendToAll ? null : selectedUserId,
-          type: 'ADMIN_MESSAGE',
+          type: isAdmin ? 'ADMIN_MESSAGE' : 'USER_MESSAGE',
           title: title.trim(),
           message: message.trim() || null,
           sendToAll,
+          parentId: replyTo?.id || null,
+          threadId: replyTo?.threadId || null, // Passer le threadId pour les réponses
         }),
       });
 
@@ -97,7 +125,7 @@ export function SendMessageModal({ isOpen, onClose, onSuccess }: SendMessageModa
       // Réinitialiser le formulaire
       setTitle('');
       setMessage('');
-      setSelectedUserId('ALL');
+      setSelectedUserId(isAdmin ? 'ALL' : '');
       setSearchQuery('');
 
       if (onSuccess) {
@@ -116,7 +144,7 @@ export function SendMessageModal({ isOpen, onClose, onSuccess }: SendMessageModa
     if (!isSending) {
       setTitle('');
       setMessage('');
-      setSelectedUserId('ALL');
+      setSelectedUserId(isAdmin ? 'ALL' : '');
       setSearchQuery('');
       setError(null);
       onClose();
@@ -146,7 +174,9 @@ export function SendMessageModal({ isOpen, onClose, onSuccess }: SendMessageModa
               <div className="p-2 bg-blue-500/20 rounded-lg">
                 <Send className="w-5 h-5 text-blue-400" />
               </div>
-              <h2 className="text-lg font-semibold text-white">Envoyer un message</h2>
+              <h2 className="text-lg font-semibold text-white">
+                {replyTo ? 'Répondre au message' : 'Envoyer un message'}
+              </h2>
             </div>
             <button
               onClick={handleClose}
@@ -200,8 +230,9 @@ export function SendMessageModal({ isOpen, onClose, onSuccess }: SendMessageModa
                       }
                     }}
                     className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                    disabled={!!replyTo}
                   >
-                    <option value="ALL">Tous les utilisateurs</option>
+                    {isAdmin && !replyTo && <option value="ALL">Tous les utilisateurs</option>}
                     {filteredUsers.map((user) => (
                       <option key={user.id} value={user.id}>
                         {user.name || user.email} {user.role === 'ADMIN' && '(Admin)'}
@@ -263,7 +294,11 @@ export function SendMessageModal({ isOpen, onClose, onSuccess }: SendMessageModa
               <button
                 type="submit"
                 disabled={
-                  isSending || (selectedUserId !== 'ALL' && !selectedUserId) || !title.trim()
+                  isSending ||
+                  (!isAdmin && selectedUserId === 'ALL') ||
+                  !selectedUserId ||
+                  selectedUserId === '' ||
+                  !title.trim()
                 }
                 className="flex-1 px-4 py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded-lg text-purple-300 text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >

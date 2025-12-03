@@ -7,6 +7,7 @@ import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
 export type NotificationType =
   | 'MILESTONE'
   | 'ADMIN_MESSAGE'
+  | 'USER_MESSAGE'
   | 'RELEASE_UPCOMING'
   | 'INFO'
   | 'WARNING';
@@ -34,6 +35,9 @@ export interface Notification {
   createdAt: string;
   readAt: string | null;
   projectId: string | null;
+  parentId?: string | null;
+  threadId?: string | null; // Identifiant unique de la conversation
+  replies?: Notification[];
   Project?: {
     id: string;
     name: string;
@@ -188,13 +192,17 @@ export function useNotifications(
 
         // Détecter si de nouvelles notifications non lues sont arrivées
         setUnreadCount((prevCount) => {
-          // Si le compteur a augmenté, émettre un événement pour synchroniser les autres instances
-          if (newUnreadCount > prevCount) {
-            window.dispatchEvent(
-              new CustomEvent('notifications-updated', {
-                detail: { unreadCount: newUnreadCount, previousCount: prevCount },
-              })
-            );
+          // Si le compteur a augmenté, émettre un événement pour synchroniser les autres instances.
+          // On le fait dans un setTimeout pour éviter les warnings React
+          // « Cannot update a component while rendering a different component ».
+          if (typeof window !== 'undefined' && newUnreadCount > prevCount) {
+            setTimeout(() => {
+              window.dispatchEvent(
+                new CustomEvent('notifications-updated', {
+                  detail: { unreadCount: newUnreadCount, previousCount: prevCount },
+                })
+              );
+            }, 0);
           }
           return newUnreadCount;
         });

@@ -33,7 +33,7 @@ type CreateUserInput = z.infer<typeof createUserSchema>;
 
 /**
  * GET /api/users
- * Récupère la liste des utilisateurs (admin only)
+ * Récupère la liste des utilisateurs (tous les utilisateurs authentifiés)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -43,16 +43,7 @@ export async function GET(request: NextRequest) {
       return createUnauthorizedResponse('Non autorisé');
     }
 
-    // Vérifier que l'utilisateur est admin
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { role: true },
-    });
-
-    if (user?.role !== 'ADMIN') {
-      return createForbiddenResponse('Seuls les administrateurs peuvent accéder à cette ressource');
-    }
-
+    // Permettre à tous les utilisateurs authentifiés de voir la liste des utilisateurs
     const users = await prisma.user.findMany({
       select: {
         id: true,

@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
+import { Suspense } from 'react';
 
 import { auth } from '@/auth';
 
@@ -17,5 +18,11 @@ export default async function NotificationsPage() {
     redirect('/');
   }
 
-  return <NotificationsClient />;
+  return (
+    <Suspense
+      fallback={<div className="min-h-screen flex items-center justify-center">Chargement...</div>}
+    >
+      <NotificationsClient />
+    </Suspense>
+  );
 }
