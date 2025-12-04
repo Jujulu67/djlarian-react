@@ -1,13 +1,17 @@
-import * as XLSX from 'xlsx-js-style';
+import { Workbook } from 'exceljs';
 import { Project } from '@/components/projects/types';
 import { PROJECT_STATUSES } from '@/components/projects/types';
 
 /**
  * Exporte les projets vers un fichier Excel avec un header stylé
  */
-export function exportProjectsToExcel(projects: Project[], filename: string = 'projets.xlsx') {
+export async function exportProjectsToExcel(
+  projects: Project[],
+  filename: string = 'projets.xlsx'
+): Promise<void> {
   // Créer un nouveau workbook
-  const wb = XLSX.utils.book_new();
+  const workbook = new Workbook();
+  const worksheet = workbook.addWorksheet('Projets');
 
   // Préparer les données avec les en-têtes
   const headers = [
@@ -62,91 +66,76 @@ export function exportProjectsToExcel(projects: Project[], filename: string = 'p
     ];
   });
 
-  // Créer les données - commencer directement par les headers
-  const excelData = [headers, ...data];
-
-  // Créer la feuille avec les données
-  const ws = XLSX.utils.aoa_to_sheet(excelData);
+  // Ajouter les headers
+  worksheet.addRow(headers);
 
   // Définir la largeur des colonnes
-  const colWidths = [
-    { wch: 25 }, // Nom Projet
-    { wch: 15 }, // Style
-    { wch: 12 }, // Statut
-    { wch: 20 }, // Collab
-    { wch: 20 }, // Label
-    { wch: 20 }, // Label Final
-    { wch: 12 }, // Date Sortie
-    { wch: 10 }, // Streams J7
-    { wch: 10 }, // Streams J14
-    { wch: 10 }, // Streams J21
-    { wch: 10 }, // Streams J28
-    { wch: 10 }, // Streams J56
-    { wch: 10 }, // Streams J84
-    { wch: 12 }, // Date Création
-    { wch: 12 }, // Date Modification
-    { wch: 30 }, // Action
-  ];
-  ws['!cols'] = colWidths;
+  const colWidths = [25, 15, 12, 20, 20, 20, 12, 10, 10, 10, 10, 10, 10, 12, 12, 30];
+  colWidths.forEach((width, index) => {
+    worksheet.getColumn(index + 1).width = width;
+  });
 
-  // Styliser le header (ligne 0) avec un bandeau foncé
-  for (let col = 0; col < headers.length; col++) {
-    const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
-    if (!ws[cellAddress]) continue;
+  // Styliser le header (ligne 1) avec un bandeau foncé
+  const headerRow = worksheet.getRow(1);
+  headerRow.font = {
+    bold: true,
+    color: { argb: 'FFFFFFFF' }, // Blanc
+    size: 11,
+  };
+  headerRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FF2D3748' }, // Gris foncé
+  };
+  headerRow.alignment = {
+    horizontal: 'center',
+    vertical: 'middle',
+  };
+  headerRow.border = {
+    top: { style: 'thin', color: { argb: 'FF1A202C' } },
+    bottom: { style: 'thin', color: { argb: 'FF1A202C' } },
+    left: { style: 'thin', color: { argb: 'FF1A202C' } },
+    right: { style: 'thin', color: { argb: 'FF1A202C' } },
+  };
 
-    ws[cellAddress].s = {
-      font: {
-        bold: true,
-        color: { rgb: 'FFFFFF' },
-        sz: 11,
-      },
-      fill: {
-        fgColor: { rgb: '2D3748' }, // Gris foncé
-        patternType: 'solid',
-      },
-      alignment: {
-        horizontal: 'center',
-        vertical: 'center',
-      },
-      border: {
-        top: { style: 'thin', color: { rgb: '1A202C' } },
-        bottom: { style: 'thin', color: { rgb: '1A202C' } },
-        left: { style: 'thin', color: { rgb: '1A202C' } },
-        right: { style: 'thin', color: { rgb: '1A202C' } },
-      },
-    };
-  }
+  // Ajouter les données
+  data.forEach((rowData) => {
+    worksheet.addRow(rowData);
+  });
 
   // Alterner les couleurs pour les lignes de données (gris/blanc)
-  for (let row = 1; row <= data.length; row++) {
-    const isEven = row % 2 === 0;
-    const bgColor = isEven ? 'F7FAFC' : 'FFFFFF'; // Gris clair / Blanc
+  worksheet.eachRow((row, rowNumber) => {
+    if (rowNumber === 1) return; // Skip header
 
-    for (let col = 0; col < headers.length; col++) {
-      const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
-      if (!ws[cellAddress]) continue;
+    const isEven = rowNumber % 2 === 0;
+    const bgColor = isEven ? 'FFF7FAFC' : 'FFFFFFFF'; // Gris clair / Blanc
 
-      if (!ws[cellAddress].s) {
-        ws[cellAddress].s = {};
-      }
-
-      ws[cellAddress].s.fill = {
-        fgColor: { rgb: bgColor },
-        patternType: 'solid',
+    row.eachCell((cell) => {
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: bgColor },
       };
-
-      ws[cellAddress].s.border = {
-        top: { style: 'thin', color: { rgb: 'E2E8F0' } },
-        bottom: { style: 'thin', color: { rgb: 'E2E8F0' } },
-        left: { style: 'thin', color: { rgb: 'E2E8F0' } },
-        right: { style: 'thin', color: { rgb: 'E2E8F0' } },
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
       };
-    }
-  }
-
-  // Ajouter la feuille au workbook
-  XLSX.utils.book_append_sheet(wb, ws, 'Projets');
+    });
+  });
 
   // Générer le fichier et le télécharger
-  XLSX.writeFile(wb, filename);
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
 }
