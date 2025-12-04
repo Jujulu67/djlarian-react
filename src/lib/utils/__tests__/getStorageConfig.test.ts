@@ -1,134 +1,143 @@
+import { shouldUseBlobStorage } from '../getStorageConfig';
+import { logger } from '@/lib/logger';
 import fs from 'fs';
 import path from 'path';
 
-import { shouldUseBlobStorage } from '../getStorageConfig';
-
-// Mock dependencies
+// Mock fs
 jest.mock('fs', () => ({
   existsSync: jest.fn(),
   readFileSync: jest.fn(),
 }));
 
+// Mock path
 jest.mock('path', () => ({
   join: jest.fn((...args) => args.join('/')),
 }));
 
-describe('shouldUseBlobStorage', () => {
-  const mockExistsSync = fs.existsSync as jest.MockedFunction<typeof fs.existsSync>;
-  const mockReadFileSync = fs.readFileSync as jest.MockedFunction<typeof fs.readFileSync>;
-  const originalEnv = process.env;
+// Mock logger
+jest.mock('@/lib/logger', () => ({
+  logger: {
+    warn: jest.fn(),
+    error: jest.fn(),
+    info: jest.fn(),
+    debug: jest.fn(),
+  },
+}));
+
+describe('getStorageConfig', () => {
+  const originalEnv = process.env.NODE_ENV;
+  const originalBlobToken = process.env.BLOB_READ_WRITE_TOKEN;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    // Reset NODE_ENV et BLOB_READ_WRITE_TOKEN - utiliser Object.defineProperty pour éviter l'erreur readonly
-    Object.defineProperty(process, 'env', {
-      value: { ...originalEnv },
-      writable: true,
-      configurable: true,
-    });
-    if ('NODE_ENV' in process.env) {
-      delete (process.env as Record<string, string | undefined>).NODE_ENV;
-    }
-    if ('BLOB_READ_WRITE_TOKEN' in process.env) {
-      delete (process.env as Record<string, string | undefined>).BLOB_READ_WRITE_TOKEN;
-    }
+    process.env.NODE_ENV = originalEnv;
+    process.env.BLOB_READ_WRITE_TOKEN = originalBlobToken;
+    (fs.existsSync as jest.Mock).mockReturnValue(false);
   });
 
   afterEach(() => {
-    Object.defineProperty(process, 'env', {
-      value: { ...originalEnv },
-      writable: true,
-      configurable: true,
-    });
-    if ('NODE_ENV' in process.env) {
-      delete (process.env as Record<string, string | undefined>).NODE_ENV;
-    }
-    if ('BLOB_READ_WRITE_TOKEN' in process.env) {
-      delete (process.env as Record<string, string | undefined>).BLOB_READ_WRITE_TOKEN;
-    }
+    process.env.NODE_ENV = originalEnv;
+    process.env.BLOB_READ_WRITE_TOKEN = originalBlobToken;
   });
 
-  describe('in production', () => {
-    beforeEach(() => {
-      Object.defineProperty(process, 'env', {
-        value: { ...process.env, NODE_ENV: 'production' },
-        writable: true,
-        configurable: true,
-      });
-    });
-
-    it('should return true if blob is configured', () => {
+  describe('shouldUseBlobStorage', () => {
+    it('should return true in production when blob is configured', () => {
+      process.env.NODE_ENV = 'production';
       process.env.BLOB_READ_WRITE_TOKEN = 'test-token';
+
       const result = shouldUseBlobStorage();
+
       expect(result).toBe(true);
     });
 
-    it('should return false if blob is not configured', () => {
-      delete (process.env as Record<string, string | undefined>).BLOB_READ_WRITE_TOKEN;
+    it('should return false in production when blob is not configured', () => {
+      process.env.NODE_ENV = 'production';
+      delete process.env.BLOB_READ_WRITE_TOKEN;
+
       const result = shouldUseBlobStorage();
+
       expect(result).toBe(false);
-    });
-  });
-
-  describe('in development', () => {
-    beforeEach(() => {
-      Object.defineProperty(process, 'env', {
-        value: { ...process.env, NODE_ENV: 'development' },
-        writable: true,
-        configurable: true,
-      });
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Production détectée mais BLOB_READ_WRITE_TOKEN non configuré')
+      );
     });
 
-    it('should return false by default (no switch file)', () => {
+    it('should return true in development when switch is enabled and blob is configured', () => {
+      process.env.NODE_ENV = 'development';
       process.env.BLOB_READ_WRITE_TOKEN = 'test-token';
-      mockExistsSync.mockReturnValue(false);
-      const result = shouldUseBlobStorage();
-      expect(result).toBe(false);
-    });
+      (fs.existsSync as jest.Mock).mockReturnValue(true);
+      (fs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify({ useProduction: true }));
+      (path.join as jest.Mock).mockReturnValue('.db-switch.json');
 
-    it('should return true if switch is set to useProduction and blob is configured', () => {
-      process.env.BLOB_READ_WRITE_TOKEN = 'test-token';
-      mockExistsSync.mockReturnValue(true);
-      mockReadFileSync.mockReturnValue(JSON.stringify({ useProduction: true }));
       const result = shouldUseBlobStorage();
+
       expect(result).toBe(true);
     });
 
-    it('should return false if switch is set to useProduction but blob is not configured', () => {
-      delete (process.env as Record<string, string | undefined>).BLOB_READ_WRITE_TOKEN;
-      mockExistsSync.mockReturnValue(true);
-      mockReadFileSync.mockReturnValue(JSON.stringify({ useProduction: true }));
+    it('should return false in development when switch is enabled but blob is not configured', () => {
+      process.env.NODE_ENV = 'development';
+      delete process.env.BLOB_READ_WRITE_TOKEN;
+      (fs.existsSync as jest.Mock).mockReturnValue(true);
+      (fs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify({ useProduction: true }));
+      (path.join as jest.Mock).mockReturnValue('.db-switch.json');
+
       const result = shouldUseBlobStorage();
+
+      expect(result).toBe(false);
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Switch production activé mais BLOB_READ_WRITE_TOKEN non configuré')
+      );
+    });
+
+    it('should return false in development when switch is disabled', () => {
+      process.env.NODE_ENV = 'development';
+      process.env.BLOB_READ_WRITE_TOKEN = 'test-token';
+      (fs.existsSync as jest.Mock).mockReturnValue(true);
+      (fs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify({ useProduction: false }));
+      (path.join as jest.Mock).mockReturnValue('.db-switch.json');
+
+      const result = shouldUseBlobStorage();
+
       expect(result).toBe(false);
     });
 
-    it('should return false if switch is set to useProduction: false', () => {
+    it('should return false in development when switch file does not exist', () => {
+      process.env.NODE_ENV = 'development';
       process.env.BLOB_READ_WRITE_TOKEN = 'test-token';
-      mockExistsSync.mockReturnValue(true);
-      mockReadFileSync.mockReturnValue(JSON.stringify({ useProduction: false }));
+      (fs.existsSync as jest.Mock).mockReturnValue(false);
+
       const result = shouldUseBlobStorage();
+
       expect(result).toBe(false);
     });
 
-    it('should handle invalid JSON gracefully', () => {
+    it('should handle switch file read errors gracefully', () => {
+      process.env.NODE_ENV = 'development';
       process.env.BLOB_READ_WRITE_TOKEN = 'test-token';
-      mockExistsSync.mockReturnValue(true);
-      mockReadFileSync.mockReturnValue('invalid json');
-      // Should not throw, should return false
-      expect(() => shouldUseBlobStorage()).not.toThrow();
-      const result = shouldUseBlobStorage();
-      expect(result).toBe(false);
-    });
-
-    it('should handle file read errors gracefully', () => {
-      process.env.BLOB_READ_WRITE_TOKEN = 'test-token';
-      mockExistsSync.mockReturnValue(true);
-      mockReadFileSync.mockImplementation(() => {
+      (fs.existsSync as jest.Mock).mockReturnValue(true);
+      (fs.readFileSync as jest.Mock).mockImplementation(() => {
         throw new Error('File read error');
       });
-      // Should not throw, should return false
-      expect(() => shouldUseBlobStorage()).not.toThrow();
+      (path.join as jest.Mock).mockReturnValue('.db-switch.json');
+
       const result = shouldUseBlobStorage();
+
+      expect(result).toBe(false);
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Erreur lecture switch'),
+        expect.any(Error)
+      );
+    });
+
+    it('should handle invalid JSON in switch file', () => {
+      process.env.NODE_ENV = 'development';
+      process.env.BLOB_READ_WRITE_TOKEN = 'test-token';
+      (fs.existsSync as jest.Mock).mockReturnValue(true);
+      (fs.readFileSync as jest.Mock).mockReturnValue('invalid json');
+      (path.join as jest.Mock).mockReturnValue('.db-switch.json');
+
+      const result = shouldUseBlobStorage();
+
       expect(result).toBe(false);
     });
   });

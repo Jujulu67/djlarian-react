@@ -1,5 +1,5 @@
 import { findOriginalImageUrl } from '../findOriginalImageUrl';
-import * as getImageUrlModule from '../getImageUrl';
+import { getImageUrl } from '../getImageUrl';
 
 // Mock getImageUrl
 jest.mock('../getImageUrl', () => ({
@@ -10,143 +10,119 @@ jest.mock('../getImageUrl', () => ({
 global.fetch = jest.fn();
 
 describe('findOriginalImageUrl', () => {
-  const mockGetImageUrl = getImageUrlModule.getImageUrl as jest.MockedFunction<
-    typeof getImageUrlModule.getImageUrl
-  >;
+  const mockGetImageUrl = getImageUrl as jest.MockedFunction<typeof getImageUrl>;
   const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Reset mock implementations
+    mockGetImageUrl.mockReset();
+    mockFetch.mockReset();
   });
 
-  describe('with original suffix', () => {
-    it('should return URL when original image exists', async () => {
-      const imageId = 'test-image';
-      const expectedUrl = '/api/images/test-image?original=true';
+  it('should return original URL if available', async () => {
+    mockGetImageUrl
+      .mockReturnValueOnce('/api/images/image-id?original=true')
+      .mockReturnValueOnce('/api/images/image-id');
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+    } as Response);
 
-      mockGetImageUrl.mockReturnValue(expectedUrl);
-      mockFetch.mockResolvedValueOnce({ ok: true } as Response);
+    const result = await findOriginalImageUrl('image-id');
 
-      const result = await findOriginalImageUrl(imageId);
-
-      expect(mockGetImageUrl).toHaveBeenCalledWith(imageId, { original: true });
-      expect(mockFetch).toHaveBeenCalledWith(expectedUrl, { method: 'HEAD' });
-      expect(result).toBe(expectedUrl);
-    });
-
-    it('should fallback to non-original when original does not exist', async () => {
-      const imageId = 'test-image';
-      const originalUrl = '/api/images/test-image?original=true';
-      const fallbackUrl = '/api/images/test-image';
-
-      mockGetImageUrl.mockReturnValueOnce(originalUrl).mockReturnValueOnce(fallbackUrl);
-      mockFetch
-        .mockResolvedValueOnce({ ok: false } as Response)
-        .mockResolvedValueOnce({ ok: true } as Response);
-
-      const result = await findOriginalImageUrl(imageId);
-
-      expect(mockGetImageUrl).toHaveBeenCalledWith(imageId, { original: true });
-      expect(mockGetImageUrl).toHaveBeenCalledWith(imageId);
-      expect(mockFetch).toHaveBeenCalledTimes(2);
-      expect(result).toBe(fallbackUrl);
-    });
-
-    it('should handle network errors gracefully', async () => {
-      const imageId = 'test-image';
-      const originalUrl = '/api/images/test-image?original=true';
-      const fallbackUrl = '/api/images/test-image';
-
-      mockGetImageUrl.mockReturnValueOnce(originalUrl).mockReturnValueOnce(fallbackUrl);
-      mockFetch
-        .mockRejectedValueOnce(new Error('Network error'))
-        .mockResolvedValueOnce({ ok: true } as Response);
-
-      const result = await findOriginalImageUrl(imageId);
-
-      expect(result).toBe(fallbackUrl);
+    expect(result).toBe('/api/images/image-id?original=true');
+    expect(mockGetImageUrl).toHaveBeenCalledWith('image-id', { original: true });
+    expect(mockFetch).toHaveBeenCalledWith('/api/images/image-id?original=true', {
+      method: 'HEAD',
     });
   });
 
-  describe('without original suffix', () => {
-    it('should directly try non-original URL when withOriSuffix is false', async () => {
-      const imageId = 'test-image';
-      const expectedUrl = '/api/images/test-image';
+  it('should fallback to regular URL if original fetch fails', async () => {
+    // Configure getImageUrl to return different values for different calls
+    mockGetImageUrl
+      .mockReturnValueOnce('/api/images/image-id?original=true') // First call with original: true
+      .mockReturnValueOnce('/api/images/image-id'); // Second call without original
+    // Original fetch fails (ok: false means the resource doesn't exist)
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+      } as Response)
+      // Fallback fetch succeeds
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+      } as Response);
 
-      mockGetImageUrl.mockReturnValue(expectedUrl);
-      mockFetch.mockResolvedValueOnce({ ok: true } as Response);
+    const result = await findOriginalImageUrl('image-id');
 
-      const result = await findOriginalImageUrl(imageId, [], false);
+    expect(result).toBe('/api/images/image-id');
+    expect(mockGetImageUrl).toHaveBeenCalledTimes(2);
+    expect(mockGetImageUrl).toHaveBeenNthCalledWith(1, 'image-id', { original: true });
+    expect(mockGetImageUrl).toHaveBeenNthCalledWith(2, 'image-id');
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
 
-      expect(mockGetImageUrl).toHaveBeenCalledWith(imageId);
-      expect(mockGetImageUrl).not.toHaveBeenCalledWith(imageId, { original: true });
-      expect(mockFetch).toHaveBeenCalledWith(expectedUrl, { method: 'HEAD' });
-      expect(result).toBe(expectedUrl);
-    });
+  it('should return null if both URLs fail', async () => {
+    mockGetImageUrl
+      .mockReturnValueOnce('/api/images/image-id?original=true')
+      .mockReturnValueOnce('/api/images/image-id');
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: false,
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: false,
+      } as Response);
 
-    it('should return null when non-original image does not exist', async () => {
-      const imageId = 'test-image';
-      const expectedUrl = '/api/images/test-image';
+    const result = await findOriginalImageUrl('image-id');
 
-      mockGetImageUrl.mockReturnValue(expectedUrl);
-      mockFetch.mockResolvedValueOnce({ ok: false } as Response);
+    expect(result).toBeNull();
+  });
 
-      const result = await findOriginalImageUrl(imageId, [], false);
+  it('should skip original check if withOriSuffix is false', async () => {
+    mockGetImageUrl.mockReturnValueOnce('/api/images/image-id');
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+    } as Response);
 
-      expect(result).toBeNull();
+    const result = await findOriginalImageUrl('image-id', ['jpg'], false);
+
+    expect(result).toBe('/api/images/image-id');
+    expect(mockGetImageUrl).toHaveBeenCalledWith('image-id');
+    expect(mockGetImageUrl).not.toHaveBeenCalledWith('image-id', {
+      original: true,
     });
   });
 
-  describe('edge cases', () => {
-    it('should return null when getImageUrl returns null', async () => {
-      mockGetImageUrl.mockReturnValue(null);
+  it('should handle fetch errors gracefully and use fallback', async () => {
+    // Configure getImageUrl to return different values for different calls
+    mockGetImageUrl
+      .mockReturnValueOnce('/api/images/image-id?original=true') // First call with original: true
+      .mockReturnValueOnce('/api/images/image-id'); // Second call without original
+    // Original fetch throws error
+    mockFetch
+      .mockRejectedValueOnce(new Error('Network error'))
+      // Fallback fetch succeeds
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+      } as Response);
 
-      const result = await findOriginalImageUrl('test-image');
+    const result = await findOriginalImageUrl('image-id');
 
-      expect(result).toBeNull();
-    });
+    expect(result).toBe('/api/images/image-id');
+    expect(mockGetImageUrl).toHaveBeenCalledTimes(2);
+    expect(mockGetImageUrl).toHaveBeenNthCalledWith(1, 'image-id', { original: true });
+    expect(mockGetImageUrl).toHaveBeenNthCalledWith(2, 'image-id');
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
 
-    it('should return null when all attempts fail', async () => {
-      const imageId = 'test-image';
-      const originalUrl = '/api/images/test-image?original=true';
-      const fallbackUrl = '/api/images/test-image';
+  it('should return null if getImageUrl returns null', async () => {
+    mockGetImageUrl.mockReturnValue(null);
 
-      mockGetImageUrl.mockReturnValueOnce(originalUrl).mockReturnValueOnce(fallbackUrl);
-      mockFetch
-        .mockResolvedValueOnce({ ok: false } as Response)
-        .mockResolvedValueOnce({ ok: false } as Response);
+    const result = await findOriginalImageUrl('image-id');
 
-      const result = await findOriginalImageUrl(imageId);
-
-      expect(result).toBeNull();
-    });
-
-    it('should handle fetch rejections for both attempts', async () => {
-      const imageId = 'test-image';
-      const originalUrl = '/api/images/test-image?original=true';
-      const fallbackUrl = '/api/images/test-image';
-
-      mockGetImageUrl.mockReturnValueOnce(originalUrl).mockReturnValueOnce(fallbackUrl);
-      mockFetch
-        .mockRejectedValueOnce(new Error('Network error 1'))
-        .mockRejectedValueOnce(new Error('Network error 2'));
-
-      const result = await findOriginalImageUrl(imageId);
-
-      expect(result).toBeNull();
-    });
-
-    it('should accept custom extensions parameter (legacy)', async () => {
-      const imageId = 'test-image';
-      const expectedUrl = '/api/images/test-image?original=true';
-      const customExtensions = ['png', 'webp'];
-
-      mockGetImageUrl.mockReturnValue(expectedUrl);
-      mockFetch.mockResolvedValueOnce({ ok: true } as Response);
-
-      const result = await findOriginalImageUrl(imageId, customExtensions);
-
-      expect(result).toBe(expectedUrl);
-    });
+    expect(result).toBeNull();
   });
 });

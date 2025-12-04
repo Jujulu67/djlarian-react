@@ -153,6 +153,8 @@ describe('ImageCropModal', () => {
     expect(screen.getByText(/16:9/i)).toBeInTheDocument();
   });
 
+  // Skip: Requires complex canvas mocking and image loading simulation
+  // The test needs to properly mock HTMLCanvasElement, Image loading, and react-image-crop interactions
   it.skip('should handle apply crop', async () => {
     // Mock canvas methods
     const mockContext = {
@@ -246,6 +248,8 @@ describe('ImageCropModal', () => {
     document.createElement = originalCreateElement;
   });
 
+  // Skip: Requires complex canvas mocking and image loading simulation
+  // The test needs to properly mock HTMLCanvasElement, Image loading, and react-image-crop interactions
   it.skip('should handle crop with pixel units', async () => {
     const mockCanvas = {
       getContext: jest.fn(() => ({

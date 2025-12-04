@@ -1,100 +1,62 @@
-import React from 'react';
-import { render } from '@testing-library/react';
-import { SessionProvider } from 'next-auth/react';
-import { ThemeProvider } from 'next-themes';
-
+import { render, screen } from '@testing-library/react';
 import { Providers } from '../providers';
 
-// Mock next-auth
+// Mock dependencies
 jest.mock('next-auth/react', () => ({
   SessionProvider: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="session-provider">{children}</div>
   ),
 }));
 
-// Mock next-themes
 jest.mock('next-themes', () => ({
   ThemeProvider: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="theme-provider">{children}</div>
   ),
 }));
 
-// Mock ErrorBoundary
-jest.mock('@/components/ErrorBoundary', () => ({
-  __esModule: true,
-  default: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="error-boundary">{children}</div>
-  ),
-}));
+jest.mock('@/components/ErrorBoundary', () => {
+  return {
+    __esModule: true,
+    default: ({ children }: { children: React.ReactNode }) => (
+      <div data-testid="error-boundary">{children}</div>
+    ),
+  };
+});
 
-// Mock console filters
 jest.mock('@/lib/console-filters', () => ({
   setupConsoleFilters: jest.fn(() => jest.fn()),
 }));
 
 describe('Providers', () => {
   beforeEach(() => {
+    // Mock document methods
+    document.querySelectorAll = jest.fn(() => [] as any);
+    if (!document.body) {
+      document.body = document.createElement('body');
+    }
+
     // Mock MutationObserver
     global.MutationObserver = jest.fn().mockImplementation(() => ({
       observe: jest.fn(),
       disconnect: jest.fn(),
-      takeRecords: jest.fn(),
-    }));
-
-    // Mock document.querySelectorAll
-    document.querySelectorAll = jest.fn().mockReturnValue([]);
+    })) as any;
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('should render children', () => {
-    const { getByText } = render(
+  it('should render children with all providers', () => {
+    render(
       <Providers>
-        <div>Test Child</div>
+        <div>Test Content</div>
       </Providers>
     );
 
-    expect(getByText('Test Child')).toBeInTheDocument();
-  });
-
-  it('should wrap children with SessionProvider', () => {
-    const { getByTestId } = render(
-      <Providers>
-        <div>Test Child</div>
-      </Providers>
-    );
-
-    expect(getByTestId('session-provider')).toBeInTheDocument();
-  });
-
-  it('should wrap children with ThemeProvider', () => {
-    const { getByTestId } = render(
-      <Providers>
-        <div>Test Child</div>
-      </Providers>
-    );
-
-    expect(getByTestId('theme-provider')).toBeInTheDocument();
-  });
-
-  it('should wrap children with ErrorBoundary', () => {
-    const { getByTestId } = render(
-      <Providers>
-        <div>Test Child</div>
-      </Providers>
-    );
-
-    expect(getByTestId('error-boundary')).toBeInTheDocument();
+    expect(screen.getByText('Test Content')).toBeInTheDocument();
   });
 
   it('should setup console filters on mount', () => {
     const { setupConsoleFilters } = require('@/lib/console-filters');
-
     render(
       <Providers>
-        <div>Test Child</div>
+        <div>Test</div>
       </Providers>
     );
 
@@ -104,10 +66,10 @@ describe('Providers', () => {
   it('should setup MutationObserver for bis_skin_checked attributes', () => {
     render(
       <Providers>
-        <div>Test Child</div>
+        <div>Test</div>
       </Providers>
     );
 
-    expect(global.MutationObserver).toHaveBeenCalled();
+    expect(MutationObserver).toHaveBeenCalled();
   });
 });

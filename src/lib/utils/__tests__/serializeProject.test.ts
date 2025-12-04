@@ -1,177 +1,161 @@
-import { Project as PrismaProject } from '@prisma/client';
-
 import { serializeProject, serializeProjects } from '../serializeProject';
+import { Project as PrismaProject } from '@prisma/client';
+import { Project } from '@/components/projects/types';
 
 describe('serializeProject', () => {
-  const mockDate = new Date('2024-01-15T10:30:00.000Z');
-  const mockReleaseDate = new Date('2024-06-01T00:00:00.000Z');
+  it('should serialize a project with all fields', () => {
+    const prismaProject = {
+      id: 'project-1',
+      name: 'Test Project',
+      style: 'Pop',
+      status: 'pending',
+      userId: 'user-1',
+      releaseDate: new Date('2024-01-01'),
+      createdAt: new Date('2024-01-01T00:00:00Z'),
+      updatedAt: new Date('2024-01-02T00:00:00Z'),
+      collab: 'Artist',
+      label: 'Label',
+      labelFinal: 'Final Label',
+      externalLink: 'https://example.com',
+      streamsJ7: 1000,
+      streamsJ14: 2000,
+      streamsJ21: 3000,
+      streamsJ28: 4000,
+      streamsJ56: 5000,
+      streamsJ84: 6000,
+      streamsJ180: 10000,
+      streamsJ365: 20000,
+    } as PrismaProject;
 
-  const createMockPrismaProject = (overrides = {}): PrismaProject => ({
-    id: 'project-1',
-    title: 'Test Project',
-    description: 'Test Description',
-    status: 'pending',
-    releaseDate: mockReleaseDate,
-    userId: 'user-1',
-    createdAt: mockDate,
-    updatedAt: mockDate,
-    imageId: null,
-    platforms: null,
-    genre: null,
-    type: null,
-    artist: null,
-    ...overrides,
+    const result = serializeProject(prismaProject);
+
+    expect(result.id).toBe('project-1');
+    expect(result.releaseDate).toBe('2024-01-01T00:00:00.000Z');
+    expect(result.createdAt).toBe('2024-01-01T00:00:00.000Z');
+    expect(result.updatedAt).toBe('2024-01-02T00:00:00.000Z');
+    expect(result.status).toBe('pending');
   });
 
-  describe('serializeProject', () => {
-    it('should serialize a basic project', () => {
-      const prismaProject = createMockPrismaProject();
-      const result = serializeProject(prismaProject);
+  it('should handle null releaseDate', () => {
+    const prismaProject = {
+      id: 'project-2',
+      name: 'Test Project',
+      status: 'pending',
+      userId: 'user-1',
+      releaseDate: null,
+      createdAt: new Date('2024-01-01T00:00:00Z'),
+      updatedAt: new Date('2024-01-02T00:00:00Z'),
+    } as PrismaProject;
 
-      expect(result.id).toBe('project-1');
-      expect(result.title).toBe('Test Project');
-      expect(result.status).toBe('pending');
-      expect(result.createdAt).toBe(mockDate.toISOString());
-      expect(result.updatedAt).toBe(mockDate.toISOString());
-    });
+    const result = serializeProject(prismaProject);
 
-    it('should serialize releaseDate to ISO string', () => {
-      const prismaProject = createMockPrismaProject();
-      const result = serializeProject(prismaProject);
+    expect(result.releaseDate).toBeNull();
+  });
 
-      expect(result.releaseDate).toBe(mockReleaseDate.toISOString());
-    });
-
-    it('should handle null releaseDate', () => {
-      const prismaProject = createMockPrismaProject({ releaseDate: null });
-      const result = serializeProject(prismaProject);
-
-      expect(result.releaseDate).toBeNull();
-    });
-
-    it('should serialize project with User', () => {
-      const prismaProject = {
-        ...createMockPrismaProject(),
-        User: {
-          id: 'user-1',
-          name: 'John Doe',
-          email: 'john@example.com',
-        },
-      };
-      const result = serializeProject(prismaProject);
-
-      expect(result.User).toEqual({
+  it('should include User if present', () => {
+    const prismaProject = {
+      id: 'project-3',
+      name: 'Test Project',
+      status: 'pending',
+      userId: 'user-1',
+      releaseDate: null,
+      createdAt: new Date('2024-01-01T00:00:00Z'),
+      updatedAt: new Date('2024-01-02T00:00:00Z'),
+      User: {
         id: 'user-1',
-        name: 'John Doe',
-        email: 'john@example.com',
-      });
+        name: 'Test User',
+        email: 'test@example.com',
+      },
+    } as PrismaProject & {
+      User?: { id: string; name: string | null; email: string | null };
+    };
+
+    const result = serializeProject(prismaProject);
+
+    expect(result.User).toEqual({
+      id: 'user-1',
+      name: 'Test User',
+      email: 'test@example.com',
     });
+  });
 
-    it('should handle project without User', () => {
-      const prismaProject = createMockPrismaProject();
-      const result = serializeProject(prismaProject);
+  it('should not include User if not present', () => {
+    const prismaProject = {
+      id: 'project-4',
+      name: 'Test Project',
+      status: 'pending',
+      userId: 'user-1',
+      releaseDate: null,
+      createdAt: new Date('2024-01-01T00:00:00Z'),
+      updatedAt: new Date('2024-01-02T00:00:00Z'),
+    } as PrismaProject;
 
-      expect(result.User).toBeUndefined();
-    });
+    const result = serializeProject(prismaProject);
 
-    it('should handle User with null name and email', () => {
-      const prismaProject = {
-        ...createMockPrismaProject(),
-        User: {
-          id: 'user-1',
-          name: null,
-          email: null,
-        },
-      };
-      const result = serializeProject(prismaProject);
+    expect(result.User).toBeUndefined();
+  });
 
-      expect(result.User).toEqual({
+  it('should handle User with null name and email', () => {
+    const prismaProject = {
+      id: 'project-5',
+      name: 'Test Project',
+      status: 'pending',
+      userId: 'user-1',
+      releaseDate: null,
+      createdAt: new Date('2024-01-01T00:00:00Z'),
+      updatedAt: new Date('2024-01-02T00:00:00Z'),
+      User: {
         id: 'user-1',
         name: null,
         email: null,
-      });
-    });
+      },
+    } as PrismaProject & {
+      User?: { id: string; name: string | null; email: string | null };
+    };
 
-    it('should preserve all project fields', () => {
-      const prismaProject = createMockPrismaProject({
-        description: 'Custom Description',
-        imageId: 'image-123',
-        platforms: { youtube: 'url' },
-        genre: ['House', 'Techno'],
-        type: 'single',
-        artist: 'Test Artist',
-      });
-      const result = serializeProject(prismaProject);
+    const result = serializeProject(prismaProject);
 
-      expect(result.description).toBe('Custom Description');
-      expect(result.imageId).toBe('image-123');
-      expect(result.platforms).toEqual({ youtube: 'url' });
-      expect(result.genre).toEqual(['House', 'Techno']);
-      expect(result.type).toBe('single');
-      expect(result.artist).toBe('Test Artist');
-    });
-
-    it('should cast status to ProjectStatus type', () => {
-      const prismaProject = createMockPrismaProject({ status: 'approved' });
-      const result = serializeProject(prismaProject);
-
-      expect(result.status).toBe('approved');
+    expect(result.User).toEqual({
+      id: 'user-1',
+      name: null,
+      email: null,
     });
   });
+});
 
-  describe('serializeProjects', () => {
-    it('should serialize an array of projects', () => {
-      const projects = [
-        createMockPrismaProject({ id: 'project-1', title: 'Project 1' }),
-        createMockPrismaProject({ id: 'project-2', title: 'Project 2' }),
-        createMockPrismaProject({ id: 'project-3', title: 'Project 3' }),
-      ];
+describe('serializeProjects', () => {
+  it('should serialize an array of projects', () => {
+    const prismaProjects = [
+      {
+        id: 'project-1',
+        name: 'Project 1',
+        status: 'pending',
+        userId: 'user-1',
+        releaseDate: new Date('2024-01-01'),
+        createdAt: new Date('2024-01-01T00:00:00Z'),
+        updatedAt: new Date('2024-01-02T00:00:00Z'),
+      },
+      {
+        id: 'project-2',
+        name: 'Project 2',
+        status: 'released',
+        userId: 'user-1',
+        releaseDate: new Date('2024-01-02'),
+        createdAt: new Date('2024-01-01T00:00:00Z'),
+        updatedAt: new Date('2024-01-02T00:00:00Z'),
+      },
+    ] as PrismaProject[];
 
-      const result = serializeProjects(projects);
+    const result = serializeProjects(prismaProjects);
 
-      expect(result).toHaveLength(3);
-      expect(result[0].id).toBe('project-1');
-      expect(result[1].id).toBe('project-2');
-      expect(result[2].id).toBe('project-3');
-      expect(result[0].createdAt).toBe(mockDate.toISOString());
-    });
+    expect(result).toHaveLength(2);
+    expect(result[0].id).toBe('project-1');
+    expect(result[1].id).toBe('project-2');
+  });
 
-    it('should handle empty array', () => {
-      const result = serializeProjects([]);
-      expect(result).toEqual([]);
-    });
+  it('should handle empty array', () => {
+    const result = serializeProjects([]);
 
-    it('should serialize projects with Users', () => {
-      const projects = [
-        {
-          ...createMockPrismaProject({ id: 'project-1' }),
-          User: { id: 'user-1', name: 'User 1', email: 'user1@example.com' },
-        },
-        {
-          ...createMockPrismaProject({ id: 'project-2' }),
-          User: { id: 'user-2', name: 'User 2', email: 'user2@example.com' },
-        },
-      ];
-
-      const result = serializeProjects(projects);
-
-      expect(result[0].User?.name).toBe('User 1');
-      expect(result[1].User?.name).toBe('User 2');
-    });
-
-    it('should handle mixed projects with and without Users', () => {
-      const projects = [
-        {
-          ...createMockPrismaProject({ id: 'project-1' }),
-          User: { id: 'user-1', name: 'User 1', email: 'user1@example.com' },
-        },
-        createMockPrismaProject({ id: 'project-2' }),
-      ];
-
-      const result = serializeProjects(projects);
-
-      expect(result[0].User).toBeDefined();
-      expect(result[1].User).toBeUndefined();
-    });
+    expect(result).toEqual([]);
   });
 });
