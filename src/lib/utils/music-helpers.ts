@@ -52,6 +52,9 @@ export function extractInfoFromTitle(title: string) {
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>');
 
+  // Assigner le titre nettoyé
+  result.cleanTitle = cleanTitle;
+
   // BPM éventuel
   const bpmMatch =
     cleanTitle.match(/\b(\d{2,3})\s*(?:bpm|BPM)\b/) ||
