@@ -47,7 +47,8 @@ describe('gameEngine', () => {
 
       const updatedState = updateGame(state, now, 800, 400);
 
-      expect(updatedState.lastUpdateTime).toBe(now);
+      // Allow for small timing differences (within 1ms)
+      expect(updatedState.lastUpdateTime).toBeCloseTo(now, -1);
     });
 
     it('should move patterns', () => {

@@ -134,10 +134,14 @@ describe('/api/platforms/search', () => {
     expect(data.error).toBe('artist et title requis');
   });
 
-  it.skip('should use cache for repeated searches', async () => {
+  it('should use cache for repeated searches', async () => {
     const { auth } = await import('@/auth');
     const { default: prisma } = await import('@/lib/prisma');
-    const { searchTrackOnAllPlatforms } = await import('@/lib/services/platform-search');
+    const platformSearch = await import('@/lib/services/platform-search');
+    const searchTrackOnAllPlatforms = platformSearch.searchTrackOnAllPlatforms as jest.Mock;
+
+    // Clear the mock call history
+    searchTrackOnAllPlatforms.mockClear();
 
     (auth as jest.Mock).mockResolvedValue({
       user: { id: 'admin1', email: 'admin@test.com', role: 'ADMIN' },
@@ -147,27 +151,49 @@ describe('/api/platforms/search', () => {
       role: 'ADMIN',
     });
 
-    (searchTrackOnAllPlatforms as jest.Mock).mockResolvedValue({
+    const mockResults = {
       spotify: [],
       youtube: [],
-    });
+    };
 
-    const request = new NextRequest('http://localhost/api/platforms/search', {
+    searchTrackOnAllPlatforms.mockResolvedValue(mockResults);
+
+    // First call - should call searchTrackOnAllPlatforms
+    const request1 = new NextRequest('http://localhost/api/platforms/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ artist: 'Artist', title: 'Track' }),
+      body: JSON.stringify({ artist: 'TestArtist', title: 'TestTrack' }),
     });
-
-    // First call
-    const response1 = await POST(request);
+    const response1 = await POST(request1);
     expect(response1.status).toBe(200);
+    const data1 = await response1.json();
+    expect(data1).toEqual(mockResults);
+    expect(searchTrackOnAllPlatforms).toHaveBeenCalledTimes(1);
+    expect(searchTrackOnAllPlatforms).toHaveBeenCalledWith('TestArtist', 'TestTrack');
 
-    // Second call (should use cache)
-    const response2 = await POST(request);
+    // Second call with same params - should use cache, so searchTrackOnAllPlatforms should not be called again
+    const request2 = new NextRequest('http://localhost/api/platforms/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ artist: 'TestArtist', title: 'TestTrack' }),
+    });
+    const response2 = await POST(request2);
     expect(response2.status).toBe(200);
+    const data2 = await response2.json();
+    expect(data2).toEqual(mockResults);
+    // Should still be called only once (cache used on second call)
+    expect(searchTrackOnAllPlatforms).toHaveBeenCalledTimes(1);
 
-    // Cache is module-level, so it should be called once
-    // But the cache check happens before the call, so verify it was called at least once
-    expect(searchTrackOnAllPlatforms).toHaveBeenCalled();
+    // Third call with different params - should call searchTrackOnAllPlatforms again
+    const request3 = new NextRequest('http://localhost/api/platforms/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ artist: 'OtherArtist', title: 'OtherTrack' }),
+    });
+    const response3 = await POST(request3);
+    expect(response3.status).toBe(200);
+    // Should be called again for different search
+    expect(searchTrackOnAllPlatforms).toHaveBeenCalledTimes(2);
+    expect(searchTrackOnAllPlatforms).toHaveBeenCalledWith('OtherArtist', 'OtherTrack');
   });
 });

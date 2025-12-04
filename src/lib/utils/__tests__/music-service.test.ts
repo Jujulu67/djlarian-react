@@ -1,86 +1,195 @@
-/**
- * Tests for music-service utilities
- */
-import { extractPlatformId, getEmbedUrl, getYouTubeThumbnail } from '../music-service';
+import {
+  extractPlatformId,
+  getEmbedUrl,
+  getYouTubeThumbnail,
+  getDemoTracks,
+} from '../music-service';
+import { MusicPlatform } from '../types';
 
-describe('extractPlatformId', () => {
-  it('should extract Spotify track ID', () => {
-    const url = 'https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT';
-    const id = extractPlatformId(url, 'spotify');
-    expect(id).toBe('4cOdK2wGLETKBW3PvgPWqT');
+describe('music-service', () => {
+  describe('extractPlatformId', () => {
+    it('should extract Spotify track ID', () => {
+      const result = extractPlatformId(
+        'https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT',
+        'spotify'
+      );
+
+      expect(result).toBe('4cOdK2wGLETKBW3PvgPWqT');
+    });
+
+    it('should extract Spotify album ID', () => {
+      const result = extractPlatformId(
+        'https://open.spotify.com/album/1ATL5GLyefJaxhQzSPVrLX',
+        'spotify'
+      );
+
+      expect(result).toBe('1ATL5GLyefJaxhQzSPVrLX');
+    });
+
+    it('should extract YouTube video ID from watch URL', () => {
+      const result = extractPlatformId('https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'youtube');
+
+      expect(result).toBe('dQw4w9WgXcQ');
+    });
+
+    it('should extract YouTube video ID from short URL', () => {
+      const result = extractPlatformId('https://youtu.be/dQw4w9WgXcQ', 'youtube');
+
+      expect(result).toBe('dQw4w9WgXcQ');
+    });
+
+    it('should extract SoundCloud track ID', () => {
+      const result = extractPlatformId('https://soundcloud.com/artist/track-name', 'soundcloud');
+
+      expect(result).toBe('artist/track-name');
+    });
+
+    it('should return null for invalid Spotify URL', () => {
+      const result = extractPlatformId('https://example.com', 'spotify');
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null for invalid YouTube URL', () => {
+      const result = extractPlatformId('https://example.com', 'youtube');
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null for invalid SoundCloud URL', () => {
+      const result = extractPlatformId('https://example.com', 'soundcloud');
+
+      expect(result).toBeNull();
+    });
   });
 
-  it('should extract Spotify album ID', () => {
-    const url = 'https://open.spotify.com/album/123456';
-    const id = extractPlatformId(url, 'spotify');
-    expect(id).toBe('123456');
+  describe('getEmbedUrl', () => {
+    it('should generate Spotify embed URL', () => {
+      const result = getEmbedUrl(
+        'https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT',
+        'spotify'
+      );
+
+      expect(result).toBe('https://open.spotify.com/embed/track/4cOdK2wGLETKBW3PvgPWqT');
+    });
+
+    it('should generate YouTube embed URL', () => {
+      const result = getEmbedUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'youtube');
+
+      expect(result).toBe('https://www.youtube.com/embed/dQw4w9WgXcQ');
+    });
+
+    it('should generate SoundCloud embed URL', () => {
+      const result = getEmbedUrl('https://soundcloud.com/artist/track-name', 'soundcloud');
+
+      expect(result).toContain('soundcloud.com');
+      expect(result).toContain('artist/track-name');
+    });
+
+    it('should return null for invalid URL', () => {
+      const result = getEmbedUrl('https://example.com', 'spotify');
+
+      expect(result).toBeNull();
+    });
   });
 
-  it('should extract YouTube video ID', () => {
-    const url = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
-    const id = extractPlatformId(url, 'youtube');
-    expect(id).toBe('dQw4w9WgXcQ');
+  describe('getYouTubeThumbnail', () => {
+    it('should generate YouTube thumbnail URL', () => {
+      const result = getYouTubeThumbnail('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+
+      expect(result).toBe('https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg');
+    });
+
+    it('should return null for invalid YouTube URL', () => {
+      const result = getYouTubeThumbnail('https://example.com');
+
+      expect(result).toBeNull();
+    });
   });
 
-  it('should extract YouTube short URL ID', () => {
-    const url = 'https://youtu.be/dQw4w9WgXcQ';
-    const id = extractPlatformId(url, 'youtube');
-    expect(id).toBe('dQw4w9WgXcQ');
+  describe('getDemoTracks', () => {
+    it('should return array of demo tracks', () => {
+      const tracks = getDemoTracks();
+
+      expect(Array.isArray(tracks)).toBe(true);
+      expect(tracks.length).toBeGreaterThan(0);
+    });
+
+    it('should return tracks with required fields', () => {
+      const tracks = getDemoTracks();
+
+      tracks.forEach((track) => {
+        expect(track.id).toBeDefined();
+        expect(track.title).toBeDefined();
+        expect(track.artist).toBeDefined();
+      });
+    });
+
+    it('should return exactly 11 tracks', () => {
+      const tracks = getDemoTracks();
+      expect(tracks.length).toBe(11);
+    });
+
+    it('should have tracks with various types', () => {
+      const tracks = getDemoTracks();
+      const types = tracks.map((t) => t.type);
+      expect(types).toContain('single');
+      expect(types).toContain('ep');
+      expect(types).toContain('live');
+      expect(types).toContain('remix');
+      expect(types).toContain('djset');
+    });
   });
 
-  it('should extract SoundCloud ID', () => {
-    const url = 'https://soundcloud.com/user/track-name';
-    const id = extractPlatformId(url, 'soundcloud');
-    expect(id).toBe('user/track-name');
+  describe('extractPlatformId edge cases', () => {
+    it('should handle Spotify playlist URLs', () => {
+      const result = extractPlatformId(
+        'https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M',
+        'spotify'
+      );
+      expect(result).toBe('37i9dQZF1DXcBWIGoYBM5M');
+    });
+
+    it('should handle unknown platform', () => {
+      const result = extractPlatformId('https://example.com', 'apple' as MusicPlatform);
+      expect(result).toBeNull();
+    });
+
+    it('should handle empty string', () => {
+      const result = extractPlatformId('', 'spotify');
+      expect(result).toBeNull();
+    });
+
+    it('should handle SoundCloud URLs with special characters', () => {
+      const result = extractPlatformId(
+        'https://soundcloud.com/user-name/track-name-123',
+        'soundcloud'
+      );
+      expect(result).toBe('user-name/track-name-123');
+    });
   });
 
-  it('should return null for invalid URL', () => {
-    const url = 'https://example.com';
-    const id = extractPlatformId(url, 'spotify');
-    expect(id).toBeNull();
-  });
-});
+  describe('getEmbedUrl edge cases', () => {
+    it('should handle unknown platform', () => {
+      const result = getEmbedUrl('https://example.com', 'apple' as MusicPlatform);
+      expect(result).toBeNull();
+    });
 
-describe('getEmbedUrl', () => {
-  it('should generate Spotify embed URL', () => {
-    const url = 'https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT';
-    const embedUrl = getEmbedUrl(url, 'spotify');
-    expect(embedUrl).toContain('open.spotify.com/embed');
-    expect(embedUrl).toContain('4cOdK2wGLETKBW3PvgPWqT');
+    it('should return null when extractPlatformId returns null', () => {
+      const result = getEmbedUrl('invalid-url', 'spotify');
+      expect(result).toBeNull();
+    });
   });
 
-  it('should generate YouTube embed URL', () => {
-    const url = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
-    const embedUrl = getEmbedUrl(url, 'youtube');
-    expect(embedUrl).toContain('youtube.com/embed');
-    expect(embedUrl).toContain('dQw4w9WgXcQ');
-  });
+  describe('getYouTubeThumbnail edge cases', () => {
+    it('should handle youtu.be short URLs', () => {
+      const result = getYouTubeThumbnail('https://youtu.be/dQw4w9WgXcQ');
+      expect(result).toBe('https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg');
+    });
 
-  it('should generate SoundCloud embed URL', () => {
-    const url = 'https://soundcloud.com/user/track-name';
-    const embedUrl = getEmbedUrl(url, 'soundcloud');
-    expect(embedUrl).toContain('soundcloud.com');
-  });
-
-  it('should return null for invalid URL', () => {
-    const url = 'https://example.com';
-    const embedUrl = getEmbedUrl(url, 'spotify');
-    expect(embedUrl).toBeNull();
-  });
-});
-
-describe('getYouTubeThumbnail', () => {
-  it('should generate YouTube thumbnail URL', () => {
-    const url = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
-    const thumbnail = getYouTubeThumbnail(url);
-    expect(thumbnail).toContain('img.youtube.com');
-    expect(thumbnail).toContain('dQw4w9WgXcQ');
-    expect(thumbnail).toContain('hqdefault.jpg');
-  });
-
-  it('should return null for invalid URL', () => {
-    const url = 'https://example.com';
-    const thumbnail = getYouTubeThumbnail(url);
-    expect(thumbnail).toBeNull();
+    it('should handle empty string', () => {
+      const result = getYouTubeThumbnail('');
+      expect(result).toBeNull();
+    });
   });
 });
