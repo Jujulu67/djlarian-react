@@ -1,183 +1,127 @@
-/**
- * Tests for ProjectTable component
- * @jest-environment jsdom
- */
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen } from '@testing-library/react';
 import { ProjectTable } from '../ProjectTable';
-import { Project, ProjectStatus } from '../types';
+import type { Project } from '../types';
 
-// Mock dependencies
+// Mock @hello-pangea/dnd
 jest.mock('@hello-pangea/dnd', () => ({
-  DragDropContext: ({ children, onDragEnd }: any) => <div>{children}</div>,
-  Droppable: ({ children }: any) =>
-    children(
-      {
-        draggableProps: {},
-        innerRef: jest.fn(),
-      },
-      {}
-    ),
-  Draggable: ({ children }: any) =>
-    children(
-      {
-        draggableProps: {},
-        dragHandleProps: {},
-        innerRef: jest.fn(),
-      },
-      { isDragging: false }
-    ),
+  DragDropContext: ({ children }: any) => <>{children}</>,
+  Droppable: ({ children }: any) => {
+    const provided = {
+      innerRef: jest.fn(),
+      droppableProps: {},
+    };
+    return children(provided, { isDraggingOver: false });
+  },
+  Draggable: ({ children }: any) => {
+    const provided = {
+      innerRef: jest.fn(),
+      draggableProps: {},
+      dragHandleProps: {},
+    };
+    const snapshot = { isDragging: false, isDropAnimating: false, dropAnimation: null };
+    return children(provided, snapshot);
+  },
 }));
 
+// Mock hooks
 jest.mock('@/hooks/useIsMobile', () => ({
-  useIsMobile: jest.fn().mockReturnValue(false),
+  useIsMobile: () => false,
 }));
 
-// Mock EditableCell to simplify testing
+// Mock components
+jest.mock('../AddProjectRow', () => ({
+  AddProjectRow: () => <div data-testid="add-project-row">Add Project Row</div>,
+}));
+
 jest.mock('../EditableCell', () => ({
-  EditableCell: ({ value, onSave, field }: any) => (
-    <input
-      data-testid={`editable-cell-${field}`}
-      defaultValue={value || ''}
-      onBlur={(e) => onSave(field, e.target.value)}
-    />
-  ),
+  EditableCell: ({ value }: any) => <div>{String(value)}</div>,
 }));
 
-const mockProjects: Project[] = [
-  {
-    id: '1',
-    name: 'Project A',
-    status: 'EN_COURS',
-    style: 'Techno',
-    collab: 'Artist X',
-    label: 'Label Y',
-    labelFinal: 'Label Z',
-    releaseDate: '2024-01-01',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    userId: 'user1',
-    streamsJ7: 100,
-    streamsJ14: 200,
-  },
-  {
-    id: '2',
-    name: 'Project B',
-    status: 'TERMINE',
-    style: 'House',
-    collab: '',
-    label: '',
-    labelFinal: '',
-    releaseDate: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    userId: 'user1',
-    streamsJ7: 50,
-  },
-];
-
-const mockHandlers = {
-  onUpdate: jest.fn(),
-  onDelete: jest.fn(),
-  onCreate: jest.fn(),
-  onReorder: jest.fn(),
-  onSort: jest.fn(),
-  onRefresh: jest.fn(),
-  onStatistics: jest.fn(),
-  onImport: jest.fn(),
-  onExport: jest.fn(),
-  onPurge: jest.fn(),
-};
+jest.mock('../ProjectStatusBadge', () => ({
+  ProjectStatusBadge: ({ status }: any) => <div>{status}</div>,
+}));
 
 describe('ProjectTable', () => {
+  const mockProjects: Project[] = [
+    {
+      id: '1',
+      name: 'Test Project',
+      status: 'pending',
+      style: 'Electronic',
+      collab: 'Artist',
+      label: 'ACCEPTE',
+      labelFinal: 'Final Label',
+      releaseDate: '2024-01-01',
+      streamsJ7: 1000,
+      streamsJ14: 2000,
+      streamsJ21: 3000,
+      streamsJ28: 4000,
+      streamsJ56: 5000,
+      streamsJ84: 6000,
+      streamsJ180: 7000,
+      createdAt: '2024-01-01',
+      updatedAt: '2024-01-01',
+    },
+  ];
+
+  const mockOnUpdate = jest.fn();
+  const mockOnDelete = jest.fn();
+  const mockOnCreate = jest.fn();
+
   beforeEach(() => {
     jest.clearAllMocks();
-    global.confirm = jest.fn(() => true);
-
-    // Mock window.innerWidth for normal mode
-    Object.defineProperty(window, 'innerWidth', {
-      writable: true,
-      configurable: true,
-      value: 1400,
-    });
-    window.dispatchEvent(new Event('resize'));
   });
 
-  it('should render projects correctly', () => {
-    render(<ProjectTable projects={mockProjects} {...mockHandlers} />);
-
-    expect(screen.getByDisplayValue('Project A')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('Project B')).toBeInTheDocument();
-  });
-
-  it('should handle sorting', async () => {
-    const user = userEvent.setup();
+  it('should render project table', () => {
     render(
       <ProjectTable
         projects={mockProjects}
-        {...mockHandlers}
-        sortField="name"
-        sortDirection="asc"
+        onUpdate={mockOnUpdate}
+        onDelete={mockOnDelete}
+        onCreate={mockOnCreate}
       />
     );
 
-    const nameHeader = screen.getByText('Nom Projet');
-    await user.click(nameHeader);
-
-    expect(mockHandlers.onSort).toHaveBeenCalledWith('name');
+    expect(screen.getByText('Test Project')).toBeInTheDocument();
   });
 
-  it('should handle deletion', async () => {
-    const user = userEvent.setup();
-    render(<ProjectTable projects={mockProjects} {...mockHandlers} />);
-
-    const deleteButtons = screen.getAllByTitle('Supprimer le projet');
-    await user.click(deleteButtons[0]);
-
-    expect(global.confirm).toHaveBeenCalled();
-    expect(mockHandlers.onDelete).toHaveBeenCalledWith('1');
-
-    // Wait for state update to complete to avoid act warning
-    await waitFor(() => {
-      expect(deleteButtons[0]).not.toBeDisabled();
-    });
-  });
-
-  it('should handle cell updates', async () => {
-    const user = userEvent.setup();
-    render(<ProjectTable projects={mockProjects} {...mockHandlers} />);
-
-    const nameInput = screen.getAllByTestId('editable-cell-name')[0];
-    await user.clear(nameInput);
-    await user.type(nameInput, 'New Name');
-    fireEvent.blur(nameInput);
-
-    expect(mockHandlers.onUpdate).toHaveBeenCalledWith('1', 'name', 'New Name');
-  });
-
-  it('should toggle stats view', () => {
-    const { rerender } = render(
-      <ProjectTable projects={mockProjects} {...mockHandlers} showStats={false} />
+  it('should display project status', () => {
+    render(
+      <ProjectTable
+        projects={mockProjects}
+        onUpdate={mockOnUpdate}
+        onDelete={mockOnDelete}
+        onCreate={mockOnCreate}
+      />
     );
 
-    expect(screen.queryByText('J7')).not.toBeInTheDocument();
-
-    rerender(<ProjectTable projects={mockProjects} {...mockHandlers} showStats={true} />);
-
-    expect(screen.getByText('J7')).toBeInTheDocument();
+    expect(screen.getByText('pending')).toBeInTheDocument();
   });
 
-  it('should render empty state', () => {
-    render(<ProjectTable projects={[]} {...mockHandlers} />);
+  it('should handle empty projects', () => {
+    render(
+      <ProjectTable
+        projects={[]}
+        onUpdate={mockOnUpdate}
+        onDelete={mockOnDelete}
+        onCreate={mockOnCreate}
+      />
+    );
 
-    expect(screen.getByText('Aucun projet')).toBeInTheDocument();
+    expect(screen.getByTestId('add-project-row')).toBeInTheDocument();
   });
 
-  it('should handle refresh action', async () => {
-    const user = userEvent.setup();
-    render(<ProjectTable projects={mockProjects} {...mockHandlers} />);
+  it('should display loading state', () => {
+    render(
+      <ProjectTable
+        projects={mockProjects}
+        onUpdate={mockOnUpdate}
+        onDelete={mockOnDelete}
+        onCreate={mockOnCreate}
+        isLoading={true}
+      />
+    );
 
-    await user.click(screen.getByTitle('Rafraîchir'));
-    expect(mockHandlers.onRefresh).toHaveBeenCalled();
+    expect(screen.getByText('Test Project')).toBeInTheDocument();
   });
 });

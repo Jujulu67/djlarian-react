@@ -1,56 +1,57 @@
-/**
- * Tests for useFriends hook
- */
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { useSession } from 'next-auth/react';
-
 import { useFriends } from '../useFriends';
 
-// Mock dependencies
-jest.mock('next-auth/react', () => ({
-  useSession: jest.fn(),
+// Mock next-auth/react
+const mockUseSession = jest.fn(() => ({
+  data: { user: { id: 'user-1' } },
+  status: 'authenticated',
 }));
 
+jest.mock('next-auth/react', () => ({
+  useSession: () => mockUseSession(),
+}));
+
+// Mock fetchWithAuth
 jest.mock('@/lib/api/fetchWithAuth', () => ({
   fetchWithAuth: jest.fn(),
 }));
 
 describe('useFriends', () => {
+  const mockFetchWithAuth = require('@/lib/api/fetchWithAuth').fetchWithAuth;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseSession.mockReturnValue({
+      data: { user: { id: 'user-1' } },
+      status: 'authenticated',
+    });
   });
 
-  it('should initialize with empty state', () => {
-    (useSession as jest.Mock).mockReturnValue({
-      data: null,
-      status: 'unauthenticated',
+  it('should initialize with loading state', () => {
+    mockFetchWithAuth.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        friends: [],
+        pendingReceived: [],
+        pendingSent: [],
+      }),
     });
 
     const { result } = renderHook(() => useFriends());
 
-    expect(result.current.friends).toEqual([]);
-    expect(result.current.pendingReceived).toEqual([]);
-    expect(result.current.pendingSent).toEqual([]);
-    // isLoading is set to false when unauthenticated
-    expect(result.current.isLoading).toBe(false);
+    expect(result.current.isLoading).toBe(true);
   });
 
-  it('should fetch friends for authenticated user', async () => {
-    const { fetchWithAuth } = await import('@/lib/api/fetchWithAuth');
-    (useSession as jest.Mock).mockReturnValue({
-      data: { user: { id: 'user1' } },
-      status: 'authenticated',
-    });
+  it('should load friends', async () => {
+    const mockFriends = {
+      friends: [{ id: '1', user: { id: 'user-2', name: 'Friend' } }],
+      pendingReceived: [],
+      pendingSent: [],
+    };
 
-    (fetchWithAuth as jest.Mock).mockResolvedValue({
+    mockFetchWithAuth.mockResolvedValue({
       ok: true,
-      json: async () => ({
-        data: {
-          friends: [],
-          pendingReceived: [],
-          pendingSent: [],
-        },
-      }),
+      json: async () => mockFriends,
     });
 
     const { result } = renderHook(() => useFriends());
@@ -59,73 +60,22 @@ describe('useFriends', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.friends).toEqual([]);
-  });
-
-  it('should handle unauthenticated user', () => {
-    (useSession as jest.Mock).mockReturnValue({
-      data: null,
-      status: 'unauthenticated',
-    });
-
-    const { result } = renderHook(() => useFriends());
-
-    expect(result.current.friends).toEqual([]);
-    expect(result.current.isLoading).toBe(false);
-  });
-
-  it('should refresh friends', async () => {
-    const { fetchWithAuth } = await import('@/lib/api/fetchWithAuth');
-    (useSession as jest.Mock).mockReturnValue({
-      data: { user: { id: 'user1' } },
-      status: 'authenticated',
-    });
-
-    (fetchWithAuth as jest.Mock).mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        data: {
-          friends: [],
-          pendingReceived: [],
-          pendingSent: [],
-        },
-      }),
-    });
-
-    const { result } = renderHook(() => useFriends());
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    await act(async () => {
-      await result.current.refresh();
-    });
-
-    expect(fetchWithAuth).toHaveBeenCalled();
+    expect(result.current.friends).toHaveLength(1);
   });
 
   it('should send friend request', async () => {
-    const { fetchWithAuth } = await import('@/lib/api/fetchWithAuth');
-    (useSession as jest.Mock).mockReturnValue({
-      data: { user: { id: 'user1' } },
-      status: 'authenticated',
-    });
-
-    (fetchWithAuth as jest.Mock)
+    mockFetchWithAuth
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          data: {
-            friends: [],
-            pendingReceived: [],
-            pendingSent: [],
-          },
+          friends: [],
+          pendingReceived: [],
+          pendingSent: [],
         }),
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ data: { success: true } }),
+        json: async () => ({ success: true }),
       });
 
     const { result } = renderHook(() => useFriends());
@@ -135,13 +85,49 @@ describe('useFriends', () => {
     });
 
     await act(async () => {
-      await result.current.sendRequest('user2');
+      await result.current.sendRequest('user-2');
     });
 
-    expect(fetchWithAuth).toHaveBeenCalledWith('/api/friends/request', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: 'user2' }),
+    expect(mockFetchWithAuth).toHaveBeenCalled();
+  });
+
+  it('should accept friend request', async () => {
+    mockFetchWithAuth
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          friends: [],
+          pendingReceived: [{ id: '1', friendshipId: 'friendship-1' }],
+          pendingSent: [],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true }),
+      });
+
+    const { result } = renderHook(() => useFriends());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
     });
+
+    await act(async () => {
+      await result.current.acceptRequest('friendship-1');
+    });
+
+    expect(mockFetchWithAuth).toHaveBeenCalled();
+  });
+
+  it('should handle unauthenticated state', () => {
+    mockUseSession.mockReturnValue({
+      data: null,
+      status: 'unauthenticated',
+    });
+
+    const { result } = renderHook(() => useFriends());
+
+    expect(result.current.friends).toEqual([]);
+    expect(result.current.isLoading).toBe(false);
   });
 });

@@ -433,8 +433,17 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
     return projects;
   }, [displayStats, comparisonYearFilter]);
 
+  // Type pour le mapping des projets en mode comparaison
+  type ProjectMapping = {
+    index: number;
+    projectId: string;
+    projectName: string;
+    style?: string | null;
+    dataKey: string;
+  };
+
   // Créer le mapping des projets pour le mode comparaison (AVANT les données)
-  const comparisonProjectMapping = useMemo(() => {
+  const comparisonProjectMapping = useMemo<ProjectMapping[]>(() => {
     if (!displayStats || viewMode !== 'comparison') return [];
     const filteredProjects = getFilteredProjectsForComparison;
 
@@ -1557,7 +1566,7 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
                             const projectsToShow =
                               comparisonMode === 'all'
                                 ? projectMapping
-                                : projectMapping.filter((m: any) =>
+                                : projectMapping.filter((m: ProjectMapping) =>
                                     selectedProjectsForComparison.includes(m.projectId)
                                   );
 
@@ -1569,7 +1578,7 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
                                   {label}
                                 </div>
                                 <div className="space-y-1">
-                                  {projectsToShow.map((mapping: any, index: number) => {
+                                  {projectsToShow.map((mapping: ProjectMapping, index: number) => {
                                     const data = payload.find((p) => p.dataKey === mapping.dataKey);
                                     if (!data || data.value === null || data.value === undefined)
                                       return null;
@@ -1615,7 +1624,7 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
                             const projectsToShow =
                               comparisonMode === 'all'
                                 ? projectMapping
-                                : projectMapping.filter((m: any) =>
+                                : projectMapping.filter((m: ProjectMapping) =>
                                     selectedProjectsForComparison.includes(m.projectId)
                                   );
 
@@ -1623,7 +1632,7 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
 
                             return (
                               <div className="flex flex-wrap items-center justify-center gap-4 mt-4">
-                                {projectsToShow.map((mapping: any, index: number) => {
+                                {projectsToShow.map((mapping: ProjectMapping, index: number) => {
                                   const color = getColorForIndex(index, projectsToShow.length);
                                   return (
                                     <div
@@ -1652,7 +1661,7 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
                       )}
                       {viewMode === 'comparison' &&
                         comparisonMode === 'all' &&
-                        comparisonProjectMapping.map((mapping: any, index: number) => {
+                        comparisonProjectMapping.map((mapping: ProjectMapping, index: number) => {
                           const color = getColorForIndex(index, comparisonProjectMapping.length);
                           return (
                             <Line
@@ -1672,10 +1681,13 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
                       {viewMode === 'comparison' &&
                         comparisonMode === 'two' &&
                         comparisonProjectMapping
-                          .filter((m: any) => selectedProjectsForComparison.includes(m.projectId))
-                          .map((mapping: any, index: number) => {
-                            const filteredProjects = comparisonProjectMapping.filter((m: any) =>
-                              selectedProjectsForComparison.includes(m.projectId)
+                          .filter((m: ProjectMapping) =>
+                            selectedProjectsForComparison.includes(m.projectId)
+                          )
+                          .map((mapping: ProjectMapping, index: number) => {
+                            const filteredProjects = comparisonProjectMapping.filter(
+                              (m: ProjectMapping) =>
+                                selectedProjectsForComparison.includes(m.projectId)
                             );
                             const color = getColorForIndex(index, filteredProjects.length);
                             return (

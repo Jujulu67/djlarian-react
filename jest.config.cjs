@@ -25,19 +25,28 @@ module.exports = {
     '**/*.test.tsx',
   ],
   collectCoverageFrom: [
-    'src/**/*.{ts,tsx}',
+    // On se concentre sur le code métier testable en unitaires/intégration légère
+    'src/lib/**/*.{ts,tsx}',
+    'src/hooks/**/*.{ts,tsx}',
+    'src/components/**/*.{ts,tsx}',
+
+    // Exclusions générales
     '!src/**/*.d.ts',
     '!src/**/__tests__/**',
     '!src/**/__mocks__/**',
     '!src/**/types.ts',
     '!src/**/*.test.{ts,tsx}',
+
+    // Les pages Next.js et routes API sont couvertes plutôt par Cypress / tests e2e
+    '!src/app/**/*.{ts,tsx}',
+    '!src/app/**/*.ts',
   ],
   coverageThreshold: {
     global: {
-      branches: 15,
-      functions: 15,
-      lines: 15,
-      statements: 15,
+      branches: 50,
+      functions: 50,
+      lines: 60,
+      statements: 60,
     },
   },
 };

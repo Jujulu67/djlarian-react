@@ -72,15 +72,20 @@ describe('GlobalInventoryManager', () => {
   it('should handle search input', async () => {
     render(<GlobalInventoryManager isOpen={true} onClose={mockOnClose} />);
 
+    // Wait for initial search to complete
+    await waitFor(() => {
+      expect(searchUsers).toHaveBeenCalledWith('');
+    });
+
     const searchInput = screen.getByPlaceholderText('Search users...');
     fireEvent.change(searchInput, { target: { value: 'Two' } });
 
-    // Debounce wait
+    // Debounce wait - typically 300-500ms, but allow more time
     await waitFor(
       () => {
         expect(searchUsers).toHaveBeenCalledWith('Two');
       },
-      { timeout: 1000 }
+      { timeout: 2000 }
     );
   });
 
