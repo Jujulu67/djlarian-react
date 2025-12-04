@@ -198,4 +198,33 @@ describe('useMusicPlayer', () => {
       expect(result.current.isPlaying).toBe(false);
     });
   });
+  it('should auto-play track from URL parameter', async () => {
+    // Mock window.location
+    const originalLocation = window.location;
+    delete (window as any).location;
+    window.location = {
+      ...originalLocation,
+      search: '?play=1',
+      href: 'http://localhost/?play=1',
+    } as any;
+
+    // Mock history.replaceState
+    const replaceStateMock = jest.fn();
+    window.history.replaceState = replaceStateMock;
+
+    const { result } = renderHook(() => useMusicPlayer({ filteredTracks: mockTracks }));
+
+    await act(async () => {
+      jest.advanceTimersByTime(200);
+    });
+
+    await waitFor(() => {
+      expect(result.current.currentTrack?.id).toBe('1');
+    });
+    expect(result.current.isPlaying).toBe(true);
+    expect(replaceStateMock).toHaveBeenCalled();
+
+    // Restore window.location
+    window.location = originalLocation;
+  });
 });

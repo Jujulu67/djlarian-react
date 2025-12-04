@@ -11,15 +11,16 @@ jest.mock('@/auth', () => ({
   auth: jest.fn(),
 }));
 
-jest.mock('@/lib/prisma', () => ({
-  __esModule: true,
-  default: {
+jest.mock('@/lib/prisma', () => {
+  const mockPrisma: any = {
     track: {
       findUnique: jest.fn(),
       update: jest.fn(),
+      delete: jest.fn(),
     },
     genre: {
       findMany: jest.fn(),
+      upsert: jest.fn(),
     },
     trackPlatform: {
       deleteMany: jest.fn(),
@@ -29,8 +30,13 @@ jest.mock('@/lib/prisma', () => ({
       deleteMany: jest.fn(),
       createMany: jest.fn(),
     },
-  },
-}));
+  };
+  mockPrisma.$transaction = jest.fn((callback: any) => callback(mockPrisma));
+  return {
+    __esModule: true,
+    default: mockPrisma,
+  };
+});
 
 jest.mock('@/lib/api/musicService', () => ({
   formatTrackData: jest.fn((track) => track),
@@ -50,8 +56,8 @@ describe('/api/music/[id]', () => {
 
   describe('GET', () => {
     it('should return track for valid ID', async () => {
-      const { default: prisma } = await import('@/lib/prisma');
-      (prisma.track.findUnique as jest.Mock).mockResolvedValue({
+      const { default: mockPrisma } = await import('@/lib/prisma');
+      (mockPrisma.track.findUnique as jest.Mock).mockResolvedValue({
         id: 'track-1',
         title: 'Test Track',
         artist: 'Test Artist',
@@ -68,8 +74,8 @@ describe('/api/music/[id]', () => {
     });
 
     it('should return 404 for non-existent track', async () => {
-      const { default: prisma } = await import('@/lib/prisma');
-      (prisma.track.findUnique as jest.Mock).mockResolvedValue(null);
+      const { default: mockPrisma } = await import('@/lib/prisma');
+      (mockPrisma.track.findUnique as jest.Mock).mockResolvedValue(null);
 
       const request = new NextRequest('http://localhost/api/music/invalid');
       const response = await GET(request, { params: Promise.resolve({ id: 'invalid' }) });
@@ -81,24 +87,24 @@ describe('/api/music/[id]', () => {
   describe('PUT', () => {
     it('should update track for admin user', async () => {
       const { auth } = await import('@/auth');
-      const { default: prisma } = await import('@/lib/prisma');
+      const { default: mockPrisma } = await import('@/lib/prisma');
 
       (auth as jest.Mock).mockResolvedValue({
         user: { id: 'admin1', role: 'ADMIN' },
       });
 
-      (prisma.track.findUnique as jest.Mock).mockResolvedValue({
+      (mockPrisma.track.findUnique as jest.Mock).mockResolvedValue({
         id: 'track-1',
       });
 
-      (prisma.track.update as jest.Mock).mockResolvedValue({
+      (mockPrisma.track.update as jest.Mock).mockResolvedValue({
         id: 'track-1',
         title: 'Updated Track',
       });
 
-      (prisma.genre.findMany as jest.Mock).mockResolvedValue([]);
-      (prisma.trackPlatform.deleteMany as jest.Mock).mockResolvedValue({ count: 0 });
-      (prisma.genresOnTracks.deleteMany as jest.Mock).mockResolvedValue({ count: 0 });
+      (mockPrisma.genre.findMany as jest.Mock).mockResolvedValue([]);
+      (mockPrisma.trackPlatform.deleteMany as jest.Mock).mockResolvedValue({ count: 0 });
+      (mockPrisma.genresOnTracks.deleteMany as jest.Mock).mockResolvedValue({ count: 0 });
 
       const request = new NextRequest('http://localhost/api/music/track-1', {
         method: 'PUT',

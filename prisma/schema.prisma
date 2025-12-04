@@ -167,6 +167,7 @@ model User {
   LiveSubmission       LiveSubmission[]
   UserLiveItem         UserLiveItem[]
   UserTicket           UserTicket[]
+  UserSlotMachineTokens UserSlotMachineTokens?
   FriendshipRequests  Friendship[]            @relation("FriendshipRequester")
   FriendshipReceived  Friendship[]            @relation("FriendshipRecipient")
 }
@@ -409,4 +410,19 @@ model Friendship {
   @@index([requesterId])
   @@index([recipientId])
   @@index([status])
+}
+
+model UserSlotMachineTokens {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  tokens        Int      @default(100)
+  lastResetDate DateTime @default(now())
+  totalSpins    Int      @default(0)
+  totalWins     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  User          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([lastResetDate])
 }

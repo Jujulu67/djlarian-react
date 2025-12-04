@@ -34,14 +34,13 @@ describe('/api/notifications', () => {
 
   it('should return notifications for authenticated user', async () => {
     const { auth } = await import('@/auth');
-    const { default: prisma } = await import('@/lib/prisma');
+    const { default: mockPrisma } = await import('@/lib/prisma');
 
     (auth as jest.Mock).mockResolvedValue({
       user: { id: 'user1', role: 'USER' },
     });
 
-    const { default: prisma } = await import('@/lib/prisma');
-    (prisma.notification.findMany as jest.Mock)
+    (mockPrisma.notification.findMany as jest.Mock)
       .mockResolvedValueOnce([
         {
           id: 'notif-1',
@@ -59,10 +58,11 @@ describe('/api/notifications', () => {
           parentId: null,
           threadId: null,
           Project: null,
+          thread: null,
         },
       ])
       .mockResolvedValueOnce([]); // For replies
-    (prisma.notification.count as jest.Mock).mockResolvedValue(1);
+    (mockPrisma.notification.count as jest.Mock).mockResolvedValue(1);
 
     const request = new NextRequest('http://localhost/api/notifications');
     const response = await GET(request);
@@ -76,19 +76,19 @@ describe('/api/notifications', () => {
 
   it('should filter by unreadOnly', async () => {
     const { auth } = await import('@/auth');
-    const { default: prisma } = await import('@/lib/prisma');
+    const { default: mockPrisma } = await import('@/lib/prisma');
 
     (auth as jest.Mock).mockResolvedValue({
       user: { id: 'user1', role: 'USER' },
     });
 
-    (prisma.notification.findMany as jest.Mock).mockResolvedValue([]);
+    (mockPrisma.notification.findMany as jest.Mock).mockResolvedValue([]);
 
     const request = new NextRequest('http://localhost/api/notifications?unreadOnly=true');
     const response = await GET(request);
 
     expect(response.status).toBe(200);
-    expect(prisma.notification.findMany).toHaveBeenCalledWith(
+    expect(mockPrisma.notification.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           isRead: false,

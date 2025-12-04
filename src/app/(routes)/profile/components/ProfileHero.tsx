@@ -17,6 +17,8 @@ import {
 import ImageCropModal from '@/components/ui/ImageCropModal';
 import { ProfileAvatarModal } from './ProfileAvatarModal';
 import { getMemberSince } from '../utils/dateUtils';
+import { SlotMachine } from './SlotMachine';
+import { useState } from 'react';
 
 interface ProfileHeroProps {
   user: {
@@ -72,6 +74,8 @@ export function ProfileHero({
   onShowFullscreenAvatar,
   fileInputRef,
 }: ProfileHeroProps) {
+  const [showSlotMachine, setShowSlotMachine] = useState(false);
+
   const getImageUrl = (image: string | null) => {
     if (!image) return null;
     if (image.startsWith('http://') || image.startsWith('https://')) {
@@ -90,7 +94,13 @@ export function ProfileHero({
       className="relative mb-4 sm:mb-6 lg:mb-6"
     >
       {/* Bannière réduite et optimisée */}
-      <div className="relative h-28 sm:h-32 lg:h-28 rounded-2xl overflow-hidden">
+      <motion.div
+        className="relative h-28 sm:h-32 lg:h-28 rounded-2xl overflow-hidden cursor-pointer"
+        onClick={() => setShowSlotMachine(true)}
+        whileHover={{ scale: 1.01 }}
+        transition={{ duration: 0.2 }}
+        title="🎰 Cliquez pour jouer à la machine à sous"
+      >
         {/* Gradient animé */}
         <div
           className="absolute inset-0 bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 opacity-60"
@@ -101,7 +111,7 @@ export function ProfileHero({
         />
         {/* Overlay avec texture */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/60" />
-      </div>
+      </motion.div>
 
       {/* Carte profil avec glassmorphism */}
       <div className="relative -mt-10 sm:-mt-14 lg:-mt-12 px-4 sm:px-6">
@@ -318,6 +328,9 @@ export function ProfileHero({
           </div>
         </div>
       </div>
+
+      {/* Machine à sous Modal */}
+      <SlotMachine isOpen={showSlotMachine} onClose={() => setShowSlotMachine(false)} />
     </motion.div>
   );
 }

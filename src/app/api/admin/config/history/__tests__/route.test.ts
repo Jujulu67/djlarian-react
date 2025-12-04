@@ -17,9 +17,8 @@ jest.mock('@/lib/logger', () => ({
   },
 }));
 
-jest.mock('@/lib/prisma', () => ({
-  __esModule: true,
-  default: {
+jest.mock('@/lib/prisma', () => {
+  const mockPrisma = {
     configHistory: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
@@ -33,9 +32,14 @@ jest.mock('@/lib/prisma', () => ({
     },
     configSnapshot: {
       findUnique: jest.fn(),
+      findMany: jest.fn(),
     },
-  },
-}));
+  };
+  return {
+    __esModule: true,
+    default: mockPrisma,
+  };
+});
 
 describe('/api/admin/config/history', () => {
   beforeEach(() => {
@@ -45,7 +49,7 @@ describe('/api/admin/config/history', () => {
   describe('GET', () => {
     it('should return changes history for admin user', async () => {
       const { auth } = await import('@/auth');
-      const { default: prisma } = await import('@/lib/prisma');
+      const { default: mockPrisma } = await import('@/lib/prisma');
 
       (auth as jest.Mock).mockResolvedValue({
         user: { id: 'admin1', role: 'ADMIN' },
@@ -62,7 +66,7 @@ describe('/api/admin/config/history', () => {
         },
       ];
 
-      (prisma.configHistory.findMany as jest.Mock).mockResolvedValue(mockHistory);
+      (mockPrisma.configHistory.findMany as jest.Mock).mockResolvedValue(mockHistory);
 
       const request = new NextRequest('http://localhost/api/admin/config/history?type=changes', {
         method: 'GET',
@@ -72,12 +76,12 @@ describe('/api/admin/config/history', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data).toEqual(mockHistory);
+      expect(data).toEqual(JSON.parse(JSON.stringify(mockHistory)));
     });
 
     it('should return snapshots for admin user', async () => {
       const { auth } = await import('@/auth');
-      const { default: prisma } = await import('@/lib/prisma');
+      const { default: mockPrisma } = await import('@/lib/prisma');
 
       (auth as jest.Mock).mockResolvedValue({
         user: { id: 'admin1', role: 'ADMIN' },
@@ -92,7 +96,7 @@ describe('/api/admin/config/history', () => {
         },
       ];
 
-      (prisma.configSnapshot.findMany as jest.Mock).mockResolvedValue(mockSnapshots);
+      (mockPrisma.configSnapshot.findMany as jest.Mock).mockResolvedValue(mockSnapshots);
 
       const request = new NextRequest('http://localhost/api/admin/config/history?type=snapshots', {
         method: 'GET',
@@ -102,7 +106,7 @@ describe('/api/admin/config/history', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data).toEqual(mockSnapshots);
+      expect(data).toEqual(JSON.parse(JSON.stringify(mockSnapshots)));
     });
 
     it('should return 400 for invalid type', async () => {
@@ -143,7 +147,7 @@ describe('/api/admin/config/history', () => {
   describe('POST', () => {
     it('should revert a change for admin user', async () => {
       const { auth } = await import('@/auth');
-      const { default: prisma } = await import('@/lib/prisma');
+      const { default: mockPrisma } = await import('@/lib/prisma');
 
       (auth as jest.Mock).mockResolvedValue({
         user: { id: 'admin1', role: 'ADMIN', email: 'admin@test.com' },
@@ -158,16 +162,16 @@ describe('/api/admin/config/history', () => {
         config: { id: 'config1', section: 'general', key: 'siteName' },
       };
 
-      (prisma.configHistory.findUnique as jest.Mock).mockResolvedValue(mockHistoryItem);
-      (prisma.siteConfig.findUnique as jest.Mock).mockResolvedValue({
+      (mockPrisma.configHistory.findUnique as jest.Mock).mockResolvedValue(mockHistoryItem);
+      (mockPrisma.siteConfig.findUnique as jest.Mock).mockResolvedValue({
         id: 'config1',
         section: 'general',
         key: 'siteName',
         value: 'new',
       });
-      (prisma.siteConfig.update as jest.Mock).mockResolvedValue({});
-      (prisma.configHistory.update as jest.Mock).mockResolvedValue({});
-      (prisma.configHistory.create as jest.Mock).mockResolvedValue({});
+      (mockPrisma.siteConfig.update as jest.Mock).mockResolvedValue({});
+      (mockPrisma.configHistory.update as jest.Mock).mockResolvedValue({});
+      (mockPrisma.configHistory.create as jest.Mock).mockResolvedValue({});
 
       const request = new NextRequest('http://localhost/api/admin/config/history', {
         method: 'POST',
@@ -184,7 +188,7 @@ describe('/api/admin/config/history', () => {
 
     it('should apply snapshot for admin user', async () => {
       const { auth } = await import('@/auth');
-      const { default: prisma } = await import('@/lib/prisma');
+      const { default: mockPrisma } = await import('@/lib/prisma');
 
       (auth as jest.Mock).mockResolvedValue({
         user: { id: 'admin1', role: 'ADMIN', email: 'admin@test.com' },
@@ -196,15 +200,15 @@ describe('/api/admin/config/history', () => {
         data: { general: { siteName: 'Test' } },
       };
 
-      (prisma.configSnapshot.findUnique as jest.Mock).mockResolvedValue(mockSnapshot);
-      (prisma.siteConfig.findUnique as jest.Mock).mockResolvedValue({
+      (mockPrisma.configSnapshot.findUnique as jest.Mock).mockResolvedValue(mockSnapshot);
+      (mockPrisma.siteConfig.findUnique as jest.Mock).mockResolvedValue({
         id: 'config1',
         section: 'general',
         key: 'siteName',
         value: 'old',
       });
-      (prisma.siteConfig.update as jest.Mock).mockResolvedValue({});
-      (prisma.configHistory.create as jest.Mock).mockResolvedValue({});
+      (mockPrisma.siteConfig.update as jest.Mock).mockResolvedValue({});
+      (mockPrisma.configHistory.create as jest.Mock).mockResolvedValue({});
 
       const request = new NextRequest('http://localhost/api/admin/config/history', {
         method: 'POST',

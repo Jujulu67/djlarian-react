@@ -944,7 +944,7 @@ const EventForm: React.FC<EventFormProps> = ({
             type="submit"
             className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 shadow-lg shadow-purple-600/20 hover:shadow-purple-600/40"
           >
-            {isEditMode ? 'Mettre à jour' : 'Créer l&apos;événement'}
+            {isEditMode ? 'Mettre à jour' : "Créer l'événement"}
           </button>
         </div>
       </form>

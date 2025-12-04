@@ -11,14 +11,20 @@ jest.mock('@/auth', () => ({
   auth: jest.fn(),
 }));
 
-jest.mock('@/lib/prisma', () => ({
-  __esModule: true,
-  default: {
+jest.mock('@/lib/prisma', () => {
+  const mockPrisma = {
     user: {
       findUnique: jest.fn(),
     },
-  },
-}));
+    trackPlatform: {
+      findMany: jest.fn(),
+    },
+  };
+  return {
+    __esModule: true,
+    default: mockPrisma,
+  };
+});
 
 jest.mock('@/lib/services/soundcloud', () => ({
   searchSoundCloudArtistTracks: jest.fn(),
@@ -28,6 +34,8 @@ jest.mock('@/lib/logger', () => ({
   logger: {
     error: jest.fn(),
     debug: jest.fn(),
+    warn: jest.fn(),
+    info: jest.fn(),
   },
 }));
 
@@ -38,16 +46,18 @@ describe('/api/soundcloud/releases', () => {
 
   it('should return releases for admin user', async () => {
     const { auth } = await import('@/auth');
-    const { default: prisma } = await import('@/lib/prisma');
+    const { default: mockPrisma } = await import('@/lib/prisma');
     const { searchSoundCloudArtistTracks } = await import('@/lib/services/soundcloud');
 
     (auth as jest.Mock).mockResolvedValue({
       user: { id: 'admin1', email: 'admin@test.com', role: 'ADMIN' },
     });
 
-    (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+    (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue({
       role: 'ADMIN',
     });
+
+    (mockPrisma.trackPlatform.findMany as jest.Mock).mockResolvedValue([]);
 
     (searchSoundCloudArtistTracks as jest.Mock).mockResolvedValue([]);
 
