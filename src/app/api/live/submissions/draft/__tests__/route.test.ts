@@ -11,17 +11,21 @@ jest.mock('@/auth', () => ({
   auth: jest.fn(),
 }));
 
-jest.mock('@/lib/prisma', () => ({
-  __esModule: true,
-  default: {
+jest.mock('@/lib/prisma', () => {
+  const mockPrisma = {
     liveSubmission: {
       findFirst: jest.fn(),
       findUnique: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
+      delete: jest.fn(),
     },
-  },
-}));
+  };
+  return {
+    __esModule: true,
+    default: mockPrisma,
+  };
+});
 
 jest.mock('@/lib/api/rateLimiter', () => ({
   rateLimit: jest.fn(() => null),
@@ -35,6 +39,8 @@ jest.mock('@/lib/logger', () => ({
   logger: {
     error: jest.fn(),
     warn: jest.fn(),
+    debug: jest.fn(),
+    info: jest.fn(),
   },
 }));
 
@@ -45,14 +51,14 @@ describe('/api/live/submissions/draft', () => {
 
   it('should create draft for authenticated user', async () => {
     const { auth } = await import('@/auth');
-    const { default: prisma } = await import('@/lib/prisma');
+    const { default: mockPrisma } = await import('@/lib/prisma');
 
     (auth as jest.Mock).mockResolvedValue({
       user: { id: 'user1', role: 'USER' },
     });
 
-    (prisma.liveSubmission.findFirst as jest.Mock).mockResolvedValue(null);
-    (prisma.liveSubmission.create as jest.Mock).mockResolvedValue({
+    (mockPrisma.liveSubmission.findFirst as jest.Mock).mockResolvedValue(null);
+    (mockPrisma.liveSubmission.create as jest.Mock).mockResolvedValue({
       id: 'draft-1',
       userId: 'user1',
       isDraft: true,
@@ -71,7 +77,7 @@ describe('/api/live/submissions/draft', () => {
     const response = await POST(request);
     const data = await response.json();
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(201);
     expect(data.data).toBeDefined();
   });
 

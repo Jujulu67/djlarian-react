@@ -337,7 +337,7 @@ describe("ProfilePage - Tests d'intégration", () => {
       });
 
       // Trouver le bouton "Associer" pour Google spécifiquement
-      const linkButtons = screen.getAllByText('Associer');
+      const linkButtons = await screen.findAllByText('Associer');
       const googleLinkButton = linkButtons.find((btn) => {
         const parent = btn.closest('div');
         return parent?.textContent?.includes('Google');

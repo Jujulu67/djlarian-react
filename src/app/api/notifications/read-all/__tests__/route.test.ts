@@ -33,13 +33,13 @@ describe('/api/notifications/read-all', () => {
 
   it('should mark all notifications as read', async () => {
     const { auth } = await import('@/auth');
-    const { default: prisma } = await import('@/lib/prisma');
+    const { default: mockPrisma } = await import('@/lib/prisma');
 
     (auth as jest.Mock).mockResolvedValue({
       user: { id: 'user1', role: 'USER' },
     });
 
-    (prisma.notification.updateMany as jest.Mock).mockResolvedValue({
+    (mockPrisma.notification.updateMany as jest.Mock).mockResolvedValue({
       count: 5,
     });
 

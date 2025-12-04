@@ -319,6 +319,9 @@ export function useMusicPlayer({ filteredTracks }: UseMusicPlayerParams): UseMus
       );
 
       if (trackToPlay) {
+        // Prevent infinite loop if track is already loaded
+        if (currentTrack?.id === trackToPlay.id) return;
+
         logger.debug(`Auto-playing track from URL: ${trackToPlay.title}`);
         playTrack(trackToPlay);
 
@@ -330,7 +333,7 @@ export function useMusicPlayer({ filteredTracks }: UseMusicPlayerParams): UseMus
         }
       }
     }
-  }, [filteredTracks, playTrack]);
+  }, [filteredTracks, playTrack, currentTrack]);
 
   // Cleanup timeout on unmount
   useEffect(() => {

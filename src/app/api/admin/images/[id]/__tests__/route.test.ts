@@ -13,7 +13,7 @@ jest.mock('@/lib/logger', () => ({
   },
 }));
 
-jest.mock('../../images/shared', () => ({
+jest.mock('../../shared', () => ({
   removeImage: jest.fn(),
 }));
 
@@ -23,7 +23,7 @@ describe('/api/admin/images/[id]', () => {
   });
 
   it('should delete image successfully', async () => {
-    const { removeImage } = await import('../../images/shared');
+    const { removeImage } = await import('../../shared');
     (removeImage as jest.Mock).mockReturnValue(true);
 
     const request = new NextRequest('http://localhost/api/admin/images/img1', {
@@ -40,7 +40,7 @@ describe('/api/admin/images/[id]', () => {
   });
 
   it('should return 404 if image not found', async () => {
-    const { removeImage } = await import('../../images/shared');
+    const { removeImage } = await import('../../shared');
     (removeImage as jest.Mock).mockReturnValue(false);
 
     const request = new NextRequest('http://localhost/api/admin/images/img1', {
@@ -67,7 +67,7 @@ describe('/api/admin/images/[id]', () => {
   });
 
   it('should handle errors', async () => {
-    const { removeImage } = await import('../../images/shared');
+    const { removeImage } = await import('../../shared');
     (removeImage as jest.Mock).mockImplementation(() => {
       throw new Error('Database error');
     });

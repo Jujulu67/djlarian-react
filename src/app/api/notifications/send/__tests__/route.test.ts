@@ -47,20 +47,20 @@ describe('/api/notifications/send', () => {
 
   it('should send notification to specific user', async () => {
     const { auth } = await import('@/auth');
-    const { default: prisma } = await import('@/lib/prisma');
+    const { default: mockPrisma } = await import('@/lib/prisma');
 
     (auth as jest.Mock).mockResolvedValue({
       user: { id: 'user1', role: 'USER' },
     });
 
-    (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+    (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue({
       id: 'user1',
       role: 'USER',
       name: 'Test User',
       email: 'test@test.com',
     });
 
-    (prisma.user.findUnique as jest.Mock)
+    (mockPrisma.user.findUnique as jest.Mock)
       .mockResolvedValueOnce({
         id: 'user1',
         role: 'USER',
@@ -74,12 +74,12 @@ describe('/api/notifications/send', () => {
         email: 'user2@test.com',
       });
 
-    (prisma.friendship.findFirst as jest.Mock).mockResolvedValue({
+    (mockPrisma.friendship.findFirst as jest.Mock).mockResolvedValue({
       id: 'friendship-1',
       status: 'ACCEPTED',
     });
 
-    (prisma.notification.create as jest.Mock)
+    (mockPrisma.notification.create as jest.Mock)
       .mockResolvedValueOnce({
         id: 'notif-1',
         userId: 'user2',
@@ -109,7 +109,7 @@ describe('/api/notifications/send', () => {
     expect(response.status).toBe(201);
     expect(data.data).toBeDefined();
     expect(data.message).toBe('Notification créée');
-    expect(prisma.notification.create).toHaveBeenCalled();
+    expect(mockPrisma.notification.create).toHaveBeenCalled();
   });
 
   it('should return 401 for unauthenticated user', async () => {
@@ -134,13 +134,13 @@ describe('/api/notifications/send', () => {
 
   it('should return 400 if title is missing', async () => {
     const { auth } = await import('@/auth');
-    const { default: prisma } = await import('@/lib/prisma');
+    const { default: mockPrisma } = await import('@/lib/prisma');
 
     (auth as jest.Mock).mockResolvedValue({
       user: { id: 'user1', role: 'USER' },
     });
 
-    (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+    (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue({
       id: 'user1',
       role: 'USER',
       name: 'Test User',
@@ -164,22 +164,22 @@ describe('/api/notifications/send', () => {
 
   it('should allow admin to send to all users', async () => {
     const { auth } = await import('@/auth');
-    const { default: prisma } = await import('@/lib/prisma');
+    const { default: mockPrisma } = await import('@/lib/prisma');
 
     (auth as jest.Mock).mockResolvedValue({
       user: { id: 'admin1', role: 'ADMIN' },
     });
 
-    (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+    (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue({
       id: 'admin1',
       role: 'ADMIN',
       name: 'Admin',
       email: 'admin@test.com',
     });
 
-    (prisma.user.findMany as jest.Mock).mockResolvedValue([{ id: 'user1' }, { id: 'user2' }]);
+    (mockPrisma.user.findMany as jest.Mock).mockResolvedValue([{ id: 'user1' }, { id: 'user2' }]);
 
-    (prisma.notification.createMany as jest.Mock).mockResolvedValue({ count: 2 });
+    (mockPrisma.notification.createMany as jest.Mock).mockResolvedValue({ count: 2 });
 
     const request = new NextRequest('http://localhost/api/notifications/send', {
       method: 'POST',
@@ -197,18 +197,18 @@ describe('/api/notifications/send', () => {
     expect(response.status).toBe(201);
     expect(data.data).toBeDefined();
     expect(data.data.count).toBe(2);
-    expect(prisma.notification.createMany).toHaveBeenCalled();
+    expect(mockPrisma.notification.createMany).toHaveBeenCalled();
   });
 
   it('should block sendToAll for non-admin', async () => {
     const { auth } = await import('@/auth');
-    const { default: prisma } = await import('@/lib/prisma');
+    const { default: mockPrisma } = await import('@/lib/prisma');
 
     (auth as jest.Mock).mockResolvedValue({
       user: { id: 'user1', role: 'USER' },
     });
 
-    (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+    (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue({
       id: 'user1',
       role: 'USER',
       name: 'Test User',
