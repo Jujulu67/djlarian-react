@@ -457,13 +457,13 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
     }
   };
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     try {
       const projectsToExport =
         filteredAndSortedProjects.length > 0 ? filteredAndSortedProjects : projects;
       const date = new Date().toISOString().split('T')[0];
       const filename = `projets_${date}.xlsx`;
-      exportProjectsToExcel(projectsToExport, filename);
+      await exportProjectsToExcel(projectsToExport, filename);
     } catch (error) {
       console.error("Erreur lors de l'export:", error);
       alert("Erreur lors de l'export Excel");

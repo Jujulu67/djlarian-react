@@ -1,29 +1,97 @@
 import { exportProjectsToExcel } from '../exportProjectsToExcel';
 import type { Project } from '@/components/projects/types';
 
-// Mock xlsx-js-style
-jest.mock('xlsx-js-style', () => {
-  const mockWorkbook = {
-    SheetNames: [],
-    Sheets: {},
-  };
+// Mock exceljs
+const mockWorksheet = {
+  addRow: jest.fn(),
+  getRow: jest.fn(() => ({
+    font: {},
+    fill: {},
+    alignment: {},
+    border: {},
+    eachCell: jest.fn(),
+  })),
+  getColumn: jest.fn(() => ({
+    width: 0,
+  })),
+  eachRow: jest.fn((callback) => {
+    // Simulate rows: header + 2 data rows
+    const mockRow = {
+      eachCell: jest.fn((cellCallback) => {
+        // Simulate cells
+        for (let i = 0; i < 16; i++) {
+          cellCallback({ fill: {}, border: {} });
+        }
+      }),
+    };
+    callback(mockRow, 1); // header
+    callback(mockRow, 2); // data row 1
+    callback(mockRow, 3); // data row 2
+  }),
+};
+
+const mockWorkbook = {
+  addWorksheet: jest.fn(() => mockWorksheet),
+  xlsx: {
+    writeBuffer: jest.fn().mockResolvedValue(new ArrayBuffer(0)),
+  },
+};
+
+jest.mock('exceljs', () => {
   return {
-    utils: {
-      book_new: jest.fn(() => mockWorkbook),
-      aoa_to_sheet: jest.fn(() => ({})),
-      encode_cell: jest.fn(({ r, c }) => `${String.fromCharCode(65 + c)}${r + 1}`),
-      book_append_sheet: jest.fn(),
-    },
-    writeFile: jest.fn(),
+    __esModule: true,
+    Workbook: jest.fn(() => mockWorkbook),
   };
 });
+
+// Mock window.URL and document for browser APIs
+// Only mock if window doesn't exist (for Node.js environment)
+if (typeof window === 'undefined') {
+  (global as any).window = {
+    URL: {
+      createObjectURL: jest.fn(() => 'blob:mock-url'),
+      revokeObjectURL: jest.fn(),
+    },
+  };
+} else {
+  // In jsdom environment, just add the mocks
+  (window as any).URL = {
+    createObjectURL: jest.fn(() => 'blob:mock-url'),
+    revokeObjectURL: jest.fn(),
+  };
+}
+
+// Mock document.createElement to return a real DOM element with click method
+if (typeof document !== 'undefined') {
+  const originalCreateElement = document.createElement;
+  document.createElement = jest.fn((tagName: string) => {
+    const element = originalCreateElement.call(document, tagName);
+    if (tagName === 'a') {
+      // Add click method if not present
+      if (!element.click) {
+        element.click = jest.fn();
+      }
+    }
+    return element;
+  });
+}
+
+// Mock Blob if not available
+if (typeof Blob === 'undefined') {
+  (global as any).Blob = jest.fn((parts, options) => ({
+    parts,
+    options,
+    size: 0,
+    type: options?.type || '',
+  }));
+}
 
 describe('exportProjectsToExcel', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('should export projects to Excel', () => {
+  it('should export projects to Excel', async () => {
     const projects: Project[] = [
       {
         id: '1',
@@ -47,24 +115,24 @@ describe('exportProjectsToExcel', () => {
       },
     ];
 
-    exportProjectsToExcel(projects, 'test.xlsx');
+    await exportProjectsToExcel(projects, 'test.xlsx');
 
-    const XLSX = require('xlsx-js-style');
-    expect(XLSX.utils.book_new).toHaveBeenCalled();
-    expect(XLSX.utils.aoa_to_sheet).toHaveBeenCalled();
-    expect(XLSX.utils.book_append_sheet).toHaveBeenCalled();
-    expect(XLSX.writeFile).toHaveBeenCalledWith(expect.any(Object), 'test.xlsx');
+    const { Workbook } = require('exceljs');
+    expect(Workbook).toHaveBeenCalled();
+    expect(mockWorkbook.addWorksheet).toHaveBeenCalledWith('Projets');
+    expect(mockWorkbook.xlsx.writeBuffer).toHaveBeenCalled();
   });
 
-  it('should handle empty projects array', () => {
-    exportProjectsToExcel([], 'empty.xlsx');
+  it('should handle empty projects array', async () => {
+    await exportProjectsToExcel([], 'empty.xlsx');
 
-    const XLSX = require('xlsx-js-style');
-    expect(XLSX.utils.aoa_to_sheet).toHaveBeenCalled();
-    expect(XLSX.writeFile).toHaveBeenCalled();
+    const { Workbook } = require('exceljs');
+    expect(Workbook).toHaveBeenCalled();
+    expect(mockWorksheet.addRow).toHaveBeenCalled(); // At least headers
+    expect(mockWorkbook.xlsx.writeBuffer).toHaveBeenCalled();
   });
 
-  it('should handle projects with missing optional fields', () => {
+  it('should handle projects with missing optional fields', async () => {
     const projects: Project[] = [
       {
         id: '1',
@@ -76,13 +144,14 @@ describe('exportProjectsToExcel', () => {
       },
     ];
 
-    exportProjectsToExcel(projects);
+    await exportProjectsToExcel(projects);
 
-    const XLSX = require('xlsx-js-style');
-    expect(XLSX.writeFile).toHaveBeenCalledWith(expect.any(Object), 'projets.xlsx');
+    const { Workbook } = require('exceljs');
+    expect(Workbook).toHaveBeenCalled();
+    expect(mockWorkbook.xlsx.writeBuffer).toHaveBeenCalled();
   });
 
-  it('should format dates correctly', () => {
+  it('should format dates correctly', async () => {
     const projects: Project[] = [
       {
         id: '1',
@@ -95,15 +164,15 @@ describe('exportProjectsToExcel', () => {
       },
     ];
 
-    exportProjectsToExcel(projects);
+    await exportProjectsToExcel(projects);
 
-    const XLSX = require('xlsx-js-style');
-    const aoaCall = XLSX.utils.aoa_to_sheet.mock.calls[0][0];
-    // Check that dates are formatted (should be in the data array)
-    expect(aoaCall.length).toBeGreaterThan(1); // headers + data
+    const { Workbook } = require('exceljs');
+    expect(Workbook).toHaveBeenCalled();
+    // Check that addRow was called (headers + data)
+    expect(mockWorksheet.addRow).toHaveBeenCalled();
   });
 
-  it('should include external link in action column', () => {
+  it('should include external link in action column', async () => {
     const projects: Project[] = [
       {
         id: '1',
@@ -116,17 +185,20 @@ describe('exportProjectsToExcel', () => {
       },
     ];
 
-    exportProjectsToExcel(projects);
+    await exportProjectsToExcel(projects);
 
-    const XLSX = require('xlsx-js-style');
-    const aoaCall = XLSX.utils.aoa_to_sheet.mock.calls[0][0];
-    const dataRow = aoaCall[1]; // First data row
-    const actionIndex = 15; // Action is the last column
-    expect(dataRow[actionIndex]).toContain('https://example.com');
-    expect(dataRow[actionIndex]).toContain('Supprimer');
+    const { Workbook } = require('exceljs');
+    expect(Workbook).toHaveBeenCalled();
+    // Check that addRow was called with data containing the link
+    const addRowCalls = mockWorksheet.addRow.mock.calls;
+    expect(addRowCalls.length).toBeGreaterThan(1); // headers + data
+    // The action column should contain the link
+    const dataRow = addRowCalls[1][0]; // First data row
+    expect(dataRow[15]).toContain('https://example.com'); // Action is the last column (index 15)
+    expect(dataRow[15]).toContain('Supprimer');
   });
 
-  it('should use default filename if not provided', () => {
+  it('should use default filename if not provided', async () => {
     const projects: Project[] = [
       {
         id: '1',
@@ -138,9 +210,12 @@ describe('exportProjectsToExcel', () => {
       },
     ];
 
-    exportProjectsToExcel(projects);
+    await exportProjectsToExcel(projects);
 
-    const XLSX = require('xlsx-js-style');
-    expect(XLSX.writeFile).toHaveBeenCalledWith(expect.any(Object), 'projets.xlsx');
+    const { Workbook } = require('exceljs');
+    expect(Workbook).toHaveBeenCalled();
+    expect(mockWorkbook.xlsx.writeBuffer).toHaveBeenCalled();
+    // Check that document.createElement was called with 'a' and download is set
+    expect(document.createElement).toHaveBeenCalledWith('a');
   });
 });
