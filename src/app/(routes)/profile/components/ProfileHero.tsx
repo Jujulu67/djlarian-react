@@ -17,7 +17,7 @@ import {
 import ImageCropModal from '@/components/ui/ImageCropModal';
 import { ProfileAvatarModal } from './ProfileAvatarModal';
 import { getMemberSince } from '../utils/dateUtils';
-import { SlotMachine } from './SlotMachine';
+import { EasterEggMapDialog } from './EasterEggMapDialog';
 import { useState } from 'react';
 
 interface ProfileHeroProps {
@@ -74,7 +74,7 @@ export function ProfileHero({
   onShowFullscreenAvatar,
   fileInputRef,
 }: ProfileHeroProps) {
-  const [showSlotMachine, setShowSlotMachine] = useState(false);
+  const [showEasterEggMap, setShowEasterEggMap] = useState(false);
 
   const getImageUrl = (image: string | null) => {
     if (!image) return null;
@@ -96,10 +96,10 @@ export function ProfileHero({
       {/* Bannière réduite et optimisée */}
       <motion.div
         className="relative h-28 sm:h-32 lg:h-28 rounded-2xl overflow-hidden cursor-pointer"
-        onClick={() => setShowSlotMachine(true)}
+        onClick={() => setShowEasterEggMap(true)}
         whileHover={{ scale: 1.01 }}
         transition={{ duration: 0.2 }}
-        title="🎰 Cliquez pour jouer à la machine à sous"
+        title="🗺️ Explorer le Monde Perdu"
       >
         {/* Gradient animé */}
         <div
@@ -329,8 +329,8 @@ export function ProfileHero({
         </div>
       </div>
 
-      {/* Machine à sous Modal */}
-      <SlotMachine isOpen={showSlotMachine} onClose={() => setShowSlotMachine(false)} />
+      {/* Easter Egg Map */}
+      <EasterEggMapDialog isOpen={showEasterEggMap} onClose={() => setShowEasterEggMap(false)} />
     </motion.div>
   );
 }

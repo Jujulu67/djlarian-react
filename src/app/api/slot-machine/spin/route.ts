@@ -63,6 +63,24 @@ function getRandomSymbol(): SymbolType {
  * - Double : 50% rien, 50% 1-5 jetons (moyenne 3)
  * - Aucun : 70% rien, 30% 1-2 jetons (moyenne 1.5)
  */
+/**
+ * Détermine la récompense selon les probabilités
+ * RTP (Return To Player) cible : 0.7
+ * Coût : 3 jetons. Retour attendu : 2.1 valeur.
+ *
+ * Valeurs estimées :
+ * - Queue Skip : ~500 jetons
+ * - Ticket Éternel : ~50 jetons
+ * - 1 Jeton : 1 valeur
+ *
+ * Probabilités :
+ * - Super Jackpot (Queue Skip) : 0.05% (1/2000) -> Contrib 0.25
+ * - Jackpot (Ticket Éternel) : 0.5% (1/200) -> Contrib 0.25
+ * - Triple (20 Jetons) : 2% -> Contrib 0.4
+ * - Double (5 Jetons) : 15% -> Contrib 0.75
+ * - Petit Gain (2 Jetons) : 22.5% -> Contrib 0.45
+ * - Perdu : ~60%
+ */
 function determineReward(symbols: [SymbolType, SymbolType, SymbolType]): {
   rewardType: RewardType | null;
   rewardAmount: number;
@@ -75,72 +93,84 @@ function determineReward(symbols: [SymbolType, SymbolType, SymbolType]): {
 
   const random = Math.random();
 
+  // Super Jackpot & Jackpot (Indépendant des symboles pour le contrôle précis du RTP)
+  if (random < 0.0005) {
+    return {
+      rewardType: RewardType.QUEUE_SKIP,
+      rewardAmount: 1,
+      isWin: true,
+      message: '🎉 JACKPOT ULTIME ! Un Queue Skip !',
+    };
+  }
+
+  if (random < 0.0055) {
+    return {
+      rewardType: RewardType.ETERNAL_TICKET,
+      rewardAmount: 1,
+      isWin: true,
+      message: '🎉 JACKPOT ! Un Ticket Éternel !',
+    };
+  }
+
   if (allSame) {
-    // 3 identiques = récompense majeure (très rare, ~0.1% de chance)
-    if (random < 0.02) {
-      // 2% queue skip
-      return {
-        rewardType: RewardType.QUEUE_SKIP,
-        rewardAmount: 1,
-        isWin: true,
-        message: '🎉 Triple ! Vous avez gagné un Queue Skip !',
-      };
-    } else if (random < 0.05) {
-      // 3% ticket éternel
-      return {
-        rewardType: RewardType.ETERNAL_TICKET,
-        rewardAmount: 1,
-        isWin: true,
-        message: '🎉 Triple ! Vous avez gagné un Ticket Éternel !',
-      };
-    } else {
-      // 95% jetons
-      const tokens = Math.floor(Math.random() * 21) + 15; // 15-35 jetons
+    // Triple (2% global chance adjusted logic, but here conditional on symbols)
+    // To simplify, we force the reward if symbols match, but we rely on RNG for symbol generation usually.
+    // However, to enforce strict RTP, we often rig the result first then pick symbols.
+    // But here we already have symbols.
+    // Let's stick to the "Result determines Reward" logic if we want strict RTP,
+    // OR adjust symbol probabilities.
+    // Given the current code structure, let's just map the symbols to the reward tiers defined above roughly.
+
+    // 3 identiques = Gros lot de jetons
+    return {
+      rewardType: RewardType.TOKENS,
+      rewardAmount: 20,
+      isWin: true,
+      message: '🎉 Triple ! 20 jetons !',
+    };
+  } else if (twoSame) {
+    // 2 identiques
+    // On peut ajouter un peu de hasard pour ne pas gagner à tous les coups sur 2 identiques si on veut baisser le RTP,
+    // mais 15% de chance d'avoir 2 identiques est naturel sur 7 symboles ?
+    // P(2 same) ~ 1 - P(all diff) - P(all same).
+    // P(all diff) = 1 * 6/7 * 5/7 = 30/49 ≈ 0.61.
+    // P(all same) = 1/49 ≈ 0.02.
+    // P(2 same) ≈ 1 - 0.61 - 0.02 = 0.37.
+    // 37% de chance d'avoir 2 identiques. C'est trop haut pour notre target de 15%.
+    // Donc on ne paye que ~40% des "Double".
+
+    if (Math.random() < 0.4) {
       return {
         rewardType: RewardType.TOKENS,
-        rewardAmount: tokens,
+        rewardAmount: 5,
         isWin: true,
-        message: `🎉 Triple ! Vous avez gagné ${tokens} jetons !`,
+        message: '🎊 Double ! 5 jetons !',
       };
-    }
-  } else if (twoSame) {
-    // 2 identiques = récompense mineure
-    if (random < 0.5) {
-      // 50% rien
+    } else {
       return {
         rewardType: null,
         rewardAmount: 0,
         isWin: false,
-        message: '😔 Presque ! Essayez encore !',
-      };
-    } else {
-      // 50% jetons
-      const tokens = Math.floor(Math.random() * 5) + 1; // 1-5 jetons
-      return {
-        rewardType: RewardType.TOKENS,
-        rewardAmount: tokens,
-        isWin: true,
-        message: `🎊 Double ! Vous avez gagné ${tokens} jeton${tokens > 1 ? 's' : ''} !`,
+        message: '😔 Presque !',
       };
     }
   } else {
-    // Aucun identique
-    if (random < 0.7) {
-      // 70% rien
+    // Aucun identique (61% du temps)
+    // On veut payer "Petit Gain" 22.5% du temps total.
+    // 22.5 / 61 ≈ 0.37.
+    if (Math.random() < 0.37) {
+      return {
+        rewardType: RewardType.TOKENS,
+        rewardAmount: 2,
+        isWin: true,
+        message: '✨ Petit gain : 2 jetons.',
+      };
+    } else {
       return {
         rewardType: null,
         rewardAmount: 0,
         isWin: false,
-        message: '😔 Pas de chance cette fois !',
-      };
-    } else {
-      // 30% jetons minimaux
-      const tokens = Math.floor(Math.random() * 2) + 1; // 1-2 jetons
-      return {
-        rewardType: RewardType.TOKENS,
-        rewardAmount: tokens,
-        isWin: true,
-        message: `✨ Vous avez gagné ${tokens} jeton${tokens > 1 ? 's' : ''} !`,
+        message: '😔 Pas de chance.',
       };
     }
   }
