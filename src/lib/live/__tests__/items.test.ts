@@ -16,6 +16,7 @@ describe('items', () => {
         LiveItemType.QUEUE_SKIP,
         LiveItemType.SUB_GIFT_BONUS,
         LiveItemType.MARBLES_WINNER_BONUS,
+        LiveItemType.SHINY_NAME,
       ];
 
       expectedTypes.forEach((type) => {
@@ -97,6 +98,7 @@ describe('items', () => {
         LiveItemType.QUEUE_SKIP,
         LiveItemType.SUB_GIFT_BONUS,
         LiveItemType.MARBLES_WINNER_BONUS,
+        LiveItemType.SHINY_NAME,
       ];
 
       types.forEach((type) => {
@@ -115,7 +117,7 @@ describe('items', () => {
   describe('getAllItemDefinitions', () => {
     it('should return all item definitions', () => {
       const items = getAllItemDefinitions();
-      expect(items).toHaveLength(10);
+      expect(items).toHaveLength(11);
     });
 
     it('should return array of ItemDefinition objects', () => {
@@ -142,6 +144,7 @@ describe('items', () => {
       expect(types).toContain(LiveItemType.QUEUE_SKIP);
       expect(types).toContain(LiveItemType.SUB_GIFT_BONUS);
       expect(types).toContain(LiveItemType.MARBLES_WINNER_BONUS);
+      expect(types).toContain(LiveItemType.SHINY_NAME);
     });
 
     it('should return items with correct properties', () => {

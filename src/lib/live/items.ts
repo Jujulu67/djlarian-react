@@ -70,6 +70,12 @@ export const LIVE_ITEMS: Record<LiveItemType, ItemDefinition> = {
     description: 'Bonus pour avoir gagné un jeu de marbles',
     icon: '🎲',
   },
+  [LiveItemType.SHINY_NAME]: {
+    type: LiveItemType.SHINY_NAME,
+    name: 'Shiny Name',
+    description: 'Nom brillant et scintillant',
+    icon: '✨',
+  },
 };
 
 export function getItemDefinition(type: LiveItemType): ItemDefinition | undefined {
