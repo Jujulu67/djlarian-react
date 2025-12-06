@@ -185,14 +185,14 @@ describe('useSlotMachine', () => {
         await result.current.spin();
       });
 
-      // Fast-forward timers
+      // Fast-forward timers to match animation duration (3600ms in the hook)
       act(() => {
-        jest.advanceTimersByTime(2000);
+        jest.advanceTimersByTime(3600);
       });
 
       await waitFor(() => {
-        expect(result.current.lastResult).toEqual(mockSpinResult);
         expect(result.current.isSpinning).toBe(false);
+        expect(result.current.lastResult).toEqual(mockSpinResult);
       });
 
       // Should have deducted 3 tokens and added 5 reward tokens = net +2
@@ -209,9 +209,9 @@ describe('useSlotMachine', () => {
 
       const mockSpinResult = {
         isWin: true,
-        rewardType: 'ITEM' as const,
+        rewardType: 'QUEUE_SKIP' as const,
         rewardAmount: 1,
-        message: 'You won an item!',
+        message: 'You won a queue skip!',
       };
 
       mockFetchWithAuth
@@ -234,18 +234,19 @@ describe('useSlotMachine', () => {
         await result.current.spin();
       });
 
+      // Advance timers to match animation duration (3600ms in the hook)
       act(() => {
-        jest.advanceTimersByTime(2000);
+        jest.advanceTimersByTime(3600);
       });
 
       await waitFor(() => {
         expect(result.current.pendingReward).toEqual({
-          rewardType: 'ITEM',
+          rewardType: 'QUEUE_SKIP',
           rewardAmount: 1,
         });
       });
 
-      expect(mockToast.success).toHaveBeenCalledWith('You won an item!', {
+      expect(mockToast.success).toHaveBeenCalledWith('You won a queue skip!', {
         duration: 5000,
       });
     });

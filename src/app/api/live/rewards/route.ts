@@ -181,6 +181,7 @@ async function updateRewardProgress(
       [LiveItemType.QUEUE_SKIP]: 'Queue Skip',
       [LiveItemType.SUB_GIFT_BONUS]: 'Sub Gift Bonus',
       [LiveItemType.MARBLES_WINNER_BONUS]: 'Marbles Winner Bonus',
+      [LiveItemType.SHINY_NAME]: 'Shiny Name',
     };
 
     item = await prisma.liveItem.create({

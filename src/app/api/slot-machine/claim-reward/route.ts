@@ -32,6 +32,7 @@ async function getOrCreateLiveItem(itemType: LiveItemType) {
       [LiveItemType.QUEUE_SKIP]: 'Queue Skip',
       [LiveItemType.SUB_GIFT_BONUS]: 'Sub Gift Bonus',
       [LiveItemType.MARBLES_WINNER_BONUS]: 'Marbles Winner Bonus',
+      [LiveItemType.SHINY_NAME]: 'Shiny Name',
     };
 
     const itemIcons: Record<LiveItemType, string> = {
@@ -45,6 +46,7 @@ async function getOrCreateLiveItem(itemType: LiveItemType) {
       [LiveItemType.QUEUE_SKIP]: '⏭️',
       [LiveItemType.SUB_GIFT_BONUS]: '🎁',
       [LiveItemType.MARBLES_WINNER_BONUS]: '🎲',
+      [LiveItemType.SHINY_NAME]: '✨',
     };
 
     item = await prisma.liveItem.create({

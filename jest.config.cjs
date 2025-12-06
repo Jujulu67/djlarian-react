@@ -5,6 +5,7 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '\\.(css|less|scss|sass)$': '<rootDir>/src/__mocks__/styleMock.js',
+    '^exceljs$': '<rootDir>/src/__mocks__/exceljs.ts',
   },
   transform: {
     '^.+\\.tsx?$': [
