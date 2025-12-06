@@ -5,17 +5,9 @@ import { handleApiError } from '@/lib/api/errorHandler';
 import prisma from '@/lib/prisma';
 import type { SpinResult } from '@/types/slot-machine';
 import { SymbolType, RewardType } from '@/types/slot-machine';
+import { COST_PER_SPIN, getRandomSymbol, determineReward } from '@/lib/slot-machine-logic';
 
 const DAILY_TOKENS = 100;
-const SYMBOLS: SymbolType[] = [
-  SymbolType.CHERRY,
-  SymbolType.LEMON,
-  SymbolType.ORANGE,
-  SymbolType.PLUM,
-  SymbolType.BELL,
-  SymbolType.STAR,
-  SymbolType.SEVEN,
-];
 
 /**
  * Vérifie si un reset quotidien est nécessaire et le fait si besoin
@@ -32,148 +24,6 @@ function shouldResetDaily(lastResetDate: Date): boolean {
   );
 
   return nowDate.getTime() > lastResetDateOnly.getTime();
-}
-
-/**
- * Génère un symbole aléatoire
- */
-function getRandomSymbol(): SymbolType {
-  return SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
-}
-
-/**
- * Détermine la récompense selon les probabilités
- * RTP (Return To Player) cible : ~85-90%
- * Cela signifie que la banque garde 10-15% des mises sur le long terme
- *
- * Calcul de la valeur attendue :
- * - Triple (probabilité ~0.1%) : 3% queue skip, 7% ticket éternel, 90% 20-50 jetons (moyenne 35)
- * - Double (probabilité ~15%) : 30% rien, 70% 2-8 jetons (moyenne 5)
- * - Aucun match (probabilité ~85%) : 60% rien, 40% 1-3 jetons (moyenne 2)
- *
- * Valeur attendue ≈ 0.001 * (0.03*inestimable + 0.07*inestimable + 0.90*35)
- *                 + 0.15 * (0.30*0 + 0.70*5)
- *                 + 0.85 * (0.60*0 + 0.40*2)
- *                 ≈ 0.001 * 31.5 + 0.15 * 3.5 + 0.85 * 0.8
- *                 ≈ 0.0315 + 0.525 + 0.68
- *                 ≈ 1.24 (trop haut, besoin d'ajuster)
- *
- * Ajustement pour RTP ~87% :
- * - Triple : 2% queue skip, 3% ticket éternel, 95% 15-35 jetons (moyenne 25)
- * - Double : 50% rien, 50% 1-5 jetons (moyenne 3)
- * - Aucun : 70% rien, 30% 1-2 jetons (moyenne 1.5)
- */
-/**
- * Détermine la récompense selon les probabilités
- * RTP (Return To Player) cible : 0.7
- * Coût : 3 jetons. Retour attendu : 2.1 valeur.
- *
- * Valeurs estimées :
- * - Queue Skip : ~500 jetons
- * - Ticket Éternel : ~50 jetons
- * - 1 Jeton : 1 valeur
- *
- * Probabilités :
- * - Super Jackpot (Queue Skip) : 0.05% (1/2000) -> Contrib 0.25
- * - Jackpot (Ticket Éternel) : 0.5% (1/200) -> Contrib 0.25
- * - Triple (20 Jetons) : 2% -> Contrib 0.4
- * - Double (5 Jetons) : 15% -> Contrib 0.75
- * - Petit Gain (2 Jetons) : 22.5% -> Contrib 0.45
- * - Perdu : ~60%
- */
-function determineReward(symbols: [SymbolType, SymbolType, SymbolType]): {
-  rewardType: RewardType | null;
-  rewardAmount: number;
-  isWin: boolean;
-  message: string;
-} {
-  const [s1, s2, s3] = symbols;
-  const allSame = s1 === s2 && s2 === s3;
-  const twoSame = s1 === s2 || s2 === s3 || s1 === s3;
-
-  const random = Math.random();
-
-  // Super Jackpot & Jackpot (Indépendant des symboles pour le contrôle précis du RTP)
-  if (random < 0.0005) {
-    return {
-      rewardType: RewardType.QUEUE_SKIP,
-      rewardAmount: 1,
-      isWin: true,
-      message: '🎉 JACKPOT ULTIME ! Un Queue Skip !',
-    };
-  }
-
-  if (random < 0.0055) {
-    return {
-      rewardType: RewardType.ETERNAL_TICKET,
-      rewardAmount: 1,
-      isWin: true,
-      message: '🎉 JACKPOT ! Un Ticket Éternel !',
-    };
-  }
-
-  if (allSame) {
-    // Triple (2% global chance adjusted logic, but here conditional on symbols)
-    // To simplify, we force the reward if symbols match, but we rely on RNG for symbol generation usually.
-    // However, to enforce strict RTP, we often rig the result first then pick symbols.
-    // But here we already have symbols.
-    // Let's stick to the "Result determines Reward" logic if we want strict RTP,
-    // OR adjust symbol probabilities.
-    // Given the current code structure, let's just map the symbols to the reward tiers defined above roughly.
-
-    // 3 identiques = Gros lot de jetons
-    return {
-      rewardType: RewardType.TOKENS,
-      rewardAmount: 20,
-      isWin: true,
-      message: '🎉 Triple ! 20 jetons !',
-    };
-  } else if (twoSame) {
-    // 2 identiques
-    // On peut ajouter un peu de hasard pour ne pas gagner à tous les coups sur 2 identiques si on veut baisser le RTP,
-    // mais 15% de chance d'avoir 2 identiques est naturel sur 7 symboles ?
-    // P(2 same) ~ 1 - P(all diff) - P(all same).
-    // P(all diff) = 1 * 6/7 * 5/7 = 30/49 ≈ 0.61.
-    // P(all same) = 1/49 ≈ 0.02.
-    // P(2 same) ≈ 1 - 0.61 - 0.02 = 0.37.
-    // 37% de chance d'avoir 2 identiques. C'est trop haut pour notre target de 15%.
-    // Donc on ne paye que ~40% des "Double".
-
-    if (Math.random() < 0.4) {
-      return {
-        rewardType: RewardType.TOKENS,
-        rewardAmount: 5,
-        isWin: true,
-        message: '🎊 Double ! 5 jetons !',
-      };
-    } else {
-      return {
-        rewardType: null,
-        rewardAmount: 0,
-        isWin: false,
-        message: '😔 Presque !',
-      };
-    }
-  } else {
-    // Aucun identique (61% du temps)
-    // On veut payer "Petit Gain" 22.5% du temps total.
-    // 22.5 / 61 ≈ 0.37.
-    if (Math.random() < 0.37) {
-      return {
-        rewardType: RewardType.TOKENS,
-        rewardAmount: 2,
-        isWin: true,
-        message: '✨ Petit gain : 2 jetons.',
-      };
-    } else {
-      return {
-        rewardType: null,
-        rewardAmount: 0,
-        isWin: false,
-        message: '😔 Pas de chance.',
-      };
-    }
-  }
 }
 
 /**
@@ -216,7 +66,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Vérifier que l'utilisateur a des jetons (3 jetons par spin)
-    const COST_PER_SPIN = 3;
     if (userTokens.tokens < COST_PER_SPIN) {
       return NextResponse.json(
         {
@@ -226,35 +75,67 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Générer les 3 symboles
+    // --- DYNAMIC LUCK SYSTEM ---
+    // Si l'utilisateur a un taux de victoire inférieur à 45% (et au moins 10 spins), on booste les chances
+    // Calcule du Win Rate : totalWins / totalSpins
+    const winRate = userTokens.totalSpins > 10 ? userTokens.totalWins / userTokens.totalSpins : 1;
+    const useBooster = winRate < 0.45;
+
+    // Générer les 3 symboles avec pondération pour un résultat "réaliste"
+    // Si useBooster est true, on augmente les chances de petits gains (Cerise/Citron)
     const symbols: [SymbolType, SymbolType, SymbolType] = [
-      getRandomSymbol(),
-      getRandomSymbol(),
-      getRandomSymbol(),
+      getRandomSymbol(useBooster),
+      getRandomSymbol(useBooster),
+      getRandomSymbol(useBooster),
     ];
 
     // Déterminer la récompense
     const reward = determineReward(symbols);
 
-    // Déduire 3 jetons et mettre à jour les statistiques
-    const isWin = reward.isWin;
-
-    // Calculer le nouveau nombre de jetons
-    let newTokens = userTokens.tokens - COST_PER_SPIN;
-
-    // Si la récompense est des jetons, les ajouter directement
-    if (reward.rewardType === RewardType.TOKENS) {
-      newTokens += reward.rewardAmount;
+    // --- SPECIAL REWARD BONUS ---
+    // User request: "sousous avec les big wins"
+    // Ajouter un bonus de jetons pour les items spéciaux
+    let tokenBonus = 0;
+    if (reward.rewardType === RewardType.QUEUE_SKIP) {
+      tokenBonus = 100;
+      reward.message += ` (+${tokenBonus} jetons)`;
+    } else if (reward.rewardType === RewardType.ETERNAL_TICKET) {
+      tokenBonus = 50;
+      reward.message += ` (+${tokenBonus} jetons)`;
     }
 
+    // Calculer le nouveau nombre de jetons (3 jetons par spin)
+    // + gain éventuel de jetons (si rewardType === TOKENS)
+    // + bonus de jetons (si item spécial)
+    const tokensWon =
+      (reward.rewardType === RewardType.TOKENS ? reward.rewardAmount : 0) + tokenBonus;
+    let newTokens = userTokens.tokens - COST_PER_SPIN + tokensWon;
+
+    // Mettre à jour la base de données
     await prisma.userSlotMachineTokens.update({
       where: { userId: session.user.id },
       data: {
         tokens: newTokens,
         totalSpins: { increment: 1 },
-        ...(isWin ? { totalWins: { increment: 1 } } : {}),
+        totalWins: { increment: reward.isWin ? 1 : 0 },
       },
     });
+
+    // Mettre à jour l'inventaire si récompense spéciale
+    if (reward.rewardType === RewardType.QUEUE_SKIP) {
+      // Logique pour Queue Skip (via table UserLiveItem ou autre - à adapter selon votre schéma)
+      // Ici on suppose que le client gère la réclamation via /claim-reward qui fera l'ajout réel
+      // OU on l'ajoute directement ici. Le système actuel semble utiliser /claim-reward pour les items.
+      // On garde donc la logique actuelle : on retourne le rewardType et le client appellera claim-reward.
+      // MAIS on a déjà donné les jetons bonus ci-dessus.
+    } else if (reward.rewardType === RewardType.ETERNAL_TICKET) {
+      // Idem
+    }
+
+    // Si on a un token bonus, on doit le renvoyer dans le rewardAmount pour que le toast affiche le bon montant ?
+    // Non, rewardAmount pour les items spéciaux est "1" (quantité).
+    // On ne change pas rewardAmount pour ne pas casser la logique de claim.
+    // Les jetons sont ajoutés directement au solde.
 
     const result: SpinResult = {
       symbols,

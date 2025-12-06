@@ -33,3 +33,16 @@ export interface ClaimRewardInput {
   rewardType: RewardType;
   rewardAmount: number;
 }
+
+export interface BatchSpinResult extends SpinResult {
+  results: SpinResult[]; // Detailed list of all spins
+  summary: {
+    totalSpins: number;
+    totalWins: number;
+    totalTokensWon: number;
+    queueSkips: number;
+    eternalTickets: number;
+    netProfit: number;
+    winRate: number;
+  };
+}

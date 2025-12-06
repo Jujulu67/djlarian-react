@@ -11,6 +11,7 @@ export enum LiveItemType {
   QUEUE_SKIP = 'QUEUE_SKIP',
   SUB_GIFT_BONUS = 'SUB_GIFT_BONUS',
   MARBLES_WINNER_BONUS = 'MARBLES_WINNER_BONUS',
+  SHINY_NAME = 'SHINY_NAME',
 }
 
 export enum LiveSubmissionStatus {

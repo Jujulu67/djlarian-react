@@ -1,7 +1,12 @@
 import { useState, useCallback } from 'react';
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
 import { toast } from 'react-hot-toast';
-import type { SlotMachineStatus, SpinResult, ClaimRewardInput } from '@/types/slot-machine';
+import type {
+  SlotMachineStatus,
+  SpinResult,
+  ClaimRewardInput,
+  BatchSpinResult,
+} from '@/types/slot-machine';
 import { RewardType } from '@/types/slot-machine';
 
 export function useSlotMachine() {
@@ -9,6 +14,7 @@ export function useSlotMachine() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
   const [lastResult, setLastResult] = useState<SpinResult | null>(null);
+  const [batchResult, setBatchResult] = useState<BatchSpinResult | null>(null); // New state for batch results
   const [pendingReward, setPendingReward] = useState<{
     rewardType: RewardType;
     rewardAmount: number;
@@ -50,6 +56,7 @@ export function useSlotMachine() {
       setIsSpinning(true);
       // Réinitialiser le résultat précédent pour relancer l'animation
       setLastResult(null);
+      setBatchResult(null); // Reset batch result on single spin
       const response = await fetchWithAuth('/api/slot-machine/spin', {
         method: 'POST',
       });
@@ -57,48 +64,47 @@ export function useSlotMachine() {
       if (response.ok) {
         const data = await response.json();
         const result: SpinResult = data.data || data;
+        const totalCost = COST_PER_SPIN;
+        // The full result (messages, win status) comes later after animation
+        setLastResult({
+          ...result,
+          message: '', // Clear message during animation
+        });
 
-        // Attendre que l'animation de spin se termine avant de mettre à jour le résultat
+        // After animation completes, update with full result and show messages
         setTimeout(() => {
-          setLastResult(result);
+          setLastResult(result); // Now include the message
           setIsSpinning(false);
-        }, 2000); // Durée de l'animation de spin
 
-        // Incrémenter les jetons dépensés dans la session
-        setSessionSpent((prev) => prev + COST_PER_SPIN);
-
-        // Optimistic update : décrémenter les jetons (3 par spin)
-        if (status) {
-          setStatus({
-            ...status,
-            tokens: status.tokens - COST_PER_SPIN,
-            totalSpins: status.totalSpins + 1,
-            totalWins: result.isWin ? status.totalWins + 1 : status.totalWins,
-          });
-        }
-
-        // Si la récompense est des jetons, les ajouter directement
-        if (result.rewardType === 'TOKENS') {
           if (status) {
-            setStatus((prev) => {
-              if (!prev) return prev;
-              return {
-                ...prev,
-                tokens: prev.tokens + result.rewardAmount,
-              };
+            const newTokens =
+              status.tokens -
+              totalCost +
+              (result.rewardType === 'TOKENS' ? result.rewardAmount : 0);
+            setStatus({
+              ...status,
+              tokens: newTokens,
+              totalSpins: status.totalSpins + 1,
+              totalWins: result.isWin ? status.totalWins + 1 : status.totalWins,
             });
           }
-          toast.success(result.message);
-        } else if (result.rewardType) {
-          // Pour les autres récompenses, les marquer comme en attente
-          setPendingReward({
-            rewardType: result.rewardType,
-            rewardAmount: result.rewardAmount,
-          });
-          toast.success(result.message, {
-            duration: 5000,
-          });
-        }
+
+          // Afficher le message de résultat
+          if (result.rewardType === 'TOKENS') {
+            toast.success(result.message);
+          } else if (result.rewardType) {
+            setPendingReward({
+              rewardType: result.rewardType,
+              rewardAmount: result.rewardAmount,
+            });
+            toast.success(result.message, { duration: 5000 });
+          } else if (!result.isWin) {
+            toast.error(result.message);
+          }
+        }, 3600); // Animation complète à 3400ms + buffer
+
+        // Incrémenter les jetons dépensés dans la session immédiatement (visuel stats session)
+        setSessionSpent((prev) => prev + COST_PER_SPIN);
 
         return result;
       } else {
@@ -170,6 +176,7 @@ export function useSlotMachine() {
       try {
         setIsSpinning(true);
         setLastResult(null);
+        setBatchResult(null); // Reset prior batch result
 
         const response = await fetchWithAuth('/api/slot-machine/spin-batch', {
           method: 'POST',
@@ -181,7 +188,7 @@ export function useSlotMachine() {
 
         if (response.ok) {
           const data = await response.json();
-          const result = data.data || data;
+          const result: BatchSpinResult = data.data || data;
 
           // Mettre à jour les jetons dépensés dans la session
           setSessionSpent((prev) => prev + totalCost);
@@ -195,20 +202,24 @@ export function useSlotMachine() {
               isWin: result.isWin,
               message: result.message,
             });
+            setBatchResult(result); // Set the detailed batch result to trigger modal
             setIsSpinning(false);
-          }, 2000);
 
-          // Mettre à jour le statut avec le résumé (3 jetons par spin)
-          if (status) {
-            setStatus({
-              ...status,
-              tokens: status.tokens - totalCost + result.summary.totalTokensWon,
-              totalSpins: status.totalSpins + count,
-              totalWins: status.totalWins + result.summary.totalWins,
-            });
-          }
+            // Mettre à jour le statut avec le résumé APRES l'animation
+            if (status) {
+              setStatus({
+                ...status,
+                tokens: status.tokens - totalCost + result.summary.totalTokensWon,
+                totalSpins: status.totalSpins + count,
+                totalWins: status.totalWins + result.summary.totalWins,
+              });
+            }
 
-          // Gérer les récompenses non-jetons
+            // Rafraîchir le statut officiel depuis le serveur (confirme les calculs)
+            refreshStatus();
+          }, 3600); // Match reel animation timing
+
+          // Gérer les récompenses non-jetons (immédiat ou différé ? Différé pour sync)
           if (result.summary.queueSkips > 0 || result.summary.eternalTickets > 0) {
             // Si on a gagné des queue skips ou tickets éternels, les ajouter à pendingReward
             // On priorise les queue skips s'il y en a, sinon les tickets éternels
@@ -225,25 +236,12 @@ export function useSlotMachine() {
             }
           }
 
-          // Afficher le message de résultat avec formatage multi-lignes
-          const messageLines = result.message.split('\n');
-          messageLines.forEach((line: string, index: number) => {
-            if (index === 0) {
-              toast.success(line, { duration: 6000 });
-            } else {
-              setTimeout(() => {
-                const isReward = line.includes('🎁') || line.includes('🎫') || line.includes('💰');
-                toast(line, {
-                  duration: 5000,
-                  icon: isReward ? '🎉' : '😔',
-                  style: isReward ? {} : { background: '#ef4444' },
-                });
-              }, index * 600);
-            }
-          });
-
-          // Rafraîchir le statut final
-          await refreshStatus();
+          // Legacy toast behavior replaced by modal, but we keep the header toast
+          // Le toast apparaît tout de suite pour dire "c'est fait", les résultats arrivent dans 2s
+          // Ou on le met aussi dans le timeout ? Le mettre après est mieux.
+          setTimeout(() => {
+            toast.success('Spins terminés ! Consultez les résultats.', { duration: 3000 });
+          }, 2000);
         } else {
           setIsSpinning(false);
           const errorData = await response.json().catch(() => ({}));
@@ -264,6 +262,8 @@ export function useSlotMachine() {
     isLoading,
     isSpinning,
     lastResult,
+    batchResult, // Export this
+    setBatchResult, // Export this to allow closing modal (setting to null)
     pendingReward,
     sessionSpent,
     refreshStatus,

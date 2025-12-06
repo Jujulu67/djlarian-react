@@ -3,18 +3,10 @@ import { auth } from '@/auth';
 import { createSuccessResponse, createUnauthorizedResponse } from '@/lib/api/responseHelpers';
 import { handleApiError } from '@/lib/api/errorHandler';
 import prisma from '@/lib/prisma';
-import { SymbolType, RewardType } from '@/types/slot-machine';
+import { SymbolType, RewardType, SpinResult } from '@/types/slot-machine';
+import { COST_PER_SPIN, getRandomSymbol, determineReward } from '@/lib/slot-machine-logic';
 
 const DAILY_TOKENS = 100;
-const SYMBOLS: SymbolType[] = [
-  SymbolType.CHERRY,
-  SymbolType.LEMON,
-  SymbolType.ORANGE,
-  SymbolType.PLUM,
-  SymbolType.BELL,
-  SymbolType.STAR,
-  SymbolType.SEVEN,
-];
 
 /**
  * Vérifie si un reset quotidien est nécessaire et le fait si besoin
@@ -31,81 +23,6 @@ function shouldResetDaily(lastResetDate: Date): boolean {
   );
 
   return nowDate.getTime() > lastResetDateOnly.getTime();
-}
-
-/**
- * Génère un symbole aléatoire
- */
-function getRandomSymbol(): SymbolType {
-  return SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
-}
-
-/**
- * Détermine la récompense selon les probabilités (même logique que spin/route.ts)
- */
-function determineReward(symbols: [SymbolType, SymbolType, SymbolType]): {
-  rewardType: RewardType | null;
-  rewardAmount: number;
-  isWin: boolean;
-} {
-  const [s1, s2, s3] = symbols;
-  const allSame = s1 === s2 && s2 === s3;
-  const twoSame = s1 === s2 || s2 === s3 || s1 === s3;
-
-  const random = Math.random();
-
-  if (allSame) {
-    if (random < 0.02) {
-      return {
-        rewardType: RewardType.QUEUE_SKIP,
-        rewardAmount: 1,
-        isWin: true,
-      };
-    } else if (random < 0.05) {
-      return {
-        rewardType: RewardType.ETERNAL_TICKET,
-        rewardAmount: 1,
-        isWin: true,
-      };
-    } else {
-      const tokens = Math.floor(Math.random() * 21) + 15; // 15-35 jetons
-      return {
-        rewardType: RewardType.TOKENS,
-        rewardAmount: tokens,
-        isWin: true,
-      };
-    }
-  } else if (twoSame) {
-    if (random < 0.5) {
-      return {
-        rewardType: null,
-        rewardAmount: 0,
-        isWin: false,
-      };
-    } else {
-      const tokens = Math.floor(Math.random() * 5) + 1; // 1-5 jetons
-      return {
-        rewardType: RewardType.TOKENS,
-        rewardAmount: tokens,
-        isWin: true,
-      };
-    }
-  } else {
-    if (random < 0.7) {
-      return {
-        rewardType: null,
-        rewardAmount: 0,
-        isWin: false,
-      };
-    } else {
-      const tokens = Math.floor(Math.random() * 2) + 1; // 1-2 jetons
-      return {
-        rewardType: RewardType.TOKENS,
-        rewardAmount: tokens,
-        isWin: true,
-      };
-    }
-  }
 }
 
 /**
@@ -155,7 +72,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Vérifier que l'utilisateur a assez de jetons (3 jetons par spin)
-    const COST_PER_SPIN = 3;
     const totalCost = count * COST_PER_SPIN;
     if (userTokens.tokens < totalCost) {
       return NextResponse.json(
@@ -166,29 +82,62 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // --- DYNAMIC LUCK SYSTEM ---
+    // Si l'utilisateur a un taux de victoire inférieur à 45% (et au moins 10 spins), on booste les chances
+    // Calcule du Win Rate : totalWins / totalSpins
+    const winRate = userTokens.totalSpins > 10 ? userTokens.totalWins / userTokens.totalSpins : 1;
+    const useBooster = winRate < 0.45;
+
     // Simuler tous les spins
     let totalTokensWon = 0;
     let totalWins = 0;
     let queueSkips = 0;
     let eternalTickets = 0;
+    const results: SpinResult[] = [];
+
+    // Pour l'affichage final (dernier spin)
     const lastSpinSymbols: [SymbolType, SymbolType, SymbolType] = [
-      getRandomSymbol(),
-      getRandomSymbol(),
-      getRandomSymbol(),
+      getRandomSymbol(useBooster),
+      getRandomSymbol(useBooster),
+      getRandomSymbol(useBooster),
     ];
-    let lastReward: { rewardType: RewardType | null; rewardAmount: number; isWin: boolean } | null =
-      null;
+    let lastReward: {
+      rewardType: RewardType | null;
+      rewardAmount: number;
+      isWin: boolean;
+      message: string;
+    } | null = null;
 
     for (let i = 0; i < count; i++) {
       const symbols: [SymbolType, SymbolType, SymbolType] = [
-        getRandomSymbol(),
-        getRandomSymbol(),
-        getRandomSymbol(),
+        getRandomSymbol(useBooster),
+        getRandomSymbol(useBooster),
+        getRandomSymbol(useBooster),
       ];
       const reward = determineReward(symbols);
 
+      // --- SPECIAL REWARD BONUS ---
+      // User request: "sousous avec les big wins"
+      let tokenBonus = 0;
+      if (reward.rewardType === RewardType.QUEUE_SKIP) {
+        tokenBonus = 100;
+        reward.message += ` (+${tokenBonus} jetons)`;
+      } else if (reward.rewardType === RewardType.ETERNAL_TICKET) {
+        tokenBonus = 50;
+        reward.message += ` (+${tokenBonus} jetons)`;
+      }
+
+      // Stocker le résultat individuel
+      results.push({
+        symbols,
+        rewardType: reward.rewardType,
+        rewardAmount: reward.rewardAmount,
+        isWin: reward.isWin,
+        message: reward.message,
+      });
+
       if (i === count - 1) {
-        // Garder le dernier spin pour l'affichage
+        // Garder le dernier spin pour l'affichage principal
         lastSpinSymbols[0] = symbols[0];
         lastSpinSymbols[1] = symbols[1];
         lastSpinSymbols[2] = symbols[2];
@@ -199,10 +148,14 @@ export async function POST(request: NextRequest) {
         totalWins++;
         if (reward.rewardType === RewardType.QUEUE_SKIP) {
           queueSkips++;
+          totalTokensWon += tokenBonus; // Add bonus tokens to total
         } else if (reward.rewardType === RewardType.ETERNAL_TICKET) {
           eternalTickets++;
+          totalTokensWon += tokenBonus; // Add bonus tokens to total
         } else if (reward.rewardType === RewardType.TOKENS) {
-          totalTokensWon += reward.rewardAmount;
+          totalTokensWon += reward.rewardAmount; // include bonus? No, regular amount + 0 bonus
+          // Wait, logic above says tokensWon = amount + bonus.
+          // For regular tokens, bonus is 0.
         }
       }
     }
@@ -220,7 +173,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Construire le message détaillé
+    // Construire le message récapitulatif
     const messageParts = [];
     if (queueSkips > 0) {
       messageParts.push(`🎁 ${queueSkips} Queue Skip${queueSkips > 1 ? 's' : ''}`);
@@ -243,6 +196,10 @@ export async function POST(request: NextRequest) {
       message += '\n😔 Aucun gain cette fois...';
     }
 
+    // Calculer les stats pour le résumé
+    const netProfit = totalTokensWon - totalCost;
+    const batchWinRate = totalWins > 0 ? Math.round((totalWins / count) * 100) : 0;
+
     return createSuccessResponse(
       {
         symbols: lastSpinSymbols,
@@ -250,12 +207,15 @@ export async function POST(request: NextRequest) {
         rewardAmount: lastReward?.rewardAmount || 0,
         isWin: lastReward?.isWin || false,
         message,
+        results, // Detailed results
         summary: {
           totalSpins: count,
           totalWins,
           totalTokensWon,
           queueSkips,
           eternalTickets,
+          netProfit,
+          winRate: batchWinRate,
         },
       },
       200,

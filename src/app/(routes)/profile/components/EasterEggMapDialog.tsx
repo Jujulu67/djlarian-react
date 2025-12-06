@@ -1,9 +1,9 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, HelpCircle, Coins, RefreshCw } from 'lucide-react';
+import { X, HelpCircle, Coins, RefreshCw, Volume2, VolumeX } from 'lucide-react';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import ReactDOM from 'react-dom';
 import { SlotMachineSelectionDialog } from './SlotMachineSelectionDialog';
 import { SlotMachine } from './SlotMachine';
@@ -14,6 +14,7 @@ import { MysteryGameDialog } from './MysteryGameDialog';
 import { GameRulesModal } from './GameRulesModal';
 import { useSlotMachine } from '../hooks/useSlotMachine';
 import { useMiniGame } from '../hooks/useMiniGame';
+import { useMapAmbientMusic } from '../hooks/useMapAmbientMusic';
 
 interface EasterEggMapDialogProps {
   isOpen: boolean;
@@ -32,6 +33,30 @@ export function EasterEggMapDialog({ isOpen, onClose }: EasterEggMapDialogProps)
 
   const { status, refreshStatus } = useSlotMachine();
   const { resetTokens, isLoading: isResetting } = useMiniGame(refreshStatus);
+  const { isMuted, volume, toggleMute, changeVolume } = useMapAmbientMusic(isOpen);
+  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
+
+  // Memoize particle positions to prevent reset on re-render
+  const particles = useMemo(() => {
+    return [...Array(20)].map((_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+      xOffset: Math.random() * 20 - 10,
+      duration: 4 + Math.random() * 4,
+      delay: Math.random() * 4,
+    }));
+  }, []);
+
+  const glowParticles = useMemo(() => {
+    return [...Array(8)].map((_, i) => ({
+      id: i,
+      left: 10 + Math.random() * 80,
+      top: 10 + Math.random() * 80,
+      duration: 6 + Math.random() * 4,
+      delay: Math.random() * 5,
+    }));
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -94,6 +119,51 @@ export function EasterEggMapDialog({ isOpen, onClose }: EasterEggMapDialogProps)
               <RefreshCw size={24} className={isResetting ? 'animate-spin' : ''} />
             </button>
 
+            {/* Music Volume Control */}
+            <div className="relative">
+              <button
+                onClick={toggleMute}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  setShowVolumeSlider(!showVolumeSlider);
+                }}
+                onMouseEnter={() => setShowVolumeSlider(true)}
+                className="p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"
+                title="Clic: mute/unmute | Survol: volume"
+              >
+                {isMuted || volume === 0 ? <VolumeX size={24} /> : <Volume2 size={24} />}
+              </button>
+
+              {/* Volume Slider Dropdown */}
+              <AnimatePresence>
+                {showVolumeSlider && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    onMouseLeave={() => setShowVolumeSlider(false)}
+                    className="absolute top-full mt-2 right-0 bg-black/80 backdrop-blur-md border border-white/20 rounded-xl p-3 shadow-xl z-50"
+                  >
+                    <div className="flex flex-col items-center gap-2 w-12">
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        value={volume}
+                        onChange={(e) => changeVolume(parseFloat(e.target.value))}
+                        className="w-24 -rotate-90 origin-center accent-purple-500 cursor-pointer"
+                        style={{ marginTop: '40px', marginBottom: '40px' }}
+                      />
+                      <span className="text-white text-xs font-mono">
+                        {Math.round(volume * 100)}%
+                      </span>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
             {/* Rules Button */}
             <button
               onClick={() => setShowRules(true)}
@@ -125,6 +195,53 @@ export function EasterEggMapDialog({ isOpen, onClose }: EasterEggMapDialogProps)
               />
               {/* Overlay for atmosphere */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30 pointer-events-none" />
+            </div>
+
+            {/* Floating Particles */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+              {particles.map((p) => (
+                <motion.div
+                  key={p.id}
+                  className="absolute w-1 h-1 bg-purple-400/60 rounded-full"
+                  style={{
+                    left: `${p.left}%`,
+                    top: `${p.top}%`,
+                  }}
+                  animate={{
+                    y: [0, -30, 0],
+                    x: [0, p.xOffset, 0],
+                    opacity: [0.2, 0.8, 0.2],
+                    scale: [1, 1.5, 1],
+                  }}
+                  transition={{
+                    duration: p.duration,
+                    repeat: Infinity,
+                    delay: p.delay,
+                    ease: 'easeInOut',
+                  }}
+                />
+              ))}
+              {/* Larger glowing particles */}
+              {glowParticles.map((p) => (
+                <motion.div
+                  key={`glow-${p.id}`}
+                  className="absolute w-2 h-2 bg-white/40 rounded-full shadow-[0_0_10px_rgba(168,85,247,0.8)]"
+                  style={{
+                    left: `${p.left}%`,
+                    top: `${p.top}%`,
+                  }}
+                  animate={{
+                    y: [0, -50, 0],
+                    opacity: [0.3, 1, 0.3],
+                  }}
+                  transition={{
+                    duration: p.duration,
+                    repeat: Infinity,
+                    delay: p.delay,
+                    ease: 'easeInOut',
+                  }}
+                />
+              ))}
             </div>
 
             {/* Title */}
