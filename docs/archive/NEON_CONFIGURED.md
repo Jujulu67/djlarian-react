@@ -4,7 +4,7 @@
 
 ### ✅ Configuration Neon
 
-- ✅ Projet créé : `djlarian`
+- ✅ Projet créé : `larian`
 - ✅ PostgreSQL 17 configuré
 - ✅ Connection string obtenue et configurée
 - ✅ DATABASE_URL ajoutée dans `.env.local`
@@ -14,7 +14,7 @@
 ### 📋 Détails du Projet Neon
 
 - **Project ID** : `twilight-bonus-80399064`
-- **Nom** : `djlarian`
+- **Nom** : `larian`
 - **Région** : `eu-central-1` (Europe - Frankfurt)
 - **PostgreSQL** : Version 17
 - **Branches** :
@@ -44,7 +44,7 @@
 1. **Créer un compte Cloudflare** : https://dash.cloudflare.com/sign-up
 2. **Créer un bucket R2** :
    - Dashboard → R2 → Create bucket
-   - Name : `djlarian-uploads`
+   - Name : `larian-uploads`
 3. **Créer des API tokens** :
    - R2 → Manage R2 API Tokens → Create API token
    - Permissions : Object Read & Write

@@ -1,4 +1,4 @@
-# Choix Techniques - DJ Larian
+# Choix Techniques - Larian
 
 ## Stack Technique Complète
 

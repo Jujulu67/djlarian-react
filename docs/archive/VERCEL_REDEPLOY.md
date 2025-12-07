@@ -2,7 +2,7 @@
 
 ## ✅ État Actuel
 
-- ✅ **Blob Store créé** : `djlarian-uploads`
+- ✅ **Blob Store créé** : `larian-uploads`
 - ✅ **BLOB_READ_WRITE_TOKEN** : Créé par Vercel
 - ⚠️ **Déploiement actuel** : Fait avant la création du Blob Store
 - ⚠️ **`/api/health`** : Dit toujours "not_configured"
@@ -72,19 +72,17 @@ Vous devriez voir :
 ### Blob toujours "not_configured" après redéploiement
 
 1. **Vérifier les variables d'environnement** :
-
    - Dashboard → Settings → Environment Variables
    - `BLOB_READ_WRITE_TOKEN` doit être présent
    - Vérifiez qu'il est disponible pour **Production** (et Preview si nécessaire)
 
 2. **Vérifier les logs de déploiement** :
-
    - Dashboard → Deployments → Votre déploiement → Logs
    - Cherchez des erreurs liées à Blob
 
 3. **Vérifier que le Blob Store est bien créé** :
    - Dashboard → Storage
-   - Votre store `djlarian-uploads` doit être visible
+   - Votre store `larian-uploads` doit être visible
 
 ### Le token n'apparaît pas dans les variables
 

@@ -1,4 +1,4 @@
-# Infrastructure et Déploiement - DJ Larian
+# Infrastructure et Déploiement - Larian
 
 ## Environnements
 
@@ -221,7 +221,7 @@ Dans **Settings → Environment Variables**, ajouter :
 1. **Créer un compte Cloudflare** : https://dash.cloudflare.com
 2. **Créer un bucket R2** (pour uploads) :
    - R2 → Create bucket
-   - Nom : `djlarian-uploads`
+   - Nom : `larian-uploads`
    - Créer un API token avec permissions Read & Write
 
 ### 2. Configuration
@@ -271,7 +271,7 @@ npm run db:studio
 1. Aller sur https://neon.tech
 2. Sign Up (avec GitHub recommandé)
 3. Créer un projet :
-   - Name : `djlarian`
+   - Name : `larian`
    - Region : Europe (Frankfurt) ou la plus proche
    - PostgreSQL : 15 ou 16
 
@@ -324,7 +324,7 @@ Vercel Blob est automatiquement configuré lors du déploiement sur Vercel. Aucu
 
 1. **Vercel Dashboard** → Storage → Create Database
 2. **Sélectionner** : Blob
-3. **Nom** : `djlarian-blob` (ou votre choix)
+3. **Nom** : `larian-blob` (ou votre choix)
 4. **Récupérer le token** : `BLOB_READ_WRITE_TOKEN`
 5. **Ajouter dans Vercel** : Environment Variables (✅ Encrypt)
 

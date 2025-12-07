@@ -5,7 +5,7 @@
 ### 1. Backup Créé ✅
 
 - Backup complet créé dans le répertoire parent
-- Format : `djlarian-react-backup-YYYYMMDD-HHMMSS`
+- Format : `larian-react-backup-YYYYMMDD-HHMMSS`
 
 ### 2. Historique Nettoyé ✅
 
@@ -53,8 +53,7 @@ Le prochain déploiement Vercel devrait être **beaucoup plus rapide** :
 Pour vérifier que tout est bon :
 
 1. **Vérifier GitHub** :
-
-   - Allez sur https://github.com/Jujulu67/djlarian-react
+   - Allez sur https://github.com/Jujulu67/larian-react
    - L'historique devrait être nettoyé
    - Les fichiers `.open-next/` ne devraient plus être visibles
 
@@ -62,7 +61,7 @@ Pour vérifier que tout est bon :
 
    ```bash
    cd /tmp
-   time git clone https://github.com/Jujulu67/djlarian-react.git test-clone
+   time git clone https://github.com/Jujulu67/larian-react.git test-clone
    ```
 
    Le clonage devrait être rapide (< 30 secondes)
@@ -82,7 +81,7 @@ Pour vérifier que tout est bon :
 ### Backup Disponible
 
 - ✅ Un backup complet est disponible dans le répertoire parent
-- ✅ Format : `djlarian-react-backup-YYYYMMDD-HHMMSS`
+- ✅ Format : `larian-react-backup-YYYYMMDD-HHMMSS`
 - ✅ Vous pouvez le supprimer une fois que vous êtes sûr que tout fonctionne
 
 ### Si Vous Avez des Problèmes

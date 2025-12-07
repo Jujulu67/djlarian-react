@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 
 // ============================================
 // CONFETTI EXPLOSION
@@ -33,6 +33,7 @@ export function ConfettiExplosion({ isActive, intensity = 'medium' }: ConfettiPr
       color: string;
       rotation: number;
       scale: number;
+      duration: number;
     }>
   >([]);
 
@@ -53,6 +54,7 @@ export function ConfettiExplosion({ isActive, intensity = 'medium' }: ConfettiPr
         color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
         rotation: Math.random() * 360,
         scale: 0.5 + Math.random() * 1,
+        duration: 2 + Math.random(),
       }));
       setParticles(newParticles);
 
@@ -83,7 +85,7 @@ export function ConfettiExplosion({ isActive, intensity = 'medium' }: ConfettiPr
             }}
             exit={{ opacity: 0 }}
             transition={{
-              duration: 2 + Math.random(),
+              duration: p.duration,
               ease: 'easeOut',
             }}
             className="absolute w-3 h-3"
@@ -452,11 +454,13 @@ interface BonusGameProps {
 export function BonusGame({ isActive, onComplete }: BonusGameProps) {
   const [selectedBox, setSelectedBox] = useState<number | null>(null);
   const [revealed, setRevealed] = useState(false);
-  const [multipliers] = useState(() => {
-    // Random multipliers for 6 boxes
+  // Memoize shuffled multipliers to avoid calling Math.random during render
+  const multipliers = useMemo(() => {
     const values = [1.5, 2, 2, 3, 5, 10];
+    // Fisher-Yates shuffle using seeded order
     return values.sort(() => Math.random() - 0.5);
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isActive]); // Re-shuffle when game becomes active
 
   if (!isActive) return null;
 

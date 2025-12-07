@@ -5,6 +5,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 
 import { logger } from '@/lib/logger';
+import { useGameStats } from '@/hooks/useGameStats';
 
 import GameCanvas from './GameCanvas';
 import {
@@ -27,6 +28,9 @@ interface RhythmCatcherProps {
 }
 
 const RhythmCatcher: React.FC<RhythmCatcherProps> = ({ audioSrc, onClose }) => {
+  // Hook pour sauvegarder le highscore
+  const { saveHighScore, isAuthenticated } = useGameStats();
+
   // Détecter si on est sur mobile
   const [isMobile, setIsMobile] = useState(false);
 
@@ -64,6 +68,42 @@ const RhythmCatcher: React.FC<RhythmCatcherProps> = ({ audioSrc, onClose }) => {
 
   // État du jeu
   const [gameState, setGameState] = useState<GameState>(() => initializeGame(800, 600));
+
+  // Charger le highscore sauvegardé au mount
+  useEffect(() => {
+    // Charge depuis localStorage immédiatement
+    if (typeof window !== 'undefined') {
+      const savedHighScore = parseInt(localStorage.getItem('highScore') || '0', 10);
+      if (savedHighScore > 0) {
+        setGameState((prev) => ({
+          ...prev,
+          player: { ...prev.player, highScore: savedHighScore },
+        }));
+      }
+    }
+
+    // Charge depuis API si authentifié (async)
+    const loadFromAPI = async () => {
+      try {
+        const response = await fetch('/api/user/game-stats');
+        if (response.ok) {
+          const { data } = await response.json();
+          if (data?.gameHighScore && data.gameHighScore > 0) {
+            setGameState((prev) => ({
+              ...prev,
+              player: {
+                ...prev.player,
+                highScore: Math.max(prev.player.highScore, data.gameHighScore),
+              },
+            }));
+          }
+        }
+      } catch (error) {
+        // Silently ignore API errors, localStorage is the fallback
+      }
+    };
+    loadFromAPI();
+  }, []);
 
   // État de l'audio
   const [isAudioLoaded, setIsAudioLoaded] = useState(false);
@@ -530,6 +570,28 @@ const RhythmCatcher: React.FC<RhythmCatcherProps> = ({ audioSrc, onClose }) => {
     ((position: Point, quality: HitQuality, radius?: number, color?: string) => void) | null
   >(null);
 
+  // Fonction pour fermer le jeu en sauvegardant le score
+  const handleClose = useCallback(() => {
+    // Sauvegarder le highscore avant de fermer
+    const currentScore = gameState.player.score;
+    if (currentScore > 0) {
+      // Sauvegarde en localStorage (fallback)
+      if (typeof window !== 'undefined') {
+        const savedHighScore = parseInt(localStorage.getItem('highScore') || '0', 10);
+        if (currentScore > savedHighScore) {
+          localStorage.setItem('highScore', currentScore.toString());
+        }
+      }
+      // Sauvegarde via API si authentifié
+      saveHighScore(currentScore);
+    }
+
+    // Appeler la fonction de fermeture originale
+    if (onClose) {
+      onClose();
+    }
+  }, [gameState.player.score, saveHighScore, onClose]);
+
   // Contenu du jeu (réutilisable pour mobile)
   const gameContent = (
     <div className={styles.canvasWrapper}>
@@ -611,7 +673,7 @@ const RhythmCatcher: React.FC<RhythmCatcherProps> = ({ audioSrc, onClose }) => {
                 onClick={(e) => {
                   e.stopPropagation();
                   e.preventDefault();
-                  onClose();
+                  handleClose();
                 }}
                 aria-label="Fermer le jeu"
               >
@@ -748,12 +810,12 @@ const RhythmCatcher: React.FC<RhythmCatcherProps> = ({ audioSrc, onClose }) => {
             onClick={(e) => {
               e.stopPropagation();
               e.preventDefault();
-              onClose();
+              handleClose();
             }}
             onTouchEnd={(e) => {
               e.stopPropagation();
               e.preventDefault();
-              onClose();
+              handleClose();
             }}
             aria-label="Fermer le jeu"
           >
@@ -842,7 +904,7 @@ const RhythmCatcher: React.FC<RhythmCatcherProps> = ({ audioSrc, onClose }) => {
         onClick={(e) => {
           // Ne pas fermer si on clique sur le contenu
           if (e.target === e.currentTarget && onClose) {
-            onClose();
+            handleClose();
           }
         }}
       >

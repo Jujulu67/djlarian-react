@@ -1,6 +1,7 @@
 'use client';
 
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
@@ -526,21 +527,23 @@ export default function HomePage() {
           />
         </div>
 
-        {/* Background Video */}
+        {/* Background Image (Spotify Banner) */}
         <div className="absolute inset-0 overflow-hidden z-[1]">
-          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/60 z-10 backdrop-blur-[1px]" />
-          <video
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload={isMobile ? 'metadata' : 'auto'}
-            className="w-full h-full object-cover"
-            poster={currentConfig.heroPosterImage}
-            style={{ willChange: 'auto' }}
-          >
-            <source src={currentConfig.heroBackgroundVideo} type="video/mp4" />
-          </video>
+          {/* Main Background Image */}
+          <Image
+            src="/images/spotify/spotify_banner.png"
+            alt="Hero Background"
+            fill
+            className="object-cover object-center"
+            priority
+            quality={100}
+          />
+
+          {/* Gradient Overlays for depth and readability */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/40 to-black/80 z-10" />
+          <div className="absolute inset-0 bg-purple-900/20 mix-blend-overlay z-10" />
+
+          {/* Subtle animated texture/noise if desired, or keep clean glass look */}
         </div>
 
         {/* Floating Particles */}
@@ -573,6 +576,29 @@ export default function HomePage() {
             className="glass-modern rounded-3xl p-8 md:p-12 backdrop-blur-xl border border-white/20 shadow-2xl"
             style={{ willChange: isMobile ? 'auto' : 'transform' }}
           >
+            {/* Spotify Brand / Logo Integration */}
+            <motion.div
+              initial={isMobile ? { opacity: 1 } : { y: -20, opacity: 0 }}
+              animate={
+                isMobile || readyForOtherAnimations
+                  ? isMobile
+                    ? undefined
+                    : { y: 0, opacity: 1 }
+                  : { y: -20, opacity: 0 }
+              }
+              transition={isMobile ? undefined : { duration: 0.6, ease: 'easeOut' }}
+              className="mb-8 relative w-24 h-24 md:w-32 md:h-32 mx-auto rounded-full overflow-hidden shadow-2xl ring-4 ring-white/10"
+              style={{ willChange: isMobile ? 'auto' : 'transform, opacity' }}
+            >
+              <Image
+                src="/images/spotify/profile_pic.jpg"
+                alt="Larian Profile"
+                fill
+                className="object-cover"
+                style={{ objectPosition: '50% 20%' }}
+              />
+            </motion.div>
+
             <motion.h1
               initial={isMobile ? { opacity: 1 } : { y: 20, opacity: 0 }}
               animate={
@@ -633,7 +659,7 @@ export default function HomePage() {
                 contain: 'layout style paint',
               }}
             >
-              {/* Vidéo du gradient animé - plus fluide que CSS animation, utilisée aussi sur mobile pour performance */}
+              {/* Video du gradient animé - plus fluide que CSS animation, utilisée aussi sur mobile pour performance */}
               {!videoFailed && (
                 <video
                   autoPlay={false}
@@ -641,9 +667,9 @@ export default function HomePage() {
                   loop
                   playsInline
                   preload={isMobile ? 'metadata' : 'auto'}
-                  className="absolute inset-0 w-full h-full object-cover"
+                  className="absolute inset-0 w-full h-full object-cover opacity-50 mix-blend-overlay"
                   style={{
-                    opacity: videoLoaded && waveformAnimationReady ? 1 : 0,
+                    opacity: videoLoaded && waveformAnimationReady ? 0.5 : 0,
                     transition: 'opacity 0.3s ease-in',
                   }}
                   ref={videoRef}

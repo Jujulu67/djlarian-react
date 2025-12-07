@@ -98,7 +98,7 @@ export default function Modal({
       />
       <div
         ref={modalRef}
-        className={`relative transform overflow-hidden rounded-xl ${bgClass ?? 'bg-gradient-to-br from-[#1a0f2a] via-[#0c0117] to-[#1a0f2a]'} ${borderClass ?? 'border border-purple-500/30'} w-full ${maxWidth} text-left shadow-2xl transition-all ${fullscreenContent ? 'w-screen h-screen m-0 rounded-none' : 'sm:my-8'} animate-fadeIn`}
+        className={`relative transform overflow-hidden rounded-xl ${bgClass ?? 'glass-modern backdrop-blur-xl'} ${borderClass ?? ''} w-full ${maxWidth} text-left shadow-2xl transition-all ${fullscreenContent ? 'w-screen h-screen m-0 rounded-none' : 'sm:my-8'} animate-fadeIn`}
         onClick={(e) => e.stopPropagation()}
       >
         <button

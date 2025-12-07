@@ -269,7 +269,7 @@ export default function MusicPage() {
 
           {/* Filtres et recherche */}
           <div className="mb-12">
-            <div className="bg-gray-800/30 backdrop-blur-md border border-gray-700/50 rounded-2xl p-4 sm:p-6 shadow-xl">
+            <div className="glass-modern rounded-2xl p-4 sm:p-6">
               <div className="flex flex-col gap-4">
                 {/* Ligne 1: Recherche */}
                 <div className="relative w-full">

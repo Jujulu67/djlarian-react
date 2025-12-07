@@ -18,7 +18,7 @@ Assurez-vous que toutes ces variables sont configurées dans Cloudflare Pages :
 
 - [ ] `CLOUDFLARE_ACCOUNT_ID` - Account ID Cloudflare
 - [ ] `R2_ACCESS_KEY_ID` - R2 Access Key
-- [ ] `R2_BUCKET_NAME` - `djlarian-uploads`
+- [ ] `R2_BUCKET_NAME` - `larian-uploads`
 - [ ] `NODE_ENV` - `production`
 
 ### 🟢 Optionnelles (si utilisées)
@@ -42,4 +42,4 @@ Toutes les valeurs sont dans `.secrets.local.md` (fichier local, non commité).
 
 1. **Sauvegarder** toutes les variables
 2. **Redéployer** le projet (ou attendre le redéploiement automatique)
-3. **Tester** le site : `https://fa32fe61.djlarian-react.pages.dev/`
+3. **Tester** le site : `https://fa32fe61.larian-react.pages.dev/`

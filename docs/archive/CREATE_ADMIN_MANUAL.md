@@ -104,8 +104,8 @@ INSERT INTO "User" (
   "updatedAt"
 ) VALUES (
   gen_random_uuid()::text,
-  'DJ Larian',
-  'admin@djlarian.com',
+  'Larian',
+  'admin@larian.com',
   NOW(),
   '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYq5x5x5x5u',
   'ADMIN',
@@ -140,7 +140,6 @@ xxx   | Votre Nom  | votre-email@...      | ADMIN | 2025-01-19 15:00:00
 Vercel ne fournit pas d'interface SQL directe, mais vous pouvez :
 
 1. **Récupérer la DATABASE_URL** depuis Vercel :
-
    - Dashboard → Projet → Settings → Environment Variables
    - Copiez `DATABASE_URL`
 

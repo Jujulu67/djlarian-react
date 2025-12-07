@@ -7,7 +7,7 @@ import { logger } from '@/lib/logger';
 import type { MusicBrainzSearchResponse, MusicBrainzRelease } from './types';
 
 const MUSICBRAINZ_API_BASE = 'https://musicbrainz.org/ws/2';
-const USER_AGENT = process.env.MUSICBRAINZ_USER_AGENT || 'DJLarianApp/1.0.0 (https://djlarian.com)';
+const USER_AGENT = process.env.MUSICBRAINZ_USER_AGENT || 'LarianApp/1.0.0 (https://larian.com)';
 
 /**
  * Recherche une release sur MusicBrainz

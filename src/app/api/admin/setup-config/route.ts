@@ -7,8 +7,8 @@ import prisma from '@/lib/prisma';
 // Valeurs par défaut pour les configurations
 const defaultConfigs = {
   general: {
-    siteName: 'DJ Larian',
-    siteDescription: 'Site officiel de DJ Larian - Musique électronique et événements.',
+    siteName: 'Larian',
+    siteDescription: 'Site officiel de Larian - Musique électronique et événements.',
     contactEmail: 'contact@djlarian.com',
     timeZone: 'Europe/Paris',
     dateFormat: 'DD/MM/YYYY',
@@ -22,7 +22,7 @@ const defaultConfigs = {
     faviconUrl: '/favicon.ico',
   },
   homepage: {
-    heroTitle: 'DJ LARIAN',
+    heroTitle: 'LARIAN',
     heroSubtitle: 'Electronic Music Producer & Innovative Performer',
     heroExploreButtonText: 'Explore Music',
     heroExploreButtonUrl: '/music',

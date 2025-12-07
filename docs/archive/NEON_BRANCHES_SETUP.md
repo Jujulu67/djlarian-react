@@ -11,13 +11,11 @@ Neon permet de créer des **branches** (comme Git) pour séparer vos environneme
 ### 📋 Étapes pour Configurer la Branche de Développement
 
 1. **Aller dans Neon Dashboard** :
-
    - https://console.neon.tech
    - Se connecter à votre compte
-   - Sélectionner le projet `djlarian` (Project ID: `twilight-bonus-80399064`)
+   - Sélectionner le projet `larian` (Project ID: `twilight-bonus-80399064`)
 
 2. **Vérifier/Créer la branche `development`** :
-
    - Dans le menu de gauche, cliquer sur **"Branches"**
    - Si la branche `development` existe déjà, la sélectionner
    - Si elle n'existe pas :
@@ -27,7 +25,6 @@ Neon permet de créer des **branches** (comme Git) pour séparer vos environneme
      - Cliquer sur **"Create"**
 
 3. **Obtenir la Connection String de la branche `development`** :
-
    - Sélectionner la branche `development`
    - Aller dans **"Connection Details"** ou **"Connection String"**
    - Copier la connection string (format : `postgresql://...`)
@@ -51,6 +48,7 @@ Neon permet de créer des **branches** (comme Git) pour séparer vos environneme
    ```bash
    npx prisma studio
    ```
+
    - Cela devrait ouvrir Prisma Studio connecté à la branche `development`
    - Vous devriez voir une base vide (ou avec vos données de test)
 
@@ -75,13 +73,11 @@ Neon permet de créer des **branches** (comme Git) pour séparer vos environneme
 ## 📝 Notes Importantes
 
 1. **Les branches Neon sont indépendantes** :
-
    - Les données de `development` ne sont pas dans `production`
    - Les données de `production` ne sont pas dans `development`
    - Chaque branche a sa propre connection string
 
 2. **Synchronisation des schémas** :
-
    - Après avoir créé une migration, l'appliquer sur les deux branches :
      - D'abord sur `development` (pour tester)
      - Ensuite sur `production` (après validation)

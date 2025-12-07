@@ -15,13 +15,13 @@ Guide rapide pour configurer OAuth Google et Twitch (100% gratuit) en 10 minutes
 
 ### Étape 1 : Utiliser le projet existant (1 min)
 
-**✅ Vous avez déjà un projet Google Cloud "DJLarian Search" ?**
+**✅ Vous avez déjà un projet Google Cloud "Larian Search" ?**
 
 Parfait ! Vous pouvez utiliser le **même projet** pour OAuth. C'est même recommandé pour centraliser la configuration.
 
 1. Aller sur https://console.cloud.google.com/
-2. **Sélectionner le projet existant** : "DJLarian Search" (ou le nom de votre projet)
-3. Si vous n'avez pas encore de projet, créer un nouveau projet (nom : `DJLarian` ou `DJLarian Search`)
+2. **Sélectionner le projet existant** : "Larian Search" (ou le nom de votre projet)
+3. Si vous n'avez pas encore de projet, créer un nouveau projet (nom : `Larian` ou `Larian Search`)
 
 **💡 Note** : Un même projet Google Cloud peut avoir plusieurs identifiants :
 
@@ -36,7 +36,7 @@ Parfait ! Vous pouvez utiliser le **même projet** pour OAuth. C'est même recom
 1. Menu → **"APIs & Services"** → **"OAuth consent screen"**
 2. Si c'est la première fois, choisir **"Externe"** (ou "Interne" si Google Workspace)
 3. Remplir :
-   - **Nom de l'application** : `DJLarian`
+   - **Nom de l'application** : `Larian`
    - **Email de support utilisateur** : votre email
    - **Email du développeur** : votre email
 4. Cliquer **"Enregistrer et continuer"** (2 fois)
@@ -46,7 +46,7 @@ Parfait ! Vous pouvez utiliser le **même projet** pour OAuth. C'est même recom
 7. Menu → **"APIs & Services"** → **"OAuth consent screen"**
 8. Choisir **"Externe"** (ou "Interne" si Google Workspace)
 9. Remplir :
-   - **Nom de l'application** : `DJLarian`
+   - **Nom de l'application** : `Larian`
    - **Email de support utilisateur** : votre email
    - **Email du développeur** : votre email
 10. Cliquer **"Enregistrer et continuer"** (2 fois)
@@ -60,7 +60,7 @@ Parfait ! Vous pouvez utiliser le **même projet** pour OAuth. C'est même recom
 1. Menu → **"APIs & Services"** → **"Identifiants"**
 2. **"Créer des identifiants"** → **"ID client OAuth 2.0"**
 3. **Type** : Application Web
-4. **Nom** : `DJLarian Web Client` (ou `DJLarian OAuth` pour différencier)
+4. **Nom** : `Larian Web Client` (ou `Larian OAuth` pour différencier)
 5. **URI de redirection autorisées** :
    ```
    http://localhost:3000/api/auth/callback/google
@@ -115,7 +115,7 @@ Ouvrir http://localhost:3000 → Cliquer "Connexion" → Vérifier que le bouton
 1. Aller sur https://dev.twitch.tv/console/apps
 2. Cliquer **"Register Your Application"**
 3. Remplir :
-   - **Name** : `DJLarian`
+   - **Name** : `Larian`
    - **OAuth Redirect URLs** :
      ```
      http://localhost:3000/api/auth/callback/twitch

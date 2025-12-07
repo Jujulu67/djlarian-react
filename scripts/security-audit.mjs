@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Script d'audit de sécurité pour le projet DJ Larian
+ * Script d'audit de sécurité pour le projet Larian
  * Vérifie les vulnérabilités des dépendances et génère un rapport
  */
 
@@ -9,32 +9,32 @@ import { execSync } from 'child_process';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
-console.log('🔒 Audit de Sécurité - DJ Larian\n');
-console.log('=' .repeat(60));
+console.log('🔒 Audit de Sécurité - Larian\n');
+console.log('='.repeat(60));
 
 // 1. Audit npm
 console.log('\n📦 1. Audit des dépendances npm...\n');
 try {
   const auditOutput = execSync('npm audit --json', { encoding: 'utf-8' });
   const audit = JSON.parse(auditOutput);
-  
+
   const vulnerabilities = audit.vulnerabilities || {};
   const critical = Object.values(vulnerabilities).filter(v => v.severity === 'critical').length;
   const high = Object.values(vulnerabilities).filter(v => v.severity === 'high').length;
   const moderate = Object.values(vulnerabilities).filter(v => v.severity === 'moderate').length;
   const low = Object.values(vulnerabilities).filter(v => v.severity === 'low').length;
-  
+
   console.log(`   ✅ Vulnérabilités trouvées:`);
   console.log(`      - Critique: ${critical}`);
   console.log(`      - Haute: ${high}`);
   console.log(`      - Modérée: ${moderate}`);
   console.log(`      - Faible: ${low}`);
-  
+
   if (critical > 0 || high > 0) {
     console.log(`\n   ⚠️  ATTENTION: Vulnérabilités critiques/haute détectées!`);
     console.log(`      Exécutez: npm audit fix`);
   }
-  
+
   // Lister les vulnérabilités critiques/haute
   if (critical > 0 || high > 0) {
     console.log(`\n   📋 Vulnérabilités critiques/haute:`);
@@ -61,7 +61,7 @@ try {
   const outdated = execSync('npm outdated --json', { encoding: 'utf-8' });
   const outdatedPackages = JSON.parse(outdated);
   const count = Object.keys(outdatedPackages).length;
-  
+
   if (count > 0) {
     console.log(`   ⚠️  ${count} package(s) obsolète(s):`);
     Object.entries(outdatedPackages).forEach(([name, info]) => {
@@ -117,7 +117,7 @@ if (existsSync(envPath)) {
     'NEXTAUTH_URL',
     'DATABASE_URL',
   ];
-  
+
   requiredVars.forEach(varName => {
     if (envContent.includes(varName)) {
       console.log(`   ✅ ${varName}: Défini`);

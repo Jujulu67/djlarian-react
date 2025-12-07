@@ -23,15 +23,15 @@ L'application supporte l'authentification OAuth via :
 
 ### Étape 1 : Utiliser un projet Google Cloud existant ou en créer un nouveau
 
-**✅ Vous avez déjà un projet Google Cloud (ex: "DJLarian Search" pour Custom Search API) ?**
+**✅ Vous avez déjà un projet Google Cloud (ex: "Larian Search" pour Custom Search API) ?**
 
 Parfait ! Vous pouvez utiliser le **même projet** pour OAuth. C'est même recommandé pour centraliser la configuration.
 
 1. Aller sur https://console.cloud.google.com/
-2. **Sélectionner le projet existant** (ex: "DJLarian Search")
+2. **Sélectionner le projet existant** (ex: "Larian Search")
 3. Si vous n'avez pas encore de projet, créer un nouveau projet :
    - Cliquer sur "Sélectionner un projet" → "Nouveau projet"
-   - Donner un nom (ex: "DJLarian" ou "DJLarian Search")
+   - Donner un nom (ex: "Larian" ou "Larian Search")
    - Cliquer sur "Créer"
 
 **💡 Note** : Un même projet Google Cloud peut avoir plusieurs identifiants :
@@ -47,7 +47,7 @@ Parfait ! Vous pouvez utiliser le **même projet** pour OAuth. C'est même recom
 1. Dans le menu, aller dans **"APIs & Services"** → **"OAuth consent screen"**
 2. Si c'est la première fois, choisir **"Externe"** (ou "Interne" si vous avez Google Workspace)
 3. Remplir les informations :
-   - **Nom de l'application** : DJLarian (ou votre choix)
+   - **Nom de l'application** : Larian (ou votre choix)
    - **Email de support utilisateur** : votre email
    - **Email du développeur** : votre email
 4. Cliquer sur **"Enregistrer et continuer"**
@@ -63,7 +63,7 @@ Parfait ! Vous pouvez utiliser le **même projet** pour OAuth. C'est même recom
 1. Aller dans **"APIs & Services"** → **"Identifiants"**
 2. Cliquer sur **"Créer des identifiants"** → **"ID client OAuth 2.0"**
 3. **Type d'application** : Application Web
-4. **Nom** : DJLarian Web Client (ou `DJLarian OAuth` pour différencier de votre clé API)
+4. **Nom** : Larian Web Client (ou `Larian OAuth` pour différencier de votre clé API)
 5. **URI de redirection autorisées** :
    - Pour le développement local : `http://localhost:3000/api/auth/callback/google`
    - Pour la production : `https://votre-domaine.com/api/auth/callback/google`
@@ -127,7 +127,7 @@ Le bouton **"Continuer avec Google"** devrait maintenant apparaître dans le mod
 1. Aller sur https://dev.twitch.tv/console/apps
 2. Cliquer sur **"Register Your Application"**
 3. Remplir les informations :
-   - **Name** : DJLarian (ou votre choix)
+   - **Name** : Larian (ou votre choix)
    - **OAuth Redirect URLs** :
      - Pour le développement local : `http://localhost:3000/api/auth/callback/twitch`
      - Pour la production : `https://votre-domaine.com/api/auth/callback/twitch`

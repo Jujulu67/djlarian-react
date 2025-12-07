@@ -14,7 +14,7 @@ Les routes suivantes retournent des erreurs 500 :
 
 Une route de diagnostic a été créée pour tester les connexions :
 
-- **URL** : `https://djlarian-react.pages.dev/api/health`
+- **URL** : `https://larian-react.pages.dev/api/health`
 - **Tests** :
   - ✅ Connexion à la base de données (Prisma + Neon)
   - ✅ Configuration R2
@@ -31,7 +31,7 @@ Une route de diagnostic a été créée pour tester les connexions :
 1. **Tester `/api/health`** :
 
    ```bash
-   curl https://djlarian-react.pages.dev/api/health
+   curl https://larian-react.pages.dev/api/health
    ```
 
    Cela devrait retourner :
@@ -49,8 +49,7 @@ Une route de diagnostic a été créée pour tester les connexions :
    ```
 
 2. **Vérifier les logs Cloudflare Pages** :
-
-   - Aller dans Cloudflare Dashboard → Pages → djlarian-react → Logs
+   - Aller dans Cloudflare Dashboard → Pages → larian-react → Logs
    - Chercher les erreurs liées à Prisma, Auth.js, ou DATABASE_URL
 
 3. **Vérifier les variables d'environnement** :

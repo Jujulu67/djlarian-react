@@ -3,7 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, HelpCircle, Coins, RefreshCw, Volume2, VolumeX } from 'lucide-react';
 import Image from 'next/image';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { SlotMachineSelectionDialog } from './SlotMachineSelectionDialog';
 import { SlotMachine } from './SlotMachine';
@@ -36,27 +36,28 @@ export function EasterEggMapDialog({ isOpen, onClose }: EasterEggMapDialogProps)
   const { isMuted, volume, toggleMute, changeVolume } = useMapAmbientMusic(isOpen);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
 
-  // Memoize particle positions to prevent reset on re-render
-  const particles = useMemo(() => {
-    return [...Array(20)].map((_, i) => ({
+  // Generate particle positions once on mount using lazy state initialization
+
+  const [particles] = useState(() =>
+    [...Array(20)].map((_, i) => ({
       id: i,
       left: Math.random() * 100,
       top: Math.random() * 100,
       xOffset: Math.random() * 20 - 10,
       duration: 4 + Math.random() * 4,
       delay: Math.random() * 4,
-    }));
-  }, []);
+    }))
+  );
 
-  const glowParticles = useMemo(() => {
-    return [...Array(8)].map((_, i) => ({
+  const [glowParticles] = useState(() =>
+    [...Array(8)].map((_, i) => ({
       id: i,
       left: 10 + Math.random() * 80,
       top: 10 + Math.random() * 80,
       duration: 6 + Math.random() * 4,
       delay: Math.random() * 5,
-    }));
-  }, []);
+    }))
+  );
 
   useEffect(() => {
     if (isOpen) {

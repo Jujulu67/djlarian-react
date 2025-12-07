@@ -7,7 +7,7 @@ import { auth } from '@/auth';
 import NotificationsClient from './NotificationsClient';
 
 export const metadata: Metadata = {
-  title: 'Notifications | DJ Larian',
+  title: 'Notifications | Larian',
   description: 'Gérez vos notifications de projets et jalons',
 };
 

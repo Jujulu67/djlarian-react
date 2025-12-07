@@ -19,6 +19,7 @@ import { ProfileAvatarModal } from './ProfileAvatarModal';
 import { getMemberSince } from '../utils/dateUtils';
 import { EasterEggMapDialog } from './EasterEggMapDialog';
 import { useState } from 'react';
+import { useGameStats } from '@/hooks/useGameStats';
 
 interface ProfileHeroProps {
   user: {
@@ -75,6 +76,15 @@ export function ProfileHero({
   fileInputRef,
 }: ProfileHeroProps) {
   const [showEasterEggMap, setShowEasterEggMap] = useState(false);
+  const { trackCasinoDiscovery, isAuthenticated } = useGameStats();
+
+  const handleBannerClick = () => {
+    setShowEasterEggMap(true);
+    // Track casino discovery for badges
+    if (isAuthenticated) {
+      trackCasinoDiscovery();
+    }
+  };
 
   const getImageUrl = (image: string | null) => {
     if (!image) return null;
@@ -96,7 +106,7 @@ export function ProfileHero({
       {/* Bannière réduite et optimisée */}
       <motion.div
         className="relative h-28 sm:h-32 lg:h-28 rounded-2xl overflow-hidden cursor-pointer"
-        onClick={() => setShowEasterEggMap(true)}
+        onClick={handleBannerClick}
         whileHover={{ scale: 1.01 }}
         transition={{ duration: 0.2 }}
         title="🗺️ Explorer le Monde Perdu"

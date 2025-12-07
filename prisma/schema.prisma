@@ -156,6 +156,8 @@ model User {
   hashedPassword       String?
   role                 String?                 @default("USER")
   isVip                Boolean                 @default(false)
+  gameHighScore        Int                     @default(0)
+  hasDiscoveredCasino  Boolean                 @default(false)
   createdAt            DateTime                @default(now())
   updatedAt            DateTime                @updatedAt
   Account              Account[]
