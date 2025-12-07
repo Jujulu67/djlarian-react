@@ -1,6 +1,6 @@
-# DJ Larian - Site Web Officiel
+# Larian - Site Web Officiel
 
-Site web officiel de DJ Larian, développé avec Next.js 16, React, TypeScript et TailwindCSS.
+Site web officiel de Larian, développé avec Next.js 16, React, TypeScript et TailwindCSS.
 
 ## 🎵 Caractéristiques
 
@@ -40,8 +40,8 @@ Voir [docs/INDEX.md](docs/INDEX.md) pour la navigation complète.
 
 ```bash
 # Cloner le repository
-git clone https://github.com/votre-username/djlarian-react.git
-cd djlarian-react
+git clone https://github.com/votre-username/larian-react.git
+cd larian-react
 
 # Installer les dépendances
 npm install

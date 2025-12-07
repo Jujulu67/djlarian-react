@@ -65,10 +65,9 @@ export default function EventPreview({ event }: EventPreviewProps) {
           )}
         </div>
 
-        {/* Logo DJ Larian */}
+        {/* Logo Larian */}
         <div className="absolute bottom-3 right-3">
           <div className="bg-black/40 backdrop-blur-sm text-white px-2 py-1 rounded-lg text-xs font-bold flex items-center">
-            <span className="text-purple-400 mr-1">DJ</span>
             <span className="text-white">LARIAN</span>
           </div>
         </div>

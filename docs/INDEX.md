@@ -1,6 +1,6 @@
-# Documentation Technique - DJ Larian
+# Documentation Technique - Larian
 
-Bienvenue dans la documentation technique complète du projet DJ Larian. Cette documentation centralise toute la connaissance du projet et sert de source de vérité unique.
+Bienvenue dans la documentation technique complète du projet Larian. Cette documentation centralise toute la connaissance du projet et sert de source de vérité unique.
 
 ## 📚 Table des Matières
 
@@ -181,4 +181,4 @@ Lors de l'ajout d'une nouvelle fonctionnalité :
 
 **Dernière mise à jour** : Voir l'historique Git des fichiers de documentation.
 
-**Maintenu par** : L'équipe de développement DJ Larian.
+**Maintenu par** : L'équipe de développement Larian.

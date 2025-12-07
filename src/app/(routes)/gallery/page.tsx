@@ -189,7 +189,7 @@ export default function GalleryPage() {
                 className="group relative cursor-pointer"
                 onClick={() => setSelectedItem(item)}
               >
-                <div className="aspect-square overflow-hidden rounded-lg bg-purple-900/20">
+                <div className="aspect-square overflow-hidden rounded-lg glass-modern">
                   <motion.div
                     whileHover={{ scale: 1.05 }}
                     transition={{ duration: 0.3 }}
@@ -260,7 +260,7 @@ export default function GalleryPage() {
                     className="group relative cursor-pointer"
                     onClick={() => window.open(post.permalink, '_blank')}
                   >
-                    <div className="aspect-square overflow-hidden rounded-lg bg-purple-900/20">
+                    <div className="aspect-square overflow-hidden rounded-lg glass-modern">
                       <motion.div
                         whileHover={{ scale: 1.05 }}
                         transition={{ duration: 0.3 }}

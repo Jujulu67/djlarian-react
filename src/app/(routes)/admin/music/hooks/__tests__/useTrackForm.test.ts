@@ -9,7 +9,7 @@ import { useTrackForm } from '../useTrackForm';
 jest.mock('@/lib/utils/music-helpers', () => ({
   emptyTrackForm: {
     title: '',
-    artist: 'DJ Larian',
+    artist: 'Larian',
     imageId: null,
     releaseDate: new Date().toISOString().split('T')[0],
     genre: [],

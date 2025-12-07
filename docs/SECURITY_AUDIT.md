@@ -1,4 +1,4 @@
-# Rapport d'Audit de Sécurité - DJ Larian
+# Rapport d'Audit de Sécurité - Larian
 
 **Date**: 2025-01-XX (Mis à jour avec CVE-2025-66478)  
 **Version**: 0.1.0  
@@ -7,7 +7,7 @@
 
 ## Résumé Exécutif
 
-Cet audit de sécurité a été effectué sur le projet DJ Larian, une application Next.js 16 avec authentification NextAuth.js v5. L'audit couvre les aspects de sécurité critiques : authentification, autorisation, validation des entrées, protection contre les injections, et configuration.
+Cet audit de sécurité a été effectué sur le projet Larian, une application Next.js 16 avec authentification NextAuth.js v5. L'audit couvre les aspects de sécurité critiques : authentification, autorisation, validation des entrées, protection contre les injections, et configuration.
 
 ### Statut Global
 
@@ -270,7 +270,7 @@ Deux scripts ont été créés pour faciliter les audits futurs:
 
 ## Conclusion
 
-Le projet DJ Larian présente une bonne base de sécurité avec:
+Le projet Larian présente une bonne base de sécurité avec:
 
 - Authentification robuste via NextAuth.js
 - Contrôles d'accès basés sur les rôles

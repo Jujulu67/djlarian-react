@@ -113,7 +113,7 @@ export const initialAppearanceConfig: AppearanceConfig = {
 };
 
 export const initialHomepageConfig: HomepageConfig = {
-  heroTitle: 'DJ LARIAN',
+  heroTitle: 'LARIAN',
   heroSubtitle: 'Electronic Music Producer & Innovative Performer',
   heroExploreButtonText: 'Explore Music',
   heroExploreButtonUrl: '/music',

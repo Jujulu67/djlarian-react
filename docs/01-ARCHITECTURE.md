@@ -1,4 +1,4 @@
-# Architecture du Projet - DJ Larian
+# Architecture du Projet - Larian
 
 ## Vue d'ensemble
 
@@ -8,10 +8,10 @@ Application Next.js 16 avec App Router, TypeScript, Prisma ORM 7, et authentific
 
 ```mermaid
 C4Context
-    title Diagramme de contexte - DJ Larian
+    title Diagramme de contexte - Larian
 
     Person(user, "Utilisateur", "Visiteurs et administrateurs du site")
-    System(webapp, "Application Web", "Site officiel DJ Larian")
+    System(webapp, "Application Web", "Site officiel Larian")
     System_Ext(vercel, "Vercel", "Hébergement et déploiement")
     System_Ext(neon, "Neon DB", "Base de données PostgreSQL")
     System_Ext(blob, "Vercel Blob", "Stockage d'images")
@@ -66,7 +66,7 @@ flowchart TD
 ## Structure du Projet
 
 ```
-djlarian-react/
+larian-react/
 ├── src/
 │   ├── app/                          # App Router Next.js
 │   │   ├── (routes)/                 # Routes groupées

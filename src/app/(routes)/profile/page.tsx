@@ -42,6 +42,9 @@ export default function ProfilePage() {
     badges: userBadges,
     unlockedBadges,
     lockedBadges,
+    totalRegularBadges,
+    unlockedSecretBadges,
+    unlockedSecretCount,
   } = useProfileBadges(stats, session?.user || {});
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
@@ -509,7 +512,9 @@ export default function ProfilePage() {
             <ProfileBadges
               unlockedBadges={unlockedBadges}
               lockedBadges={lockedBadges}
-              totalBadges={userBadges.length}
+              totalBadges={totalRegularBadges}
+              unlockedSecretBadges={unlockedSecretBadges}
+              unlockedSecretCount={unlockedSecretCount}
             />
           </div>
         </div>

@@ -228,7 +228,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 <button
                   onClick={() => handleProviderSignIn('google')}
                   disabled={isLoading || providersLoading}
-                  className="w-full py-3 px-4 bg-white text-gray-900 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-3 px-4 bg-white text-gray-900 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed lift-3d"
                 >
                   <Image
                     src="/icons/google.svg"
@@ -244,7 +244,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 <button
                   onClick={() => handleProviderSignIn('twitch')}
                   disabled={isLoading || providersLoading}
-                  className="w-full py-3 px-4 bg-[#9146FF] text-white rounded-lg flex items-center justify-center gap-2 hover:bg-[#7c2cff] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-3 px-4 bg-[#9146FF] text-white rounded-lg flex items-center justify-center gap-2 hover:bg-[#7c2cff] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed lift-3d"
                 >
                   <Image
                     src="/icons/twitch.svg"

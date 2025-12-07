@@ -1,6 +1,6 @@
 # Configuration d'Umami Analytics
 
-Ce document explique comment configurer [Umami Analytics](https://umami.is/) pour recueillir et afficher les statistiques du site web DJ Larian.
+Ce document explique comment configurer [Umami Analytics](https://umami.is/) pour recueillir et afficher les statistiques du site web Larian.
 
 ## Qu'est-ce qu'Umami?
 
@@ -87,12 +87,10 @@ NEXT_PUBLIC_UMAMI_WEBSITE_ID=484ec662-e403-4498-a654-ca04b9b504c3
 ### Composants clés
 
 1. **UmamiScript.tsx** (`src/components/analytics/UmamiScript.tsx`)
-
    - Intègre le script de tracking Umami dans le site
    - Utilisé dans le layout principal
 
 2. **analytics.ts** (`src/lib/analytics.ts`)
-
    - Fonctions pour récupérer les statistiques via l'API Umami
    - Utilise les variables d'environnement avec préfixe NEXT*PUBLIC*
    - Inclut des fonctions de secours pour générer des données de démo si Umami n'est pas configuré
@@ -132,7 +130,7 @@ Une fois l'application en cours d'exécution:
 
 1. Vérifiez que Docker est en cours d'exécution avec `docker ps | grep umami`
 2. Assurez-vous que les variables d'environnement sont correctement configurées (en particulier celles avec préfixe NEXT*PUBLIC*)
-3. Consultez les logs Docker avec `docker logs djlarian-react-umami-1`
+3. Consultez les logs Docker avec `docker logs larian-react-umami-1`
 
 ### Réinitialisation
 

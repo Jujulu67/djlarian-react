@@ -221,7 +221,7 @@ export default function EventDetailPage() {
 
   const handleShare = (platform: string) => {
     const eventUrl = window.location.href;
-    const eventTitle = event?.title || 'Événement DJ Larian';
+    const eventTitle = event?.title || 'Événement Larian';
 
     switch (platform) {
       case 'facebook':

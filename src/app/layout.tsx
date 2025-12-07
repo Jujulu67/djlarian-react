@@ -24,8 +24,8 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: 'DJ Larian',
-  description: 'Official website of DJ Larian',
+  title: 'Larian',
+  description: 'Official website of Larian',
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

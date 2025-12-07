@@ -703,7 +703,7 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
       <ReleaseCalendar projects={filteredAndSortedProjects} onUpdate={handleUpdate} />
 
       {/* Filtres et actions */}
-      <div className="bg-gray-800/30 backdrop-blur-md border border-gray-700/50 rounded-2xl p-4 sm:p-6 shadow-xl">
+      <div className="glass-modern rounded-2xl p-4 sm:p-6">
         <div className="flex flex-col gap-4">
           {/* Ligne 1: Recherche */}
           <div className="flex gap-3 items-center flex-wrap">

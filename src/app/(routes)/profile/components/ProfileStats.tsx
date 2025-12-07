@@ -48,20 +48,24 @@ export function ProfileStats({ stats, isLoading }: ProfileStatsProps) {
         <motion.div
           key={stat.label}
           initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4, delay: 0.2 + index * 0.1 }}
-          whileHover={{ scale: 1.05, y: -5 }}
-          className="glass-modern glass-modern-hover rounded-xl p-3 sm:p-4 lg:p-3 text-center lift-3d h-full flex flex-col justify-center items-center"
+          animate={{
+            opacity: 1,
+            scale: 1,
+            transition: { duration: 0.4, delay: 0.2 + index * 0.1 },
+          }}
+          className="h-full"
         >
-          <div
-            className={`inline-flex p-1.5 sm:p-2 lg:p-1.5 rounded-lg bg-gradient-to-r ${stat.color} mb-1.5 sm:mb-2 lg:mb-1.5`}
-          >
-            <stat.icon size={18} className="sm:w-5 sm:h-5 lg:w-4 lg:h-4 text-white" />
+          <div className="glass-modern glass-modern-hover rounded-xl p-3 sm:p-4 lg:p-3 text-center lift-3d h-full flex flex-col justify-center items-center">
+            <div
+              className={`inline-flex p-1.5 sm:p-2 lg:p-1.5 rounded-lg bg-gradient-to-r ${stat.color} mb-1.5 sm:mb-2 lg:mb-1.5`}
+            >
+              <stat.icon size={18} className="sm:w-5 sm:h-5 lg:w-4 lg:h-4 text-white" />
+            </div>
+            <div className="text-xl sm:text-2xl lg:text-xl font-bold text-white mb-0.5">
+              {stat.value}
+            </div>
+            <div className="text-xs sm:text-sm lg:text-xs text-gray-400">{stat.label}</div>
           </div>
-          <div className="text-xl sm:text-2xl lg:text-xl font-bold text-white mb-0.5">
-            {stat.value}
-          </div>
-          <div className="text-xs sm:text-sm lg:text-xs text-gray-400">{stat.label}</div>
         </motion.div>
       ))}
     </motion.div>

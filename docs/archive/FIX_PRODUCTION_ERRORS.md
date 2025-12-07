@@ -33,7 +33,7 @@ openssl rand -base64 32
 #### 🌐 NEXTAUTH_URL (Public)
 
 - Nom : `NEXTAUTH_URL`
-- Valeur : `https://djlarian-react.vercel.app` (votre URL Vercel exacte)
+- Valeur : `https://larian-react.vercel.app` (votre URL Vercel exacte)
 - ❌ Ne PAS cocher "Encrypt" (variable publique)
 - Environnement : Production (et Preview si nécessaire)
 
@@ -55,14 +55,13 @@ openssl rand -base64 32
 
 - [ ] `DATABASE_URL` configuré avec votre connection string Neon (🔒 Encrypt)
 - [ ] `NEXTAUTH_SECRET` généré et configuré (🔒 Encrypt)
-- [ ] `NEXTAUTH_URL` configuré avec `https://djlarian-react.vercel.app` (sans slash final)
+- [ ] `NEXTAUTH_URL` configuré avec `https://larian-react.vercel.app` (sans slash final)
 - [ ] `NODE_ENV` configuré à `production`
 - [ ] Tous les secrets sont marqués comme "Encrypt"
 
 ### 🔄 Après Configuration
 
 1. **Redéployer** votre projet sur Vercel
-
    - Soit attendre le prochain commit
    - Soit aller dans **Deployments** → Cliquer sur les 3 points → **Redeploy**
 

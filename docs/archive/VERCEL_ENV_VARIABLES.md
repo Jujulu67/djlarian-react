@@ -80,7 +80,7 @@ SPOTIFY_ARTIST_ID="<votre_artist_id_spotify>"
 ### MusicBrainz (optionnel, pour enrichissement métadonnées)
 
 ```env
-MUSICBRAINZ_USER_AGENT="DJLarianApp/1.0.0 (contact@djlarian.com)"
+MUSICBRAINZ_USER_AGENT="LarianApp/1.0.0 (contact@larian.com)"
 ```
 
 ### Last.fm (optionnel, pour enrichissement métadonnées)

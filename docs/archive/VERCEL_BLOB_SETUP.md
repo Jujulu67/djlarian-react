@@ -14,7 +14,7 @@ Vercel Blob n'est **pas automatiquement activé**. Il faut l'activer manuellemen
 
 1. Allez sur [vercel.com](https://vercel.com)
 2. Connectez-vous
-3. Sélectionnez votre projet `djlarian-react`
+3. Sélectionnez votre projet `larian-react`
 
 ### Étape 2 : Activer Vercel Blob
 
@@ -23,7 +23,7 @@ Vercel Blob n'est **pas automatiquement activé**. Il faut l'activer manuellemen
 1. Dans votre projet Vercel, allez dans l'onglet **"Storage"** (dans le menu de gauche)
 2. Cliquez sur **"Create Database"** ou **"Add Storage"**
 3. Sélectionnez **"Blob"**
-4. Donnez un nom à votre store (ex: `djlarian-uploads`)
+4. Donnez un nom à votre store (ex: `larian-uploads`)
 5. Cliquez sur **"Create"**
 
 **Option B : Via Variables d'Environnement**
@@ -76,13 +76,11 @@ Vous devriez voir :
 ### Blob toujours "not_configured" après activation
 
 1. **Vérifier les variables d'environnement** :
-
    - Dashboard Vercel → Settings → Environment Variables
    - Cherchez `BLOB_READ_WRITE_TOKEN`
    - Il devrait être présent automatiquement
 
 2. **Redéployer** :
-
    - Settings → Deployments → Redeploy
 
 3. **Vérifier les logs** :

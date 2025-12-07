@@ -214,12 +214,12 @@ const MusicCardComponent: React.FC<MusicCardProps> = ({
     <motion.div
       id={`music-card-${track.id}`}
       ref={cardRef}
-      className={`group relative rounded-xl overflow-hidden border transition-all duration-300 transform ${
-        isPlayerActive ? '' : 'cursor-pointer hover:-translate-y-1'
+      className={`group relative rounded-xl overflow-hidden transition-all duration-300 transform ${
+        isPlayerActive ? '' : 'cursor-pointer'
       } ${
         isActive
-          ? 'border-purple-500/70 shadow-lg shadow-purple-500/20 bg-purple-900/30'
-          : 'border-gray-700/50 bg-gray-800/30 hover:border-purple-500/50 hover:shadow-lg hover:shadow-purple-500/10'
+          ? 'glass-modern border-purple-500/50 shadow-[0_0_30px_rgba(168,85,247,0.2)]'
+          : 'glass-modern glass-modern-hover'
       } ${isPlayerActive ? 'col-span-1 md:col-span-2' : ''}`}
       whileHover={isPlayerActive ? {} : { scale: 1.02 }}
       onClick={handleCardClick}

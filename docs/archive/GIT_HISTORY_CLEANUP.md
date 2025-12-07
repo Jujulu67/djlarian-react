@@ -69,8 +69,8 @@ pip install git-filter-repo
 ```bash
 # 1. Faire une backup de votre repo (IMPORTANT!)
 cd ..
-cp -r djlarian-react djlarian-react-backup
-cd djlarian-react
+cp -r larian-react larian-react-backup
+cd larian-react
 
 # 2. Supprimer .open-next de tout l'historique
 git filter-repo --path .open-next --invert-paths
@@ -88,13 +88,13 @@ git push origin --force --tags
 ```bash
 # 1. Backup (IMPORTANT!)
 cd ..
-cp -r djlarian-react djlarian-react-backup
-cd djlarian-react
+cp -r larian-react larian-react-backup
+cd larian-react
 
 # 2. Cloner un repo "bare" (nécessaire pour BFG)
 cd ..
-git clone --mirror djlarian-react djlarian-react-bare.git
-cd djlarian-react-bare.git
+git clone --mirror larian-react larian-react-bare.git
+cd larian-react-bare.git
 
 # 3. Nettoyer avec BFG
 java -jar bfg.jar --delete-folders .open-next
@@ -138,11 +138,11 @@ git push origin --force --all
 
 ```bash
 # Supprimer leur clone local
-rm -rf djlarian-react
+rm -rf larian-react
 
 # Re-cloner depuis GitHub
-git clone https://github.com/Jujulu67/djlarian-react.git
-cd djlarian-react
+git clone https://github.com/Jujulu67/larian-react.git
+cd larian-react
 ```
 
 ---

@@ -1,4 +1,4 @@
-# Guide de Développement - DJ Larian
+# Guide de Développement - Larian
 
 ## Prérequis
 
@@ -31,8 +31,8 @@
 ### 1. Cloner le Repository
 
 ```bash
-git clone https://github.com/votre-username/djlarian-react.git
-cd djlarian-react
+git clone https://github.com/votre-username/larian-react.git
+cd larian-react
 ```
 
 ### 2. Installer les Dépendances

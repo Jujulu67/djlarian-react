@@ -396,13 +396,13 @@ export default function EventsPage() {
 
         {/* Sous-titre */}
         <p className="text-gray-400 text-center mb-10 max-w-2xl mx-auto">
-          Découvrez les prochaines dates de DJ Larian et rejoignez-nous pour des soirées
-          électroniques inoubliables.
+          Découvrez les prochaines dates de Larian et rejoignez-nous pour des soirées électroniques
+          inoubliables.
         </p>
 
         {/* Filtres et recherche */}
         <div className="mb-12">
-          <div className="bg-gray-800/30 backdrop-blur-md border border-gray-700/50 rounded-2xl p-4 sm:p-6 shadow-xl">
+          <div className="glass-modern rounded-2xl p-4 sm:p-6">
             <div className="flex flex-col gap-4">
               {/* Ligne 1: Recherche */}
               <div className="relative w-full">
@@ -586,7 +586,7 @@ export default function EventsPage() {
               {currentEvents.map((event) => (
                 <div
                   key={event.id}
-                  className="group relative bg-gray-800/30 backdrop-blur-sm rounded-xl overflow-hidden border border-gray-700/50 hover:border-purple-500/50 hover:shadow-lg hover:shadow-purple-500/10 transition-all transform hover:-translate-y-1 duration-300"
+                  className="group relative glass-modern glass-modern-hover rounded-xl overflow-hidden transition-all transform hover:-translate-y-1 duration-300"
                 >
                   {/* Image avec effet de zoom au survol */}
                   <div

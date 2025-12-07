@@ -65,7 +65,7 @@ export const getDemoTracks = (): Track[] => {
     {
       id: '1',
       title: 'Summer Vibes',
-      artist: 'DJ Larian',
+      artist: 'Larian',
       imageId: 'summer_vibes',
       audioUrl: '/music/summer_vibes.mp3',
       duration: 240,
@@ -88,7 +88,7 @@ export const getDemoTracks = (): Track[] => {
     {
       id: '2',
       title: 'Midnight Drive',
-      artist: 'DJ Larian',
+      artist: 'Larian',
       imageId: 'midnight_drive',
       audioUrl: '/music/midnight_drive.mp3',
       duration: 122,
@@ -110,7 +110,7 @@ export const getDemoTracks = (): Track[] => {
     {
       id: '3',
       title: 'Techno Nights',
-      artist: 'DJ Larian',
+      artist: 'Larian',
       imageId: 'techno_nights',
       audioUrl: '/music/techno_nights.mp3',
       duration: 140,
@@ -128,7 +128,7 @@ export const getDemoTracks = (): Track[] => {
     {
       id: '4',
       title: 'Larian Live @ Club XYZ',
-      artist: 'DJ Larian',
+      artist: 'Larian',
       imageId: 'larian_live',
       audioUrl: '/music/larian_live.mp3',
       duration: 3600,
@@ -145,7 +145,7 @@ export const getDemoTracks = (): Track[] => {
     {
       id: '5',
       title: 'Remix Project (feat. Various Artists)',
-      artist: 'DJ Larian',
+      artist: 'Larian',
       imageId: 'remix_project',
       audioUrl: '/music/remix_project.mp3',
       duration: 240,
@@ -244,7 +244,7 @@ export const getDemoTracks = (): Track[] => {
     {
       id: '11',
       title: 'Live Set @ Tomorrowland 2023',
-      artist: 'DJ Larian',
+      artist: 'Larian',
       imageId: 'tomorrowland_live',
       audioUrl: '/music/live_set_tomorrowland.mp3',
       duration: 3600,

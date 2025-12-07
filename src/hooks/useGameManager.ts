@@ -14,8 +14,12 @@ import {
 import { useAudioAnalyser } from './game/useAudioAnalyser';
 import { usePatternManager } from './game/usePatternManager';
 import { useScoreManager } from './game/useScoreManager';
+import { useGameStats } from './useGameStats';
 
 export const useGameManager = (audioElement: HTMLAudioElement | null) => {
+  // Hook pour synchroniser le highscore avec l'API
+  const { fetchHighScore, saveHighScore, hasFetched } = useGameStats();
+
   const [gameState, setGameState] = useState<GameState>(() => {
     let savedHighScore = 0;
     if (typeof window !== 'undefined') {
@@ -36,6 +40,19 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
       totalNotes: 0,
     };
   });
+
+  // Fetch highscore from API on mount
+  useEffect(() => {
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+
+    fetchHighScore().then((apiHighScore) => {
+      setGameState((prev) => ({
+        ...prev,
+        highScore: Math.max(prev.highScore, apiHighScore),
+      }));
+    });
+  }, [fetchHighScore, hasFetched]);
 
   const [patterns, setPatterns] = useState<GamePattern[]>([]);
   const isActive = useRef(false);
@@ -63,8 +80,12 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
       logger.debug('Fin du jeu');
       setGameState((prev) => {
         let newHighScore = prev.highScore;
-        if (prev.score > prev.highScore && typeof window !== 'undefined') {
-          localStorage.setItem('highScore', prev.score.toString());
+        if (prev.score > prev.highScore) {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('highScore', prev.score.toString());
+          }
+          // Save to API
+          saveHighScore(prev.score);
           newHighScore = prev.score;
         }
         return {
@@ -298,8 +319,12 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
     logger.debug('Fin du jeu');
     setGameState((prev) => {
       let newHighScore = prev.highScore;
-      if (prev.score > prev.highScore && typeof window !== 'undefined') {
-        localStorage.setItem('highScore', prev.score.toString());
+      if (prev.score > prev.highScore) {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('highScore', prev.score.toString());
+        }
+        // Save to API
+        saveHighScore(prev.score);
         newHighScore = prev.score;
       }
       return {
@@ -315,7 +340,7 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
       cancelAnimationFrame(animationFrame.current);
       animationFrame.current = undefined;
     }
-  }, [setGameState]);
+  }, [setGameState, saveHighScore]);
 
   return {
     gameState,

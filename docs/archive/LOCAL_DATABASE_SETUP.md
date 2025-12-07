@@ -82,13 +82,11 @@ Ces scripts modifient automatiquement `prisma/schema.prisma` et régénèrent le
 ### Différences SQLite vs PostgreSQL
 
 1. **Types de données** :
-
    - SQLite n'a pas de type `DateTime` natif → Prisma le gère automatiquement
    - SQLite n'a pas de type `Json` natif → Prisma le gère automatiquement
    - Les UUIDs sont stockés comme `TEXT` en SQLite
 
 2. **Fonctionnalités** :
-
    - SQLite supporte la plupart des fonctionnalités Prisma
    - Les migrations fonctionnent de la même manière
    - Prisma Studio fonctionne identiquement
@@ -191,13 +189,13 @@ Si vous préférez PostgreSQL local (via Docker) :
 1. **Démarrer PostgreSQL avec Docker** :
 
    ```bash
-   docker run --name djlarian-postgres -e POSTGRES_PASSWORD=dev -e POSTGRES_DB=djlarian -p 5432:5432 -d postgres:17
+   docker run --name larian-postgres -e POSTGRES_PASSWORD=dev -e POSTGRES_DB=larian -p 5432:5432 -d postgres:17
    ```
 
 2. **Mettre à jour `.env.local`** :
 
    ```env
-   DATABASE_URL="postgresql://postgres:dev@localhost:5432/djlarian"
+   DATABASE_URL="postgresql://postgres:dev@localhost:5432/larian"
    ```
 
 3. **Modifier `prisma/schema.prisma`** :
