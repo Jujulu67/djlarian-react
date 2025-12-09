@@ -98,6 +98,7 @@ export function ProfileBadges({
 
                       {/* Icône avec animation subtile */}
                       <motion.div
+                        className="w-full h-full flex items-center justify-center"
                         animate={{
                           y: [0, -2, 0],
                         }}
@@ -108,9 +109,10 @@ export function ProfileBadges({
                           delay,
                         }}
                       >
-                        <Icon
-                          size={20}
-                          className={`sm:w-6 sm:h-6 lg:w-5 lg:h-5 relative z-10 ${badge.iconColor} drop-shadow-lg filter group-hover:drop-shadow-[0_0_8px_currentColor] transition-all duration-300`}
+                        <img
+                          src={badge.image}
+                          alt={badge.name}
+                          className="w-full h-full object-contain drop-shadow-md group-hover:drop-shadow-[0_0_12px_rgba(255,255,255,0.6)] transition-all duration-300 relative z-10"
                         />
                       </motion.div>
 
@@ -206,6 +208,7 @@ export function ProfileBadges({
 
                       {/* Icône avec animation subtile */}
                       <motion.div
+                        className="w-full h-full flex items-center justify-center"
                         animate={{
                           y: [0, -2, 0],
                         }}
@@ -216,9 +219,10 @@ export function ProfileBadges({
                           delay,
                         }}
                       >
-                        <Icon
-                          size={20}
-                          className={`sm:w-6 sm:h-6 lg:w-5 lg:h-5 relative z-10 ${badge.iconColor} drop-shadow-lg filter group-hover:drop-shadow-[0_0_8px_currentColor] transition-all duration-300`}
+                        <img
+                          src={badge.image}
+                          alt={badge.name}
+                          className="w-full h-full object-contain drop-shadow-md group-hover:drop-shadow-[0_0_12px_rgba(255,215,0,0.6)] transition-all duration-300 relative z-10"
                         />
                       </motion.div>
                     </div>
@@ -252,9 +256,13 @@ export function ProfileBadges({
                 return (
                   <div
                     key={badge.id}
-                    className="relative group aspect-square rounded-xl bg-white/5 border border-white/10 flex flex-col items-center justify-center p-1.5 sm:p-2 lg:p-1.5 opacity-40 hover:opacity-60 transition-opacity cursor-help"
+                    className="relative group aspect-square rounded-xl bg-white/5 border border-white/10 flex flex-col items-center justify-center p-1.5 sm:p-2 lg:p-1.5 opacity-60 hover:opacity-80 transition-opacity cursor-help"
                   >
-                    <Icon size={20} className="sm:w-6 sm:h-6 lg:w-5 lg:h-5 text-gray-500" />
+                    <img
+                      src={badge.image}
+                      alt={badge.name}
+                      className="w-full h-full object-contain grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-300"
+                    />
                     {/* Tooltip pour badge verrouillé */}
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-20 pointer-events-none">
                       <div className="bg-black/95 backdrop-blur-md rounded-lg px-3 py-2 text-xs text-white whitespace-nowrap border border-gray-600/50 shadow-2xl">

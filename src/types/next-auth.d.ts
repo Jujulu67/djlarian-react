@@ -7,6 +7,8 @@ declare module 'next-auth' {
       role?: string;
       createdAt?: string | Date;
       isVip?: boolean;
+      gameHighScore?: number;
+      hasDiscoveredCasino?: boolean;
     } & DefaultSession['user'];
   }
 
@@ -15,6 +17,8 @@ declare module 'next-auth' {
     role?: string;
     createdAt?: string | Date;
     isVip?: boolean;
+    gameHighScore?: number;
+    hasDiscoveredCasino?: boolean;
   }
 }
 
@@ -24,5 +28,7 @@ declare module 'next-auth/jwt' {
     role?: string;
     createdAt?: string | Date;
     isVip?: boolean;
+    gameHighScore?: number;
+    hasDiscoveredCasino?: boolean;
   }
 }

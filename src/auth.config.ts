@@ -223,6 +223,9 @@ export const authConfig = {
           email: session.user.email,
           createdAt: userWithExtras.createdAt || token.createdAt,
           isVip: userWithExtras.isVip !== undefined ? userWithExtras.isVip : token.isVip,
+          gameHighScore: (session.user as any).gameHighScore ?? token.gameHighScore,
+          hasDiscoveredCasino:
+            (session.user as any).hasDiscoveredCasino ?? token.hasDiscoveredCasino,
         };
       }
 
@@ -241,6 +244,14 @@ export const authConfig = {
         }
         if (userWithExtras.isVip !== undefined) {
           token.isVip = userWithExtras.isVip;
+        }
+
+        const userWithGameStats = user as { gameHighScore?: number; hasDiscoveredCasino?: boolean };
+        if (userWithGameStats.gameHighScore !== undefined) {
+          token.gameHighScore = userWithGameStats.gameHighScore;
+        }
+        if (userWithGameStats.hasDiscoveredCasino !== undefined) {
+          token.hasDiscoveredCasino = userWithGameStats.hasDiscoveredCasino;
         }
       }
 
@@ -351,6 +362,38 @@ export const authConfig = {
             }
           } catch (error) {
             console.error('[AuthConfig] Erreur récupération createdAt/isVip depuis DB:', error);
+          }
+        }
+
+        // Récupérer les stats de jeu depuis le token
+        if (token.gameHighScore !== undefined) {
+          session.user.gameHighScore = token.gameHighScore as number;
+        }
+        if (token.hasDiscoveredCasino !== undefined) {
+          session.user.hasDiscoveredCasino = token.hasDiscoveredCasino as boolean;
+        }
+
+        // Si pas dans le token, fetch depuis DB (pour les utilisateurs existants)
+        if (
+          userId &&
+          (session.user.gameHighScore === undefined ||
+            session.user.hasDiscoveredCasino === undefined)
+        ) {
+          try {
+            const prismaModule = await import('@/lib/prisma');
+            const prisma = prismaModule.default;
+            if (prisma) {
+              const userStats = await prisma.user.findUnique({
+                where: { id: userId },
+                select: { gameHighScore: true, hasDiscoveredCasino: true },
+              });
+              if (userStats) {
+                session.user.gameHighScore = userStats.gameHighScore;
+                session.user.hasDiscoveredCasino = userStats.hasDiscoveredCasino;
+              }
+            }
+          } catch (error) {
+            console.error('[AuthConfig] Erreur récupération game stats depuis DB:', error);
           }
         }
 

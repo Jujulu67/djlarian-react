@@ -3,15 +3,22 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import React, { useEffect, useRef, useState } from 'react';
 
-import { Player } from './gameEngine';
+import { Player, GameState, PowerUpType, GameMode } from './gameEngine';
 import styles from './styles.module.css';
 
 interface ScorePanelProps {
   player: Player;
   isActive: boolean;
+  mode?: GameMode;
+  activePowerUps?: GameState['activePowerUps'];
 }
 
-const ScorePanel: React.FC<ScorePanelProps> = ({ player, isActive }) => {
+const ScorePanel: React.FC<ScorePanelProps> = ({
+  player,
+  isActive,
+  mode = 'FREE',
+  activePowerUps,
+}) => {
   const [displayScore, setDisplayScore] = useState(player.score);
   const [isScoreIncreasing, setIsScoreIncreasing] = useState(false);
   const [scoreChange, setScoreChange] = useState<{ value: number; timestamp: number } | null>(null);
@@ -173,6 +180,36 @@ const ScorePanel: React.FC<ScorePanelProps> = ({ player, isActive }) => {
 
   return (
     <div className={styles.scorePanel}>
+      {/* PowerUps Actifs */}
+      {activePowerUps && (
+        <div className="flex gap-2 mb-2 justify-end w-full">
+          {activePowerUps.magnet && (
+            <div
+              className="bg-purple-600 rounded-full p-1 border-2 border-white animate-pulse"
+              title="Aimant"
+            >
+              🧲
+            </div>
+          )}
+          {activePowerUps.slowMo && (
+            <div
+              className="bg-green-600 rounded-full p-1 border-2 border-white animate-pulse"
+              title="Ralenti"
+            >
+              ⏰
+            </div>
+          )}
+          {activePowerUps.shield && (
+            <div
+              className="bg-cyan-600 rounded-full p-1 border-2 border-white animate-pulse"
+              title="Bouclier"
+            >
+              🛡️
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Score principal - sur mobile: score à gauche, combo au milieu, meilleur score à droite */}
       <div className={styles.mainScore}>
         {/* Score à gauche */}
@@ -180,6 +217,34 @@ const ScorePanel: React.FC<ScorePanelProps> = ({ player, isActive }) => {
           {formatScore(displayScore)}
           {isScoreIncreasing && <span className={styles.scoreIncreasing}>+</span>}
         </div>
+
+        {/* LIVES (Death Mode) */}
+        {mode === 'DEATH' && (
+          <div className="flex gap-1 my-1">
+            {Array.from({ length: 5 }).map((_, i) => {
+              // Affiche 5 coeurs max, vide ou plein
+              // Si plus que 5, afficher le nombre
+              if (player.maxLives > 5 && i === 4)
+                return (
+                  <span key={i} className="text-red-500 font-bold ml-1">
+                    +{player.lives > 4 ? player.lives - 4 : 0}
+                  </span>
+                );
+              if (i >= player.maxLives) return null;
+
+              return (
+                <span
+                  key={i}
+                  className={
+                    i < Math.min(player.lives, 5) ? 'text-red-500 text-lg' : 'text-gray-600 text-lg'
+                  }
+                >
+                  ♥
+                </span>
+              );
+            })}
+          </div>
+        )}
 
         {/* Combo au milieu */}
         {displayCombo > 1 && (
@@ -217,14 +282,19 @@ const ScorePanel: React.FC<ScorePanelProps> = ({ player, isActive }) => {
             <span>OK</span>
             <span style={{ color: '#60a5fa' }}>{player.okHits}</span>
           </div>
-          <div className={styles.statRow}>
-            <span>Miss (clics)</span>
-            <span style={{ color: '#ef4444' }}>{player.missHits}</span>
-          </div>
-          <div className={styles.statRow}>
-            <span>Miss (boules)</span>
-            <span style={{ color: '#f87171' }}>{player.missedPatterns}</span>
-          </div>
+          {mode === 'FREE' && (
+            <>
+              <div className={styles.statRow}>
+                <span>Miss (clics)</span>
+                <span style={{ color: '#ef4444' }}>{player.missHits}</span>
+              </div>
+              <div className={styles.statRow}>
+                <span>Miss (boules)</span>
+                <span style={{ color: '#f87171' }}>{player.missedPatterns}</span>
+              </div>
+            </>
+          )}
+
           {/* Précision et rang affichés sur mobile aussi */}
           <div className={`${styles.statRow} ${styles.desktopOnly}`}>
             <span>Précision</span>

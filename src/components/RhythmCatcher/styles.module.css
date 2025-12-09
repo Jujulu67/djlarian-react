@@ -308,7 +308,7 @@
   right: 1rem;
   display: flex;
   gap: 0.5rem;
-  z-index: 100; /* Z-index élevé pour être au-dessus de tout */
+  z-index: 10000; /* Très haut pour être toujours clickable */
   pointer-events: auto; /* Assure que les clics fonctionnent */
 }
 
@@ -322,6 +322,7 @@
     background: transparent;
     border: none;
     gap: 1rem;
+    z-index: 10000;
   }
 }
 
@@ -341,6 +342,7 @@
   pointer-events: auto; /* Assure que les clics fonctionnent */
   touch-action: manipulation; /* Améliore la réactivité sur mobile */
   -webkit-tap-highlight-color: transparent; /* Supprime le highlight sur mobile */
+  z-index: 10001; /* Above controls container */
 }
 
 /* Taille uniforme sur mobile pour tous les boutons */
@@ -798,139 +800,64 @@
   padding: 0.25rem 0.75rem;
   border-radius: 1rem;
   font-weight: bold;
-  margin-bottom: 0.5rem;
 }
 
 .highScore {
   font-size: 0.9rem;
-  color: #d0d0d0;
-  background: rgba(0, 0, 0, 0.5);
-  padding: 0.25rem 0.75rem;
-  border-radius: 1rem;
+  color: #b0b0ff;
   margin-bottom: 0.5rem;
 }
 
-/* Sur mobile, masquer le highScore séparé car il est dans le mainScore */
-@media (max-width: 768px) {
-  .mobileControls .scorePanel > .highScore {
-    display: none;
-  }
+.scoreChange {
+  position: absolute;
+  right: 0;
+  top: 3rem;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #ffde17;
+  text-shadow: 0 0 10px rgba(255, 222, 23, 0.5);
+  pointer-events: none;
 }
 
 .statsPanel {
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(30, 30, 40, 0.9);
   padding: 0.75rem;
-  border-radius: 0.5rem;
-  margin-top: 0.5rem;
-  min-width: 150px;
+  border-radius: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
 }
 
 .statRow {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 0.25rem;
-  font-size: 0.85rem;
+  align-items: center;
+  font-size: 0.9rem;
   color: #e0e0e0;
 }
 
-.statDivider {
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
-  padding-top: 0.25rem;
-  margin-top: 0.25rem;
+.statRow span:first-child {
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.statRow span:last-child {
+  font-weight: bold;
 }
 
 .rank {
-  font-weight: bold;
-  font-size: 1.1rem;
-}
-
-.scoreChange {
-  position: absolute;
-  top: 0;
-  right: 6rem;
-  color: #ffde17;
-  font-weight: bold;
   font-size: 1.2rem;
-  z-index: 100;
-  pointer-events: none;
-  white-space: nowrap;
-}
-
-/* Style pour mobile */
-.mobileControlsArea .scorePanel .scoreChange {
-  position: absolute;
-  top: -1.5rem;
-  left: 50%;
-  transform: translateX(-50%);
-  right: auto;
-  color: #ffde17;
   font-weight: bold;
-  font-size: 1rem;
-  z-index: 100;
-  pointer-events: none;
-  white-space: nowrap;
+  text-shadow: 0 0 10px currentColor;
 }
 
-/* Style pour l'audio */
-.audioControls {
-  position: absolute;
-  top: 1rem;
-  left: 1rem;
-  z-index: 100; /* Z-index élevé pour être au-dessus de tout */
-  pointer-events: auto; /* Assure que les clics fonctionnent */
+.desktopOnly {
+  display: flex;
 }
 
-/* Sur mobile, masquer le bouton audio desktop */
 @media (max-width: 768px) {
-  .audioControls {
+  .desktopOnly {
     display: none;
   }
-}
-
-/* Bouton audio mobile (dans la barre de contrôle) */
-.mobileAudioButton {
-  display: none; /* Masqué sur desktop */
-}
-
-/* Sur mobile, afficher le bouton audio dans la barre de contrôle */
-@media (max-width: 768px) {
-  .mobileAudioButton {
-    display: flex;
-    width: 3.5rem;
-    height: 3.5rem;
-    min-width: 3.5rem;
-    min-height: 3.5rem;
-    background: rgba(30, 30, 40, 0.8);
-    border-radius: 50%;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-    pointer-events: auto;
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-  }
-}
-
-.volumeButton {
-  background: rgba(30, 30, 40, 0.8);
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 2.5rem;
-  height: 2.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-  pointer-events: auto; /* Assure que les clics fonctionnent */
-  touch-action: manipulation; /* Améliore la réactivité sur mobile */
-  -webkit-tap-highlight-color: transparent; /* Supprime le highlight sur mobile */
-}
-
-.volumeButton:hover {
-  background: rgba(60, 60, 100, 0.8);
 }

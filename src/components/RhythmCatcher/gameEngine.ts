@@ -4,6 +4,26 @@ export interface Point {
   y: number;
 }
 
+export type GameMode = 'FREE' | 'DEATH';
+
+export enum PowerUpType {
+  FIREBALL = 'FIREBALL', // Nettoie l'écran
+  MAGNET = 'MAGNET', // Attire les boules
+  SLOW_MO = 'SLOW_MO', // Ralentit le temps
+  LIFE = 'LIFE', // Donne une vie (Death mode uniquement)
+  SHIELD = 'SHIELD', // Protège contre un miss
+}
+
+export interface PowerUp {
+  id: string;
+  type: PowerUpType;
+  position: Point;
+  radius: number;
+  speed: number;
+  active: boolean;
+  creation: number;
+}
+
 export interface Pattern {
   id: string;
   position: Point;
@@ -22,7 +42,7 @@ export interface Pattern {
 }
 
 export interface Player {
-  position: Point;
+  position: Point; // Position ACTUELLE du curseur (mise à jour via events)
   radius: number;
   score: number;
   combo: number;
@@ -33,14 +53,34 @@ export interface Player {
   missHits: number; // Clics qui ne touchent aucun pattern
   missedPatterns: number; // Patterns qui sortent de l'écran sans être frappés
   totalNotes: number;
+  lives: number; // Pour le Death Mode
+  maxLives: number; // Pour le Death Mode
+}
+
+export interface GameDifficulty {
+  spawnInterval: number; // Temps entre les spawns
+  maxPatterns: number; // Nombre max de patterns simultanés
+  baseSpeed: number; // Vitesse de base
+  speedMultiplier: number; // Multiplicateur de vitesse progressive
 }
 
 export interface GameState {
+  mode: GameMode;
   isActive: boolean;
+  isGameOver: boolean;
   startTime: number;
   lastUpdateTime: number;
   patterns: Pattern[];
+  powerUps: PowerUp[];
   player: Player;
+  difficulty: GameDifficulty;
+  activePowerUps: {
+    magnet: boolean;
+    slowMo: boolean;
+    shield: boolean;
+    magnetEndTime?: number;
+    slowMoEndTime?: number;
+  };
   audioData?: Float32Array;
   bpm: number;
   audioContext?: AudioContext;
@@ -48,65 +88,78 @@ export interface GameState {
   frequencyData?: Uint8Array;
 }
 
-export type HitQuality = 'PERFECT' | 'GOOD' | 'OK' | 'MISS';
+export type HitQuality = 'PERFECT' | 'GOOD' | 'OK' | 'MISS' | 'POWERUP';
 
 export interface CollisionResult {
   collided: boolean;
   patternId?: string;
+  powerUpId?: string;
   quality?: HitQuality;
   points?: number;
   patternPosition?: Point; // Position du pattern au moment de la collision
   patternRadius?: number; // Rayon effectif du pattern au moment de la collision
   patternColor?: string; // Couleur du pattern pour l'animation
+  powerUpType?: PowerUpType;
 }
 
 // Constantes pour les paramètres du jeu
-const PERFECT_WINDOW = 100; // Fenêtre parfaite en ms (augmentée pour plus de tolérance)
-const GOOD_WINDOW = 180; // Fenêtre bonne en ms (augmentée pour plus de tolérance)
-const OK_WINDOW = 300; // Fenêtre OK en ms (augmentée pour plus de tolérance)
-const CLICK_TOLERANCE = 8; // Tolérance supplémentaire en pixels pour les clics (réduite car on n'a plus le timing)
-const BASE_POINTS = 100; // Points de base
-const COMBO_MULTIPLIER = 0.1; // Multiplicateur combo
-const MAX_PATTERNS = 15; // Maximum de patterns à l'écran
-const MIN_PATTERN_INTERVAL = 200; // Intervalle minimum entre les patterns (ms) - réduit pour plus de patterns
-const DEFAULT_BPM = 128; // BPM par défaut si non détecté
+const PERFECT_WINDOW = 100;
+const GOOD_WINDOW = 180;
+const OK_WINDOW = 300;
+const CLICK_TOLERANCE = 15; // Un peu plus tolerant
+const BASE_POINTS = 100;
+const COMBO_MULTIPLIER = 0.1;
+const DEFAULT_BPM = 128;
+
+// Config des modes
+const DEATH_MODE_LIVES = 10;
+const INITIAL_MAX_PATTERNS = 6; // Augmenté pour plus d'action au début
+const INITIAL_SPAWN_INTERVAL = 1000; // Plus rapide au début
 
 // Initialisation du jeu
-export function initializeGame(canvasWidth: number, canvasHeight: number): GameState {
+export function initializeGame(
+  canvasWidth: number,
+  canvasHeight: number,
+  mode: GameMode = 'FREE'
+): GameState {
   const now = Date.now();
 
-  // Créer quelques patterns initiaux pour éviter l'écran vide
+  // Créer quelques patterns initiaux pour que le jeu ne soit pas vide au lancement
   const initialPatterns: Pattern[] = [];
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 3; i++) {
+    // Ajoute des patterns "pre-spawned" pour l'action immédiate
     initialPatterns.push({
       id: `initial-pattern-${i}`,
       position: {
         x: Math.random() * (canvasWidth - 100) + 50,
-        y: 50 + i * 40,
+        y: i * 100 - 200, // Echelonnés au dessus
       },
-      radius: 25 + Math.random() * 15,
+      radius: 30,
       color: getRandomColor(),
-      speed: 2 + Math.random() * 2,
-      points: Math.round(BASE_POINTS * (1 + Math.random() * 0.5)),
+      speed: 2.5,
+      points: BASE_POINTS,
       active: true,
-      beatOffset: Math.random(),
-      targetTime: now + 2000 + i * 500,
+      beatOffset: 0,
+      targetTime: now + 2000,
       hitWindow: OK_WINDOW,
       wasHit: false,
       creation: now,
-      opacity: 0.5,
-      scale: 0.8,
+      opacity: 1,
+      scale: 1,
     });
   }
 
   return {
+    mode,
     isActive: false,
+    isGameOver: false,
     startTime: now,
     lastUpdateTime: now,
-    patterns: initialPatterns, // Utiliser les patterns initiaux
+    patterns: initialPatterns,
+    powerUps: [],
     player: {
-      position: { x: canvasWidth / 2, y: canvasHeight - 50 },
-      radius: 5, // Réduit encore plus pour plus de difficulté
+      position: { x: canvasWidth / 2, y: canvasHeight / 2 },
+      radius: 10,
       score: 0,
       combo: 0,
       highScore: 0,
@@ -116,12 +169,25 @@ export function initializeGame(canvasWidth: number, canvasHeight: number): GameS
       missHits: 0,
       missedPatterns: 0,
       totalNotes: 0,
+      lives: mode === 'DEATH' ? DEATH_MODE_LIVES : Infinity,
+      maxLives: mode === 'DEATH' ? DEATH_MODE_LIVES : Infinity,
+    },
+    difficulty: {
+      spawnInterval: INITIAL_SPAWN_INTERVAL,
+      maxPatterns: INITIAL_MAX_PATTERNS,
+      baseSpeed: 2.5, // Un peu plus rapide de base
+      speedMultiplier: 1.0,
+    },
+    activePowerUps: {
+      magnet: false,
+      slowMo: false,
+      shield: false,
     },
     bpm: DEFAULT_BPM,
   };
 }
 
-// Création d'un nouveau pattern en fonction des données audio
+// Création d'un nouveau pattern
 export function addPattern(
   state: GameState,
   canvasWidth: number,
@@ -131,70 +197,62 @@ export function addPattern(
 ): Pattern {
   const now = Date.now();
 
-  // Utilisation des données audio pour positionner le pattern
-  // Commence avec une position aléatoire équilibrée
+  // Position aléatoire basique
   let x = Math.random() * (canvasWidth - 100) + 50;
-  let speed = 2 + Math.random() * 2;
+
+  // Vitesse de base modifiée par la difficulté et le slow mo
+  let speed = state.difficulty.baseSpeed * state.difficulty.speedMultiplier;
+
+  // Appliquer Slow Mo
+  if (state.activePowerUps.slowMo) {
+    speed *= 0.5;
+  }
+
   let radius = 25 + Math.random() * 15;
   const points = Math.round(BASE_POINTS * (1 + Math.random() * 0.5));
 
-  // Si des données audio sont disponibles, on les utilise pour influencer le pattern
+  // Influence Audio
   if (audioData && audioData.length > 0) {
-    // Calcule l'énergie audio pour adapter la vitesse et le rayon
     const energySum = audioData.reduce((sum, val) => sum + Math.abs(val), 0);
     const avgEnergy = energySum / audioData.length;
 
-    // Ajuste la vitesse et le rayon en fonction de l'énergie audio
-    speed = 2 + avgEnergy * 4;
-    radius = 25 + avgEnergy * 20;
+    // Boost de vitesse/taille avec la musique
+    speed += avgEnergy * 3;
+    radius += avgEnergy * 15;
 
-    // Utilise les fréquences pour influencer (pas remplacer) la position
     if (frequencyData && frequencyData.length > 0) {
-      // Trouve plusieurs fréquences dominantes pour une distribution plus équilibrée
       const topFrequencies = findTopFrequencies(frequencyData, 3);
+      if (topFrequencies.length > 0) {
+        let weightedSum = 0;
+        let totalWeight = 0;
+        for (const { index, value } of topFrequencies) {
+          const normalizedIndex = index / frequencyData.length;
+          weightedSum += normalizedIndex * canvasWidth * (value / 255);
+          totalWeight += value / 255;
+        }
 
-      // Calcule une position moyenne pondérée par l'intensité des fréquences
-      let weightedSum = 0;
-      let totalWeight = 0;
-
-      for (const { index, value } of topFrequencies) {
-        // Normalise l'index de fréquence pour mapper sur toute la largeur
-        const normalizedIndex = index / frequencyData.length;
-        const position = normalizedIndex * canvasWidth;
-        const weight = value / 255; // Poids basé sur l'intensité
-
-        weightedSum += position * weight;
-        totalWeight += weight;
+        const audioX = totalWeight > 0 ? weightedSum / totalWeight : canvasWidth / 2;
+        // Mix 60% random, 40% audio pour garder de l'imprévisible
+        x = x * 0.6 + audioX * 0.4;
+        x = Math.max(50, Math.min(x, canvasWidth - 50));
       }
-
-      // Mélange la position audio avec une position aléatoire pour éviter le biais
-      const audioInfluencedX = totalWeight > 0 ? weightedSum / totalWeight : canvasWidth / 2;
-      const randomX = Math.random() * (canvasWidth - 100) + 50;
-
-      // Combine les deux positions (70% aléatoire, 30% audio) pour une distribution équilibrée
-      x = randomX * 0.7 + audioInfluencedX * 0.3;
-
-      // Assure que la position reste dans les limites du canvas
-      x = Math.max(50, Math.min(x, canvasWidth - 50));
     }
   }
 
-  // Limite les valeurs à des plages raisonnables
-  speed = Math.min(Math.max(speed, 1.5), 5);
-  radius = Math.min(Math.max(radius, 20), 50);
+  // Bornes de sécurité
+  speed = Math.min(Math.max(speed, 1.0), 8.0);
+  radius = Math.min(Math.max(radius, 20), 60);
 
-  // Calcul du moment optimal pour frapper
-  const distanceToTravel = canvasHeight - 50 - 50; // Distance du haut au joueur
-  const travelTime = distanceToTravel / (speed * 60); // Temps en secondes
-  const targetTime = now + travelTime * 1000; // Conversion en millisecondes
+  const distanceToTravel = canvasHeight - 100;
+  const travelTime = distanceToTravel / (speed * 60);
+  const targetTime = now + travelTime * 1000;
 
-  // Calcul de la position rythmique
-  const beatLength = 60000 / state.bpm; // Durée d'un beat en ms
+  const beatLength = 60000 / state.bpm;
   const beatOffset = ((targetTime - state.startTime) % beatLength) / beatLength;
 
   return {
     id: `pattern-${now}-${Math.random().toString(36).substring(2, 9)}`,
-    position: { x, y: 50 }, // Commence en haut
+    position: { x, y: -50 }, // Commence hors écran
     radius,
     color: getRandomColor(),
     speed,
@@ -205,102 +263,222 @@ export function addPattern(
     hitWindow: OK_WINDOW,
     wasHit: false,
     creation: now,
-    opacity: 0, // Commence invisible pour un effet de fondu
-    scale: 0.5, // Commence plus petit pour un effet de grossissement
+    opacity: 0,
+    scale: 0.5,
   };
 }
 
-// Mise à jour de l'état du jeu
+// Création d'un PowerUp
+function spawnPowerUp(canvasWidth: number, mode: GameMode): PowerUp {
+  const types = Object.values(PowerUpType);
+
+  let type = PowerUpType.FIREBALL;
+  const rand = Math.random();
+
+  if (mode === 'FREE') {
+    // FREE MODE: Pas de Life ni Shield
+    if (rand < 0.4) type = PowerUpType.FIREBALL;
+    else if (rand < 0.7) type = PowerUpType.MAGNET;
+    else type = PowerUpType.SLOW_MO;
+  } else {
+    // DEATH MODE: Tous les bonus
+    if (rand < 0.3) type = PowerUpType.FIREBALL;
+    else if (rand < 0.55) type = PowerUpType.MAGNET;
+    else if (rand < 0.7) type = PowerUpType.SHIELD;
+    else if (rand < 0.85) type = PowerUpType.SLOW_MO;
+    else type = PowerUpType.LIFE;
+  }
+
+  return {
+    id: `powerup-${Date.now()}-${Math.random()}`,
+    type,
+    position: {
+      x: Math.random() * (canvasWidth - 100) + 50,
+      y: -50,
+    },
+    radius: 30, // Un peu plus gros
+    speed: 3,
+    active: true,
+    creation: Date.now(),
+  };
+}
+
 export function updateGame(
   state: GameState,
   deltaTime: number,
   canvasWidth: number,
   canvasHeight: number,
+  cursorPosition: Point | null, // Nouvelle entrée pour le curseur
   audioData?: Float32Array,
   frequencyData?: Uint8Array
 ): GameState {
+  if (state.isGameOver) {
+    if (state.mode === 'DEATH' && state.patterns.some((p) => p.active)) {
+      // Clear patterns if game over in death mode
+      return {
+        ...state,
+        patterns: state.patterns.map((p) => ({ ...p, active: false })),
+      };
+    }
+    return state;
+  }
+
   const now = Date.now();
   const updatedState = { ...state };
 
+  // Mise à jour de la position du joueur (curseur)
+  if (cursorPosition) {
+    updatedState.player.position = cursorPosition;
+  }
+
+  // Gestion des PowerUps actifs (timers)
+  if (
+    updatedState.activePowerUps.magnet &&
+    updatedState.activePowerUps.magnetEndTime &&
+    now > updatedState.activePowerUps.magnetEndTime
+  ) {
+    updatedState.activePowerUps.magnet = false;
+  }
+  if (
+    updatedState.activePowerUps.slowMo &&
+    updatedState.activePowerUps.slowMoEndTime &&
+    now > updatedState.activePowerUps.slowMoEndTime
+  ) {
+    updatedState.activePowerUps.slowMo = false;
+  }
+
   if (!updatedState.isActive) {
-    // Si le jeu n'est pas actif, on fait bouger les patterns plus lentement
-    updatedState.patterns = updatedState.patterns.map((pattern) => {
-      if (pattern.active) {
-        return {
-          ...pattern,
-          position: {
-            ...pattern.position,
-            y: pattern.position.y + pattern.speed * 0.5, // Vitesse réduite
-          },
-          opacity: Math.min(pattern.opacity + 0.05, 1),
-          scale: Math.min(pattern.scale + 0.02, 1),
-        };
-      }
-      return pattern;
-    });
-
-    // Supprime les patterns qui sortent de l'écran
-    updatedState.patterns = updatedState.patterns.filter(
-      (pattern) => pattern.position.y < canvasHeight + pattern.radius
-    );
-
     return updatedState;
   }
 
-  // Mise à jour des patterns existants
+  // ----- PROGRESSIVE DIFFICULTY -----
+  const timeElapsed = (now - state.startTime) / 1000;
+
+  // Palier tous les 20s
+  const level = Math.floor(timeElapsed / 20);
+  const maxLevel = 10;
+  const currentLevel = Math.min(level, maxLevel);
+
+  updatedState.difficulty = {
+    // intervalle diminue : 1000 -> 900 -> ... -> 500
+    spawnInterval: Math.max(400, INITIAL_SPAWN_INTERVAL - currentLevel * 60),
+    // maxPatterns augmente : 6 -> 8 -> ... -> 26
+    maxPatterns: Math.min(30, INITIAL_MAX_PATTERNS + currentLevel * 2),
+    baseSpeed: 2.5 + currentLevel * 0.2,
+    speedMultiplier: 1.0,
+  };
+
+  // ----- SPAWN LOGIC -----
+
+  // Spawn Patterns
+  const lastSpawnTime = Math.max(...state.patterns.map((p) => p.creation), state.startTime);
+  if (
+    state.patterns.filter((p) => p.active).length < state.difficulty.maxPatterns &&
+    now - lastSpawnTime > state.difficulty.spawnInterval
+  ) {
+    updatedState.patterns.push(
+      addPattern(updatedState, canvasWidth, canvasHeight, audioData, frequencyData)
+    );
+  }
+
+  // Spawn PowerUps (Plus Rare)
+  // 0.1% de chance par frame (à 60fps = ~1 powerup toutes les 16 secondes environ)
+  if (state.powerUps.length < 2 && Math.random() < 0.001) {
+    updatedState.powerUps.push(spawnPowerUp(canvasWidth, state.mode));
+  }
+
+  // ----- UPDATE ENTITIES -----
+
+  // Update Patterns
   updatedState.patterns = updatedState.patterns
     .map((pattern) => {
-      if (pattern.active) {
-        // Calcule la nouvelle position
-        const newY = pattern.position.y + pattern.speed * (deltaTime / 16);
+      if (!pattern.active) return pattern;
 
-        // Animation de fondu et d'échelle
-        let { opacity, scale } = pattern;
+      let { x, y } = pattern.position;
+      let { speed } = pattern;
 
-        // Si le pattern vient d'être créé, on l'anime en fondu
-        if (now - pattern.creation < 500) {
-          opacity = Math.min(opacity + 0.1, 1);
-          scale = Math.min(scale + 0.05, 1);
-        }
-
-        // Détermine si le pattern est encore actif (n'est pas sorti de l'écran)
-        const stillActive = newY < canvasHeight + pattern.radius;
-
-        // Si le pattern sort de l'écran et n'a pas été frappé, c'est un MISS
-        if (!stillActive && !pattern.wasHit) {
-          updatedState.player.combo = 0; // Reset combo
-          updatedState.player.missedPatterns++; // Compte les patterns manqués
-          updatedState.player.totalNotes++; // Compte comme une note ratée
-        }
-
-        return {
-          ...pattern,
-          position: { ...pattern.position, y: newY },
-          active: stillActive,
-          opacity,
-          scale,
-        };
+      // Slow Mo Effect
+      if (updatedState.activePowerUps.slowMo) {
+        speed *= 0.5;
       }
-      return pattern;
+
+      // Magnet Effect
+      if (
+        updatedState.activePowerUps.magnet &&
+        cursorPosition &&
+        pattern.active &&
+        !pattern.wasHit
+      ) {
+        const dx = cursorPosition.x - x;
+        const dy = cursorPosition.y - y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        // Rayon d'attraction
+        if (dist < 400 && y > 0) {
+          x += (dx / dist) * 7; // Attraction latérale
+          y += (dy / dist) * 7; // Attraction verticale
+        }
+      }
+
+      // Mouvement normal vers le bas
+      y += speed * (deltaTime / 16);
+
+      // Fade in intro
+      let opacity = pattern.opacity;
+      let scale = pattern.scale;
+      if (now - pattern.creation < 500) {
+        opacity = Math.min(opacity + 0.1, 1);
+        scale = Math.min(scale + 0.05, 1);
+      }
+
+      const stillActive = y < canvasHeight + pattern.radius;
+
+      if (!stillActive && !pattern.wasHit) {
+        // Pattern manqué (sorti de l'écran)
+
+        // Si on a un Shield, on le consomme et on ignore le miss
+        if (updatedState.activePowerUps.shield) {
+          updatedState.activePowerUps.shield = false;
+          // On le marque comme 'hit' pour qu'il disparaisse sans pénalité
+          return { ...pattern, active: false, wasHit: true };
+        }
+
+        updatedState.player.combo = 0;
+        updatedState.player.missedPatterns++;
+        updatedState.player.totalNotes++;
+
+        if (state.mode === 'DEATH') {
+          updatedState.player.lives--;
+          if (updatedState.player.lives <= 0) {
+            updatedState.isGameOver = true;
+            updatedState.isActive = false;
+          }
+        }
+      }
+
+      return {
+        ...pattern,
+        position: { x, y },
+        active: stillActive,
+        opacity,
+        scale,
+      };
     })
-    .filter((pattern) => pattern.active || now - pattern.creation < 1000); // Garde les patterns récemment désactivés pour animation
+    .filter((p) => p.active || now - p.creation < 1000); // Keep visuals for a bit
 
-  // Ajoute de nouveaux patterns si nécessaire
-  const shouldAddPattern =
-    updatedState.patterns.length < MAX_PATTERNS &&
-    (updatedState.patterns.length === 0 ||
-      now - Math.max(...updatedState.patterns.map((p) => p.creation)) > MIN_PATTERN_INTERVAL);
-
-  if (shouldAddPattern) {
-    const newPattern = addPattern(
-      updatedState,
-      canvasWidth,
-      canvasHeight,
-      audioData,
-      frequencyData
-    );
-    updatedState.patterns.push(newPattern);
-  }
+  // Update PowerUps
+  updatedState.powerUps = updatedState.powerUps
+    .map((pu) => {
+      return {
+        ...pu,
+        position: {
+          x: pu.position.x,
+          y: pu.position.y + pu.speed * (deltaTime / 16),
+        },
+        active: pu.position.y < canvasHeight + 50, // Despawn if out of bounds
+      };
+    })
+    .filter((pu) => pu.active);
 
   updatedState.lastUpdateTime = now;
   return updatedState;
@@ -309,66 +487,64 @@ export function updateGame(
 // Vérification des collisions avec le joueur
 export function checkCollisions(
   state: GameState,
-  playerPosition: Point,
+  clickPosition: Point,
   clickTime: number,
   excludePatternIds?: Set<string>
 ): CollisionResult {
-  // Trouve tous les patterns qui sont dans la portée du clic
-  // IMPORTANT: Filtre les patterns déjà frappés et ceux en cours de traitement pour éviter les doubles kills
+  // 1. Check PowerUps First (Priorité au fun)
+  const hitPowerUp = state.powerUps.find((pu) => {
+    const dist = Math.sqrt(
+      Math.pow(clickPosition.x - pu.position.x, 2) + Math.pow(clickPosition.y - pu.position.y, 2)
+    );
+    return dist <= pu.radius + CLICK_TOLERANCE;
+  });
+
+  if (hitPowerUp) {
+    return {
+      collided: true,
+      powerUpId: hitPowerUp.id,
+      powerUpType: hitPowerUp.type,
+      quality: 'POWERUP',
+      points: 500, // Points bonus pour powerup
+      patternPosition: hitPowerUp.position,
+      patternRadius: hitPowerUp.radius,
+      patternColor: '#FFD700', // Gold
+    };
+  }
+
+  // 2. Check Patterns
   const hitPatterns = state.patterns
     .filter((pattern) => {
-      // Exclut les patterns déjà frappés ou désactivés
       if (!pattern.active || pattern.wasHit) return false;
-      // Exclut les patterns en cours de traitement si la liste est fournie
       if (excludePatternIds && excludePatternIds.has(pattern.id)) return false;
       return true;
     })
     .map((pattern) => {
       const distance = Math.sqrt(
-        Math.pow(playerPosition.x - pattern.position.x, 2) +
-          Math.pow(playerPosition.y - pattern.position.y, 2)
+        Math.pow(clickPosition.x - pattern.position.x, 2) +
+          Math.pow(clickPosition.y - pattern.position.y, 2)
       );
       const effectiveRadius = pattern.radius * pattern.scale;
-      // IMPORTANT: playerPosition est la position du CLIC, pas du joueur
-      // Donc on n'ajoute PAS le rayon du joueur, seulement la tolérance de clic
       const hitRadius = effectiveRadius + CLICK_TOLERANCE;
 
       return { pattern, distance, hitRadius, effectiveRadius };
     })
     .filter(({ distance, hitRadius }) => distance <= hitRadius);
 
-  // Si plusieurs patterns se chevauchent, sélectionne celui avec le Y le plus bas (le plus proche du joueur)
-  // Si plusieurs ont le même Y, prend celui avec la distance euclidienne la plus petite
-  // Si Y et distance sont identiques, trie par ID pour garantir la cohérence
   if (hitPatterns.length > 0) {
-    // Trie par Y décroissant (plus bas = plus proche du joueur), puis par distance croissante, puis par ID
+    // Prioritize closest to click center, then lowest Y
     hitPatterns.sort((a, b) => {
-      const yDiff = b.pattern.position.y - a.pattern.position.y; // Y plus bas en premier
-      if (Math.abs(yDiff) > 1) {
-        // Si la différence de Y est significative (> 1px), priorise le Y le plus bas
-        return yDiff;
-      }
-      // Si Y est similaire, priorise la distance euclidienne la plus petite
-      const distanceDiff = a.distance - b.distance;
-      if (Math.abs(distanceDiff) > 0.1) {
-        return distanceDiff;
-      }
-      // Si Y et distance sont identiques, trie par ID pour garantir la cohérence
-      // Cela garantit que le même pattern est toujours sélectionné pour un même clic
-      return a.pattern.id.localeCompare(b.pattern.id);
+      const distDiff = a.distance - b.distance;
+      if (Math.abs(distDiff) > 10) return distDiff;
+      return b.pattern.position.y - a.pattern.position.y;
     });
 
     const { pattern, distance, effectiveRadius } = hitPatterns[0];
 
-    // Calcule la qualité basée sur la distance au centre du pattern
-    // Plus le clic est proche du centre, meilleure est la qualité
-    // IMPORTANT: playerPosition est la position du CLIC, donc on n'utilise pas player.radius
-    const distanceFromCenter = Math.max(0, distance - CLICK_TOLERANCE);
-
-    // Zones de qualité basées sur le rayon effectif du pattern
-    const perfectZone = effectiveRadius * 0.3; // 30% du rayon = centre
-    const goodZone = effectiveRadius * 0.6; // 60% du rayon
-    const okZone = effectiveRadius * 0.9; // 90% du rayon
+    const distanceFromCenter = Math.max(0, distance);
+    const perfectZone = effectiveRadius * 0.4;
+    const goodZone = effectiveRadius * 0.7;
+    const okZone = effectiveRadius * 1.0 + CLICK_TOLERANCE;
 
     let quality: HitQuality;
     let points: number;
@@ -379,17 +555,11 @@ export function checkCollisions(
     } else if (distanceFromCenter <= goodZone) {
       quality = 'GOOD';
       points = Math.round(pattern.points * 1.5);
-    } else if (distanceFromCenter <= okZone) {
+    } else {
       quality = 'OK';
       points = pattern.points;
-    } else {
-      // Même si on est dans le hitRadius, si on est très loin du centre, c'est un MISS
-      // Mais on accepte quand même avec des points réduits
-      quality = 'OK';
-      points = Math.round(pattern.points * 0.7);
     }
 
-    // Applique le multiplicateur de combo
     points = Math.round(points * (1 + state.player.combo * COMBO_MULTIPLIER));
 
     return {
@@ -397,61 +567,113 @@ export function checkCollisions(
       patternId: pattern.id,
       quality,
       points,
-      patternPosition: pattern.position, // Position du pattern au moment de la collision
-      patternRadius: effectiveRadius, // Rayon effectif du pattern (avec scale)
-      patternColor: pattern.color, // Couleur du pattern pour l'animation
+      patternPosition: pattern.position,
+      patternRadius: effectiveRadius,
+      patternColor: pattern.color,
     };
   }
 
   return { collided: false };
 }
 
-// Gestion des collisions détectées
+// Gestion des collisions détectées (Apply State Changes)
 export function handleCollision(state: GameState, collisionResult: CollisionResult): GameState {
-  if (!collisionResult.collided || !collisionResult.patternId || !collisionResult.quality) {
+  if (!collisionResult.collided) {
     return state;
   }
 
   const updatedState = { ...state };
 
-  // Trouve le pattern concerné
-  const patternIndex = updatedState.patterns.findIndex((p) => p.id === collisionResult.patternId);
-  if (patternIndex === -1) return state;
-
-  // Marque le pattern comme frappé
-  updatedState.patterns[patternIndex] = {
-    ...updatedState.patterns[patternIndex],
-    wasHit: true,
-    active: false, // Désactive le pattern frappé
-  };
-
-  // Met à jour le score et les stats
-  if (collisionResult.quality !== 'MISS') {
+  // Handle PowerUp Hit
+  if (collisionResult.powerUpId && collisionResult.powerUpType) {
+    updatedState.powerUps = updatedState.powerUps.filter((p) => p.id !== collisionResult.powerUpId);
     updatedState.player.score += collisionResult.points || 0;
-    updatedState.player.combo += 1;
-    updatedState.player.highScore = Math.max(
-      updatedState.player.highScore,
-      updatedState.player.score
-    );
-    updatedState.player.totalNotes += 1;
 
-    // Met à jour les compteurs selon la qualité
-    switch (collisionResult.quality) {
-      case 'PERFECT':
-        updatedState.player.perfectHits += 1;
+    // Apply Effect
+    switch (collisionResult.powerUpType) {
+      case PowerUpType.FIREBALL:
+        // Détruit tous les patterns à l'écran et donne les points
+        const activePatterns = updatedState.patterns.filter((p) => p.active);
+        let fireballPoints = 0;
+        activePatterns.forEach((p) => {
+          fireballPoints += p.points;
+        });
+        updatedState.player.score += fireballPoints;
+        updatedState.patterns = updatedState.patterns.map((p) => ({
+          ...p,
+          active: false,
+          wasHit: true,
+        }));
         break;
-      case 'GOOD':
-        updatedState.player.goodHits += 1;
+      case PowerUpType.MAGNET:
+        updatedState.activePowerUps.magnet = true;
+        updatedState.activePowerUps.magnetEndTime = Date.now() + 5000; // 5 secondes
         break;
-      case 'OK':
-        updatedState.player.okHits += 1;
+      case PowerUpType.SLOW_MO:
+        updatedState.activePowerUps.slowMo = true;
+        updatedState.activePowerUps.slowMoEndTime = Date.now() + 8000; // 8 secondes
+        break;
+      case PowerUpType.LIFE:
+        if (state.mode === 'DEATH') {
+          updatedState.player.lives = Math.min(
+            updatedState.player.lives + 1,
+            updatedState.player.maxLives
+          );
+        } else {
+          updatedState.player.score += 1000; // Bonus points si pas en Death Mode
+        }
+        break;
+      case PowerUpType.SHIELD:
+        updatedState.activePowerUps.shield = true;
         break;
     }
-  } else {
-    // Reset combo sur un MISS
-    updatedState.player.combo = 0;
-    updatedState.player.missedPatterns++;
-    updatedState.player.totalNotes++;
+    return updatedState;
+  }
+
+  // Handle Pattern Hit
+  if (collisionResult.patternId && collisionResult.quality) {
+    const patternIndex = updatedState.patterns.findIndex((p) => p.id === collisionResult.patternId);
+    if (patternIndex === -1) return state;
+
+    updatedState.patterns[patternIndex] = {
+      ...updatedState.patterns[patternIndex],
+      wasHit: true,
+      active: false,
+    };
+
+    if (collisionResult.quality !== 'MISS') {
+      updatedState.player.score += collisionResult.points || 0;
+      updatedState.player.combo += 1;
+      updatedState.player.highScore = Math.max(
+        updatedState.player.highScore,
+        updatedState.player.score
+      );
+      updatedState.player.totalNotes += 1;
+
+      switch (collisionResult.quality) {
+        case 'PERFECT':
+          updatedState.player.perfectHits += 1;
+          break;
+        case 'GOOD':
+          updatedState.player.goodHits += 1;
+          break;
+        case 'OK':
+          updatedState.player.okHits += 1;
+          break;
+      }
+    } else {
+      updatedState.player.combo = 0;
+      updatedState.player.missedPatterns++;
+      updatedState.player.totalNotes++;
+
+      if (state.mode === 'DEATH') {
+        updatedState.player.lives--;
+        if (updatedState.player.lives <= 0) {
+          updatedState.isGameOver = true;
+          updatedState.isActive = false;
+        }
+      }
+    }
   }
 
   return updatedState;
@@ -459,32 +681,10 @@ export function handleCollision(state: GameState, collisionResult: CollisionResu
 
 // Fonctions utilitaires
 function getRandomColor(): string {
-  const colors = [
-    '#ff3e6b', // Rose
-    '#4287f5', // Bleu
-    '#42f5e3', // Turquoise
-    '#f542f2', // Magenta
-    '#f5d742', // Jaune
-    '#42f54e', // Vert
-  ];
+  const colors = ['#ff3e6b', '#4287f5', '#42f5e3', '#f542f2', '#f5d742', '#42f54e'];
   return colors[Math.floor(Math.random() * colors.length)];
 }
 
-function findDominantFrequency(frequencyData: Uint8Array): number {
-  let maxValue = 0;
-  let maxIndex = 0;
-
-  for (let i = 0; i < frequencyData.length; i++) {
-    if (frequencyData[i] > maxValue) {
-      maxValue = frequencyData[i];
-      maxIndex = i;
-    }
-  }
-
-  return maxIndex;
-}
-
-// Trouve les N fréquences les plus intenses pour une meilleure distribution
 function findTopFrequencies(
   frequencyData: Uint8Array,
   count: number
@@ -493,40 +693,22 @@ function findTopFrequencies(
 
   for (let i = 0; i < frequencyData.length; i++) {
     if (frequencyData[i] > 10) {
-      // Ignore les valeurs trop faibles
       frequencies.push({ index: i, value: frequencyData[i] });
     }
   }
 
-  // Trie par valeur décroissante et prend les N premières
   frequencies.sort((a, b) => b.value - a.value);
   return frequencies.slice(0, count);
 }
 
-// Détecte le BPM à partir des données audio
 export function detectBPM(audioData?: Float32Array): number {
-  if (!audioData || audioData.length < 1024) {
-    return DEFAULT_BPM;
-  }
+  if (!audioData || audioData.length < 1024) return DEFAULT_BPM;
 
-  // Méthode simplifiée de détection de BPM
-  // Dans une vraie implémentation, on utiliserait un algorithme plus sophistiqué
-
-  // Compte les pics dans les données audio
   let peaks = 0;
-  let lastValue = 0;
-
   for (let i = 1; i < audioData.length; i++) {
-    if (audioData[i] > 0.1 && audioData[i - 1] <= 0.1) {
-      peaks++;
-    }
-    lastValue = audioData[i];
+    if (audioData[i] > 0.1 && audioData[i - 1] <= 0.1) peaks++;
   }
 
-  // Estime le BPM basé sur le nombre de pics
-  // Supposons que l'échantillon audio représente environ 1 seconde
   const estimatedBPM = (peaks * 60) / (audioData.length / 44100);
-
-  // Limite le BPM à une plage raisonnable
   return Math.min(Math.max(estimatedBPM, 60), 180) || DEFAULT_BPM;
 }
