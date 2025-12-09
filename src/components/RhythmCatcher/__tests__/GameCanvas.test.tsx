@@ -7,7 +7,13 @@ jest.mock('../gameEngine', () => ({
   initializeGame: jest.fn(() => ({
     isActive: false,
     patterns: [],
+    powerUps: [],
     player: { score: 0, combo: 0, radius: 10, position: { x: 100, y: 100 } },
+    activePowerUps: {
+      magnet: false,
+      slowMo: false,
+      shield: false,
+    },
   })),
   updateGame: jest.fn(),
   handleCollision: jest.fn(),

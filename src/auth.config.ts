@@ -223,9 +223,8 @@ export const authConfig = {
           email: session.user.email,
           createdAt: userWithExtras.createdAt || token.createdAt,
           isVip: userWithExtras.isVip !== undefined ? userWithExtras.isVip : token.isVip,
-          gameHighScore: (session.user as any).gameHighScore ?? token.gameHighScore,
-          hasDiscoveredCasino:
-            (session.user as any).hasDiscoveredCasino ?? token.hasDiscoveredCasino,
+          gameHighScore: session.user.gameHighScore ?? token.gameHighScore,
+          hasDiscoveredCasino: session.user.hasDiscoveredCasino ?? token.hasDiscoveredCasino,
         };
       }
 
