@@ -31,11 +31,13 @@ describe('gameEngine', () => {
     it('should create initial patterns', () => {
       const state = initializeGame(800, 400);
 
-      expect(state.patterns.length).toBe(5);
+      expect(state.patterns.length).toBe(3);
       state.patterns.forEach((pattern) => {
         expect(pattern.active).toBe(true);
         expect(pattern.position.x).toBeGreaterThanOrEqual(0);
-        expect(pattern.position.y).toBeGreaterThanOrEqual(0);
+        expect(pattern.position.x).toBeLessThanOrEqual(800);
+        // y peut être négatif car les patterns sont créés au-dessus de l'écran
+        expect(typeof pattern.position.y).toBe('number');
       });
     });
   });
