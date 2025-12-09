@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, HelpCircle, Coins, RefreshCw, Volume2, VolumeX } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import ReactDOM from 'react-dom';
 import { SlotMachineSelectionDialog } from './SlotMachineSelectionDialog';
 import { SlotMachine } from './SlotMachine';
@@ -22,6 +23,7 @@ interface EasterEggMapDialogProps {
 }
 
 export function EasterEggMapDialog({ isOpen, onClose }: EasterEggMapDialogProps) {
+  const { data: session } = useSession();
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
   const [showRules, setShowRules] = useState(false);
 
@@ -111,14 +113,16 @@ export function EasterEggMapDialog({ isOpen, onClose }: EasterEggMapDialogProps)
             </div>
 
             {/* Reset Tokens Button (Admin/Test) */}
-            <button
-              onClick={resetTokens}
-              disabled={isResetting}
-              className="p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors disabled:opacity-50"
-              title="Réinitialiser les jetons (Admin)"
-            >
-              <RefreshCw size={24} className={isResetting ? 'animate-spin' : ''} />
-            </button>
+            {session?.user?.role === 'ADMIN' && (
+              <button
+                onClick={resetTokens}
+                disabled={isResetting}
+                className="p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors disabled:opacity-50"
+                title="Réinitialiser les jetons (Admin)"
+              >
+                <RefreshCw size={24} className={isResetting ? 'animate-spin' : ''} />
+              </button>
+            )}
 
             {/* Music Volume Control */}
             <div className="relative">

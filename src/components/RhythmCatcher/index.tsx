@@ -15,12 +15,14 @@ import {
   checkCollisions,
   Point,
   GameState,
-  CollisionResult,
   HitQuality,
   detectBPM,
+  GameMode,
+  PowerUpType,
 } from './gameEngine';
 import ScorePanel from './ScorePanel';
 import styles from './styles.module.css';
+import { Play, Pause, RefreshCw, Menu, Heart } from 'lucide-react';
 
 interface RhythmCatcherProps {
   audioSrc?: string;
@@ -29,10 +31,11 @@ interface RhythmCatcherProps {
 
 const RhythmCatcher: React.FC<RhythmCatcherProps> = ({ audioSrc, onClose }) => {
   // Hook pour sauvegarder le highscore
-  const { saveHighScore, isAuthenticated } = useGameStats();
+  const { saveHighScore } = useGameStats();
 
   // Détecter si on est sur mobile
   const [isMobile, setIsMobile] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -118,10 +121,12 @@ const RhythmCatcher: React.FC<RhythmCatcherProps> = ({ audioSrc, onClose }) => {
   const animationFrameRef = useRef<number | null>(null);
   const lastUpdateTimeRef = useRef<number>(Date.now());
 
+  // Track cursor position efficiently
+  const cursorPositionRef = useRef<Point | null>(null);
+
   // Désactive le CustomCursor global quand le jeu est actif
   useEffect(() => {
     if (gameState.isActive) {
-      // Masque le CustomCursor en ajoutant une classe qui le cache
       document.documentElement.classList.add('rhythm-catcher-active');
     } else {
       document.documentElement.classList.remove('rhythm-catcher-active');
@@ -136,21 +141,17 @@ const RhythmCatcher: React.FC<RhythmCatcherProps> = ({ audioSrc, onClose }) => {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // Utiliser l'audio existant s'il est fourni en prop, sinon en créer un nouveau
     let audio: HTMLAudioElement;
     if (audioSrc) {
-      // Utilise l'audio existant
       if (audioRef.current) {
         audio = audioRef.current;
       } else {
-        // Crée un nouvel élément audio avec la source fournie
         audio = new Audio(audioSrc);
         audio.crossOrigin = 'anonymous';
         audio.preload = 'auto';
         audio.load();
       }
     } else {
-      // Crée un nouvel élément audio avec le fichier Easter egg par défaut
       audio = new Audio('/audio/easter-egg.mp3');
       audio.crossOrigin = 'anonymous';
       audio.preload = 'auto';
@@ -158,8 +159,16 @@ const RhythmCatcher: React.FC<RhythmCatcherProps> = ({ audioSrc, onClose }) => {
     }
 
     audioRef.current = audio;
+    audio.loop = true; // Loop audio
 
-    // Charge l'audio et configure l'analyseur
+    // Safety fallback for looping
+    audio.onended = () => {
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play().catch(console.error);
+      }
+    };
+
     const setupAudio = () => {
       setIsAudioLoaded(true);
 
@@ -170,346 +179,178 @@ const RhythmCatcher: React.FC<RhythmCatcherProps> = ({ audioSrc, onClose }) => {
         if (!AudioContextClass) {
           throw new Error('AudioContext not supported');
         }
-        const audioContext = new AudioContextClass();
-        const analyser = audioContext.createAnalyser();
 
-        analyser.fftSize = 2048;
-        analyser.smoothingTimeConstant = 0.8;
+        if (!audioContextRef.current) {
+          const audioContext = new AudioContextClass();
+          const analyser = audioContext.createAnalyser();
 
-        const source = audioContext.createMediaElementSource(audio);
-        source.connect(analyser);
-        analyser.connect(audioContext.destination);
+          analyser.fftSize = 2048;
+          analyser.smoothingTimeConstant = 0.8;
 
-        audioContextRef.current = audioContext;
-        analyserRef.current = analyser;
-        audioSourceRef.current = source;
+          // Check if source already exists to avoid errors
+          if (!audioSourceRef.current) {
+            const source = audioContext.createMediaElementSource(audio);
+            source.connect(analyser);
+            analyser.connect(audioContext.destination);
+            audioSourceRef.current = source;
+          }
 
-        // Configure la taille des données de fréquence
-        const frequencyData = new Uint8Array(analyser.frequencyBinCount);
+          audioContextRef.current = audioContext;
+          analyserRef.current = analyser;
 
-        // Mise à jour de l'état du jeu avec les données audio
-        setGameState((prev) => ({
-          ...prev,
-          audioContext,
-          analyser,
-          frequencyData,
-        }));
+          const frequencyData = new Uint8Array(analyser.frequencyBinCount);
+
+          setGameState((prev) => ({
+            ...prev,
+            audioContext,
+            analyser,
+            frequencyData,
+          }));
+        }
       } catch (error) {
         logger.error("Erreur lors de l'initialisation de l'audio:", error);
       }
     };
 
     if (audio.readyState >= 2) {
-      // L'audio est déjà chargé et prêt
       setupAudio();
     } else {
-      // Attendre le chargement de l'audio
       audio.addEventListener('canplaythrough', setupAudio, { once: true });
     }
 
-    // Nettoyage
     return () => {
-      if (audioContextRef.current) {
-        audioContextRef.current
-          .close()
-          .catch((err) => logger.error('Erreur lors de la fermeture de AudioContext', err));
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.suspend();
       }
-
-      if (audioRef.current) {
-        audioRef.current.pause();
-        // Ne pas réinitialiser la source si l'audio est géré par le parent
-        if (!audioSrc) {
-          audioRef.current.src = '';
-        }
-      }
-
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
+      }
+      if (audioRef.current) {
+        audioRef.current.pause();
       }
     };
   }, [audioSrc]);
 
-  // Fonction pour contrôler seulement le volume (mute/unmute) - ne change pas l'état du jeu
   const toggleMute = useCallback(() => {
     const audio = audioRef.current;
-    if (!audio) {
-      logger.error('toggleMute: audio is null');
-      return;
-    }
-
-    // Inverse l'état mute sans changer l'état de pause/play
-    // Ne touche PAS à isAudioActive ni à gameState.isActive
-    logger.debug('toggleMute:', { wasMuted: audio.muted, isActive: gameState.isActive });
+    if (!audio) return;
     audio.muted = !audio.muted;
     setIsMuted(audio.muted);
-    // isAudioActive reste inchangé - il reflète si l'audio est en lecture, pas s'il est muet
-  }, [gameState.isActive]);
+  }, []);
 
-  // Fonction d'activation/désactivation de l'audio et du jeu (pause/play)
-  const togglePause = useCallback(() => {
-    const audio = audioRef.current;
-    if (!audio) {
-      logger.error('togglePause: audio is null');
-      return;
-    }
+  const startGameWithMode = (mode: GameMode) => {
+    const canvas = document.querySelector('canvas');
+    setGameState(initializeGame(canvas?.width || 800, canvas?.height || 600, mode));
+    setHasStarted(true);
+    togglePause(true); // Force play
+  };
 
-    // Vérifier que l'audio est chargé avant de démarrer
-    if (!isAudioLoaded) {
-      logger.debug('togglePause: audio not loaded yet');
-      return;
-    }
+  const resetGame = () => {
+    // Keep high score
+    const oldHighScore = gameState.player.highScore;
+    const mode = gameState.mode;
+    const canvas = document.querySelector('canvas');
+    const newState = initializeGame(canvas?.width || 800, canvas?.height || 600, mode);
+    newState.player.highScore = oldHighScore;
 
-    // Utilise l'état React pour déterminer si on doit play ou pause
-    // Plus fiable que audio.paused qui peut être désynchronisé
-    setGameState((prev) => {
-      const shouldPlay = !prev.isActive;
+    setGameState(newState);
+    setHasStarted(true);
+    togglePause(true);
+  };
 
-      if (shouldPlay) {
-        // Activation de l'audio et du jeu
-        logger.debug('togglePause: playing audio');
-        audioContextRef.current
-          ?.resume()
-          .catch((err) => logger.error('Erreur lors de la reprise de AudioContext', err));
-        audio.muted = false; // S'assurer que l'audio n'est pas muet quand on reprend
-        setIsMuted(false);
-        audio.play().catch((err) => logger.error('Erreur lors de la lecture audio', err));
-        setIsAudioActive(true);
+  const returnToMenu = () => {
+    setHasStarted(false);
+    togglePause(false); // Force pause
+  };
 
-        // Attendre un court instant pour que l'audio commence avant d'activer le jeu
-        setTimeout(() => {
-          setGameState((prevState) => ({
-            ...prevState,
-            isActive: true,
-            startTime: Date.now(),
-          }));
-        }, 200);
+  const togglePause = useCallback(
+    (forceState?: boolean) => {
+      const audio = audioRef.current;
+      if (!audio || !isAudioLoaded) return;
 
-        return prev; // Retourne l'état actuel, sera mis à jour par le setTimeout
-      } else {
-        // Désactivation de l'audio et pause du jeu
-        logger.debug('togglePause: pausing audio');
-        audio.pause();
-        setIsAudioActive(false);
-        return {
-          ...prev,
-          isActive: false,
-        };
-      }
-    });
-  }, [isAudioLoaded]);
+      setGameState((prev) => {
+        const shouldPlay = forceState !== undefined ? forceState : !prev.isActive;
 
-  // Ref pour éviter les appels dupliqués
-  const lastCollisionTimeRef = useRef<number>(0);
-  const lastCollisionPositionRef = useRef<Point | null>(null);
+        if (shouldPlay) {
+          audioContextRef.current?.resume();
+          audio.play().catch(console.error);
+          setIsAudioActive(true);
+          setTimeout(() => {
+            setGameState((p) => ({ ...p, isActive: true }));
+          }, 100);
+          return prev;
+        } else {
+          audio.pause();
+          setIsAudioActive(false);
+          return { ...prev, isActive: false };
+        }
+      });
+    },
+    [isAudioLoaded]
+  );
+
+  // Refs for collision handling
   const processingRef = useRef(false);
-  const lastPatternIdRef = useRef<string | null>(null);
-  const processingPatternsRef = useRef<Set<string>>(new Set()); // Patterns en cours de traitement
-  const currentClickPatternIdRef = useRef<string | null>(null); // Pattern traité dans l'appel actuel
   const pendingHitEffectRef = useRef<{
     position: Point;
     quality: HitQuality;
     radius: number;
     color: string;
+    type?: PowerUpType;
   } | null>(null);
 
-  // Gestion des collisions - utilise une fonction ref pour éviter les blocages
-  const handleCollision = useCallback(
-    (position: Point, time: number, actualPosition?: Point) => {
-      // Évite les appels dupliqués (même position et temps très proche)
-      const timeDiff = time - lastCollisionTimeRef.current;
-      const positionDiff = lastCollisionPositionRef.current
-        ? Math.sqrt(
-            Math.pow(lastCollisionPositionRef.current.x - position.x, 2) +
-              Math.pow(lastCollisionPositionRef.current.y - position.y, 2)
-          )
-        : Infinity;
+  const handleCollision = useCallback((position: Point, time: number, actualPosition?: Point) => {
+    if (processingRef.current) return;
+    processingRef.current = true; // Simple debounce per frame/call
 
-      // Ignore les appels dupliqués (même clic déclenché plusieurs fois)
-      if (
-        timeDiff < 50 && // Moins de 50ms d'écart (très strict pour éviter les doubles clics)
-        positionDiff < 10 // Moins de 10px de différence (même position)
-      ) {
-        return; // Ignore les appels dupliqués du même clic
+    setGameState((prev) => {
+      if (!prev.isActive || prev.isGameOver) {
+        processingRef.current = false;
+        return prev;
       }
 
-      // Évite les appels simultanés - UN SEUL pattern par appel à handleCollision
-      if (processingRef.current) {
-        return;
-      }
+      const result = checkCollisions(prev, position, time);
+      const newState = processCollision(prev, result);
 
-      processingRef.current = true;
-      lastCollisionTimeRef.current = time;
-      lastCollisionPositionRef.current = position;
-      currentClickPatternIdRef.current = null; // Réinitialise pour ce clic
-
-      // Réinitialise les données d'animation en attente
-      pendingHitEffectRef.current = null;
-
-      // Vérifie les collisions dans setGameState pour avoir l'état le plus récent
-      setGameState((prev) => {
-        // IMPORTANT: Si un pattern a déjà été traité dans cet appel, ne pas en traiter un autre
-        // Cela garantit qu'un seul pattern est traité par appel à handleCollision
-        if (currentClickPatternIdRef.current) {
-          return prev;
-        }
-
-        const result = checkCollisions(prev, position, time, processingPatternsRef.current);
-
-        // Si aucun pattern n'est détecté, c'est un miss (clic à côté)
-        if (!result.collided || !result.quality || !result.patternId) {
-          // IMPORTANT: Vérifie si un miss a déjà été compté dans cet appel pour éviter les doubles comptages
-          if (currentClickPatternIdRef.current === 'MISS') {
-            setTimeout(() => {
-              processingRef.current = false;
-              currentClickPatternIdRef.current = null;
-            }, 0);
-            return prev;
-          }
-
-          // Compte comme un miss si le jeu est actif
-          if (prev.isActive) {
-            // Marque qu'un miss a été traité dans cet appel
-            currentClickPatternIdRef.current = 'MISS';
-
-            const newState = { ...prev };
-            newState.player.missHits++;
-            newState.player.combo = 0; // Reset combo sur un miss
-            setTimeout(() => {
-              processingRef.current = false;
-              currentClickPatternIdRef.current = null;
-            }, 0);
-            return newState;
-          }
-          setTimeout(() => {
-            processingRef.current = false;
-            currentClickPatternIdRef.current = null;
-          }, 0);
-          return prev;
-        }
-
-        // IMPORTANT: Vérifie si ce pattern est déjà en cours de traitement
-        // Cela empêche les appels multiples de setGameState de traiter le même pattern
-        if (processingPatternsRef.current.has(result.patternId)) {
-          return prev;
-        }
-
-        // Vérifie que le pattern n'a pas déjà été frappé dans l'état actuel
-        const patternAlreadyHit = prev.patterns.find(
-          (p) => p.id === result.patternId && (p.wasHit || !p.active)
-        );
-        if (patternAlreadyHit) {
-          return prev;
-        }
-
-        // IMPORTANT: Marque le pattern comme traité dans cet appel
-        currentClickPatternIdRef.current = result.patternId;
-        processingPatternsRef.current.add(result.patternId);
-        lastPatternIdRef.current = result.patternId;
-
-        // Trouve le pattern frappé pour obtenir sa position et sa taille réelles
-        const hitPattern = prev.patterns.find((p) => p.id === result.patternId);
-
-        // Stocke les données pour l'effet visuel
+      // Visual effects setup
+      if (result.collided && (result.patternPosition || result.powerUpType)) {
         pendingHitEffectRef.current = {
-          position:
-            result.patternPosition ||
-            (hitPattern ? hitPattern.position : actualPosition || position),
-          quality: result.quality,
-          radius:
-            result.patternRadius ||
-            (hitPattern ? hitPattern.radius * hitPattern.scale : prev.player.radius),
-          color: result.patternColor || (hitPattern ? hitPattern.color : '#ffffff'),
+          position: result.patternPosition || position,
+          quality: result.quality || 'OK',
+          radius: result.patternRadius || 30,
+          color: result.patternColor || '#fff',
+          type: result.powerUpType, // Store type specifically
         };
+      }
 
-        // Traite la collision
-        const newState = processCollision(prev, result);
-
-        // Retire le pattern du Set après traitement (dans un setTimeout pour éviter les appels multiples)
-        setTimeout(() => {
-          if (result.patternId) {
-            processingPatternsRef.current.delete(result.patternId);
-            if (lastPatternIdRef.current === result.patternId) {
-              lastPatternIdRef.current = null;
-            }
-          }
-          // Réinitialise processingRef seulement si aucun pattern n'est en cours de traitement
-          if (processingPatternsRef.current.size === 0) {
-            processingRef.current = false;
-            currentClickPatternIdRef.current = null;
-          }
-        }, 100);
-
-        return newState;
-      });
-
-      // Déclenche l'effet visuel APRÈS le setState pour éviter l'erreur React
-      // Utilise le ref pour récupérer les données d'animation (persistantes même si setGameState est appelé plusieurs fois)
-      // Utilise setTimeout pour s'assurer que le ref est bien mis à jour après setGameState
       setTimeout(() => {
-        const hitEffectData = pendingHitEffectRef.current;
-
-        logger.debug('[ANIMATION] Vérification après setGameState (avec setTimeout)', {
-          hasHitEffectData: !!hitEffectData,
-          hasRef: !!hitEffectRef.current,
-          hitEffectData: hitEffectData
-            ? { position: hitEffectData.position, quality: hitEffectData.quality }
-            : null,
-        });
-
-        if (hitEffectData) {
-          logger.debug("[ANIMATION] Déclenchement de l'animation", {
-            position: hitEffectData.position,
-            quality: hitEffectData.quality,
-            hasRef: !!hitEffectRef.current,
-          });
-
-          // Utilise double requestAnimationFrame pour s'assurer que c'est après le rendu
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-              if (hitEffectRef.current && hitEffectData) {
-                hitEffectRef.current(
-                  hitEffectData.position,
-                  hitEffectData.quality,
-                  hitEffectData.radius,
-                  hitEffectData.color
-                );
-                logger.debug('[ANIMATION] Effet visuel appliqué sur le canvas', {
-                  position: hitEffectData.position,
-                  quality: hitEffectData.quality,
-                  radius: hitEffectData.radius,
-                });
-                // Nettoie le ref après utilisation
-                pendingHitEffectRef.current = null;
-              } else {
-                logger.debug('[ANIMATION] ÉCHEC: hitEffectRef.current est null', {
-                  hasRef: !!hitEffectRef.current,
-                  hasData: !!hitEffectData,
-                });
-              }
-            });
-          });
-        } else {
-          logger.debug("[ANIMATION] ÉCHEC: Aucune donnée d'animation disponible", {
-            hasHitEffectData: !!hitEffectData,
-          });
-        }
-
-        // Réinitialise le flag de traitement APRÈS que setGameState ait terminé
-        // Utilise setTimeout pour s'assurer que le setState est complètement terminé
-        // avant de permettre le prochain traitement
-        // IMPORTANT: Ne réinitialise PAS processingRef ici, il sera réinitialisé après le traitement complet
+        processingRef.current = false;
       }, 0);
+      return newState;
+    });
 
-      // IMPORTANT: Ne réinitialise PAS processingRef ici
-      // Il sera réinitialisé dans le setTimeout du traitement de collision
-      // pour s'assurer qu'un seul pattern est traité par clic
-    },
-    [] // Pas de dépendances pour éviter les re-créations
-  );
+    // Trigger visual effect ref
+    setTimeout(() => {
+      if (pendingHitEffectRef.current && hitEffectRef.current) {
+        const typeToPass = pendingHitEffectRef.current.type;
+        // If type is not defined in collision result (e.g regular hit), it remains undefined, which is fine.
+        // But for FIREBALL explicit check we want passing.
 
-  // Boucle principale du jeu
+        hitEffectRef.current(
+          pendingHitEffectRef.current.position,
+          pendingHitEffectRef.current.quality,
+          pendingHitEffectRef.current.radius,
+          pendingHitEffectRef.current.color,
+          typeToPass
+        );
+        pendingHitEffectRef.current = null;
+      }
+    }, 0);
+  }, []);
+
+  // Main Loop
   useEffect(() => {
-    if (!isAudioLoaded) return;
+    // if (!isAudioLoaded) return; // Allow running without audio loaded for debugging? No better wait.
 
     const update = () => {
       const now = Date.now();
@@ -518,413 +359,214 @@ const RhythmCatcher: React.FC<RhythmCatcherProps> = ({ audioSrc, onClose }) => {
       const canvasWidth = canvas?.width || 800;
       const canvasHeight = canvas?.height || 600;
 
-      // Mise à jour des données audio
       let audioData: Float32Array | undefined;
       let frequencyData: Uint8Array | undefined;
 
       if (analyserRef.current) {
         const bufferLength = analyserRef.current.frequencyBinCount;
-
-        // Obtient les données de fréquence
-        if (!frequencyData) {
-          frequencyData = new Uint8Array(bufferLength);
-        }
+        if (!frequencyData) frequencyData = new Uint8Array(bufferLength);
         analyserRef.current.getByteFrequencyData(frequencyData as Uint8Array<ArrayBuffer>);
-
-        // Obtient les données temporelles pour les calculs d'énergie
         audioData = new Float32Array(bufferLength);
         analyserRef.current.getFloatTimeDomainData(audioData as Float32Array<ArrayBuffer>);
 
-        // Tente de détecter le BPM
         const detectedBPM = detectBPM(audioData);
         if (detectedBPM !== gameState.bpm) {
           setGameState((prev) => ({ ...prev, bpm: detectedBPM }));
         }
       }
 
-      // Mise à jour de l'état du jeu
       setGameState((prev) =>
-        updateGame(prev, deltaTime, canvasWidth, canvasHeight, audioData, frequencyData)
+        updateGame(
+          prev,
+          deltaTime,
+          canvasWidth,
+          canvasHeight,
+          cursorPositionRef.current,
+          audioData,
+          frequencyData
+        )
       );
 
       lastUpdateTimeRef.current = now;
       animationFrameRef.current = requestAnimationFrame(update);
     };
 
-    // Démarre la boucle d'animation
     animationFrameRef.current = requestAnimationFrame(update);
-
-    // Nettoyage
     return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
+      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
     };
-  }, [gameState.bpm, isAudioLoaded]);
+  }, [gameState.bpm, isAudioLoaded]); // Depend primarily on ref updates, react state updates inside loop
 
-  // Le jeu démarre en pause pour afficher les règles
-  // L'utilisateur doit cliquer sur l'écran pour démarrer
-
-  // Ref pour déclencher l'effet visuel dans GameCanvas
   const hitEffectRef = useRef<
-    ((position: Point, quality: HitQuality, radius?: number, color?: string) => void) | null
+    | ((
+        position: Point,
+        quality: HitQuality,
+        radius?: number,
+        color?: string,
+        type?: PowerUpType
+      ) => void)
+    | null
   >(null);
 
-  // Fonction pour fermer le jeu en sauvegardant le score
   const handleClose = useCallback(() => {
-    // Sauvegarder le highscore avant de fermer
     const currentScore = gameState.player.score;
     if (currentScore > 0) {
-      // Sauvegarde en localStorage (fallback)
       if (typeof window !== 'undefined') {
-        const savedHighScore = parseInt(localStorage.getItem('highScore') || '0', 10);
-        if (currentScore > savedHighScore) {
-          localStorage.setItem('highScore', currentScore.toString());
-        }
+        const saved = parseInt(localStorage.getItem('highScore') || '0', 10);
+        if (currentScore > saved) localStorage.setItem('highScore', currentScore.toString());
       }
-      // Sauvegarde via API si authentifié
       saveHighScore(currentScore);
     }
-
-    // Appeler la fonction de fermeture originale
-    if (onClose) {
-      onClose();
-    }
+    if (onClose) onClose();
   }, [gameState.player.score, saveHighScore, onClose]);
 
-  // Contenu du jeu (réutilisable pour mobile)
-  const gameContent = (
-    <div className={styles.canvasWrapper}>
+  // ---- SCREENS ----
+
+  const renderMenu = () => (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm text-white p-8 rounded-lg"
+    >
+      <h2 className="text-4xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
+        Rhythm Catcher
+      </h2>
+      <p className="mb-8 text-gray-300">Attrapez le rythme, évitez les fausses notes !</p>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-lg">
+        <button
+          onClick={() => startGameWithMode('FREE')}
+          className="p-6 bg-blue-900/50 hover:bg-blue-800/80 border border-blue-500/50 rounded-xl transition-all hover:scale-105 flex flex-col items-center gap-2 group"
+        >
+          <span className="text-2xl group-hover:animate-bounce">🎵</span>
+          <span className="text-xl font-bold text-blue-300">Free Mode</span>
+          <span className="text-xs text-gray-400">Détente, score infini.</span>
+        </button>
+
+        <button
+          onClick={() => startGameWithMode('DEATH')}
+          className="p-6 bg-red-900/50 hover:bg-red-800/80 border border-red-500/50 rounded-xl transition-all hover:scale-105 flex flex-col items-center gap-2 group"
+        >
+          <div className="relative">
+            <span className="text-2xl group-hover:animate-pulse">💀</span>
+          </div>
+          <span className="text-xl font-bold text-red-300">Death Mode</span>
+          <span className="text-xs text-gray-400">10 Vies. Survie ultime.</span>
+        </button>
+      </div>
+
+      <div className="mt-8 text-sm text-gray-500">
+        <p>Astuce: Attrapez les PowerUps (🔥 🧲 ⏰) pour vous aider !</p>
+      </div>
+    </motion.div>
+  );
+
+  const renderGameOver = () => (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/90 text-white p-8"
+    >
+      <h2 className="text-5xl font-bold mb-4 text-red-500">GAME OVER</h2>
+      <div className="bg-gray-800/50 p-6 rounded-xl border border-gray-700 mb-8 min-w-[300px]">
+        <div className="flex justify-between mb-2">
+          <span className="text-gray-400">Score</span>
+          <span className="text-2xl font-bold text-yellow-400">{gameState.player.score}</span>
+        </div>
+        <div className="flex justify-between mb-2">
+          <span className="text-gray-400">Max Combo</span>
+          <span className="text-xl text-blue-400 max-w-[50px]">{gameState.player.combo}</span>
+        </div>
+        <div className="flex justify-between border-t border-gray-700 pt-2 mt-2">
+          <span className="text-gray-400">Précision</span>
+          <span className="text-purple-400">
+            {Math.round(
+              ((gameState.player.perfectHits +
+                gameState.player.goodHits +
+                gameState.player.okHits) /
+                Math.max(1, gameState.player.totalNotes)) *
+                100
+            )}
+            %
+          </span>
+        </div>
+      </div>
+
+      <div className="flex gap-4">
+        <button
+          onClick={resetGame}
+          className="flex items-center gap-2 px-6 py-3 bg-white text-black font-bold rounded-full hover:bg-gray-200 transition-colors"
+        >
+          <RefreshCw size={20} /> Rejouer
+        </button>
+        <button
+          onClick={returnToMenu}
+          className="flex items-center gap-2 px-6 py-3 bg-gray-800 text-white font-bold rounded-full hover:bg-gray-700 transition-colors"
+        >
+          <Menu size={20} /> Menu
+        </button>
+      </div>
+    </motion.div>
+  );
+
+  const renderPauseOverlay = () => (
+    <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-[2px]">
+      <button
+        onClick={() => togglePause(true)}
+        className="bg-white/10 hover:bg-white/20 p-6 rounded-full backdrop-blur-md transition-all hover:scale-110"
+      >
+        <Play size={48} fill="white" className="ml-2" />
+      </button>
+    </div>
+  );
+
+  return (
+    <div className={styles.canvasWrapper + ' relative h-full w-full bg-black overflow-hidden'}>
+      <ScorePanel
+        player={gameState.player}
+        isActive={gameState.isActive}
+        mode={gameState.mode}
+        activePowerUps={gameState.activePowerUps}
+      />
+
       <GameCanvas
         gameState={gameState}
         onCollision={handleCollision}
         onHitRef={hitEffectRef}
         isAudioActive={isAudioActive}
-        onStart={togglePause}
+        onStart={!hasStarted ? undefined : () => togglePause(!gameState.isActive)} // Only toggle pause on click if game started
+        onCursorMove={(pos) => {
+          cursorPositionRef.current = pos;
+        }}
       />
-    </div>
-  );
 
-  // Contenu desktop avec overlays
-  const desktopContent = (
-    <>
-      <div className={styles.canvasWrapper}>
-        <GameCanvas
-          gameState={gameState}
-          onCollision={handleCollision}
-          onHitRef={hitEffectRef}
-          isAudioActive={isAudioActive}
-          onStart={togglePause}
-        />
+      {/* Overlays */}
+      {!hasStarted && renderMenu()}
+      {hasStarted && gameState.isGameOver && renderGameOver()}
+      {hasStarted && !gameState.isActive && !gameState.isGameOver && renderPauseOverlay()}
 
-        {/* Éléments overlay pour desktop uniquement */}
-        <div className={styles.desktopOverlay}>
-          <ScorePanel player={gameState.player} isActive={gameState.isActive} />
-
-          {/* Boutons de contrôle - Desktop uniquement */}
-          <div className={styles.controls}>
-            {/* Bouton audio/volume */}
-            <button
-              className={styles.controlButton}
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                toggleMute();
-              }}
-              aria-label={!isMuted ? 'Couper le son' : 'Activer le son'}
-            >
-              {!isMuted ? (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="w-5 h-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
-                  />
-                </svg>
-              ) : (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="w-5 h-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"
-                  />
-                </svg>
-              )}
-            </button>
-
-            {/* Bouton de fermeture/retour */}
-            {onClose && (
-              <button
-                className={styles.controlButton}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  handleClose();
-                }}
-                aria-label="Fermer le jeu"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="w-5 h-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            )}
-
-            {/* Bouton de démarrage/pause du jeu */}
-            <button
-              className={styles.controlButton}
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                togglePause();
-              }}
-              aria-label={gameState.isActive ? 'Pause' : 'Démarrer'}
-            >
-              {gameState.isActive ? (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="w-5 h-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              ) : (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="w-5 h-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-
-  // Contenu des contrôles mobiles
-  const mobileControlsContent = (
-    <>
-      <ScorePanel player={gameState.player} isActive={gameState.isActive} />
-
-      {/* Boutons de contrôle - Mobile uniquement */}
+      {/* Floating Controls (Top Right or Bottom Right) */}
       <div className={styles.controls}>
-        {/* Bouton audio */}
-        <button
-          className={`${styles.volumeButton} ${styles.mobileAudioButton}`}
-          onClick={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            toggleMute();
-          }}
-          onTouchEnd={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            toggleMute();
-          }}
-          aria-label={!isMuted ? 'Couper le son' : 'Activer le son'}
-        >
-          {!isMuted ? (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="w-5 h-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
-              />
-            </svg>
-          ) : (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="w-5 h-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"
-              />
-            </svg>
-          )}
+        <button className={styles.controlButton} onClick={toggleMute}>
+          {isMuted ? '🔇' : '🔊'}
         </button>
-
-        {/* Bouton de fermeture/retour */}
-        {onClose && (
-          <button
-            className={styles.controlButton}
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              handleClose();
-            }}
-            onTouchEnd={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              handleClose();
-            }}
-            aria-label="Fermer le jeu"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="w-5 h-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        )}
-
-        {/* Bouton de démarrage/pause du jeu */}
         <button
           className={styles.controlButton}
           onClick={(e) => {
             e.stopPropagation();
-            e.preventDefault();
             togglePause();
           }}
-          onTouchEnd={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            togglePause();
-          }}
-          aria-label={gameState.isActive ? 'Pause' : 'Démarrer'}
         >
-          {gameState.isActive ? (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="w-5 h-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          ) : (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="w-5 h-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          )}
+          {gameState.isActive ? <Pause size={20} /> : <Play size={20} />}
         </button>
+        {onClose && (
+          <button className={styles.controlButton} onClick={handleClose}>
+            <Menu size={20} />
+          </button>
+        )}
       </div>
-    </>
+    </div>
   );
-
-  // Sur mobile, afficher dans une modale plein écran
-  if (isMobile && typeof window !== 'undefined') {
-    const modalContent = (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className={styles.mobileModal}
-        onClick={(e) => {
-          // Ne pas fermer si on clique sur le contenu
-          if (e.target === e.currentTarget && onClose) {
-            handleClose();
-          }
-        }}
-      >
-        <div className={styles.mobileModalContent}>
-          {/* Zone du jeu - 2/3 de la hauteur */}
-          <div className={styles.mobileGameArea}>
-            <div className={styles.gameContainer}>{gameContent}</div>
-          </div>
-
-          {/* Zone des contrôles et stats - 1/3 de la hauteur */}
-          <div className={styles.mobileControlsArea}>{mobileControlsContent}</div>
-        </div>
-      </motion.div>
-    );
-
-    return ReactDOM.createPortal(modalContent, document.body);
-  }
-
-  // Sur desktop, afficher normalement
-  return <div className={styles.gameContainer}>{desktopContent}</div>;
 };
 
 export default RhythmCatcher;

@@ -792,6 +792,7 @@ export default function HomePage() {
 
     return (
       <section
+        id="visualizer"
         ref={visualizerSectionRef}
         className={`${isMobile && !isSoundActive ? 'py-10' : isMobile ? 'py-0' : 'py-20'} relative ${isMobile ? 'overflow-visible' : 'overflow-hidden'}`}
       >

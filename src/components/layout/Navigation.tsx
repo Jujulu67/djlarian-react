@@ -15,6 +15,7 @@ import {
   Bell,
   History,
   Radio,
+  Gamepad2,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -503,6 +504,25 @@ const Navigation = () => {
                                 Mes Projets
                               </Link>
                             </motion.div>
+
+                            {/* Jeu / Arcade Link - Conditional */}
+                            {(session.user?.gameHighScore || 0) > 0 ||
+                            session.user?.hasDiscoveredCasino ? (
+                              <motion.div
+                                initial={{ x: -5, opacity: 0 }}
+                                animate={{ x: 0, opacity: 1 }}
+                                transition={{ delay: 0.15, duration: 0.1 }}
+                              >
+                                <Link
+                                  href="/games"
+                                  className="flex items-center px-4 py-2 text-sm text-white/90 hover:text-white hover:bg-purple-500/10 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-inset"
+                                >
+                                  <Gamepad2 className="w-4 h-4 mr-2" />
+                                  Arcade
+                                </Link>
+                              </motion.div>
+                            ) : null}
+
                             <motion.div
                               initial={{ x: -5, opacity: 0 }}
                               animate={{ x: 0, opacity: 1 }}
@@ -691,6 +711,23 @@ const Navigation = () => {
                             <FolderKanban className="w-4 h-4 mr-2" />
                             Mes Projets
                           </Link>
+
+                          {/* Jeu / Arcade Link - Conditional Mobile */}
+                          {(session.user?.gameHighScore || 0) > 0 ||
+                          session.user?.hasDiscoveredCasino ? (
+                            <Link
+                              href="/games"
+                              className="flex items-center px-4 py-2 text-sm text-white/90 hover:text-white hover:bg-purple-500/10 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-inset"
+                              onClick={() => {
+                                setIsMobileUserMenuOpen(false);
+                                setIsMobileMenuOpen(false);
+                              }}
+                            >
+                              <Gamepad2 className="w-4 h-4 mr-2" />
+                              Arcade
+                            </Link>
+                          ) : null}
+
                           <button
                             onClick={async () => {
                               await handleSignOut();
