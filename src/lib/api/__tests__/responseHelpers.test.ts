@@ -153,4 +153,121 @@ describe('responseHelpers', () => {
       expect(data.error).toBe('Internal server error');
     });
   });
+
+  describe('createSuccessResponse edge cases', () => {
+    it('should not include message when not provided', async () => {
+      const response = createSuccessResponse({ id: '1' });
+      const data = await response.json();
+
+      expect(data.message).toBeUndefined();
+    });
+  });
+
+  describe('createErrorResponse edge cases', () => {
+    it('should not include details when not provided', async () => {
+      const response = createErrorResponse('Error');
+      const data = await response.json();
+
+      expect(data.details).toBeUndefined();
+    });
+
+    it('should not include code when not provided', async () => {
+      const response = createErrorResponse('Error', 400);
+      const data = await response.json();
+
+      expect(data.code).toBeUndefined();
+    });
+  });
+
+  describe('createForbiddenResponse', () => {
+    it('should use default message when not provided', async () => {
+      const response = createForbiddenResponse();
+      const data = await response.json();
+
+      expect(data.error).toBe('Forbidden');
+    });
+  });
+
+  describe('createNotFoundResponse', () => {
+    it('should use default message when not provided', async () => {
+      const response = createNotFoundResponse();
+      const data = await response.json();
+
+      expect(data.error).toBe('Resource not found');
+    });
+  });
+
+  describe('createConflictResponse', () => {
+    it('should work without details', async () => {
+      const response = createConflictResponse('Conflict');
+      const data = await response.json();
+
+      expect(response.status).toBe(409);
+      expect(data.error).toBe('Conflict');
+      expect(data.details).toBeUndefined();
+    });
+  });
+
+  describe('createInternalErrorResponse', () => {
+    it('should work without details', async () => {
+      const response = createInternalErrorResponse('Error');
+      const data = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(data.error).toBe('Error');
+      expect(data.details).toBeUndefined();
+    });
+  });
+
+  describe('createErrorResponse edge cases', () => {
+    it('should handle error response with only error message', async () => {
+      const response = createErrorResponse('Error only');
+      const data = await response.json();
+
+      expect(data.error).toBe('Error only');
+      expect(data.details).toBeUndefined();
+      expect(data.code).toBeUndefined();
+    });
+
+    it('should handle error response with details but no code', async () => {
+      const response = createErrorResponse('Error', 400, { field: 'value' });
+      const data = await response.json();
+
+      expect(data.error).toBe('Error');
+      expect(data.details).toEqual({ field: 'value' });
+      expect(data.code).toBeUndefined();
+    });
+
+    it('should handle error response with code but no details', async () => {
+      const response = createErrorResponse('Error', 400, undefined, 'ERROR_CODE');
+      const data = await response.json();
+
+      expect(data.error).toBe('Error');
+      expect(data.details).toBeUndefined();
+      expect(data.code).toBe('ERROR_CODE');
+    });
+  });
+
+  describe('createSuccessResponse edge cases', () => {
+    it('should handle success response with null data', async () => {
+      const response = createSuccessResponse(null);
+      const data = await response.json();
+
+      expect(data.data).toBeNull();
+    });
+
+    it('should handle success response with empty object', async () => {
+      const response = createSuccessResponse({});
+      const data = await response.json();
+
+      expect(data.data).toEqual({});
+    });
+
+    it('should handle success response with array data', async () => {
+      const response = createSuccessResponse([1, 2, 3]);
+      const data = await response.json();
+
+      expect(data.data).toEqual([1, 2, 3]);
+    });
+  });
 });

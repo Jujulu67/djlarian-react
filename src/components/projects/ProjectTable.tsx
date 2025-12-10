@@ -16,6 +16,7 @@ import {
   Calendar,
   Music2,
   BarChart3,
+  FileText,
 } from 'lucide-react';
 import { useState, useCallback, useEffect, useRef } from 'react';
 
@@ -24,6 +25,7 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 import { AddProjectRow } from './AddProjectRow';
 import { EditableCell } from './EditableCell';
 import { ProjectStatusBadge } from './ProjectStatusBadge';
+import { ProjectNoteEditor } from './ProjectNoteEditor';
 import { Project, ProjectStatus, CellType, PROJECT_STATUSES } from './types';
 
 type SortField = keyof Project | null;
@@ -64,21 +66,23 @@ interface ColumnConfig {
 // Configuration des colonnes en mode normal (large écran >= 1280px)
 // Largeurs fixes pour éviter les débordements
 const columnsNormal: ColumnConfig[] = [
-  { key: 'name', label: 'Nom Projet', type: 'text', width: '180px', minWidth: '120px' },
-  { key: 'style', label: 'Style', type: 'text', width: '100px', minWidth: '80px' },
-  { key: 'status', label: 'Statut', type: 'select', width: '110px', minWidth: '100px' },
-  { key: 'collab', label: 'Collab', type: 'text', width: '120px', minWidth: '80px' },
-  { key: 'label', label: 'Label', type: 'select', width: '100px', minWidth: '80px' },
-  { key: 'labelFinal', label: 'Label Final', type: 'text', width: '110px', minWidth: '80px' },
-  { key: 'releaseDate', label: 'Date Sortie', type: 'date', width: '110px', minWidth: '100px' },
-  { key: 'streamsJ7', label: 'J7', type: 'number', width: '65px', minWidth: '55px' },
-  { key: 'streamsJ14', label: 'J14', type: 'number', width: '65px', minWidth: '55px' },
-  { key: 'streamsJ21', label: 'J21', type: 'number', width: '65px', minWidth: '55px' },
-  { key: 'streamsJ28', label: 'J28', type: 'number', width: '65px', minWidth: '55px' },
-  { key: 'streamsJ56', label: 'J56', type: 'number', width: '65px', minWidth: '55px' },
-  { key: 'streamsJ84', label: 'J84', type: 'number', width: '65px', minWidth: '55px' },
-  { key: 'streamsJ180', label: 'J180', type: 'number', width: '70px', minWidth: '60px' },
-  { key: 'streamsJ365', label: 'J365', type: 'number', width: '70px', minWidth: '60px' },
+  { key: 'name', label: 'Nom Projet', type: 'text', width: '150px', minWidth: '120px' },
+  { key: 'style', label: 'Style', type: 'text', width: '85px', minWidth: '80px' },
+  { key: 'status', label: 'Statut', type: 'select', width: '95px', minWidth: '100px' },
+  { key: 'progress', label: '% Avancement', type: 'progress', width: '85px', minWidth: '90px' },
+  { key: 'collab', label: 'Collab', type: 'text', width: '100px', minWidth: '80px' },
+  { key: 'label', label: 'Label', type: 'select', width: '85px', minWidth: '80px' },
+  { key: 'labelFinal', label: 'Label Final', type: 'text', width: '90px', minWidth: '80px' },
+  { key: 'deadline', label: 'Deadline', type: 'date', width: '95px', minWidth: '100px' },
+  { key: 'releaseDate', label: 'Date Sortie', type: 'date', width: '95px', minWidth: '100px' },
+  { key: 'streamsJ7', label: 'J7', type: 'number', width: '55px', minWidth: '55px' },
+  { key: 'streamsJ14', label: 'J14', type: 'number', width: '55px', minWidth: '55px' },
+  { key: 'streamsJ21', label: 'J21', type: 'number', width: '55px', minWidth: '55px' },
+  { key: 'streamsJ28', label: 'J28', type: 'number', width: '55px', minWidth: '55px' },
+  { key: 'streamsJ56', label: 'J56', type: 'number', width: '55px', minWidth: '55px' },
+  { key: 'streamsJ84', label: 'J84', type: 'number', width: '55px', minWidth: '55px' },
+  { key: 'streamsJ180', label: 'J180', type: 'number', width: '60px', minWidth: '60px' },
+  { key: 'streamsJ365', label: 'J365', type: 'number', width: '60px', minWidth: '60px' },
 ];
 
 // Configuration des colonnes en mode compact (écran moyen)
@@ -86,9 +90,11 @@ const columnsCompact: ColumnConfig[] = [
   { key: 'name', label: 'Nom', type: 'text', minWidth: '60px', width: '80px' },
   { key: 'style', label: 'Style', type: 'text', minWidth: '45px', width: '55px' },
   { key: 'status', label: 'Statut', type: 'select', minWidth: '60px', width: '70px' },
+  { key: 'progress', label: '%', type: 'progress', minWidth: '45px', width: '55px' },
   { key: 'collab', label: 'Collab', type: 'text', minWidth: '50px', width: '60px' },
   { key: 'label', label: 'Label', type: 'select', minWidth: '45px', width: '55px' },
   { key: 'labelFinal', label: 'Label F', type: 'text', minWidth: '45px', width: '55px' },
+  { key: 'deadline', label: 'Deadline', type: 'date', minWidth: '55px', width: '65px' },
   { key: 'releaseDate', label: 'Date', type: 'date', minWidth: '55px', width: '65px' },
   { key: 'streamsJ7', label: 'J7', type: 'number', width: '40px', minWidth: '40px' },
   { key: 'streamsJ14', label: 'J14', type: 'number', width: '42px', minWidth: '42px' },
@@ -126,6 +132,8 @@ export const ProjectTable = ({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [editingLinkId, setEditingLinkId] = useState<string | null>(null);
   const [linkValue, setLinkValue] = useState<string>('');
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [noteValue, setNoteValue] = useState<string>('');
   const [isCompact, setIsCompact] = useState(false);
   const [expandedStreams, setExpandedStreams] = useState<Set<string>>(new Set());
   const tableRef = useRef<HTMLDivElement>(null);
@@ -237,6 +245,18 @@ export const ProjectTable = ({
     }
   };
 
+  const handleSaveNote = async () => {
+    if (!editingNoteId) return;
+
+    try {
+      await onUpdate(editingNoteId, 'note', noteValue || null);
+      setEditingNoteId(null);
+      setNoteValue('');
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde de la note:', error);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (deletingId) return;
 
@@ -274,7 +294,10 @@ export const ProjectTable = ({
           {onStatistics && (
             <button
               onClick={onStatistics}
-              className="px-3 py-2 h-[38px] bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+              className="px-3 py-2 h-[38px] glass-modern glass-modern-hover rounded-lg transition-all flex items-center gap-2 text-sm font-medium text-white border border-violet-500/30 hover:border-violet-400/50 hover:shadow-[0_8px_32px_0_rgba(139,92,246,0.35)] backdrop-blur-xl"
+              style={{
+                background: 'rgba(139, 92, 246, 0.28)',
+              }}
               title="Voir les statistiques"
               aria-label="Voir les statistiques des projets"
             >
@@ -285,7 +308,10 @@ export const ProjectTable = ({
           {onImport && (
             <button
               onClick={onImport}
-              className="px-3 py-2 h-[38px] bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+              className="px-3 py-2 h-[38px] glass-modern glass-modern-hover rounded-lg transition-all flex items-center gap-2 text-sm font-medium text-white border border-fuchsia-500/30 hover:border-fuchsia-400/50 hover:shadow-[0_8px_32px_0_rgba(217,70,239,0.35)] backdrop-blur-xl"
+              style={{
+                background: 'rgba(217, 70, 239, 0.28)',
+              }}
               title="Importer depuis Excel ou CSV"
               aria-label="Importer des projets depuis Excel ou CSV"
             >
@@ -296,7 +322,10 @@ export const ProjectTable = ({
           {onImportStreams && (
             <button
               onClick={onImportStreams}
-              className="px-3 py-2 h-[38px] bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+              className="px-3 py-2 h-[38px] glass-modern glass-modern-hover rounded-lg transition-all flex items-center gap-2 text-sm font-medium text-white border border-cyan-500/30 hover:border-cyan-400/50 hover:shadow-[0_8px_32px_0_rgba(6,182,212,0.35)] backdrop-blur-xl"
+              style={{
+                background: 'rgba(6, 182, 212, 0.28)',
+              }}
               title="Importer des streams depuis CSV"
               aria-label="Importer des streams depuis CSV"
             >
@@ -307,7 +336,10 @@ export const ProjectTable = ({
           {onExport && (
             <button
               onClick={onExport}
-              className="px-3 py-2 h-[38px] bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+              className="px-3 py-2 h-[38px] glass-modern glass-modern-hover rounded-lg transition-all flex items-center gap-2 text-sm font-medium text-white border border-teal-500/30 hover:border-teal-400/50 hover:shadow-[0_8px_32px_0_rgba(20,184,166,0.35)] backdrop-blur-xl"
+              style={{
+                background: 'rgba(20, 184, 166, 0.28)',
+              }}
               title="Exporter vers Excel"
               aria-label="Exporter les projets vers Excel"
             >
@@ -319,7 +351,13 @@ export const ProjectTable = ({
             <button
               onClick={onPurge}
               disabled={isLoading || projectsCount === 0}
-              className="px-4 py-2 h-[38px] bg-red-600 hover:bg-red-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-2"
+              className="px-4 py-2 h-[38px] glass-modern glass-modern-hover rounded-lg transition-all flex items-center gap-2 text-sm font-medium text-white border border-red-500/30 hover:border-red-400/50 hover:shadow-[0_8px_32px_0_rgba(239,68,68,0.35)] backdrop-blur-xl disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:border-red-500/30"
+              style={{
+                background:
+                  isLoading || projectsCount === 0
+                    ? 'rgba(75, 85, 99, 0.25)'
+                    : 'rgba(239, 68, 68, 0.28)',
+              }}
               title="Supprimer tous les projets"
               aria-label="Purger tous les projets"
             >
@@ -443,6 +481,26 @@ export const ProjectTable = ({
                           )}
                         </div>
                         <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingNoteId(project.id);
+                            setNoteValue(project.note || '');
+                          }}
+                          className={`p-2.5 rounded-xl transition-all active:scale-95 ${
+                            project.note
+                              ? 'text-blue-400 bg-blue-500/10 hover:bg-blue-500/20'
+                              : 'text-gray-400 bg-gray-500/10 hover:bg-gray-500/20'
+                          }`}
+                          title={
+                            project.note
+                              ? `Note: ${project.note.substring(0, 50)}${project.note.length > 50 ? '...' : ''}`
+                              : 'Ajouter une note'
+                          }
+                          aria-label={project.note ? 'Voir/modifier la note' : 'Ajouter une note'}
+                        >
+                          <FileText size={18} aria-hidden="true" />
+                        </button>
+                        <button
                           onClick={() => handleDelete(project.id)}
                           disabled={deletingId === project.id}
                           className="p-2.5 text-gray-400 bg-gray-500/10 hover:bg-red-500/20 hover:text-red-400 rounded-xl transition-all active:scale-95 disabled:opacity-50"
@@ -549,6 +607,34 @@ export const ProjectTable = ({
                             type="date"
                             onSave={(field, value) => handleUpdate(project.id, field, value)}
                             placeholder="Non définie"
+                          />
+                        </div>
+                      )}
+                      {/* Deadline */}
+                      {project.deadline && (
+                        <div className="mt-3 flex items-center gap-2 text-sm">
+                          <Calendar size={14} className="text-orange-400" />
+                          <span className="text-gray-400">Deadline:</span>
+                          <EditableCell
+                            value={project.deadline}
+                            field="deadline"
+                            type="date"
+                            onSave={(field, value) => handleUpdate(project.id, field, value)}
+                            placeholder="-"
+                            className="!text-orange-300 !font-medium"
+                          />
+                        </div>
+                      )}
+                      {!project.deadline && (
+                        <div className="mt-3 flex items-center gap-2 text-sm">
+                          <Calendar size={14} className="text-gray-500" />
+                          <span className="text-gray-500">Deadline:</span>
+                          <EditableCell
+                            value={project.deadline}
+                            field="deadline"
+                            type="date"
+                            onSave={(field, value) => handleUpdate(project.id, field, value)}
+                            placeholder="-"
                           />
                         </div>
                       )}
@@ -663,12 +749,11 @@ export const ProjectTable = ({
       ) : (
         /* Tableau desktop */
         <div className="glass-modern rounded-xl overflow-hidden" ref={tableRef}>
-          <div className="overflow-x-auto scrollbar-thin">
+          <div className="overflow-x-hidden">
             <table
-              className="w-full"
+              className="w-full table-fixed"
               role="table"
               aria-label="Tableau des projets musicaux"
-              style={{ minWidth: isCompact ? '900px' : '1200px' }}
             >
               <thead>
                 <tr className="border-b border-white/10">
@@ -837,6 +922,20 @@ export const ProjectTable = ({
                                             }
                                             isCompact={isCompact}
                                           />
+                                        ) : col.key === 'progress' &&
+                                          project.status === 'TERMINE' ? (
+                                          <EditableCell
+                                            value={100}
+                                            field="progress"
+                                            type="progress"
+                                            onSave={(field, value) =>
+                                              handleUpdate(project.id, field, value)
+                                            }
+                                            placeholder="-"
+                                            allowWrap={allowWrap}
+                                            isCompact={isCompact}
+                                            disabled={true}
+                                          />
                                         ) : (
                                           <EditableCell
                                             value={getCellValue(project, col.key)}
@@ -919,6 +1018,30 @@ export const ProjectTable = ({
                                         )}
                                       </div>
                                       <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setEditingNoteId(project.id);
+                                          setNoteValue(project.note || '');
+                                        }}
+                                        className={`${isCompact ? 'p-0.5' : 'p-1.5'} rounded transition-all ${
+                                          project.note
+                                            ? 'text-blue-400 hover:text-blue-300 hover:bg-blue-500/10'
+                                            : 'text-gray-400 hover:text-gray-300 hover:bg-gray-500/10'
+                                        }`}
+                                        title={
+                                          project.note
+                                            ? `Note: ${project.note.substring(0, 50)}${project.note.length > 50 ? '...' : ''}`
+                                            : 'Ajouter une note'
+                                        }
+                                        aria-label={
+                                          project.note
+                                            ? `Voir/modifier la note pour ${project.name}`
+                                            : `Ajouter une note pour ${project.name}`
+                                        }
+                                      >
+                                        <FileText size={isCompact ? 10 : 16} aria-hidden="true" />
+                                      </button>
+                                      <button
                                         onClick={() => handleDelete(project.id)}
                                         disabled={deletingId === project.id}
                                         className={`${isCompact ? 'p-0.5' : 'p-1.5'} text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded transition-all disabled:opacity-50`}
@@ -992,6 +1115,30 @@ export const ProjectTable = ({
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Modale pour éditer la note */}
+      {editingNoteId && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setEditingNoteId(null);
+              setNoteValue('');
+            }
+          }}
+        >
+          <ProjectNoteEditor
+            value={noteValue}
+            onChange={setNoteValue}
+            onSave={handleSaveNote}
+            onCancel={() => {
+              setEditingNoteId(null);
+              setNoteValue('');
+            }}
+            projectName={projects.find((p) => p.id === editingNoteId)?.name}
+          />
         </div>
       )}
     </div>

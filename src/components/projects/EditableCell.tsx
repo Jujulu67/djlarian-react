@@ -32,6 +32,7 @@ interface EditableCellProps {
   className?: string;
   allowWrap?: boolean;
   isCompact?: boolean;
+  disabled?: boolean;
 }
 
 // Fonction pour normaliser les valeurs de label (anciennes vers nouvelles)
@@ -71,6 +72,7 @@ export const EditableCell = ({
   className = '',
   allowWrap = false,
   isCompact = false,
+  disabled = false,
 }: EditableCellProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState<string>(value?.toString() ?? '');
@@ -114,6 +116,14 @@ export const EditableCell = ({
       if (type === 'number' && trimmedValue) {
         const num = parseInt(trimmedValue, 10);
         finalValue = isNaN(num) ? null : num;
+      } else if (type === 'progress' && trimmedValue) {
+        const num = parseInt(trimmedValue, 10);
+        if (isNaN(num)) {
+          finalValue = null;
+        } else {
+          // Valider que le progress est entre 0 et 100
+          finalValue = Math.max(0, Math.min(100, num));
+        }
       } else if (type === 'select' && field === 'label' && trimmedValue) {
         // Normaliser les valeurs de label lors de la sauvegarde
         finalValue = normalizeLabelValue(trimmedValue);
@@ -293,6 +303,24 @@ export const EditableCell = ({
       );
     }
 
+    // Cas spécial pour le progress (pourcentage)
+    if (type === 'progress' && value !== null && value !== undefined) {
+      const formatted = `${Number(value)}%`;
+      return (
+        <button
+          onClick={() => !disabled && setIsEditing(true)}
+          disabled={disabled}
+          className={`text-left ${isCompact ? 'px-1 py-0.5 text-[10px]' : 'px-2 py-1 text-sm'} rounded transition-all tabular-nums ${
+            disabled
+              ? 'text-gray-500 cursor-not-allowed'
+              : 'hover:bg-white/5 cursor-pointer text-gray-300'
+          } ${className}`}
+        >
+          {formatted}
+        </button>
+      );
+    }
+
     // Affichage par défaut
     return (
       <button
@@ -342,6 +370,28 @@ export const EditableCell = ({
         className={`${inputClasses} tabular-nums ${className}`}
         disabled={isSaving}
       />
+    );
+  }
+
+  // Mode édition - Input progress (pourcentage 0-100)
+  if (type === 'progress') {
+    return (
+      <div className="flex items-center gap-1">
+        <input
+          ref={inputRef as React.RefObject<HTMLInputElement>}
+          type="number"
+          value={editValue}
+          onChange={handleChange}
+          onBlur={handleSave}
+          onKeyDown={handleKeyDown}
+          placeholder="0"
+          min="0"
+          max="100"
+          className={`${inputClasses} tabular-nums ${className}`}
+          disabled={isSaving || disabled}
+        />
+        <span className="text-gray-400 text-sm">%</span>
+      </div>
     );
   }
 

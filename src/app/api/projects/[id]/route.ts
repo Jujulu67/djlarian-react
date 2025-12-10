@@ -113,7 +113,23 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       return parsed;
     };
 
-    const stringFields = ['name', 'style', 'status', 'collab', 'label', 'labelFinal'];
+    // Fonction helper pour parser et valider le progress (0-100)
+    const parseProgressValue = (value: unknown): number | null => {
+      if (value === null || value === undefined || value === '') {
+        return null;
+      }
+      const parsed = typeof value === 'number' ? value : parseInt(String(value), 10);
+      if (isNaN(parsed)) {
+        return null;
+      }
+      // Valider que le progress est entre 0 et 100
+      if (parsed < 0 || parsed > 100) {
+        return null;
+      }
+      return parsed;
+    };
+
+    const stringFields = ['name', 'style', 'status', 'collab', 'label', 'labelFinal', 'note'];
     const intFields = [
       'order',
       'streamsJ7',
@@ -124,6 +140,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       'streamsJ84',
       'streamsJ180',
       'streamsJ365',
+      'progress',
     ];
 
     for (const field of stringFields) {
@@ -165,6 +182,9 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
             const parsed = typeof value === 'number' ? value : parseInt(String(value), 10);
             updateData[field] = isNaN(parsed) ? null : parsed;
           }
+        } else if (field === 'progress') {
+          // Pour progress, utiliser la validation spécifique (0-100)
+          updateData[field] = parseProgressValue(value);
         } else {
           // Pour les streams, utiliser la validation stricte
           updateData[field] = parseStreamValue(value);
@@ -174,6 +194,28 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
     if ('releaseDate' in body) {
       updateData.releaseDate = body.releaseDate ? new Date(body.releaseDate) : null;
+    }
+
+    if ('deadline' in body) {
+      updateData.deadline = body.deadline ? new Date(body.deadline) : null;
+    }
+
+    // Si le statut est TERMINE, forcer progress à 100
+    if ('status' in updateData && updateData.status === 'TERMINE') {
+      updateData.progress = 100;
+    } else if (
+      'status' in updateData &&
+      existingProject.status === 'TERMINE' &&
+      updateData.status !== 'TERMINE'
+    ) {
+      // Si on passe de TERMINE à un autre statut, on ne force pas progress (l'utilisateur peut le modifier)
+      // Mais si progress n'est pas dans updateData, on ne le modifie pas
+    } else if (!('status' in updateData) && existingProject.status === 'TERMINE') {
+      // Si le projet est déjà TERMINE et qu'on modifie un autre champ, s'assurer que progress reste à 100
+      // Cela garantit la cohérence : un projet TERMINE doit toujours avoir progress = 100
+      if (!('progress' in updateData)) {
+        updateData.progress = 100;
+      }
     }
 
     const project = await prisma.project.update({

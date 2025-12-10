@@ -121,6 +121,165 @@ describe('serializeProject', () => {
       email: null,
     });
   });
+
+  it('should normalize progress to 100 for TERMINE status when progress is null', () => {
+    const prismaProject = {
+      id: 'project-6',
+      name: 'Completed Project',
+      status: 'TERMINE',
+      userId: 'user-1',
+      releaseDate: null,
+      progress: null,
+      createdAt: new Date('2024-01-01T00:00:00Z'),
+      updatedAt: new Date('2024-01-02T00:00:00Z'),
+    } as PrismaProject;
+
+    const result = serializeProject(prismaProject);
+
+    expect(result.status).toBe('TERMINE');
+    expect(result.progress).toBe(100);
+  });
+
+  it('should keep existing progress for TERMINE status when progress is not null', () => {
+    const prismaProject = {
+      id: 'project-7',
+      name: 'Completed Project',
+      status: 'TERMINE',
+      userId: 'user-1',
+      releaseDate: null,
+      progress: 90,
+      createdAt: new Date('2024-01-01T00:00:00Z'),
+      updatedAt: new Date('2024-01-02T00:00:00Z'),
+    } as PrismaProject;
+
+    const result = serializeProject(prismaProject);
+
+    expect(result.status).toBe('TERMINE');
+    expect(result.progress).toBe(90);
+  });
+
+  it('should not normalize progress for non-TERMINE status', () => {
+    const prismaProject = {
+      id: 'project-8',
+      name: 'In Progress Project',
+      status: 'EN_COURS',
+      userId: 'user-1',
+      releaseDate: null,
+      progress: 50,
+      createdAt: new Date('2024-01-01T00:00:00Z'),
+      updatedAt: new Date('2024-01-02T00:00:00Z'),
+    } as PrismaProject;
+
+    const result = serializeProject(prismaProject);
+
+    expect(result.status).toBe('EN_COURS');
+    expect(result.progress).toBe(50);
+  });
+
+  it('should handle null deadline', () => {
+    const prismaProject = {
+      id: 'project-9',
+      name: 'Test Project',
+      status: 'pending',
+      userId: 'user-1',
+      releaseDate: null,
+      deadline: null,
+      createdAt: new Date('2024-01-01T00:00:00Z'),
+      updatedAt: new Date('2024-01-02T00:00:00Z'),
+    } as PrismaProject;
+
+    const result = serializeProject(prismaProject);
+
+    expect(result.deadline).toBeNull();
+  });
+
+  it('should handle deadline with date', () => {
+    const prismaProject = {
+      id: 'project-10',
+      name: 'Test Project',
+      status: 'pending',
+      userId: 'user-1',
+      releaseDate: null,
+      deadline: new Date('2024-12-31T00:00:00Z'),
+      createdAt: new Date('2024-01-01T00:00:00Z'),
+      updatedAt: new Date('2024-01-02T00:00:00Z'),
+    } as PrismaProject;
+
+    const result = serializeProject(prismaProject);
+
+    expect(result.deadline).toBe('2024-12-31T00:00:00.000Z');
+  });
+
+  it('should handle TERMINE status with progress 100', () => {
+    const prismaProject = {
+      id: 'project-11',
+      name: 'Completed Project',
+      status: 'TERMINE',
+      userId: 'user-1',
+      releaseDate: null,
+      progress: 100,
+      createdAt: new Date('2024-01-01T00:00:00Z'),
+      updatedAt: new Date('2024-01-02T00:00:00Z'),
+    } as PrismaProject;
+
+    const result = serializeProject(prismaProject);
+
+    expect(result.status).toBe('TERMINE');
+    expect(result.progress).toBe(100);
+  });
+
+  it('should handle TERMINE status with progress not null and not 100', () => {
+    const prismaProject = {
+      id: 'project-12',
+      name: 'Completed Project',
+      status: 'TERMINE',
+      userId: 'user-1',
+      releaseDate: null,
+      progress: 90,
+      createdAt: new Date('2024-01-01T00:00:00Z'),
+      updatedAt: new Date('2024-01-02T00:00:00Z'),
+    } as PrismaProject;
+
+    const result = serializeProject(prismaProject);
+
+    expect(result.status).toBe('TERMINE');
+    expect(result.progress).toBe(90);
+  });
+
+  it('should handle project with all optional fields null', () => {
+    const prismaProject = {
+      id: 'project-13',
+      name: 'Test Project',
+      status: 'EN_COURS',
+      userId: 'user-1',
+      releaseDate: null,
+      deadline: null,
+      progress: null,
+      style: null,
+      collab: null,
+      label: null,
+      labelFinal: null,
+      externalLink: null,
+      note: null,
+      streamsJ7: null,
+      streamsJ14: null,
+      streamsJ21: null,
+      streamsJ28: null,
+      streamsJ56: null,
+      streamsJ84: null,
+      streamsJ180: null,
+      streamsJ365: null,
+      order: 0,
+      createdAt: new Date('2024-01-01T00:00:00Z'),
+      updatedAt: new Date('2024-01-02T00:00:00Z'),
+    } as PrismaProject;
+
+    const result = serializeProject(prismaProject);
+
+    expect(result.id).toBe('project-13');
+    expect(result.releaseDate).toBeNull();
+    expect(result.deadline).toBeNull();
+  });
 });
 
 describe('serializeProjects', () => {
