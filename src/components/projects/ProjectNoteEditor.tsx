@@ -117,7 +117,10 @@ export const ProjectNoteEditor = ({
   onCancel,
   projectName,
 }: ProjectNoteEditorProps) => {
-  const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit');
+  // Par défaut, on ouvre en mode "aperçu" si la note existe déjà, sinon en mode "éditer"
+  const [viewMode, setViewMode] = useState<'edit' | 'preview'>(
+    value && value.trim() ? 'preview' : 'edit'
+  );
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const insertText = (before: string, after: string = '', placeholder: string = '') => {
