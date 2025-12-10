@@ -47,21 +47,28 @@ export interface LatestReleasesProps {
   title?: string;
   count?: number;
   isFirstSection?: boolean; // Indique si c'est la première section après le hero
+  initialReleases?: Track[]; // Données préchargées côté serveur
 }
 
 export default function LatestReleases({
   title = 'Latest Releases',
   count = 3,
   isFirstSection = false,
+  initialReleases,
 }: LatestReleasesProps) {
-  const [releases, setReleases] = useState<Track[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [releases, setReleases] = useState<Track[]>(initialReleases || []);
+  const [isLoading, setIsLoading] = useState(!initialReleases);
   const [error, setError] = useState<string | null>(null);
   const [imageErrors, setImageErrors] = useState<ImageErrorState>({}); // Initialiser l'état des erreurs d'image
   const router = useRouter();
 
-  // Charger les morceaux depuis l'API
+  // Charger les morceaux depuis l'API seulement si initialReleases n'est pas fourni
   useEffect(() => {
+    // Si on a déjà des données initiales, ne pas faire de fetch
+    if (initialReleases && initialReleases.length > 0) {
+      return;
+    }
+
     let isMounted = true;
     let abortController = new AbortController();
 
@@ -116,7 +123,7 @@ export default function LatestReleases({
       isMounted = false;
       abortController.abort();
     };
-  }, [count]);
+  }, [count, initialReleases]);
 
   // Fonction pour gérer le clic sur une carte
   const handleCardClick = (trackId: string) => {
