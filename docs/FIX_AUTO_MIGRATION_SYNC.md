@@ -111,6 +111,7 @@ Avec ces améliorations, le script garantit maintenant que :
 2. **`db push` est sûr** : Il n'efface jamais de données, seulement ajoute/modifie le schéma
 3. **Performance** : `db push` est rapide et ne bloque pas longtemps le build
 4. **Logs détaillés** : Tous les étapes sont loggées pour le debugging
+5. **Génération du client** : `db push` génère automatiquement le client Prisma (Prisma 7), mais on le régénère à la fin pour garantir la cohérence
 
 ## 🚀 Résultat
 
