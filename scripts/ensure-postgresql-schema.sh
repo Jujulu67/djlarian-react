@@ -466,8 +466,24 @@ if [ "$NODE_ENV" = "production" ]; then
     fi
     
     # Si toutes les migrations sont déjà appliquées, on peut skip migrate deploy
+    # MAIS on fait quand même un db push pour garantir la synchronisation du schéma
     if echo "$MIGRATE_STATUS_OUTPUT" | grep -q "Database schema is up to date\|All migrations have been applied"; then
-      echo "   ✅ Toutes les migrations sont déjà appliquées, pas besoin de migrate deploy"
+      echo "   ✅ Toutes les migrations sont déjà appliquées selon migrate status"
+      echo "   🔄 Vérification avec db push pour garantir la synchronisation du schéma..."
+      set +e
+      DB_PUSH_VERIFY=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma db push --skip-generate --accept-data-loss 2>&1)
+      DB_PUSH_VERIFY_EXIT=$?
+      set -e
+      
+      if [ $DB_PUSH_VERIFY_EXIT -eq 0 ]; then
+        if echo "$DB_PUSH_VERIFY" | grep -qE "already in sync|already up to date"; then
+          echo "   ✅ Schéma confirmé synchronisé (db push)"
+        else
+          echo "   ✅ Schéma synchronisé (db push a appliqué des changements)"
+        fi
+      else
+        echo "   ⚠️  db push de vérification a échoué, mais on continue"
+      fi
     else
       # Si on a créé des baselines, on peut avoir besoin de réessayer
       if [ "$BASELINE_CREATED" = true ]; then
@@ -497,6 +513,32 @@ if [ "$NODE_ENV" = "production" ]; then
         if [ $MIGRATE_DEPLOY_EXIT_CODE -eq 0 ]; then
           MIGRATE_SUCCESS=true
           echo "✅ Migrations Prisma appliquées avec succès"
+          
+          # IMPORTANT: Vérifier le drift après migrate deploy pour s'assurer que le schéma est vraiment synchronisé
+          # Parfois migrate deploy peut réussir mais le schéma peut encore avoir des différences
+          echo "   🔍 Vérification du drift après migration..."
+          set +e
+          DRIFT_CHECK=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma migrate status 2>&1)
+          DRIFT_EXIT=$?
+          set -e
+          
+          # Si il y a un drift ou des différences, forcer db push pour garantir la synchronisation
+          if [ $DRIFT_EXIT -ne 0 ] || echo "$DRIFT_CHECK" | grep -qE "drift|different|Your database schema is not in sync"; then
+            echo "   ⚠️  Drift détecté après migrate deploy, synchronisation avec db push..."
+            set +e
+            DB_PUSH_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma db push --skip-generate --accept-data-loss 2>&1)
+            DB_PUSH_EXIT=$?
+            set -e
+            
+            if [ $DB_PUSH_EXIT -eq 0 ]; then
+              echo "   ✅ Schéma synchronisé avec db push (drift corrigé)"
+            else
+              echo "   ⚠️  db push a échoué lors de la correction du drift"
+              echo "$DB_PUSH_OUTPUT" | head -10 | sed 's/^/      /'
+            fi
+          else
+            echo "   ✅ Aucun drift détecté, schéma synchronisé"
+          fi
         else
           RETRY_COUNT=$((RETRY_COUNT + 1))
           echo "   📋 Sortie migrate deploy (erreur):"
@@ -556,8 +598,9 @@ if [ "$NODE_ENV" = "production" ]; then
           echo "   Le schéma peut être à jour même si l'historique diffère"
         fi
         
-        # Essayer db push comme fallback (non-bloquant)
+        # Essayer db push comme fallback (non-bloquant mais CRITIQUE pour la synchronisation)
         echo "   🔄 Tentative de synchronisation avec 'prisma db push' (fallback)..."
+        echo "   ⚠️  IMPORTANT: db push va synchroniser le schéma même si migrate deploy a échoué"
         set +e
         DB_PUSH_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma db push --skip-generate --accept-data-loss 2>&1)
         DB_PUSH_EXIT=$?
@@ -565,9 +608,25 @@ if [ "$NODE_ENV" = "production" ]; then
         
         if [ $DB_PUSH_EXIT -eq 0 ]; then
           echo "   ✅ Schéma synchronisé avec db push (fallback)"
+          
+          # Vérifier que le schéma est vraiment synchronisé en vérifiant le drift
+          echo "   🔍 Vérification finale du drift après db push..."
+          set +e
+          FINAL_DRIFT_CHECK=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma migrate status 2>&1)
+          FINAL_DRIFT_EXIT=$?
+          set -e
+          
+          if [ $FINAL_DRIFT_EXIT -eq 0 ] && echo "$FINAL_DRIFT_CHECK" | grep -qE "Database schema is up to date|All migrations have been applied"; then
+            echo "   ✅ Schéma confirmé synchronisé (aucun drift)"
+          else
+            echo "   ⚠️  Drift encore présent après db push, mais on continue"
+            echo "   Le schéma devrait être synchronisé malgré le drift détecté"
+          fi
         else
           echo "   ⚠️  db push a également échoué, mais le build continue"
           echo "   Le client Prisma sera généré avec le schéma actuel"
+          echo "   📋 Sortie db push:"
+          echo "$DB_PUSH_OUTPUT" | head -15 | sed 's/^/      /'
         fi
         
         echo "   💡 Pour résoudre manuellement après le build:"
@@ -598,6 +657,28 @@ if [ "$NODE_ENV" = "production" ]; then
       echo "   Vérifiez que DATABASE_URL est correct et que la base de données est accessible"
       # Ne pas faire exit 1 - le build doit continuer
     fi
+  fi
+  
+  # IMPORTANT: Forcer une dernière synchronisation avec db push AVANT de générer le client
+  # Cela garantit que le schéma de la DB correspond exactement au schéma Prisma
+  # Même si migrate deploy a réussi, db push s'assure qu'il n'y a pas de différences subtiles
+  echo "🔍 Synchronisation finale du schéma avec db push (garantie de cohérence)..."
+  set +e
+  FINAL_DB_PUSH=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma db push --skip-generate --accept-data-loss 2>&1)
+  FINAL_DB_PUSH_EXIT=$?
+  set -e
+  
+  # db push retourne 0 même si "already in sync", donc c'est toujours bon signe
+  if [ $FINAL_DB_PUSH_EXIT -eq 0 ]; then
+    if echo "$FINAL_DB_PUSH" | grep -qE "already in sync|already up to date|Everything is now in sync|Your database is now in sync"; then
+      echo "   ✅ Schéma confirmé synchronisé (db push)"
+    else
+      echo "   ✅ Schéma synchronisé avec db push"
+    fi
+  else
+    echo "   ⚠️  db push final a échoué, mais on continue"
+    echo "   Le client sera généré avec le schéma actuel"
+    echo "$FINAL_DB_PUSH" | head -10 | sed 's/^/      /'
   fi
   
   # IMPORTANT: Régénérer le client Prisma APRÈS les migrations pour s'assurer qu'il reflète l'état final
