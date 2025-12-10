@@ -77,6 +77,8 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
 
   // Ref pour le debounce
   const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Ref pour suivre les mises à jour en cours et éviter les race conditions
+  const updatingProjectsRef = useRef<Set<string>>(new Set());
 
   // Vérifier les releases en approche au chargement initial
   useEffect(() => {
@@ -155,13 +157,10 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
     }
 
     // Si le filtre correspond aux projets initiaux, ne pas recharger immédiatement
-    if (statusFilter === 'ALL' && initialProjects.length > 0) {
-      // Si le filtre est 'ALL', tous les projets initiaux correspondent
-      if (projects.length === 0) {
-        // Les projets initiaux correspondent, utiliser ceux-ci
-        setProjects(initialProjects);
-        return;
-      }
+    if (statusFilter === 'ALL' && initialProjects.length > 0 && projects.length === 0) {
+      // Les projets initiaux correspondent, utiliser ceux-ci
+      setProjects(initialProjects);
+      return;
     }
 
     // Annuler le timeout précédent si il existe
@@ -183,18 +182,49 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
   }, [fetchProjects, statusFilter, initialProjects, projects.length]);
 
   const handleUpdate = async (id: string, field: string, value: string | number | null) => {
+    // Protection contre les race conditions : ignorer si une mise à jour est déjà en cours pour ce projet
+    if (updatingProjectsRef.current.has(id)) {
+      return;
+    }
+
+    // Marquer ce projet comme en cours de mise à jour
+    updatingProjectsRef.current.add(id);
+
+    // Trouver le projet actuel pour vérifier le statut
+    const currentProject = projects.find((p) => p.id === id);
+    // Sauvegarder l'état actuel pour le revert en cas d'erreur
+    const previousProjectState = currentProject ? { ...currentProject } : null;
+
+    // Si on change le statut vers TERMINE, forcer progress à 100
+    let updatePayload: Record<string, unknown> = { [field]: value };
+    if (field === 'status' && value === 'TERMINE') {
+      updatePayload.progress = 100;
+    }
+
     // Optimistic update
     setProjects((prev) =>
-      prev.map((p) =>
-        p.id === id ? { ...p, [field]: value, updatedAt: new Date().toISOString() } : p
-      )
+      prev.map((p) => {
+        if (p.id === id) {
+          const updated = { ...p, [field]: value, updatedAt: new Date().toISOString() };
+          // Si on change le statut vers TERMINE, mettre progress à 100
+          if (field === 'status' && value === 'TERMINE') {
+            updated.progress = 100;
+          } else if (p.status === 'TERMINE' && field !== 'progress' && field !== 'status') {
+            // Si le projet est déjà TERMINE et qu'on modifie un autre champ, maintenir progress à 100
+            // Cela garantit la cohérence : un projet TERMINE doit toujours avoir progress = 100
+            updated.progress = updated.progress ?? 100;
+          }
+          return updated;
+        }
+        return p;
+      })
     );
 
     try {
       const response = await fetchWithAuth(`/api/projects/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [field]: value }),
+        body: JSON.stringify(updatePayload),
       });
 
       if (!response.ok) {
@@ -227,8 +257,30 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
       }, 2000);
     } catch (error) {
       console.error('Erreur:', error);
-      // Revert on error
-      fetchProjects();
+      // Revert on error : restaurer l'état précédent au lieu de recharger tous les projets
+      if (previousProjectState) {
+        setProjects((prev) => prev.map((p) => (p.id === id ? previousProjectState : p)));
+      } else {
+        // Si on n'a pas l'état précédent, recharger uniquement ce projet
+        fetchWithAuth(`/api/projects/${id}`)
+          .then((res) => {
+            if (res.ok) {
+              return res.json();
+            }
+            throw new Error('Failed to fetch project');
+          })
+          .then((result) => {
+            const updated = result.data || result;
+            setProjects((prev) => prev.map((p) => (p.id === id ? updated : p)));
+          })
+          .catch(() => {
+            // En dernier recours, recharger tous les projets
+            fetchProjects();
+          });
+      }
+    } finally {
+      // Retirer le projet de la liste des mises à jour en cours
+      updatingProjectsRef.current.delete(id);
     }
   };
 

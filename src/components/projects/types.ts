@@ -1,4 +1,10 @@
-export type ProjectStatus = 'EN_COURS' | 'TERMINE' | 'ANNULE' | 'A_REWORK' | 'GHOST_PRODUCTION';
+export type ProjectStatus =
+  | 'EN_COURS'
+  | 'TERMINE'
+  | 'ANNULE'
+  | 'A_REWORK'
+  | 'GHOST_PRODUCTION'
+  | 'ARCHIVE';
 
 export const PROJECT_STATUSES: { value: ProjectStatus; label: string; color: string }[] = [
   { value: 'EN_COURS', label: 'En cours', color: 'blue' },
@@ -6,6 +12,7 @@ export const PROJECT_STATUSES: { value: ProjectStatus; label: string; color: str
   { value: 'ANNULE', label: 'Annulé', color: 'red' },
   { value: 'A_REWORK', label: 'A Rework', color: 'orange' },
   { value: 'GHOST_PRODUCTION', label: 'Ghost Prod', color: 'purple' },
+  { value: 'ARCHIVE', label: 'Archivé', color: 'gray' },
 ];
 
 export type LabelStatus = 'ACCEPTE' | 'EN_COURS' | 'REFUSE';
@@ -26,6 +33,7 @@ export interface Project {
   collab: string | null;
   label: string | null;
   labelFinal: string | null;
+  deadline: string | null;
   releaseDate: string | null;
   externalLink: string | null;
   streamsJ7: number | null;
@@ -36,6 +44,8 @@ export interface Project {
   streamsJ84: number | null;
   streamsJ180: number | null;
   streamsJ365: number | null;
+  progress: number | null;
+  note: string | null;
   createdAt: string;
   updatedAt: string;
   User?: {
@@ -52,6 +62,7 @@ export type EditableField =
   | 'collab'
   | 'label'
   | 'labelFinal'
+  | 'deadline'
   | 'releaseDate'
   | 'externalLink'
   | 'streamsJ7'
@@ -61,6 +72,8 @@ export type EditableField =
   | 'streamsJ56'
   | 'streamsJ84'
   | 'streamsJ180'
-  | 'streamsJ365';
+  | 'streamsJ365'
+  | 'progress'
+  | 'note';
 
-export type CellType = 'text' | 'select' | 'date' | 'number' | 'link';
+export type CellType = 'text' | 'select' | 'date' | 'number' | 'link' | 'progress';

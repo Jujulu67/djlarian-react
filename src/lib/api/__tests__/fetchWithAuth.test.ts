@@ -286,4 +286,288 @@ describe('fetchWithAuth edge cases', () => {
     expect(response.status).toBe(500);
     expect(global.fetch).toHaveBeenCalledTimes(1);
   });
+
+  it('should retry twice when maxRetries > 1 and first retry still 401', async () => {
+    const mockSessionResponse = { ok: true, status: 200 };
+    const mockFinalResponse = { ok: true, status: 200 };
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({ ok: false, status: 401 })
+      .mockResolvedValueOnce(mockSessionResponse)
+      .mockResolvedValueOnce({ ok: false, status: 401 })
+      .mockResolvedValueOnce(mockFinalResponse);
+
+    const response = await fetchWithAuth('/api/test', {}, 2);
+
+    // Should have retried after the delay
+    expect(global.fetch).toHaveBeenCalled();
+    expect(response.status).toBe(200);
+  });
+
+  it('should handle refreshSession when sessionRequestCache exists', async () => {
+    const mockWindow = window as typeof window & {
+      sessionRequestCache?: unknown;
+    };
+    mockWindow.sessionRequestCache = { test: 'data' };
+
+    const mockSessionResponse = { ok: true, status: 200 };
+    const mockRetryResponse = { ok: true, status: 200 };
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({ ok: false, status: 401 })
+      .mockResolvedValueOnce(mockSessionResponse)
+      .mockResolvedValueOnce(mockRetryResponse);
+
+    await fetchWithAuth('/api/test', {}, 1);
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/auth/session',
+      expect.objectContaining({ method: 'GET', credentials: 'include', cache: 'no-store' })
+    );
+  });
+
+  it('should handle refreshSession when sessionRequestCache does not exist', async () => {
+    const mockSessionResponse = { ok: true, status: 200 };
+    const mockRetryResponse = { ok: true, status: 200 };
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({ ok: false, status: 401 })
+      .mockResolvedValueOnce(mockSessionResponse)
+      .mockResolvedValueOnce(mockRetryResponse);
+
+    await fetchWithAuth('/api/test', {}, 1);
+
+    // Should have called session refresh
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/auth/session',
+      expect.objectContaining({ method: 'GET', credentials: 'include', cache: 'no-store' })
+    );
+  });
+
+  it('should handle refreshSession error and sign out', async () => {
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({ ok: false, status: 401 })
+      .mockRejectedValueOnce(new Error('Network error'));
+
+    await fetchWithAuth('/api/test', {}, 1);
+
+    expect(signOut).toHaveBeenCalled();
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('should handle refreshSession when response is not ok', async () => {
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({ ok: false, status: 401 })
+      .mockResolvedValueOnce({ ok: false, status: 500 });
+
+    await fetchWithAuth('/api/test', {}, 1);
+
+    expect(signOut).toHaveBeenCalled();
+  });
+
+  it('should handle multiple 401s with shared refresh', async () => {
+    const mockSessionResponse = { ok: true, status: 200 };
+    const mockRetryResponse1 = { ok: true, status: 200 };
+    const mockRetryResponse2 = { ok: true, status: 200 };
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({ ok: false, status: 401 })
+      .mockResolvedValueOnce({ ok: false, status: 401 })
+      .mockResolvedValueOnce(mockSessionResponse)
+      .mockResolvedValueOnce(mockRetryResponse1)
+      .mockResolvedValueOnce(mockRetryResponse2);
+
+    const promise1 = fetchWithAuth('/api/test1', {}, 1);
+    const promise2 = fetchWithAuth('/api/test2', {}, 1);
+
+    await Promise.all([promise1, promise2]);
+
+    // Both should complete successfully
+    expect(global.fetch).toHaveBeenCalled();
+  });
+
+  it('should handle case where refresh succeeds but retry still fails with maxRetries > 1', async () => {
+    const mockSessionResponse = { ok: true, status: 200 };
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({ ok: false, status: 401 })
+      .mockResolvedValueOnce(mockSessionResponse)
+      .mockResolvedValueOnce({ ok: false, status: 401 })
+      .mockResolvedValueOnce({ ok: true, status: 200 });
+
+    const response = await fetchWithAuth('/api/test', {}, 2);
+
+    expect(response.status).toBe(200);
+    expect(global.fetch).toHaveBeenCalled();
+  });
+
+  it('should handle case where refresh succeeds and retry succeeds immediately', async () => {
+    const mockSessionResponse = { ok: true, status: 200 };
+    const mockRetryResponse = { ok: true, status: 200 };
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({ ok: false, status: 401 })
+      .mockResolvedValueOnce(mockSessionResponse)
+      .mockResolvedValueOnce(mockRetryResponse);
+
+    const response = await fetchWithAuth('/api/test', {}, 1);
+
+    expect(response.status).toBe(200);
+    expect(response).toBe(mockRetryResponse);
+  });
+
+  it('should handle case where refresh succeeds but retry fails with maxRetries 1', async () => {
+    const mockSessionResponse = { ok: true, status: 200 };
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({ ok: false, status: 401 })
+      .mockResolvedValueOnce(mockSessionResponse)
+      .mockResolvedValueOnce({ ok: false, status: 401 });
+
+    const response = await fetchWithAuth('/api/test', {}, 1);
+
+    expect(response.status).toBe(401);
+  });
+
+  it('should handle case where initial request is not 401', async () => {
+    const mockResponse = { ok: true, status: 200 };
+    (global.fetch as jest.Mock).mockResolvedValue(mockResponse);
+
+    const response = await fetchWithAuth('/api/test', {}, 1);
+
+    expect(response).toBe(mockResponse);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('should handle case where 401 occurs but maxRetries is 0', async () => {
+    if (typeof window === 'undefined') {
+      (global as any).window = {};
+    }
+
+    (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: false, status: 401 });
+
+    await fetchWithAuth('/api/test', {}, 0);
+
+    expect(signOut).toHaveBeenCalled();
+  });
+
+  it('should handle case where refresh succeeds but second retry still 401 with maxRetries 2', async () => {
+    const mockSessionResponse = { ok: true, status: 200 };
+    const mockFinalResponse = { ok: true, status: 200 };
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({ ok: false, status: 401 })
+      .mockResolvedValueOnce(mockSessionResponse)
+      .mockResolvedValueOnce({ ok: false, status: 401 })
+      .mockResolvedValueOnce(mockFinalResponse);
+
+    jest.useFakeTimers();
+    const responsePromise = fetchWithAuth('/api/test', {}, 2);
+    // Advance timers to trigger the setTimeout
+    await jest.advanceTimersByTimeAsync(500);
+    const response = await responsePromise;
+    jest.useRealTimers();
+
+    expect(response.status).toBe(200);
+    expect(global.fetch).toHaveBeenCalled();
+  });
+
+  it('should handle case where refresh fails and window is undefined', async () => {
+    const originalWindow = global.window;
+    // @ts-expect-error - simulating server-side
+    delete global.window;
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({ ok: false, status: 401 })
+      .mockResolvedValueOnce({ ok: false, status: 401 });
+
+    const response = await fetchWithAuth('/api/test', {}, 1);
+
+    expect(response.status).toBe(401);
+    expect(signOut).not.toHaveBeenCalled();
+
+    global.window = originalWindow;
+  });
+
+  it('should handle case where 401 occurs with maxRetries 0 and window is undefined', async () => {
+    const originalWindow = global.window;
+    // @ts-expect-error - simulating server-side
+    delete global.window;
+
+    (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: false, status: 401 });
+
+    const response = await fetchWithAuth('/api/test', {}, 0);
+
+    expect(response.status).toBe(401);
+    expect(signOut).not.toHaveBeenCalled();
+
+    global.window = originalWindow;
+  });
+
+  it('should handle refreshSession when window is undefined', async () => {
+    const originalWindow = global.window;
+    // @ts-expect-error - simulating server-side
+    delete global.window;
+
+    const mockSessionResponse = { ok: true, status: 200 };
+    const mockRetryResponse = { ok: true, status: 200 };
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({ ok: false, status: 401 })
+      .mockResolvedValueOnce(mockSessionResponse)
+      .mockResolvedValueOnce(mockRetryResponse);
+
+    const response = await fetchWithAuth('/api/test', {}, 1);
+
+    expect(response.status).toBe(200);
+
+    global.window = originalWindow;
+  });
+
+  it('should handle refreshSession when sessionRequestCache is null', async () => {
+    const mockWindow = window as typeof window & {
+      sessionRequestCache?: unknown;
+    };
+    mockWindow.sessionRequestCache = null;
+
+    const mockSessionResponse = { ok: true, status: 200 };
+    const mockRetryResponse = { ok: true, status: 200 };
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({ ok: false, status: 401 })
+      .mockResolvedValueOnce(mockSessionResponse)
+      .mockResolvedValueOnce(mockRetryResponse);
+
+    await fetchWithAuth('/api/test', {}, 1);
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/auth/session',
+      expect.objectContaining({ method: 'GET', credentials: 'include', cache: 'no-store' })
+    );
+  });
+
+  it('should handle refreshSession when sessionRequestCache is undefined', async () => {
+    const mockWindow = window as typeof window & {
+      sessionRequestCache?: unknown;
+    };
+    delete mockWindow.sessionRequestCache;
+
+    const mockSessionResponse = { ok: true, status: 200 };
+    const mockRetryResponse = { ok: true, status: 200 };
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({ ok: false, status: 401 })
+      .mockResolvedValueOnce(mockSessionResponse)
+      .mockResolvedValueOnce(mockRetryResponse);
+
+    await fetchWithAuth('/api/test', {}, 1);
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/auth/session',
+      expect.objectContaining({ method: 'GET', credentials: 'include', cache: 'no-store' })
+    );
+  });
 });

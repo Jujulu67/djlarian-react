@@ -256,6 +256,7 @@ model Project {
   collab               String?                 // Collaborateurs
   label                String?                 // Label ciblé
   labelFinal           String?                 // Label final (si signé)
+  deadline             DateTime?               // Date limite (deadline)
   releaseDate          DateTime?               // Date de sortie
   externalLink         String?                 // Lien vers SoundCloud, Spotify, etc.
   streamsJ7            Int?                    // Streams à J+7
@@ -266,6 +267,8 @@ model Project {
   streamsJ84           Int?                    // Streams à J+84
   streamsJ180          Int?                    // Streams à J+180 (6 mois)
   streamsJ365          Int?                    // Streams à J+365 (1 an)
+  progress             Int?                    // Pourcentage d'avancement (0-100)
+  note                 String?                 // Note/informations pertinentes sur le projet
   createdAt            DateTime                @default(now())
   updatedAt            DateTime                @updatedAt
   User                 User                    @relation(fields: [userId], references: [id], onDelete: Cascade)

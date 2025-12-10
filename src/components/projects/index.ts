@@ -6,4 +6,5 @@ export { ImportProjectsDialog } from './ImportProjectsDialog';
 export { ImportStreamsDialog } from './ImportStreamsDialog';
 export { ReleaseCalendar } from './ReleaseCalendar';
 export { MilestoneInbox } from './MilestoneInbox';
+export { ProjectNoteEditor } from './ProjectNoteEditor';
 export * from './types';
