@@ -471,7 +471,7 @@ if [ "$NODE_ENV" = "production" ]; then
       echo "   ✅ Toutes les migrations sont déjà appliquées selon migrate status"
       echo "   🔄 Vérification avec db push pour garantir la synchronisation du schéma..."
       set +e
-      DB_PUSH_VERIFY=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma db push --skip-generate --accept-data-loss 2>&1)
+      DB_PUSH_VERIFY=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma db push --accept-data-loss 2>&1)
       DB_PUSH_VERIFY_EXIT=$?
       set -e
       
@@ -526,7 +526,7 @@ if [ "$NODE_ENV" = "production" ]; then
           if [ $DRIFT_EXIT -ne 0 ] || echo "$DRIFT_CHECK" | grep -qE "drift|different|Your database schema is not in sync"; then
             echo "   ⚠️  Drift détecté après migrate deploy, synchronisation avec db push..."
             set +e
-            DB_PUSH_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma db push --skip-generate --accept-data-loss 2>&1)
+            DB_PUSH_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma db push --accept-data-loss 2>&1)
             DB_PUSH_EXIT=$?
             set -e
             
@@ -602,7 +602,7 @@ if [ "$NODE_ENV" = "production" ]; then
         echo "   🔄 Tentative de synchronisation avec 'prisma db push' (fallback)..."
         echo "   ⚠️  IMPORTANT: db push va synchroniser le schéma même si migrate deploy a échoué"
         set +e
-        DB_PUSH_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma db push --skip-generate --accept-data-loss 2>&1)
+        DB_PUSH_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma db push --accept-data-loss 2>&1)
         DB_PUSH_EXIT=$?
         set -e
         
@@ -645,7 +645,7 @@ if [ "$NODE_ENV" = "production" ]; then
     echo "   npx prisma migrate dev --name init"
     # db push non-bloquant pour ne pas faire échouer le build
     set +e
-    DB_PUSH_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma db push --skip-generate --accept-data-loss 2>&1)
+    DB_PUSH_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma db push --accept-data-loss 2>&1)
     DB_PUSH_EXIT=$?
     set -e
     
@@ -664,7 +664,7 @@ if [ "$NODE_ENV" = "production" ]; then
   # Même si migrate deploy a réussi, db push s'assure qu'il n'y a pas de différences subtiles
   echo "🔍 Synchronisation finale du schéma avec db push (garantie de cohérence)..."
   set +e
-  FINAL_DB_PUSH=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma db push --skip-generate --accept-data-loss 2>&1)
+  FINAL_DB_PUSH=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma db push --accept-data-loss 2>&1)
   FINAL_DB_PUSH_EXIT=$?
   set -e
   
