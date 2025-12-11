@@ -108,6 +108,51 @@ describe('fetchThumbnailFromPlatforms', () => {
 
       expect(result).toBeNull();
     });
+
+    it('should return null if Spotify album has no images', async () => {
+      mockGetSpotifyToken.mockResolvedValue('test-token');
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          images: [],
+        }),
+      } as Response);
+
+      const result = await fetchThumbnailFromPlatforms({
+        spotify: 'https://open.spotify.com/album/123',
+      });
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null if Spotify track album has no images', async () => {
+      mockGetSpotifyToken.mockResolvedValue('test-token');
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          album: {
+            images: [],
+          },
+        }),
+      } as Response);
+
+      const result = await fetchThumbnailFromPlatforms({
+        spotify: 'https://open.spotify.com/track/456',
+      });
+
+      expect(result).toBeNull();
+    });
+
+    it('should handle Spotify fetch errors', async () => {
+      mockGetSpotifyToken.mockResolvedValue('test-token');
+      mockFetch.mockRejectedValueOnce(new Error('Network error'));
+
+      const result = await fetchThumbnailFromPlatforms({
+        spotify: 'https://open.spotify.com/album/123',
+      });
+
+      expect(result).toBeNull();
+    });
   });
 
   describe('SoundCloud', () => {
@@ -182,6 +227,34 @@ describe('fetchThumbnailFromPlatforms', () => {
 
       expect(result).toBeNull();
     });
+
+    it('should return null if SoundCloud has no cover image', async () => {
+      const mockCheerio = jest.fn(() => ({
+        attr: jest.fn(() => null),
+        length: 0,
+      }));
+      mockCheerioLoad.mockReturnValue(mockCheerio as any);
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        text: async () => '<html></html>',
+      } as Response);
+
+      const result = await fetchThumbnailFromPlatforms({
+        soundcloud: 'https://soundcloud.com/track',
+      });
+
+      expect(result).toBeNull();
+    });
+
+    it('should handle SoundCloud fetch errors', async () => {
+      mockFetch.mockRejectedValueOnce(new Error('Network error'));
+
+      const result = await fetchThumbnailFromPlatforms({
+        soundcloud: 'https://soundcloud.com/track',
+      });
+
+      expect(result).toBeNull();
+    });
   });
 
   describe('YouTube', () => {
@@ -244,6 +317,17 @@ describe('fetchThumbnailFromPlatforms', () => {
 
       const result = await fetchThumbnailFromPlatforms({
         youtube: 'https://youtube.com/watch?v=video789',
+      });
+
+      expect(result).toBeNull();
+    });
+
+    it('should handle YouTube fetch errors', async () => {
+      mockExtractPlatformId.mockReturnValue('video123');
+      mockFetch.mockRejectedValueOnce(new Error('Network error'));
+
+      const result = await fetchThumbnailFromPlatforms({
+        youtube: 'https://youtube.com/watch?v=video123',
       });
 
       expect(result).toBeNull();

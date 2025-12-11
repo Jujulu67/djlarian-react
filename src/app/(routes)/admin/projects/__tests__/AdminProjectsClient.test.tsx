@@ -67,27 +67,36 @@ describe('AdminProjectsClient', () => {
   });
 
   it('should display statistics using counts API', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        data: {
-          total: 2,
-          statusBreakdown: {
-            EN_COURS: 1,
-            TERMINE: 1,
-            ANNULE: 0,
-            A_REWORK: 0,
-            GHOST_PRODUCTION: 0,
-          },
-        },
-      }),
+    (global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (String(url).includes('/api/projects/counts')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            data: {
+              total: 2,
+              statusBreakdown: {
+                EN_COURS: 1,
+                TERMINE: 1,
+                ANNULE: 0,
+                A_REWORK: 0,
+                GHOST_PRODUCTION: 0,
+              },
+            },
+          }),
+        });
+      }
+      // Default response for other calls
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ data: mockProjects }),
+      });
     });
 
     await act(async () => {
       render(<AdminProjectsClient initialProjects={mockProjects} users={mockUsers} />);
     });
 
-    // Wait for counts to be fetched
+    // Wait for counts to be fetched (with debounce of 300ms, wait a bit longer)
     await waitFor(
       () => {
         const fetchCalls = (global.fetch as jest.Mock).mock.calls;
@@ -96,7 +105,7 @@ describe('AdminProjectsClient', () => {
         );
         expect(hasCountsCall).toBe(true);
       },
-      { timeout: 500 }
+      { timeout: 1000 }
     );
   });
 

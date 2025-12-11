@@ -101,4 +101,8 @@ describe('getOriginalImageUrl', () => {
   it('should return null for null imageId', () => {
     expect(getOriginalImageUrl(null)).toBeNull();
   });
+
+  it('should return null for undefined imageId', () => {
+    expect(getOriginalImageUrl(undefined)).toBeNull();
+  });
 });

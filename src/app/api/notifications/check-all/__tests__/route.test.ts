@@ -22,6 +22,7 @@ jest.mock('@/lib/utils/checkUpcomingReleases', () => ({
 jest.mock('@/lib/logger', () => ({
   logger: {
     error: jest.fn(),
+    warn: jest.fn(),
   },
 }));
 

@@ -238,4 +238,210 @@ describe('useNotifications', () => {
       expect(fetchWithAuth).toHaveBeenCalledWith(expect.stringContaining('unreadOnly=true'));
     });
   });
+
+  it('should filter by type when option is set', async () => {
+    const { fetchWithAuth } = require('@/lib/api/fetchWithAuth');
+    (fetchWithAuth as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: {
+          notifications: [],
+          unreadCount: 0,
+          total: 0,
+        },
+      }),
+    });
+
+    renderHook(() => useNotifications({ type: 'MILESTONE' }));
+
+    await waitFor(() => {
+      expect(fetchWithAuth).toHaveBeenCalledWith(expect.stringContaining('type=MILESTONE'));
+    });
+  });
+
+  it('should handle fetch errors gracefully', async () => {
+    const { fetchWithAuth } = require('@/lib/api/fetchWithAuth');
+    (fetchWithAuth as jest.Mock).mockRejectedValue(new Error('Network error'));
+
+    const { result } = renderHook(() => useNotifications());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.error).toBeTruthy();
+  });
+
+  it('should handle 401 errors silently', async () => {
+    const { fetchWithAuth } = require('@/lib/api/fetchWithAuth');
+    (fetchWithAuth as jest.Mock).mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: async () => ({ error: 'Non autorisé' }),
+    });
+
+    const { result } = renderHook(() => useNotifications());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.error).toBeNull();
+    expect(result.current.notifications).toEqual([]);
+  });
+
+  it('should handle archive notification', async () => {
+    const { fetchWithAuth } = require('@/lib/api/fetchWithAuth');
+    (fetchWithAuth as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          data: {
+            notifications: [
+              {
+                id: '1',
+                userId: 'user1',
+                type: 'INFO',
+                title: 'Test',
+                message: 'Test message',
+                metadata: null,
+                isRead: false,
+                createdAt: '2024-01-01',
+                readAt: null,
+                projectId: null,
+              },
+            ],
+            unreadCount: 1,
+            total: 1,
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: { success: true } }),
+      });
+
+    const { result } = renderHook(() => useNotifications());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.archive('1');
+    });
+
+    expect(fetchWithAuth).toHaveBeenCalledWith('/api/notifications/1/archive', {
+      method: 'PATCH',
+    });
+  });
+
+  it('should handle unarchive notification', async () => {
+    const { fetchWithAuth } = require('@/lib/api/fetchWithAuth');
+    (fetchWithAuth as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          data: {
+            notifications: [],
+            unreadCount: 0,
+            total: 0,
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: { success: true } }),
+      });
+
+    const { result } = renderHook(() => useNotifications());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.unarchive('1');
+    });
+
+    expect(fetchWithAuth).toHaveBeenCalledWith('/api/notifications/1/unarchive', {
+      method: 'PATCH',
+    });
+  });
+
+  it('should handle delete notification', async () => {
+    const { fetchWithAuth } = require('@/lib/api/fetchWithAuth');
+    (fetchWithAuth as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          data: {
+            notifications: [],
+            unreadCount: 0,
+            total: 0,
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: { success: true } }),
+      });
+
+    const { result } = renderHook(() => useNotifications());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.delete('1');
+    });
+
+    expect(fetchWithAuth).toHaveBeenCalledWith('/api/notifications/1/delete', {
+      method: 'DELETE',
+    });
+  });
+
+  it('should handle loading state during session loading', () => {
+    const { fetchWithAuth } = require('@/lib/api/fetchWithAuth');
+    (useSession as jest.Mock).mockReturnValue({
+      data: null,
+      status: 'loading',
+    });
+    (fetchWithAuth as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: {
+          notifications: [],
+          unreadCount: 0,
+          total: 0,
+        },
+      }),
+    });
+
+    const { result } = renderHook(() => useNotifications());
+
+    // When session is loading, isLoading might be true initially
+    // But the hook might not fetch until session is authenticated
+    expect(result.current.notifications).toEqual([]);
+  });
+
+  it('should not fetch when session is loading', async () => {
+    const { fetchWithAuth } = require('@/lib/api/fetchWithAuth');
+    (useSession as jest.Mock).mockReturnValue({
+      data: null,
+      status: 'loading',
+    });
+
+    renderHook(() => useNotifications());
+
+    // Wait a bit to ensure no fetch is called
+    await waitFor(
+      () => {
+        // The hook might not fetch immediately when loading
+        expect(fetchWithAuth).not.toHaveBeenCalled();
+      },
+      { timeout: 200 }
+    );
+  });
 });
