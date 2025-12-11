@@ -10,6 +10,16 @@ interface HeroSectionProps {
   config: HomepageConfig;
 }
 
+// Helper function pour générer les particules (en dehors du composant pour éviter les problèmes de pureté)
+function generateParticles() {
+  return Array.from({ length: 20 }, (_, i) => ({
+    id: i,
+    left: `${Math.random() * 100}%`,
+    delay: `${Math.random() * 15}s`,
+    size: `${2 + Math.random() * 4}px`,
+  }));
+}
+
 export default function HeroSection({ config }: HeroSectionProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -52,14 +62,8 @@ export default function HeroSection({ config }: HeroSectionProps) {
   const heroY = useTransform(scrollYProgress, [0, 1], [0, isMobile ? 0 : -50]);
 
   // Générer des particules flottantes - désactivées sur mobile
-  const particles = isMobile
-    ? []
-    : Array.from({ length: 20 }, (_, i) => ({
-        id: i,
-        left: `${Math.random() * 100}%`,
-        delay: `${Math.random() * 15}s`,
-        size: `${2 + Math.random() * 4}px`,
-      }));
+  // Utilisation de useState avec initialisation lazy pour éviter les appels impurs pendant le rendu
+  const [particles] = useState(() => generateParticles());
 
   return (
     <div
@@ -109,19 +113,20 @@ export default function HeroSection({ config }: HeroSectionProps) {
       </div>
 
       {/* Floating Particles */}
-      {particles.map((particle) => (
-        <div
-          key={particle.id}
-          className="particle"
-          style={{
-            left: particle.left,
-            top: '100%',
-            animationDelay: particle.delay,
-            width: particle.size,
-            height: particle.size,
-          }}
-        />
-      ))}
+      {!isMobile &&
+        particles.map((particle) => (
+          <div
+            key={particle.id}
+            className="particle"
+            style={{
+              left: particle.left,
+              top: '100%',
+              animationDelay: particle.delay,
+              width: particle.size,
+              height: particle.size,
+            }}
+          />
+        ))}
 
       {/* Hero Content */}
       <motion.div

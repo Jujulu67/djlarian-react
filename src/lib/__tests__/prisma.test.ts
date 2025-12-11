@@ -90,4 +90,115 @@ describe('prisma', () => {
     const prisma = (await import('../prisma')).default;
     expect(prisma).toBeDefined();
   });
+
+  it('should use SQLite adapter for file: URLs', async () => {
+    process.env.DATABASE_URL = 'file:./test.db';
+    jest.resetModules();
+    const { PrismaBetterSqlite3 } = await import('@prisma/adapter-better-sqlite3');
+    await import('../prisma');
+    expect(PrismaBetterSqlite3).toHaveBeenCalled();
+  });
+
+  it('should use Neon adapter for Neon URLs', async () => {
+    process.env.DATABASE_URL = 'postgresql://user:pass@ep.neon.tech/db';
+    jest.resetModules();
+    const { PrismaNeon } = await import('@prisma/adapter-neon');
+    await import('../prisma');
+    expect(PrismaNeon).toHaveBeenCalled();
+  });
+
+  it('should use PostgreSQL adapter for postgresql:// URLs', async () => {
+    process.env.DATABASE_URL = 'postgresql://user:pass@localhost/db';
+    jest.resetModules();
+    const { PrismaPg } = await import('@prisma/adapter-pg');
+    await import('../prisma');
+    expect(PrismaPg).toHaveBeenCalled();
+  });
+
+  it('should handle .db-switch.json configuration', async () => {
+    process.env.DATABASE_URL = 'file:./dev.db';
+    process.env.DATABASE_URL_PRODUCTION = 'postgresql://prod';
+    mockExistsSync.mockImplementation((path: string) => {
+      if (path.includes('.db-switch.json')) return true;
+      if (path.includes('schema.prisma')) return true;
+      return false;
+    });
+    mockReadFileSync.mockImplementation((path: string) => {
+      if (path.includes('.db-switch.json')) {
+        return JSON.stringify({ useProduction: true });
+      }
+      if (path.includes('schema.prisma')) {
+        return 'provider = "sqlite"';
+      }
+      return '';
+    });
+    jest.resetModules();
+    const prisma = (await import('../prisma')).default;
+    expect(prisma).toBeDefined();
+  });
+
+  it('should handle schema synchronization', async () => {
+    process.env.DATABASE_URL = 'file:./dev.db';
+    mockExistsSync.mockImplementation((path: string) => {
+      if (path.includes('schema.prisma')) return true;
+      if (path.includes('.db-switch.json')) return true;
+      return false;
+    });
+    mockReadFileSync.mockImplementation((path: string) => {
+      if (path.includes('.db-switch.json')) {
+        return JSON.stringify({ useProduction: false });
+      }
+      if (path.includes('schema.prisma')) {
+        return 'provider = "postgresql"';
+      }
+      return '';
+    });
+    jest.resetModules();
+    const prisma = (await import('../prisma')).default;
+    expect(prisma).toBeDefined();
+    // Should have attempted to write schema
+    expect(mockWriteFileSync).toHaveBeenCalled();
+  });
+
+  it('should handle missing DATABASE_URL_PRODUCTION when switch is enabled', async () => {
+    process.env.DATABASE_URL = 'file:./dev.db';
+    delete process.env.DATABASE_URL_PRODUCTION;
+    mockExistsSync.mockImplementation((path: string) => {
+      if (path.includes('.db-switch.json')) return true;
+      return false;
+    });
+    mockReadFileSync.mockImplementation((path: string) => {
+      if (path.includes('.db-switch.json')) {
+        return JSON.stringify({ useProduction: true });
+      }
+      return '';
+    });
+    jest.resetModules();
+    const prisma = (await import('../prisma')).default;
+    expect(prisma).toBeDefined();
+  });
+
+  it('should handle restart marker cleanup', async () => {
+    process.env.DATABASE_URL = 'file:./dev.db';
+    mockExistsSync.mockImplementation((path: string) => {
+      if (path.includes('.db-restart-required.json')) return true;
+      if (path.includes('.db-switch.json')) return true;
+      if (path.includes('schema.prisma')) return true;
+      return false;
+    });
+    mockReadFileSync.mockImplementation((path: string) => {
+      if (path.includes('.db-switch.json')) {
+        return JSON.stringify({ useProduction: false });
+      }
+      if (path.includes('schema.prisma')) {
+        return 'provider = "sqlite"';
+      }
+      return '';
+    });
+    jest.resetModules();
+    const prisma = (await import('../prisma')).default;
+    expect(prisma).toBeDefined();
+    // Should have attempted to unlink restart marker
+    expect(mockUnlinkSync).toHaveBeenCalled();
+  });
 });

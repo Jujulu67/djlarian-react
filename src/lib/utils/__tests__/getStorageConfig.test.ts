@@ -139,6 +139,32 @@ describe('getStorageConfig', () => {
       const result = shouldUseBlobStorage();
 
       expect(result).toBe(false);
+      expect(logger.warn).toHaveBeenCalled();
+    });
+
+    it('should handle switch file with useProduction false', () => {
+      process.env.NODE_ENV = 'development';
+      process.env.BLOB_READ_WRITE_TOKEN = 'test-token';
+      (fs.existsSync as jest.Mock).mockReturnValue(true);
+      (fs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify({ useProduction: false }));
+      (path.join as jest.Mock).mockReturnValue('.db-switch.json');
+
+      const result = shouldUseBlobStorage();
+
+      expect(result).toBe(false);
+    });
+
+    it('should handle switch file with useProduction true but no blob token', () => {
+      process.env.NODE_ENV = 'development';
+      delete process.env.BLOB_READ_WRITE_TOKEN;
+      (fs.existsSync as jest.Mock).mockReturnValue(true);
+      (fs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify({ useProduction: true }));
+      (path.join as jest.Mock).mockReturnValue('.db-switch.json');
+
+      const result = shouldUseBlobStorage();
+
+      expect(result).toBe(false);
+      expect(logger.warn).toHaveBeenCalled();
     });
   });
 });

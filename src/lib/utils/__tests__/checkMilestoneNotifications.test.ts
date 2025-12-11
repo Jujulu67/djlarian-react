@@ -207,6 +207,50 @@ describe('checkMilestoneNotifications', () => {
       expect(mockPrisma.notification.create).not.toHaveBeenCalled();
     });
 
+    it('should handle J180 milestone with streamsJ180 as undefined', async () => {
+      const releaseDate = new Date();
+      releaseDate.setDate(releaseDate.getDate() - 200);
+
+      mockPrisma.project.findUnique.mockResolvedValue({
+        id: 'project-1',
+        userId: 'user-1',
+        name: 'Test Project',
+        releaseDate,
+        streamsJ180: undefined, // undefined instead of null
+        streamsJ365: null,
+      } as any);
+      mockPrisma.notification.findMany.mockResolvedValue([]);
+      mockPrisma.notification.create.mockResolvedValue({
+        id: 'notif-1',
+      } as any);
+
+      const result = await checkProjectMilestones('project-1', 'user-1');
+
+      expect(result.created).toBeGreaterThanOrEqual(1);
+    });
+
+    it('should handle J365 milestone with streamsJ365 as undefined', async () => {
+      const releaseDate = new Date();
+      releaseDate.setDate(releaseDate.getDate() - 400);
+
+      mockPrisma.project.findUnique.mockResolvedValue({
+        id: 'project-1',
+        userId: 'user-1',
+        name: 'Test Project',
+        releaseDate,
+        streamsJ180: 1000,
+        streamsJ365: undefined, // undefined instead of null
+      } as any);
+      mockPrisma.notification.findMany.mockResolvedValue([]);
+      mockPrisma.notification.create.mockResolvedValue({
+        id: 'notif-1',
+      } as any);
+
+      const result = await checkProjectMilestones('project-1', 'user-1');
+
+      expect(result.created).toBeGreaterThanOrEqual(1);
+    });
+
     it('should handle errors gracefully', async () => {
       mockPrisma.project.findUnique.mockRejectedValue(new Error('Database error'));
 
@@ -267,6 +311,84 @@ describe('checkMilestoneNotifications', () => {
 
       expect(result.errors).toHaveLength(1);
       expect(result.errors[0].error).toBe('Database error');
+    });
+
+    it('should handle notification creation errors', async () => {
+      const releaseDate = new Date();
+      releaseDate.setDate(releaseDate.getDate() - 200);
+
+      mockPrisma.project.findUnique.mockResolvedValue({
+        id: 'project-1',
+        userId: 'user-1',
+        name: 'Test Project',
+        releaseDate,
+        streamsJ180: null,
+        streamsJ365: null,
+      } as any);
+      mockPrisma.notification.findMany.mockResolvedValue([]);
+      mockPrisma.notification.create.mockRejectedValue(new Error('Create error'));
+
+      const result = await checkProjectMilestones('project-1', 'user-1');
+
+      expect(result.errors.length).toBeGreaterThan(0);
+    });
+
+    it('should handle notifications with invalid JSON metadata', async () => {
+      const releaseDate = new Date();
+      releaseDate.setDate(releaseDate.getDate() - 200);
+
+      mockPrisma.project.findUnique.mockResolvedValue({
+        id: 'project-1',
+        userId: 'user-1',
+        name: 'Test Project',
+        releaseDate,
+        streamsJ180: null,
+        streamsJ365: null,
+      } as any);
+      // Notification avec metadata invalide
+      mockPrisma.notification.findMany.mockResolvedValue([
+        {
+          id: 'notif-1',
+          metadata: 'invalid json{',
+        },
+      ] as any);
+      mockPrisma.notification.create.mockResolvedValue({
+        id: 'notif-2',
+      } as any);
+
+      const result = await checkProjectMilestones('project-1', 'user-1');
+
+      // Should create notification because invalid metadata is ignored
+      expect(result.created).toBeGreaterThan(0);
+    });
+
+    it('should handle notifications with null metadata', async () => {
+      const releaseDate = new Date();
+      releaseDate.setDate(releaseDate.getDate() - 200);
+
+      mockPrisma.project.findUnique.mockResolvedValue({
+        id: 'project-1',
+        userId: 'user-1',
+        name: 'Test Project',
+        releaseDate,
+        streamsJ180: null,
+        streamsJ365: null,
+      } as any);
+      // Notification sans metadata
+      mockPrisma.notification.findMany.mockResolvedValue([
+        {
+          id: 'notif-1',
+          metadata: null,
+        },
+      ] as any);
+      mockPrisma.notification.create.mockResolvedValue({
+        id: 'notif-2',
+      } as any);
+
+      const result = await checkProjectMilestones('project-1', 'user-1');
+
+      // Should create notification because null metadata is ignored
+      expect(result.created).toBeGreaterThan(0);
     });
   });
 });

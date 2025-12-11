@@ -2,6 +2,15 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ProjectNoteEditor } from '../ProjectNoteEditor';
 
+// Helper function to switch to edit mode if needed
+function ensureEditMode() {
+  // If component is in preview mode (value exists), click "Éditer" button
+  const editButton = screen.queryByText('Éditer');
+  if (editButton && !editButton.className.includes('bg-purple-600')) {
+    fireEvent.click(editButton);
+  }
+}
+
 describe('ProjectNoteEditor', () => {
   const mockOnChange = jest.fn();
   const mockOnSave = jest.fn();
@@ -20,6 +29,10 @@ describe('ProjectNoteEditor', () => {
         onCancel={mockOnCancel}
       />
     );
+
+    // When value exists, component opens in preview mode, need to click "Éditer" to see textarea
+    const editButton = screen.getByText('Éditer');
+    fireEvent.click(editButton);
 
     expect(screen.getByDisplayValue('Test note')).toBeInTheDocument();
   });
@@ -118,6 +131,7 @@ describe('ProjectNoteEditor', () => {
       />
     );
 
+    ensureEditMode();
     const textarea = screen.getByDisplayValue('Test content');
     fireEvent.keyDown(textarea, { key: 'Escape' });
 
@@ -134,6 +148,7 @@ describe('ProjectNoteEditor', () => {
       />
     );
 
+    ensureEditMode();
     const textarea = screen.getByDisplayValue('Test content');
     fireEvent.keyDown(textarea, { key: 'Enter', ctrlKey: true });
 
@@ -262,6 +277,7 @@ describe('ProjectNoteEditor', () => {
       />
     );
 
+    ensureEditMode();
     const versionButton = screen.getByText('Version');
     fireEvent.click(versionButton);
 
@@ -555,6 +571,7 @@ describe('ProjectNoteEditor', () => {
       />
     );
 
+    ensureEditMode();
     const versionButton = screen.getByText('Version');
     fireEvent.click(versionButton);
 
@@ -572,6 +589,7 @@ describe('ProjectNoteEditor', () => {
       />
     );
 
+    ensureEditMode();
     const versionButton = screen.getByText('Version');
     fireEvent.click(versionButton);
 
@@ -589,6 +607,7 @@ describe('ProjectNoteEditor', () => {
       />
     );
 
+    ensureEditMode();
     const textarea = screen.getByDisplayValue('Selected text here');
     // Select some text
     textarea.setSelectionRange(0, 8); // Select "Selected"
@@ -741,6 +760,7 @@ describe('ProjectNoteEditor', () => {
       />
     );
 
+    ensureEditMode();
     const textarea = screen.getByDisplayValue('Test content');
     fireEvent.keyDown(textarea, { key: 'Enter', metaKey: true });
 
@@ -1501,6 +1521,7 @@ describe('ProjectNoteEditor', () => {
       />
     );
 
+    ensureEditMode();
     const versionButton = screen.getByText('Version');
     fireEvent.click(versionButton);
 
@@ -1518,6 +1539,7 @@ describe('ProjectNoteEditor', () => {
       />
     );
 
+    ensureEditMode();
     const versionButton = screen.getByText('Version');
     fireEvent.click(versionButton);
 
@@ -1535,6 +1557,7 @@ describe('ProjectNoteEditor', () => {
       />
     );
 
+    ensureEditMode();
     const versionButton = screen.getByText('Version');
     fireEvent.click(versionButton);
 

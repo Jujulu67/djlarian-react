@@ -1,6 +1,57 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { EditableCell } from '../EditableCell';
 
+// Mock HTMLCanvasElement.getContext for GlassSelect dropdown width calculation
+Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
+  value: jest.fn(() => ({
+    measureText: jest.fn(() => ({ width: 100 })),
+    font: '',
+  })),
+});
+
+// Helper function to interact with GlassSelect dropdown
+async function selectGlassSelectOption(triggerText: string, optionText: string) {
+  // Find GlassSelect button by its structure: it's a button with a span containing the text
+  // and it's inside a div with class "relative inline-block"
+  let triggerButton: HTMLButtonElement | null = null;
+  await waitFor(
+    () => {
+      // Try to find by text first (most reliable)
+      const textElements = screen.queryAllByText(triggerText, { exact: false });
+      if (textElements.length > 0) {
+        triggerButton = textElements
+          .map((el) => el.closest('button'))
+          .find((btn) => btn && !btn.closest('[class*="fixed"]')) as HTMLButtonElement | null;
+      }
+      // Fallback: find by structure if text search fails
+      if (!triggerButton) {
+        const glassSelectContainer = document.querySelector('.relative.inline-block');
+        if (glassSelectContainer) {
+          triggerButton = glassSelectContainer.querySelector('button') as HTMLButtonElement | null;
+        }
+      }
+      expect(triggerButton).toBeInTheDocument();
+    },
+    { timeout: 3000 }
+  );
+
+  fireEvent.click(triggerButton!);
+
+  await waitFor(() => {
+    const dropdownButtons = document.body.querySelectorAll('button');
+    const optionButton = Array.from(dropdownButtons).find(
+      (btn) =>
+        btn.textContent?.trim() === optionText &&
+        btn !== triggerButton &&
+        btn.closest('[class*="fixed"]')
+    );
+    expect(optionButton).toBeInTheDocument();
+    if (optionButton) {
+      fireEvent.click(optionButton);
+    }
+  });
+}
+
 describe('EditableCell', () => {
   const mockOnSave = jest.fn().mockResolvedValue(undefined);
 
@@ -76,10 +127,11 @@ describe('EditableCell', () => {
   it('should render select type', () => {
     render(<EditableCell value="EN_COURS" field="status" type="select" onSave={mockOnSave} />);
 
-    // Select renders as a select element, check that it exists and has the value
-    const select = document.querySelector('select');
-    expect(select).toBeInTheDocument();
-    expect(select).toHaveValue('EN_COURS');
+    // GlassSelect renders as a button with the label text inside a span
+    const textElement = screen.getByText('En cours');
+    const button = textElement.closest('button');
+    expect(button).toBeInTheDocument();
+    expect(button?.tagName).toBe('BUTTON');
   });
 
   it('should render date type', () => {
@@ -183,16 +235,27 @@ describe('EditableCell', () => {
   it('should render label select type', () => {
     render(<EditableCell value="ACCEPTE" field="label" type="select" onSave={mockOnSave} />);
 
-    const select = document.querySelector('select');
-    expect(select).toBeInTheDocument();
-    expect(select).toHaveValue('ACCEPTE');
+    // GlassSelect renders as a button with the label text inside a span
+    const textElement = screen.getByText('Accepté');
+    const button = textElement.closest('button');
+    expect(button).toBeInTheDocument();
+    expect(button?.tagName).toBe('BUTTON');
   });
 
   it('should normalize label value on save', async () => {
     render(<EditableCell value="accepté" field="label" type="select" onSave={mockOnSave} />);
 
-    const select = document.querySelector('select') as HTMLSelectElement;
-    fireEvent.change(select, { target: { value: 'EN_COURS' } });
+    // GlassSelect: click button to open dropdown, then click option
+    const button = screen.getByText('Accepté');
+    fireEvent.click(button);
+
+    // Wait for dropdown to appear and click on "En cours" option
+    await waitFor(() => {
+      const option = screen.getByText('En cours');
+      expect(option).toBeInTheDocument();
+    });
+    const option = screen.getByText('En cours');
+    fireEvent.click(option);
 
     await waitFor(() => {
       expect(mockOnSave).toHaveBeenCalledWith('label', 'EN_COURS');
@@ -202,8 +265,17 @@ describe('EditableCell', () => {
   it('should auto-save on status select change', async () => {
     render(<EditableCell value="EN_COURS" field="status" type="select" onSave={mockOnSave} />);
 
-    const select = document.querySelector('select') as HTMLSelectElement;
-    fireEvent.change(select, { target: { value: 'TERMINE' } });
+    // GlassSelect: click button to open dropdown, then click option
+    const button = screen.getByText('En cours');
+    fireEvent.click(button);
+
+    // Wait for dropdown to appear and click on "Terminé" option
+    await waitFor(() => {
+      const option = screen.getByText('Terminé');
+      expect(option).toBeInTheDocument();
+    });
+    const option = screen.getByText('Terminé');
+    fireEvent.click(option);
 
     await waitFor(() => {
       expect(mockOnSave).toHaveBeenCalledWith('status', 'TERMINE');
@@ -407,9 +479,17 @@ describe('EditableCell', () => {
   it('should normalize label value from old format', async () => {
     render(<EditableCell value="ACCEPTE" field="label" type="select" onSave={mockOnSave} />);
 
-    const select = document.querySelector('select') as HTMLSelectElement;
-    // Change to a value that will be normalized
-    fireEvent.change(select, { target: { value: 'EN_COURS' } });
+    // GlassSelect: click button to open dropdown, then click option
+    const button = screen.getByText('Accepté');
+    fireEvent.click(button);
+
+    // Wait for dropdown to appear and click on "En cours" option
+    await waitFor(() => {
+      const option = screen.getByText('En cours');
+      expect(option).toBeInTheDocument();
+    });
+    const option = screen.getByText('En cours');
+    fireEvent.click(option);
 
     await waitFor(() => {
       expect(mockOnSave).toHaveBeenCalledWith('label', 'EN_COURS');
@@ -419,8 +499,27 @@ describe('EditableCell', () => {
   it('should handle null label value', async () => {
     render(<EditableCell value={null} field="label" type="select" onSave={mockOnSave} />);
 
-    const select = document.querySelector('select') as HTMLSelectElement;
-    fireEvent.change(select, { target: { value: '' } });
+    // GlassSelect: when value is null, it shows "-" placeholder
+    // Text is inside a span within the button, so find text then get button parent
+    const textElement = screen.getByText('-');
+    const button = textElement.closest('button');
+    expect(button).toBeInTheDocument();
+
+    // Click to open dropdown
+    fireEvent.click(button!);
+
+    // Wait for dropdown and click on "-" option in dropdown
+    await waitFor(() => {
+      const dropdownButtons = document.body.querySelectorAll('button');
+      const optionButton = Array.from(dropdownButtons).find(
+        (btn) =>
+          btn.textContent?.trim() === '-' && btn !== button && btn.closest('[class*="fixed"]')
+      );
+      expect(optionButton).toBeInTheDocument();
+      if (optionButton) {
+        fireEvent.click(optionButton);
+      }
+    });
 
     await waitFor(() => {
       expect(mockOnSave).toHaveBeenCalledWith('label', null);
@@ -475,9 +574,10 @@ describe('EditableCell', () => {
   it('should handle status select with invalid value', () => {
     render(<EditableCell value="INVALID" field="status" type="select" onSave={mockOnSave} />);
 
-    // When status is invalid, the component returns null, so no select is rendered
-    const select = document.querySelector('select');
-    expect(select).not.toBeInTheDocument();
+    // When status is invalid, GlassSelect may not render correctly, so no button with status label should be found
+    // The component should handle this gracefully
+    const button = screen.queryByText('En cours');
+    expect(button).not.toBeInTheDocument();
   });
 
   it('should prevent saving when already saving', async () => {
@@ -565,8 +665,9 @@ describe('EditableCell', () => {
   it('should handle label normalization with EN_COURS value', async () => {
     render(<EditableCell value="en cours" field="label" type="select" onSave={mockOnSave} />);
 
-    const select = document.querySelector('select') as HTMLSelectElement;
-    fireEvent.change(select, { target: { value: 'EN_COURS' } });
+    // Click on a different option first to trigger onChange, then back to "En cours" to test normalization
+    await selectGlassSelectOption('En cours', 'Accepté');
+    await selectGlassSelectOption('Accepté', 'En cours');
 
     await waitFor(() => {
       expect(mockOnSave).toHaveBeenCalledWith('label', 'EN_COURS');
@@ -576,8 +677,9 @@ describe('EditableCell', () => {
   it('should handle label normalization with REFUSE value', async () => {
     render(<EditableCell value="refusé" field="label" type="select" onSave={mockOnSave} />);
 
-    const select = document.querySelector('select') as HTMLSelectElement;
-    fireEvent.change(select, { target: { value: 'REFUSE' } });
+    // Click on a different option first, then back to "Refusé" to trigger onChange
+    await selectGlassSelectOption('Refusé', 'Accepté');
+    await selectGlassSelectOption('Accepté', 'Refusé');
 
     await waitFor(() => {
       expect(mockOnSave).toHaveBeenCalledWith('label', 'REFUSE');
@@ -662,8 +764,9 @@ describe('EditableCell', () => {
   it('should handle label normalization with different case variations', async () => {
     render(<EditableCell value="ACCEPTE" field="label" type="select" onSave={mockOnSave} />);
 
-    const select = document.querySelector('select') as HTMLSelectElement;
-    fireEvent.change(select, { target: { value: 'accepte' } });
+    // Click on a different option first, then back to "Accepté" to trigger onChange
+    await selectGlassSelectOption('Accepté', 'En cours');
+    await selectGlassSelectOption('En cours', 'Accepté');
 
     await waitFor(() => {
       expect(mockOnSave).toHaveBeenCalled();
@@ -673,8 +776,9 @@ describe('EditableCell', () => {
   it('should handle label with value not in LABEL_OPTIONS', async () => {
     render(<EditableCell value="INVALID" field="label" type="select" onSave={mockOnSave} />);
 
-    const select = document.querySelector('select') as HTMLSelectElement;
-    fireEvent.change(select, { target: { value: 'INVALID' } });
+    // GlassSelect: when value is invalid, it shows "-" placeholder
+    // Open dropdown and click on "-" option to trigger onChange
+    await selectGlassSelectOption('-', '-');
 
     await waitFor(() => {
       expect(mockOnSave).toHaveBeenCalledWith('label', null);
@@ -734,8 +838,9 @@ describe('EditableCell', () => {
     render(<EditableCell value="" field="status" type="select" onSave={mockOnSave} />);
 
     // Status select with empty value returns null (no statusConfig found)
-    const select = document.querySelector('select');
-    expect(select).not.toBeInTheDocument();
+    // GlassSelect won't render a button with status label
+    const button = screen.queryByText('En cours');
+    expect(button).not.toBeInTheDocument();
   });
 
   it('should handle link type with empty string value', () => {
@@ -828,9 +933,9 @@ describe('EditableCell', () => {
   it('should handle label normalization with EN_COURS old format', async () => {
     render(<EditableCell value="en cours" field="label" type="select" onSave={mockOnSave} />);
 
-    const select = document.querySelector('select') as HTMLSelectElement;
-    // Change to a valid value - normalization happens on save, not on change
-    fireEvent.change(select, { target: { value: 'EN_COURS' } });
+    // Click on a different option first, then back to "En cours" to trigger onChange
+    await selectGlassSelectOption('En cours', 'Accepté');
+    await selectGlassSelectOption('Accepté', 'En cours');
 
     await waitFor(() => {
       expect(mockOnSave).toHaveBeenCalledWith('label', 'EN_COURS');
@@ -840,8 +945,9 @@ describe('EditableCell', () => {
   it('should handle label normalization with REFUSE old format', async () => {
     render(<EditableCell value="refuse" field="label" type="select" onSave={mockOnSave} />);
 
-    const select = document.querySelector('select') as HTMLSelectElement;
-    fireEvent.change(select, { target: { value: 'REFUSE' } });
+    // Click on a different option first, then back to "Refusé" to trigger onChange
+    await selectGlassSelectOption('Refusé', 'Accepté');
+    await selectGlassSelectOption('Accepté', 'Refusé');
 
     await waitFor(() => {
       expect(mockOnSave).toHaveBeenCalledWith('label', 'REFUSE');
@@ -851,8 +957,9 @@ describe('EditableCell', () => {
   it('should handle label normalization with ACCEPTE old format variations', async () => {
     render(<EditableCell value="ACCEPTÉ" field="label" type="select" onSave={mockOnSave} />);
 
-    const select = document.querySelector('select') as HTMLSelectElement;
-    fireEvent.change(select, { target: { value: 'ACCEPTE' } });
+    // Click on a different option first, then back to "Accepté" to trigger onChange
+    await selectGlassSelectOption('Accepté', 'En cours');
+    await selectGlassSelectOption('En cours', 'Accepté');
 
     await waitFor(() => {
       expect(mockOnSave).toHaveBeenCalledWith('label', 'ACCEPTE');
@@ -862,8 +969,9 @@ describe('EditableCell', () => {
   it('should handle label normalization with REFUSÉ old format', async () => {
     render(<EditableCell value="REFUSÉ" field="label" type="select" onSave={mockOnSave} />);
 
-    const select = document.querySelector('select') as HTMLSelectElement;
-    fireEvent.change(select, { target: { value: 'REFUSE' } });
+    // Click on a different option first, then back to "Refusé" to trigger onChange
+    await selectGlassSelectOption('Refusé', 'Accepté');
+    await selectGlassSelectOption('Accepté', 'Refusé');
 
     await waitFor(() => {
       expect(mockOnSave).toHaveBeenCalledWith('label', 'REFUSE');
@@ -873,8 +981,9 @@ describe('EditableCell', () => {
   it('should handle label normalization with value in LABEL_OPTIONS', async () => {
     render(<EditableCell value="EN_COURS" field="label" type="select" onSave={mockOnSave} />);
 
-    const select = document.querySelector('select') as HTMLSelectElement;
-    fireEvent.change(select, { target: { value: 'EN_COURS' } });
+    // Click on a different option first, then back to "En cours" to trigger onChange
+    await selectGlassSelectOption('En cours', 'Accepté');
+    await selectGlassSelectOption('Accepté', 'En cours');
 
     await waitFor(() => {
       expect(mockOnSave).toHaveBeenCalledWith('label', 'EN_COURS');
@@ -884,8 +993,9 @@ describe('EditableCell', () => {
   it('should handle label normalization with value not in LABEL_OPTIONS and not in valueMap', async () => {
     render(<EditableCell value="UNKNOWN" field="label" type="select" onSave={mockOnSave} />);
 
-    const select = document.querySelector('select') as HTMLSelectElement;
-    fireEvent.change(select, { target: { value: 'UNKNOWN' } });
+    // GlassSelect: when value is invalid, it shows "-" placeholder
+    // Open dropdown and click on "-" option to trigger onChange
+    await selectGlassSelectOption('-', '-');
 
     await waitFor(() => {
       expect(mockOnSave).toHaveBeenCalledWith('label', null);
@@ -971,8 +1081,16 @@ describe('EditableCell', () => {
   it('should handle select type with label field and empty value', async () => {
     render(<EditableCell value="ACCEPTE" field="label" type="select" onSave={mockOnSave} />);
 
-    const select = document.querySelector('select') as HTMLSelectElement;
-    fireEvent.change(select, { target: { value: '' } });
+    // GlassSelect: click button to open dropdown, then click "-" option
+    const button = screen.getByText('Accepté');
+    fireEvent.click(button);
+
+    await waitFor(() => {
+      const option = screen.getByText('-');
+      expect(option).toBeInTheDocument();
+    });
+    const option = screen.getByText('-');
+    fireEvent.click(option);
 
     await waitFor(() => {
       expect(mockOnSave).toHaveBeenCalledWith('label', null);
@@ -982,8 +1100,16 @@ describe('EditableCell', () => {
   it('should handle select type with label field and trimmed empty value', async () => {
     render(<EditableCell value="ACCEPTE" field="label" type="select" onSave={mockOnSave} />);
 
-    const select = document.querySelector('select') as HTMLSelectElement;
-    fireEvent.change(select, { target: { value: '   ' } });
+    // GlassSelect: click button to open dropdown, then click "-" option
+    const button = screen.getByText('Accepté');
+    fireEvent.click(button);
+
+    await waitFor(() => {
+      const option = screen.getByText('-');
+      expect(option).toBeInTheDocument();
+    });
+    const option = screen.getByText('-');
+    fireEvent.click(option);
 
     await waitFor(() => {
       expect(mockOnSave).toHaveBeenCalledWith('label', null);
@@ -1058,13 +1184,9 @@ describe('EditableCell', () => {
   it('should handle label normalization with value in valueMap (accepté)', async () => {
     render(<EditableCell value="accepté" field="label" type="select" onSave={mockOnSave} />);
 
-    // The normalization happens on save, so we need to trigger a save
-    // But since it's a select, the normalization happens when we change the value
-    const select = document.querySelector('select') as HTMLSelectElement;
-    // Simulate entering edit mode and changing value
-    // Actually, for select type with label field, normalization happens in handleSave
-    // So we need to test it differently - by changing to a value that will be normalized
-    fireEvent.change(select, { target: { value: 'accepté' } });
+    // Click on a different option first, then back to "Accepté" to trigger onChange
+    await selectGlassSelectOption('Accepté', 'En cours');
+    await selectGlassSelectOption('En cours', 'Accepté');
 
     await waitFor(() => {
       // The normalization should convert 'accepté' to 'ACCEPTE'
@@ -1075,8 +1197,9 @@ describe('EditableCell', () => {
   it('should handle label normalization with value in valueMap (En cours)', async () => {
     render(<EditableCell value="En cours" field="label" type="select" onSave={mockOnSave} />);
 
-    const select = document.querySelector('select') as HTMLSelectElement;
-    fireEvent.change(select, { target: { value: 'En cours' } });
+    // Click on a different option first, then back to "En cours" to trigger onChange
+    await selectGlassSelectOption('En cours', 'Accepté');
+    await selectGlassSelectOption('Accepté', 'En cours');
 
     await waitFor(() => {
       expect(mockOnSave).toHaveBeenCalled();
@@ -1086,8 +1209,9 @@ describe('EditableCell', () => {
   it('should handle label normalization with value in valueMap (EN COURS)', async () => {
     render(<EditableCell value="EN COURS" field="label" type="select" onSave={mockOnSave} />);
 
-    const select = document.querySelector('select') as HTMLSelectElement;
-    fireEvent.change(select, { target: { value: 'EN COURS' } });
+    // Click on a different option first, then back to "En cours" to trigger onChange
+    await selectGlassSelectOption('En cours', 'Accepté');
+    await selectGlassSelectOption('Accepté', 'En cours');
 
     await waitFor(() => {
       expect(mockOnSave).toHaveBeenCalled();
@@ -1097,8 +1221,24 @@ describe('EditableCell', () => {
   it('should handle label normalization with value in LABEL_OPTIONS but not in valueMap', async () => {
     render(<EditableCell value="EN_COURS" field="label" type="select" onSave={mockOnSave} />);
 
-    const select = document.querySelector('select') as HTMLSelectElement;
-    fireEvent.change(select, { target: { value: 'EN_COURS' } });
+    // GlassSelect: click button to open dropdown, then click "En cours" option
+    const button = screen.getByText('En cours');
+    fireEvent.click(button);
+
+    // Wait for dropdown to appear and find the option button
+    await waitFor(() => {
+      const dropdownButtons = document.body.querySelectorAll('button');
+      const optionButton = Array.from(dropdownButtons).find(
+        (btn) =>
+          btn.textContent?.trim() === 'En cours' &&
+          btn !== button &&
+          btn.closest('[class*="fixed"]')
+      );
+      expect(optionButton).toBeInTheDocument();
+      if (optionButton) {
+        fireEvent.click(optionButton);
+      }
+    });
 
     await waitFor(() => {
       expect(mockOnSave).toHaveBeenCalledWith('label', 'EN_COURS');

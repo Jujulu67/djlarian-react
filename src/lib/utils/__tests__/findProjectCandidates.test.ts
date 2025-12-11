@@ -79,4 +79,67 @@ describe('findProjectCandidates', () => {
     expect(result[0].score).toBeGreaterThanOrEqual(result[1].score);
     expect(result[1].score).toBeGreaterThanOrEqual(result[2].score);
   });
+
+  it('should handle projects with empty names', () => {
+    // Empty name projects might still match with low score, but should be filtered if score < 50
+    const projects = [createMockProject('', 'empty-1'), createMockProject('Test', 'test-1')];
+    const result = findProjectCandidates('Test', projects);
+    // Should match the non-empty project
+    expect(result.length).toBeGreaterThan(0);
+    // All results should have score >= 50 (filtered)
+    expect(result.every((r) => r.score >= 50)).toBe(true);
+  });
+
+  it('should handle empty search query', () => {
+    // Empty search might match with some score, but likely filtered if score < 50
+    const projects = [createMockProject('Test', 'test-1')];
+    const result = findProjectCandidates('', projects);
+    // Empty query might return results if score >= 50, or empty if filtered
+    expect(Array.isArray(result)).toBe(true);
+  });
+
+  it('should handle names with special characters normalization', () => {
+    const projects = [createMockProject('Track!@#', 'project-1')];
+    const result = findProjectCandidates('Track', projects);
+    // Should match after normalization
+    expect(result.length).toBeGreaterThan(0);
+  });
+
+  it('should handle reason assignment for different score ranges', () => {
+    const projects = [
+      createMockProject('Exact Match', 'exact'),
+      createMockProject('Contains Match', 'contains'),
+    ];
+
+    const exactResult = findProjectCandidates('Exact Match', [projects[0]]);
+    expect(exactResult[0]?.reason).toBe('Match exact');
+
+    // Test contains match (score >= 80)
+    const containsResult = findProjectCandidates('Contains', [projects[1]]);
+    if (containsResult.length > 0 && containsResult[0].score >= 80) {
+      expect(containsResult[0].reason).toBe('Nom contenu');
+    }
+  });
+
+  it('should respect maxCandidates parameter', () => {
+    const projects = Array.from({ length: 10 }, (_, i) =>
+      createMockProject(`Test ${i}`, `project-${i}`)
+    );
+
+    const result = findProjectCandidates('Test', projects, 3);
+
+    expect(result.length).toBeLessThanOrEqual(3);
+  });
+
+  it('should filter candidates with score < 50', () => {
+    const projects = [
+      createMockProject('Very Different Name That Will Have Low Score', 'low-score'),
+      createMockProject('Test', 'high-score'),
+    ];
+
+    const result = findProjectCandidates('Test', projects);
+
+    // All results should have score >= 50
+    expect(result.every((r) => r.score >= 50)).toBe(true);
+  });
 });

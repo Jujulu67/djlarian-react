@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "bash scripts/ensure-sqlite-schema.sh && npx tsx scripts/update-hero-title.ts && NODE_OPTIONS='--import tsx' next dev",
     "dev:auto": "bash scripts/start-dev-with-auto-restart.sh",
-    "build": "bash scripts/ensure-postgresql-schema.sh && node scripts/fix-prisma-types.mjs && npx tsx scripts/update-hero-title.ts && (NODE_OPTIONS='--import tsx' next build 2>&1 | grep -v '\\[baseline-browser-mapping\\]'; exit ${PIPESTATUS[0]})",
+    "build": "bash scripts/ensure-postgresql-schema.sh && node scripts/fix-prisma-types.mjs && npx tsx scripts/update-hero-title.ts && (if [ \"$VERCEL\" = \"1\" ] && [ \"$NODE_ENV\" = \"production\" ]; then echo '⚠️  Skip tests en production sur Vercel'; else npm run test:ci; fi) && (NODE_OPTIONS='--import tsx' next build 2>&1 | grep -v '\\[baseline-browser-mapping\\]'; exit ${PIPESTATUS[0]})",
     "postinstall": "bash scripts/rebuild-better-sqlite3.sh && node scripts/fix-prisma-types.mjs || true",
     "start": "NODE_OPTIONS='--import tsx' next start",
     "lint": "eslint --config eslint.config.mjs \"src/**/*.{ts,tsx}\" --quiet",
@@ -19,7 +19,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "test:ci": "jest --ci --coverage --maxWorkers=2",
+    "test:ci": "jest --ci --coverage --maxWorkers=2 && node scripts/check-coverage-thresholds.mjs",
+    "test:coverage:check": "jest --coverage && node scripts/check-coverage-thresholds.mjs",
     "prepare": "husky install || true",
     "db:setup:local": "bash scripts/setup-local-db.sh",
     "db:local": "bash scripts/setup-local-db.sh",
@@ -48,7 +49,10 @@
     "audit:deps": "npm audit",
     "audit:security": "node scripts/security-audit.mjs",
     "security:check": "node scripts/security-check.mjs",
-    "test:security": "jest --testPathPattern=__tests__/security"
+    "test:security": "jest --testPathPattern=__tests__/security",
+    "test:e2e": "npx playwright test",
+    "test:e2e:ui": "npx playwright test --ui",
+    "test:e2e:debug": "npx playwright test --debug"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
@@ -114,6 +118,7 @@
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "@jest/globals": "^29.7.0",
+    "@playwright/test": "^1.57.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^14.2.1",
     "@testing-library/user-event": "^14.6.1",

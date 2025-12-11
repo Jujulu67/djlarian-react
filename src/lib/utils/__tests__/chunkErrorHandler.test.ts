@@ -87,6 +87,54 @@ describe('chunkErrorHandler', () => {
       expect(logger.warn).toHaveBeenCalled();
     });
 
+    it('should handle ChunkLoadError by error.message containing Loading chunk', () => {
+      setupChunkErrorHandler();
+
+      const errorEvent = new ErrorEvent('error', {
+        error: { name: 'Error', message: 'Loading chunk 123 failed' },
+      });
+
+      window.dispatchEvent(errorEvent);
+
+      expect(logger.warn).toHaveBeenCalled();
+    });
+
+    it('should handle case when window.__NEXT_DATA__ has chunks', () => {
+      (window as any).__NEXT_DATA__ = { chunks: ['chunk1', 'chunk2'] };
+      setupChunkErrorHandler();
+
+      const errorEvent = new ErrorEvent('error', {
+        error: { name: 'ChunkLoadError', message: 'Loading chunk failed' },
+      });
+
+      window.dispatchEvent(errorEvent);
+
+      expect(logger.debug).toHaveBeenCalledWith('Chunks trouvés dans __NEXT_DATA__');
+    });
+
+    it('should handle case when document.body does not exist', () => {
+      const originalBody = document.body;
+      Object.defineProperty(document, 'body', {
+        value: null,
+        writable: true,
+        configurable: true,
+      });
+
+      global.sessionStorage.setItem('chunkErrorRetryCount', '3');
+      setupChunkErrorHandler();
+
+      const errorEvent = new ErrorEvent('error', {
+        error: { name: 'ChunkLoadError', message: 'Loading chunk failed' },
+      });
+
+      window.dispatchEvent(errorEvent);
+
+      // Should not throw even if document.body is null
+      expect(logger.error).toHaveBeenCalled();
+
+      document.body = originalBody;
+    });
+
     it('should reload page on chunk error', () => {
       setupChunkErrorHandler();
 
@@ -179,6 +227,25 @@ describe('chunkErrorHandler', () => {
       expect(logger.warn).not.toHaveBeenCalled();
       expect(window.location.reload).not.toHaveBeenCalled();
     });
+
+    it('should log debug message when retry count is greater than 0 on setup', () => {
+      global.sessionStorage.setItem('chunkErrorRetryCount', '2');
+      setupChunkErrorHandler();
+
+      expect(logger.debug).toHaveBeenCalledWith(
+        expect.stringContaining('Page rechargée suite à une erreur de chunk')
+      );
+    });
+
+    it('should not log debug message when retry count is 0 on setup', () => {
+      global.sessionStorage.removeItem('chunkErrorRetryCount');
+      setupChunkErrorHandler();
+
+      // Should not log the debug message about page reload
+      expect(logger.debug).not.toHaveBeenCalledWith(
+        expect.stringContaining('Page rechargée suite à une erreur de chunk')
+      );
+    });
   });
 
   describe('withChunkErrorHandling', () => {
@@ -242,6 +309,33 @@ describe('chunkErrorHandler', () => {
       const result = await wrappedImport();
 
       expect(result.default()).toBeNull();
+    });
+
+    it('should not dispatch error event for non-chunk errors', async () => {
+      const dispatchEventSpy = jest.spyOn(window, 'dispatchEvent');
+      const error = new Error('Regular error');
+      const importFn = jest.fn().mockRejectedValue(error);
+
+      const wrappedImport = withChunkErrorHandling(importFn);
+      await wrappedImport();
+
+      expect(dispatchEventSpy).not.toHaveBeenCalled();
+    });
+
+    it('should handle error when window is undefined (server side)', async () => {
+      const originalWindow = global.window;
+      delete (global as any).window;
+
+      const error = new Error('ChunkLoadError: Loading chunk failed');
+      error.name = 'ChunkLoadError';
+      const importFn = jest.fn().mockRejectedValue(error);
+
+      const wrappedImport = withChunkErrorHandling(importFn);
+      const result = await wrappedImport();
+
+      expect(result.default()).toBeNull();
+
+      (global as any).window = originalWindow;
     });
   });
 });

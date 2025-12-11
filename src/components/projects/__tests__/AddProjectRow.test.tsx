@@ -2,6 +2,53 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AddProjectRow } from '../AddProjectRow';
 
+// Mock HTMLCanvasElement.getContext for GlassSelect dropdown width calculation
+Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
+  value: jest.fn(() => ({
+    measureText: jest.fn(() => ({ width: 100 })),
+    font: '',
+  })),
+});
+
+// Helper function to interact with GlassSelect dropdown (same as EditableCell tests)
+async function selectGlassSelectOption(triggerText: string, optionText: string) {
+  let triggerButton: HTMLButtonElement | null = null;
+  await waitFor(
+    () => {
+      const textElements = screen.queryAllByText(triggerText, { exact: false });
+      if (textElements.length > 0) {
+        triggerButton = textElements
+          .map((el) => el.closest('button'))
+          .find((btn) => btn && !btn.closest('[class*="fixed"]')) as HTMLButtonElement | null;
+      }
+      if (!triggerButton) {
+        const glassSelectContainer = document.querySelector('.relative.inline-block');
+        if (glassSelectContainer) {
+          triggerButton = glassSelectContainer.querySelector('button') as HTMLButtonElement | null;
+        }
+      }
+      expect(triggerButton).toBeInTheDocument();
+    },
+    { timeout: 3000 }
+  );
+
+  fireEvent.click(triggerButton!);
+
+  await waitFor(() => {
+    const dropdownButtons = document.body.querySelectorAll('button');
+    const optionButton = Array.from(dropdownButtons).find(
+      (btn) =>
+        btn.textContent?.trim() === optionText &&
+        btn !== triggerButton &&
+        btn.closest('[class*="fixed"]')
+    );
+    expect(optionButton).toBeInTheDocument();
+    if (optionButton) {
+      fireEvent.click(optionButton);
+    }
+  });
+}
+
 describe('AddProjectRow', () => {
   const mockOnAdd = jest.fn().mockResolvedValue(undefined);
   const mockSetIsAdding = jest.fn();
@@ -29,9 +76,11 @@ describe('AddProjectRow', () => {
     render(<AddProjectRow onAdd={mockOnAdd} isAdding={true} setIsAdding={mockSetIsAdding} />);
 
     expect(screen.getByPlaceholderText('Nom du projet...')).toBeInTheDocument();
-    const select = document.querySelector('select');
-    expect(select).toBeInTheDocument();
-    expect(select).toHaveValue('EN_COURS');
+    // GlassSelect renders as a button with the label text inside a span
+    const textElement = screen.getByText('En cours');
+    const button = textElement.closest('button');
+    expect(button).toBeInTheDocument();
+    expect(button?.tagName).toBe('BUTTON');
   });
 
   it('should call onAdd when form is submitted', async () => {
@@ -95,14 +144,16 @@ describe('AddProjectRow', () => {
     expect(submitButton).toBeDisabled();
   });
 
-  it('should change status', () => {
+  it('should change status', async () => {
     render(<AddProjectRow onAdd={mockOnAdd} isAdding={true} setIsAdding={mockSetIsAdding} />);
 
-    const select = document.querySelector('select') as HTMLSelectElement;
-    expect(select).toHaveValue('EN_COURS');
-    fireEvent.change(select, { target: { value: 'TERMINE' } });
+    // GlassSelect: click button to open dropdown, then click "Terminé" option
+    await selectGlassSelectOption('En cours', 'Terminé');
 
-    expect(select).toHaveValue('TERMINE');
+    // Verify the status changed by checking the button text
+    await waitFor(() => {
+      expect(screen.getByText('Terminé')).toBeInTheDocument();
+    });
   });
 
   it('should trim name before submitting', async () => {
@@ -183,31 +234,41 @@ describe('AddProjectRow', () => {
 
     await waitFor(() => {
       expect(input).toBeDisabled();
-      const select = document.querySelector('select');
-      expect(select).toBeDisabled();
+      // GlassSelect button should be disabled
+      const textElement = screen.getByText('En cours');
+      const button = textElement.closest('button');
+      expect(button).toBeDisabled();
     });
   });
 
-  it('should handle all status options', () => {
+  it('should handle all status options', async () => {
     render(<AddProjectRow onAdd={mockOnAdd} isAdding={true} setIsAdding={mockSetIsAdding} />);
 
-    const select = document.querySelector('select') as HTMLSelectElement;
-    const options = Array.from(select.options).map((opt) => opt.value);
+    // Open dropdown to see all options
+    const textElements = screen.getAllByText('En cours');
+    const button = textElements[0].closest('button');
+    fireEvent.click(button!);
 
-    expect(options).toContain('EN_COURS');
-    expect(options).toContain('TERMINE');
-    expect(options).toContain('ANNULE');
-    expect(options).toContain('A_REWORK');
-    expect(options).toContain('GHOST_PRODUCTION');
-    expect(options).toContain('ARCHIVE');
+    // Wait for dropdown and check all status labels are present
+    await waitFor(() => {
+      // Use getAllByText to handle multiple instances
+      expect(screen.getAllByText('En cours').length).toBeGreaterThan(0);
+      expect(screen.getByText('Terminé')).toBeInTheDocument();
+      expect(screen.getByText('Annulé')).toBeInTheDocument();
+      expect(screen.getByText('A Rework')).toBeInTheDocument();
+      expect(screen.getByText('Ghost Prod')).toBeInTheDocument();
+      expect(screen.getByText('Archivé')).toBeInTheDocument();
+    });
   });
 
-  it('should reset status to EN_COURS after cancel', () => {
+  it('should reset status to EN_COURS after cancel', async () => {
     render(<AddProjectRow onAdd={mockOnAdd} isAdding={true} setIsAdding={mockSetIsAdding} />);
 
-    const select = document.querySelector('select') as HTMLSelectElement;
-    fireEvent.change(select, { target: { value: 'TERMINE' } });
-    expect(select).toHaveValue('TERMINE');
+    // Change status to TERMINE
+    await selectGlassSelectOption('En cours', 'Terminé');
+    await waitFor(() => {
+      expect(screen.getByText('Terminé')).toBeInTheDocument();
+    });
 
     const cancelButton = screen.getByTitle('Annuler (Échap)');
     fireEvent.click(cancelButton);

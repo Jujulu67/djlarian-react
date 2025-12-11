@@ -15,9 +15,7 @@ module.exports = {
       },
     ],
   },
-  transformIgnorePatterns: [
-    'node_modules/(?!(next-auth|cheerio|@auth))',
-  ],
+  transformIgnorePatterns: ['node_modules/(?!(next-auth|cheerio|@auth))'],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   testMatch: [
     '**/__tests__/**/*.test.ts',
@@ -50,4 +48,8 @@ module.exports = {
       statements: 60,
     },
   },
+  // Force Jest à échouer si les seuils ne sont pas atteints
+  // Cela bloque uniquement lors des tests (test:ci, test:coverage)
+  // et n'affecte pas le build de production sur Vercel
+  coverageReporters: ['text', 'text-summary', 'json-summary'],
 };
