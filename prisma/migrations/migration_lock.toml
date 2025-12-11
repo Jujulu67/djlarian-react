@@ -3,4 +3,4 @@
 # NOTE: This file is automatically updated by ensure-postgresql-schema.sh during build
 # For local development with SQLite, it should be "sqlite"
 # For production build, it's automatically changed to "postgresql"
-provider = "postgresql"
+provider = "sqlite"

@@ -29,6 +29,7 @@ import { exportProjectsToExcel } from '@/lib/utils/exportProjectsToExcel';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { fetchWithAuth, isAuthError, getErrorMessage } from '@/lib/api/fetchWithAuth';
 import { StreamsMilestones } from '@/lib/utils/calculateStreamsMilestones';
+import { ProjectAssistant } from '@/components/ProjectAssistant';
 
 interface ProjectsClientProps {
   initialProjects: Project[];
@@ -771,6 +772,221 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
     }
   }, []);
 
+  // Écouter les événements de création de projet depuis l'assistant IA
+  useEffect(() => {
+    const handleProjectCreatedFromAssistant = (
+      event: CustomEvent<{ projectId: string; project?: Project }>
+    ) => {
+      const { projectId, project } = event.detail;
+
+      // Si les données du projet sont fournies, les ajouter immédiatement à la liste
+      if (project) {
+        // Ajouter le projet en bas de la liste (comme handleCreate)
+        setAllProjects((prev) => [...prev, project]);
+        setProjects((prev) => {
+          if (statusFilter === 'ALL' || project.status === statusFilter) {
+            return [...prev, project];
+          }
+          return prev;
+        });
+
+        // Rafraîchir les compteurs
+        fetchCounts();
+
+        // Si le projet a une releaseDate, vérifier les notifications
+        if (project.releaseDate) {
+          fetchWithAuth(`/api/projects/releases/check?projectId=${project.id}`).catch(() => {
+            // Ignorer les erreurs silencieusement
+          });
+        }
+
+        // Réinitialiser les tris
+        setSortField(null);
+        setSortDirection('asc');
+      }
+
+      // Mettre à jour lastCreatedProjectId pour déclencher le scroll et l'animation
+      setLastCreatedProjectId(projectId);
+      // Désactiver l'animation dorée si elle était active
+      setHighlightedFromNotification(null);
+    };
+
+    window.addEventListener(
+      'projectCreatedFromAssistant',
+      handleProjectCreatedFromAssistant as EventListener
+    );
+
+    return () => {
+      window.removeEventListener(
+        'projectCreatedFromAssistant',
+        handleProjectCreatedFromAssistant as EventListener
+      );
+    };
+  }, [statusFilter, fetchCounts]);
+
+  // Écouter les événements de modification de projets depuis l'assistant IA
+  useEffect(() => {
+    const handleProjectsUpdatedFromAssistant = (
+      event: CustomEvent<{
+        projectIds: string[];
+        updates: {
+          progress?: number;
+          status?: string;
+          deadline?: string | null;
+          pushDeadlineBy?: { days?: number; weeks?: number; months?: number };
+          collab?: string;
+          style?: string;
+          label?: string;
+          labelFinal?: string;
+        };
+      }>
+    ) => {
+      const { projectIds, updates } = event.detail;
+
+      // Mettre à jour les projets dans la liste avec les nouvelles valeurs
+      setAllProjects((prev) =>
+        prev.map((project) => {
+          if (projectIds.includes(project.id)) {
+            const updated = { ...project };
+            if (updates.progress !== undefined) {
+              updated.progress = updates.progress;
+            }
+            if (updates.status) {
+              updated.status = updates.status as ProjectStatus;
+              // Si on passe à TERMINE, forcer progress à 100
+              if (updates.status === 'TERMINE') {
+                updated.progress = 100;
+              }
+            }
+            // Gérer pushDeadlineBy (décalage relatif)
+            if (updates.pushDeadlineBy && project.deadline) {
+              const currentDeadline = new Date(project.deadline);
+              const updatedDeadline = new Date(currentDeadline);
+
+              if (updates.pushDeadlineBy.days !== undefined) {
+                updatedDeadline.setDate(updatedDeadline.getDate() + updates.pushDeadlineBy.days);
+              }
+              if (updates.pushDeadlineBy.weeks !== undefined) {
+                updatedDeadline.setDate(
+                  updatedDeadline.getDate() + updates.pushDeadlineBy.weeks * 7
+                );
+              }
+              if (updates.pushDeadlineBy.months !== undefined) {
+                updatedDeadline.setMonth(
+                  updatedDeadline.getMonth() + updates.pushDeadlineBy.months
+                );
+              }
+
+              updated.deadline = updatedDeadline.toISOString().split('T')[0];
+            } else if (updates.deadline !== undefined) {
+              // Gérer deadline absolue (ou null pour suppression)
+              updated.deadline = updates.deadline;
+            }
+            if (updates.collab !== undefined) {
+              updated.collab = updates.collab;
+            }
+            if (updates.style !== undefined) {
+              updated.style = updates.style;
+            }
+            if (updates.label !== undefined) {
+              updated.label = updates.label;
+            }
+            if (updates.labelFinal !== undefined) {
+              updated.labelFinal = updates.labelFinal;
+            }
+            updated.updatedAt = new Date().toISOString();
+            return updated;
+          }
+          return project;
+        })
+      );
+
+      setProjects((prev) =>
+        prev.map((project) => {
+          if (projectIds.includes(project.id)) {
+            const updated = { ...project };
+            if (updates.progress !== undefined) {
+              updated.progress = updates.progress;
+            }
+            if (updates.status) {
+              updated.status = updates.status as ProjectStatus;
+              // Si on passe à TERMINE, forcer progress à 100
+              if (updates.status === 'TERMINE') {
+                updated.progress = 100;
+              }
+            }
+            // Gérer pushDeadlineBy (décalage relatif)
+            if (updates.pushDeadlineBy && project.deadline) {
+              const currentDeadline = new Date(project.deadline);
+              const updatedDeadline = new Date(currentDeadline);
+
+              if (updates.pushDeadlineBy.days !== undefined) {
+                updatedDeadline.setDate(updatedDeadline.getDate() + updates.pushDeadlineBy.days);
+              }
+              if (updates.pushDeadlineBy.weeks !== undefined) {
+                updatedDeadline.setDate(
+                  updatedDeadline.getDate() + updates.pushDeadlineBy.weeks * 7
+                );
+              }
+              if (updates.pushDeadlineBy.months !== undefined) {
+                updatedDeadline.setMonth(
+                  updatedDeadline.getMonth() + updates.pushDeadlineBy.months
+                );
+              }
+
+              updated.deadline = updatedDeadline.toISOString().split('T')[0];
+            } else if (updates.deadline !== undefined) {
+              // Gérer deadline absolue (ou null pour suppression)
+              updated.deadline = updates.deadline;
+            }
+            if (updates.collab !== undefined) {
+              updated.collab = updates.collab;
+            }
+            if (updates.style !== undefined) {
+              updated.style = updates.style;
+            }
+            if (updates.label !== undefined) {
+              updated.label = updates.label;
+            }
+            if (updates.labelFinal !== undefined) {
+              updated.labelFinal = updates.labelFinal;
+            }
+            updated.updatedAt = new Date().toISOString();
+            return updated;
+          }
+          return project;
+        })
+      );
+
+      // Rafraîchir les compteurs
+      fetchCounts();
+
+      // Déclencher l'animation pour le premier projet modifié (pas de scroll)
+      if (projectIds.length > 0) {
+        setLastUpdatedProjectId(projectIds[0]);
+        // Réinitialiser après l'animation (2 secondes)
+        setTimeout(() => {
+          setLastUpdatedProjectId(null);
+        }, 2000);
+      }
+
+      // Désactiver l'animation dorée si elle était active
+      setHighlightedFromNotification(null);
+    };
+
+    window.addEventListener(
+      'projectsUpdatedFromAssistant',
+      handleProjectsUpdatedFromAssistant as EventListener
+    );
+
+    return () => {
+      window.removeEventListener(
+        'projectsUpdatedFromAssistant',
+        handleProjectsUpdatedFromAssistant as EventListener
+      );
+    };
+  }, [fetchCounts]);
+
   // Scroll vers le nouveau projet après création et réinitialiser l'animation après 2s
   useEffect(() => {
     if (lastCreatedProjectId) {
@@ -1105,6 +1321,9 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
         onImport={handleImportStreams}
         projects={projects}
       />
+
+      {/* Assistant IA avec accès aux projets en mémoire */}
+      <ProjectAssistant projects={allProjects} />
     </div>
   );
 };
