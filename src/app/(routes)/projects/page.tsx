@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { serializeProjects } from '@/lib/utils/serializeProject';
+import { ProjectAssistant } from '@/components/ProjectAssistant';
 
 import { ProjectsClient } from './ProjectsClient';
 
@@ -40,10 +41,13 @@ export default async function ProjectsPage() {
   const serializedProjects = serializeProjects(projects);
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] pt-8 pb-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-[1600px] mx-auto">
-        <ProjectsClient initialProjects={serializedProjects} />
+    <>
+      <div className="min-h-[calc(100vh-4rem)] pt-8 pb-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-[1600px] mx-auto">
+          <ProjectsClient initialProjects={serializedProjects} />
+        </div>
       </div>
-    </div>
+      <ProjectAssistant />
+    </>
   );
 }
