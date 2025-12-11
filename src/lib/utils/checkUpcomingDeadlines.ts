@@ -1,15 +1,16 @@
 /**
- * Vérifie et crée les notifications pour les releases en approche
+ * Vérifie et crée les notifications pour les deadlines en approche
  * Règles :
+ * - 14 jours avant : notification INFO
  * - 7 jours avant : notification INFO
+ * - 5 jours avant : notification INFO
  * - 3 jours avant : notification WARNING
  * - 1 jour avant : notification WARNING (urgent)
- * - Le jour J : notification INFO (sortie aujourd'hui)
  */
 
 import prisma from '@/lib/prisma';
 
-export interface UpcomingReleaseCheckResult {
+export interface UpcomingDeadlineCheckResult {
   created: number;
   skipped: number;
   errors: Array<{ projectId: string; error: string }>;
@@ -29,59 +30,59 @@ function daysUntil(date: Date): number {
 
 /**
  * Détermine le type de notification et le message selon les jours restants
- * Notifications créées à J-7, J-5, J-3, J-1 et J+0
+ * Notifications créées à J-14, J-7, J-5, J-3, J-1
  */
-function getReleaseNotificationInfo(daysUntil: number): {
+function getDeadlineNotificationInfo(daysUntil: number): {
   type: 'INFO' | 'WARNING';
   title: string;
   message: string;
 } | null {
+  if (daysUntil === 14) {
+    return {
+      type: 'INFO',
+      title: 'Deadline dans 2 semaines',
+      message: 'Votre deadline approche dans 2 semaines',
+    };
+  }
   if (daysUntil === 7) {
     return {
       type: 'INFO',
-      title: 'Release dans 7 jours',
-      message: 'Votre release approche dans une semaine',
+      title: 'Deadline dans 1 semaine',
+      message: 'Votre deadline approche dans une semaine',
     };
   }
   if (daysUntil === 5) {
     return {
       type: 'INFO',
-      title: 'Release dans 5 jours',
-      message: 'Votre release approche dans 5 jours',
+      title: 'Deadline dans 5 jours',
+      message: 'Votre deadline approche dans 5 jours',
     };
   }
   if (daysUntil === 3) {
     return {
       type: 'WARNING',
-      title: 'Release dans 3 jours',
-      message: 'Votre release approche dans 3 jours',
+      title: 'Deadline dans 3 jours',
+      message: 'Votre deadline approche dans 3 jours',
     };
   }
   if (daysUntil === 1) {
     return {
       type: 'WARNING',
-      title: 'Release demain',
-      message: 'Votre release sort demain !',
-    };
-  }
-  if (daysUntil === 0) {
-    return {
-      type: 'INFO',
-      title: "Release aujourd'hui",
-      message: "Votre release sort aujourd'hui !",
+      title: 'Deadline demain',
+      message: 'Votre deadline est demain !',
     };
   }
   return null;
 }
 
 /**
- * Vérifie et crée les notifications pour les releases en approche d'un projet
+ * Vérifie et crée les notifications pour les deadlines en approche d'un projet
  */
-export async function checkProjectUpcomingRelease(
+export async function checkProjectUpcomingDeadline(
   projectId: string,
   userId: string
-): Promise<UpcomingReleaseCheckResult> {
-  const result: UpcomingReleaseCheckResult = {
+): Promise<UpcomingDeadlineCheckResult> {
+  const result: UpcomingDeadlineCheckResult = {
     created: 0,
     skipped: 0,
     errors: [],
@@ -95,7 +96,7 @@ export async function checkProjectUpcomingRelease(
         id: true,
         userId: true,
         name: true,
-        releaseDate: true,
+        deadline: true,
       },
     });
 
@@ -116,29 +117,29 @@ export async function checkProjectUpcomingRelease(
       return result;
     }
 
-    // Vérifier que le projet a une date de release
-    if (!project.releaseDate) {
+    // Vérifier que le projet a une date de deadline
+    if (!project.deadline) {
       result.skipped++;
       return result;
     }
 
-    const releaseDate = new Date(project.releaseDate);
-    const days = daysUntil(releaseDate);
+    const deadlineDate = new Date(project.deadline);
+    const days = daysUntil(deadlineDate);
 
-    // Ne créer des notifications que pour les dates importantes (7, 5, 3, 1, 0 jours)
-    if (days < 0 || days > 7) {
+    // Ne créer des notifications que pour les dates importantes (14, 7, 5, 3, 1 jours)
+    if (days < 0 || days > 14) {
       result.skipped++;
       return result;
     }
 
-    const notificationInfo = getReleaseNotificationInfo(days);
+    const notificationInfo = getDeadlineNotificationInfo(days);
     if (!notificationInfo) {
       result.skipped++;
       return result;
     }
 
-    // Supprimer toutes les notifications RELEASE_UPCOMING précédentes pour ce projet
-    // On récupère toutes les notifications de l'utilisateur qui pourraient être des releases
+    // Supprimer toutes les notifications DEADLINE_UPCOMING précédentes pour ce projet
+    // On récupère toutes les notifications de l'utilisateur qui pourraient être des deadlines
     // (y compris celles avec projectId null pour les tests)
     const existingNotifications = await prisma.notification.findMany({
       where: {
@@ -151,17 +152,17 @@ export async function checkProjectUpcomingRelease(
       },
     });
 
-    // Filtrer pour trouver les notifications RELEASE_UPCOMING pour ce projet
+    // Filtrer pour trouver les notifications DEADLINE_UPCOMING pour ce projet
     // (soit avec le même projectId, soit avec projectId null ET le même projectId dans les métadonnées)
-    const releaseNotifications = existingNotifications.filter((notif) => {
+    const deadlineNotifications = existingNotifications.filter((notif) => {
       if (!notif.metadata) return false;
       try {
         const meta = JSON.parse(notif.metadata);
-        if (meta.type !== 'RELEASE_UPCOMING') return false;
+        if (meta.type !== 'DEADLINE_UPCOMING') return false;
 
         // Si c'est une notification de test (projectId null), vérifier les métadonnées
         if (notif.projectId === null) {
-          // Pour les tests, on supprime toutes les RELEASE_UPCOMING de test
+          // Pour les tests, on supprime toutes les DEADLINE_UPCOMING de test
           return meta.isTest === true;
         }
 
@@ -172,12 +173,12 @@ export async function checkProjectUpcomingRelease(
       }
     });
 
-    // Soft delete toutes les notifications RELEASE_UPCOMING précédentes
-    if (releaseNotifications.length > 0) {
+    // Soft delete toutes les notifications DEADLINE_UPCOMING précédentes
+    if (deadlineNotifications.length > 0) {
       await prisma.notification.updateMany({
         where: {
           id: {
-            in: releaseNotifications.map((n) => n.id),
+            in: deadlineNotifications.map((n) => n.id),
           },
         },
         data: {
@@ -194,10 +195,10 @@ export async function checkProjectUpcomingRelease(
         title: `${notificationInfo.title} - ${project.name}`,
         message: `${notificationInfo.message} : "${project.name}"`,
         metadata: JSON.stringify({
-          type: 'RELEASE_UPCOMING',
+          type: 'DEADLINE_UPCOMING',
           projectId: project.id,
           projectName: project.name,
-          releaseDate: project.releaseDate.toISOString(),
+          deadline: project.deadline.toISOString(),
           daysUntil: days,
         }),
         projectId: project.id,
@@ -219,46 +220,46 @@ export async function checkProjectUpcomingRelease(
 }
 
 /**
- * Vérifie et crée les notifications pour toutes les releases en approche d'un utilisateur
- * Version optimisée : charge uniquement les releaseDate nécessaires
+ * Vérifie et crée les notifications pour toutes les deadlines en approche d'un utilisateur
+ * Version optimisée : charge uniquement les deadline nécessaires
  */
-export async function checkAllUserUpcomingReleases(
+export async function checkAllUserUpcomingDeadlines(
   userId: string
-): Promise<UpcomingReleaseCheckResult> {
-  const result: UpcomingReleaseCheckResult = {
+): Promise<UpcomingDeadlineCheckResult> {
+  const result: UpcomingDeadlineCheckResult = {
     created: 0,
     skipped: 0,
     errors: [],
   };
 
   try {
-    // Récupérer uniquement les projets avec releaseDate dans les 7 prochains jours
+    // Récupérer uniquement les projets avec deadline dans les 14 prochains jours
     // Version optimisée : on ne charge que les champs nécessaires
     const now = new Date();
     now.setHours(0, 0, 0, 0);
-    const in7Days = new Date(now);
-    in7Days.setDate(in7Days.getDate() + 7);
-    in7Days.setHours(23, 59, 59, 999);
+    const in14Days = new Date(now);
+    in14Days.setDate(in14Days.getDate() + 14);
+    in14Days.setHours(23, 59, 59, 999);
 
     const projects = await prisma.project.findMany({
       where: {
         userId,
-        releaseDate: {
+        deadline: {
           gte: now,
-          lte: in7Days,
+          lte: in14Days,
         },
       },
       select: {
         id: true,
         userId: true,
         name: true,
-        releaseDate: true,
+        deadline: true,
       },
     });
 
     // Vérifier chaque projet
     for (const project of projects) {
-      const projectResult = await checkProjectUpcomingRelease(project.id, userId);
+      const projectResult = await checkProjectUpcomingDeadline(project.id, userId);
       result.created += projectResult.created;
       result.skipped += projectResult.skipped;
       result.errors.push(...projectResult.errors);

@@ -52,6 +52,7 @@ interface ProjectTableProps {
   persistentHighlight?: boolean; // Si true, l'animation ne s'arrête pas (pour notifications)
   isAdmin?: boolean;
   showStats?: boolean; // Afficher/masquer les colonnes de stats
+  defaultStatus?: ProjectStatus | 'ALL';
 }
 
 interface ColumnConfig {
@@ -127,6 +128,7 @@ export const ProjectTable = ({
   persistentHighlight = false,
   isAdmin = false,
   showStats = false,
+  defaultStatus = 'ALL',
 }: ProjectTableProps) => {
   const [isAdding, setIsAdding] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -278,7 +280,12 @@ export const ProjectTable = ({
     <div className="space-y-4">
       {/* Ligne d'ajout et boutons d'action */}
       <div className="flex items-center gap-3 flex-wrap justify-between">
-        <AddProjectRow onAdd={onCreate} isAdding={isAdding} setIsAdding={setIsAdding} />
+        <AddProjectRow
+          onAdd={onCreate}
+          isAdding={isAdding}
+          setIsAdding={setIsAdding}
+          defaultStatus={defaultStatus}
+        />
         <div className="flex items-center gap-2">
           {onRefresh && (
             <button

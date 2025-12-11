@@ -96,7 +96,7 @@ describe('checkMilestoneNotifications', () => {
       expect(result.skipped).toBeGreaterThanOrEqual(0);
     });
 
-    it('should create notification for J180 milestone', async () => {
+    it('should create notification for J180 milestone when streams are NOT filled', async () => {
       const releaseDate = new Date();
       releaseDate.setDate(releaseDate.getDate() - 200); // More than 180 days ago
       jest.setSystemTime(new Date());
@@ -106,8 +106,8 @@ describe('checkMilestoneNotifications', () => {
         userId: 'user-1',
         name: 'Test Project',
         releaseDate,
-        streamsJ180: 1000,
-        streamsJ365: 2000,
+        streamsJ180: null, // Streams NOT filled
+        streamsJ365: null,
       } as any);
       mockPrisma.notification.findMany.mockResolvedValue([]);
       mockPrisma.notification.create.mockResolvedValue({
@@ -121,13 +121,14 @@ describe('checkMilestoneNotifications', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             type: 'MILESTONE',
-            title: expect.stringContaining('6 mois'),
+            title: expect.stringMatching(/6 mois.*non renseignés/),
+            message: expect.stringContaining('ne sont pas encore renseignés'),
           }),
         })
       );
     });
 
-    it('should create notification for J365 milestone', async () => {
+    it('should create notification for J365 milestone when streams are NOT filled', async () => {
       const releaseDate = new Date();
       releaseDate.setDate(releaseDate.getDate() - 400); // More than 365 days ago
       jest.setSystemTime(new Date());
@@ -137,8 +138,8 @@ describe('checkMilestoneNotifications', () => {
         userId: 'user-1',
         name: 'Test Project',
         releaseDate,
-        streamsJ180: 1000,
-        streamsJ365: 2000,
+        streamsJ180: null,
+        streamsJ365: null, // Streams NOT filled
       } as any);
       mockPrisma.notification.findMany.mockResolvedValue([]);
       mockPrisma.notification.create.mockResolvedValue({
@@ -152,7 +153,8 @@ describe('checkMilestoneNotifications', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             type: 'MILESTONE',
-            title: expect.stringContaining('1 an'),
+            title: expect.stringMatching(/1 an.*non renseignés/),
+            message: expect.stringContaining('ne sont pas encore renseignés'),
           }),
         })
       );
@@ -184,7 +186,7 @@ describe('checkMilestoneNotifications', () => {
       expect(result.skipped).toBeGreaterThanOrEqual(1);
     });
 
-    it('should skip if streams not available', async () => {
+    it('should skip if streams ARE filled (notification already sent or not needed)', async () => {
       const releaseDate = new Date();
       releaseDate.setDate(releaseDate.getDate() - 200);
 
@@ -193,13 +195,16 @@ describe('checkMilestoneNotifications', () => {
         userId: 'user-1',
         name: 'Test Project',
         releaseDate,
-        streamsJ180: null,
-        streamsJ365: null,
+        streamsJ180: 1000, // Streams ARE filled
+        streamsJ365: 2000,
       } as any);
+      mockPrisma.notification.findMany.mockResolvedValue([]);
 
       const result = await checkProjectMilestones('project-1', 'user-1');
 
+      // Should skip because streams are filled (no notification needed)
       expect(result.skipped).toBeGreaterThanOrEqual(0);
+      expect(mockPrisma.notification.create).not.toHaveBeenCalled();
     });
 
     it('should handle errors gracefully', async () => {

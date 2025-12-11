@@ -12,7 +12,8 @@ export const PROJECT_STATUSES: { value: ProjectStatus; label: string; color: str
   { value: 'ANNULE', label: 'Annulé', color: 'red' },
   { value: 'A_REWORK', label: 'A Rework', color: 'orange' },
   { value: 'GHOST_PRODUCTION', label: 'Ghost Prod', color: 'purple' },
-  { value: 'ARCHIVE', label: 'Archivé', color: 'gray' },
+  // Couleur distincte pour Archivé afin de différencier de En cours
+  { value: 'ARCHIVE', label: 'Archivé', color: 'slate' },
 ];
 
 export type LabelStatus = 'ACCEPTE' | 'EN_COURS' | 'REFUSE';

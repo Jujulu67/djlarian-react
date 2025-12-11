@@ -18,6 +18,7 @@ import {
   UserPlus,
   UserCheck,
   UserX,
+  Sparkles,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
@@ -408,8 +409,27 @@ export function MilestoneInbox({ isOpen, onClose }: MilestoneInboxProps) {
                 <div className="divide-y divide-gray-700/50">
                   {notifications.map((notification) => {
                     const style = getNotificationStyle(notification.type);
-                    const Icon = style.icon;
                     const metadata = parseMetadata(notification.metadata);
+
+                    // Pour les notifications de release J+0 (aujourd'hui), utiliser une icône festive verte
+                    let Icon = style.icon;
+                    let iconColor = style.iconColor;
+                    let bgColor = style.bgColor;
+                    let borderColor = style.borderColor;
+
+                    if (
+                      notification.type === 'RELEASE_UPCOMING' ||
+                      (notification.type === 'INFO' && metadata?.type === 'RELEASE_UPCOMING')
+                    ) {
+                      // Vérifier si c'est J+0 (aujourd'hui) - utiliser une icône festive verte
+                      if (metadata?.daysUntil === 0) {
+                        Icon = Sparkles;
+                        iconColor = 'text-green-400';
+                        bgColor = 'bg-green-500/20';
+                        borderColor = 'border-green-500/30';
+                      }
+                    }
+
                     const isUnread = !notification.isRead;
                     const projectName = notification.Project?.name || metadata?.projectName || '';
                     const hasReplies = notification.replies && notification.replies.length > 0;
@@ -426,9 +446,9 @@ export function MilestoneInbox({ isOpen, onClose }: MilestoneInboxProps) {
                         <div className="flex items-start gap-2 sm:gap-3">
                           {/* Badge de type */}
                           <div
-                            className={`flex-shrink-0 p-1.5 sm:p-2 rounded-lg ${style.bgColor} border ${style.borderColor}`}
+                            className={`flex-shrink-0 p-1.5 sm:p-2 rounded-lg ${bgColor} border ${borderColor}`}
                           >
-                            <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${style.iconColor}`} />
+                            <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${iconColor}`} />
                           </div>
 
                           {/* Contenu */}

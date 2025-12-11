@@ -25,7 +25,8 @@ function calculateMilestoneDate(releaseDate: Date, milestoneType: MilestoneType)
 }
 
 /**
- * Vérifie si un projet a dépassé un jalon et a des streams disponibles
+ * Vérifie si un projet a dépassé un jalon et n'a PAS de streams renseignés
+ * On notifie pour alerter que le jalon est atteint mais les streams ne sont pas encore renseignés
  */
 function hasMilestoneData(
   project: {
@@ -47,16 +48,16 @@ function hasMilestoneData(
     return false;
   }
 
-  // Vérifier que les streams sont disponibles pour ce jalon
+  // Vérifier que les streams sont NON renseignés pour ce jalon
   switch (milestoneType) {
     case 'J90':
       // Pour J90, on peut utiliser streamsJ84 comme approximation ou attendre J180
       // Pour l'instant, on ne notifie que J180 et J365 qui sont dans le schéma
       return false;
     case 'J180':
-      return project.streamsJ180 !== null && project.streamsJ180 !== undefined;
+      return project.streamsJ180 === null || project.streamsJ180 === undefined;
     case 'J365':
-      return project.streamsJ365 !== null && project.streamsJ365 !== undefined;
+      return project.streamsJ365 === null || project.streamsJ365 === undefined;
     default:
       return false;
   }
@@ -147,19 +148,18 @@ export async function checkProjectMilestones(
         // Créer la notification avec le nouveau système générique
         const milestoneLabel =
           milestoneType === 'J180' ? '6 mois' : milestoneType === 'J365' ? '1 an' : '3 mois';
-        const streams = milestoneType === 'J180' ? project.streamsJ180 : project.streamsJ365;
 
         await prisma.notification.create({
           data: {
             userId: project.userId,
             type: 'MILESTONE',
-            title: `Jalon ${milestoneLabel} atteint`,
-            message: `Le projet "${project.name}" a atteint le jalon ${milestoneLabel} avec ${streams?.toLocaleString() || 0} streams`,
+            title: `Jalon ${milestoneLabel} atteint - Streams non renseignés`,
+            message: `Le projet "${project.name}" a atteint le jalon ${milestoneLabel} mais les streams ne sont pas encore renseignés`,
             metadata: JSON.stringify({
               milestoneType,
               projectId: project.id,
               projectName: project.name,
-              streams,
+              streams: null, // Les streams ne sont pas renseignés
             }),
             projectId: project.id,
             isRead: false,

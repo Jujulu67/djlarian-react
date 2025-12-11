@@ -1,7 +1,7 @@
 import {
-  checkProjectUpcomingRelease,
-  checkAllUserUpcomingReleases,
-} from '../checkUpcomingReleases';
+  checkProjectUpcomingDeadline,
+  checkAllUserUpcomingDeadlines,
+} from '../checkUpcomingDeadlines';
 import prisma from '@/lib/prisma';
 
 // Mock prisma
@@ -20,7 +20,7 @@ jest.mock('@/lib/prisma', () => ({
   },
 }));
 
-describe('checkUpcomingReleases', () => {
+describe('checkUpcomingDeadlines', () => {
   const mockPrisma = prisma as jest.Mocked<typeof prisma>;
 
   beforeEach(() => {
@@ -32,11 +32,11 @@ describe('checkUpcomingReleases', () => {
     jest.useRealTimers();
   });
 
-  describe('checkProjectUpcomingRelease', () => {
+  describe('checkProjectUpcomingDeadline', () => {
     it('should return error if project not found', async () => {
       mockPrisma.project.findUnique.mockResolvedValue(null);
 
-      const result = await checkProjectUpcomingRelease('project-1', 'user-1');
+      const result = await checkProjectUpcomingDeadline('project-1', 'user-1');
 
       expect(result.errors).toHaveLength(1);
       expect(result.errors[0].error).toBe('Projet non trouvé');
@@ -48,107 +48,137 @@ describe('checkUpcomingReleases', () => {
         id: 'project-1',
         userId: 'user-2',
         name: 'Test Project',
-        releaseDate: new Date(),
+        deadline: new Date(),
       } as any);
 
-      const result = await checkProjectUpcomingRelease('project-1', 'user-1');
+      const result = await checkProjectUpcomingDeadline('project-1', 'user-1');
 
       expect(result.errors).toHaveLength(1);
       expect(result.errors[0].error).toBe('Projet non autorisé');
     });
 
-    it('should skip if project has no release date', async () => {
+    it('should skip if project has no deadline', async () => {
       mockPrisma.project.findUnique.mockResolvedValue({
         id: 'project-1',
         userId: 'user-1',
         name: 'Test Project',
-        releaseDate: null,
+        deadline: null,
       } as any);
 
-      const result = await checkProjectUpcomingRelease('project-1', 'user-1');
+      const result = await checkProjectUpcomingDeadline('project-1', 'user-1');
 
       expect(result.skipped).toBe(1);
       expect(result.created).toBe(0);
     });
 
-    it('should skip if release date is more than 7 days away', async () => {
+    it('should skip if deadline is more than 14 days away', async () => {
       const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 10);
+      futureDate.setDate(futureDate.getDate() + 20);
       mockPrisma.project.findUnique.mockResolvedValue({
         id: 'project-1',
         userId: 'user-1',
         name: 'Test Project',
-        releaseDate: futureDate,
+        deadline: futureDate,
       } as any);
 
-      const result = await checkProjectUpcomingRelease('project-1', 'user-1');
+      const result = await checkProjectUpcomingDeadline('project-1', 'user-1');
 
       expect(result.skipped).toBe(1);
     });
 
-    it('should skip if release date is in the past', async () => {
+    it('should skip if deadline is in the past', async () => {
       const pastDate = new Date();
       pastDate.setDate(pastDate.getDate() - 1);
       mockPrisma.project.findUnique.mockResolvedValue({
         id: 'project-1',
         userId: 'user-1',
         name: 'Test Project',
-        releaseDate: pastDate,
+        deadline: pastDate,
       } as any);
 
-      const result = await checkProjectUpcomingRelease('project-1', 'user-1');
+      const result = await checkProjectUpcomingDeadline('project-1', 'user-1');
 
       expect(result.skipped).toBe(1);
     });
 
-    it('should create notification for release in 7 days', async () => {
-      const releaseDate = new Date();
-      releaseDate.setDate(releaseDate.getDate() + 7);
-      releaseDate.setHours(0, 0, 0, 0);
+    it('should create notification for deadline in 14 days', async () => {
+      const deadlineDate = new Date();
+      deadlineDate.setDate(deadlineDate.getDate() + 14);
+      deadlineDate.setHours(0, 0, 0, 0);
       jest.setSystemTime(new Date());
 
       mockPrisma.project.findUnique.mockResolvedValue({
         id: 'project-1',
         userId: 'user-1',
         name: 'Test Project',
-        releaseDate,
+        deadline: deadlineDate,
       } as any);
       mockPrisma.notification.findMany.mockResolvedValue([]);
       mockPrisma.notification.create.mockResolvedValue({
         id: 'notif-1',
       } as any);
 
-      const result = await checkProjectUpcomingRelease('project-1', 'user-1');
+      const result = await checkProjectUpcomingDeadline('project-1', 'user-1');
 
       expect(result.created).toBe(1);
       expect(mockPrisma.notification.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             type: 'INFO',
-            title: expect.stringContaining('7 jours'),
+            title: expect.stringContaining('2 semaines'),
           }),
         })
       );
     });
 
-    it('should create notification for release in 3 days', async () => {
-      const releaseDate = new Date();
-      releaseDate.setDate(releaseDate.getDate() + 3);
-      releaseDate.setHours(0, 0, 0, 0);
+    it('should create notification for deadline in 7 days', async () => {
+      const deadlineDate = new Date();
+      deadlineDate.setDate(deadlineDate.getDate() + 7);
+      deadlineDate.setHours(0, 0, 0, 0);
       jest.setSystemTime(new Date());
 
       mockPrisma.project.findUnique.mockResolvedValue({
         id: 'project-1',
         userId: 'user-1',
         name: 'Test Project',
-        releaseDate,
+        deadline: deadlineDate,
       } as any);
       mockPrisma.notification.findMany.mockResolvedValue([]);
       mockPrisma.notification.create.mockResolvedValue({
         id: 'notif-1',
       } as any);
 
-      const result = await checkProjectUpcomingRelease('project-1', 'user-1');
+      const result = await checkProjectUpcomingDeadline('project-1', 'user-1');
+
+      expect(result.created).toBe(1);
+      expect(mockPrisma.notification.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            type: 'INFO',
+            title: expect.stringContaining('1 semaine'),
+          }),
+        })
+      );
+    });
+
+    it('should create notification for deadline in 3 days', async () => {
+      const deadlineDate = new Date();
+      deadlineDate.setDate(deadlineDate.getDate() + 3);
+      deadlineDate.setHours(0, 0, 0, 0);
+      jest.setSystemTime(new Date());
+
+      mockPrisma.project.findUnique.mockResolvedValue({
+        id: 'project-1',
+        userId: 'user-1',
+        name: 'Test Project',
+        deadline: deadlineDate,
+      } as any);
+      mockPrisma.notification.findMany.mockResolvedValue([]);
+      mockPrisma.notification.create.mockResolvedValue({
+        id: 'notif-1',
+      } as any);
+
+      const result = await checkProjectUpcomingDeadline('project-1', 'user-1');
 
       expect(result.created).toBe(1);
       expect(mockPrisma.notification.create).toHaveBeenCalledWith(
@@ -161,54 +191,55 @@ describe('checkUpcomingReleases', () => {
       );
     });
 
-    it('should create notification for release today', async () => {
-      const releaseDate = new Date();
-      releaseDate.setHours(0, 0, 0, 0);
-      jest.setSystemTime(releaseDate);
-
-      mockPrisma.project.findUnique.mockResolvedValue({
-        id: 'project-1',
-        userId: 'user-1',
-        name: 'Test Project',
-        releaseDate,
-      } as any);
-      mockPrisma.notification.findMany.mockResolvedValue([]);
-      mockPrisma.notification.create.mockResolvedValue({
-        id: 'notif-1',
-      } as any);
-
-      const result = await checkProjectUpcomingRelease('project-1', 'user-1');
-
-      expect(result.created).toBe(1);
-      expect(mockPrisma.notification.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            type: 'INFO',
-            title: expect.stringContaining("aujourd'hui"),
-          }),
-        })
-      );
-    });
-
-    it('should delete previous RELEASE_UPCOMING notifications before creating new one', async () => {
-      const releaseDate = new Date();
-      releaseDate.setDate(releaseDate.getDate() + 3);
-      releaseDate.setHours(0, 0, 0, 0);
+    it('should create notification for deadline tomorrow', async () => {
+      const deadlineDate = new Date();
+      deadlineDate.setDate(deadlineDate.getDate() + 1);
+      deadlineDate.setHours(0, 0, 0, 0);
       jest.setSystemTime(new Date());
 
       mockPrisma.project.findUnique.mockResolvedValue({
         id: 'project-1',
         userId: 'user-1',
         name: 'Test Project',
-        releaseDate,
+        deadline: deadlineDate,
       } as any);
-      // Simuler une notification précédente pour J-5
+      mockPrisma.notification.findMany.mockResolvedValue([]);
+      mockPrisma.notification.create.mockResolvedValue({
+        id: 'notif-1',
+      } as any);
+
+      const result = await checkProjectUpcomingDeadline('project-1', 'user-1');
+
+      expect(result.created).toBe(1);
+      expect(mockPrisma.notification.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            type: 'WARNING',
+            title: expect.stringContaining('demain'),
+          }),
+        })
+      );
+    });
+
+    it('should delete previous DEADLINE_UPCOMING notifications before creating new one', async () => {
+      const deadlineDate = new Date();
+      deadlineDate.setDate(deadlineDate.getDate() + 3);
+      deadlineDate.setHours(0, 0, 0, 0);
+      jest.setSystemTime(new Date());
+
+      mockPrisma.project.findUnique.mockResolvedValue({
+        id: 'project-1',
+        userId: 'user-1',
+        name: 'Test Project',
+        deadline: deadlineDate,
+      } as any);
+      // Simuler une notification précédente pour J-7
       mockPrisma.notification.findMany.mockResolvedValue([
         {
           id: 'notif-1',
           metadata: JSON.stringify({
-            type: 'RELEASE_UPCOMING',
-            daysUntil: 5,
+            type: 'DEADLINE_UPCOMING',
+            daysUntil: 7,
           }),
         },
       ] as any);
@@ -217,7 +248,7 @@ describe('checkUpcomingReleases', () => {
         id: 'notif-2',
       } as any);
 
-      const result = await checkProjectUpcomingRelease('project-1', 'user-1');
+      const result = await checkProjectUpcomingDeadline('project-1', 'user-1');
 
       expect(result.created).toBe(1);
       // Vérifier que les anciennes notifications sont supprimées
@@ -238,19 +269,19 @@ describe('checkUpcomingReleases', () => {
     it('should handle errors gracefully', async () => {
       mockPrisma.project.findUnique.mockRejectedValue(new Error('Database error'));
 
-      const result = await checkProjectUpcomingRelease('project-1', 'user-1');
+      const result = await checkProjectUpcomingDeadline('project-1', 'user-1');
 
       expect(result.errors).toHaveLength(1);
       expect(result.errors[0].error).toBe('Database error');
     });
   });
 
-  describe('checkAllUserUpcomingReleases', () => {
-    it('should check all user projects with upcoming releases', async () => {
+  describe('checkAllUserUpcomingDeadlines', () => {
+    it('should check all user projects with upcoming deadlines', async () => {
       const now = new Date();
       now.setHours(0, 0, 0, 0);
-      const releaseDate = new Date(now);
-      releaseDate.setDate(releaseDate.getDate() + 5);
+      const deadlineDate = new Date(now);
+      deadlineDate.setDate(deadlineDate.getDate() + 5);
       jest.setSystemTime(now);
 
       mockPrisma.project.findMany.mockResolvedValue([
@@ -258,36 +289,36 @@ describe('checkUpcomingReleases', () => {
           id: 'project-1',
           userId: 'user-1',
           name: 'Project 1',
-          releaseDate,
+          deadline: deadlineDate,
         },
         {
           id: 'project-2',
           userId: 'user-1',
           name: 'Project 2',
-          releaseDate,
+          deadline: deadlineDate,
         },
       ] as any);
 
-      // Mock for checkProjectUpcomingRelease calls
+      // Mock for checkProjectUpcomingDeadline calls
       mockPrisma.project.findUnique
         .mockResolvedValueOnce({
           id: 'project-1',
           userId: 'user-1',
           name: 'Project 1',
-          releaseDate,
+          deadline: deadlineDate,
         } as any)
         .mockResolvedValueOnce({
           id: 'project-2',
           userId: 'user-1',
           name: 'Project 2',
-          releaseDate,
+          deadline: deadlineDate,
         } as any);
       mockPrisma.notification.findMany.mockResolvedValue([]);
       mockPrisma.notification.create.mockResolvedValue({
         id: 'notif-1',
       } as any);
 
-      const result = await checkAllUserUpcomingReleases('user-1');
+      const result = await checkAllUserUpcomingDeadlines('user-1');
 
       expect(result.created).toBeGreaterThan(0);
       expect(mockPrisma.project.findMany).toHaveBeenCalledWith(
@@ -302,7 +333,7 @@ describe('checkUpcomingReleases', () => {
     it('should handle errors gracefully', async () => {
       mockPrisma.project.findMany.mockRejectedValue(new Error('Database error'));
 
-      const result = await checkAllUserUpcomingReleases('user-1');
+      const result = await checkAllUserUpcomingDeadlines('user-1');
 
       expect(result.errors).toHaveLength(1);
       expect(result.errors[0].error).toBe('Database error');

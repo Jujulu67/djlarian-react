@@ -22,6 +22,8 @@ import {
   UserPlus,
   UserCheck,
   UserX,
+  TestTube,
+  Sparkles,
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -34,6 +36,7 @@ import {
   NotificationMetadata,
 } from '@/hooks/useNotifications';
 import { SendMessageModal } from '@/components/notifications/SendMessageModal';
+import { NotificationTestModal } from '@/components/notifications/NotificationTestModal';
 import { FriendsList } from '@/components/notifications/FriendsList';
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
 
@@ -195,6 +198,7 @@ export default function NotificationsClient() {
   const [filter, setFilter] = useState<'all' | 'unread' | NotificationType>('all');
   const [showFilters, setShowFilters] = useState(false);
   const [isSendModalOpen, setIsSendModalOpen] = useState(false);
+  const [isTestModalOpen, setIsTestModalOpen] = useState(false);
   const [replyToNotification, setReplyToNotification] = useState<Notification | null>(null);
   // État pour gérer l'ouverture/fermeture des threads
   const [expandedThreads, setExpandedThreads] = useState<Set<string>>(new Set());
@@ -410,8 +414,27 @@ export default function NotificationsClient() {
   // Fonction helper pour rendre une notification
   const renderNotification = (notification: Notification) => {
     const style = getNotificationStyle(notification.type);
-    const Icon = style.icon;
     const metadata = parseMetadata(notification.metadata);
+
+    // Pour les notifications de release J+0 (aujourd'hui), utiliser une icône festive
+    let Icon = style.icon;
+    let iconColor = style.iconColor;
+    let bgColor = style.bgColor;
+    let borderColor = style.borderColor;
+
+    if (
+      notification.type === 'RELEASE_UPCOMING' ||
+      (notification.type === 'INFO' && metadata?.type === 'RELEASE_UPCOMING')
+    ) {
+      // Vérifier si c'est J+0 (aujourd'hui) - utiliser une icône festive verte
+      if (metadata?.daysUntil === 0) {
+        Icon = Sparkles;
+        iconColor = 'text-green-400';
+        bgColor = 'bg-green-500/20';
+        borderColor = 'border-green-500/30';
+      }
+    }
+
     const isUnread = !notification.isRead;
     const projectName = notification.Project?.name || metadata?.projectName || '';
 
@@ -422,7 +445,29 @@ export default function NotificationsClient() {
     return (
       <div
         key={notification.id}
-        className={`w-full p-3 sm:p-4 md:p-6 hover:bg-gray-800/50 transition-colors touch-manipulation ${
+        onClick={async () => {
+          // Pour les messages avec réponses, toggle le thread au clic sur la div
+          if (
+            (notification.type === 'ADMIN_MESSAGE' || notification.type === 'USER_MESSAGE') &&
+            hasReplies
+          ) {
+            toggleThread(notification.id);
+            // Marquer comme lu si ce n'est pas déjà fait
+            if (!notification.isRead) {
+              try {
+                await markAsRead(notification.id);
+              } catch (err) {
+                console.error('Erreur lors de la mise à jour:', err);
+              }
+            }
+          }
+        }}
+        className={`w-full p-3 sm:p-4 md:p-6 hover:bg-gray-800/50 transition-colors touch-manipulation focus:outline-none ${
+          (notification.type === 'ADMIN_MESSAGE' || notification.type === 'USER_MESSAGE') &&
+          hasReplies
+            ? 'cursor-pointer'
+            : ''
+        } ${
           isUnread
             ? 'bg-purple-500/5 border-l-2 sm:border-l-4 border-purple-500'
             : isSentMessage
@@ -433,15 +478,34 @@ export default function NotificationsClient() {
         <div className="flex items-start gap-2 sm:gap-3 md:gap-4">
           {/* Badge de type */}
           <div
-            className={`flex-shrink-0 p-2 sm:p-2.5 md:p-3 rounded-lg ${style.bgColor} border ${style.borderColor}`}
+            className={`flex-shrink-0 p-2 sm:p-2.5 md:p-3 rounded-lg ${bgColor} border ${borderColor}`}
           >
-            <Icon className={`w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 ${style.iconColor}`} />
+            <Icon className={`w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 ${iconColor}`} />
           </div>
 
           {/* Contenu */}
           <button
-            onClick={() => handleNotificationClick(notification)}
-            className="flex-1 min-w-0 text-left touch-manipulation"
+            onClick={async (e) => {
+              // Pour les messages avec réponses, toggle le thread au clic sur le header
+              if (
+                (notification.type === 'ADMIN_MESSAGE' || notification.type === 'USER_MESSAGE') &&
+                hasReplies
+              ) {
+                e.stopPropagation();
+                toggleThread(notification.id);
+                // Marquer comme lu si ce n'est pas déjà fait
+                if (!notification.isRead) {
+                  try {
+                    await markAsRead(notification.id);
+                  } catch (err) {
+                    console.error('Erreur lors de la mise à jour:', err);
+                  }
+                }
+                return;
+              }
+              handleNotificationClick(notification);
+            }}
+            className="flex-1 min-w-0 text-left touch-manipulation focus:outline-none"
           >
             <div className="flex items-start justify-between gap-2 mb-1.5 sm:mb-2">
               <div className="flex-1 min-w-0">
@@ -524,7 +588,7 @@ export default function NotificationsClient() {
                   e.stopPropagation();
                   toggleThread(notification.id);
                 }}
-                className="p-2 text-gray-400 hover:text-purple-400 hover:bg-purple-500/10 rounded-lg transition-colors touch-manipulation"
+                className="p-2 text-gray-400 hover:text-purple-400 hover:bg-purple-500/10 rounded-lg transition-colors touch-manipulation focus:outline-none"
                 title={isThreadExpanded ? 'Réduire le thread' : 'Développer le thread'}
                 aria-label={isThreadExpanded ? 'Réduire le thread' : 'Développer le thread'}
               >
@@ -544,7 +608,7 @@ export default function NotificationsClient() {
                     setReplyToNotification(notification);
                     setIsSendModalOpen(true);
                   }}
-                  className="p-2 text-gray-400 hover:text-green-400 hover:bg-green-500/10 rounded-lg transition-colors touch-manipulation"
+                  className="p-2 text-gray-400 hover:text-green-400 hover:bg-green-500/10 rounded-lg transition-colors touch-manipulation focus:outline-none"
                   title="Répondre"
                   aria-label="Répondre au message"
                 >
@@ -557,7 +621,7 @@ export default function NotificationsClient() {
                 e.stopPropagation();
                 await handleArchive(notification.id);
               }}
-              className="p-2 text-gray-400 hover:text-orange-400 hover:bg-orange-500/10 rounded-lg transition-colors touch-manipulation"
+              className="p-2 text-gray-400 hover:text-orange-400 hover:bg-orange-500/10 rounded-lg transition-colors touch-manipulation focus:outline-none"
               title="Archiver"
               aria-label="Archiver la notification"
             >
@@ -579,21 +643,19 @@ export default function NotificationsClient() {
 
         {/* Afficher les réponses en thread (collapse/expand) */}
         {hasReplies && notification.replies && (
-          <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleThread(notification.id);
+            }}
+            className="mt-2 flex items-center gap-2 text-xs text-gray-500 cursor-pointer hover:text-gray-400 transition-colors"
+          >
             <span>
               {notification.replies.length}{' '}
               {notification.replies.length === 1 ? 'réponse' : 'réponses'}
             </span>
             {!isThreadExpanded && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleThread(notification.id);
-                }}
-                className="text-purple-400 hover:text-purple-300 underline"
-              >
-                Afficher
-              </button>
+              <span className="text-purple-400 hover:text-purple-300 underline">Afficher</span>
             )}
           </div>
         )}
@@ -692,6 +754,18 @@ export default function NotificationsClient() {
                 )}
               </div>
             </div>
+            {/* Bouton discret pour les tests (admin uniquement) */}
+            {isAdmin && (
+              <button
+                onClick={() => setIsTestModalOpen(true)}
+                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 rounded-lg text-yellow-300 text-xs sm:text-sm font-medium transition-colors touch-manipulation"
+                title="Tests de notifications"
+                aria-label="Tests de notifications"
+              >
+                <TestTube className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">Tests notifs</span>
+              </button>
+            )}
           </div>
 
           {/* Onglets Messages / Notifications / Amis */}
@@ -891,7 +965,10 @@ export default function NotificationsClient() {
         {/* Section Notifications archivées */}
         {filteredArchivedNotifications.length > 0 && (
           <div className="mt-6 sm:mt-8">
-            <div className="flex items-center justify-between mb-3 sm:mb-4 gap-2">
+            <div
+              className="flex items-center justify-between mb-3 sm:mb-4 gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => setShowArchived(!showArchived)}
+            >
               <h2 className="text-lg sm:text-xl font-semibold text-white flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
                 <Archive className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />
                 <span className="truncate">
@@ -900,7 +977,10 @@ export default function NotificationsClient() {
                 </span>
               </h2>
               <button
-                onClick={() => setShowArchived(!showArchived)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowArchived(!showArchived);
+                }}
                 className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700/50 rounded-lg text-gray-300 text-xs sm:text-sm font-medium transition-colors touch-manipulation flex-shrink-0"
               >
                 {showArchived ? 'Masquer' : 'Afficher'}
@@ -1036,6 +1116,19 @@ export default function NotificationsClient() {
           await refresh();
           await fetchArchivedNotifications();
           setReplyToNotification(null);
+        }}
+      />
+
+      {/* Modale de tests de notifications (admin uniquement) */}
+      <NotificationTestModal
+        isOpen={isTestModalOpen}
+        onClose={() => setIsTestModalOpen(false)}
+        onSuccess={async () => {
+          // Attendre un peu pour que la notification soit bien créée en DB
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          // Forcer le refresh (ignore le cache)
+          await refresh();
+          await fetchArchivedNotifications();
         }}
       />
     </div>

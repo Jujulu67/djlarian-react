@@ -13,6 +13,19 @@ import {
 import prisma from '@/lib/prisma';
 import { serializeProjects, serializeProject } from '@/lib/utils/serializeProject';
 
+// Format text in Title Case (first letter of each word in uppercase, rest in lowercase)
+const formatTitleCase = (text: string): string => {
+  if (!text || text.trim() === '') return text;
+  return text
+    .trim()
+    .split(/\s+/)
+    .map((word) => {
+      if (word.length === 0) return word;
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
+    .join(' ');
+};
+
 // Fonction helper pour invalider le cache des projets d'un utilisateur
 function invalidateProjectsCache(userId: string) {
   // @ts-expect-error - revalidateTag prend un seul argument (tag) mais les types Next.js peuvent être incorrects
@@ -194,12 +207,12 @@ export async function POST(request: NextRequest) {
       data: {
         userId: session.user.id,
         order: newOrder,
-        name: name.trim(),
-        style: style?.trim() || null,
+        name: formatTitleCase(name.trim()),
+        style: style ? formatTitleCase(style) : null,
         status: status || 'EN_COURS',
-        collab: collab?.trim() || null,
+        collab: collab ? formatTitleCase(collab) : null,
         label: label?.trim() || null,
-        labelFinal: labelFinal?.trim() || null,
+        labelFinal: labelFinal ? formatTitleCase(labelFinal) : null,
         releaseDate: releaseDate ? new Date(releaseDate) : null,
         externalLink: sanitizedExternalLink,
         streamsJ7: parseStreamValue(streamsJ7),

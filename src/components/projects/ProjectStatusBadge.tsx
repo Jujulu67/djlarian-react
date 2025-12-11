@@ -13,6 +13,7 @@ const colorMap: Record<string, string> = {
   red: 'bg-red-500/20 text-red-300 border-red-500/30',
   orange: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
   purple: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+  slate: 'bg-slate-500/25 text-slate-200 border-slate-400/30',
 };
 
 export const ProjectStatusBadge = ({ status, size = 'sm' }: ProjectStatusBadgeProps) => {
