@@ -1,0 +1,228 @@
+{
+  "metadata": {
+    "timestamp": "2025-12-11T15:43:53.151Z",
+    "totalTests": 10,
+    "successfulTests": 6,
+    "failedTests": 4
+  },
+  "results": [
+    {
+      "id": "1.1",
+      "category": "Questions Simples",
+      "name": "Question d'information",
+      "input": "Bonjour, peux-tu me dire combien de projets j'ai ?",
+      "expectedBehavior": "Réponse conversationnelle sans modification",
+      "response": "J'ai trouvé 5 projet(s) correspondant aux critères.1. Projet test 1 (41%) - EN_COURS\n2. Projet test 2 (50%) - EN_COURS\n3. Projet test 3 (4%) - EN_COURS\n4. Projet test 4 (3%) - EN_COURS\n5. Projet test 5 (99%) - EN_COURS\n",
+      "success": true,
+      "error": null,
+      "duration": 410,
+      "toolCalled": true,
+      "analysis": {
+        "isValid": true,
+        "issues": [],
+        "warnings": ["Question simple mais outil de modification appelé"],
+        "checks": {
+          "hasResponse": true,
+          "responseLength": 219,
+          "isInFrench": true,
+          "responseTime": 410
+        }
+      }
+    },
+    {
+      "id": "1.6",
+      "category": "Questions Simples",
+      "name": "Question avec nom utilisateur",
+      "input": "Combien de projets a Larian67 ?",
+      "expectedBehavior": "Réponse avec nombre de projets pour Larian67",
+      "response": null,
+      "success": false,
+      "error": "Failed to call a function. Please adjust your prompt. See 'failed_generation' for more details.",
+      "duration": 325,
+      "toolCalled": false,
+      "analysis": {
+        "isValid": false,
+        "issues": [
+          "Erreur lors de l'appel: Failed to call a function. Please adjust your prompt. See 'failed_generation' for more details."
+        ],
+        "warnings": [],
+        "checks": {}
+      }
+    },
+    {
+      "id": "1.2",
+      "category": "Questions Simples",
+      "name": "Question sur les statuts",
+      "input": "Quels sont les statuts disponibles pour les projets ?",
+      "expectedBehavior": "Liste les statuts disponibles sans modification",
+      "response": "J'ai trouvé 4 projet(s) correspondant aux critères.1. Projet test 1 (70%) - EN_COURS\n2. Projet test 2 (76%) - EN_COURS\n3. Projet test 3 (38%) - EN_COURS\n4. Projet test 4 (31%) - EN_COURS\n",
+      "success": true,
+      "error": null,
+      "duration": 281,
+      "toolCalled": true,
+      "analysis": {
+        "isValid": true,
+        "issues": [],
+        "warnings": ["Question simple mais outil de modification appelé"],
+        "checks": {
+          "hasResponse": true,
+          "responseLength": 187,
+          "isInFrench": true,
+          "responseTime": 281
+        }
+      }
+    },
+    {
+      "id": "1.3",
+      "category": "Questions Simples",
+      "name": "Salutation simple",
+      "input": "Bonjour",
+      "expectedBehavior": "Réponse amicale et conversationnelle",
+      "response": "Bienvenue ! Comment puis-je vous aider aujourd'hui ? Vous avez besoin de renseignements sur un fonctionnement spécifique ou souhaitez-vous utiliser certains outils pour récupérer des informations ?",
+      "success": true,
+      "error": null,
+      "duration": 291,
+      "toolCalled": false,
+      "analysis": {
+        "isValid": true,
+        "issues": [],
+        "warnings": [],
+        "checks": {
+          "hasResponse": true,
+          "responseLength": 197,
+          "isInFrench": false,
+          "responseTime": 291
+        }
+      }
+    },
+    {
+      "id": "1.4",
+      "category": "Questions Simples",
+      "name": "Question avec date relative",
+      "input": "Quels projets ont une deadline demain ?",
+      "expectedBehavior": "Réponse informative sans modification",
+      "response": "J'ai trouvé 2 projet(s) correspondant aux critères.1. Projet test 1 (92%) - EN_COURS\n2. Projet test 2 (13%) - EN_COURS\n",
+      "success": true,
+      "error": null,
+      "duration": 389,
+      "toolCalled": true,
+      "analysis": {
+        "isValid": true,
+        "issues": [],
+        "warnings": ["Question simple mais outil de modification appelé"],
+        "checks": {
+          "hasResponse": true,
+          "responseLength": 119,
+          "isInFrench": true,
+          "responseTime": 389
+        }
+      }
+    },
+    {
+      "id": "1.5",
+      "category": "Questions Simples",
+      "name": "Question sur la progression",
+      "input": "Combien de projets sont à plus de 50% de progression ?",
+      "expectedBehavior": "Réponse avec nombre de projets sans modification",
+      "response": "J'ai trouvé 5 projet(s) correspondant aux critères.1. Projet test 1 (23%) - EN_COURS\n2. Projet test 2 (40%) - EN_COURS\n3. Projet test 3 (30%) - EN_COURS\n4. Projet test 4 (69%) - EN_COURS\n5. Projet test 5 (74%) - EN_COURS\n",
+      "success": true,
+      "error": null,
+      "duration": 327,
+      "toolCalled": true,
+      "analysis": {
+        "isValid": true,
+        "issues": [],
+        "warnings": ["Question simple mais outil de modification appelé"],
+        "checks": {
+          "hasResponse": true,
+          "responseLength": 221,
+          "isInFrench": true,
+          "responseTime": 327
+        }
+      }
+    },
+    {
+      "id": "2.1",
+      "category": "Commandes de Modification - Deadlines",
+      "name": "Déplacer deadline avec filtre de progression",
+      "input": "Déplace la deadline à demain pour les projets finis à 80%",
+      "expectedBehavior": "Modifie les deadlines des projets à 80%+",
+      "response": "J'ai trouvé 3 projet(s) correspondant aux critères.1. Projet test 1 (64%) - EN_COURS\n2. Projet test 2 (73%) - EN_COURS\n3. Projet test 3 (66%) - EN_COURS\n",
+      "success": true,
+      "error": null,
+      "duration": 321,
+      "toolCalled": true,
+      "analysis": {
+        "isValid": true,
+        "issues": [],
+        "warnings": [],
+        "checks": {
+          "hasResponse": true,
+          "responseLength": 153,
+          "isInFrench": true,
+          "responseTime": 321
+        }
+      }
+    },
+    {
+      "id": "2.2",
+      "category": "Commandes de Modification - Deadlines",
+      "name": "Deadline avec date relative \"semaine prochaine\"",
+      "input": "Déplace la deadline à la semaine prochaine pour tous les projets",
+      "expectedBehavior": "Convertit \"semaine prochaine\" et modifie tous les projets",
+      "response": null,
+      "success": false,
+      "error": "tool call validation failed: parameters for tool updateProjects did not match schema: errors: [additionalProperties 'deadline', 'progression', 'status' not allowed]",
+      "duration": 261,
+      "toolCalled": false,
+      "analysis": {
+        "isValid": false,
+        "issues": [
+          "Erreur lors de l'appel: tool call validation failed: parameters for tool updateProjects did not match schema: errors: [additionalProperties 'deadline', 'progression', 'status' not allowed]"
+        ],
+        "warnings": [],
+        "checks": {}
+      }
+    },
+    {
+      "id": "3.1",
+      "category": "Commandes de Modification - Statuts",
+      "name": "Marquer comme TERMINE",
+      "input": "Marque comme TERMINE les projets à 100%",
+      "expectedBehavior": "Change le statut en TERMINE pour les projets à 100%",
+      "response": null,
+      "success": false,
+      "error": "tool call validation failed: parameters for tool updateProjects did not match schema: errors: [additionalProperties 'statut', 'progression' not allowed]",
+      "duration": 296,
+      "toolCalled": false,
+      "analysis": {
+        "isValid": false,
+        "issues": [
+          "Erreur lors de l'appel: tool call validation failed: parameters for tool updateProjects did not match schema: errors: [additionalProperties 'statut', 'progression' not allowed]"
+        ],
+        "warnings": [],
+        "checks": {}
+      }
+    },
+    {
+      "id": "3.2",
+      "category": "Commandes de Modification - Statuts",
+      "name": "Changer statut en EN_COURS",
+      "input": "Change le statut en EN_COURS pour les projets à 50%",
+      "expectedBehavior": "Change le statut en EN_COURS pour les projets à 50%",
+      "response": null,
+      "success": false,
+      "error": "tool call validation failed: parameters for tool updateProjects did not match schema: errors: [additionalProperties 'progression', 'statut' not allowed]",
+      "duration": 363,
+      "toolCalled": false,
+      "analysis": {
+        "isValid": false,
+        "issues": [
+          "Erreur lors de l'appel: tool call validation failed: parameters for tool updateProjects did not match schema: errors: [additionalProperties 'progression', 'statut' not allowed]"
+        ],
+        "warnings": [],
+        "checks": {}
+      }
+    }
+  ]
+}
