@@ -67,8 +67,30 @@ if (typeof window !== 'undefined') {
 
       // Créer une nouvelle requête et la mettre en cache
       const promise = originalFetch(...args)
-        .then((response) => {
-          // Mettre en cache la réponse
+        .then(async (response) => {
+          // Vérifier si la réponse est du HTML au lieu de JSON (erreur NextAuth)
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('text/html')) {
+            // Si c'est du HTML, NextAuth a probablement redirigé vers la page de sign-in
+            // Créer une réponse JSON valide avec { user: null } pour éviter l'erreur
+            const jsonResponse = new Response(JSON.stringify({ user: null, expires: null }), {
+              status: 200,
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            });
+            // Mettre en cache la réponse JSON
+            if (sessionRequestCache) {
+              sessionRequestCache.response = jsonResponse.clone();
+              sessionRequestCache.pendingRequests = Math.max(
+                0,
+                sessionRequestCache.pendingRequests - 1
+              );
+            }
+            return jsonResponse;
+          }
+
+          // Mettre en cache la réponse normale
           if (sessionRequestCache) {
             sessionRequestCache.response = response.clone();
             sessionRequestCache.pendingRequests = Math.max(
@@ -85,7 +107,13 @@ if (typeof window !== 'undefined') {
               sessionRequestCache.pendingRequests - 1
             );
           }
-          throw error;
+          // En cas d'erreur, retourner une réponse JSON valide avec { user: null }
+          return new Response(JSON.stringify({ user: null, expires: null }), {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
         });
 
       sessionRequestCache = {
