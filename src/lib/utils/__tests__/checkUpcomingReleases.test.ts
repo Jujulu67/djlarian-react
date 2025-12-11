@@ -15,6 +15,7 @@ jest.mock('@/lib/prisma', () => ({
     notification: {
       findMany: jest.fn(),
       create: jest.fn(),
+      updateMany: jest.fn(),
     },
   },
 }));
@@ -189,9 +190,9 @@ describe('checkUpcomingReleases', () => {
       );
     });
 
-    it('should skip if notification already exists', async () => {
+    it('should delete previous RELEASE_UPCOMING notifications before creating new one', async () => {
       const releaseDate = new Date();
-      releaseDate.setDate(releaseDate.getDate() + 7);
+      releaseDate.setDate(releaseDate.getDate() + 3);
       releaseDate.setHours(0, 0, 0, 0);
       jest.setSystemTime(new Date());
 
@@ -201,20 +202,37 @@ describe('checkUpcomingReleases', () => {
         name: 'Test Project',
         releaseDate,
       } as any);
+      // Simuler une notification précédente pour J-5
       mockPrisma.notification.findMany.mockResolvedValue([
         {
           id: 'notif-1',
           metadata: JSON.stringify({
             type: 'RELEASE_UPCOMING',
-            daysUntil: 7,
+            daysUntil: 5,
           }),
         },
       ] as any);
+      mockPrisma.notification.updateMany.mockResolvedValue({ count: 1 });
+      mockPrisma.notification.create.mockResolvedValue({
+        id: 'notif-2',
+      } as any);
 
       const result = await checkProjectUpcomingRelease('project-1', 'user-1');
 
-      expect(result.skipped).toBe(1);
-      expect(mockPrisma.notification.create).not.toHaveBeenCalled();
+      expect(result.created).toBe(1);
+      // Vérifier que les anciennes notifications sont supprimées
+      expect(mockPrisma.notification.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: {
+            in: ['notif-1'],
+          },
+        },
+        data: {
+          deletedAt: expect.any(Date),
+        },
+      });
+      // Vérifier qu'une nouvelle notification est créée
+      expect(mockPrisma.notification.create).toHaveBeenCalled();
     });
 
     it('should handle errors gracefully', async () => {

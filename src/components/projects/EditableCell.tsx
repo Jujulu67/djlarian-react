@@ -4,6 +4,7 @@ import { ExternalLink } from 'lucide-react';
 import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent } from 'react';
 
 import { PROJECT_STATUSES, ProjectStatus, LABEL_OPTIONS, LabelStatus, CellType } from './types';
+import { GlassSelect } from './GlassSelect';
 
 /**
  * Formate un texte en Title Case (première lettre de chaque mot en majuscule, reste en minuscule)
@@ -196,38 +197,22 @@ export const EditableCell = ({
       const statusConfig = PROJECT_STATUSES.find((s) => s.value === value);
       if (!statusConfig) return null;
 
-      const colorMap: Record<string, string> = {
-        blue: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-        green: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
-        red: 'bg-red-500/20 text-red-300 border-red-500/30',
-        orange: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
-        purple: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
-      };
-
       return (
-        <select
+        <GlassSelect
           value={value?.toString() || ''}
-          onChange={(e) => {
-            // Auto-save on select change
-            onSave(field, e.target.value as ProjectStatus);
+          options={PROJECT_STATUSES.map((status) => ({
+            value: status.value,
+            label: status.label,
+            color: status.color,
+          }))}
+          onChange={(newValue) => {
+            onSave(field, newValue as ProjectStatus);
           }}
-          className={`inline-flex items-center font-medium rounded-full border ${isCompact ? 'px-1 py-0.5 text-[10px]' : 'px-2 py-1 text-xs'} cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500/50 hover:opacity-80 transition-opacity ${colorMap[statusConfig.color] || colorMap.blue} ${className}`}
-          style={{
-            appearance: 'none',
-            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${isCompact ? '10' : '12'}' height='${isCompact ? '10' : '12'}' viewBox='0 0 ${isCompact ? '10' : '12'} ${isCompact ? '10' : '12'}'%3E%3Cpath fill='%23a855f7' d='M${isCompact ? '5' : '6'} ${isCompact ? '7.5' : '9'}L1 ${isCompact ? '3.5' : '4'}h${isCompact ? '8' : '10'}z'/%3E%3C/svg%3E")`,
-            backgroundRepeat: 'no-repeat',
-            backgroundPosition: `right ${isCompact ? '0.15rem' : '0.5rem'} center`,
-            paddingRight: isCompact ? '1rem' : '1.75rem',
-            maxWidth: '100%',
-          }}
+          isCompact={isCompact}
+          className={className}
           disabled={isSaving}
-        >
-          {PROJECT_STATUSES.map((status) => (
-            <option key={status.value} value={status.value}>
-              {status.label}
-            </option>
-          ))}
-        </select>
+          currentColor={statusConfig.color}
+        />
       );
     }
 
@@ -238,37 +223,28 @@ export const EditableCell = ({
         ? LABEL_OPTIONS.find((l) => l.value === normalizedValue)
         : null;
 
-      const colorMap: Record<string, string> = {
-        blue: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-        green: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
-        red: 'bg-red-500/20 text-red-300 border-red-500/30',
-      };
+      const labelOptions = [
+        { value: '', label: '-', color: undefined },
+        ...LABEL_OPTIONS.map((label) => ({
+          value: label.value,
+          label: label.label,
+          color: label.color,
+        })),
+      ];
 
       return (
-        <select
+        <GlassSelect
           value={normalizedValue || ''}
-          onChange={(e) => {
-            // Auto-save on select change
-            onSave(field, e.target.value || null);
+          options={labelOptions}
+          onChange={(newValue) => {
+            onSave(field, newValue || null);
           }}
-          className={`inline-flex items-center font-medium rounded-full border ${isCompact ? 'px-1 py-0.5 text-[10px]' : 'px-2 py-1 text-xs'} cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500/50 hover:opacity-80 transition-opacity ${labelConfig ? colorMap[labelConfig.color] : 'bg-gray-500/20 text-gray-300 border-gray-500/30'} ${className}`}
-          style={{
-            appearance: 'none',
-            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${isCompact ? '10' : '12'}' height='${isCompact ? '10' : '12'}' viewBox='0 0 ${isCompact ? '10' : '12'} ${isCompact ? '10' : '12'}'%3E%3Cpath fill='%23a855f7' d='M${isCompact ? '5' : '6'} ${isCompact ? '7.5' : '9'}L1 ${isCompact ? '3.5' : '4'}h${isCompact ? '8' : '10'}z'/%3E%3C/svg%3E")`,
-            backgroundRepeat: 'no-repeat',
-            backgroundPosition: `right ${isCompact ? '0.15rem' : '0.5rem'} center`,
-            paddingRight: isCompact ? '1rem' : '1.75rem',
-            maxWidth: '100%',
-          }}
+          placeholder="-"
+          isCompact={isCompact}
+          className={className}
           disabled={isSaving}
-        >
-          <option value="">-</option>
-          {LABEL_OPTIONS.map((label) => (
-            <option key={label.value} value={label.value}>
-              {label.label}
-            </option>
-          ))}
-        </select>
+          currentColor={labelConfig?.color || 'blue'}
+        />
       );
     }
 

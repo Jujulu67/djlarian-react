@@ -137,30 +137,53 @@ export async function checkProjectUpcomingRelease(
       return result;
     }
 
-    // Vérifier si une notification existe déjà pour ce projet et ce jour (y compris archivées)
+    // Supprimer toutes les notifications RELEASE_UPCOMING précédentes pour ce projet
+    // On récupère toutes les notifications de l'utilisateur qui pourraient être des releases
+    // (y compris celles avec projectId null pour les tests)
     const existingNotifications = await prisma.notification.findMany({
       where: {
         userId,
-        projectId: project.id,
-        type: notificationInfo.type,
-        deletedAt: null, // Ne pas vérifier les notifications supprimées
+        deletedAt: null, // Ne pas vérifier les notifications déjà supprimées
+        OR: [
+          { projectId: project.id }, // Notifications pour ce projet spécifique
+          { projectId: null }, // Notifications de test (projectId null)
+        ],
       },
     });
 
-    // Vérifier dans les métadonnées si une notification pour ce jour existe déjà
-    const existingNotification = existingNotifications.find((notif) => {
+    // Filtrer pour trouver les notifications RELEASE_UPCOMING pour ce projet
+    // (soit avec le même projectId, soit avec projectId null ET le même projectId dans les métadonnées)
+    const releaseNotifications = existingNotifications.filter((notif) => {
       if (!notif.metadata) return false;
       try {
         const meta = JSON.parse(notif.metadata);
-        return meta.type === 'RELEASE_UPCOMING' && meta.daysUntil === days;
+        if (meta.type !== 'RELEASE_UPCOMING') return false;
+
+        // Si c'est une notification de test (projectId null), vérifier les métadonnées
+        if (notif.projectId === null) {
+          // Pour les tests, on supprime toutes les RELEASE_UPCOMING de test
+          return meta.isTest === true;
+        }
+
+        // Pour les vraies notifications, vérifier que c'est le même projet
+        return meta.projectId === project.id;
       } catch {
         return false;
       }
     });
 
-    if (existingNotification) {
-      result.skipped++;
-      return result;
+    // Soft delete toutes les notifications RELEASE_UPCOMING précédentes
+    if (releaseNotifications.length > 0) {
+      await prisma.notification.updateMany({
+        where: {
+          id: {
+            in: releaseNotifications.map((n) => n.id),
+          },
+        },
+        data: {
+          deletedAt: new Date(),
+        },
+      });
     }
 
     // Créer la notification

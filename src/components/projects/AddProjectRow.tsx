@@ -4,16 +4,38 @@ import { Plus, X, Check } from 'lucide-react';
 import { useState, useRef, useEffect, KeyboardEvent } from 'react';
 
 import { PROJECT_STATUSES, ProjectStatus } from './types';
+import { GlassSelect } from './GlassSelect';
+
+// Format text in Title Case (first letter of each word in uppercase, rest in lowercase)
+const formatTitleCase = (text: string): string => {
+  if (!text || text.trim() === '') return text;
+  return text
+    .trim()
+    .split(/\s+/)
+    .map((word) => {
+      if (word.length === 0) return word;
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
+    .join(' ');
+};
 
 interface AddProjectRowProps {
   onAdd: (data: { name: string; status: ProjectStatus }) => Promise<void>;
   isAdding: boolean;
   setIsAdding: (value: boolean) => void;
+  defaultStatus?: ProjectStatus | 'ALL';
 }
 
-export const AddProjectRow = ({ onAdd, isAdding, setIsAdding }: AddProjectRowProps) => {
+export const AddProjectRow = ({
+  onAdd,
+  isAdding,
+  setIsAdding,
+  defaultStatus = 'ALL',
+}: AddProjectRowProps) => {
   const [name, setName] = useState('');
-  const [status, setStatus] = useState<ProjectStatus>('EN_COURS');
+  const [status, setStatus] = useState<ProjectStatus>(
+    defaultStatus === 'ALL' || !defaultStatus ? 'EN_COURS' : defaultStatus
+  );
   const [isSaving, setIsSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -23,14 +45,20 @@ export const AddProjectRow = ({ onAdd, isAdding, setIsAdding }: AddProjectRowPro
     }
   }, [isAdding]);
 
+  // Synchronize status with external defaultStatus changes
+  useEffect(() => {
+    setStatus(defaultStatus === 'ALL' || !defaultStatus ? 'EN_COURS' : defaultStatus);
+  }, [defaultStatus]);
+
   const handleSubmit = async () => {
     if (!name.trim() || isSaving) return;
 
     setIsSaving(true);
     try {
-      await onAdd({ name: name.trim(), status });
+      const formattedName = formatTitleCase(name.trim());
+      await onAdd({ name: formattedName, status });
       setName('');
-      setStatus('EN_COURS');
+      setStatus(defaultStatus === 'ALL' || !defaultStatus ? 'EN_COURS' : defaultStatus);
       setIsAdding(false);
     } catch (error) {
       console.error("Erreur lors de l'ajout:", error);
@@ -51,7 +79,7 @@ export const AddProjectRow = ({ onAdd, isAdding, setIsAdding }: AddProjectRowPro
 
   const handleCancel = () => {
     setName('');
-    setStatus('EN_COURS');
+    setStatus(defaultStatus === 'ALL' || !defaultStatus ? 'EN_COURS' : defaultStatus);
     setIsAdding(false);
   };
 
@@ -81,18 +109,18 @@ export const AddProjectRow = ({ onAdd, isAdding, setIsAdding }: AddProjectRowPro
         disabled={isSaving}
       />
 
-      <select
+      <GlassSelect
         value={status}
-        onChange={(e) => setStatus(e.target.value as ProjectStatus)}
-        className="bg-gray-800/50 border border-purple-500/30 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+        options={PROJECT_STATUSES.map((s) => ({
+          value: s.value,
+          label: s.label,
+          color: s.color,
+        }))}
+        onChange={(newValue) => setStatus(newValue as ProjectStatus)}
+        isCompact={false}
         disabled={isSaving}
-      >
-        {PROJECT_STATUSES.map((s) => (
-          <option key={s.value} value={s.value}>
-            {s.label}
-          </option>
-        ))}
-      </select>
+        currentColor={PROJECT_STATUSES.find((s) => s.value === status)?.color || 'blue'}
+      />
 
       <div className="flex items-center gap-2">
         <button

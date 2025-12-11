@@ -49,9 +49,14 @@ interface FieldFilters {
 export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
   const router = useRouter();
   const { data: session, status: sessionStatus } = useSession();
+  const [allProjects, setAllProjects] = useState<Project[]>(initialProjects);
   const [projects, setProjects] = useState<Project[]>(initialProjects);
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'ALL'>('ALL');
   const [isLoading, setIsLoading] = useState(false);
+  const [counts, setCounts] = useState<{
+    total: number;
+    statusBreakdown: Record<string, number>;
+  } | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [isImportStreamsDialogOpen, setIsImportStreamsDialogOpen] = useState(false);
@@ -77,6 +82,7 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
 
   // Ref pour le debounce
   const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const fetchCountsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   // Ref pour suivre les mises à jour en cours et éviter les race conditions
   const updatingProjectsRef = useRef<Set<string>>(new Set());
 
@@ -87,6 +93,24 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
       // Ignorer les erreurs silencieusement
     });
   }, []); // Une seule fois au montage
+
+  // Fonction pour récupérer les compteurs depuis l'API (agrégats SQL optimisés)
+  const fetchCounts = useCallback(async () => {
+    if (sessionStatus === 'unauthenticated' || sessionStatus === 'loading' || !session?.user?.id) {
+      return;
+    }
+
+    try {
+      const response = await fetchWithAuth(`/api/projects/counts`);
+      if (response.ok) {
+        const result = await response.json();
+        const countsData = result.data || result;
+        setCounts(countsData);
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des compteurs:', error);
+    }
+  }, [sessionStatus, session]);
 
   const fetchProjects = useCallback(async () => {
     // Vérifier que la session est authentifiée avant de faire la requête
@@ -110,19 +134,38 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
     setAuthError(null);
 
     try {
-      const params = new URLSearchParams();
-      if (statusFilter !== 'ALL') {
-        params.set('status', statusFilter);
-      }
-
-      const response = await fetchWithAuth(`/api/projects?${params.toString()}`);
+      const response = await fetchWithAuth(`/api/projects`);
 
       if (response.ok) {
         const result = await response.json();
         // Nouveau format API: { data: [...] }
-        const projects = result.data || result;
-        setProjects(projects);
+        const fetchedProjects: Project[] = result.data || result;
+        setAllProjects(fetchedProjects);
+        // Filtrer côté client au lieu de refaire un appel API
+        const filteredProjects =
+          statusFilter === 'ALL'
+            ? fetchedProjects
+            : fetchedProjects.filter((p) => p.status === statusFilter);
+        setProjects(filteredProjects);
         setAuthError(null);
+
+        // Récupérer les compteurs depuis l'API optimisée (en parallèle, non bloquant)
+        fetchWithAuth(`/api/projects/counts`)
+          .then((response) => {
+            if (response.ok) {
+              return response.json();
+            }
+            return null;
+          })
+          .then((result) => {
+            if (result) {
+              const countsData = result.data || result;
+              setCounts(countsData);
+            }
+          })
+          .catch(() => {
+            // Ignorer les erreurs silencieusement
+          });
 
         // Vérifier les releases en approche en arrière-plan (ne pas bloquer l'affichage)
         fetchWithAuth('/api/projects/releases/check').catch(() => {
@@ -144,34 +187,42 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
     } finally {
       setIsLoading(false);
     }
-  }, [statusFilter, sessionStatus, session, router]);
+  }, [sessionStatus, session, router]);
 
-  // Debounce fetchProjects avec 300ms et éviter le double appel SSR + client
+  // Filtrer côté client quand on change de filtre (pas besoin de refaire un appel API)
+  useEffect(() => {
+    if (allProjects.length > 0) {
+      const filteredProjects =
+        statusFilter === 'ALL' ? allProjects : allProjects.filter((p) => p.status === statusFilter);
+      setProjects(filteredProjects);
+    }
+  }, [statusFilter, allProjects]);
+
+  // Charger les projets et compteurs au montage et quand nécessaire
   useEffect(() => {
     // Vérifier si les initialProjects correspondent déjà aux filtres actuels
     // Si statusFilter est 'ALL' et qu'on a déjà des projets, pas besoin de recharger
-    if (statusFilter === 'ALL' && initialProjects.length > 0 && projects.length === 0) {
+    if (statusFilter === 'ALL' && initialProjects.length > 0 && allProjects.length === 0) {
       // Utiliser les projets initiaux si on n'a pas encore chargé
+      setAllProjects(initialProjects);
       setProjects(initialProjects);
+      // Charger les compteurs
+      fetchCounts();
       return;
     }
 
-    // Si le filtre correspond aux projets initiaux, ne pas recharger immédiatement
-    if (statusFilter === 'ALL' && initialProjects.length > 0 && projects.length === 0) {
-      // Les projets initiaux correspondent, utiliser ceux-ci
-      setProjects(initialProjects);
-      return;
-    }
+    // Si on n'a pas encore chargé les projets, les charger
+    if (allProjects.length === 0) {
+      // Annuler le timeout précédent si il existe
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
 
-    // Annuler le timeout précédent si il existe
-    if (fetchTimeoutRef.current) {
-      clearTimeout(fetchTimeoutRef.current);
+      // Définir un nouveau timeout
+      fetchTimeoutRef.current = setTimeout(() => {
+        fetchProjects();
+      }, 300);
     }
-
-    // Définir un nouveau timeout
-    fetchTimeoutRef.current = setTimeout(() => {
-      fetchProjects();
-    }, 300);
 
     // Cleanup
     return () => {
@@ -179,7 +230,7 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
         clearTimeout(fetchTimeoutRef.current);
       }
     };
-  }, [fetchProjects, statusFilter, initialProjects, projects.length]);
+  }, [fetchProjects, fetchCounts, statusFilter, initialProjects, allProjects.length]);
 
   const handleUpdate = async (id: string, field: string, value: string | number | null) => {
     // Protection contre les race conditions : ignorer si une mise à jour est déjà en cours pour ce projet
@@ -201,24 +252,23 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
       updatePayload.progress = 100;
     }
 
-    // Optimistic update
-    setProjects((prev) =>
-      prev.map((p) => {
+    const applyUpdate = (list: Project[]) =>
+      list.map((p) => {
         if (p.id === id) {
           const updated = { ...p, [field]: value, updatedAt: new Date().toISOString() };
-          // Si on change le statut vers TERMINE, mettre progress à 100
           if (field === 'status' && value === 'TERMINE') {
             updated.progress = 100;
           } else if (p.status === 'TERMINE' && field !== 'progress' && field !== 'status') {
-            // Si le projet est déjà TERMINE et qu'on modifie un autre champ, maintenir progress à 100
-            // Cela garantit la cohérence : un projet TERMINE doit toujours avoir progress = 100
             updated.progress = updated.progress ?? 100;
           }
           return updated;
         }
         return p;
-      })
-    );
+      });
+
+    // Optimistic update
+    setProjects((prev) => applyUpdate(prev));
+    setAllProjects((prev) => applyUpdate(prev));
 
     try {
       const response = await fetchWithAuth(`/api/projects/${id}`, {
@@ -241,6 +291,7 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
       const result = await response.json();
       const updated = result.data || result;
       setProjects((prev) => prev.map((p) => (p.id === id ? updated : p)));
+      setAllProjects((prev) => prev.map((p) => (p.id === id ? updated : p)));
 
       // Si on a modifié la releaseDate, vérifier les notifications de releases en approche
       if (field === 'releaseDate') {
@@ -255,11 +306,17 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
       setTimeout(() => {
         setLastUpdatedProjectId(null);
       }, 2000);
+
+      // Si on a changé le statut, rafraîchir les compteurs
+      if (field === 'status') {
+        fetchCounts();
+      }
     } catch (error) {
       console.error('Erreur:', error);
       // Revert on error : restaurer l'état précédent au lieu de recharger tous les projets
       if (previousProjectState) {
         setProjects((prev) => prev.map((p) => (p.id === id ? previousProjectState : p)));
+        setAllProjects((prev) => prev.map((p) => (p.id === id ? previousProjectState : p)));
       } else {
         // Si on n'a pas l'état précédent, recharger uniquement ce projet
         fetchWithAuth(`/api/projects/${id}`)
@@ -272,6 +329,7 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
           .then((result) => {
             const updated = result.data || result;
             setProjects((prev) => prev.map((p) => (p.id === id ? updated : p)));
+            setAllProjects((prev) => prev.map((p) => (p.id === id ? updated : p)));
           })
           .catch(() => {
             // En dernier recours, recharger tous les projets
@@ -287,6 +345,7 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
   const handleDelete = async (id: string) => {
     // Optimistic update
     setProjects((prev) => prev.filter((p) => p.id !== id));
+    setAllProjects((prev) => prev.filter((p) => p.id !== id));
 
     try {
       const response = await fetchWithAuth(`/api/projects/${id}`, {
@@ -303,6 +362,9 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
         const error = await response.json();
         throw new Error(error.error || 'Erreur lors de la suppression');
       }
+
+      // Rafraîchir les compteurs depuis l'API
+      fetchCounts();
     } catch (error) {
       console.error('Erreur:', error);
       fetchProjects();
@@ -381,7 +443,16 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
       const newProject = result.data || result;
 
       // Ajouter le projet en bas de la liste
-      setProjects((prev) => [...prev, newProject]);
+      setAllProjects((prev) => [...prev, newProject]);
+      setProjects((prev) => {
+        if (statusFilter === 'ALL' || newProject.status === statusFilter) {
+          return [...prev, newProject];
+        }
+        return prev;
+      });
+
+      // Rafraîchir les compteurs depuis l'API
+      fetchCounts();
 
       // Si le projet a une releaseDate, vérifier les notifications de releases en approche
       if (newProject.releaseDate) {
@@ -475,6 +546,11 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
   const handleReorder = async (reorderedProjects: Project[]) => {
     // Optimistic update
     setProjects(reorderedProjects);
+    setAllProjects((prev) => {
+      const reorderedIds = reorderedProjects.map((p) => p.id);
+      const remaining = prev.filter((p) => !reorderedIds.includes(p.id));
+      return [...reorderedProjects, ...remaining];
+    });
 
     try {
       const projectOrders = reorderedProjects.map((project, index) => ({
@@ -807,10 +883,12 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
                       : 'text-gray-300 hover:bg-gray-700/60'
                   }`}
                 >
-                  Tous ({projects.length})
+                  Tous ({counts?.total ?? allProjects.length})
                 </button>
                 {PROJECT_STATUSES.map((status) => {
-                  const count = projects.filter((p) => p.status === status.value).length;
+                  const count =
+                    counts?.statusBreakdown?.[status.value] ??
+                    allProjects.filter((p) => p.status === status.value).length;
                   return (
                     <button
                       key={status.value}
@@ -1005,6 +1083,7 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
           !!highlightedFromNotification && !lastCreatedProjectId && !lastUpdatedProjectId
         }
         showStats={showStats}
+        defaultStatus={statusFilter}
       />
 
       {/* Info aide */}
