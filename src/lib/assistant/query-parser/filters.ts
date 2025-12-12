@@ -139,12 +139,39 @@ export function detectFilters(
             !isFollowedByUpdateVerbDirectly,
         });
 
+        // Vérifier si le match est précédé d'un verbe de modification
+        const textBefore = query.substring(0, matchIndex).toLowerCase().trim();
+
+        // Cas 1: C'est explicitement "avancement à X%" -> Toujours une cible, jamais un filtre
+        const isExplicitAvancementTarget = /(?:avancement|progression)\s*$/i.test(textBefore);
+
+        // Cas 2: C'est "met les projets à X%" (ambigu)
+        const isPrecededByUpdateVerb =
+          /(?:mets?|met|passe|passer|change|changer|modifie|modifier)(?:\s+(?:les?|leur|leurs|projets?))?$/i.test(
+            textBefore
+          );
+
+        // Si c'est ambigu, on regarde ce qui suit
+        // Si c'est suivi d'un autre paramètre de modif (status, collab, etc), alors le % est un filtre
+        // Ex: "met les projets à 50% en TERMINE" -> 50% est un filtre
+        const isFollowedByUpdateParam =
+          /(?:en|à|avec|pour)\s+(?:termin|annul|cours|archiv|ghost|collab|style)/i.test(textAfter);
+
+        // On exclut le filtre si :
+        // - C'est explicitement "avancement à"
+        // - OU c'est une commande de modif qui n'est PAS suivie d'autres paramètres (donc le % est la cible)
+        const shouldExcludeAsFilter =
+          isExplicitAvancementTarget ||
+          (isPrecededByUpdateVerb && !isFollowedByUpdateParam && i !== 3); // i===3 est le pattern explicite "modifie... à X% et"
+
         // Si le match se termine par "et" ou est suivi de "et", d'une date, ou pas d'un verbe de modification, c'est un filtre
+        // Sauf si on a déterminé que c'était une cible de modif
         if (
-          matchEndsWithEt ||
-          isFollowedByEt ||
-          isFollowedByDate ||
-          !isFollowedByUpdateVerbDirectly
+          (matchEndsWithEt ||
+            isFollowedByEt ||
+            isFollowedByDate ||
+            !isFollowedByUpdateVerbDirectly) &&
+          !shouldExcludeAsFilter
         ) {
           filters.minProgress = exactValue;
           filters.maxProgress = exactValue;
@@ -340,6 +367,23 @@ export function detectFilters(
         'quels',
         'ai',
         'j',
+        'par',
+        'pour',
+        'change',
+        'met',
+        'mets',
+        'passe',
+        'modifie',
+        'modifier',
+        'affiche',
+        'donne',
+        'montre',
+        'cahnge',
+        'chnage',
+        'chang',
+        'pase',
+        'pass',
+        'modifi',
       ];
       if (!ignoredWords.includes(collabName.toLowerCase())) {
         // Chercher le collab le plus proche dans la liste

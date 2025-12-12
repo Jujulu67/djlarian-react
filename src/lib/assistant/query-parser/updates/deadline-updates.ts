@@ -131,14 +131,14 @@ function extractNewDeadline(query: string, updateData: UpdateData): void {
   }
 
   const newDeadlinePatterns = [
-    /(?:déplace|déplacer|change|changer|modifie|modifier|mets?|met|passe|passer)\s+(?:les?\s+)?(?:deadlines?|dealines?|dead\s*lines?|dates?\s*limites?)\s+(?:des?\s+)?(?:projets?\s+)?(?:à|pour|pour\s+le)?\s*(semaine\s+pro|semaine\s+prochaine|mois\s+prochain|next\s+week|next\s+month|demain|tomorrow|aujourd['']hui|today|après[- ]?demain|day\s+after\s+tomorrow|dans\s+\d+\s+(?:jours?|semaines?|mois)|in\s+\d+\s+(?:days?|weeks?|months?)|\d{4}-\d{2}-\d{2})/i,
-    /(?:déplace|déplacer|change|changer|modifie|modifier|mets?|met)\s+(?:la\s+)?deadline\s+(?:à|pour|pour\s+le)?\s*(semaine\s+pro|semaine\s+prochaine|mois\s+prochain|next\s+week|next\s+month|demain|tomorrow|aujourd['']hui|today|après[- ]?demain|day\s+after\s+tomorrow|dans\s+\d+\s+(?:jours?|semaines?|mois)|in\s+\d+\s+(?:days?|weeks?|months?)|\d{4}-\d{2}-\d{2})/i,
-    /(?:deadline|date\s*limite)\s+(?:à|pour|pour\s+le)?\s*(la\s+)?(semaine\s+pro|semaine\s+prochaine|mois\s+prochain|next\s+week|next\s+month|demain|tomorrow|aujourd['']hui|today|après[- ]?demain|day\s+after\s+tomorrow|dans\s+\d+\s+(?:jours?|semaines?|mois)|in\s+\d+\s+(?:days?|weeks?|months?)|\d{4}-\d{2}-\d{2})/i,
-    /(?:met|mets?|définis?|définir)\s+(?:une\s+)?deadline\s+(?:à|pour|pour\s+le)?\s*(dans\s+\d+\s+(?:jours?|semaines?|mois)|in\s+\d+\s+(?:days?|weeks?|months?))/i,
+    /(?:déplace|déplacer|change|changer|modifie|modifier|mets?|met|passe|passer|cahnge|chnage|chang|pase|pass|modifi)\s+(?:(?:les?|la|le|l'|leurs?|son|sa|ses|mes|mon|ma|nos|notre|vos|votre)\s+)?(?:deadlines?|dealines?|dead\s*lines?|dates?\s*limites?)\s+(?:des?\s+)?(?:projets?\s+)?(?:à|pour|pour\s+le|au)?\s*(semaine\s+pro|semaine\s+prochaine|mois\s+prochain|next\s+week|next\s+month|demain|tomorrow|aujourd['']hui|today|après[- ]?demain|day\s+after\s+tomorrow|dans\s+\d+\s+(?:jours?|semaines?|mois)|in\s+\d+\s+(?:days?|weeks?|months?)|\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2}\/\d{4})/i,
+    /(?:déplace|déplacer|change|changer|modifie|modifier|mets?|met|cahnge|chnage|chang|pase|pass|modifi)\s+(?:(?:les?|la|le|l'|leurs?|son|sa|ses|mes|mon|ma|nos|notre|vos|votre)\s+)?deadline\s+(?:à|pour|pour\s+le|au)?\s*(semaine\s+pro|semaine\s+prochaine|mois\s+prochain|next\s+week|next\s+month|demain|tomorrow|aujourd['']hui|today|après[- ]?demain|day\s+after\s+tomorrow|dans\s+\d+\s+(?:jours?|semaines?|mois)|in\s+\d+\s+(?:days?|weeks?|months?)|\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2}\/\d{4})/i,
+    /(?:deadline|date\s*limite)\s+(?:à|pour|pour\s+le|au)?\s*(?:(?:la|le)\s+)?(semaine\s+pro|semaine\s+prochaine|mois\s+prochain|next\s+week|next\s+month|demain|tomorrow|aujourd['']hui|today|après[- ]?demain|day\s+after\s+tomorrow|dans\s+\d+\s+(?:jours?|semaines?|mois)|in\s+\d+\s+(?:days?|weeks?|months?)|\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2}\/\d{4})/i,
+    /(?:met|mets?|définis?|définir|fixe|fixer)\s+(?:(?:une|la|le|l'|ma|ta)\s+)?deadline\s+(?:à|pour|pour\s+le|au)?\s*(dans\s+\d+\s+(?:jours?|semaines?|mois)|in\s+\d+\s+(?:days?|weeks?|months?))/i,
     /\b(?:au|à\s+le)\s+(?:le\s+)?(mois\s+prochain|next\s+month)\b/i,
-    /\b(?:à|pour|pour\s+le)\s+(?:la\s+)?(semaine\s+pro|semaine\s+prochaine|next\s+week)\b/i,
-    /(?:met|mets?|déplace|déplacer|change|changer|modifie|modifier|passe|passer)\s+(?:les?\s+)?(?:deadlines?|dealines?)\s+(?:à|pour|pour\s+le)\s+(?:la\s+)?(semaine\s+pro|semaine\s+prochaine|next\s+week)/i,
-    /^deadline\s+(?:à|pour|pour\s+le)\s*(la\s+)?(semaine\s+pro|semaine\s+prochaine|mois\s+prochain|next\s+week|next\s+month|demain|tomorrow|aujourd['']hui|today)/i,
+    /\b(?:à|pour|pour\s+le)\s+(?:(?:la|le)\s+)?(semaine\s+pro|semaine\s+prochaine|next\s+week)\b/i,
+    /(?:met|mets?|déplace|déplacer|change|changer|modifie|modifier|passe|passer|cahnge|chnage|chang|pase|pass|modifi)\s+(?:(?:les?|la|le|l'|leurs?|son|sa|ses|mes|mon|ma|nos|notre|vos|votre)\s+)?(?:deadlines?|dealines?)\s+(?:à|pour|pour\s+le)\s+(?:(?:la|le)\s+)?(semaine\s+pro|semaine\s+prochaine|next\s+week)/i,
+    /^deadline\s+(?:à|pour|pour\s+le|au)\s*(?:(?:la|le)\s+)?(semaine\s+pro|semaine\s+prochaine|mois\s+prochain|next\s+week|next\s+month|demain|tomorrow|aujourd['']hui|today)/i,
   ];
 
   for (const pattern of newDeadlinePatterns) {

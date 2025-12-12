@@ -175,5 +175,18 @@ export function parseRelativeDate(dateStr: string): string | null {
     return dateStr;
   }
 
+  // Support DD/MM/YYYY ou DD-MM-YYYY
+  const frDateMatch = dateStr.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+  if (frDateMatch) {
+    const day = parseInt(frDateMatch[1], 10);
+    const month = parseInt(frDateMatch[2], 10);
+    const year = parseInt(frDateMatch[3], 10);
+    const date = new Date(year, month - 1, day);
+    // Vérification basique de validité
+    if (date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day) {
+      return formatLocalDate(date);
+    }
+  }
+
   return null;
 }

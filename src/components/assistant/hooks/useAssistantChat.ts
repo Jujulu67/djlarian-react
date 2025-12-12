@@ -102,7 +102,7 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
         console.log('[Assistant] 📝 Question reçue:', currentInput);
         const cleanInput = currentInput.trim().toLowerCase();
 
-        // Follow-up detection patterns
+        // Follow-up detection patterns (for showing fields only, NOT updates)
         const followUpPatterns = [
           /^"?donne/i,
           /^"?montre/i,
@@ -128,10 +128,23 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
           /tout/i,
         ];
 
+        // Exclude update commands from follow-up detection
+        const isUpdateCommand =
+          /(?:passe|met|mets|change|modif|marque|set|update|pousse|augmente|diminue|cahnge|chnage|chang|pase|pass|modifi|modifie|mets?)\s+(?:(?:les?|la|le|l'|leurs?|son|sa|ses|mes|mon|ma|nos|notre|vos|votre)\s+)?(?:collab|status|statut|progress|avancement|deadline|style|projets?)/i.test(
+            cleanInput
+          ) ||
+          /(?:collab|status|statut|progress|avancement|deadline|style)\s+(?:à|a|en)\s+/i.test(
+            cleanInput
+          );
+
         const isFollowUp =
+          !isUpdateCommand &&
           followUpPatterns.some((p) => p.test(cleanInput)) &&
           lastResults.length > 0 &&
-          !/projets?\s+(termin|en\s*cours|annul|archiv|avec|cont|sous|plus)/i.test(cleanInput);
+          // Si la requête contient des filtres explicites (statuts, collab, etc), ce n'est pas un simple follow-up d'affichage
+          !/(?:termin|en\s*cours|annul|archiv|ghost|avec\s+|sous\s+|plus\s+de|sans\s*avancement|projets?\s+)/i.test(
+            cleanInput
+          );
 
         // Handle follow-up questions
         if (isFollowUp && lastResults.length > 0) {
@@ -369,12 +382,51 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
             updateFilters.hasDeadline = updateData.hasDeadline;
           if (updateData.noProgress) updateFilters.noProgress = true;
 
+          // CLEANUP SAFETY: Si un filtre est identique à la nouvelle valeur de l'update, on le supprime.
+          // Cela évite de filtrer par la cible de la modification (ex: "met en TERMINE", filtre=TERMINE, newStatus=TERMINE -> on ne veut pas filtrer par TERMINE)
+          if (updateData.newStatus && updateFilters.status === updateData.newStatus) {
+            delete updateFilters.status;
+          }
+          if (
+            updateData.newCollab &&
+            updateFilters.collab &&
+            updateFilters.collab.toLowerCase() === updateData.newCollab.toLowerCase()
+          ) {
+            delete updateFilters.collab;
+          }
+          if (
+            updateData.newStyle &&
+            updateFilters.style &&
+            updateFilters.style.toLowerCase() === updateData.newStyle.toLowerCase()
+          ) {
+            delete updateFilters.style;
+          }
+          if (
+            updateData.newLabel &&
+            updateFilters.label &&
+            updateFilters.label.toLowerCase() === updateData.newLabel.toLowerCase()
+          ) {
+            delete updateFilters.label;
+          }
+          // Pour la progression, c'est déjà géré par extractNewProgress qui évite de setter le filtre si c'est une update,
+          // mais on peut ajouter une sécurité supplémentaire
+          if (updateData.newProgress !== undefined) {
+            if (
+              updateFilters.minProgress === updateData.newProgress &&
+              updateFilters.maxProgress === updateData.newProgress
+            ) {
+              delete updateFilters.minProgress;
+              delete updateFilters.maxProgress;
+            }
+          }
+
           const currentProjects = localProjectsRef.current.map((p) => ({ ...p }));
           const hasNoSpecificFilters = Object.keys(updateFilters).length === 0;
           const hasLastResults = lastResults.length > 0;
-          const isImplicitReference = /(?:les|les\s+projets|passe|met|change|modifie)/i.test(
-            currentInput
-          );
+          const isImplicitReference =
+            /(?:les|leur|leurs|les\s+projets|passe|met|change|modifie|pousse|augmente|diminue|cahnge|chnage|chang|pase|pass|modifi|modifie|mets?)/i.test(
+              currentInput
+            );
 
           let affectedProjects: Project[];
           if (hasNoSpecificFilters && hasLastResults && isImplicitReference) {
