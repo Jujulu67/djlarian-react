@@ -70,9 +70,13 @@ export function extractNewProgress(
   // Patterns explicites pour nouvelle valeur
   const explicitNewProgressPatterns = [
     /(?:à|en)\s+(\d+)\s*%\s*$/i,
-    /(?:mets?|met|passe|passer|change|changer|modifie|modifier)\s+(?:les?\s+)?(?:projets?\s+)?(?:à|en)\s+(\d+)\s*%?/i,
-    /(?:mets?|met|passe|passer|change|changer|modifie|modifier)\s+(?:les?\s+)?(?:projets?\s+)?[^à]*\s+(?:à|en)\s+(\d+)\s*%?/i,
-    /(?:passe|met|mets?|change|changer|modifie|modifier)\s+(?:les?\s+)?projets?\s+(?:à|en)\s+(\d+)\s*%?/i,
+    // "passe leur avancement à X%", "met leur progression à X%"
+    /(?:mets?|met|passe|passer|change|changer|modifie|modifier|pousse|augmente|diminue)\s+(?:(?:les?|la|le|l'|leurs?|son|sa|ses|mes|mon|ma|nos|notre|vos|votre)\s+)?(?:avancement|progression)\s+(?:à|en)\s+(\d+)\s*%?/i,
+    /(?:mets?|met|passe|passer|change|changer|modifie|modifier|pousse|augmente|diminue)\s+(?:(?:les?|la|le|l'|leurs?|son|sa|ses|mes|mon|ma|nos|notre|vos|votre)\s+)?(?:projets?\s+)?(?:à|en)\s+(\d+)\s*%?/i,
+    /(?:mets?|met|passe|passer|change|changer|modifie|modifier|pousse|augmente|diminue)\s+(?:(?:les?|la|le|l'|leurs?|son|sa|ses|mes|mon|ma|nos|notre|vos|votre)\s+)?(?:projets?\s+)?[^à]*\s+(?:à|en)\s+(\d+)\s*%?/i,
+    /(?:passe|met|mets?|change|changer|modifie|modifier|pousse|augmente|diminue)\s+(?:(?:les?|la|le|l'|leurs?|son|sa|ses|mes|mon|ma|nos|notre|vos|votre)\s+)?projets?\s+(?:à|en)\s+(\d+)\s*%?/i,
+    // "leur avancement à X%" (direct)
+    /(?:(?:les?|la|le|l'|leurs?|son|sa|ses|mes|mon|ma|nos|notre|vos|votre)\s+)?(?:avancement|progression)\s+(?:à|en)\s+(\d+)\s*%?/i,
   ];
 
   const numberWithoutPercentPatterns = [

@@ -72,9 +72,13 @@ function extractCollabUpdate(
 
   // Patterns simples "en collaborateur X"
   const simplePatterns = [
+    // "passe les collaborateurs/collabs à X", "met les collabs à X", "passe les collabs de ces tracks à X"
+    /(?:passe|met|mets|change|modifie|cahnge|chnage|chang|pase|pass|modifi|mets?)\s+(?:(?:les?|la|le|l'|leurs?|son|sa|ses|mes|mon|ma|nos|notre|vos|votre)\s+)?(?:collaborateurs?|collabs?)(?:\s+de\s+.+?)?\s+(?:à|a|par|pour|en|avec)\s+([A-Za-z0-9_\s]+?)(?:\s|$)/i,
+    // "collaborateurs/collabs à X" (direct)
+    /(?:(?:les?|la|le|l'|leurs?|son|sa|ses|mes|mon|ma|nos|notre|vos|votre)\s+)?(?:collaborateurs?|collabs?)\s+(?:à|a|par|pour|en|avec)\s+([A-Za-z0-9_\s]+?)(?:\s|$)/i,
     /(?:en\s+)?mettant\s+(?:en\s+)?(?:collaborateur|collab)\s+([A-Za-z0-9_\s]+)/i,
     /(?:en|avec)\s+(?:collaborateur|collab)\s+([A-Za-z0-9_\s]+)/i,
-    /(?:mets?|met|change|changer|modifie|modifier|passe|passer)\s+(?:les?\s+)?(?:projets?\s+)?(?:en|à|avec)\s+(?:collaborateur|collab)\s+(?:avec\s+)?([A-Za-z0-9_\s]+?)(?:\s|$)/i,
+    /(?:mets?|met|change|changer|modifie|modifier|passe|passer|cahnge|chnage|chang|pase|pass|modifi|mets?)\s+(?:(?:les?|la|le|l'|leurs?|son|sa|ses|mes|mon|ma|nos|notre|vos|votre)\s+)?(?:projets?\s+)?(?:en|à|avec|par|pour)\s+(?:collaborateur|collab)\s+(?:avec\s+)?([A-Za-z0-9_\s]+?)(?:\s|$)/i,
   ];
 
   for (const pattern of simplePatterns) {
