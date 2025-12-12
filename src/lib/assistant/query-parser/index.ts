@@ -6,13 +6,16 @@ import { classifyQuery } from './classifier';
 import { detectFilters } from './filters';
 import { extractCreateData } from './creates';
 import { extractUpdateData } from './updates';
+import { inferStatusFromContext } from './status-inference';
 import {
   validateAndSanitizeQuery,
   validateConfig,
   validateConversationHistory,
   validateLastFilters,
 } from './validation';
+import { debugLog, truncate } from '../utils/debug-logger';
 import type { ParseQueryResult } from '../types';
+import type { ConversationMessage } from '../conversational/memory-manager';
 
 /**
  * Parse une requête utilisateur et retourne les filtres, type, et données extraites
@@ -49,253 +52,46 @@ export function parseQuery(
     // Détecter tous les filtres
     let { filters, fieldsToShow } = detectFilters(query, lowerQuery, collabs, styles);
 
-    // #region agent log
-    if (typeof fetch !== 'undefined') {
-      fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          location: 'query-parser/index.ts:22-27',
-          message: 'detectFilters appelé (parseQuery)',
-          data: {
-            query: query.substring(0, 100),
-            availableCollabs: availableCollabs.length,
-            availableStyles: availableStyles.length,
-            filters: Object.keys(filters),
-            filtersDetails: filters,
-            hasConversationHistory: !!conversationHistory,
-            conversationHistoryLength: conversationHistory?.length || 0,
-          },
-          timestamp: Date.now(),
-          sessionId: 'debug-session',
-          runId: 'initial',
-          hypothesisId: 'B',
-        }),
-      }).catch(() => {});
-    }
-    // #endregion
+    // Debug: Filters detected
+    debugLog(
+      'query-parser:filters',
+      'Filtres détectés',
+      {
+        query: truncate(query),
+        filters: Object.keys(filters),
+        hasConversationHistory: !!conversationHistory,
+      },
+      { hypothesisId: 'B' }
+    );
 
-    // Si la requête est ambiguë (commande de mise à jour sans filtre de statut explicite),
-    // essayer d'inférer les filtres depuis l'historique de conversation ou lastFilters
-    // Exemple: "passe les à en cours" après "liste projets annulés" -> inférer status: 'ANNULE'
-    const isUpdateWithLes =
-      /(?:passe|met|mets?|change|changer|modifie|modifier)\s+(?:les?\s+)(?:projets?\s+)?(?:à|en|comme)/i.test(
-        query
-      );
-    const hasNoStatusFilter = !filters.status;
-    const hasNewStatus =
-      /(?:à|en|comme)\s+(?:en\s+cours|termin[ée]s?|annul[ée]s?|ghost\s*prod|archiv[ée]s?)/i.test(
-        query
-      );
-
-    if (isUpdateWithLes && hasNoStatusFilter && hasNewStatus) {
-      // PRIORITÉ 1: Utiliser lastFilters si disponible (plus fiable que l'historique)
-      if (validatedLastFilters && validatedLastFilters.status) {
-        filters.status = validatedLastFilters.status;
-        console.log(
-          '[Parse Query API] ✅ Filtre status inféré depuis lastFilters:',
-          validatedLastFilters.status
-        );
-        // #region agent log
-        if (typeof fetch !== 'undefined') {
-          fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              location: 'query-parser/index.ts:61-67',
-              message: 'Filtre status inféré depuis lastFilters',
-              data: {
-                query: query.substring(0, 100),
-                inferredStatus: lastFilters.status,
-                source: 'lastFilters',
-              },
-              timestamp: Date.now(),
-              sessionId: 'debug-session',
-              runId: 'initial',
-              hypothesisId: 'B',
-            }),
-          }).catch(() => {});
-        }
-        // #endregion
-      }
-      // PRIORITÉ 2: Chercher dans l'historique de conversation si lastFilters n'est pas disponible
-      else if (validatedHistory && validatedHistory.length > 0) {
-        // Chercher dans les messages précédents (user) pour trouver des filtres de statut
-        const previousUserMessages = validatedHistory
-          .filter((msg) => msg.role === 'user')
-          .slice(-3); // Derniers 3 messages utilisateur
-
-        for (const prevMsg of previousUserMessages) {
-          const prevContent = prevMsg.content.toLowerCase();
-          // Chercher des patterns de statut dans les messages précédents
-          if (/annul[ée]s?|cancel/i.test(prevContent)) {
-            filters.status = 'ANNULE';
-            console.log('[Parse Query API] ✅ Filtre status inféré depuis historique: ANNULE');
-            // #region agent log
-            if (typeof fetch !== 'undefined') {
-              fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  location: 'query-parser/index.ts:75-81',
-                  message: 'Filtre status inféré depuis historique',
-                  data: {
-                    query: query.substring(0, 100),
-                    previousMessage: prevMsg.content.substring(0, 100),
-                    inferredStatus: 'ANNULE',
-                    source: 'conversationHistory',
-                  },
-                  timestamp: Date.now(),
-                  sessionId: 'debug-session',
-                  runId: 'initial',
-                  hypothesisId: 'B',
-                }),
-              }).catch(() => {});
-            }
-            // #endregion
-            break;
-          } else if (/termin[ée]s?|fini|completed/i.test(prevContent)) {
-            filters.status = 'TERMINE';
-            console.log('[Parse Query API] ✅ Filtre status inféré depuis historique: TERMINE');
-            // #region agent log
-            if (typeof fetch !== 'undefined') {
-              fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  location: 'query-parser/index.ts:75-81',
-                  message: 'Filtre status inféré depuis historique',
-                  data: {
-                    query: query.substring(0, 100),
-                    previousMessage: prevMsg.content.substring(0, 100),
-                    inferredStatus: 'TERMINE',
-                    source: 'conversationHistory',
-                  },
-                  timestamp: Date.now(),
-                  sessionId: 'debug-session',
-                  runId: 'initial',
-                  hypothesisId: 'B',
-                }),
-              }).catch(() => {});
-            }
-            // #endregion
-            break;
-          } else if (/en\s*cours|ongoing|actifs?/i.test(prevContent)) {
-            filters.status = 'EN_COURS';
-            console.log('[Parse Query API] ✅ Filtre status inféré depuis historique: EN_COURS');
-            // #region agent log
-            if (typeof fetch !== 'undefined') {
-              fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  location: 'query-parser/index.ts:75-81',
-                  message: 'Filtre status inféré depuis historique',
-                  data: {
-                    query: query.substring(0, 100),
-                    previousMessage: prevMsg.content.substring(0, 100),
-                    inferredStatus: 'EN_COURS',
-                    source: 'conversationHistory',
-                  },
-                  timestamp: Date.now(),
-                  sessionId: 'debug-session',
-                  runId: 'initial',
-                  hypothesisId: 'B',
-                }),
-              }).catch(() => {});
-            }
-            // #endregion
-            break;
-          } else if (/ghost\s*prod|ghostprod/i.test(prevContent)) {
-            filters.status = 'GHOST_PRODUCTION';
-            console.log(
-              '[Parse Query API] ✅ Filtre status inféré depuis historique: GHOST_PRODUCTION'
-            );
-            // #region agent log
-            if (typeof fetch !== 'undefined') {
-              fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  location: 'query-parser/index.ts:75-81',
-                  message: 'Filtre status inféré depuis historique',
-                  data: {
-                    query: query.substring(0, 100),
-                    previousMessage: prevMsg.content.substring(0, 100),
-                    inferredStatus: 'GHOST_PRODUCTION',
-                    source: 'conversationHistory',
-                  },
-                  timestamp: Date.now(),
-                  sessionId: 'debug-session',
-                  runId: 'initial',
-                  hypothesisId: 'B',
-                }),
-              }).catch(() => {});
-            }
-            // #endregion
-            break;
-          } else if (/archiv[ée]s?|archived/i.test(prevContent)) {
-            filters.status = 'ARCHIVE';
-            console.log('[Parse Query API] ✅ Filtre status inféré depuis historique: ARCHIVE');
-            // #region agent log
-            if (typeof fetch !== 'undefined') {
-              fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  location: 'query-parser/index.ts:75-81',
-                  message: 'Filtre status inféré depuis historique',
-                  data: {
-                    query: query.substring(0, 100),
-                    previousMessage: prevMsg.content.substring(0, 100),
-                    inferredStatus: 'ARCHIVE',
-                    source: 'conversationHistory',
-                  },
-                  timestamp: Date.now(),
-                  sessionId: 'debug-session',
-                  runId: 'initial',
-                  hypothesisId: 'B',
-                }),
-              }).catch(() => {});
-            }
-            // #endregion
-            break;
-          }
-        }
-      }
+    // Infer status from context if this is a follow-up update command
+    // Example: "passe les à en cours" after "liste projets annulés" → infer ANNULE
+    const inferredStatus = inferStatusFromContext(
+      query,
+      filters,
+      validatedLastFilters,
+      validatedHistory as ConversationMessage[] | undefined
+    );
+    if (inferredStatus) {
+      filters.status = inferredStatus;
+      console.log('[Parse Query API] ✅ Status inféré:', inferredStatus);
     }
 
     // Classifier la requête
     const classification = classifyQuery(query, lowerQuery, filters);
 
-    // #region agent log
-    if (typeof fetch !== 'undefined') {
-      fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          location: 'query-parser/index.ts:30',
-          message: 'Classification dans parseQuery',
-          data: {
-            query: query.substring(0, 100),
-            classification: {
-              isList: classification.isList,
-              isCount: classification.isCount,
-              isUpdate: classification.isUpdate,
-              isConversationalQuestion: classification.isConversationalQuestion,
-              understood: classification.understood,
-              hasProjectMention: classification.hasProjectMention,
-              hasProjectRelatedFilters: classification.hasProjectRelatedFilters,
-            },
-          },
-          timestamp: Date.now(),
-          sessionId: 'debug-session',
-          runId: 'initial',
-          hypothesisId: 'D',
-        }),
-      }).catch(() => {});
-    }
-    // #endregion
+    // Debug: Classification
+    debugLog(
+      'query-parser:classification',
+      'Classification',
+      {
+        query: truncate(query),
+        isList: classification.isList,
+        isUpdate: classification.isUpdate,
+        understood: classification.understood,
+      },
+      { hypothesisId: 'D' }
+    );
 
     // Si c'est un message conversationnel long, ignorer les filtres détectés par hasard
     // (ils sont probablement des faux positifs)
@@ -448,38 +244,17 @@ export function parseQuery(
       clarification,
     };
 
-    // #region agent log
-    if (typeof fetch !== 'undefined') {
-      fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          location: 'query-parser/index.ts:111-133',
-          message: 'Résultat final parseQuery',
-          data: {
-            query: query.substring(0, 100),
-            result: {
-              type: finalResult.type,
-              understood: finalResult.understood,
-              isConversational: finalResult.isConversational,
-              filtersCount: Object.keys(finalResult.filters || {}).length,
-              shouldIgnoreFilters,
-              isQuestion,
-              classification: {
-                isUpdate: classification.isUpdate,
-                isList: classification.isList,
-                isCount: classification.isCount,
-              },
-            },
-          },
-          timestamp: Date.now(),
-          sessionId: 'debug-session',
-          runId: 'initial',
-          hypothesisId: 'D',
-        }),
-      }).catch(() => {});
-    }
-    // #endregion
+    // Debug: Final result
+    debugLog(
+      'query-parser:result',
+      'Résultat final',
+      {
+        type: finalResult.type,
+        understood: finalResult.understood,
+        isConversational: finalResult.isConversational,
+      },
+      { hypothesisId: 'D' }
+    );
 
     return finalResult;
   } catch (error) {

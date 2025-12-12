@@ -97,15 +97,12 @@ function isSimpleNote(content: string, tasks: string[]): boolean {
 }
 
 /**
- * Génère une note formatée
- * - Pour les notes simples : format minimal avec juste la date et l'heure
- * - Pour les notes complexes : template "Évolution" complet avec sections
+ * Génère une note formatée avec le template Évolution
+ * Inclut toujours les sections Évolution et Prochaines étapes
  */
 export function generateNoteFromContent(content: string): string {
   const now = new Date();
   const date = now.toLocaleDateString('fr-FR');
-  const time = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-  const dateTime = `${date} à ${time}`;
 
   // Extraire les tâches du contenu
   const tasks = extractTasks(content);
@@ -113,26 +110,23 @@ export function generateNoteFromContent(content: string): string {
   // Nettoyer le contenu principal
   const mainContent = cleanMainContent(content, tasks);
 
-  // Détecter si c'est une note simple
-  const isSimple = isSimpleNote(content, tasks);
-
-  if (isSimple) {
-    // Format minimal : juste la date/heure et le contenu
-    return `## ${dateTime}\n\n${mainContent}`;
-  }
-
   // Format complet avec template Évolution
-  let note = `## ${dateTime}\n\n### Évolution\n\n${mainContent}`;
+  let note = `## ${date}
 
-  // Ajouter les prochaines étapes si on a des tâches
+### Évolution
+
+${mainContent}
+
+### Prochaines étapes
+`;
+
+  // Ajouter les tâches ou des placeholders vides
   if (tasks.length > 0) {
-    note += '\n\n### Prochaines étapes\n';
     for (const task of tasks) {
       note += `- ${task}\n`;
     }
   } else {
-    // Si pas de tâches détectées mais note complexe, ajouter une section vide
-    note += '\n\n### Prochaines étapes\n- \n- \n';
+    note += '- \n- \n';
   }
 
   return note;

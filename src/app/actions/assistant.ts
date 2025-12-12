@@ -26,6 +26,7 @@ import { detectStatusFromQuery } from '@/lib/assistant/parsers/status-detector';
 import { detectProgressFromQuery } from '@/lib/assistant/parsers/progress-detector';
 import { detectDeadlineFromQuery } from '@/lib/assistant/parsers/deadline-detector';
 import { classifyQuery } from '@/lib/assistant/query-parser/classifier';
+import { debugLog, truncate } from '@/lib/assistant/utils/debug-logger';
 import { detectFilters } from '@/lib/assistant/query-parser/filters';
 
 export async function processProjectCommand(userInput: string) {
@@ -73,36 +74,18 @@ export async function processProjectCommand(userInput: string) {
   const { filters } = detectFilters(normalizedInput, lowerQuery, [], []); // Pas de collabs/styles nécessaires ici
   const classification = classifyQuery(normalizedInput, lowerQuery, filters);
 
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      location: 'assistant.ts:73-74',
-      message: 'Classification détectée (processProjectCommand)',
-      data: {
-        userInput: normalizedInput.substring(0, 100),
-        filters: Object.keys(filters),
-        filtersDetails: filters,
-        availableCollabs: [],
-        availableStyles: [],
-        classification: {
-          isList: classification.isList,
-          isCount: classification.isCount,
-          isUpdate: classification.isUpdate,
-          isConversationalQuestion: classification.isConversationalQuestion,
-          understood: classification.understood,
-          hasProjectMention: classification.hasProjectMention,
-          hasProjectRelatedFilters: classification.hasProjectRelatedFilters,
-        },
-      },
-      timestamp: Date.now(),
-      sessionId: 'debug-session',
-      runId: 'initial',
-      hypothesisId: 'A',
-    }),
-  }).catch(() => {});
-  // #endregion
+  // Debug: Classification result
+  debugLog('assistant.ts:classification', 'Classification détectée', {
+    userInput: truncate(normalizedInput),
+    filters: Object.keys(filters),
+    classification: {
+      isList: classification.isList,
+      isCount: classification.isCount,
+      isUpdate: classification.isUpdate,
+      isConversationalQuestion: classification.isConversationalQuestion,
+      understood: classification.understood,
+    },
+  });
 
   // Déterminer quels outils passer selon la classification
   // IMPORTANT: Si c'est conversationnel, ne PAS passer d'outils (appel Groq direct)
@@ -118,40 +101,18 @@ export async function processProjectCommand(userInput: string) {
     (classification.isList || classification.isCount || (hasFilters && !classification.isUpdate)) &&
     !isConversational;
 
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      location: 'assistant.ts:80-89',
-      message: 'Détermination isQuestion/isCommand/isConversational',
-      data: {
-        isQuestion,
-        isCommand,
-        isConversational,
-        hasFilters,
-        classification: {
-          isList: classification.isList,
-          isCount: classification.isCount,
-          isUpdate: classification.isUpdate,
-          isConversationalQuestion: classification.isConversationalQuestion,
-          isMetaQuestion: classification.isMetaQuestion,
-        },
-        logicBreakdown: {
-          '!isCommand': !isCommand,
-          'classification.isList || classification.isCount':
-            classification.isList || classification.isCount,
-          'hasFilters && !classification.isUpdate': hasFilters && !classification.isUpdate,
-          '!isConversational': !isConversational,
-        },
-      },
-      timestamp: Date.now(),
-      sessionId: 'debug-session',
-      runId: 'initial',
-      hypothesisId: 'B',
-    }),
-  }).catch(() => {});
-  // #endregion
+  // Debug: Routing decision
+  debugLog(
+    'assistant.ts:routing',
+    'Décision routing',
+    {
+      isQuestion,
+      isCommand,
+      isConversational,
+      hasFilters,
+    },
+    { hypothesisId: 'B' }
+  );
 
   // Log console pour debug immédiat
   console.log('[ROUTING DEBUG]', {
@@ -173,97 +134,39 @@ export async function processProjectCommand(userInput: string) {
   const availableTools: Record<string, any> = {};
   if (isConversational) {
     // Conversationnel : pas d'outils, appel Groq direct
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        location: 'assistant.ts:88-90',
-        message: "Sélection outils: CONVERSATIONNEL (pas d'outils)",
-        data: { toolsSelected: [], isQuestion, isCommand, isConversational },
-        timestamp: Date.now(),
-        sessionId: 'debug-session',
-        runId: 'initial',
-        hypothesisId: 'C',
-      }),
-    }).catch(() => {});
-    // #endregion
+    debugLog(
+      'assistant.ts:tools',
+      "CONVERSATIONNEL - pas d'outils",
+      { toolsSelected: [] },
+      { hypothesisId: 'C' }
+    );
   } else if (isCommand) {
     // PRIORITÉ: Commande de modification - updateProjects en premier
     // Commande : updateProjects (et getProjects pour validation si nécessaire)
     availableTools.updateProjects = updateProjects;
     availableTools.getProjects = getProjects; // Permettre getProjects pour validation
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        location: 'assistant.ts:96-98',
-        message: 'Sélection outils: COMMANDE détectée',
-        data: {
-          toolsSelected: ['updateProjects', 'getProjects'],
-          isQuestion,
-          isCommand,
-          isConversational,
-        },
-        timestamp: Date.now(),
-        sessionId: 'debug-session',
-        runId: 'initial',
-        hypothesisId: 'A',
-      }),
-    }).catch(() => {});
-    // #endregion
+    debugLog('assistant.ts:tools', 'COMMANDE - updateProjects + getProjects', {
+      toolsSelected: ['updateProjects', 'getProjects'],
+    });
   } else if (isQuestion) {
     // Question : uniquement getProjects
     availableTools.getProjects = getProjects;
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        location: 'assistant.ts:92-94',
-        message: 'Sélection outils: QUESTION détectée',
-        data: { toolsSelected: ['getProjects'], isQuestion, isCommand, isConversational },
-        timestamp: Date.now(),
-        sessionId: 'debug-session',
-        runId: 'initial',
-        hypothesisId: 'A',
-      }),
-    }).catch(() => {});
-    // #endregion
+    debugLog('assistant.ts:tools', 'QUESTION - getProjects uniquement', {
+      toolsSelected: ['getProjects'],
+    });
   } else {
     // Cas ambigu ou non détecté : passer les deux outils (comportement par défaut)
     availableTools.getProjects = getProjects;
     availableTools.updateProjects = updateProjects;
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        location: 'assistant.ts:132-138',
-        message: 'Sélection outils: CAS AMBIGU (défaut) - RISQUE',
-        data: {
-          toolsSelected: ['getProjects', 'updateProjects'],
-          isQuestion,
-          isCommand,
-          isConversational,
-          classification: {
-            isList: classification.isList,
-            isCount: classification.isCount,
-            isUpdate: classification.isUpdate,
-            isConversationalQuestion: classification.isConversationalQuestion,
-            understood: classification.understood,
-            hasProjectMention: classification.hasProjectMention,
-          },
-          warning: 'Les deux outils sont passés, risque de modification non désirée',
-        },
-        timestamp: Date.now(),
-        sessionId: 'debug-session',
-        runId: 'initial',
-        hypothesisId: 'C',
-      }),
-    }).catch(() => {});
-    // #endregion
+    debugLog(
+      'assistant.ts:tools',
+      'CAS AMBIGU - les deux outils (RISQUE)',
+      {
+        toolsSelected: ['getProjects', 'updateProjects'],
+        warning: 'Risque de modification non désirée',
+      },
+      { hypothesisId: 'C' }
+    );
   }
 
   try {
@@ -680,7 +583,7 @@ export async function processProjectCommand(userInput: string) {
         try {
           console.log('[Assistant] Appel direct avec paramètres corrigés:', finalParams);
           if (getProjects && typeof getProjects.execute === 'function') {
-            const result = await getProjects.execute(finalParams);
+            const result = await getProjects.execute(finalParams, {} as any);
             if (result && typeof result === 'object' && 'count' in result && 'message' in result) {
               return `J'ai trouvé ${result.count} projet(s) correspondant à votre recherche. ${result.message}`;
             }
