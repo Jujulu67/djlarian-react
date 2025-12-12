@@ -81,12 +81,13 @@ export function createGetProjectsTool({
       let finalHasDeadline = hasDeadline;
       let finalDeadlineDate = deadlineDate;
 
-      // Détecter le statut si non fourni (utilise la similarité de chaînes, pas d'IA intermédiaire)
-      if (!finalStatus) {
+      // Détecter le statut si non fourni ou undefined (utilise la similarité de chaînes, pas d'IA intermédiaire)
+      // Même si l'IA passe status: undefined, on doit détecter automatiquement
+      if (!finalStatus || finalStatus === 'undefined' || finalStatus === 'null') {
         const detectedStatus = detectStatusFromQuery(normalizedInput);
         if (detectedStatus) {
           console.log(
-            `[Assistant] Statut détecté automatiquement: ${detectedStatus} (non fourni par l'IA)`
+            `[Assistant] Statut détecté automatiquement: ${detectedStatus} (non fourni par l'IA ou undefined)`
           );
           finalStatus = detectedStatus as any;
         }

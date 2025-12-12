@@ -838,6 +838,7 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
           style?: string;
           label?: string;
           labelFinal?: string;
+          note?: boolean;
         };
       }>
     ) => {
@@ -958,6 +959,12 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
         })
       );
 
+      // Si une note a été ajoutée, recharger les projets depuis le serveur
+      // car la note est complexe (template, tâches extraites, etc.) et difficile à mettre à jour localement
+      if (updates.note) {
+        fetchProjects();
+      }
+
       // Rafraîchir les compteurs
       fetchCounts();
 
@@ -985,7 +992,7 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
         handleProjectsUpdatedFromAssistant as EventListener
       );
     };
-  }, [fetchCounts]);
+  }, [fetchCounts, fetchProjects]);
 
   // Scroll vers le nouveau projet après création et réinitialiser l'animation après 2s
   useEffect(() => {

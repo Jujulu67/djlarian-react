@@ -6,120 +6,495 @@ import { classifyQuery } from './classifier';
 import { detectFilters } from './filters';
 import { extractCreateData } from './creates';
 import { extractUpdateData } from './updates';
+import {
+  validateAndSanitizeQuery,
+  validateConfig,
+  validateConversationHistory,
+  validateLastFilters,
+} from './validation';
 import type { ParseQueryResult } from '../types';
 
 /**
  * Parse une requête utilisateur et retourne les filtres, type, et données extraites
+ * @param query - Requête utilisateur à parser
+ * @param availableCollabs - Liste des collaborateurs disponibles
+ * @param availableStyles - Liste des styles disponibles
+ * @param conversationHistory - Historique de conversation optionnel pour inférer les filtres manquants
+ * @param lastFilters - Filtres de la dernière requête pour inférer les filtres manquants dans les commandes de suivi
+ * @returns Résultat du parsing avec filtres, type, et données extraites
+ * @throws Error si les paramètres sont invalides
  */
 export function parseQuery(
   query: string,
   availableCollabs: string[],
-  availableStyles: string[]
+  availableStyles: string[],
+  conversationHistory?: Array<{ role: string; content: string }>,
+  lastFilters?: Record<string, any>
 ): ParseQueryResult {
-  const lowerQuery = query.toLowerCase();
+  try {
+    // Valider et nettoyer la requête
+    query = validateAndSanitizeQuery(query);
 
-  // Détecter tous les filtres
-  const { filters, fieldsToShow } = detectFilters(
-    query,
-    lowerQuery,
-    availableCollabs,
-    availableStyles
-  );
+    // Valider la configuration
+    const { collabs, styles } = validateConfig(availableCollabs, availableStyles);
 
-  // Classifier la requête
-  const classification = classifyQuery(query, lowerQuery, filters);
+    // Valider l'historique de conversation
+    const validatedHistory = validateConversationHistory(conversationHistory);
 
-  // Détecter si c'est une question sur l'assistant lui-même (pas sur les projets)
-  if (classification.isMetaQuestion) {
+    // Valider les filtres de la dernière requête
+    const validatedLastFilters = validateLastFilters(lastFilters);
+
+    const lowerQuery = query.toLowerCase();
+
+    // Détecter tous les filtres
+    let { filters, fieldsToShow } = detectFilters(query, lowerQuery, collabs, styles);
+
+    // #region agent log
+    if (typeof fetch !== 'undefined') {
+      fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          location: 'query-parser/index.ts:22-27',
+          message: 'detectFilters appelé (parseQuery)',
+          data: {
+            query: query.substring(0, 100),
+            availableCollabs: availableCollabs.length,
+            availableStyles: availableStyles.length,
+            filters: Object.keys(filters),
+            filtersDetails: filters,
+            hasConversationHistory: !!conversationHistory,
+            conversationHistoryLength: conversationHistory?.length || 0,
+          },
+          timestamp: Date.now(),
+          sessionId: 'debug-session',
+          runId: 'initial',
+          hypothesisId: 'B',
+        }),
+      }).catch(() => {});
+    }
+    // #endregion
+
+    // Si la requête est ambiguë (commande de mise à jour sans filtre de statut explicite),
+    // essayer d'inférer les filtres depuis l'historique de conversation ou lastFilters
+    // Exemple: "passe les à en cours" après "liste projets annulés" -> inférer status: 'ANNULE'
+    const isUpdateWithLes =
+      /(?:passe|met|mets?|change|changer|modifie|modifier)\s+(?:les?\s+)(?:projets?\s+)?(?:à|en|comme)/i.test(
+        query
+      );
+    const hasNoStatusFilter = !filters.status;
+    const hasNewStatus =
+      /(?:à|en|comme)\s+(?:en\s+cours|termin[ée]s?|annul[ée]s?|ghost\s*prod|archiv[ée]s?)/i.test(
+        query
+      );
+
+    if (isUpdateWithLes && hasNoStatusFilter && hasNewStatus) {
+      // PRIORITÉ 1: Utiliser lastFilters si disponible (plus fiable que l'historique)
+      if (validatedLastFilters && validatedLastFilters.status) {
+        filters.status = validatedLastFilters.status;
+        console.log(
+          '[Parse Query API] ✅ Filtre status inféré depuis lastFilters:',
+          validatedLastFilters.status
+        );
+        // #region agent log
+        if (typeof fetch !== 'undefined') {
+          fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              location: 'query-parser/index.ts:61-67',
+              message: 'Filtre status inféré depuis lastFilters',
+              data: {
+                query: query.substring(0, 100),
+                inferredStatus: lastFilters.status,
+                source: 'lastFilters',
+              },
+              timestamp: Date.now(),
+              sessionId: 'debug-session',
+              runId: 'initial',
+              hypothesisId: 'B',
+            }),
+          }).catch(() => {});
+        }
+        // #endregion
+      }
+      // PRIORITÉ 2: Chercher dans l'historique de conversation si lastFilters n'est pas disponible
+      else if (validatedHistory && validatedHistory.length > 0) {
+        // Chercher dans les messages précédents (user) pour trouver des filtres de statut
+        const previousUserMessages = validatedHistory
+          .filter((msg) => msg.role === 'user')
+          .slice(-3); // Derniers 3 messages utilisateur
+
+        for (const prevMsg of previousUserMessages) {
+          const prevContent = prevMsg.content.toLowerCase();
+          // Chercher des patterns de statut dans les messages précédents
+          if (/annul[ée]s?|cancel/i.test(prevContent)) {
+            filters.status = 'ANNULE';
+            console.log('[Parse Query API] ✅ Filtre status inféré depuis historique: ANNULE');
+            // #region agent log
+            if (typeof fetch !== 'undefined') {
+              fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  location: 'query-parser/index.ts:75-81',
+                  message: 'Filtre status inféré depuis historique',
+                  data: {
+                    query: query.substring(0, 100),
+                    previousMessage: prevMsg.content.substring(0, 100),
+                    inferredStatus: 'ANNULE',
+                    source: 'conversationHistory',
+                  },
+                  timestamp: Date.now(),
+                  sessionId: 'debug-session',
+                  runId: 'initial',
+                  hypothesisId: 'B',
+                }),
+              }).catch(() => {});
+            }
+            // #endregion
+            break;
+          } else if (/termin[ée]s?|fini|completed/i.test(prevContent)) {
+            filters.status = 'TERMINE';
+            console.log('[Parse Query API] ✅ Filtre status inféré depuis historique: TERMINE');
+            // #region agent log
+            if (typeof fetch !== 'undefined') {
+              fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  location: 'query-parser/index.ts:75-81',
+                  message: 'Filtre status inféré depuis historique',
+                  data: {
+                    query: query.substring(0, 100),
+                    previousMessage: prevMsg.content.substring(0, 100),
+                    inferredStatus: 'TERMINE',
+                    source: 'conversationHistory',
+                  },
+                  timestamp: Date.now(),
+                  sessionId: 'debug-session',
+                  runId: 'initial',
+                  hypothesisId: 'B',
+                }),
+              }).catch(() => {});
+            }
+            // #endregion
+            break;
+          } else if (/en\s*cours|ongoing|actifs?/i.test(prevContent)) {
+            filters.status = 'EN_COURS';
+            console.log('[Parse Query API] ✅ Filtre status inféré depuis historique: EN_COURS');
+            // #region agent log
+            if (typeof fetch !== 'undefined') {
+              fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  location: 'query-parser/index.ts:75-81',
+                  message: 'Filtre status inféré depuis historique',
+                  data: {
+                    query: query.substring(0, 100),
+                    previousMessage: prevMsg.content.substring(0, 100),
+                    inferredStatus: 'EN_COURS',
+                    source: 'conversationHistory',
+                  },
+                  timestamp: Date.now(),
+                  sessionId: 'debug-session',
+                  runId: 'initial',
+                  hypothesisId: 'B',
+                }),
+              }).catch(() => {});
+            }
+            // #endregion
+            break;
+          } else if (/ghost\s*prod|ghostprod/i.test(prevContent)) {
+            filters.status = 'GHOST_PRODUCTION';
+            console.log(
+              '[Parse Query API] ✅ Filtre status inféré depuis historique: GHOST_PRODUCTION'
+            );
+            // #region agent log
+            if (typeof fetch !== 'undefined') {
+              fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  location: 'query-parser/index.ts:75-81',
+                  message: 'Filtre status inféré depuis historique',
+                  data: {
+                    query: query.substring(0, 100),
+                    previousMessage: prevMsg.content.substring(0, 100),
+                    inferredStatus: 'GHOST_PRODUCTION',
+                    source: 'conversationHistory',
+                  },
+                  timestamp: Date.now(),
+                  sessionId: 'debug-session',
+                  runId: 'initial',
+                  hypothesisId: 'B',
+                }),
+              }).catch(() => {});
+            }
+            // #endregion
+            break;
+          } else if (/archiv[ée]s?|archived/i.test(prevContent)) {
+            filters.status = 'ARCHIVE';
+            console.log('[Parse Query API] ✅ Filtre status inféré depuis historique: ARCHIVE');
+            // #region agent log
+            if (typeof fetch !== 'undefined') {
+              fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  location: 'query-parser/index.ts:75-81',
+                  message: 'Filtre status inféré depuis historique',
+                  data: {
+                    query: query.substring(0, 100),
+                    previousMessage: prevMsg.content.substring(0, 100),
+                    inferredStatus: 'ARCHIVE',
+                    source: 'conversationHistory',
+                  },
+                  timestamp: Date.now(),
+                  sessionId: 'debug-session',
+                  runId: 'initial',
+                  hypothesisId: 'B',
+                }),
+              }).catch(() => {});
+            }
+            // #endregion
+            break;
+          }
+        }
+      }
+    }
+
+    // Classifier la requête
+    const classification = classifyQuery(query, lowerQuery, filters);
+
+    // #region agent log
+    if (typeof fetch !== 'undefined') {
+      fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          location: 'query-parser/index.ts:30',
+          message: 'Classification dans parseQuery',
+          data: {
+            query: query.substring(0, 100),
+            classification: {
+              isList: classification.isList,
+              isCount: classification.isCount,
+              isUpdate: classification.isUpdate,
+              isConversationalQuestion: classification.isConversationalQuestion,
+              understood: classification.understood,
+              hasProjectMention: classification.hasProjectMention,
+              hasProjectRelatedFilters: classification.hasProjectRelatedFilters,
+            },
+          },
+          timestamp: Date.now(),
+          sessionId: 'debug-session',
+          runId: 'initial',
+          hypothesisId: 'D',
+        }),
+      }).catch(() => {});
+    }
+    // #endregion
+
+    // Si c'est un message conversationnel long, ignorer les filtres détectés par hasard
+    // (ils sont probablement des faux positifs)
+    const shouldIgnoreFilters =
+      classification.isConversationalQuestion &&
+      query.length > 200 &&
+      !classification.hasProjectMention;
+
+    // Détecter si c'est une question sur l'assistant lui-même (pas sur les projets)
+    if (classification.isMetaQuestion) {
+      return {
+        filters: {},
+        type: 'search',
+        understood: false, // Force l'appel à Groq
+        clarification: null,
+      };
+    }
+
+    // PRIORITÉ: Si c'est une commande de modification (isUpdate), elle a la priorité sur les questions
+    // Une commande comme "marque les projets comme TERMINE" peut être détectée comme isList ET isUpdate
+    // Dans ce cas, isUpdate a la priorité
+    const isQuestion =
+      (classification.isList || classification.isCount) && !classification.isUpdate;
+
+    // PRIORITÉ: Vérifier d'abord les patterns de notes (car "ajoute une note" pourrait être détecté comme création)
+    // Si c'est une commande de modification, extraire les données de modification
+    // AUSSI: Vérifier les patterns de notes même si isUpdate est false
+    // (car les patterns de notes comme "magnetize, contenu" ne contiennent pas de verbe d'action)
+    // MAIS: Ne pas extraire si c'est une question (liste, combien, etc.) SAUF si c'est aussi une commande de modification
+    const shouldExtractUpdate = (classification.isUpdate || true) && !isQuestion;
+    console.log(
+      '[Parse Query API] 🔍 shouldExtractUpdate:',
+      shouldExtractUpdate,
+      'isUpdate:',
+      classification.isUpdate,
+      'isQuestion:',
+      isQuestion
+    );
+    if (shouldExtractUpdate) {
+      // Essayer d'extraire les données de mise à jour seulement si ce n'est pas une question
+      // extractUpdateData retournera null si ce n'est pas une mise à jour
+      const updateData = extractUpdateData(query, lowerQuery, filters, styles);
+      console.log(
+        '[Parse Query API] 🔍 extractUpdateData result:',
+        updateData ? 'has data' : 'null',
+        updateData
+          ? Object.keys(updateData).filter(
+              (k) => updateData[k as keyof typeof updateData] !== undefined
+            )
+          : ''
+      );
+      if (updateData) {
+        // Si on a des données de mise à jour valides, la requête est comprise
+        // Même si la classification initiale dit "understood: false", si on a réussi à extraire
+        // des données de mise à jour (newStatus, newProgress, newStyle, etc.), c'est une commande valide
+        const hasValidUpdateData =
+          updateData.newProgress !== undefined ||
+          updateData.newStatus !== undefined ||
+          updateData.newDeadline !== undefined ||
+          updateData.pushDeadlineBy !== undefined ||
+          updateData.newCollab !== undefined ||
+          updateData.newStyle !== undefined ||
+          updateData.newLabel !== undefined ||
+          updateData.newLabelFinal !== undefined ||
+          updateData.newNote !== undefined;
+
+        // Si on a des données de mise à jour valides, forcer understood à true
+        if (hasValidUpdateData) {
+          classification.understood = true;
+          classification.isConversationalQuestion = false;
+          console.log(
+            '[Parse Query API] ✅ Requête comprise grâce aux données de mise à jour extraites'
+          );
+        }
+
+        // Construire les filtres pour updateData (réutiliser ceux déjà détectés)
+        const updateFilters: Record<string, any> = {};
+
+        if (filters.minProgress !== undefined) {
+          updateFilters.minProgress = filters.minProgress;
+        }
+        if (filters.maxProgress !== undefined) {
+          updateFilters.maxProgress = filters.maxProgress;
+        }
+        if (filters.status) {
+          updateFilters.status = filters.status;
+        }
+        if (filters.hasDeadline !== undefined) {
+          updateFilters.hasDeadline = filters.hasDeadline;
+        }
+        if (filters.deadlineDate) {
+          updateFilters.deadlineDate = filters.deadlineDate;
+        }
+        if (filters.noProgress !== undefined) {
+          updateFilters.noProgress = filters.noProgress;
+        }
+        if (filters.collab) {
+          updateFilters.collab = filters.collab;
+        }
+        if (filters.style) {
+          updateFilters.style = filters.style;
+        }
+        if (filters.label) {
+          updateFilters.label = filters.label;
+        }
+        if (filters.labelFinal) {
+          updateFilters.labelFinal = filters.labelFinal;
+        }
+
+        return {
+          filters: updateFilters,
+          type: 'update',
+          understood: true,
+          lang: classification.lang,
+          updateData,
+          clarification: null,
+        };
+      }
+    }
+
+    // Déterminer le type de retour
+    // PRIORITÉ: Si c'est une commande de modification, le type est 'update' même si isList est aussi true
+    const type = classification.isUpdate
+      ? 'update'
+      : classification.isCount
+        ? 'count'
+        : classification.isList
+          ? 'list'
+          : 'search';
+
+    // Générer le message de clarification si nécessaire
+    const clarification = classification.understood
+      ? null
+      : classification.lang === 'en'
+        ? "I didn't understand. Try: 'how many projects under 70%' or 'list my ghost prod'"
+        : "Je n'ai pas compris. Essaie: 'combien de projets sous les 70%' ou 'liste mes ghost prod'";
+
+    const finalResult = {
+      // Si c'est conversationnel et long, ne pas retourner de filtres (probablement des faux positifs)
+      filters: shouldIgnoreFilters ? {} : filters,
+      type,
+      understood: classification.understood,
+      lang: classification.lang,
+      isConversational: classification.isConversationalQuestion,
+      fieldsToShow: shouldIgnoreFilters
+        ? undefined
+        : fieldsToShow.length > 0
+          ? fieldsToShow
+          : undefined,
+      clarification,
+    };
+
+    // #region agent log
+    if (typeof fetch !== 'undefined') {
+      fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          location: 'query-parser/index.ts:111-133',
+          message: 'Résultat final parseQuery',
+          data: {
+            query: query.substring(0, 100),
+            result: {
+              type: finalResult.type,
+              understood: finalResult.understood,
+              isConversational: finalResult.isConversational,
+              filtersCount: Object.keys(finalResult.filters || {}).length,
+              shouldIgnoreFilters,
+              isQuestion,
+              classification: {
+                isUpdate: classification.isUpdate,
+                isList: classification.isList,
+                isCount: classification.isCount,
+              },
+            },
+          },
+          timestamp: Date.now(),
+          sessionId: 'debug-session',
+          runId: 'initial',
+          hypothesisId: 'D',
+        }),
+      }).catch(() => {});
+    }
+    // #endregion
+
+    return finalResult;
+  } catch (error) {
+    // Gestion d'erreur robuste : retourner un résultat sécurisé en cas d'erreur
+    console.error('[Parse Query API] ❌ Erreur lors du parsing:', error);
+
     return {
       filters: {},
       type: 'search',
-      understood: false, // Force l'appel à Groq
-      clarification: null,
+      understood: false,
+      clarification:
+        error instanceof Error
+          ? error.message
+          : 'Une erreur est survenue lors du parsing de la requête',
+      isConversational: false,
     };
   }
-
-  // Si c'est une commande de création, extraire les données du projet
-  if (classification.isCreate) {
-    const createData = extractCreateData(query, lowerQuery, availableCollabs, availableStyles);
-    if (createData) {
-      return {
-        filters: {},
-        type: 'create',
-        understood: true,
-        lang: classification.lang,
-        createData,
-        clarification: null,
-      };
-    }
-  }
-
-  // Si c'est une commande de modification, extraire les données de modification
-  if (classification.isUpdate) {
-    const updateData = extractUpdateData(query, lowerQuery, filters, availableStyles);
-    if (updateData) {
-      // Construire les filtres pour updateData (réutiliser ceux déjà détectés)
-      const updateFilters: Record<string, any> = {};
-
-      if (filters.minProgress !== undefined) {
-        updateFilters.minProgress = filters.minProgress;
-      }
-      if (filters.maxProgress !== undefined) {
-        updateFilters.maxProgress = filters.maxProgress;
-      }
-      if (filters.status) {
-        updateFilters.status = filters.status;
-      }
-      if (filters.hasDeadline !== undefined) {
-        updateFilters.hasDeadline = filters.hasDeadline;
-      }
-      if (filters.deadlineDate) {
-        updateFilters.deadlineDate = filters.deadlineDate;
-      }
-      if (filters.noProgress !== undefined) {
-        updateFilters.noProgress = filters.noProgress;
-      }
-      if (filters.collab) {
-        updateFilters.collab = filters.collab;
-      }
-      if (filters.style) {
-        updateFilters.style = filters.style;
-      }
-      if (filters.label) {
-        updateFilters.label = filters.label;
-      }
-      if (filters.labelFinal) {
-        updateFilters.labelFinal = filters.labelFinal;
-      }
-
-      return {
-        filters: updateFilters,
-        type: 'update',
-        understood: true,
-        lang: classification.lang,
-        updateData,
-        clarification: null,
-      };
-    }
-  }
-
-  // Déterminer le type de retour
-  const type = classification.isCount ? 'count' : classification.isList ? 'list' : 'search';
-
-  // Générer le message de clarification si nécessaire
-  const clarification = classification.understood
-    ? null
-    : classification.lang === 'en'
-      ? "I didn't understand. Try: 'how many projects under 70%' or 'list my ghost prod'"
-      : "Je n'ai pas compris. Essaie: 'combien de projets sous les 70%' ou 'liste mes ghost prod'";
-
-  return {
-    filters,
-    type,
-    understood: classification.understood,
-    lang: classification.lang,
-    isConversational: classification.isConversationalQuestion,
-    fieldsToShow: fieldsToShow.length > 0 ? fieldsToShow : undefined,
-    clarification,
-  };
 }

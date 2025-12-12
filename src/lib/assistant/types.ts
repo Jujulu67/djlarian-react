@@ -39,5 +39,8 @@ export interface ParseQueryResult {
     newStyle?: string;
     newLabel?: string;
     newLabelFinal?: string;
+    // Ajout de notes
+    projectName?: string;
+    newNote?: string;
   };
 }

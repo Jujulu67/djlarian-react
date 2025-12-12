@@ -2,6 +2,9 @@
  * Helpers pour la construction de clauses WHERE et data pour les outils IA
  */
 import { parseRelativeDate } from '../parsers/date-parser';
+import prisma from '@/lib/prisma';
+import { findProjectCandidates } from '@/lib/utils/findProjectCandidates';
+import type { Project } from '@/components/projects/types';
 
 /**
  * Construit une clause WHERE Prisma pour filtrer les projets
@@ -89,4 +92,71 @@ export function buildUpdateData(newDeadline?: string, newStatus?: string): any {
   }
 
   return data;
+}
+
+/**
+ * Trouve un projet par nom en utilisant le matching fuzzy
+ * Retourne le meilleur candidat avec un score >= 80, ou null si aucun candidat valide
+ */
+export async function findProjectByName(
+  projectName: string,
+  targetUserId: string
+): Promise<{ project: Project; score: number } | null> {
+  // Récupérer tous les projets de l'utilisateur
+  const projects = await prisma.project.findMany({
+    where: {
+      userId: targetUserId,
+    },
+    select: {
+      id: true,
+      name: true,
+      progress: true,
+      status: true,
+      deadline: true,
+      releaseDate: true,
+      style: true,
+      collab: true,
+      label: true,
+      labelFinal: true,
+      externalLink: true,
+      note: true,
+      order: true,
+      createdAt: true,
+      updatedAt: true,
+      userId: true,
+      streamsJ7: true,
+      streamsJ14: true,
+      streamsJ21: true,
+      streamsJ28: true,
+      streamsJ56: true,
+      streamsJ84: true,
+      streamsJ180: true,
+      streamsJ365: true,
+    },
+  });
+
+  // Convertir en format Project pour findProjectCandidates
+  const projectList: Project[] = projects.map((p) => ({
+    ...p,
+    deadline: p.deadline ? p.deadline.toISOString().split('T')[0] : null,
+    releaseDate: p.releaseDate ? p.releaseDate.toISOString().split('T')[0] : null,
+    createdAt: p.createdAt.toISOString(),
+    updatedAt: p.updatedAt.toISOString(),
+  }));
+
+  // Trouver les candidats
+  const candidates = findProjectCandidates(projectName, projectList, 5);
+
+  // Filtrer les candidats avec un score >= 80 (seuil de confiance élevé)
+  const validCandidates = candidates.filter((c) => c.score >= 80);
+
+  if (validCandidates.length === 0) {
+    return null;
+  }
+
+  // Retourner le meilleur candidat
+  return {
+    project: validCandidates[0].project,
+    score: validCandidates[0].score,
+  };
 }

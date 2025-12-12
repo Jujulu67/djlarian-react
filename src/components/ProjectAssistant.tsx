@@ -4,6 +4,53 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sparkles, Send, X, Loader2, Trash2 } from 'lucide-react';
 import type { Project } from '@/components/projects/types';
+import { findProjectCandidates } from '@/lib/utils/findProjectCandidates';
+import { generateNoteFromContent } from '@/lib/assistant/parsers/note-generator';
+
+/**
+ * Formate le texte de l'assistant pour améliorer la lisibilité dans l'interface
+ * - Ajoute des retours à la ligne après les phrases
+ * - Sépare les paragraphes longs
+ * - Préserve la structure existante
+ * - Gère les emojis et la ponctuation
+ */
+function formatAssistantMessage(text: string): string {
+  if (!text) return text;
+
+  // Préserver les retours à la ligne existants mais normaliser les espaces multiples
+  let formatted = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+  // Si le texte contient déjà des retours à la ligne significatifs, les préserver
+  const hasExistingLineBreaks =
+    formatted.split('\n').filter((line) => line.trim().length > 0).length > 1;
+
+  if (hasExistingLineBreaks) {
+    // Nettoyer les espaces multiples mais préserver la structure
+    formatted = formatted
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+      .join('\n\n');
+    return formatted;
+  }
+
+  // Pour les textes sans retours à la ligne, ajouter des retours après les phrases
+  // Remplacer les fins de phrases suivies d'un espace puis d'une majuscule par un retour à la ligne
+  // Cela gère aussi les cas avec emojis car ils sont entre la ponctuation et la majuscule suivante
+  formatted = formatted.replace(/([.!?])\s+([A-ZÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞŸ])/g, '$1\n\n$2');
+
+  // Nettoyer les retours à la ligne multiples (max 2)
+  formatted = formatted.replace(/\n{3,}/g, '\n\n');
+
+  // Nettoyer les espaces en début/fin de ligne
+  formatted = formatted
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .join('\n\n');
+
+  return formatted;
+}
 
 // Tooltip simple et rapide
 const SimpleTooltip = ({ content, children }: { content: string; children: React.ReactNode }) => {
@@ -312,7 +359,9 @@ async function parseQueryWithAI(
   query: string,
   availableCollabs: string[],
   availableStyles: string[],
-  projectCount: number
+  projectCount: number,
+  conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string; timestamp: Date }>,
+  lastFilters?: QueryFilters
 ): Promise<ParsedQuery> {
   try {
     const response = await fetch('/api/assistant/parse-query', {
@@ -333,6 +382,14 @@ async function parseQueryWithAI(
             'ARCHIVE',
           ],
         },
+        // Passer l'historique conversationnel (convertir Date en string pour JSON)
+        conversationHistory: conversationHistory?.map((msg) => ({
+          role: msg.role,
+          content: msg.content,
+          timestamp: msg.timestamp instanceof Date ? msg.timestamp.toISOString() : msg.timestamp,
+        })),
+        // Passer les filtres de la dernière requête pour inférer les filtres manquants
+        lastFilters,
       }),
     });
 
@@ -465,6 +522,11 @@ export function ProjectAssistant({ projects }: ProjectAssistantProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Historique conversationnel pour la mémoire (uniquement les messages conversationnels)
+  const [conversationHistory, setConversationHistory] = useState<
+    Array<{ role: 'user' | 'assistant'; content: string; timestamp: Date }>
+  >([]);
+
   // État local des projets pour avoir les données à jour après modifications
   const [localProjects, setLocalProjects] = useState<Project[]>(projects);
 
@@ -502,6 +564,7 @@ export function ProjectAssistant({ projects }: ProjectAssistantProps) {
     setMessages([]);
     setLastFilters(null);
     setLastResults([]);
+    setConversationHistory([]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -598,20 +661,39 @@ export function ProjectAssistant({ projects }: ProjectAssistantProps) {
         currentInput,
         uniqueCollabs,
         uniqueStyles,
-        localProjectsRef.current.length
+        localProjectsRef.current.length,
+        conversationHistory,
+        lastFilters
       );
       console.log('[Assistant] 🤖 IA a compris:', parsed);
 
       // Si c'est une réponse conversationnelle (pas sur les projets)
       if (parsed.isConversational && parsed.clarification) {
-        setMessages((prev) => [
+        const assistantMessage: Message = {
+          role: 'assistant',
+          content: formatAssistantMessage(
+            parsed.clarification || 'Je ne suis pas sûr de comprendre.'
+          ),
+          timestamp: new Date(),
+        };
+
+        setMessages((prev) => [...prev, assistantMessage]);
+
+        // Mettre à jour l'historique conversationnel uniquement pour les messages conversationnels
+        setConversationHistory((prev) => [
           ...prev,
           {
+            role: 'user',
+            content: currentInput,
+            timestamp: new Date(),
+          },
+          {
             role: 'assistant',
-            content: parsed.clarification || 'Je ne suis pas sûr de comprendre.',
+            content: assistantMessage.content,
             timestamp: new Date(),
           },
         ]);
+
         return;
       }
 
@@ -626,7 +708,7 @@ export function ProjectAssistant({ projects }: ProjectAssistantProps) {
           ...prev,
           {
             role: 'assistant',
-            content: responseContent,
+            content: formatAssistantMessage(responseContent),
             timestamp: new Date(),
           },
         ]);
@@ -766,8 +848,81 @@ export function ProjectAssistant({ projects }: ProjectAssistantProps) {
       if (parsed.type === 'update' && parsed.updateData) {
         const { updateData } = parsed;
 
+        // Cas spécial : ajout de note à un projet spécifique
+        if (updateData.projectName && updateData.newNote) {
+          // Trouver le projet par nom en utilisant le matching fuzzy
+          const currentProjects = localProjectsRef.current.map((p) => ({ ...p }));
+          const candidates = findProjectCandidates(updateData.projectName, currentProjects, 5);
+
+          // Filtrer les candidats avec un score >= 80 (seuil de confiance élevé)
+          const validCandidates = candidates.filter((c) => c.score >= 80);
+
+          if (validCandidates.length === 0) {
+            // Aucun projet trouvé
+            const suggestions = currentProjects
+              .slice(0, 5)
+              .map((p) => p.name)
+              .join(', ');
+
+            const noProjectMessage =
+              parsed.lang === 'en'
+                ? `No project found matching "${updateData.projectName}".${suggestions ? ` Available projects: ${suggestions}` : ''}`
+                : `Aucun projet trouvé correspondant à "${updateData.projectName}".${suggestions ? ` Projets disponibles : ${suggestions}` : ''}`;
+
+            setMessages((prev) => [
+              ...prev,
+              {
+                role: 'assistant',
+                content: noProjectMessage,
+                timestamp: new Date(),
+              },
+            ]);
+            return;
+          }
+
+          // Utiliser le meilleur candidat
+          const targetProject = validCandidates[0].project;
+          const affectedProjects = [targetProject];
+
+          // Générer la note avec le template pour l'afficher dans la confirmation
+          const generatedNote = generateNoteFromContent(updateData.newNote);
+
+          // Construire le message de confirmation pour l'ajout de note avec aperçu
+          const confirmationMessage =
+            parsed.lang === 'en'
+              ? `I will add a note to the project "${targetProject.name}".\n\nPreview of the note that will be added:\n\n${generatedNote}\n\nDo you want to proceed?`
+              : `Je vais ajouter une note au projet "${targetProject.name}".\n\nAperçu de la note qui sera ajoutée :\n\n${generatedNote}\n\nVoulez-vous continuer ?`;
+
+          // Afficher le message de confirmation
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: 'assistant',
+              content: confirmationMessage,
+              timestamp: new Date(),
+              data: {
+                projects: affectedProjects,
+                type: 'update',
+                fieldsToShow: ['note'],
+              },
+              updateConfirmation: {
+                filters: {},
+                updateData: {
+                  projectName: updateData.projectName,
+                  newNote: updateData.newNote,
+                },
+                affectedProjects,
+              },
+            },
+          ]);
+          return;
+        }
+
+        // Cas normal : mise à jour en masse par critères
         // Construire les filtres pour identifier les projets à modifier
-        const updateFilters: QueryFilters = {};
+        // D'abord, utiliser les filtres explicites de la requête (parsed.filters)
+        // Ensuite, compléter avec les filtres de updateData
+        const updateFilters: QueryFilters = { ...parsed.filters };
         if (updateData.minProgress !== undefined) {
           updateFilters.minProgress = updateData.minProgress;
         }
@@ -791,10 +946,39 @@ export function ProjectAssistant({ projects }: ProjectAssistantProps) {
           '[Assistant] 📊 Nombre de projets disponibles:',
           localProjectsRef.current.length
         );
+        console.log('[Assistant] 📋 lastResults disponibles:', lastResults.length);
 
         // Créer une copie profonde des projets pour éviter les problèmes de référence
         const currentProjects = localProjectsRef.current.map((p) => ({ ...p }));
-        const { filtered: affectedProjects } = filterProjects(currentProjects, updateFilters);
+
+        // Si les filtres sont vides et qu'on a des résultats précédents, utiliser lastResults
+        // Cela permet de modifier seulement les projets listés précédemment avec "change style X" ou "passe les à Y"
+        const hasNoSpecificFilters = Object.keys(updateFilters).length === 0;
+        const hasLastResults = lastResults.length > 0;
+        const isImplicitReference = /(?:les|les\s+projets|passe|met|change|modifie)/i.test(
+          currentInput
+        );
+
+        let affectedProjects: Project[];
+        if (hasNoSpecificFilters && hasLastResults && isImplicitReference) {
+          // Utiliser les projets listés précédemment
+          console.log(
+            '[Assistant] ✅ Utilisation de lastResults pour la modification:',
+            lastResults.length,
+            'projets'
+          );
+          // S'assurer que les projets de lastResults sont toujours à jour (vérifier qu'ils existent toujours dans currentProjects)
+          const lastResultIds = new Set(lastResults.map((p) => p.id));
+          affectedProjects = currentProjects.filter((p) => lastResultIds.has(p.id));
+          console.log(
+            '[Assistant] 📊 Projets trouvés dans currentProjects:',
+            affectedProjects.length
+          );
+        } else {
+          // Utiliser les filtres normaux
+          const { filtered } = filterProjects(currentProjects, updateFilters);
+          affectedProjects = filtered;
+        }
 
         console.log('[Assistant] ✅ Projets filtrés côté client:', affectedProjects.length);
         console.log(
@@ -1013,7 +1197,7 @@ export function ProjectAssistant({ projects }: ProjectAssistantProps) {
         ...prev,
         {
           role: 'assistant',
-          content: textResponse,
+          content: formatAssistantMessage(textResponse),
           timestamp: new Date(),
           data:
             count > 0 && type !== 'count'
@@ -1164,6 +1348,100 @@ export function ProjectAssistant({ projects }: ProjectAssistantProps) {
                                 setIsLoading(true);
                                 try {
                                   const { filters, updateData } = msg.updateConfirmation!;
+                                  console.log(
+                                    '[Assistant] 🔍 Confirmation update - filters:',
+                                    filters,
+                                    'updateData:',
+                                    updateData
+                                  );
+
+                                  // Cas spécial : ajout de note à un projet spécifique
+                                  if (updateData.projectName && updateData.newNote) {
+                                    // Utiliser l'API dédiée pour l'ajout de notes
+                                    const notePayload = {
+                                      projectName: updateData.projectName,
+                                      newNote: updateData.newNote,
+                                    };
+
+                                    console.log(
+                                      '[Assistant] 📝 Ajout de note - Payload:',
+                                      JSON.stringify(notePayload, null, 2)
+                                    );
+
+                                    const response = await fetch('/api/projects/add-note', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify(notePayload),
+                                    });
+
+                                    if (!response.ok) {
+                                      const error = await response.json();
+                                      throw new Error(
+                                        error.error || "Erreur lors de l'ajout de la note"
+                                      );
+                                    }
+
+                                    const result = await response.json();
+                                    console.log('[Assistant] 📥 Réponse du serveur:', result);
+
+                                    const successMessage =
+                                      result.data?.message ||
+                                      result.message ||
+                                      'Note ajoutée avec succès.';
+
+                                    // Afficher le résultat
+                                    setMessages((prev) => [
+                                      ...prev,
+                                      {
+                                        role: 'assistant',
+                                        content: successMessage,
+                                        timestamp: new Date(),
+                                      },
+                                    ]);
+
+                                    // Déclencher un événement personnalisé pour que ProjectsClient puisse mettre à jour la liste
+                                    const projectId =
+                                      result.data?.projectId ||
+                                      msg.updateConfirmation!.affectedProjects[0]?.id;
+                                    if (projectId) {
+                                      const projectsUpdatedEvent = new CustomEvent(
+                                        'projectsUpdatedFromAssistant',
+                                        {
+                                          detail: {
+                                            projectIds: [projectId],
+                                            updates: {
+                                              note: true, // Indique qu'une note a été ajoutée
+                                            },
+                                          },
+                                        }
+                                      );
+                                      window.dispatchEvent(projectsUpdatedEvent);
+                                    }
+
+                                    // Rafraîchir les données serveur après un court délai pour laisser le temps à l'animation de démarrer
+                                    if (router) {
+                                      setTimeout(() => {
+                                        router.refresh();
+                                      }, 500);
+                                    }
+
+                                    // Marquer le message comme traité
+                                    setMessages((prev) =>
+                                      prev.map((m) =>
+                                        m === msg
+                                          ? {
+                                              ...m,
+                                              updateConfirmation: undefined,
+                                            }
+                                          : m
+                                      )
+                                    );
+
+                                    setIsLoading(false);
+                                    return;
+                                  }
+
+                                  // Cas normal : mise à jour en masse
                                   const payload: any = {};
 
                                   // Ajouter les filtres
@@ -1256,6 +1534,63 @@ export function ProjectAssistant({ projects }: ProjectAssistantProps) {
                                     }
                                   } else {
                                     successMessage = "Aucun projet n'a été modifié.";
+                                  }
+
+                                  // Mettre à jour lastFilters avec les nouveaux filtres basés sur le résultat de la mise à jour
+                                  // IMPORTANT: Si on a modifié le statut, mettre à jour lastFilters avec le NOUVEAU statut
+                                  // car les projets ont maintenant ce nouveau statut
+                                  const newLastFilters: QueryFilters = {};
+
+                                  // PRIORITÉ 1: Si on a modifié le statut, utiliser le NOUVEAU statut (les projets ont maintenant ce statut)
+                                  if (updateData.newStatus) {
+                                    newLastFilters.status = updateData.newStatus;
+                                    console.log(
+                                      '[Assistant] 🔄 lastFilters: nouveau statut après modification:',
+                                      updateData.newStatus
+                                    );
+                                  }
+                                  // PRIORITÉ 2: Si pas de nouveau statut mais qu'on avait un filtre de statut, le garder
+                                  else if (filters.status) {
+                                    newLastFilters.status = filters.status;
+                                    console.log(
+                                      '[Assistant] 🔄 lastFilters: garde le filtre de statut existant:',
+                                      filters.status
+                                    );
+                                  }
+
+                                  // Garder les autres filtres si présents (mais seulement si on n'a pas modifié ces valeurs)
+                                  if (
+                                    filters.minProgress !== undefined &&
+                                    updateData.newProgress === undefined
+                                  ) {
+                                    newLastFilters.minProgress = filters.minProgress;
+                                  }
+                                  if (
+                                    filters.maxProgress !== undefined &&
+                                    updateData.newProgress === undefined
+                                  ) {
+                                    newLastFilters.maxProgress = filters.maxProgress;
+                                  }
+                                  if (filters.collab && !updateData.newCollab) {
+                                    newLastFilters.collab = filters.collab;
+                                  }
+                                  if (filters.style && !updateData.newStyle) {
+                                    newLastFilters.style = filters.style;
+                                  }
+
+                                  // Mettre à jour lastFilters seulement si on a des filtres valides
+                                  if (Object.keys(newLastFilters).length > 0) {
+                                    setLastFilters(newLastFilters);
+                                    console.log(
+                                      '[Assistant] ✅ lastFilters mis à jour après modification:',
+                                      JSON.stringify(newLastFilters)
+                                    );
+                                  } else {
+                                    // Si aucun filtre valide, réinitialiser
+                                    setLastFilters(null);
+                                    console.log(
+                                      '[Assistant] ⚠️ lastFilters réinitialisé (aucun filtre valide)'
+                                    );
                                   }
 
                                   // Appliquer les nouvelles valeurs aux projets pour l'affichage immédiat
