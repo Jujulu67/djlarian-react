@@ -28,6 +28,12 @@ import { detectDeadlineFromQuery } from '@/lib/assistant/parsers/deadline-detect
 import { classifyQuery } from '@/lib/assistant/query-parser/classifier';
 import { debugLog, truncate } from '@/lib/assistant/utils/debug-logger';
 import { detectFilters } from '@/lib/assistant/query-parser/filters';
+import {
+  getConversationContext,
+  updateConversationContext,
+  detectContextReference,
+  resolveContextReference,
+} from '@/lib/assistant/conversational/conversation-memory';
 
 export async function processProjectCommand(userInput: string) {
   // Vérifier l'authentification
@@ -71,7 +77,32 @@ export async function processProjectCommand(userInput: string) {
 
   // Détecter le type de requête (question vs commande) avant l'appel à l'IA
   const lowerQuery = normalizedInput.toLowerCase();
-  const { filters } = detectFilters(normalizedInput, lowerQuery, [], []); // Pas de collabs/styles nécessaires ici
+  let { filters } = detectFilters(normalizedInput, lowerQuery, [], []); // Pas de collabs/styles nécessaires ici
+
+  // ========================================
+  // MÉMOIRE CONVERSATIONNELLE
+  // ========================================
+  // Détecter si la requête fait référence au contexte précédent
+  const { hasContextReference, referenceType } = detectContextReference(normalizedInput);
+  let contextResolutionMessage: string | undefined;
+
+  if (hasContextReference) {
+    const resolution = resolveContextReference(currentUserId, normalizedInput);
+    if (resolution.resolved) {
+      // Fusionner les filtres du contexte avec les filtres actuels
+      filters = { ...resolution.filters, ...filters };
+      contextResolutionMessage = resolution.message;
+      console.log('[Assistant] Contexte résolu:', {
+        referenceType,
+        projectCount: resolution.projectIds.length,
+        appliedFilters: Object.keys(filters),
+      });
+    } else if (resolution.message) {
+      // Pas de contexte disponible, retourner un message explicatif
+      return resolution.message;
+    }
+  }
+
   const classification = classifyQuery(normalizedInput, lowerQuery, filters);
 
   // Debug: Classification result
@@ -740,6 +771,20 @@ export async function processProjectCommand(userInput: string) {
         if (count > 10) {
           response += `\n... et ${count - 10} autre(s) projet(s).`;
         }
+
+        // ========================================
+        // SAUVEGARDE DU CONTEXTE CONVERSATIONNEL
+        // ========================================
+        // Sauvegarder le contexte pour permettre l'enchaînement de commandes
+        // Ex: "liste les ghost prod" puis "met les à 80%"
+        updateConversationContext(currentUserId, {
+          lastProjectIds: typedResult.projects.map((p) => p.id),
+          lastProjectNames: typedResult.projects.map((p) => p.name),
+          lastProjectCount: count,
+          lastFilters: toolInput,
+          lastActionType: 'list',
+          lastStatusFilter: toolInput.status || null,
+        });
 
         return response;
       }

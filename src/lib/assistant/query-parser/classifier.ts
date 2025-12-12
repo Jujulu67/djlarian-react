@@ -43,14 +43,16 @@ export function classifyQuery(
   const hasCombieTypo = /^combie|combie\s+de/i.test(lowerQuery);
   const isUpdate =
     !hasCombieTypo &&
-    /(?:modifie|modifier|modifi|modifiez|change|changer|chang|changes|changez|mets|met|mettez|mettre|passe|passer|pass|passes|passez|met\s+à\s+jour|mettre\s+à\s+jour|update|set|déplace|déplacer|pousse|pousser|recul|reculer|retarde|retarder|décal|décaler|marque|marquer|marqu|marques|marquez|supprime|supprimer|retire|retirer|remove|delete|enlève|enlever|enleve|prévoit|prévoir|avance|avancer|^deadline\s+(?:à|a|pour)|(?:en\s+)?(?:collab|collaborateur)\s+avec\s+[A-Za-z0-9_\s]+\s+[àa])/i.test(
+    /(?:modifie|modifier|modifi|modif|modifiez|change|changer|chang|chg|changes|changez|mets|met|mt|mett|mettez|mettre|passe|passer|pass|pas[sz]|passes|passez|met\s+à\s+jour|mettre\s+à\s+jour|update|updat|set|déplace|déplacer|deplac|pousse|pousser|recul|reculer|retarde|retarder|décal|décaler|marque|marquer|marqu|mrq|marques|marquez|supprime|supprimer|supprim|retire|retirer|remove|delete|enlève|enlever|enleve|prévoit|prévoir|avance|avancer|^deadline\s+(?:à|a|pour)|(?:en\s+)?(?:collab|collaborateur)\s+avec\s+[A-Za-z0-9_\s]+\s+[àa])/i.test(
       lowerQuery
     );
-  const isCreate = /(?:ajoute|ajouter|créer|créé|nouveau\s+projet|add|create|new\s+project)/i.test(
-    lowerQuery
-  );
+  const isCreate =
+    /(?:ajoute|ajouter|ajout|créer|créé|creer|nouveau\s+projet|add|create|new\s+project)/i.test(
+      lowerQuery
+    );
+  // Comptage - tolérant aux fautes de frappe courantes
   const isCount =
-    /combien|cb|cbn|combiens?|combie|nombre|nombres?|compte|total|how\s*many|count/i.test(
+    /combien|cb|cbn|combiens?|combie|combin|cobien|conbien|nombre|nombres?|compte|compter|total|how\s*many|count|howmany/i.test(
       lowerQuery
     );
   // Détecter "liste" mais être plus strict avec "quels/quelle" - seulement si suivi de "projets" ou autre contexte
@@ -66,17 +68,17 @@ export function classifyQuery(
     );
   // Inclure les variations de "ghost prod" avec fautes d'orthographe
   const hasImplicitListPattern =
-    /(?:^|\s)(?:et\s+)?(?:les?|des?)\s+(?:terminés?|termines?|fini|finis|ghost\s*prod(?:uction)?|ghostprod|gost\s*prod|ghosprod|gausprod|goastprod|annulés?|annules?|archivés?|archives?|rework)\s*[?]?$/i.test(
+    /(?:^|\s)(?:et\s+)?(?:les?|des?)\s+(?:terminés?|termines?|fini|finis|finit|ghost\s*prod(?:uction)?|ghostprod|gost\s*prod|ghosprod|gausprod|goastprod|ghosp\s*rod|goes\s*prod|gosht\s*prod|gauspraud|gausteprauds|annulés?|annules?|anul|archivés?|archives?|arkiv|rework|rwork|en\s*cours|encours|ancours)\s*[?]?$/i.test(
       lowerQuery.trim()
     );
 
   // Détecter les phrases courtes avec statut/filtre mais sans verbe d'action explicite
   // Exemples: "projets terminés", "projets en cours", "ghost production"
   // Mais PAS: "et nos projets alors?" (début conversationnel)
-  const hasProjectMentionForList = /projets?|projects?/i.test(lowerQuery);
-  // Inclure les variations de "ghost prod" avec fautes d'orthographe
+  const hasProjectMentionForList = /projets?|projects?|projts?|projs?/i.test(lowerQuery);
+  // Inclure les variations de "ghost prod" avec fautes d'orthographe étendues
   const hasStatusOrFilter =
-    /(?:terminés?|termines?|fini|finis|ghost\s*prod(?:uction)?|ghostprod|gost\s*prod|ghosprod|gausprod|goastprod|annulés?|annules?|archivés?|archives?|rework|en\s*cours|en\s*courrs|encours|sous\s*les?\s*\d+|avec|collab)/i.test(
+    /(?:terminés?|termines?|fini|finis|finit|treminer|termi|ghost\s*prod(?:uction)?|ghostprod|gost\s*prod|ghosprod|gausprod|goastprod|ghosp\s*rod|goes\s*prod|gosht\s*prod|gauspraud|gausteprauds|annulés?|annules?|anul|archivés?|archives?|arkiv|rework|rwork|en\s*cours|en\s*courrs|encours|ancours|emcours|sous\s*les?\s*\d+|avec|collab)/i.test(
       lowerQuery
     );
   const isShortListRequest =

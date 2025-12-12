@@ -117,18 +117,21 @@ export function validateConversationHistory(
     history = history.slice(-MAX_CONVERSATION_HISTORY_LENGTH);
   }
 
-  return history
-    .filter((msg) => {
+  // Type the history array after slicing
+  const validHistory = history as Array<Record<string, unknown>>;
+
+  return validHistory
+    .filter((msg: Record<string, unknown>) => {
       if (!msg || typeof msg !== 'object') return false;
       if (msg.role !== 'user' && msg.role !== 'assistant') return false;
       if (!msg.content || typeof msg.content !== 'string') return false;
-      if (msg.content.trim().length === 0) return false;
-      if (msg.content.length > MAX_QUERY_LENGTH) return false; // Limiter la longueur de chaque message
+      if ((msg.content as string).trim().length === 0) return false;
+      if ((msg.content as string).length > MAX_QUERY_LENGTH) return false; // Limiter la longueur de chaque message
       return true;
     })
-    .map((msg) => ({
-      role: msg.role,
-      content: msg.content.trim(),
+    .map((msg: Record<string, unknown>) => ({
+      role: msg.role as string,
+      content: (msg.content as string).trim(),
     }));
 }
 
