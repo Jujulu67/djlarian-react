@@ -4,7 +4,8 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
-import { buildWhereClause, buildUpdateData } from './tool-helpers';
+import { buildWhereClause, buildUpdateData, findProjectByName } from './tool-helpers';
+import { generateNoteFromContent } from '../parsers/note-generator';
 
 export interface UpdateProjectsToolParams {
   getTargetUserId: (query?: string) => Promise<string>;
@@ -43,11 +44,19 @@ export function createUpdateProjectsTool({
       .enum(['EN_COURS', 'TERMINE', 'ANNULE', 'A_REWORK', 'GHOST_PRODUCTION', 'ARCHIVE'])
       .optional()
       .describe('Nouveau statut du projet'),
+    projectName: z
+      .string()
+      .optional()
+      .describe('Nom du projet pour ajouter une note (utilisé avec newNote)'),
+    newNote: z
+      .string()
+      .optional()
+      .describe('Contenu de la note à ajouter au projet (utilisé avec projectName)'),
   });
 
   return tool({
     description:
-      "Met à jour des projets selon des critères (progression, statut, deadline). Les projets sont automatiquement filtrés pour l'utilisateur connecté.",
+      "Met à jour des projets selon des critères (progression, statut, deadline). Peut aussi ajouter une note à un projet spécifique en utilisant projectName et newNote. Les projets sont automatiquement filtrés pour l'utilisateur connecté.",
     parameters,
     // @ts-expect-error - SDK AI v5 type inference issue
     execute: async (params: {
@@ -55,11 +64,78 @@ export function createUpdateProjectsTool({
       maxProgress?: number;
       newDeadline?: string;
       newStatus?: string;
+      projectName?: string;
+      newNote?: string;
     }) => {
-      const { minProgress, maxProgress, newDeadline, newStatus } = params;
+      const { minProgress, maxProgress, newDeadline, newStatus, projectName, newNote } = params;
       // Obtenir l'ID utilisateur cible (par nom ou utilisateur connecté)
       const targetUserId = await getTargetUserId(normalizedInput);
 
+      // Cas spécial : ajout de note à un projet spécifique
+      if (projectName && newNote) {
+        // Trouver le projet par nom
+        const projectMatch = await findProjectByName(projectName, targetUserId);
+
+        if (!projectMatch) {
+          // Chercher des suggestions de projets similaires
+          const allProjects = await prisma.project.findMany({
+            where: { userId: targetUserId },
+            select: { name: true },
+            take: 10,
+          });
+
+          const suggestions = allProjects
+            .map((p) => p.name)
+            .slice(0, 5)
+            .join(', ');
+
+          return {
+            count: 0,
+            message: `Aucun projet trouvé correspondant à "${projectName}".${
+              suggestions ? ` Projets disponibles : ${suggestions}` : ''
+            }`,
+          };
+        }
+
+        // Récupérer le projet complet avec sa note actuelle
+        const existingProject = await prisma.project.findUnique({
+          where: { id: projectMatch.project.id },
+          select: { note: true },
+        });
+
+        // Générer la nouvelle note avec le template
+        const generatedNote = generateNoteFromContent(newNote);
+
+        // Préfixer la nouvelle note AVANT la note existante (notes plus récentes en premier)
+        const updatedNote = existingProject?.note
+          ? `${generatedNote}\n\n---\n\n${existingProject.note}`
+          : generatedNote;
+
+        // Mode test : ne pas modifier la base de données
+        if (isTestMode) {
+          console.log("[TEST MODE] Simulation d'ajout de note:", {
+            projectName: projectMatch.project.name,
+            generatedNote: generatedNote.substring(0, 100) + '...',
+          });
+          return {
+            count: 1,
+            message: `[MODE TEST] Simulation : Note ajoutée au projet "${projectMatch.project.name}".`,
+          };
+        }
+
+        // Mettre à jour le projet avec la nouvelle note
+        await prisma.project.update({
+          where: { id: projectMatch.project.id },
+          data: { note: updatedNote },
+        });
+
+        return {
+          count: 1,
+          message: `Note ajoutée au projet "${projectMatch.project.name}".`,
+        };
+      }
+
+      // Cas normal : mise à jour en masse par critères
       // Construire la clause WHERE
       const whereClause = buildWhereClause(targetUserId, minProgress, maxProgress);
 

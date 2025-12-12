@@ -37,20 +37,66 @@ export function classifyQuery(
   // Détecter type de requête (FR + EN) - UPDATE et CREATE doivent être détectés AVANT count/list
   // Inclure aussi les patterns simples comme "deadline à X" qui sont des mises à jour
   // Inclure aussi "en collab avec X à Y" qui est une mise à jour
+  // UPDATE - Tolérer les verbes tronqués courants (fautes de frappe)
+  // IMPORTANT: Ne pas confondre "combie" (faute de "combien") avec "modifie"
+  // On vérifie que ce n'est pas "combie" avant de détecter comme update
+  const hasCombieTypo = /^combie|combie\s+de/i.test(lowerQuery);
   const isUpdate =
-    /(?:modifie|modifier|change|changer|mets|met|passe|passer|met\s+à\s+jour|mettre\s+à\s+jour|update|set|déplace|déplacer|pousse|pousser|recul|reculer|retarde|retarder|décal|décaler|marque|marquer|supprime|supprimer|retire|retirer|remove|delete|enlève|enlever|enleve|prévoit|prévoir|avance|avancer|^deadline\s+(?:à|pour)|(?:en\s+)?(?:collab|collaborateur)\s+avec\s+[A-Za-z0-9_\s]+\s+à)/i.test(
+    !hasCombieTypo &&
+    /(?:modifie|modifier|modifi|modifiez|change|changer|chang|changes|changez|mets|met|mettez|mettre|passe|passer|pass|passes|passez|met\s+à\s+jour|mettre\s+à\s+jour|update|set|déplace|déplacer|pousse|pousser|recul|reculer|retarde|retarder|décal|décaler|marque|marquer|marqu|marques|marquez|supprime|supprimer|retire|retirer|remove|delete|enlève|enlever|enleve|prévoit|prévoir|avance|avancer|^deadline\s+(?:à|a|pour)|(?:en\s+)?(?:collab|collaborateur)\s+avec\s+[A-Za-z0-9_\s]+\s+[àa])/i.test(
       lowerQuery
     );
   const isCreate = /(?:ajoute|ajouter|créer|créé|nouveau\s+projet|add|create|new\s+project)/i.test(
     lowerQuery
   );
-  const isCount = /combien|cb|nombre|compte|total|how\s*many|count/i.test(lowerQuery);
+  const isCount =
+    /combien|cb|cbn|combiens?|combie|nombre|nombres?|compte|total|how\s*many|count/i.test(
+      lowerQuery
+    );
   // Détecter "liste" mais être plus strict avec "quels/quelle" - seulement si suivi de "projets" ou autre contexte
-  const isList =
-    /liste|montre|affiche|donne|lesquels|list|show|display/i.test(lowerQuery) ||
+  // AUSSI: Détecter les questions implicites comme "et les terminés?", "et les ghost prod?" qui sont des questions de liste
+  // Tolérer les verbes tronqués courants (fautes de frappe)
+  const hasExplicitListVerb =
+    /liste|listes?|lister?|list|montre|montres?|montrer?|montr|affiche|affiches?|afficher?|affic|donne|donnes?|donner?|donn|lesquels|show|display/i.test(
+      lowerQuery
+    );
+  const hasQuestionWord =
     /(?:quels?|quelle|which|what)\s+(?:sont|sont\s+les?|are|are\s+the|projets?|projects?|mes|nos|tes|vos)/i.test(
       lowerQuery
     );
+  // Inclure les variations de "ghost prod" avec fautes d'orthographe
+  const hasImplicitListPattern =
+    /(?:^|\s)(?:et\s+)?(?:les?|des?)\s+(?:terminés?|termines?|fini|finis|ghost\s*prod(?:uction)?|ghostprod|gost\s*prod|ghosprod|gausprod|goastprod|annulés?|annules?|archivés?|archives?|rework)\s*[?]?$/i.test(
+      lowerQuery.trim()
+    );
+
+  // Détecter les phrases courtes avec statut/filtre mais sans verbe d'action explicite
+  // Exemples: "projets terminés", "projets en cours", "ghost production"
+  // Mais PAS: "et nos projets alors?" (début conversationnel)
+  const hasProjectMentionForList = /projets?|projects?/i.test(lowerQuery);
+  // Inclure les variations de "ghost prod" avec fautes d'orthographe
+  const hasStatusOrFilter =
+    /(?:terminés?|termines?|fini|finis|ghost\s*prod(?:uction)?|ghostprod|gost\s*prod|ghosprod|gausprod|goastprod|annulés?|annules?|archivés?|archives?|rework|en\s*cours|en\s*courrs|encours|sous\s*les?\s*\d+|avec|collab)/i.test(
+      lowerQuery
+    );
+  const isShortListRequest =
+    hasProjectMentionForList &&
+    hasStatusOrFilter &&
+    !hasExplicitListVerb &&
+    !hasQuestionWord &&
+    query.length < 50;
+  // Ne pas détecter comme liste si c'est clairement conversationnel (début par "et", "alors", etc. sans verbe d'action)
+  const isConversationalStart =
+    /^(?:et|alors|ok|ouais|oui|bah|ben|hein|dis|écoute|regarde|tiens|voilà|bon|bien|d'accord|daccord|okay|oké|okey)\s+(?:nos|mes|les|des|concernant|pour|sur|à\s+propos\s+de)\s+(?:projets?|projects?)/i.test(
+      lowerQuery.trim()
+    );
+  const isShortListButConversational = isShortListRequest && isConversationalStart;
+
+  const isList =
+    hasExplicitListVerb ||
+    hasQuestionWord ||
+    hasImplicitListPattern ||
+    (isShortListRequest && !isShortListButConversational);
 
   // Détecter la langue de la requête
   const isEnglish =
@@ -67,6 +113,33 @@ export function classifyQuery(
   // Détecter mention de "projet" mais exclure les contextes non musicaux
   // Exemples à exclure : "projet de macron", "projet de loi", "projet politique", etc.
   const hasProjectMentionRaw = /projet|project/i.test(lowerQuery);
+
+  // #region agent log
+  if (typeof fetch !== 'undefined') {
+    fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        location: 'classifier.ts:40-58',
+        message: 'Détection patterns de base',
+        data: {
+          query: query.substring(0, 100),
+          isUpdate,
+          isCreate,
+          isCount,
+          isList,
+          hasFilters: Object.keys(filters).length > 0,
+          hasProjectMentionRaw,
+          hasActionVerb,
+        },
+        timestamp: Date.now(),
+        sessionId: 'debug-session',
+        runId: 'initial',
+        hypothesisId: 'A',
+      }),
+    }).catch(() => {});
+  }
+  // #endregion
   const isProjectInNonMusicalContext =
     /projet\s+(?:de|du|des?|politique|loi|réforme|société|économique|social|éducatif|culturel|scientifique|recherche|construction|bâtiment|immobilier|développement|numérique|informatique|web|site|application|logiciel|software)/i.test(
       lowerQuery
@@ -87,23 +160,24 @@ export function classifyQuery(
     /(?:tes|vos|ton|votre|your)\s+(?:projets?|projects?)/i.test(lowerQuery) ||
     /(?:projets?|projects?)\s+(?:de\s+)?(?:toi|vous|you)/i.test(lowerQuery) ||
     // "tu as", "tu gères", "tu fais" + "projets" (avant ou après)
-    /(?:tu|vous|you)\s+(?:as|a|gères?|gères|fais|fait|gère|manage|manages|have|has)\s+(?:des?\s+)?(?:projets?|projects?)/i.test(
+    // Tolérer les fautes d'orthographe: "geres", "géres", "geres" (sans accent)
+    /(?:tu|vous|you)\s+(?:as|a|gères?|gères|geres|géres|fais|fait|gère|manage|manages|have|has)\s+(?:des?\s+)?(?:projets?|projects?)/i.test(
       lowerQuery
     ) ||
     // "projets" + "tu as" / "tu gères" / "you have" (avec mots entre)
-    /(?:projets?|projects?)[^?]*\s+(?:tu|vous|you)\s+(?:as|a|gères?|gères|fais|fait|gère|manage|manages|have|has)/i.test(
+    /(?:projets?|projects?)[^?]*\s+(?:tu|vous|you)\s+(?:as|a|gères?|gères|geres|géres|fais|fait|gère|manage|manages|have|has)/i.test(
       lowerQuery
     ) ||
     // "les projets que tu gères" / "projects that you manage" / "quels sont les projets que tu gères"
-    /(?:les?\s+)?(?:projets?|projects?)\s+(?:que|that|which)\s+(?:tu|vous|you)\s+(?:gères?|manage|manages)/i.test(
+    /(?:les?\s+)?(?:projets?|projects?)\s+(?:que|that|which)\s+(?:tu|vous|you)\s+(?:gères?|geres|géres|manage|manages)/i.test(
       lowerQuery
     ) ||
     // "quels sont les projets que tu..." (variante avec "quels sont")
-    /(?:quels?|which|what)\s+(?:sont|are)\s+(?:les?\s+)?(?:projets?|projects?)\s+(?:que|that|which)\s+(?:tu|vous|you)\s+(?:gères?|manage|manages)/i.test(
+    /(?:quels?|which|what)\s+(?:sont|are)\s+(?:les?\s+)?(?:projets?|projects?)\s+(?:que|that|which)\s+(?:tu|vous|you)\s+(?:gères?|geres|géres|manage|manages)/i.test(
       lowerQuery
     ) ||
     // "quels projets tu gères" / "which projects you manage"
-    /(?:quels?|which|what)\s+(?:projets?|projects?)\s+(?:tu|vous|you)\s+(?:gères?|manage|manages|as|a|have|has)/i.test(
+    /(?:quels?|which|what)\s+(?:projets?|projects?)\s+(?:tu|vous|you)\s+(?:gères?|geres|géres|manage|manages|as|a|have|has)/i.test(
       lowerQuery
     );
 
@@ -111,8 +185,40 @@ export function classifyQuery(
     console.log("[Parse Query API] Question sur les projets de l'assistant détectée pour:", query);
   }
 
+  // Détecter les messages très longs qui sont clairement conversationnels
+  // Si le message fait plus de 200 caractères, ne mentionne pas "projet" dans un contexte musical,
+  // et contient des informations personnelles (âge, salaire, lieu, etc.), c'est conversationnel
+  const hasPersonalInfo =
+    /j['']?ai\s+\d+\s+ans|j['']?ai\s+\d+\s+années|i\s+am\s+\d+|i\s+have\s+\d+\s+years/i.test(
+      lowerQuery
+    ) ||
+    /je\s+vis\s+à|i\s+live\s+in|j['']?habite/i.test(lowerQuery) ||
+    /je\s+travaille|i\s+work|mon\s+travail|my\s+job/i.test(lowerQuery) ||
+    /je\s+gagne|i\s+earn|salaire|salary|€|\$/i.test(lowerQuery) ||
+    /objectif|goal|but|souhaite|wish|want/i.test(lowerQuery) ||
+    /contraintes?|constraints?|constraintes?/i.test(lowerQuery) ||
+    /profil\s+personnel|personal\s+profile/i.test(lowerQuery) ||
+    /informations?\s+personnelles?|personal\s+information/i.test(lowerQuery);
+
+  // Un message long avec infos personnelles est TOUJOURS conversationnel,
+  // même s'il contient des verbes d'action (comme "fais", "dis") qui ne sont pas des commandes projet
+  const isLongPersonalMessage = query.length > 200 && !hasProjectMention && hasPersonalInfo;
+
+  // Debug pour les messages longs
+  if (query.length > 200) {
+    console.log('[Parse Query API] 🔍 Détection message long:', {
+      length: query.length,
+      hasProjectMention,
+      hasActionVerb,
+      hasPersonalInfo,
+      isLongPersonalMessage,
+    });
+  }
+
   // Patterns qui indiquent une conversation plutôt qu'une commande
   const isConversationalQuestion =
+    // Si c'est un long message personnel, c'est conversationnel
+    isLongPersonalMessage ||
     // Si on demande les projets de l'assistant (pas de l'utilisateur), c'est TOUJOURS conversationnel
     // même si on a un verbe d'action (liste, montre, etc.)
     isQuestionAboutAssistantProjects ||
@@ -170,26 +276,58 @@ export function classifyQuery(
 
   // Comprendre les expressions liées aux projets (FR + EN)
   // Ne considérer comme "understood" que si :
-  // - On a des filtres spécifiques (même si conversationnel, les filtres indiquent une vraie intention) SAUF si c'est une question sur l'assistant OU
+  // - On a des filtres spécifiques (même si conversationnel, les filtres indiquent une vraie intention) SAUF si c'est une question sur l'assistant OU un message personnel long OU
   // - C'est une vraie commande (count/list/create/update) ET ce n'est PAS conversationnel OU
   // - On mentionne "projet" MAIS ce n'est PAS une question conversationnelle
-  // IMPORTANT: Si c'est une question sur les projets de l'assistant, c'est TOUJOURS conversationnel
+  // IMPORTANT: Si c'est une question sur les projets de l'assistant ou un message personnel long, c'est TOUJOURS conversationnel
   const understood =
-    (!isQuestionAboutAssistantProjects && Object.keys(filters).length > 0) ||
+    (!isQuestionAboutAssistantProjects &&
+      !isLongPersonalMessage &&
+      Object.keys(filters).length > 0) ||
     ((isCount || isList || isCreate || isUpdate) && !isConversationalQuestion) ||
     (hasProjectMention && !isConversationalQuestion);
 
-  if (isQuestionAboutAssistantProjects) {
-    console.log(
-      '[Parse Query API] isConversationalQuestion:',
+  // #region agent log
+  if (typeof fetch !== 'undefined') {
+    fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        location: 'classifier.ts:214-219',
+        message: 'Calcul final understood',
+        data: {
+          query: query.substring(0, 100),
+          understood,
+          isQuestionAboutAssistantProjects,
+          isLongPersonalMessage,
+          hasFilters: Object.keys(filters).length > 0,
+          isCount,
+          isList,
+          isCreate,
+          isUpdate,
+          isConversationalQuestion,
+          hasProjectMention,
+        },
+        timestamp: Date.now(),
+        sessionId: 'debug-session',
+        runId: 'initial',
+        hypothesisId: 'C',
+      }),
+    }).catch(() => {});
+  }
+  // #endregion
+
+  if (isQuestionAboutAssistantProjects || isLongPersonalMessage) {
+    console.log('[Parse Query API] 🔍 Détection conversationnelle:', {
+      isQuestionAboutAssistantProjects,
+      isLongPersonalMessage,
       isConversationalQuestion,
-      'understood:',
       understood,
-      'isList:',
       isList,
-      'hasProjectMention:',
-      hasProjectMention
-    );
+      hasProjectMention,
+      hasActionVerb,
+      queryLength: query.length,
+    });
   }
 
   return {

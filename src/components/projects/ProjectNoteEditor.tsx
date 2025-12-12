@@ -178,20 +178,29 @@ export const ProjectNoteEditor = ({
   };
 
   const handleVersionTemplate = () => {
-    const today = new Date().toLocaleDateString('fr-FR');
-    handleTemplate(`## Version ${today}\n\n### Changements\n- \n- \n- \n\n### Notes\n`);
+    const now = new Date();
+    const date = now.toLocaleDateString('fr-FR');
+    const time = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    const dateTime = `${date} à ${time}`;
+    handleTemplate(`## Version ${dateTime}\n\n### Changements\n- \n- \n- \n\n### Notes\n`);
   };
 
   const handlePhaseTemplate = () => {
-    const today = new Date().toLocaleDateString('fr-FR');
+    const now = new Date();
+    const date = now.toLocaleDateString('fr-FR');
+    const time = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    const dateTime = `${date} à ${time}`;
     handleTemplate(
-      `## Phase: [Nom de la phase]\n**Date:** ${today}\n\n### Objectifs\n- \n- \n\n### Progression\n- [ ] \n- [ ] \n\n### Notes\n`
+      `## Phase: [Nom de la phase]\n**Date:** ${dateTime}\n\n### Objectifs\n- \n- \n\n### Progression\n- [ ] \n- [ ] \n\n### Notes\n`
     );
   };
 
   const handleEvolutionTemplate = () => {
-    const today = new Date().toLocaleDateString('fr-FR');
-    handleTemplate(`## ${today}\n\n### Évolution\n\n### Prochaines étapes\n- \n- \n`);
+    const now = new Date();
+    const date = now.toLocaleDateString('fr-FR');
+    const time = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    const dateTime = `${date} à ${time}`;
+    handleTemplate(`## ${dateTime}\n\n### Évolution\n\n### Prochaines étapes\n- \n- \n`);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {

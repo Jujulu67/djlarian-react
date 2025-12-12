@@ -75,6 +75,7 @@ export function findStyleFromString(
         // Sinon, chercher un style qui contient le nom canonique ou vice versa
         const partialMatch = availableStyles.find(
           (s) =>
+            s.toLowerCase() === canonicalStyle.toLowerCase() ||
             s.toLowerCase().includes(canonicalStyle.toLowerCase()) ||
             canonicalStyle.toLowerCase().includes(s.toLowerCase())
         );

@@ -17,15 +17,20 @@ export interface CreateData {
  * Patterns de statuts pour la détection
  */
 const statusPatterns: { pattern: RegExp; status: string }[] = [
-  { pattern: /ghost\s*prod(?:uction)?|ghostprod|gost\s*prod/i, status: 'GHOST_PRODUCTION' },
+  // GHOST_PRODUCTION - Tolérer les fautes d'orthographe courantes
+  {
+    pattern: /ghost\s*prod(?:uction)?|ghostprod|gost\s*prod|ghosprod|gausprod|goastprod/i,
+    status: 'GHOST_PRODUCTION',
+  },
   {
     pattern: /termin[ée]s?|finis?|complet[ée]?s?|finished|completed|done|100\s*%|TERMINE/i,
     status: 'TERMINE',
   },
   { pattern: /annul[ée]s?|cancel(?:led)?|abandonn[ée]s?|dropped/i, status: 'ANNULE' },
   {
+    // EN_COURS - Tolérer "encours", "en courrs" (double r) mais pas "en cour" (trop ambigu)
     pattern:
-      /en\s*cours|ongoing|actifs?|in\s*(?:progress|the\s*works)|current|active|wip|EN\s*COURS|EN_COURS/i,
+      /en\s*cours|en\s*courrs|encours|ongoing|actifs?|in\s*(?:progress|the\s*works)|current|active|wip|EN\s*COURS|EN_COURS/i,
     status: 'EN_COURS',
   },
   {

@@ -25,6 +25,8 @@ import { createUpdateProjectsTool } from '@/lib/assistant/tools/update-projects-
 import { detectStatusFromQuery } from '@/lib/assistant/parsers/status-detector';
 import { detectProgressFromQuery } from '@/lib/assistant/parsers/progress-detector';
 import { detectDeadlineFromQuery } from '@/lib/assistant/parsers/deadline-detector';
+import { classifyQuery } from '@/lib/assistant/query-parser/classifier';
+import { detectFilters } from '@/lib/assistant/query-parser/filters';
 
 export async function processProjectCommand(userInput: string) {
   // Vérifier l'authentification
@@ -66,29 +68,224 @@ export async function processProjectCommand(userInput: string) {
     isTestMode,
   });
 
+  // Détecter le type de requête (question vs commande) avant l'appel à l'IA
+  const lowerQuery = normalizedInput.toLowerCase();
+  const { filters } = detectFilters(normalizedInput, lowerQuery, [], []); // Pas de collabs/styles nécessaires ici
+  const classification = classifyQuery(normalizedInput, lowerQuery, filters);
+
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      location: 'assistant.ts:73-74',
+      message: 'Classification détectée (processProjectCommand)',
+      data: {
+        userInput: normalizedInput.substring(0, 100),
+        filters: Object.keys(filters),
+        filtersDetails: filters,
+        availableCollabs: [],
+        availableStyles: [],
+        classification: {
+          isList: classification.isList,
+          isCount: classification.isCount,
+          isUpdate: classification.isUpdate,
+          isConversationalQuestion: classification.isConversationalQuestion,
+          understood: classification.understood,
+          hasProjectMention: classification.hasProjectMention,
+          hasProjectRelatedFilters: classification.hasProjectRelatedFilters,
+        },
+      },
+      timestamp: Date.now(),
+      sessionId: 'debug-session',
+      runId: 'initial',
+      hypothesisId: 'A',
+    }),
+  }).catch(() => {});
+  // #endregion
+
+  // Déterminer quels outils passer selon la classification
+  // IMPORTANT: Si c'est conversationnel, ne PAS passer d'outils (appel Groq direct)
+  const isConversational = classification.isConversationalQuestion || classification.isMetaQuestion;
+  // PRIORITÉ: isUpdate a toujours la priorité sur isList/isCount
+  // Si c'est une commande de modification, c'est TOUJOURS une commande, même si des filtres sont détectés
+  const isCommand = classification.isUpdate && !isConversational;
+  // Si on a des filtres détectés, c'est probablement une question de liste même si isList n'est pas explicitement true
+  // MAIS: Seulement si ce n'est PAS une commande de modification
+  const hasFilters = Object.keys(filters).length > 0;
+  const isQuestion =
+    !isCommand &&
+    (classification.isList || classification.isCount || (hasFilters && !classification.isUpdate)) &&
+    !isConversational;
+
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      location: 'assistant.ts:80-89',
+      message: 'Détermination isQuestion/isCommand/isConversational',
+      data: {
+        isQuestion,
+        isCommand,
+        isConversational,
+        hasFilters,
+        classification: {
+          isList: classification.isList,
+          isCount: classification.isCount,
+          isUpdate: classification.isUpdate,
+          isConversationalQuestion: classification.isConversationalQuestion,
+          isMetaQuestion: classification.isMetaQuestion,
+        },
+        logicBreakdown: {
+          '!isCommand': !isCommand,
+          'classification.isList || classification.isCount':
+            classification.isList || classification.isCount,
+          'hasFilters && !classification.isUpdate': hasFilters && !classification.isUpdate,
+          '!isConversational': !isConversational,
+        },
+      },
+      timestamp: Date.now(),
+      sessionId: 'debug-session',
+      runId: 'initial',
+      hypothesisId: 'B',
+    }),
+  }).catch(() => {});
+  // #endregion
+
+  // Log console pour debug immédiat
+  console.log('[ROUTING DEBUG]', {
+    query: normalizedInput.substring(0, 50),
+    isUpdate: classification.isUpdate,
+    isList: classification.isList,
+    isCount: classification.isCount,
+    hasFilters,
+    isCommand,
+    isQuestion,
+    isConversational,
+  });
+
+  // Sélectionner les outils à passer à l'IA
+  // PRIORITÉ: 1) Conversationnel, 2) Commande (isUpdate), 3) Question (isList/isCount)
+  // Si c'est conversationnel, ne PAS passer d'outils (appel Groq direct)
+  // Si c'est une commande, permettre updateProjects (et éventuellement getProjects pour validation)
+  // Si c'est une question, ne passer QUE getProjects
+  const availableTools: Record<string, any> = {};
+  if (isConversational) {
+    // Conversationnel : pas d'outils, appel Groq direct
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        location: 'assistant.ts:88-90',
+        message: "Sélection outils: CONVERSATIONNEL (pas d'outils)",
+        data: { toolsSelected: [], isQuestion, isCommand, isConversational },
+        timestamp: Date.now(),
+        sessionId: 'debug-session',
+        runId: 'initial',
+        hypothesisId: 'C',
+      }),
+    }).catch(() => {});
+    // #endregion
+  } else if (isCommand) {
+    // PRIORITÉ: Commande de modification - updateProjects en premier
+    // Commande : updateProjects (et getProjects pour validation si nécessaire)
+    availableTools.updateProjects = updateProjects;
+    availableTools.getProjects = getProjects; // Permettre getProjects pour validation
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        location: 'assistant.ts:96-98',
+        message: 'Sélection outils: COMMANDE détectée',
+        data: {
+          toolsSelected: ['updateProjects', 'getProjects'],
+          isQuestion,
+          isCommand,
+          isConversational,
+        },
+        timestamp: Date.now(),
+        sessionId: 'debug-session',
+        runId: 'initial',
+        hypothesisId: 'A',
+      }),
+    }).catch(() => {});
+    // #endregion
+  } else if (isQuestion) {
+    // Question : uniquement getProjects
+    availableTools.getProjects = getProjects;
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        location: 'assistant.ts:92-94',
+        message: 'Sélection outils: QUESTION détectée',
+        data: { toolsSelected: ['getProjects'], isQuestion, isCommand, isConversational },
+        timestamp: Date.now(),
+        sessionId: 'debug-session',
+        runId: 'initial',
+        hypothesisId: 'A',
+      }),
+    }).catch(() => {});
+    // #endregion
+  } else {
+    // Cas ambigu ou non détecté : passer les deux outils (comportement par défaut)
+    availableTools.getProjects = getProjects;
+    availableTools.updateProjects = updateProjects;
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        location: 'assistant.ts:132-138',
+        message: 'Sélection outils: CAS AMBIGU (défaut) - RISQUE',
+        data: {
+          toolsSelected: ['getProjects', 'updateProjects'],
+          isQuestion,
+          isCommand,
+          isConversational,
+          classification: {
+            isList: classification.isList,
+            isCount: classification.isCount,
+            isUpdate: classification.isUpdate,
+            isConversationalQuestion: classification.isConversationalQuestion,
+            understood: classification.understood,
+            hasProjectMention: classification.hasProjectMention,
+          },
+          warning: 'Les deux outils sont passés, risque de modification non désirée',
+        },
+        timestamp: Date.now(),
+        sessionId: 'debug-session',
+        runId: 'initial',
+        hypothesisId: 'C',
+      }),
+    }).catch(() => {});
+    // #endregion
+  }
+
   try {
-    // Log des outils disponibles
-    console.log('[Assistant] Démarrage avec outils:', {
-      toolsAvailable: ['getProjects', 'updateProjects'],
-      getProjectsType: typeof getProjects,
-      updateProjectsType: typeof updateProjects,
-      getProjectsKeys: getProjects ? Object.keys(getProjects) : [],
-      updateProjectsKeys: updateProjects ? Object.keys(updateProjects) : [],
+    // Log de la classification et des outils sélectionnés
+    console.log('[Assistant] Classification de la requête:', {
       originalInput: userInput.substring(0, 100),
       normalizedInput: normalizedInput.substring(0, 100),
+      isQuestion,
+      isCommand,
+      isList: classification.isList,
+      isCount: classification.isCount,
+      isUpdate: classification.isUpdate,
+      toolsSelected: Object.keys(availableTools),
       userId: currentUserId,
       userName: currentUserName,
       isAdmin,
     });
 
-    // Vérifier que les outils sont bien des objets tool
-    const toolsObject = {
-      getProjects,
-      updateProjects,
-    };
-    console.log('[Assistant] Objet tools passé au SDK:', {
-      toolKeys: Object.keys(toolsObject),
-      toolsStructure: JSON.stringify(toolsObject, null, 2).substring(0, 500),
+    // Log des outils disponibles
+    console.log("[Assistant] Outils passés à l'IA:", {
+      toolKeys: Object.keys(availableTools),
+      toolsStructure: JSON.stringify(availableTools, null, 2).substring(0, 500),
     });
 
     const result = await generateText({
@@ -101,10 +298,15 @@ export async function processProjectCommand(userInput: string) {
                ⚠️ RÈGLES CRITIQUES - À RESPECTER ABSOLUMENT :
                
                1. DISTINCTION QUESTION vs COMMANDE :
-                  - QUESTION (utilise getProjects OBLIGATOIREMENT) : "Combien", "Quels", "Liste", "Montre", "Quels projets", "Combien de projets"
+                  ⚠️ CRITIQUE : Cette distinction est DÉTERMINANTE. Si tu te trompes, tu modifieras des données au lieu de les lire !
+                  
+                  - QUESTION (utilise getProjects OBLIGATOIREMENT) : "Combien", "Quels", "Liste", "Montre", "Affiche", "Donne", "Quels projets", "Combien de projets"
                     ⚠️ CRITIQUE : Pour TOUTES les questions sur les projets, tu DOIS appeler getProjects, JAMAIS répondre directement sans outil.
                     Même si la question contient des fautes (ex: "combie, j'ai de gausteprauds?"), tu DOIS appeler getProjects avec les paramètres détectés.
-                  - COMMANDE (utilise updateProjects) : "Déplace", "Marque", "Change", "Modifie", "Mets", "Met à jour"
+                    ⚠️ ATTENTION : "liste les projets en cours" est une QUESTION, pas une commande ! Tu dois utiliser getProjects({ status: "EN_COURS" }), JAMAIS updateProjects.
+                    
+                  - COMMANDE (utilise updateProjects) : "Déplace", "Marque", "Change", "Modifie", "Mets", "Met à jour", "Passe", "Déplace", "Retarde", "Avance"
+                    ⚠️ CRITIQUE : Les commandes modifient les données. Ne les utilise QUE si l'utilisateur demande explicitement une modification.
                   
                1.1. PARAMÈTRES pour getProjects (utilise-les pour FILTRER les résultats) :
                   ✅ status (enum) : Filtrer par statut si l'utilisateur en mentionne un
@@ -112,15 +314,20 @@ export async function processProjectCommand(userInput: string) {
                     
                     🧠 COMPRÉHENSION INTELLIGENTE DES STATUTS :
                     Tu dois comprendre les variations et fautes d'orthographe par toi-même :
-                    - "ghost production", "ghost prod", "ghos prod", "goastprod", "gauspraud", "gausprod", "gaostprod", "gausteprauds" → GHOST_PRODUCTION
-                    - "terminé", "terminés", "fini", "finis", "termine" → TERMINE
-                    - "annulé", "annulés", "annul", "cancel" → ANNULE
+                    - "ghost production", "ghost prod", "ghos prod", "goastprod", "gauspraud", "gausprod", "gaostprod", "gausteprauds", "ghost prod", "ghostprod" → GHOST_PRODUCTION
+                    - "terminé", "terminés", "termines", "fini", "finis", "termine", "terminées" → TERMINE
+                    - "annulé", "annulés", "annul", "cancel", "annulées" → ANNULE
                     - "en cours", "encours", "en cour" → EN_COURS
-                    - "archive", "archivé", "archivés" → ARCHIVE
+                    - "archive", "archivé", "archivés", "archivées" → ARCHIVE
                     - "rework", "à rework", "a rework" → A_REWORK
+                    
+                    ⚠️ CRITIQUE : Si l'utilisateur dit "terminés", "terminées", "fini", "finis", tu DOIS utiliser status: "TERMINE"
+                    ⚠️ CRITIQUE : Si l'utilisateur dit "ghost prod", "ghost production", "ghostprod", tu DOIS utiliser status: "GHOST_PRODUCTION"
                     
                     Utilise ta compréhension du langage naturel pour identifier le statut le plus proche, même avec des fautes importantes.
                     Exemple : "combie, j'ai de gausteprauds?" → Tu dois appeler getProjects({ status: "GHOST_PRODUCTION" })
+                    Exemple : "liste les terminés" → Tu dois appeler getProjects({ status: "TERMINE" })
+                    Exemple : "liste des ghost prod" → Tu dois appeler getProjects({ status: "GHOST_PRODUCTION" })
                   ✅ minProgress (nombre 0-100) : Filtrer par progression minimum
                   ✅ maxProgress (nombre 0-100) : Filtrer par progression maximum
                   ✅ hasDeadline (boolean) : Filtrer les projets avec/sans deadline
@@ -131,12 +338,38 @@ export async function processProjectCommand(userInput: string) {
                   ✅ maxProgress (nombre 0-100) - pour filtrer par progression maximum
                   ✅ newDeadline (string ISO YYYY-MM-DD) - pour définir une nouvelle deadline
                   ✅ newStatus (enum) - pour changer le statut (EN_COURS, TERMINE, ANNULE, A_REWORK, GHOST_PRODUCTION, ARCHIVE)
+                  ✅ projectName (string) - nom du projet pour ajouter une note (utilisé avec newNote)
+                  ✅ newNote (string) - contenu de la note à ajouter au projet (utilisé avec projectName)
                   
                   ❌ N'UTILISE JAMAIS : nouvelleDeadline, deadline, progression, minProgression, maxProgression, statut, status, update, etc.
+                  
+               2.1. AJOUT DE NOTES À UN PROJET :
+                  Tu peux ajouter une note à un projet spécifique en utilisant projectName et newNote ensemble.
+                  
+                  Patterns détectés automatiquement :
+                  - "Session [nom] du jour, [contenu]" → projectName: "[nom]", newNote: "[contenu]"
+                  - "Note pour [nom], [contenu]" → projectName: "[nom]", newNote: "[contenu]"
+                  - "[nom] du jour, [contenu]" → projectName: "[nom]", newNote: "[contenu]"
+                  
+                  La note sera automatiquement formatée avec le template "Évolution" qui inclut :
+                  - La date du jour
+                  - Une section "Évolution" avec le contenu principal
+                  - Une section "Prochaines étapes" avec les tâches extraites (si détectées)
+                  
+                  Les nouvelles notes sont ajoutées AVANT les notes existantes (notes plus récentes en premier).
+                  
+                  Exemples :
+                  - "Session magnetize du jour, j'ai refait le mix, reste à faire améliorer le mastering et envoyer label"
+                    → updateProjects({ projectName: "magnetize", newNote: "j'ai refait le mix, reste à faire améliorer le mastering et envoyer label" })
+                  - "Note pour magnetized, j'ai terminé le mix"
+                    → updateProjects({ projectName: "magnetized", newNote: "j'ai terminé le mix" })
                   
                3. EXEMPLES CORRECTS :
                   - "Déplace deadline à demain pour projets à 80%" → updateProjects({ maxProgress: 80, newDeadline: "2024-12-12" })
                   - "Marque TERMINE les projets à 100%" → updateProjects({ minProgress: 100, maxProgress: 100, newStatus: "TERMINE" })
+                  - "Session magnetize du jour, j'ai refait le mix, reste à faire améliorer le mastering et envoyer label"
+                    → updateProjects({ projectName: "magnetize", newNote: "j'ai refait le mix, reste à faire améliorer le mastering et envoyer label" })
+                  - "Note pour magnetized, j'ai terminé le mix" → updateProjects({ projectName: "magnetized", newNote: "j'ai terminé le mix" })
                   - "Combien de projets j'ai ?" → getProjects({})
                   - "Combien de projets goastprod j'ai ?" → getProjects({ status: "GHOST_PRODUCTION" })
                   - "j'ai cb de gauspraud?" → getProjects({ status: "GHOST_PRODUCTION" })
@@ -144,8 +377,18 @@ export async function processProjectCommand(userInput: string) {
                   - "Quels projets ghost production ?" → getProjects({ status: "GHOST_PRODUCTION" })
                   - "projets annulés" → getProjects({ status: "ANNULE" })
                   - "projets finis" → getProjects({ status: "TERMINE" })
+                  - "liste les projets en cours" → getProjects({ status: "EN_COURS" }) ⚠️ C'EST UNE QUESTION, PAS UNE COMMANDE !
+                  - "montre les projets en cours" → getProjects({ status: "EN_COURS" }) ⚠️ C'EST UNE QUESTION, PAS UNE COMMANDE !
+                  - "affiche les projets terminés" → getProjects({ status: "TERMINE" }) ⚠️ C'EST UNE QUESTION, PAS UNE COMMANDE !
+                  - "liste les terminés" → getProjects({ status: "TERMINE" }) ⚠️ C'EST UNE QUESTION, PAS UNE COMMANDE !
+                  - "liste des terminés" → getProjects({ status: "TERMINE" }) ⚠️ C'EST UNE QUESTION, PAS UNE COMMANDE !
+                  - "et les terminés?" → getProjects({ status: "TERMINE" }) ⚠️ C'EST UNE QUESTION, PAS UNE COMMANDE !
+                  - "liste des ghost prod" → getProjects({ status: "GHOST_PRODUCTION" }) ⚠️ C'EST UNE QUESTION, PAS UNE COMMANDE !
+                  - "liste les ghost production" → getProjects({ status: "GHOST_PRODUCTION" }) ⚠️ C'EST UNE QUESTION, PAS UNE COMMANDE !
+                  - "liste les ghost prod" → getProjects({ status: "GHOST_PRODUCTION" }) ⚠️ C'EST UNE QUESTION, PAS UNE COMMANDE !
                   
                   ⚠️ CRITIQUE : Dans TOUS ces exemples, tu DOIS appeler l'outil, JAMAIS répondre directement.
+                  ⚠️ RAPPEL : "liste", "montre", "affiche", "donne" sont des QUESTIONS, pas des commandes de modification !
                   
                3.1. FORMAT D'APPEL DES OUTILS :
                   ⚠️ CRITIQUE : 
@@ -174,10 +417,7 @@ export async function processProjectCommand(userInput: string) {
                   ${isAdmin ? 'les projets seront filtrés pour cet utilisateur.' : 'cela sera ignoré et seuls vos projets seront utilisés.'}
                   Sinon, les projets de l'utilisateur connecté seront utilisés.`,
       prompt: normalizedInput,
-      tools: {
-        getProjects,
-        updateProjects,
-      },
+      tools: availableTools,
     }).catch(async (error: any) => {
       // Log détaillé de l'erreur
       const errorDetails = {

@@ -3,6 +3,18 @@
  */
 import { findStyleFromString } from '../parsers/style-matcher';
 
+/**
+ * Helper pour les logs de debug (patterns matching)
+ * Active uniquement si ASSISTANT_DEBUG_PATTERNS=true dans les variables d'environnement
+ */
+const isDebugPatterns = () => process.env.ASSISTANT_DEBUG_PATTERNS === 'true';
+
+const debugLog = (...args: any[]) => {
+  if (isDebugPatterns()) {
+    console.log(...args);
+  }
+};
+
 export interface FilterResult {
   filters: Record<string, any>;
   fieldsToShow: string[];
@@ -80,7 +92,7 @@ export function detectFilters(
   for (let i = 0; i < exactProgressPatterns.length; i++) {
     const pattern = exactProgressPatterns[i];
     const exactMatch = query.match(pattern);
-    console.log(`[Parse Query API] 🔍 Test pattern ${i + 1}:`, pattern, '→ match:', exactMatch);
+    debugLog(`[Parse Query API] 🔍 Test pattern ${i + 1}:`, pattern, '→ match:', exactMatch);
     if (exactMatch) {
       const exactValue = parseInt(exactMatch[1], 10);
       if (!isNaN(exactValue) && exactValue >= 0 && exactValue <= 100) {
@@ -112,7 +124,7 @@ export function detectFilters(
             textAfter
           );
 
-        console.log(`[Parse Query API] 🔍 Pattern ${i + 1} matché:`, {
+        debugLog(`[Parse Query API] 🔍 Pattern ${i + 1} matché:`, {
           value: exactValue,
           matchedText,
           textAfter,
@@ -179,16 +191,35 @@ export function detectFilters(
   }
 
   // Détecter statuts avec variations FR + EN
+  // IMPORTANT: Ne pas détecter un statut comme filtre si c'est une commande de mise à jour
+  // et que le statut apparaît après "à" ou "en" (c'est la nouvelle valeur, pas un filtre)
+  // Exemple: "passe les à en cours" -> "en cours" est la nouvelle valeur, pas un filtre
+  // IMPORTANT: Ne pas détecter un statut comme filtre s'il fait partie d'un pattern "de X à Y"
+  // Exemple: "passe les projets de EN_COURS à TERMINE" -> "TERMINE" est la nouvelle valeur, pas un filtre
+  const isUpdateCommand =
+    /(?:passe|met|mets?|change|changer|modifie|modifier|marque|marquer)\s+(?:les?\s+)(?:projets?\s+)?(?:à|en|comme)/i.test(
+      query
+    );
+  const hasDeXaYPattern =
+    /(?:passe|met|mets?|change|changer|modifie|modifier|marque|marquer)\s+(?:les?\s+)?(?:projets?\s+)?de\s+(?:en\s*cours|termin[ée]s?|annul[ée]s?|ghost\s*prod|archiv[ée]s?)\s+à\s+(?:en\s*cours|termin[ée]s?|annul[ée]s?|ghost\s*prod|archiv[ée]s?)/i.test(
+      query
+    );
+
   const statusPatterns: { pattern: RegExp; status: string }[] = [
-    { pattern: /ghost\s*prod(?:uction)?|ghostprod|gost\s*prod/i, status: 'GHOST_PRODUCTION' },
+    // GHOST_PRODUCTION - Tolérer les fautes d'orthographe courantes
+    {
+      pattern: /ghost\s*prod(?:uction)?|ghostprod|gost\s*prod|ghosprod|gausprod|goastprod/i,
+      status: 'GHOST_PRODUCTION',
+    },
     {
       pattern: /termin[ée]s?|finis?|complet[ée]?s?|finished|completed|done|100\s*%|TERMINE/i,
       status: 'TERMINE',
     },
     { pattern: /annul[ée]s?|cancel(?:led)?|abandonn[ée]s?|dropped/i, status: 'ANNULE' },
     {
+      // EN_COURS - Tolérer "encours", "en courrs" (double r) mais pas "en cour" (trop ambigu)
       pattern:
-        /en\s*cours|ongoing|actifs?|in\s*(?:progress|the\s*works)|current|active|wip|EN\s*COURS|EN_COURS/i,
+        /en\s*cours|en\s*courrs|encours|ongoing|actifs?|in\s*(?:progress|the\s*works)|current|active|wip|EN\s*COURS|EN_COURS/i,
       status: 'EN_COURS',
     },
     {
@@ -201,7 +232,52 @@ export function detectFilters(
 
   for (const { pattern, status } of statusPatterns) {
     if (pattern.test(lowerQuery)) {
+      // Si c'est un pattern "de X à Y", ne pas détecter les statuts comme filtres
+      // car ils font partie du pattern et seront gérés par extractUpdateData
+      if (hasDeXaYPattern) {
+        console.log(
+          '[Parse Query API] ⚠️ Statut détecté mais ignoré (pattern "de X à Y"):',
+          status,
+          'dans:',
+          query
+        );
+        continue;
+      }
+
+      // Si c'est une commande de mise à jour, vérifier que le statut n'est pas après "à" ou "en"
+      // (car dans ce cas, c'est la nouvelle valeur, pas un filtre)
+      if (isUpdateCommand) {
+        // Chercher où le statut apparaît dans la requête
+        const match = lowerQuery.match(pattern);
+        if (match && match.index !== undefined) {
+          const statusIndex = match.index;
+          const textBeforeStatus = lowerQuery.substring(0, statusIndex).trim();
+          // Si le statut est précédé de "à", "en" ou "comme" (nouvelle valeur), ne pas l'utiliser comme filtre
+          // Exemple: "passe les à en cours" -> "en cours" est après "à", donc c'est la nouvelle valeur
+          // Exemple: "marques les projets en TERMINE" -> "TERMINE" est après "en", donc c'est la nouvelle valeur
+          // Le pattern cherche "à", "en" ou "comme" suivi de zéro ou plus espaces à la fin du texte avant le statut
+          // On cherche aussi directement "à en" ou "à en cours" pour être plus précis
+          // IMPORTANT: Pour "en TERMINE", on doit vérifier que "en" est bien présent avant le statut
+          const endsWithAorEn = /(?:^|\s)(?:à|en|comme|as)\s*$/.test(textBeforeStatus);
+          const hasAEnPattern = /\s+à\s+(?:en|comme|as)\s*$/.test(textBeforeStatus);
+          // Vérifier aussi si le statut est directement après "en" (ex: "en TERMINE", "en cours")
+          const hasEnBeforeStatus = /\ben\s+$/.test(textBeforeStatus);
+          if (endsWithAorEn || hasAEnPattern || hasEnBeforeStatus) {
+            // C'est la nouvelle valeur, pas un filtre - continuer à chercher d'autres statuts
+            console.log(
+              '[Parse Query API] ⚠️ Statut détecté mais ignoré (nouvelle valeur):',
+              status,
+              'dans:',
+              query,
+              'textBeforeStatus:',
+              textBeforeStatus
+            );
+            continue;
+          }
+        }
+      }
       filters.status = status;
+      console.log('[Parse Query API] ✅ Statut détecté comme filtre:', status, 'dans:', query);
       break;
     }
   }
@@ -209,19 +285,35 @@ export function detectFilters(
   // Détecter collaborateurs
   const collabPatterns = [
     /collab(?:oration)?s?\s+(?:avec\s+)?([A-Za-z0-9_]+)/i, // "collab avec X" ou "collab X"
-    /(?:avec|feat\.?|ft\.?)\s+([A-Za-z0-9_]+)/i, // "avec X", "feat X"
+    /(?:avec|feat\.?|ft\.?|with)\s+([A-Za-z0-9_]+)/i, // "avec X", "feat X", "with X"
     /([A-Za-z0-9_]+)\s+collab/i, // "X collab"
+    /(?:en\s+)?collaborateur\s+(?:avec\s+)?([A-Za-z0-9_]+)/i, // "en collaborateur avec X" ou "collaborateur X"
   ];
   for (const pattern of collabPatterns) {
     const match = query.match(pattern); // Garder la casse originale
     if (match && match[1]) {
       const collabName = match[1].trim();
       // Vérifier si c'est un vrai collab (pas un mot clé)
+      // Ignorer les articles, pronoms possessifs, et mots communs
       const ignoredWords = [
         'projets',
         'projet',
         'les',
         'mes',
+        'ma', // possessive adjective (my)
+        'mon', // possessive adjective (my)
+        'ton', // possessive adjective (your)
+        'ta', // possessive adjective (your)
+        'tes', // possessive adjective (your)
+        'son', // possessive adjective (his/her)
+        'sa', // possessive adjective (his/her)
+        'ses', // possessive adjective (his/her)
+        'notre', // possessive adjective (our)
+        'nos', // possessive adjective (our)
+        'votre', // possessive adjective (your)
+        'vos', // possessive adjective (your)
+        'leur', // possessive adjective (their)
+        'leurs', // possessive adjective (their)
         'de',
         'en',
         'le',
@@ -239,16 +331,64 @@ export function detectFilters(
             c.toLowerCase().includes(collabName.toLowerCase()) ||
             collabName.toLowerCase().includes(c.toLowerCase())
         );
-        filters.collab = matchedCollab || collabName;
-        break;
+        // Only set filter if we found a match in available collabs
+        // This prevents false positives from random words
+        // IMPORTANT: Utiliser le nom exact du collab trouvé dans availableCollabs (avec la bonne casse)
+        if (matchedCollab) {
+          filters.collab = matchedCollab; // Utiliser le nom exact du collab (ex: "TOTO" au lieu de "toto")
+          break;
+        }
+        // If no match found and it's a very short word (1-2 chars), ignore it
+        // as it's likely a false positive
+        if (collabName.length > 2) {
+          // Si pas de match, utiliser le nom tel quel mais essayer de trouver une correspondance proche
+          // Chercher un collab qui contient le nom ou vice versa (insensible à la casse)
+          const closeMatch = availableCollabs.find(
+            (c) => c.toLowerCase() === collabName.toLowerCase()
+          );
+          filters.collab = closeMatch || collabName;
+          break;
+        }
       }
     }
   }
 
   // Détecter styles avec variations et alias
-  const styleMatch = findStyleFromString(query, availableStyles);
-  if (styleMatch) {
-    filters.style = styleMatch.style;
+  // IMPORTANT: Ne pas détecter de style si on a déjà détecté un pattern de modification "X en Y"
+  // car cela peut créer des faux positifs (ex: "en cours en annulé" ne doit pas être détecté comme style)
+  // MAIS: Si on a explicitement "en style X" après le pattern, on doit détecter le style
+  const hasStatusUpdatePattern =
+    /(?:passe|mets?|met|change|changer|modifie|modifier|marque|marquer)\s+(?:les?\s+)?(?:projets?\s+)?(?:en\s+cours|termin[ée]s?|annul[ée]s?|ghost\s*prod|archiv[ée]s?)\s+en\s+(?:en\s+cours|termin[ée]s?|annul[ée]s?|ghost\s*prod|archiv[ée]s?)/i.test(
+      query
+    );
+
+  // Ne pas détecter de style si on a "en collaborateur" car "cours" pourrait être confondu avec un style
+  // SAUF si on a explicitement "en style X" après
+  const hasCollaborateurPattern = /en\s+collaborateur/i.test(query);
+  const hasExplicitStylePattern = /en\s+style\s+\w+/i.test(query);
+
+  // Si on a un pattern X en Y mais aussi "en style X" explicite, on doit détecter le style
+  if ((!hasStatusUpdatePattern && !hasCollaborateurPattern) || hasExplicitStylePattern) {
+    const styleMatch = findStyleFromString(query, availableStyles);
+    if (styleMatch) {
+      // Vérifier que le style détecté n'est pas un faux positif
+      // Si on a "en cours en collaborateur", ne pas détecter "cours" comme style
+      // SAUF si on a explicitement "en style cours"
+      const styleLower = styleMatch.style.toLowerCase();
+      const matchedTextLower = styleMatch.matchedText.toLowerCase();
+      // Si le style matché est "cours" ou "en" et qu'on a "en cours" ou "en collaborateur", c'est un faux positif
+      // SAUF si on a explicitement "en style cours"
+      // AUSSI: Si on a "EN_COURS" (en majuscules), ne pas détecter "cours" comme style
+      const hasEnCoursStatus = /en\s*cours|EN_COURS|EN\s*COURS/i.test(query);
+      const isFalsePositive =
+        !hasExplicitStylePattern &&
+        (styleLower === 'cours' || styleLower === 'en') &&
+        (hasEnCoursStatus || query.toLowerCase().includes('en collaborateur'));
+
+      if (!isFalsePositive) {
+        filters.style = styleMatch.style;
+      }
+    }
   }
 
   // Détecter label (label ciblé)
