@@ -190,18 +190,21 @@ describe('Assistant IA - processProjectCommand', () => {
 
     it('devrait gérer les dates relatives comme "semaine prochaine"', async () => {
       mockUpdateMany.mockResolvedValue({ count: 2 });
-      mockGenerateText.mockResolvedValue({
-        text: 'Mise à jour effectuée',
-        toolResults: [
-          {
-            toolCallId: 'test-id',
-            toolName: 'updateProjects',
-            result: {
-              count: 2,
-              message: `Mise à jour réussie pour 2 projet(s).`,
+      mockGenerateText.mockImplementation(async (config) => {
+        // Call the actual updateProjects tool
+        const toolResult = await mockToolExecute(config.tools.updateProjects?.execute, {
+          newDeadline: 'semaine prochaine',
+        });
+        return {
+          text: 'Mise à jour effectuée',
+          toolResults: [
+            {
+              toolCallId: 'test-id',
+              toolName: 'updateProjects',
+              result: toolResult,
             },
-          },
-        ],
+          ],
+        };
       });
 
       const result = await processProjectCommand(
@@ -217,18 +220,22 @@ describe('Assistant IA - processProjectCommand', () => {
   describe('Commandes de modification - Statuts', () => {
     it('devrait mettre à jour le statut des projets terminés', async () => {
       mockUpdateMany.mockResolvedValue({ count: 5 });
-      mockGenerateText.mockResolvedValue({
-        text: 'Mise à jour effectuée',
-        toolResults: [
-          {
-            toolCallId: 'test-id',
-            toolName: 'updateProjects',
-            result: {
-              count: 5,
-              message: `Mise à jour réussie pour 5 projet(s).`,
+      mockGenerateText.mockImplementation(async (config) => {
+        const toolResult = await mockToolExecute(config.tools.updateProjects?.execute, {
+          minProgress: 100,
+          maxProgress: 100,
+          newStatus: 'TERMINE',
+        });
+        return {
+          text: 'Mise à jour effectuée',
+          toolResults: [
+            {
+              toolCallId: 'test-id',
+              toolName: 'updateProjects',
+              result: toolResult,
             },
-          },
-        ],
+          ],
+        };
       });
 
       const result = await processProjectCommand('Marque comme TERMINE les projets à 100%');
@@ -253,18 +260,22 @@ describe('Assistant IA - processProjectCommand', () => {
 
     it('devrait mettre à jour le statut en EN_COURS', async () => {
       mockUpdateMany.mockResolvedValue({ count: 1 });
-      mockGenerateText.mockResolvedValue({
-        text: 'Mise à jour effectuée',
-        toolResults: [
-          {
-            toolCallId: 'test-id',
-            toolName: 'updateProjects',
-            result: {
-              count: 1,
-              message: `Mise à jour réussie pour 1 projet(s).`,
+      mockGenerateText.mockImplementation(async (config) => {
+        const toolResult = await mockToolExecute(config.tools.updateProjects?.execute, {
+          minProgress: 50,
+          maxProgress: 50,
+          newStatus: 'EN_COURS',
+        });
+        return {
+          text: 'Mise à jour effectuée',
+          toolResults: [
+            {
+              toolCallId: 'test-id',
+              toolName: 'updateProjects',
+              result: toolResult,
             },
-          },
-        ],
+          ],
+        };
       });
 
       const result = await processProjectCommand(
@@ -286,22 +297,25 @@ describe('Assistant IA - processProjectCommand', () => {
   describe('Commandes de modification - Filtres de progression', () => {
     it('devrait filtrer par progression minimum', async () => {
       mockUpdateMany.mockResolvedValue({ count: 4 });
-      mockGenerateText.mockResolvedValue({
-        text: 'Mise à jour effectuée',
-        toolResults: [
-          {
-            toolCallId: 'test-id',
-            toolName: 'updateProjects',
-            result: {
-              count: 4,
-              message: `Mise à jour réussie pour 4 projet(s).`,
+      mockGenerateText.mockImplementation(async (config) => {
+        const toolResult = await mockToolExecute(config.tools.updateProjects?.execute, {
+          minProgress: 75,
+          newStatus: 'TERMINE',
+        });
+        return {
+          text: 'Mise à jour effectuée',
+          toolResults: [
+            {
+              toolCallId: 'test-id',
+              toolName: 'updateProjects',
+              result: toolResult,
             },
-          },
-        ],
+          ],
+        };
       });
 
       const result = await processProjectCommand(
-        'Met à jour les projets avec au moins 75% de progression'
+        'Marque comme TERMINE les projets avec au moins 75% de progression'
       );
 
       expect(mockUpdateMany).toHaveBeenCalled();
@@ -319,22 +333,25 @@ describe('Assistant IA - processProjectCommand', () => {
 
     it('devrait filtrer par progression maximum', async () => {
       mockUpdateMany.mockResolvedValue({ count: 2 });
-      mockGenerateText.mockResolvedValue({
-        text: 'Mise à jour effectuée',
-        toolResults: [
-          {
-            toolCallId: 'test-id',
-            toolName: 'updateProjects',
-            result: {
-              count: 2,
-              message: `Mise à jour réussie pour 2 projet(s).`,
+      mockGenerateText.mockImplementation(async (config) => {
+        const toolResult = await mockToolExecute(config.tools.updateProjects?.execute, {
+          maxProgress: 25,
+          newStatus: 'A_REWORK',
+        });
+        return {
+          text: 'Mise à jour effectuée',
+          toolResults: [
+            {
+              toolCallId: 'test-id',
+              toolName: 'updateProjects',
+              result: toolResult,
             },
-          },
-        ],
+          ],
+        };
       });
 
       const result = await processProjectCommand(
-        'Met à jour les projets avec moins de 25% de progression'
+        'Marque comme A_REWORK les projets avec moins de 25% de progression'
       );
 
       expect(mockUpdateMany).toHaveBeenCalled();
@@ -352,26 +369,30 @@ describe('Assistant IA - processProjectCommand', () => {
 
     it('devrait filtrer par plage de progression', async () => {
       mockUpdateMany.mockResolvedValue({ count: 3 });
-      mockGenerateText.mockResolvedValue({
-        text: 'Mise à jour effectuée',
-        toolResults: [
-          {
-            toolCallId: 'test-id',
-            toolName: 'updateProjects',
-            result: {
-              count: 3,
-              message: `Mise à jour réussie pour 3 projet(s).`,
+      mockGenerateText.mockImplementation(async (config) => {
+        const toolResult = await mockToolExecute(config.tools.updateProjects?.execute, {
+          minProgress: 50,
+          maxProgress: 80,
+          newStatus: 'EN_COURS',
+        });
+        return {
+          text: 'Mise à jour effectuée',
+          toolResults: [
+            {
+              toolCallId: 'test-id',
+              toolName: 'updateProjects',
+              result: toolResult,
             },
-          },
-        ],
+          ],
+        };
       });
 
       const result = await processProjectCommand(
-        'Met à jour les projets entre 50% et 80% de progression'
+        'Marque comme EN_COURS les projets entre 50% et 80% de progression'
       );
 
       expect(mockUpdateMany).toHaveBeenCalled();
-      const callArgs = mockUpdateMany.mock.calls[0][0];
+      const callArgs = mockUpdateMany.mock.calls[0][0] as any;
       expect(callArgs.where.progress.gte).toBe(50);
       expect(callArgs.where.progress.lte).toBe(80);
       expect(result).toContain('3');
@@ -381,24 +402,26 @@ describe('Assistant IA - processProjectCommand', () => {
   describe('Sécurité - Filtrage par utilisateur', () => {
     it('devrait toujours filtrer par userId dans les requêtes', async () => {
       mockUpdateMany.mockResolvedValue({ count: 1 });
-      mockGenerateText.mockResolvedValue({
-        text: 'Mise à jour effectuée',
-        toolResults: [
-          {
-            toolCallId: 'test-id',
-            toolName: 'updateProjects',
-            result: {
-              count: 1,
-              message: `Mise à jour réussie pour 1 projet(s).`,
+      mockGenerateText.mockImplementation(async (config) => {
+        const toolResult = await mockToolExecute(config.tools.updateProjects?.execute, {
+          newStatus: 'TERMINE',
+        });
+        return {
+          text: 'Mise à jour effectuée',
+          toolResults: [
+            {
+              toolCallId: 'test-id',
+              toolName: 'updateProjects',
+              result: toolResult,
             },
-          },
-        ],
+          ],
+        };
       });
 
       await processProjectCommand('Marque tous les projets comme TERMINE');
 
       expect(mockUpdateMany).toHaveBeenCalled();
-      const callArgs = mockUpdateMany.mock.calls[0][0];
+      const callArgs = mockUpdateMany.mock.calls[0][0] as any;
       expect(callArgs.where.userId).toBe(mockUserId);
     });
   });
@@ -426,18 +449,21 @@ describe('Assistant IA - processProjectCommand', () => {
 
     it('devrait gérer les cas où aucun projet ne correspond aux critères', async () => {
       mockUpdateMany.mockResolvedValue({ count: 0 });
-      mockGenerateText.mockResolvedValue({
-        text: 'Mise à jour effectuée',
-        toolResults: [
-          {
-            toolCallId: 'test-id',
-            toolName: 'updateProjects',
-            result: {
-              count: 0,
-              message: 'Aucun projet ne correspond aux critères.',
+      mockGenerateText.mockImplementation(async (config) => {
+        const toolResult = await mockToolExecute(config.tools.updateProjects?.execute, {
+          minProgress: 200,
+          newStatus: 'TERMINE',
+        });
+        return {
+          text: 'Mise à jour effectuée',
+          toolResults: [
+            {
+              toolCallId: 'test-id',
+              toolName: 'updateProjects',
+              result: toolResult,
             },
-          },
-        ],
+          ],
+        };
       });
 
       const result = await processProjectCommand('Marque comme TERMINE les projets à 200%');
