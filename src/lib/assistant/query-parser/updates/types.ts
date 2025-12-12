@@ -34,30 +34,49 @@ export interface UpdateData {
 
 /**
  * Patterns de statuts pour la détection
+ * Ces patterns sont utilisés pour détecter les statuts dans les requêtes
+ * et doivent être très tolérants aux fautes de frappe
  */
 export const statusPatterns: { pattern: RegExp; status: string }[] = [
-  // GHOST_PRODUCTION - Tolérer les fautes d'orthographe courantes
+  // GHOST_PRODUCTION - Très tolérant aux fautes d'orthographe
   {
-    pattern: /ghost\s*prod(?:uction)?|ghostprod|gost\s*prod|ghosprod|gausprod|goastprod/i,
+    pattern:
+      /ghost\s*prod(?:uction)?|ghostprod|gost\s*prod|ghosprod|gausprod|goastprod|ghosp\s*rod|goes\s*prod|gosht\s*prod|gostprod|goshtprod|ghosst\s*prod|ghots\s*prod|ghostproduction|ghost-prod|ghost-production|góstprod|gauspraud|gausteprauds|gausotprod/i,
     status: 'GHOST_PRODUCTION',
   },
+  // TERMINE - Tolérant aux fautes
   {
-    pattern: /termin[ée]s?|finis?|complet[ée]?s?|finished|completed|done|100\s*%|TERMINE/i,
+    pattern:
+      /termin[ée]s?|finis?|complet[ée]?s?|finished|completed|done|100\s*%|TERMINE|treminer|terminer|termi|termne|terminne|teminé|terniné|temriné|finit|finnis|achev[ée]s?/i,
     status: 'TERMINE',
   },
-  { pattern: /annul[ée]s?|cancel(?:led)?|abandonn[ée]s?|dropped/i, status: 'ANNULE' },
+  // ANNULE - Tolérant aux fautes
   {
-    // EN_COURS - Tolérer "encours", "en courrs" (double r) mais pas "en cour" (trop ambigu)
     pattern:
-      /en\s*cours|en\s*courrs|encours|ongoing|actifs?|in\s*(?:progress|the\s*works)|current|active|wip|EN\s*COURS|EN_COURS/i,
+      /annul[ée]s?|cancel(?:led)?|abandonn[ée]s?|dropped|annler|anul[ée]?|annuler|annull[ée]|anull[ée]|anuler/i,
+    status: 'ANNULE',
+  },
+  {
+    // EN_COURS - Tolérer "encours", "en courrs" (double r), "ancours", etc.
+    pattern:
+      /en\s*cours|en\s*courrs|encours|ancours|emcours|en\s*coures|n\s*cours|en\s*cous|encour|en\s*crs|encoours|ongoing|actifs?|in\s*(?:progress|the\s*works)|current|active|wip|work\s*in\s*progress|EN\s*COURS|EN_COURS/i,
     status: 'EN_COURS',
   },
   {
     pattern: /en\s*attente|pending|waiting|on\s*hold|pause|EN\s*ATTENTE|EN_ATTENTE/i,
     status: 'EN_ATTENTE',
   },
-  { pattern: /archiv[ée]s?|archived/i, status: 'ARCHIVE' },
-  { pattern: /rework|[àa]\s*refaire|retravailler|needs?\s*work/i, status: 'A_REWORK' },
+  // ARCHIVE - Tolérant aux fautes
+  {
+    pattern: /archiv[ée]s?|archived|arkiv[ée]?|arkive|archiver|arch(?!ive)|archve|arciv[ée]/i,
+    status: 'ARCHIVE',
+  },
+  // A_REWORK - Tolérant aux fautes
+  {
+    pattern:
+      /rework|[àa]\s*rework|[àa]\s*refaire|retravailler|needs?\s*work|needs?\s*rework|rwork|re\s*work|reword|rewok/i,
+    status: 'A_REWORK',
+  },
 ];
 
 /**

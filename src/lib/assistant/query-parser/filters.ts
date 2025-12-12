@@ -206,28 +206,45 @@ export function detectFilters(
     );
 
   const statusPatterns: { pattern: RegExp; status: string }[] = [
-    // GHOST_PRODUCTION - Tolérer les fautes d'orthographe courantes
+    // GHOST_PRODUCTION - Très tolérant aux fautes d'orthographe
     {
-      pattern: /ghost\s*prod(?:uction)?|ghostprod|gost\s*prod|ghosprod|gausprod|goastprod/i,
+      pattern:
+        /ghost\s*prod(?:uction)?|ghostprod|gost\s*prod|ghosprod|gausprod|goastprod|ghosp\s*rod|goes\s*prod|gosht\s*prod|gostprod|goshtprod|ghosst\s*prod|ghots\s*prod|ghostproduction|ghost-prod|ghost-production|góstprod|gauspraud|gausteprauds|gausotprod/i,
       status: 'GHOST_PRODUCTION',
     },
+    // TERMINE - Tolérant aux fautes
     {
-      pattern: /termin[ée]s?|finis?|complet[ée]?s?|finished|completed|done|100\s*%|TERMINE/i,
+      pattern:
+        /termin[ée]s?|finis?|complet[ée]?s?|finished|completed|done|100\s*%|TERMINE|treminer|terminer|termi|termne|terminne|teminé|terniné|temriné|finit|finnis|achev[ée]s?/i,
       status: 'TERMINE',
     },
-    { pattern: /annul[ée]s?|cancel(?:led)?|abandonn[ée]s?|dropped/i, status: 'ANNULE' },
+    // ANNULE - Tolérant aux fautes
     {
-      // EN_COURS - Tolérer "encours", "en courrs" (double r) mais pas "en cour" (trop ambigu)
       pattern:
-        /en\s*cours|en\s*courrs|encours|ongoing|actifs?|in\s*(?:progress|the\s*works)|current|active|wip|EN\s*COURS|EN_COURS/i,
+        /annul[ée]s?|cancel(?:led)?|abandonn[ée]s?|dropped|annler|anul[ée]?|annuler|annull[ée]|anull[ée]|anuler/i,
+      status: 'ANNULE',
+    },
+    {
+      // EN_COURS - Tolérer "encours", "en courrs" (double r), "ancours", etc.
+      pattern:
+        /en\s*cours|en\s*courrs|encours|ancours|emcours|en\s*coures|n\s*cours|en\s*cous|encour|en\s*crs|encoours|ongoing|actifs?|in\s*(?:progress|the\s*works)|current|active|wip|work\s*in\s*progress|EN\s*COURS|EN_COURS/i,
       status: 'EN_COURS',
     },
     {
       pattern: /en\s*attente|pending|waiting|on\s*hold|pause|EN\s*ATTENTE|EN_ATTENTE/i,
       status: 'EN_ATTENTE',
     },
-    { pattern: /archiv[ée]s?|archived/i, status: 'ARCHIVE' },
-    { pattern: /rework|[àa]\s*refaire|retravailler|needs?\s*work/i, status: 'A_REWORK' },
+    // ARCHIVE - Tolérant aux fautes
+    {
+      pattern: /archiv[ée]s?|archived|arkiv[ée]?|arkive|archiver|arch(?!ive)|archve|arciv[ée]/i,
+      status: 'ARCHIVE',
+    },
+    // A_REWORK - Tolérant aux fautes
+    {
+      pattern:
+        /rework|[àa]\s*rework|[àa]\s*refaire|retravailler|needs?\s*work|needs?\s*rework|rwork|re\s*work|reword|rewok/i,
+      status: 'A_REWORK',
+    },
   ];
 
   for (const { pattern, status } of statusPatterns) {
@@ -455,6 +472,67 @@ export function detectFilters(
     filters.hasDeadline = true;
   } else if (/sans\s*deadline|pas\s*de\s*deadline/i.test(lowerQuery)) {
     filters.hasDeadline = false;
+  }
+
+  // ========================================
+  // PATTERNS D'EXCLUSION
+  // ========================================
+  // Détecte "sauf les archivés", "mais pas les annulés", "hors ghost prod", etc.
+  const exclusionPatterns = [
+    // "sauf les [statut]", "sauf [statut]"
+    /sauf\s+(?:les?\s+)?(?:projets?\s+)?(ghost\s*prod(?:uction)?|termin[ée]s?|annul[ée]s?|archiv[ée]s?|en\s*cours|rework)/i,
+    // "mais pas les [statut]", "mais pas [statut]"
+    /mais\s+pas\s+(?:les?\s+)?(?:projets?\s+)?(ghost\s*prod(?:uction)?|termin[ée]s?|annul[ée]s?|archiv[ée]s?|en\s*cours|rework)/i,
+    // "hors [statut]"
+    /hors\s+(?:les?\s+)?(?:projets?\s+)?(ghost\s*prod(?:uction)?|termin[ée]s?|annul[ée]s?|archiv[ée]s?|en\s*cours|rework)/i,
+    // "sans les [statut]" (différent de "sans deadline")
+    /sans\s+(?:les?\s+)?(?:projets?\s+)?(ghost\s*prod(?:uction)?|termin[ée]s?|annul[ée]s?|archiv[ée]s?|rework)/i,
+    // "excepté les [statut]"
+    /except[ée]?\s+(?:les?\s+)?(?:projets?\s+)?(ghost\s*prod(?:uction)?|termin[ée]s?|annul[ée]s?|archiv[ée]s?|en\s*cours|rework)/i,
+    // "excluding [status]", "except [status]"
+    /(?:excluding|except)\s+(?:the\s+)?(ghost\s*prod(?:uction)?|finished|cancelled|archived|in\s*progress|rework)/i,
+  ];
+
+  const statusMappingForExclusion: Record<string, string> = {
+    'ghost production': 'GHOST_PRODUCTION',
+    'ghost prod': 'GHOST_PRODUCTION',
+    ghostprod: 'GHOST_PRODUCTION',
+    terminé: 'TERMINE',
+    terminés: 'TERMINE',
+    terminées: 'TERMINE',
+    termine: 'TERMINE',
+    finished: 'TERMINE',
+    annulé: 'ANNULE',
+    annulés: 'ANNULE',
+    annulées: 'ANNULE',
+    annule: 'ANNULE',
+    cancelled: 'ANNULE',
+    archivé: 'ARCHIVE',
+    archivés: 'ARCHIVE',
+    archivées: 'ARCHIVE',
+    archive: 'ARCHIVE',
+    archived: 'ARCHIVE',
+    'en cours': 'EN_COURS',
+    encours: 'EN_COURS',
+    'in progress': 'EN_COURS',
+    rework: 'A_REWORK',
+  };
+
+  for (const pattern of exclusionPatterns) {
+    const match = lowerQuery.match(pattern);
+    if (match && match[1]) {
+      const excludedStatusText = match[1].toLowerCase().trim();
+      const excludedStatus = statusMappingForExclusion[excludedStatusText];
+      if (excludedStatus) {
+        if (!filters.excludeStatuses) {
+          filters.excludeStatuses = [];
+        }
+        if (!filters.excludeStatuses.includes(excludedStatus)) {
+          filters.excludeStatuses.push(excludedStatus);
+        }
+        console.log('[Parse Query API] ✅ Exclusion de statut détectée:', excludedStatus);
+      }
+    }
   }
 
   return { filters, fieldsToShow };

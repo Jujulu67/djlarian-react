@@ -106,5 +106,52 @@ export function detectProgressFromQuery(query: string): {
     }
   }
 
+  // Support des décimaux (0.7 → 70%, 0.5 → 50%)
+  const decimalPatterns = [
+    // "à 0.7", "met à 0.5", "progression de 0.8"
+    /(?:à|met(?:s|tre)?(?:\s*à)?|progression\s*(?:de|à)?)\s*(0[.,]\d+)/i,
+    // Juste un décimal suivi d'optionnel %
+    /(0[.,]\d+)\s*%?/i,
+  ];
+
+  for (const pattern of decimalPatterns) {
+    const match = lowerQuery.match(pattern);
+    if (match && match[1]) {
+      const decimalValue = parseFloat(match[1].replace(',', '.'));
+      if (decimalValue > 0 && decimalValue <= 1) {
+        const percentValue = Math.round(decimalValue * 100);
+        result.minProgress = percentValue;
+        result.maxProgress = percentValue;
+        console.log(
+          `[Assistant] Progression décimale détectée: ${decimalValue} → ${percentValue}%`
+        );
+        return result;
+      }
+    }
+  }
+
+  // Expressions textuelles de progression
+  const textualPatterns: { pattern: RegExp; min?: number; max?: number }[] = [
+    // "à mi-chemin", "à la moitié" → 50%
+    { pattern: /(?:à\s+)?mi[- ]chemin|à\s+la\s+moitié|à\s+50/i, min: 50, max: 50 },
+    // "presque fini", "quasi terminé", "quasiment fini" → 90%
+    { pattern: /presque\s+(?:fini|terminé)|quasi(?:ment)?\s+(?:fini|terminé)/i, min: 90, max: 100 },
+    // "à peine commencé", "juste démarré" → 5%
+    { pattern: /à\s+peine\s+(?:commencé|démarré)|juste\s+(?:commencé|démarré)/i, min: 0, max: 10 },
+    // "bien avancé", "très avancé" → 70-80%
+    { pattern: /(?:bien|très)\s+avancé/i, min: 70, max: 90 },
+    // "pas encore commencé", "pas commencé" → 0%
+    { pattern: /pas\s+(?:encore\s+)?commencé|pas\s+(?:encore\s+)?démarré/i, min: 0, max: 0 },
+  ];
+
+  for (const { pattern, min, max } of textualPatterns) {
+    if (pattern.test(lowerQuery)) {
+      if (min !== undefined) result.minProgress = min;
+      if (max !== undefined) result.maxProgress = max;
+      console.log(`[Assistant] Progression textuelle détectée: ${min}% - ${max}%`);
+      return result;
+    }
+  }
+
   return result;
 }

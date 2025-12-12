@@ -55,13 +55,11 @@ export function prepareConversationContext(
     };
   }
 
-  // Réduire à 6 messages récents si on va avoir un summary
-  // On vérifie d'abord s'il y aura des messages anciens à résumer
-  // BUT: Keep more messages if conversation is still short (to preserve context for recall)
+  // Réduire à 5 messages récents si on va avoir un summary
+  // Optimisé pour les modèles 8B qui gèrent mieux les contextes courts
   const willHaveSummary = messages.length > maxRecent;
-  // Use 8 messages instead of 6 to preserve more context for recall requests
-  // This is critical for 8B models that need more context to recall information
-  const effectiveMaxRecent = willHaveSummary ? 8 : maxRecent;
+  // 5 messages pour les 8B models (plus efficace que 8)
+  const effectiveMaxRecent = willHaveSummary ? 5 : Math.min(maxRecent, 8);
 
   // Séparer les messages récents et anciens
   const recentMessages = messages.slice(-effectiveMaxRecent);

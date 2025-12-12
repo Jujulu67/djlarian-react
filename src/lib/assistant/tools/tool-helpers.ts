@@ -136,8 +136,10 @@ export async function findProjectByName(
   });
 
   // Convertir en format Project pour findProjectCandidates
+  // Note: status is already a valid ProjectStatus from the database
   const projectList: Project[] = projects.map((p) => ({
     ...p,
+    status: p.status as Project['status'],
     deadline: p.deadline ? p.deadline.toISOString().split('T')[0] : null,
     releaseDate: p.releaseDate ? p.releaseDate.toISOString().split('T')[0] : null,
     createdAt: p.createdAt.toISOString(),

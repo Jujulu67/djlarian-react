@@ -93,6 +93,83 @@ export function parseRelativeDate(dateStr: string): string | null {
     }
   }
 
+  // "fin de semaine", "fin de la semaine", "end of week"
+  if (
+    lowerDateStr.includes('fin de semaine') ||
+    lowerDateStr.includes('fin de la semaine') ||
+    lowerDateStr.includes('end of week')
+  ) {
+    const endOfWeek = new Date(today);
+    // Aller au dimanche de la semaine en cours (0 = dimanche, 6 = samedi)
+    const daysUntilSunday = 7 - endOfWeek.getDay();
+    endOfWeek.setDate(endOfWeek.getDate() + (daysUntilSunday === 7 ? 0 : daysUntilSunday));
+    return formatLocalDate(endOfWeek);
+  }
+
+  // "fin du mois", "fin de mois", "end of month"
+  if (
+    lowerDateStr.includes('fin du mois') ||
+    lowerDateStr.includes('fin de mois') ||
+    lowerDateStr.includes('end of month')
+  ) {
+    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    return formatLocalDate(endOfMonth);
+  }
+
+  // "début du mois", "début de mois prochain", "beginning of month"
+  if (
+    lowerDateStr.includes('début du mois prochain') ||
+    lowerDateStr.includes('début de mois prochain') ||
+    lowerDateStr.includes('beginning of next month')
+  ) {
+    const beginNextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+    return formatLocalDate(beginNextMonth);
+  }
+
+  // "dans une quinzaine", "quinze jours" → 15 jours
+  if (
+    lowerDateStr.includes('quinzaine') ||
+    lowerDateStr.includes('quinze jours') ||
+    lowerDateStr.includes('15 jours')
+  ) {
+    const fortnight = new Date(today);
+    fortnight.setDate(fortnight.getDate() + 15);
+    return formatLocalDate(fortnight);
+  }
+
+  // Jours nommés : "lundi prochain", "mardi prochain", etc.
+  const dayNames: Record<string, number> = {
+    dimanche: 0,
+    lundi: 1,
+    mardi: 2,
+    mercredi: 3,
+    jeudi: 4,
+    vendredi: 5,
+    samedi: 6,
+    sunday: 0,
+    monday: 1,
+    tuesday: 2,
+    wednesday: 3,
+    thursday: 4,
+    friday: 5,
+    saturday: 6,
+  };
+
+  for (const [dayName, dayNumber] of Object.entries(dayNames)) {
+    const namedDayPattern = new RegExp(`${dayName}\\s*(?:prochain|next)?`, 'i');
+    if (namedDayPattern.test(lowerDateStr)) {
+      const namedDay = new Date(today);
+      const currentDay = namedDay.getDay();
+      let daysUntil = dayNumber - currentDay;
+      // Si le jour est aujourd'hui ou déjà passé cette semaine, aller à la semaine prochaine
+      if (daysUntil <= 0) {
+        daysUntil += 7;
+      }
+      namedDay.setDate(namedDay.getDate() + daysUntil);
+      return formatLocalDate(namedDay);
+    }
+  }
+
   // Si c'est déjà une date ISO, la retourner
   if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
     return dateStr;
