@@ -4,6 +4,13 @@
  */
 import { UpdateData, debugLog } from './types';
 import { parseRelativeDate } from '../../parsers/date-parser';
+import {
+  BuildAlternationRegexPart,
+  UpdateVerbs,
+  ScopePronouns,
+  FieldAliases,
+  TimeUnitsSynonyms,
+} from '../nlp-dictionary';
 
 /**
  * Extrait les données de modification de deadline depuis une requête
@@ -91,11 +98,20 @@ function extractPushDeadline(
   const lowerQuery = query.toLowerCase();
 
   // Détecter une intention deadline (debug)
+  // Utiliser le dictionnaire NLP pour les verbes et pronoms
+  const updateVerbsRegex = BuildAlternationRegexPart(UpdateVerbs);
+  const scopePronounsRegex = BuildAlternationRegexPart(ScopePronouns);
+  const deadlineAliases = Object.keys(FieldAliases)
+    .filter((key) => FieldAliases[key] === 'deadline')
+    .map((key) => key.replace(/\s+/g, '\\s*')); // Échapper les espaces pour regex
+  const deadlineAliasesRegex = BuildAlternationRegexPart(deadlineAliases as readonly string[]);
+
   const hasDeadlineIntent =
-    /(?:deadline|dead\s*line|date\s*limite|deal[il]?n?e?)/i.test(query) ||
-    /(?:pousse|pousser|déplace|déplacer|retarde|retarder|décal|décaler|repousse|repousser|reporte|reporter|ajoute|ajouter)\s+(?:leur|les?|la|le|l'|leurs?|son|sa|ses|mes|mon|ma|nos|notre|vos|votre)\s+(?:deadline|dead\s*line|date\s*limite)/i.test(
-      query
-    );
+    new RegExp(deadlineAliasesRegex, 'i').test(query) ||
+    new RegExp(
+      `(?:${updateVerbsRegex})\\s+(?:${scopePronounsRegex})\\s+(?:${deadlineAliasesRegex})`,
+      'i'
+    ).test(query);
 
   // Détecter si l'utilisateur a explicitement demandé un filtre deadline
   const explicitDeadlineFilter = hasExplicitDeadlineFilter(query);
@@ -181,14 +197,25 @@ function extractPushDeadline(
       if (!isNaN(amount) && amount !== 0 && unit) {
         parsedDelta = {};
 
-        if (unit.includes('semaine') || unit.includes('week')) {
-          parsedDelta.weeks = amount;
-        } else if (unit.includes('jour') || unit.includes('day')) {
-          parsedDelta.days = amount;
-        } else if (unit.includes('mois') || unit.includes('month')) {
-          parsedDelta.months = amount;
-        } else if (unit.includes('an') || unit.includes('année') || unit.includes('year')) {
-          parsedDelta.years = amount;
+        // Utiliser le dictionnaire TimeUnitsSynonyms pour mapper l'unité
+        const normalizedUnit = unit.toLowerCase();
+        const timeUnit = TimeUnitsSynonyms[normalizedUnit];
+        if (timeUnit) {
+          if (timeUnit.days) parsedDelta.days = amount * timeUnit.days;
+          if (timeUnit.weeks) parsedDelta.weeks = amount * timeUnit.weeks;
+          if (timeUnit.months) parsedDelta.months = amount * timeUnit.months;
+          if (timeUnit.years) parsedDelta.years = amount * timeUnit.years;
+        } else {
+          // Fallback pour compatibilité (ne devrait pas arriver si le dictionnaire est complet)
+          if (unit.includes('semaine') || unit.includes('week')) {
+            parsedDelta.weeks = amount;
+          } else if (unit.includes('jour') || unit.includes('day')) {
+            parsedDelta.days = amount;
+          } else if (unit.includes('mois') || unit.includes('month')) {
+            parsedDelta.months = amount;
+          } else if (unit.includes('an') || unit.includes('année') || unit.includes('year')) {
+            parsedDelta.years = amount;
+          }
         }
 
         debugLog('deadline-updates', '📊 ParsedDelta', {

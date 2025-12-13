@@ -2,6 +2,12 @@
  * Détection de filtres depuis les requêtes utilisateur
  */
 import { findStyleFromString } from '../parsers/style-matcher';
+import {
+  BuildAlternationRegexPart,
+  UpdateVerbs,
+  FieldAliases,
+  StatusSynonyms,
+} from './nlp-dictionary';
 
 /**
  * Helper pour les logs de debug (patterns matching)
@@ -146,16 +152,22 @@ export function detectFilters(
         const isExplicitAvancementTarget = /(?:avancement|progression)\s*$/i.test(textBefore);
 
         // Cas 2: C'est "met les projets à X%" (ambigu)
-        const isPrecededByUpdateVerb =
-          /(?:mets?|met|passe|passer|change|changer|modifie|modifier)(?:\s+(?:les?|leur|leurs|projets?))?$/i.test(
-            textBefore
-          );
+        // Utiliser le dictionnaire NLP pour les verbes de mise à jour
+        const updateVerbsRegex = BuildAlternationRegexPart(UpdateVerbs);
+        const isPrecededByUpdateVerb = new RegExp(
+          `(?:${updateVerbsRegex})(?:\\s+(?:les?|leur|leurs|projets?))?$`,
+          'i'
+        ).test(textBefore);
 
         // Si c'est ambigu, on regarde ce qui suit
         // Si c'est suivi d'un autre paramètre de modif (status, collab, etc), alors le % est un filtre
         // Ex: "met les projets à 50% en TERMINE" -> 50% est un filtre
-        const isFollowedByUpdateParam =
-          /(?:en|à|avec|pour)\s+(?:termin|annul|cours|archiv|ghost|collab|style)/i.test(textAfter);
+        // Utiliser les synonymes de statut du dictionnaire
+        const statusValues = Object.keys(StatusSynonyms).join('|');
+        const isFollowedByUpdateParam = new RegExp(
+          `(?:en|à|avec|pour)\\s+(?:${statusValues}|collab|style)`,
+          'i'
+        ).test(textAfter);
 
         // On exclut le filtre si :
         // - C'est explicitement "avancement à"
