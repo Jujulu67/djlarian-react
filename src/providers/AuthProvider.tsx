@@ -186,6 +186,41 @@ if (typeof window !== 'undefined') {
         });
     }
 
+    // Intercepter les appels de télémétrie /ingest pour éviter ERR_CONNECTION_REFUSED en dev
+    // Guard dev-only: si NODE_ENV === 'development' et endpoint localhost → ne rien envoyer
+    if (
+      url &&
+      typeof url === 'string' &&
+      url.includes('/ingest/') &&
+      (url.includes('127.0.0.1') || url.includes('localhost'))
+    ) {
+      // En développement, ignorer silencieusement les appels vers localhost/ingest
+      if (process.env.NODE_ENV === 'development') {
+        // Retourner une promesse résolue avec une réponse factice pour éviter les erreurs
+        return Promise.resolve(
+          new Response(JSON.stringify({ success: true }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        );
+      }
+
+      // En production, essayer l'appel mais absorber silencieusement les erreurs de connexion
+      return originalFetch(...args).catch((error) => {
+        // Absorber uniquement les erreurs ERR_CONNECTION_REFUSED sans les logger
+        // Ne pas afficher console.error pour éviter de polluer la console
+        if (error?.message?.includes('ERR_CONNECTION_REFUSED') || error?.code === 'ECONNREFUSED') {
+          // Retourner une réponse factice pour éviter que l'erreur remonte
+          return new Response(JSON.stringify({ success: false, error: 'Connection refused' }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+        // Pour les autres erreurs, les laisser remonter normalement
+        throw error;
+      });
+    }
+
     return originalFetch(...args);
   };
 

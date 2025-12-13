@@ -55,12 +55,21 @@ export function debugLog(
   };
 
   // Fire-and-forget: don't await, don't block
+  // Vérifier si on est côté client avant d'essayer fetch
+  if (typeof window === 'undefined') {
+    // Côté serveur, ne pas essayer d'appeler l'endpoint
+    return;
+  }
+
   fetch(DEBUG_ENDPOINT, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(logData),
   }).catch(() => {
     // Silently ignore errors - debug logging should never break the app
+    // Ne pas logger l'erreur pour éviter de polluer la console
+    // Les erreurs ERR_CONNECTION_REFUSED sont normales si l'endpoint n'est pas disponible
+    // On utilise catch() sans paramètre pour éviter d'afficher l'erreur dans la console
   });
 }
 
