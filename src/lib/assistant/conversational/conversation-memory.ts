@@ -140,6 +140,10 @@ export function detectContextReference(query: string): {
     /^ensuite\s+(?:met|mets|passe|change|modifie|marque)/i,
     // "après met à 80%"
     /^après\s+(?:met|mets|passe|change|modifie|marque)/i,
+    // "donne les détails" / "donne tous les détails" / "avec tous les détails" / "détails" (demande de plus d'infos sur les projets listés)
+    /^(?:donne|donnes?|donner?|montre|montres?|montrer?|affiche|affiches?|afficher?|avec)\s+(?:tous\s+les?\s+)?(?:les?\s+)?(?:détails?|details?|infos?|informations?)/i,
+    // "les détails" / "tous les détails" / "détails" (sans verbe, référence implicite)
+    /^(?:tous\s+les?\s+)?(?:les?\s+)?(?:détails?|details?|infos?|informations?)(?:\s+sur)?\s*$/i,
   ];
 
   for (const pattern of pronounPatterns) {
@@ -179,7 +183,17 @@ export function resolveContextReference(
   const context = getConversationContext(userId);
   const { hasContextReference, referenceType } = detectContextReference(query);
 
-  if (!hasContextReference) {
+  // Si pas de référence explicite, vérifier si c'est une demande de détails
+  const isDetailsRequest =
+    !hasContextReference &&
+    (/^(?:donne|donnes?|donner?|montre|montres?|montrer?|affiche|affiches?|afficher?)\s+(?:tous\s+les?\s+)?(?:les?\s+)?(?:détails?|details?|infos?|informations?)/i.test(
+      query
+    ) ||
+      /^(?:tous\s+les?\s+)?(?:les?\s+)?(?:détails?|details?|infos?|informations?)(?:\s+sur)?\s*$/i.test(
+        query.trim()
+      ));
+
+  if (!hasContextReference && !isDetailsRequest) {
     return {
       resolved: false,
       filters: {},

@@ -212,6 +212,23 @@ export function parseQuery(
       }
     }
 
+    // PRIORITÉ: Si c'est une commande de création, extraire les données de création
+    if (classification.isCreate && !classification.isUpdate) {
+      const createData = extractCreateData(query, lowerQuery, collabs, styles);
+      if (createData && createData.name) {
+        // Si on a réussi à extraire un nom, c'est une commande de création valide
+        console.log('[Parse Query API] ✅ Données de création extraites:', createData);
+        return {
+          filters: {},
+          type: 'create',
+          understood: true,
+          lang: classification.lang,
+          createData,
+          clarification: null,
+        };
+      }
+    }
+
     // Déterminer le type de retour
     // PRIORITÉ: Si c'est une commande de modification, le type est 'update' même si isList est aussi true
     const type = classification.isUpdate
@@ -220,7 +237,9 @@ export function parseQuery(
         ? 'count'
         : classification.isList
           ? 'list'
-          : 'search';
+          : classification.isCreate
+            ? 'create'
+            : 'search';
 
     // Générer le message de clarification si nécessaire
     const clarification = classification.understood

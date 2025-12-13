@@ -139,6 +139,10 @@ export function createGetProjectsTool({
             progress: minProgress !== undefined ? minProgress : Math.floor(Math.random() * 100),
             status: status || 'EN_COURS',
             deadline: parsedDeadline,
+            collab: i % 2 === 0 ? `Collab ${i + 1}` : null,
+            style: i % 3 === 0 ? ['Techno', 'House', 'DNB'][i % 3] : null,
+            releaseDate:
+              i % 4 === 0 ? new Date(Date.now() + i * 86400000).toISOString().split('T')[0] : null,
           })),
           message: `J'ai trouvé ${simulatedCount} projet(s) correspondant aux critères.`,
         };
@@ -153,6 +157,9 @@ export function createGetProjectsTool({
           progress: true,
           status: true,
           deadline: true,
+          collab: true,
+          style: true,
+          releaseDate: true,
         },
         take: 50, // Limiter à 50 projets pour éviter de surcharger
       });
@@ -165,6 +172,9 @@ export function createGetProjectsTool({
           progress: p.progress,
           status: p.status,
           deadline: p.deadline?.toISOString().split('T')[0] || null,
+          collab: p.collab || null,
+          style: p.style || null,
+          releaseDate: p.releaseDate?.toISOString().split('T')[0] || null,
         })),
         message: `J'ai trouvé ${projects.length} projet(s) correspondant aux critères.`,
       };

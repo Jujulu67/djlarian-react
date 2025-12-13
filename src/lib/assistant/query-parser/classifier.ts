@@ -18,6 +18,7 @@ export interface QueryClassification {
   isQuestionAboutAssistantProjects: boolean;
   isConversationalQuestion: boolean;
   understood: boolean;
+  isComplex: boolean;
 }
 
 /**
@@ -28,6 +29,8 @@ export function classifyQuery(
   lowerQuery: string,
   filters: Record<string, any>
 ): QueryClassification {
+  // ... (keeping lines 34-341 as is in the file, we are just fixing the interface and the end)
+
   // Détecter si c'est une question sur l'assistant lui-même (pas sur les projets)
   const isMetaQuestion =
     /(tu sais faire|tes capacit|tes possibilit|tes fonctionnalit|que peux[- ]?tu|what can you|qui es[- ]?tu|tu t['']?appelles|who are you|aide[- ]?moi|help me|comment [çc]a marche|how does it work)/i.test(
@@ -40,16 +43,35 @@ export function classifyQuery(
   // UPDATE - Tolérer les verbes tronqués courants (fautes de frappe)
   // IMPORTANT: Ne pas confondre "combie" (faute de "combien") avec "modifie"
   // On vérifie que ce n'est pas "combie" avant de détecter comme update
+  // IMPORTANT: Exclure "ajoute le projet" / "ajouter un projet" du pattern isUpdate (c'est une création)
   const hasCombieTypo = /^combie|combie\s+de/i.test(lowerQuery);
-  const isUpdate =
+  const isProjectCreation =
+    /(?:ajoute|ajouter|ajout|créer|créé|creer|créa)\s+(?:le\s+)?(?:projet|project|un\s+projet|a\s+project)/i.test(
+      lowerQuery
+    );
+  let isUpdate =
     !hasCombieTypo &&
-    /(?:modifie|modifier|modifi|modif|modifiez|change|changer|chang|chg|changes|changez|mets|met|mt|mett|mettez|mettre|passe|passer|pass|pas[sz]|passes|passez|met\s+à\s+jour|mettre\s+à\s+jour|update|updat|set|déplace|déplacer|deplac|pousse|pousser|recul|reculer|retarde|retarder|décal|décaler|marque|marquer|marqu|mrq|marques|marquez|supprime|supprimer|supprim|retire|retirer|remove|delete|enlève|enlever|enleve|prévoit|prévoir|avance|avancer|^deadline\s+(?:à|a|pour)|(?:en\s+)?(?:collab|collaborateur)\s+avec\s+[A-Za-z0-9_\s]+\s+[àa])/i.test(
+    !isProjectCreation &&
+    /(?:modifie|modifier|modifi|modif|modifs|modifiez|change|changer|chang|chg|changes|changez|mets|met|mt|mett|mettez|mettre|passe|passer|pass|pas[sz]|passes|passez|met\s+à\s+jour|mettre\s+à\s+jour|update|updat|set|déplace|déplacer|deplac|pousse|pousser|recul|reculer|retarde|retarder|décal|décaler|marque|marquer|marqu|mrq|marques|marquez|supprime|supprimer|supprim|retire|retirer|remove|delete|enlève|enlever|enleve|prévoit|prévoir|avance|avancer|^deadline\s+(?:à|a|pour)|(?:en\s+)?(?:collab|collaborateur)\s+avec\s+[A-Za-z0-9_\s]+\s+[àa]|ajoute\s+(?:une\s+)?note|ajouter\s+(?:une\s+)?note|note\s+pour|session\s+.*du\s+jour|^note\s+)/i.test(
       lowerQuery
     );
-  const isCreate =
-    /(?:ajoute|ajouter|ajout|créer|créé|creer|nouveau\s+projet|add|create|new\s+project)/i.test(
+  let isCreate =
+    /(?:ajoute|ajouter|ajout|créer|créé|creer|créa|nouveau\s+projet|add|create|new\s+project)/i.test(
       lowerQuery
     );
+
+  // CONFLICT RESOLUTION:
+  // If both isCreate and isUpdate are true, we need to decide.
+  // "Ajoute une note" -> Should be isUpdate (Parser handles notes)
+  // "Ajoute un projet" -> Should be isCreate (LLM handles creation)
+  if (isCreate && isUpdate) {
+    const isNoteAddition = /(?:note|session)/i.test(lowerQuery);
+    if (isNoteAddition) {
+      isCreate = false; // Force it to be treated as an Update
+    } else {
+      isUpdate = false; // Force it to be treated as a Creation
+    }
+  }
   // Comptage - tolérant aux fautes de frappe courantes
   const isCount =
     /combien|cb|cbn|combiens?|combie|combin|cobien|conbien|nombre|nombres?|compte|compter|total|how\s*many|count|howmany/i.test(
@@ -94,10 +116,20 @@ export function classifyQuery(
     );
   const isShortListButConversational = isShortListRequest && isConversationalStart;
 
+  // Détecter les demandes de détails (avec ou sans verbe explicite)
+  const hasDetailsRequest =
+    /(?:avec|donne|montre|affiche)\s+(?:tous\s+les?\s+)?(?:les?\s+)?(?:détails?|details?|infos?|informations?)/i.test(
+      lowerQuery
+    ) ||
+    /^(?:tous\s+les?\s+)?(?:les?\s+)?(?:détails?|details?|infos?|informations?)(?:\s+sur)?\s*$/i.test(
+      lowerQuery.trim()
+    );
+
   const isList =
     hasExplicitListVerb ||
     hasQuestionWord ||
     hasImplicitListPattern ||
+    hasDetailsRequest ||
     (isShortListRequest && !isShortListButConversational);
 
   // Détecter la langue de la requête
@@ -218,26 +250,48 @@ export function classifyQuery(
   }
 
   // Patterns qui indiquent une conversation plutôt qu'une commande
+  // IMPORTANT: Si on demande les projets de l'assistant, c'est TOUJOURS conversationnel
+  // même si on a un verbe d'action (liste, montre, etc.)
+  // Si on a un verbe d'action clair ET que c'est lié aux projets de l'utilisateur, ce n'est PAS conversationnel
+  // même si ça commence par "et" ou "alors"
+  const hasActionVerbWithProjects = hasActionVerb && hasProjectMention;
+
   const isConversationalQuestion =
+    // Si on demande les projets de l'assistant (pas de l'utilisateur), c'est TOUJOURS conversationnel
+    // même si on a un verbe d'action (liste, montre, etc.) - PRIORITÉ ABSOLUE
+    isQuestionAboutAssistantProjects ||
     // Si c'est un long message personnel, c'est conversationnel
     isLongPersonalMessage ||
-    // Si on demande les projets de l'assistant (pas de l'utilisateur), c'est TOUJOURS conversationnel
-    // même si on a un verbe d'action (liste, montre, etc.)
-    isQuestionAboutAssistantProjects ||
     // Si on a un verbe d'action mais que ce n'est pas lié aux projets, c'est conversationnel
     isActionVerbButNotProjectRelated ||
-    // Si on a un verbe d'action clair ET que c'est lié aux projets, ce n'est PAS conversationnel
-    (!hasActionVerb &&
+    // Si on a un verbe d'action ET que c'est lié aux projets de l'utilisateur, ce n'est PAS conversationnel
+    // (cette vérification doit être après isQuestionAboutAssistantProjects pour éviter les faux positifs)
+    (!hasActionVerbWithProjects &&
+      // Si on n'a PAS de verbe d'action, vérifier les patterns conversationnels
+      !hasActionVerb &&
       // Débuts conversationnels
-      (/^(?:ok|alors|et|ouais|oui|bah|ben|eh|ah|oh|hein|dis|écoute|regarde|tiens|voilà|voici|bon|bien|d'accord|daccord|okay|oké|okey)/i.test(
+      (/^(?:salut|bonjour|bonsoir|coucou|hello|hi|yo|hey|ça\s+va|ok|alors|et|ouais|oui|bah|ben|eh|ah|oh|hein|dis|écoute|regarde|tiens|voilà|voici|bon|bien|d'accord|daccord|okay|oké|okey)/i.test(
         lowerQuery.trim()
       ) ||
+        // Déclarations personnelles (j'aime, je pense...) sans verbe d'action projet
+        /^(?:j['']?aime|je\s+déteste|je\s+préfère|je\s+pense|je\s+crois|je\s+trouve|i\s+like|i\s+love|i\s+think)\s+/i.test(
+          lowerQuery.trim()
+        ) ||
+        // Demandes de résumé/synthèse de conversation
+        /^(?:resume|résume|récapitule|recapitule|summary|summarize)(?:\s+|$)/i.test(
+          lowerQuery.trim()
+        ) ||
         // "ok et..." ou "alors et..." au début
         /^(?:ok|alors)\s+et/i.test(lowerQuery.trim()) ||
-        // Patterns conversationnels + mention projets (sans verbe d'action)
-        /(?:^|\s)(?:et|alors|ok|ouais|oui|bah|ben|hein|dis|écoute|regarde|tiens|voilà|bon|bien|d'accord|daccord|okay|oké|okey)\s+(?:concernant|pour|sur|à\s+propos\s+de|nos|mes|les|des)\s+(?:projets?|projects?)/i.test(
-          lowerQuery
-        ) ||
+        // Patterns conversationnels + mention projets (sans verbe d'action explicite AVANT "projets")
+        // Exclure les cas où il y a un verbe d'action (liste, montre, modifie, etc.) AVANT "projets"
+        (!hasExplicitListVerb &&
+          !isUpdate &&
+          !isCreate &&
+          !isCount &&
+          /(?:^|\s)(?:et|alors|ok|ouais|oui|bah|ben|hein|dis|écoute|regarde|tiens|voilà|bon|bien|d'accord|daccord|okay|oké|okey)\s+(?:concernant|pour|sur|à\s+propos\s+de|nos|mes|les|des)\s+(?:projets?|projects?)/i.test(
+            lowerQuery
+          )) ||
         // "et nos projets" / "et mes projets" / "alors nos projets" (sans verbe d'action après)
         /^(?:et|alors)\s+(?:nos|mes|les|des)\s+(?:projets?|projects?)(?:\s+(?:alors|hein|non|quoi))?\s*[?]?$/i.test(
           lowerQuery.trim()
@@ -332,6 +386,25 @@ export function classifyQuery(
     });
   }
 
+  // Détection de complexité pour le choix du modèle (8B vs 70B)
+  const isStrongReasoning =
+    /(?:analyse|détaille|detail|resume|résume|récapitule|summary|summarize|explique|explain)/i.test(
+      lowerQuery
+    );
+  const isContextualReasoning =
+    /(?:pourquoi|comment|explain|why|how|avis|opinion|penses?|think)/i.test(lowerQuery) &&
+    query.length > 50;
+
+  const isComplex =
+    !isMetaQuestion &&
+    // 1. Longueur : Si > 100 caractères, on suppose que ça nécessite plus de capacité
+    (query.length > 100 ||
+      // 2. Mots-clés de raisonnement
+      isStrongReasoning ||
+      isContextualReasoning ||
+      // 3. Si ce n'est pas compris/classifié ET pas conversationnel (donc une commande bizarre ou technique)
+      (!understood && !isConversationalQuestion));
+
   return {
     isMetaQuestion,
     isUpdate,
@@ -347,5 +420,6 @@ export function classifyQuery(
     isQuestionAboutAssistantProjects,
     isConversationalQuestion,
     understood,
+    isComplex,
   };
 }
