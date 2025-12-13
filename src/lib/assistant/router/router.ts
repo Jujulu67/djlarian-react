@@ -1045,6 +1045,23 @@ export async function routeProjectCommand(
       .slice(0, 3)
       .map((project) => generateProjectPreviewDiff(project, mutation));
 
+    // Construire expectedUpdatedAtById pour vérification concurrency optimiste
+    // Seulement si on a des projets avec updatedAt valide
+    const expectedUpdatedAtById: Record<string, string> = {};
+    for (const project of affectedProjects) {
+      if (project.updatedAt) {
+        // Convertir en ISO string (gérer Date ou string)
+        const updatedAt =
+          project.updatedAt instanceof Date
+            ? project.updatedAt.toISOString()
+            : typeof project.updatedAt === 'string'
+              ? project.updatedAt
+              : new Date(project.updatedAt).toISOString();
+        expectedUpdatedAtById[project.id] = updatedAt;
+      }
+      // Si updatedAt est null/undefined, on ne l'inclut pas (sera considéré comme conflit côté serveur)
+    }
+
     const pendingAction: PendingConfirmationAction = {
       actionId: generateActionId(),
       type: actionType,
@@ -1062,6 +1079,8 @@ export async function routeProjectCommand(
       ),
       requestId,
       previewDiff: previewDiff.length > 0 ? previewDiff : undefined,
+      expectedUpdatedAtById:
+        Object.keys(expectedUpdatedAtById).length > 0 ? expectedUpdatedAtById : undefined,
     };
 
     return {

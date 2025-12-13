@@ -7,6 +7,7 @@ import {
   createSuccessResponse,
   createBadRequestResponse,
   createUnauthorizedResponse,
+  createConflictResponse,
 } from '@/lib/api/responseHelpers';
 import prisma from '@/lib/prisma';
 
@@ -71,6 +72,8 @@ export async function POST(request: NextRequest) {
       requestId,
       // ID de confirmation pour l'idempotency (évite les doubles mutations)
       confirmationId,
+      // Mapping ID projet → updatedAt attendu (ISO string) pour vérification concurrency optimiste
+      expectedUpdatedAtById,
       // Filtres pour identifier les projets à modifier
       minProgress,
       maxProgress,
@@ -118,6 +121,74 @@ export async function POST(request: NextRequest) {
           200,
           'Cette confirmation a déjà été traitée.'
         );
+      }
+    }
+
+    // Vérifier la concurrency optimiste si projectIds ET expectedUpdatedAtById sont fournis
+    const conflictProjectIds: string[] = [];
+    if (
+      projectIds &&
+      Array.isArray(projectIds) &&
+      projectIds.length > 0 &&
+      expectedUpdatedAtById &&
+      typeof expectedUpdatedAtById === 'object'
+    ) {
+      // Charger les projets en base avec leur updatedAt
+      const currentProjects = await prisma.project.findMany({
+        where: {
+          userId: session.user.id,
+          id: { in: projectIds },
+        },
+        select: {
+          id: true,
+          updatedAt: true,
+        },
+      });
+
+      // Construire un map pour accès rapide
+      const currentProjectsMap = new Map(currentProjects.map((p) => [p.id, p.updatedAt]));
+
+      // Vérifier chaque ID attendu
+      for (const projectId of projectIds) {
+        const expectedUpdatedAt = expectedUpdatedAtById[projectId];
+        const currentUpdatedAt = currentProjectsMap.get(projectId);
+
+        // Conflit si:
+        // 1. Projet manquant en base
+        // 2. expectedUpdatedAt manquant dans le mapping
+        // 3. Mismatch de timestamp (comparer en getTime() pour éviter différences de format)
+        if (!currentUpdatedAt) {
+          conflictProjectIds.push(projectId);
+        } else if (!expectedUpdatedAt) {
+          conflictProjectIds.push(projectId);
+        } else {
+          // Comparer les timestamps (convertir en Date puis getTime())
+          const expectedTime = new Date(expectedUpdatedAt).getTime();
+          const currentTime = currentUpdatedAt.getTime();
+          if (expectedTime !== currentTime) {
+            conflictProjectIds.push(projectId);
+          }
+        }
+      }
+
+      // Si conflits détectés, retourner 409
+      if (conflictProjectIds.length > 0) {
+        const logPrefix = requestId ? `[${requestId}]` : '';
+        console.log(`[Batch Update API] ${logPrefix} ⚠️ Concurrency conflict détecté`, {
+          requestId,
+          confirmationId,
+          projectIdsCount: projectIds.length,
+          conflictCount: conflictProjectIds.length,
+          conflictProjectIdsSample: conflictProjectIds.slice(0, 3),
+        });
+
+        // Retourner 409 avec les détails du conflit
+        // Format: { error, details: { conflictCount, conflictProjectIds } }
+        // Le handler côté client lit depuis details ou directement depuis l'objet
+        return createConflictResponse('Some projects changed since confirmation. Please re-list.', {
+          conflictCount: conflictProjectIds.length,
+          conflictProjectIds: conflictProjectIds,
+        });
       }
     }
 

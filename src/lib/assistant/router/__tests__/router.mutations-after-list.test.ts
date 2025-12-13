@@ -1136,6 +1136,74 @@ describe('Router - Mutations après LIST filtré (Matrice de tests)', () => {
         expect(updateResult.pendingAction.scopeSource).toBe('LastListedIds');
         expect(updateResult.pendingAction.affectedProjects).toHaveLength(17);
         expect(updateResult.pendingAction.affectedProjectIds).toHaveLength(17);
+
+        // Vérifier que expectedUpdatedAtById est construit
+        expect(updateResult.pendingAction.expectedUpdatedAtById).toBeDefined();
+        expect(Object.keys(updateResult.pendingAction.expectedUpdatedAtById || {})).toHaveLength(
+          17
+        );
+        // Vérifier que les valeurs sont des ISO strings
+        Object.values(updateResult.pendingAction.expectedUpdatedAtById || {}).forEach(
+          (isoString) => {
+            expect(typeof isoString).toBe('string');
+            expect(isoString).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/); // Format ISO
+          }
+        );
+      }
+    });
+
+    it('devrait construire expectedUpdatedAtById pour une mutation progress', async () => {
+      const dataset = buildTestDataset();
+      const projects = dataset.all;
+      // Filtrer pour avoir des projets TERMINE
+      const terminatedProjects = projects.filter((p) => p.status === 'TERMINE');
+      const initialListedIds = terminatedProjects.map((p) => p.id);
+      const expectedCount = terminatedProjects.length;
+
+      const mockContext = createContextWithWorkingSet(
+        createMockContext(projects),
+        initialListedIds,
+        { status: 'TERMINE' }
+      );
+
+      mockDetectFilters.mockReturnValueOnce({
+        filters: {},
+        fieldsToShow: ['progress'],
+      });
+      mockClassifyQuery.mockReturnValueOnce(
+        createMockClassification({
+          isUpdate: true,
+          hasActionVerb: true,
+          hasProjectMention: true,
+          hasProjectRelatedFilters: false,
+          understood: true,
+        })
+      );
+      mockExtractUpdateData.mockReturnValueOnce({
+        newProgress: 50,
+      });
+      mockFilterProjects.mockReturnValueOnce({
+        filtered: terminatedProjects,
+        nullProgressCount: 0,
+        hasProgressFilter: false,
+      });
+
+      const updateResult = await routeProjectCommand('passe les terminés à 50%', {
+        context: mockContext,
+      });
+
+      expect(updateResult.type).toBe(ProjectCommandType.UPDATE);
+      if (updateResult.type === ProjectCommandType.UPDATE) {
+        expect(updateResult.pendingAction.expectedUpdatedAtById).toBeDefined();
+        const expectedUpdatedAtById = updateResult.pendingAction.expectedUpdatedAtById || {};
+        expect(Object.keys(expectedUpdatedAtById)).toHaveLength(expectedCount);
+
+        // Vérifier que chaque ID affecté a un expectedUpdatedAt
+        updateResult.pendingAction.affectedProjectIds.forEach((id) => {
+          expect(expectedUpdatedAtById[id]).toBeDefined();
+          expect(typeof expectedUpdatedAtById[id]).toBe('string');
+          expect(expectedUpdatedAtById[id]).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+        });
       }
     });
   });

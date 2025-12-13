@@ -88,6 +88,7 @@ export async function handleConfirmUpdate({
     const detectedCount = affectedProjectIds.length;
     const requestId = updateConfirmation.requestId;
     const confirmationId = updateConfirmation.confirmationId;
+    const expectedUpdatedAtById = updateConfirmation.expectedUpdatedAtById;
 
     // Logs avant appel API
     const hasFilterInPayload = Object.keys(filters).some(
@@ -127,10 +128,17 @@ export async function handleConfirmUpdate({
     if (scopeSource === 'LastListedIds' && affectedProjectIds.length > 0) {
       payload.projectIds = affectedProjectIds;
       payload.scopeSource = 'LastListedIds';
+      // Ajouter expectedUpdatedAtById pour vérification concurrency optimiste
+      if (expectedUpdatedAtById && Object.keys(expectedUpdatedAtById).length > 0) {
+        payload.expectedUpdatedAtById = expectedUpdatedAtById;
+      }
       debugLogObject('handleConfirmUpdate', `${logPrefix} 🎯 Utilisation des IDs (LastListedIds)`, {
         requestId,
         projectIdsCount: affectedProjectIds.length,
         projectIdsSample: affectedProjectIds.slice(0, 3),
+        expectedUpdatedAtByIdCount: expectedUpdatedAtById
+          ? Object.keys(expectedUpdatedAtById).length
+          : 0,
       });
     } else {
       // Sinon, utiliser les filtres (comportement existant)
@@ -161,6 +169,39 @@ export async function handleConfirmUpdate({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
+
+    // Gérer le cas 409 Conflict (concurrency)
+    if (response.status === 409) {
+      const errorData = await response.json();
+      // Les détails sont dans errorData.details (format ApiErrorResponse)
+      const conflictCount = (errorData.details?.conflictCount as number) || 0;
+      const conflictProjectIds = (errorData.details?.conflictProjectIds as string[]) || [];
+
+      const logPrefix = requestId ? `[${requestId}]` : '';
+      debugLogObject('handleConfirmUpdate', `${logPrefix} ⚠️ Concurrency conflict détecté`, {
+        requestId,
+        conflictCount,
+        conflictProjectIdsSample: conflictProjectIds.slice(0, 3),
+      });
+
+      // Message clair pour l'utilisateur
+      const conflictMessage = `Certains projets ont été modifiés entre temps. Reliste les projets et recommence.${isAssistantDebugEnabled() && conflictCount > 0 ? `\n\n[DEBUG] ${conflictCount} projet(s) en conflit${conflictProjectIds.length > 0 ? ` (ex: ${conflictProjectIds.slice(0, 3).join(', ')})` : ''}` : ''}`;
+
+      setMessages((prev) =>
+        prev.map((m, i) =>
+          i === idx
+            ? {
+                ...m,
+                content: `${m.content}\n\n⚠️ ${conflictMessage}`,
+                updateConfirmation: undefined, // Retirer la confirmation
+              }
+            : m
+        )
+      );
+
+      setIsLoading(false);
+      return; // Ne pas appliquer de mise à jour locale optimiste
+    }
 
     if (!response.ok) {
       const error = await response.json();

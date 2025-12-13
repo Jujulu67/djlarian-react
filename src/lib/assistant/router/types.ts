@@ -103,6 +103,8 @@ export interface PendingConfirmationAction {
   requestId?: string;
   /** Diff avant→après pour les 3 premiers projets affectés (optionnel) */
   previewDiff?: ProjectPreviewDiff[];
+  /** Mapping ID projet → updatedAt attendu (ISO string) pour vérification concurrency optimiste (optionnel) */
+  expectedUpdatedAtById?: Record<string, string>;
 }
 
 /**
