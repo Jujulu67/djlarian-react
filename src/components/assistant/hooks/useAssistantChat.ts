@@ -11,6 +11,7 @@ import { getAssistantService } from '@/lib/assistant/factory';
 import type { Message } from '../types';
 import { debugLog, isAssistantDebugEnabled } from '@/lib/assistant/utils/debug';
 import { generateRequestId } from '@/lib/assistant/utils/generate-request-id';
+import { generateConfirmationId } from '@/lib/assistant/utils/generate-confirmation-id';
 
 export interface UseAssistantChatOptions {
   projects: Project[];
@@ -231,6 +232,9 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
             router.refresh();
           } else if (result.type === 'update' || result.type === 'add_note') {
             // Modification/Note : afficher la confirmation
+            // Générer un confirmationId unique pour l'idempotency
+            const confirmationId = generateConfirmationId();
+
             // La confirmation doit afficher les projets comme un listing
             setMessages((prev) => [
               ...prev,
@@ -253,6 +257,7 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
                   fieldsToShow: result.pendingAction.fieldsToShow,
                   requestId: result.pendingAction.requestId || result.requestId,
                   previewDiff: result.pendingAction.previewDiff,
+                  confirmationId, // ID unique pour l'idempotency
                 },
               },
             ]);

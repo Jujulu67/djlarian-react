@@ -69,6 +69,8 @@ export async function POST(request: NextRequest) {
       scopeSource,
       // ID de corrélation pour tracer la requête
       requestId,
+      // ID de confirmation pour l'idempotency (évite les doubles mutations)
+      confirmationId,
       // Filtres pour identifier les projets à modifier
       minProgress,
       maxProgress,
@@ -91,10 +93,39 @@ export async function POST(request: NextRequest) {
       newLabelFinal,
     } = body;
 
+    // Vérifier l'idempotency si confirmationId est fourni
+    if (confirmationId) {
+      const existingConfirmation = await prisma.assistantConfirmation.findUnique({
+        where: { confirmationId },
+      });
+
+      if (existingConfirmation) {
+        // Confirmation déjà traitée : retourner 200 avec duplicated: true
+        const logPrefix = requestId ? `[${requestId}]` : '';
+        console.log(`[Batch Update API] ${logPrefix} 🔄 Idempotency: confirmationId déjà vu`, {
+          requestId,
+          confirmationId,
+          userId: session.user.id,
+          createdAt: existingConfirmation.createdAt,
+        });
+
+        return createSuccessResponse(
+          {
+            count: 0,
+            duplicated: true,
+            message: 'Cette confirmation a déjà été traitée.',
+          },
+          200,
+          'Cette confirmation a déjà été traitée.'
+        );
+      }
+    }
+
     // Logs des inputs avec requestId
     const logPrefix = requestId ? `[${requestId}]` : '';
     console.log(`[Batch Update API] ${logPrefix} 📥 Inputs reçus:`, {
       requestId,
+      confirmationId,
       projectIdsCount: projectIds?.length || 0,
       scopeSource: scopeSource || 'filter-based',
       filterSummary: {
@@ -287,36 +318,81 @@ export async function POST(request: NextRequest) {
       );
 
       let updatedCount = 0;
-      for (const project of projectsToUpdate) {
-        if (!project.deadline) {
-          // Ignorer les projets sans deadline
-          continue;
-        }
 
-        const currentDeadline = new Date(project.deadline);
-        const newDeadline = new Date(currentDeadline);
+      // Utiliser une transaction si confirmationId est fourni (garantit l'atomicité)
+      if (confirmationId) {
+        await prisma.$transaction(async (tx) => {
+          // Créer l'entrée de confirmation (sera rollback si l'update échoue)
+          await tx.assistantConfirmation.create({
+            data: {
+              userId: session.user.id,
+              confirmationId,
+            },
+          });
 
-        // Les valeurs peuvent être négatives (pour reculer les deadlines)
-        if (days !== undefined) {
-          newDeadline.setDate(newDeadline.getDate() + days);
-        }
-        if (weeks !== undefined) {
-          newDeadline.setDate(newDeadline.getDate() + weeks * 7);
-        }
-        if (months !== undefined) {
-          newDeadline.setMonth(newDeadline.getMonth() + months);
-        }
+          // Mettre à jour chaque projet dans la transaction
+          for (const project of projectsToUpdate) {
+            if (!project.deadline) {
+              // Ignorer les projets sans deadline
+              continue;
+            }
 
-        await prisma.project.update({
-          where: { id: project.id },
-          data: { deadline: newDeadline },
+            const currentDeadline = new Date(project.deadline);
+            const newDeadline = new Date(currentDeadline);
+
+            // Les valeurs peuvent être négatives (pour reculer les deadlines)
+            if (days !== undefined) {
+              newDeadline.setDate(newDeadline.getDate() + days);
+            }
+            if (weeks !== undefined) {
+              newDeadline.setDate(newDeadline.getDate() + weeks * 7);
+            }
+            if (months !== undefined) {
+              newDeadline.setMonth(newDeadline.getMonth() + months);
+            }
+
+            await tx.project.update({
+              where: { id: project.id },
+              data: { deadline: newDeadline },
+            });
+
+            updatedCount++;
+          }
         });
+      } else {
+        // Pas de confirmationId: updates normaux sans transaction
+        for (const project of projectsToUpdate) {
+          if (!project.deadline) {
+            // Ignorer les projets sans deadline
+            continue;
+          }
 
-        updatedCount++;
+          const currentDeadline = new Date(project.deadline);
+          const newDeadline = new Date(currentDeadline);
+
+          // Les valeurs peuvent être négatives (pour reculer les deadlines)
+          if (days !== undefined) {
+            newDeadline.setDate(newDeadline.getDate() + days);
+          }
+          if (weeks !== undefined) {
+            newDeadline.setDate(newDeadline.getDate() + weeks * 7);
+          }
+          if (months !== undefined) {
+            newDeadline.setMonth(newDeadline.getMonth() + months);
+          }
+
+          await prisma.project.update({
+            where: { id: project.id },
+            data: { deadline: newDeadline },
+          });
+
+          updatedCount++;
+        }
       }
 
       console.log(`[Batch Update API] ${logPrefix} ✅ ${updatedCount} deadline(s) décalée(s)`, {
         requestId,
+        confirmationId,
       });
 
       // Invalider le cache après modification
@@ -412,14 +488,39 @@ export async function POST(request: NextRequest) {
       dataKeys: Object.keys(updateData),
     });
 
-    // Exécuter la mise à jour
-    const result = await prisma.project.updateMany({
-      where: whereClause,
-      data: updateData,
-    });
+    // Exécuter la mise à jour dans une transaction si confirmationId est fourni
+    // Cela garantit que si l'update échoue, l'insert de confirmation est rollback
+    // et une retry pourra réessayer (au lieu de dire "duplicated" alors que rien n'a été appliqué)
+    let result: { count: number };
+
+    if (confirmationId) {
+      // Transaction atomique: insert confirmation + update projets
+      await prisma.$transaction(async (tx) => {
+        // Créer l'entrée de confirmation (sera rollback si l'update échoue)
+        await tx.assistantConfirmation.create({
+          data: {
+            userId: session.user.id,
+            confirmationId,
+          },
+        });
+
+        // Exécuter la mise à jour
+        result = await tx.project.updateMany({
+          where: whereClause,
+          data: updateData,
+        });
+      });
+    } else {
+      // Pas de confirmationId: update normal sans transaction
+      result = await prisma.project.updateMany({
+        where: whereClause,
+        data: updateData,
+      });
+    }
 
     console.log(`[Batch Update API] ${logPrefix} ✅ Résultat:`, {
       requestId,
+      confirmationId,
       countUpdated: result.count,
       expectedCount: projectIds ? projectIds.length : countBefore,
       match: projectIds ? result.count === projectIds.length : 'N/A (filter-based)',
