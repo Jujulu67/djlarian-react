@@ -148,30 +148,31 @@ model TrackPlatform {
 }
 
 model User {
-  id                   String                 @id @default(cuid())
-  name                 String?
-  email                String?                 @unique
-  emailVerified        DateTime?
-  image                String?
-  hashedPassword       String?
-  role                 String?                 @default("USER")
-  isVip                Boolean                 @default(false)
-  gameHighScore        Int                     @default(0)
-  hasDiscoveredCasino  Boolean                 @default(false)
-  createdAt            DateTime                @default(now())
-  updatedAt            DateTime                @updatedAt
-  Account              Account[]
-  Event                Event[]
-  Session              Session[]
-  Track                Track[]
-  Project              Project[]
-  Notification         Notification[]
-  LiveSubmission       LiveSubmission[]
-  UserLiveItem         UserLiveItem[]
-  UserTicket           UserTicket[]
-  UserSlotMachineTokens UserSlotMachineTokens?
-  FriendshipRequests  Friendship[]            @relation("FriendshipRequester")
-  FriendshipReceived  Friendship[]            @relation("FriendshipRecipient")
+  id                     String                  @id @default(cuid())
+  name                   String?
+  email                  String?                 @unique
+  emailVerified          DateTime?
+  image                  String?
+  hashedPassword         String?
+  role                   String?                 @default("USER")
+  isVip                  Boolean                 @default(false)
+  gameHighScore          Int                     @default(0)
+  hasDiscoveredCasino    Boolean                 @default(false)
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  Account                Account[]
+  Event                  Event[]
+  Session                Session[]
+  Track                  Track[]
+  Project                Project[]
+  Notification           Notification[]
+  LiveSubmission         LiveSubmission[]
+  UserLiveItem           UserLiveItem[]
+  UserTicket             UserTicket[]
+  UserSlotMachineTokens  UserSlotMachineTokens?
+  FriendshipRequests     Friendship[]            @relation("FriendshipRequester")
+  FriendshipReceived     Friendship[]            @relation("FriendshipRecipient")
+  assistantConfirmations AssistantConfirmation[]
 }
 
 model VerificationToken {
@@ -188,7 +189,7 @@ model VerificationToken {
 model MergeToken {
   id        String   @id @default(cuid())
   email     String
-  token     String   // JWT encrypté (peut être très long, pas d'index unique direct)
+  token     String // JWT encrypté (peut être très long, pas d'index unique direct)
   expiresAt DateTime
   createdAt DateTime @default(now())
 
@@ -230,16 +231,16 @@ model ConfigSnapshot {
 }
 
 model Image {
-  id           String   @id @default(uuid())
-  imageId      String   @unique // L'UUID de l'image (sans extension)
-  blobUrl      String?  // URL complète du blob pour l'image recadrée
+  id              String   @id @default(uuid())
+  imageId         String   @unique // L'UUID de l'image (sans extension)
+  blobUrl         String? // URL complète du blob pour l'image recadrée
   blobUrlOriginal String? // URL complète du blob pour l'image originale (-ori)
-  size         Int?     // Taille en bytes
-  contentType  String?  // Type MIME
-  hash         String?  // Hash SHA-256 de l'image recadrée (pour détecter les doublons)
-  hashOriginal String?  // Hash SHA-256 de l'image originale (pour détecter les doublons)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  size            Int? // Taille en bytes
+  contentType     String? // Type MIME
+  hash            String? // Hash SHA-256 de l'image recadrée (pour détecter les doublons)
+  hashOriginal    String? // Hash SHA-256 de l'image originale (pour détecter les doublons)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@index([imageId])
   @@index([hash])
@@ -247,32 +248,32 @@ model Image {
 
 // Gestion de projets musicaux - suivi des IDs et releases
 model Project {
-  id                   String                 @id @default(uuid())
-  userId               String
-  order                Int                     @default(0) // Ordre d'affichage pour le drag-and-drop
-  name                 String                  // Nom du projet
-  style                String?                 // Genre musical (House, Techno, etc.)
-  status               String                  @default("EN_COURS") // TERMINE, EN_COURS, ANNULE, A_REWORK, GHOST_PRODUCTION
-  collab               String?                 // Collaborateurs
-  label                String?                 // Label ciblé
-  labelFinal           String?                 // Label final (si signé)
-  deadline             DateTime?               // Date limite (deadline)
-  releaseDate          DateTime?               // Date de sortie
-  externalLink         String?                 // Lien vers SoundCloud, Spotify, etc.
-  streamsJ7            Int?                    // Streams à J+7
-  streamsJ14           Int?                    // Streams à J+14
-  streamsJ21           Int?                    // Streams à J+21
-  streamsJ28           Int?                    // Streams à J+28
-  streamsJ56           Int?                    // Streams à J+56
-  streamsJ84           Int?                    // Streams à J+84
-  streamsJ180          Int?                    // Streams à J+180 (6 mois)
-  streamsJ365          Int?                    // Streams à J+365 (1 an)
-  progress             Int?                    // Pourcentage d'avancement (0-100)
-  note                 String?                 // Note/informations pertinentes sur le projet
-  createdAt            DateTime                @default(now())
-  updatedAt            DateTime                @updatedAt
-  User                 User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  Notification         Notification[]
+  id           String         @id @default(uuid())
+  userId       String
+  order        Int            @default(0) // Ordre d'affichage pour le drag-and-drop
+  name         String // Nom du projet
+  style        String? // Genre musical (House, Techno, etc.)
+  status       String         @default("EN_COURS") // TERMINE, EN_COURS, ANNULE, A_REWORK, GHOST_PRODUCTION
+  collab       String? // Collaborateurs
+  label        String? // Label ciblé
+  labelFinal   String? // Label final (si signé)
+  deadline     DateTime? // Date limite (deadline)
+  releaseDate  DateTime? // Date de sortie
+  externalLink String? // Lien vers SoundCloud, Spotify, etc.
+  streamsJ7    Int? // Streams à J+7
+  streamsJ14   Int? // Streams à J+14
+  streamsJ21   Int? // Streams à J+21
+  streamsJ28   Int? // Streams à J+28
+  streamsJ56   Int? // Streams à J+56
+  streamsJ84   Int? // Streams à J+84
+  streamsJ180  Int? // Streams à J+180 (6 mois)
+  streamsJ365  Int? // Streams à J+365 (1 an)
+  progress     Int? // Pourcentage d'avancement (0-100)
+  note         String? // Note/informations pertinentes sur le projet
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  User         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Notification Notification[]
 
   @@index([userId])
   @@index([status])
@@ -280,32 +281,32 @@ model Project {
 
 // Notifications génériques pour différents types d'événements
 model Notification {
-  id          String    @id @default(uuid())
-  userId      String
-  type        String    // 'MILESTONE', 'ADMIN_MESSAGE', 'USER_MESSAGE', 'RELEASE_UPCOMING', 'INFO', etc.
-  title       String
-  message     String?
-  metadata    String?   // JSON pour stocker des données flexibles (projectId, milestoneType, etc.)
-  isRead      Boolean   @default(false)
-  isArchived  Boolean   @default(false)
-  deletedAt   DateTime?
-  createdAt   DateTime  @default(now())
-  readAt      DateTime?
-  User        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id         String    @id @default(uuid())
+  userId     String
+  type       String // 'MILESTONE', 'ADMIN_MESSAGE', 'USER_MESSAGE', 'RELEASE_UPCOMING', 'INFO', etc.
+  title      String
+  message    String?
+  metadata   String? // JSON pour stocker des données flexibles (projectId, milestoneType, etc.)
+  isRead     Boolean   @default(false)
+  isArchived Boolean   @default(false)
+  deletedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  readAt     DateTime?
+  User       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   // Relation optionnelle avec Project pour les notifications liées aux projets
-  projectId   String?
-  Project     Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  
+  projectId String?
+  Project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
   // Relation pour les threads de conversation (réponses)
-  parentId    String?
-  Parent      Notification? @relation("NotificationReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  Replies     Notification[] @relation("NotificationReplies")
-  
+  parentId String?
+  Parent   Notification?  @relation("NotificationReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  Replies  Notification[] @relation("NotificationReplies")
+
   // ThreadId pour regrouper toutes les notifications d'une même conversation
   // Le premier message d'un thread a threadId = son propre id
   // Les réponses héritent du threadId du message parent
-  threadId    String?
+  threadId String?
 
   @@index([userId])
   @@index([projectId])
@@ -342,24 +343,24 @@ model LiveSubmission {
 }
 
 model AdminSettings {
-  id          String   @id @default(cuid())
-  key         String   @unique // 'trackSubmissions', 'downloadsEnabled', etc.
-  value       String   // JSON string pour stocker la valeur
-  updatedAt   DateTime @updatedAt
-  createdAt   DateTime @default(now())
+  id        String   @id @default(cuid())
+  key       String   @unique // 'trackSubmissions', 'downloadsEnabled', etc.
+  value     String // JSON string pour stocker la valeur
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
 
   @@index([key])
 }
 
 model LiveItem {
-  id          String        @id @default(cuid())
-  type        String        @unique // SUBSCRIBER_BONUS, LOYALTY_BONUS, WATCH_STREAK, etc.
-  name        String
-  description String?
-  icon        String?       // Nom de l'icône ou URL
-  isActive    Boolean       @default(true)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id           String         @id @default(cuid())
+  type         String         @unique // SUBSCRIBER_BONUS, LOYALTY_BONUS, WATCH_STREAK, etc.
+  name         String
+  description  String?
+  icon         String? // Nom de l'icône ou URL
+  isActive     Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
   UserLiveItem UserLiveItem[]
 
   @@index([type])
@@ -367,18 +368,18 @@ model LiveItem {
 }
 
 model UserLiveItem {
-  id                String       @id @default(cuid())
+  id                String    @id @default(cuid())
   userId            String
   itemId            String
-  quantity          Int          @default(1)
-  activatedQuantity Int          @default(0)
-  isActivated       Boolean      @default(false) // Deprecated: utiliser activatedQuantity > 0
+  quantity          Int       @default(1)
+  activatedQuantity Int       @default(0)
+  isActivated       Boolean   @default(false) // Deprecated: utiliser activatedQuantity > 0
   activatedAt       DateTime?
-  metadata          String?      // JSON pour stocker des données flexibles
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
-  User              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  LiveItem          LiveItem     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  metadata          String? // JSON pour stocker des données flexibles
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  User              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  LiveItem          LiveItem  @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   @@unique([userId, itemId])
   @@index([userId])
@@ -388,13 +389,13 @@ model UserLiveItem {
 }
 
 model UserTicket {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   userId    String
-  quantity  Int      @default(1)
-  source    String   // ETERNAL_TICKET, LOYALTY_BONUS, etc.
+  quantity  Int       @default(1)
+  source    String // ETERNAL_TICKET, LOYALTY_BONUS, etc.
   expiresAt DateTime?
-  createdAt DateTime @default(now())
-  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  User      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([expiresAt])
@@ -405,16 +406,31 @@ model Friendship {
   requesterId String
   recipientId String
   status      String   @default("PENDING") // PENDING, ACCEPTED, REJECTED
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
-  Requester   User     @relation("FriendshipRequester", fields: [requesterId], references: [id], onDelete: Cascade)
-  Recipient   User     @relation("FriendshipRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  Requester User @relation("FriendshipRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  Recipient User @relation("FriendshipRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
 
   @@unique([requesterId, recipientId])
   @@index([requesterId])
   @@index([recipientId])
   @@index([status])
+}
+
+// Table pour l'idempotency des confirmations assistant
+// Permet d'éviter les doubles mutations en cas de double clic ou retry réseau
+model AssistantConfirmation {
+  id             String   @id @default(cuid())
+  userId         String
+  confirmationId String   @unique // ID unique généré côté client pour chaque confirmation
+  createdAt      DateTime @default(now())
+  User           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, confirmationId])
+  @@index([userId])
+  @@index([confirmationId])
+  @@index([createdAt]) // Pour purge TTL 24h
 }
 
 model UserSlotMachineTokens {

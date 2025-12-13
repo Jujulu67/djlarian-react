@@ -34,6 +34,7 @@ export interface Message {
     fieldsToShow?: string[];
     requestId?: string;
     previewDiff?: Array<{ id: string; name: string; changes: string[] }>;
+    confirmationId?: string; // ID unique pour l'idempotency (évite les doubles mutations)
   };
   scopeConfirmation?: {
     proposedMutation: UpdateData;

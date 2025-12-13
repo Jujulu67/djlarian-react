@@ -87,6 +87,7 @@ export async function handleConfirmUpdate({
       updateConfirmation.affectedProjectIds || updateConfirmation.affectedProjects.map((p) => p.id);
     const detectedCount = affectedProjectIds.length;
     const requestId = updateConfirmation.requestId;
+    const confirmationId = updateConfirmation.confirmationId;
 
     // Logs avant appel API
     const hasFilterInPayload = Object.keys(filters).some(
@@ -115,6 +116,11 @@ export async function handleConfirmUpdate({
     // Ajouter requestId si présent
     if (requestId) {
       payload.requestId = requestId;
+    }
+
+    // Ajouter confirmationId pour l'idempotency (obligatoire)
+    if (confirmationId) {
+      payload.confirmationId = confirmationId;
     }
 
     // Si scope = LastListedIds, utiliser les IDs au lieu des filtres
