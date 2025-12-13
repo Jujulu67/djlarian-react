@@ -31,6 +31,7 @@ import { handleConfirmUpdate, handleCancelUpdate } from './assistant/handlers/ha
 import { ProjectResultsView } from './assistant/components/ProjectResultsView';
 import { SimpleTooltip } from './assistant/components/SimpleTooltip';
 import { RichTextRenderer } from './assistant/components/RichTextRenderer';
+import { isAssistantDebugEnabled } from '@/lib/assistant/utils/debug';
 
 export function ProjectAssistant({ projects }: ProjectAssistantProps) {
   const router = useRouter();
@@ -579,8 +580,72 @@ function ConfirmationButtons({
   localProjectsRef,
   setLastFilters,
 }: MessageBubbleProps) {
+  const updateConfirmation = msg.updateConfirmation;
+  const isDevMode = isAssistantDebugEnabled();
+
+  // Construire le résumé du filtre si ExplicitFilter
+  const filterSummary =
+    updateConfirmation?.scopeSource === 'ExplicitFilter'
+      ? Object.entries(updateConfirmation.filters || {})
+          .filter(([_, v]) => v !== undefined && v !== null && v !== '')
+          .map(([k, v]) => `${k}=${typeof v === 'object' ? JSON.stringify(v) : v}`)
+          .join(', ')
+      : null;
+
   return (
     <div className="mt-3 flex flex-col gap-2 w-full">
+      {/* Bloc dev-only: Scope et requestId */}
+      {isDevMode && updateConfirmation && (
+        <div className="bg-slate-800/50 border border-slate-600/50 rounded-lg p-3 text-xs font-mono">
+          <div className="text-slate-400 mb-2 font-semibold">[DEV] Scope Info</div>
+          <div className="space-y-1 text-slate-300">
+            <div>
+              <span className="text-slate-500">scopeSource:</span>{' '}
+              <span className="text-yellow-400">{updateConfirmation.scopeSource || 'N/A'}</span>
+            </div>
+            <div>
+              <span className="text-slate-500">affectedCount:</span>{' '}
+              <span className="text-blue-400">
+                {updateConfirmation.affectedProjectIds?.length ||
+                  updateConfirmation.affectedProjects?.length ||
+                  0}
+              </span>
+            </div>
+            {filterSummary && (
+              <div>
+                <span className="text-slate-500">filterSummary:</span>{' '}
+                <span className="text-green-400">{filterSummary}</span>
+              </div>
+            )}
+            {updateConfirmation.requestId && (
+              <div>
+                <span className="text-slate-500">requestId:</span>{' '}
+                <span className="text-purple-400">{updateConfirmation.requestId}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Preview Diff avant→après */}
+      {updateConfirmation?.previewDiff && updateConfirmation.previewDiff.length > 0 && (
+        <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-3 text-xs">
+          <div className="text-slate-400 mb-2 font-semibold">Aperçu des changements</div>
+          <div className="space-y-2">
+            {updateConfirmation.previewDiff.map((diff) => (
+              <div key={diff.id} className="bg-slate-800/30 rounded p-2">
+                <div className="text-slate-200 font-medium mb-1">{diff.name}</div>
+                <ul className="list-disc list-inside space-y-0.5 text-slate-300">
+                  {diff.changes.map((change, idx) => (
+                    <li key={idx}>{change}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="flex gap-2">
         <button
           onClick={() =>

@@ -67,6 +67,8 @@ export async function POST(request: NextRequest) {
       // IDs spécifiques des projets à modifier (priorité sur les filtres)
       projectIds,
       scopeSource,
+      // ID de corrélation pour tracer la requête
+      requestId,
       // Filtres pour identifier les projets à modifier
       minProgress,
       maxProgress,
@@ -89,8 +91,10 @@ export async function POST(request: NextRequest) {
       newLabelFinal,
     } = body;
 
-    // Logs des inputs
-    console.log('[Batch Update API] 📥 Inputs reçus:', {
+    // Logs des inputs avec requestId
+    const logPrefix = requestId ? `[${requestId}]` : '';
+    console.log(`[Batch Update API] ${logPrefix} 📥 Inputs reçus:`, {
+      requestId,
       projectIdsCount: projectIds?.length || 0,
       scopeSource: scopeSource || 'filter-based',
       filterSummary: {
@@ -142,7 +146,8 @@ export async function POST(request: NextRequest) {
     // Règle de sécurité : si projectIds est fourni, utiliser les IDs (priorité absolue)
     if (projectIds && Array.isArray(projectIds) && projectIds.length > 0) {
       whereClause.id = { in: projectIds };
-      console.log('[Batch Update API] 🎯 Utilisation des IDs (scope = IDs)', {
+      console.log(`[Batch Update API] ${logPrefix} 🎯 Utilisation des IDs (scope = IDs)`, {
+        requestId,
         projectIdsCount: projectIds.length,
         projectIdsSample: projectIds.slice(0, 3),
       });
@@ -163,7 +168,12 @@ export async function POST(request: NextRequest) {
 
       if (!hasAnyFilter) {
         // Refuser les requêtes sans scope (pas d'IDs, pas de filtre)
-        console.error("[Batch Update API] ❌ Refus: scope vide (pas d'ids, pas de filtre)");
+        console.error(
+          `[Batch Update API] ${logPrefix} ❌ Refus: scope vide (pas d'ids, pas de filtre)`,
+          {
+            requestId,
+          }
+        );
         return createBadRequestResponse(
           "Refus: scope vide (pas d'ids, pas de filtre). Fournissez soit projectIds, soit au moins un filtre."
         );
@@ -272,7 +282,8 @@ export async function POST(request: NextRequest) {
       });
 
       console.log(
-        `[Batch Update API] 📅 Décalage de deadlines: ${projectsToUpdate.length} projet(s) trouvé(s)`
+        `[Batch Update API] ${logPrefix} 📅 Décalage de deadlines: ${projectsToUpdate.length} projet(s) trouvé(s)`,
+        { requestId }
       );
 
       let updatedCount = 0;
@@ -304,7 +315,9 @@ export async function POST(request: NextRequest) {
         updatedCount++;
       }
 
-      console.log(`[Batch Update API] ✅ ${updatedCount} deadline(s) décalée(s)`);
+      console.log(`[Batch Update API] ${logPrefix} ✅ ${updatedCount} deadline(s) décalée(s)`, {
+        requestId,
+      });
 
       // Invalider le cache après modification
       invalidateProjectsCache(session.user.id);
@@ -364,18 +377,32 @@ export async function POST(request: NextRequest) {
       updateData.labelFinal = newLabelFinal;
     }
 
-    console.log('[Batch Update API] 🔍 Clause WHERE finale:', JSON.stringify(whereClause, null, 2));
     console.log(
-      '[Batch Update API] 📝 Données de mise à jour:',
-      JSON.stringify(updateData, null, 2)
+      `[Batch Update API] ${logPrefix} 🔍 Clause WHERE finale:`,
+      JSON.stringify(whereClause, null, 2),
+      {
+        requestId,
+      }
+    );
+    console.log(
+      `[Batch Update API] ${logPrefix} 📝 Données de mise à jour:`,
+      JSON.stringify(updateData, null, 2),
+      { requestId }
     );
 
     // Compter d'abord les projets qui correspondent aux critères
     const countBefore = await prisma.project.count({
       where: whereClause,
     });
-    console.log('[Batch Update API] 📊 Nombre de projets correspondant aux critères:', countBefore);
-    console.log('[Batch Update API] 📊 Requête Prisma résumée:', {
+    console.log(
+      `[Batch Update API] ${logPrefix} 📊 Nombre de projets correspondant aux critères:`,
+      countBefore,
+      {
+        requestId,
+      }
+    );
+    console.log(`[Batch Update API] ${logPrefix} 📊 Requête Prisma résumée:`, {
+      requestId,
       where: projectIds
         ? `id in [${projectIds.length} IDs]`
         : Object.keys(whereClause)
@@ -391,7 +418,8 @@ export async function POST(request: NextRequest) {
       data: updateData,
     });
 
-    console.log('[Batch Update API] ✅ Résultat:', {
+    console.log(`[Batch Update API] ${logPrefix} ✅ Résultat:`, {
+      requestId,
       countUpdated: result.count,
       expectedCount: projectIds ? projectIds.length : countBefore,
       match: projectIds ? result.count === projectIds.length : 'N/A (filter-based)',

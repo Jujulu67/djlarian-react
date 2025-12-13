@@ -86,6 +86,7 @@ export async function handleConfirmUpdate({
     const affectedProjectIds =
       updateConfirmation.affectedProjectIds || updateConfirmation.affectedProjects.map((p) => p.id);
     const detectedCount = affectedProjectIds.length;
+    const requestId = updateConfirmation.requestId;
 
     // Logs avant appel API
     const hasFilterInPayload = Object.keys(filters).some(
@@ -94,7 +95,9 @@ export async function handleConfirmUpdate({
         filters[key as keyof QueryFilters] !== null
     );
 
-    debugLogObject('handleConfirmUpdate', '📤 Avant appel API', {
+    const logPrefix = requestId ? `[${requestId}]` : '';
+    debugLogObject('handleConfirmUpdate', `${logPrefix} 📤 Avant appel API`, {
+      requestId,
       scopeSource: scopeSource || 'unknown',
       affectedProjectIdsCount: detectedCount,
       affectedProjectIdsSample: affectedProjectIds.slice(0, 3),
@@ -109,11 +112,17 @@ export async function handleConfirmUpdate({
 
     const payload: Record<string, unknown> = {};
 
+    // Ajouter requestId si présent
+    if (requestId) {
+      payload.requestId = requestId;
+    }
+
     // Si scope = LastListedIds, utiliser les IDs au lieu des filtres
     if (scopeSource === 'LastListedIds' && affectedProjectIds.length > 0) {
       payload.projectIds = affectedProjectIds;
       payload.scopeSource = 'LastListedIds';
-      debugLogObject('handleConfirmUpdate', '🎯 Utilisation des IDs (LastListedIds)', {
+      debugLogObject('handleConfirmUpdate', `${logPrefix} 🎯 Utilisation des IDs (LastListedIds)`, {
+        requestId,
         projectIdsCount: affectedProjectIds.length,
         projectIdsSample: affectedProjectIds.slice(0, 3),
       });
@@ -158,7 +167,8 @@ export async function handleConfirmUpdate({
 
     // Logs après réponse API
     const mismatch = apiUpdatedCount !== expectedCount;
-    debugLogObject('handleConfirmUpdate', '📥 Après réponse API', {
+    debugLogObject('handleConfirmUpdate', `${logPrefix} 📥 Après réponse API`, {
+      requestId,
       detectedCount: expectedCount,
       apiUpdatedCount,
       mismatch,
