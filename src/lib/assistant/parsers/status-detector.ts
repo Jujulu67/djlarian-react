@@ -235,6 +235,9 @@ export function detectStatusFromQuery(query: string): string | null {
       for (const word of queryWords) {
         if (word.length < 3) continue; // Ignorer les mots trop courts
 
+        // Exclure explicitement "projets" et "projet" pour éviter les faux positifs avec "prod"
+        if (word === 'projets' || word === 'projet') continue;
+
         const distance = levenshteinDistance(word, keywordLower);
         const maxLength = Math.max(word.length, keywordLower.length);
         const similarity = 1 - distance / maxLength;
@@ -250,24 +253,32 @@ export function detectStatusFromQuery(query: string): string | null {
           ];
 
           const prodPatterns = [
-            /pro[ds]+\w*/i, // prod, prods, prosduitss, etc.
+            /\bpro[ds]+\b/i, // prod, prods (mais pas "projets")
+            /\bproduction\b/i, // production
             /praud/i, // praud (fautes de frappe)
             /prau/i, // prau
-            /prod/i, // prod
+            /\bprod\b/i, // prod (mot entier, pas dans "projets")
           ];
 
           // Vérifier toutes les combinaisons
-          for (const ghostPattern of ghostPatterns) {
-            for (const prodPattern of prodPatterns) {
-              if (ghostPattern.test(lowerQuery) && prodPattern.test(lowerQuery)) {
-                const score = 0.8;
-                if (!bestMatch || score > bestMatch.score) {
-                  bestMatch = { status: status.value, score };
-                  console.log(
-                    `[Assistant] Statut détecté par pattern flexible: "${status.value}" (query: "${query}")`
-                  );
-                  return status.value;
-                }
+          // IMPORTANT: Ne pas matcher si c'est juste "projets" (sans "ghost" ou "gost")
+          const hasGhostWord = ghostPatterns.some((p) => p.test(lowerQuery));
+          const hasProdWord = prodPatterns.some((p) => p.test(lowerQuery));
+
+          // Ne détecter que si on a à la fois un pattern "ghost" ET un pattern "prod"
+          // ET que ce n'est pas juste "projets" seul
+          if (hasGhostWord && hasProdWord) {
+            // Vérifier qu'on n'a pas juste "projets" sans "ghost" avant
+            const hasGhostBeforeProd =
+              /(?:ghost|gost|gaus|gasp|gaust)\s*(?:prod|production|praud|prau)/i.test(lowerQuery);
+            if (hasGhostBeforeProd) {
+              const score = 0.8;
+              if (!bestMatch || score > bestMatch.score) {
+                bestMatch = { status: status.value, score };
+                console.log(
+                  `[Assistant] Statut détecté par pattern flexible: "${status.value}" (query: "${query}")`
+                );
+                return status.value;
               }
             }
           }

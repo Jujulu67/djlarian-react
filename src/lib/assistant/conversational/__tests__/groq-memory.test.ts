@@ -232,9 +232,9 @@ describe('System Prompt 8B', () => {
 
   it('le prompt système contient les règles essentielles', () => {
     expect(SYSTEM_PROMPT_8B).toContain('LARIAN');
-    expect(SYSTEM_PROMPT_8B).toContain('CHAT');
-    expect(SYSTEM_PROMPT_8B).toContain('FACT');
-    expect(SYSTEM_PROMPT_8B).toContain('SUMMARY');
+    expect(SYSTEM_PROMPT_8B).toContain('STATUTS');
+    expect(SYSTEM_PROMPT_8B).toContain('EN_COURS');
+    expect(SYSTEM_PROMPT_8B).toContain('FORMAT');
   });
 
   it('buildUserPrompt inclut le mode', () => {

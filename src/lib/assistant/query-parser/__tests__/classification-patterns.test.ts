@@ -262,6 +262,114 @@ describe('Classification des patterns - Batterie de tests', () => {
     });
   });
 
+  describe('🔧 Abréviations et détection améliorée', () => {
+    it('devrait détecter "modifs" (abréviation) comme modification', () => {
+      const lowerQuery = 'modifs les projets terminés'.toLowerCase();
+      const { filters } = detectFilters(
+        'modifs les projets terminés',
+        lowerQuery,
+        availableCollabs,
+        availableStyles
+      );
+      const classification = classifyQuery('modifs les projets terminés', lowerQuery, filters);
+      const result = parseQuery('modifs les projets terminés', availableCollabs, availableStyles);
+
+      expect(classification.isUpdate).toBe(true);
+      expect(classification.isConversationalQuestion).toBe(false);
+      expect(result.type).toBe('update');
+      expect(result.understood).toBe(true);
+    });
+
+    it('devrait détecter "créa" (abréviation) comme création', () => {
+      const lowerQuery = 'créa un projet techno'.toLowerCase();
+      const { filters } = detectFilters(
+        'créa un projet techno',
+        lowerQuery,
+        availableCollabs,
+        availableStyles
+      );
+      const classification = classifyQuery('créa un projet techno', lowerQuery, filters);
+      const result = parseQuery('créa un projet techno', availableCollabs, availableStyles);
+
+      expect(classification.isCreate).toBe(true);
+      expect(classification.isConversationalQuestion).toBe(false);
+      expect(result.type).toBe('create'); // Les créations sont maintenant gérées directement par le parseur
+      expect(classification.understood).toBe(true);
+    });
+
+    it('devrait détecter "liste des projets" comme liste (pas conversationnel)', () => {
+      const lowerQuery = 'liste des projets'.toLowerCase();
+      const { filters } = detectFilters(
+        'liste des projets',
+        lowerQuery,
+        availableCollabs,
+        availableStyles
+      );
+      const classification = classifyQuery('liste des projets', lowerQuery, filters);
+      const result = parseQuery('liste des projets', availableCollabs, availableStyles);
+
+      expect(classification.isList).toBe(true);
+      expect(classification.isConversationalQuestion).toBe(false);
+      expect(result.type).toBe('list');
+      expect(result.understood).toBe(true);
+    });
+
+    it('devrait détecter "et liste des projets" comme liste (pas conversationnel malgré "et")', () => {
+      const lowerQuery = 'et liste des projets'.toLowerCase();
+      const { filters } = detectFilters(
+        'et liste des projets',
+        lowerQuery,
+        availableCollabs,
+        availableStyles
+      );
+      const classification = classifyQuery('et liste des projets', lowerQuery, filters);
+      const result = parseQuery('et liste des projets', availableCollabs, availableStyles);
+
+      expect(classification.isList).toBe(true);
+      expect(classification.isConversationalQuestion).toBe(false);
+      expect(result.type).toBe('list');
+      expect(result.understood).toBe(true);
+    });
+
+    it('devrait détecter "alors liste des projets" comme liste (pas conversationnel malgré "alors")', () => {
+      const lowerQuery = 'alors liste des projets'.toLowerCase();
+      const { filters } = detectFilters(
+        'alors liste des projets',
+        lowerQuery,
+        availableCollabs,
+        availableStyles
+      );
+      const classification = classifyQuery('alors liste des projets', lowerQuery, filters);
+      const result = parseQuery('alors liste des projets', availableCollabs, availableStyles);
+
+      expect(classification.isList).toBe(true);
+      expect(classification.isConversationalQuestion).toBe(false);
+      expect(result.type).toBe('list');
+      expect(result.understood).toBe(true);
+    });
+
+    it('devrait détecter "et modifs les projets" comme modification (pas conversationnel malgré "et")', () => {
+      const lowerQuery = 'et modifs les projets terminés'.toLowerCase();
+      const { filters } = detectFilters(
+        'et modifs les projets terminés',
+        lowerQuery,
+        availableCollabs,
+        availableStyles
+      );
+      const classification = classifyQuery('et modifs les projets terminés', lowerQuery, filters);
+      const result = parseQuery(
+        'et modifs les projets terminés',
+        availableCollabs,
+        availableStyles
+      );
+
+      expect(classification.isUpdate).toBe(true);
+      expect(classification.isConversationalQuestion).toBe(false);
+      expect(result.type).toBe('update');
+      expect(result.understood).toBe(true);
+    });
+  });
+
   describe('💬 Questions CONVERSATIONNELLES (classiques)', () => {
     it('devrait détecter "bonjour comment vas tu" comme conversationnel', () => {
       const lowerQuery = 'bonjour comment vas tu'.toLowerCase();

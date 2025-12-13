@@ -14,9 +14,9 @@
  * - utils/formatMessage.ts, filterProjects.ts, parseQueryWithAI.ts
  */
 
-import { useMemo } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Sparkles, Send, X, Trash2 } from 'lucide-react';
+import { Sparkles, Send, X, Trash2, Maximize2, Minimize2 } from 'lucide-react';
 import type { Project } from '@/components/projects/types';
 
 // Extracted modules
@@ -25,9 +25,12 @@ import { useAssistantChat } from './assistant/hooks/useAssistantChat';
 import { handleConfirmUpdate, handleCancelUpdate } from './assistant/handlers/handleConfirmUpdate';
 import { ProjectResultsView } from './assistant/components/ProjectResultsView';
 import { SimpleTooltip } from './assistant/components/SimpleTooltip';
+import { RichTextRenderer } from './assistant/components/RichTextRenderer';
 
 export function ProjectAssistant({ projects }: ProjectAssistantProps) {
   const router = useRouter();
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const {
     isOpen,
@@ -44,6 +47,49 @@ export function ProjectAssistant({ projects }: ProjectAssistantProps) {
     handleReset,
     handleSubmit,
   } = useAssistantChat({ projects });
+
+  // Focus input when modal opens or loading finishes
+  useEffect(() => {
+    if (isOpen && !isLoading) {
+      // Small delay to ensure render is complete
+      setTimeout(() => inputRef.current?.focus(), 50);
+    }
+  }, [isOpen, isLoading]);
+
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto'; // Reset to calculate correct scrollHeight
+      inputRef.current.style.height = `${Math.min(inputRef.current.scrollHeight, 150)}px`;
+    }
+  }, [input]);
+
+  // Lock body scroll when assistant is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      // Call handleSubmit with a synthetic event
+      handleSubmit(e as unknown as React.FormEvent);
+      // Keep focus
+      setTimeout(() => inputRef.current?.focus(), 10);
+    }
+  };
+
+  const onFormSubmit = (e: React.FormEvent) => {
+    handleSubmit(e);
+    // Keep focus
+    setTimeout(() => inputRef.current?.focus(), 10);
+  };
 
   // Add setLastFilters to hook return, for now we'll define it here
   // This is a workaround since we need to pass it to handleConfirmUpdate
@@ -72,8 +118,17 @@ export function ProjectAssistant({ projects }: ProjectAssistantProps) {
       </button>
 
       {/* Chat Window */}
+      {/* Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-24 right-6 w-[900px] max-w-[calc(100vw-3rem)] z-50 animate-in slide-in-from-bottom-5 fade-in duration-150 glass-modern bg-black/80 backdrop-blur-xl border border-purple-500/30 rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[70vh] max-h-[800px]">
+        <div
+          onClick={(e) => e.stopPropagation()}
+          onWheel={(e) => e.stopPropagation()}
+          className={`fixed z-50 animate-in slide-in-from-bottom-5 fade-in duration-150 bg-neutral-900 border border-purple-500/30 shadow-2xl overflow-hidden flex flex-col transition-all duration-300 overscroll-contain ${
+            isFullScreen
+              ? 'inset-4 w-auto h-auto rounded-2xl'
+              : 'bottom-24 right-6 w-[900px] max-w-[calc(100vw-3rem)] h-[70vh] max-h-[800px] rounded-2xl'
+          }`}
+        >
           {/* Header */}
           <header className="bg-gradient-to-r from-purple-900/50 to-slate-900/50 p-4 border-b border-white/10 flex items-center gap-3 shrink-0">
             <div className="p-2 rounded-lg bg-purple-500/20">
@@ -89,6 +144,14 @@ export function ProjectAssistant({ projects }: ProjectAssistantProps) {
               </span>
             </div>
             <div className="flex items-center gap-1 ml-auto shrink-0">
+              <SimpleTooltip content={isFullScreen ? 'Réduire' : 'Plein écran'}>
+                <button
+                  onClick={() => setIsFullScreen(!isFullScreen)}
+                  className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                >
+                  {isFullScreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                </button>
+              </SimpleTooltip>
               <SimpleTooltip content="Effacer la conversation">
                 <button
                   onClick={handleReset}
@@ -137,23 +200,28 @@ export function ProjectAssistant({ projects }: ProjectAssistantProps) {
           </div>
 
           {/* Input Area */}
+          {/* Input Area */}
           <form
-            onSubmit={handleSubmit}
+            onSubmit={onFormSubmit}
             className="p-4 border-t border-white/10 bg-black/40 backdrop-blur-md"
           >
-            <div className="relative flex items-center">
-              <input
+            <div className="relative flex items-end gap-2">
+              <textarea
+                ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Pose ta question..."
-                className="w-full pl-4 pr-12 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-slate-500 focus:outline-none focus:border-purple-500/50 focus:bg-white/10 transition-all text-sm"
+                onKeyDown={handleKeyDown}
+                placeholder="Pose ta question... (Shift+Enter pour saut de ligne)"
+                className="w-full pl-4 pr-12 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-slate-500 focus:outline-none focus:border-purple-500/50 focus:bg-white/10 transition-all text-sm resize-none custom-scrollbar min-h-[46px] max-h-[150px]"
+                rows={1}
+                style={{ height: 'auto', minHeight: '46px' }}
                 autoFocus
                 disabled={isLoading}
               />
               <button
                 type="submit"
                 disabled={isLoading || !input.trim()}
-                className="absolute right-2 p-2 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 text-white opacity-90 hover:opacity-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-purple-900/20"
+                className="mb-1 p-2 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 text-white opacity-90 hover:opacity-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-purple-900/20 shrink-0"
                 aria-label="Envoyer"
               >
                 <Send size={16} />
@@ -267,10 +335,10 @@ function MessageBubble({
           className={`px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm ${
             msg.role === 'user'
               ? 'bg-gradient-to-br from-purple-600 to-blue-600 text-white rounded-tr-sm'
-              : 'glass-modern bg-white/5 text-slate-200 rounded-tl-sm border border-white/10'
+              : 'bg-white/10 backdrop-blur-md text-slate-200 rounded-tl-sm border border-white/20 shadow-md shadow-black/10'
           }`}
         >
-          <p className="whitespace-pre-wrap">{msg.content}</p>
+          <RichTextRenderer content={msg.content} />
         </div>
 
         {/* Rich content (project cards) */}

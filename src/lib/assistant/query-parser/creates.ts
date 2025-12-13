@@ -107,21 +107,36 @@ export function extractCreateData(
 
   // Essayer différents patterns pour trouver le nom
   const namePatterns = [
-    /(?:projet|project)\s+/i,
-    /(?:ajoute|ajouter|créer|créé|add|create)\s+(?:le\s+)?(?:projet\s+)?/i,
-    /nouveau\s+projet\s+/i,
-    /new\s+project\s+/i,
+    // Pattern le plus spécifique en premier : "ajoute le projet X" ou "créer le projet X"
+    /(?:ajoute|ajouter|créer|créé|add|create)\s+(?:le\s+)?(?:projet\s+)?([A-Za-z0-9_\s]+?)(?:\s+(?:en\s+collab|collab|avec|deadline|avancé|avance|progress|progression|il\s+est|c['']?est|it\s+is|it['']?s|status|statut)|$)/i,
+    // Pattern avec "projet" explicite
+    /(?:projet|project)\s+([A-Za-z0-9_\s]+?)(?:\s+(?:en\s+collab|collab|avec|deadline|avancé|avance|progress|progression|il\s+est|c['']?est|it\s+is|it['']?s|status|statut)|$)/i,
+    // Pattern "nouveau projet X"
+    /nouveau\s+projet\s+([A-Za-z0-9_\s]+?)(?:\s+(?:en\s+collab|collab|avec|deadline|avancé|avance|progress|progression|il\s+est|c['']?est|it\s+is|it['']?s|status|statut)|$)/i,
+    // Pattern "new project X"
+    /new\s+project\s+([A-Za-z0-9_\s]+?)(?:\s+(?:en\s+collab|collab|avec|deadline|avancé|avance|progress|progression|il\s+est|c['']?est|it\s+is|it['']?s|status|statut)|$)/i,
   ];
 
   for (const pattern of namePatterns) {
-    const name = extractNameWithStopWords(query, pattern);
-    if (name) {
-      createData.name = name;
-      break;
+    const match = query.match(pattern);
+    if (match && match[1]) {
+      const potentialName = match[1].trim();
+      // Vérifier que ce n'est pas un mot-clé ignoré
+      const ignoredWords = ['le', 'la', 'les', 'un', 'une', 'projet', 'project', 'nouveau', 'new'];
+      if (potentialName && !ignoredWords.includes(potentialName.toLowerCase())) {
+        createData.name = potentialName;
+        console.log(
+          '[Parse Query API] ✅ Nom extrait avec pattern:',
+          pattern,
+          '→',
+          createData.name
+        );
+        break;
+      }
     }
   }
 
-  // Si pas de nom trouvé, essayer un pattern simple (un seul mot)
+  // Si pas de nom trouvé, essayer un pattern simple (un seul mot après "ajoute le projet")
   if (!createData.name) {
     const simplePattern =
       /(?:ajoute|ajouter|créer|créé|add|create)\s+(?:le\s+)?(?:projet\s+)?([A-Za-z0-9_]+)(?:\s|$)/i;
@@ -131,6 +146,7 @@ export function extractCreateData(
       const ignoredWords = ['le', 'la', 'les', 'un', 'une', 'projet', 'project', 'nouveau', 'new'];
       if (!ignoredWords.includes(potentialName.toLowerCase())) {
         createData.name = potentialName;
+        console.log('[Parse Query API] ✅ Nom extrait avec pattern simple →', createData.name);
       }
     }
   }
