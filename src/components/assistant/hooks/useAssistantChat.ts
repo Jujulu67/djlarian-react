@@ -258,6 +258,7 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
                   requestId: result.pendingAction.requestId || result.requestId,
                   previewDiff: result.pendingAction.previewDiff,
                   confirmationId, // ID unique pour l'idempotency
+                  expectedUpdatedAtById: result.pendingAction.expectedUpdatedAtById,
                 },
               },
             ]);

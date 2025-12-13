@@ -35,6 +35,7 @@ export interface Message {
     requestId?: string;
     previewDiff?: Array<{ id: string; name: string; changes: string[] }>;
     confirmationId?: string; // ID unique pour l'idempotency (évite les doubles mutations)
+    expectedUpdatedAtById?: Record<string, string>; // Mapping ID projet → updatedAt attendu (ISO string) pour vérification concurrency optimiste
   };
   scopeConfirmation?: {
     proposedMutation: UpdateData;
