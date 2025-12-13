@@ -71,13 +71,6 @@ const nextConfig: NextConfig = {
   turbopack: {},
   // Configuration webpack conservée pour compatibilité si --webpack est utilisé explicitement
   webpack: (config, { isServer }) => {
-    // Ajouter l'alias @old pour pointer vers OLD/src/
-    config.resolve = config.resolve || {};
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      '@old': require('path').resolve(__dirname, 'OLD/src'),
-    };
-
     if (isServer) {
       // Marquer @prisma/client et .prisma/client comme externes
       // Cela empêche Next.js de bundler/compiler les fichiers TypeScript de Prisma
