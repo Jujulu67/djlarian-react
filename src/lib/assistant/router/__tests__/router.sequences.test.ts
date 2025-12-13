@@ -5,31 +5,18 @@
  * Scénarios: LIST → UPDATE, LIST filtré → UPDATE, etc.
  */
 
+// Import des mocks partagés AVANT les autres imports
+import './router-test-mocks';
+
 import { routeProjectCommand } from '../router';
 import { ProjectCommandType } from '../types';
 import type { Project } from '@/components/projects/types';
-import { createProjectsDataset, expectUniqueProjectIds } from './test-project-factory';
-
-// Mock des dépendances
-jest.mock('../../query-parser/filters', () => ({
-  detectFilters: jest.fn(),
-}));
-
-jest.mock('../../query-parser/classifier', () => ({
-  classifyQuery: jest.fn(),
-}));
-
-jest.mock('../../query-parser/updates', () => ({
-  extractUpdateData: jest.fn(),
-}));
-
-jest.mock('@/components/assistant/utils/filterProjects', () => ({
-  filterProjects: jest.fn(),
-}));
-
-jest.mock('../../conversational/groq-responder', () => ({
-  getConversationalResponse: jest.fn(),
-}));
+import {
+  resetTestProjectFactory,
+  createProjectsDataset,
+  expectUniqueProjectIds,
+  createTestProject,
+} from './test-project-factory';
 
 import { detectFilters } from '../../query-parser/filters';
 import { classifyQuery } from '../../query-parser/classifier';
@@ -78,19 +65,32 @@ function createMockClassification(overrides: Partial<any> = {}) {
 describe('Router - Séquences réalistes (stateful)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    resetTestProjectFactory();
   });
 
   describe('LIST filtré → UPDATE "leur progression"', () => {
     it('devrait utiliser LastListedIds après un listing filtré', async () => {
-      const dataset = createProjectsDataset();
-      const projects = dataset.all.filter((p) => p.status === 'TERMINE').slice(0, 20);
-      expectUniqueProjectIds(projects);
+      // Créer un dataset avec suffisamment de projets TERMINE
+      const terminatedProjects: Project[] = [];
+      for (let i = 0; i < 15; i++) {
+        terminatedProjects.push(
+          createTestProject({
+            status: 'TERMINE',
+            progress: 100,
+          })
+        );
+      }
+      expectUniqueProjectIds(terminatedProjects);
 
-      // Étape 1: LIST filtré (terminés)
-      const listedIds = projects.slice(0, 15).map((p) => p.id);
-      const mockContext = createContextWithWorkingSet(createMockContext(projects), listedIds, {
-        status: 'TERMINE',
-      });
+      // Étape 1: LIST filtré (terminés) - tous les 15 projets sont listés
+      const listedIds = terminatedProjects.map((p) => p.id);
+      const mockContext = createContextWithWorkingSet(
+        createMockContext(terminatedProjects),
+        listedIds,
+        {
+          status: 'TERMINE',
+        }
+      );
 
       mockDetectFilters.mockReturnValueOnce({
         filters: {},
@@ -108,8 +108,9 @@ describe('Router - Séquences réalistes (stateful)', () => {
       mockExtractUpdateData.mockReturnValueOnce({
         newProgress: 40,
       });
+      // Le router filtre les projets par lastListedProjectIds, donc on doit retourner tous les projets listés
       mockFilterProjects.mockReturnValueOnce({
-        filtered: projects.slice(0, 15),
+        filtered: terminatedProjects, // Tous les projets listés
         nullProgressCount: 0,
         hasProgressFilter: false,
       });
@@ -130,14 +131,27 @@ describe('Router - Séquences réalistes (stateful)', () => {
 
   describe('LIST collab → push deadline "leur deadline"', () => {
     it('devrait utiliser LastListedIds après un listing par collab', async () => {
-      const dataset = createProjectsDataset();
-      const projects = dataset.all.filter((p) => p.collab === 'hoho').slice(0, 20);
-      expectUniqueProjectIds(projects);
+      // Créer un dataset avec suffisamment de projets avec collab 'hoho' et deadline
+      const projectsWithCollab: Project[] = [];
+      for (let i = 0; i < 17; i++) {
+        projectsWithCollab.push(
+          createTestProject({
+            collab: 'hoho',
+            deadline: '2024-12-31',
+            status: 'EN_COURS',
+          })
+        );
+      }
+      expectUniqueProjectIds(projectsWithCollab);
 
-      const listedIds = projects.slice(0, 17).map((p) => p.id);
-      const mockContext = createContextWithWorkingSet(createMockContext(projects), listedIds, {
-        collab: 'hoho',
-      });
+      const listedIds = projectsWithCollab.map((p) => p.id);
+      const mockContext = createContextWithWorkingSet(
+        createMockContext(projectsWithCollab),
+        listedIds,
+        {
+          collab: 'hoho',
+        }
+      );
 
       mockDetectFilters.mockReturnValueOnce({
         filters: {},
@@ -155,8 +169,9 @@ describe('Router - Séquences réalistes (stateful)', () => {
       mockExtractUpdateData.mockReturnValueOnce({
         pushDeadlineBy: { months: 1 },
       });
+      // Le router filtre les projets par lastListedProjectIds
       mockFilterProjects.mockReturnValueOnce({
-        filtered: projects.slice(0, 17),
+        filtered: projectsWithCollab, // Tous les projets listés
         nullProgressCount: 0,
         hasProgressFilter: false,
       });

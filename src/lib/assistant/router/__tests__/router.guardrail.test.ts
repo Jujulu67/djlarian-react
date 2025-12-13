@@ -5,31 +5,17 @@
  * qui sort du LastListedIds (hors scope_missing).
  */
 
+// Import des mocks partagés AVANT les autres imports
+import './router-test-mocks';
+
 import { routeProjectCommand } from '../router';
 import { ProjectCommandType } from '../types';
 import type { Project } from '@/components/projects/types';
-import { createProjectsDataset, expectUniqueProjectIds } from './test-project-factory';
-
-// Mock des dépendances
-jest.mock('../../query-parser/filters', () => ({
-  detectFilters: jest.fn(),
-}));
-
-jest.mock('../../query-parser/classifier', () => ({
-  classifyQuery: jest.fn(),
-}));
-
-jest.mock('../../query-parser/updates', () => ({
-  extractUpdateData: jest.fn(),
-}));
-
-jest.mock('@/components/assistant/utils/filterProjects', () => ({
-  filterProjects: jest.fn(),
-}));
-
-jest.mock('../../conversational/groq-responder', () => ({
-  getConversationalResponse: jest.fn(),
-}));
+import {
+  resetTestProjectFactory,
+  createProjectsDataset,
+  expectUniqueProjectIds,
+} from './test-project-factory';
 
 import { detectFilters } from '../../query-parser/filters';
 import { classifyQuery } from '../../query-parser/classifier';
@@ -78,6 +64,7 @@ function createMockClassification(overrides: Partial<any> = {}) {
 describe('Router - Garde-fou anti scope explosion', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    resetTestProjectFactory();
   });
 
   it('devrait refuser une mutation sans filtre explicite qui sort du LastListedIds', async () => {
@@ -147,7 +134,7 @@ describe('Router - Garde-fou anti scope explosion', () => {
     const mockContext = createContextWithWorkingSet(
       createMockContext(projects),
       [], // Pas de listing précédent
-      {}
+      {} // Pas de filtre appliqué
     );
 
     // Mutation sans filtre explicite et sans listing
@@ -177,8 +164,14 @@ describe('Router - Garde-fou anti scope explosion', () => {
       context: mockContext,
     });
 
-    // Si pas de listing précédent, scope_missing est acceptable
-    // (sera géré par le router avec confirmation scope_missing)
-    expect(updateResult.type).toBe(ProjectCommandType.UPDATE);
+    // Si pas de listing précédent, le router doit retourner GENERAL avec scope_missing
+    // (pas de fallback automatique AllProjects)
+    expect(updateResult.type).toBe(ProjectCommandType.GENERAL);
+    if (updateResult.type === ProjectCommandType.GENERAL) {
+      expect(updateResult.confirmationType).toBe('scope_missing');
+      expect(updateResult.proposedMutation).toBeDefined();
+      expect(updateResult.proposedMutation?.newProgress).toBe(40);
+      expect(updateResult.totalProjectsCount).toBe(projects.length);
+    }
   });
 });
