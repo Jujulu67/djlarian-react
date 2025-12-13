@@ -18,6 +18,11 @@ import { useMemo, useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sparkles, Send, X, Trash2, Maximize2, Minimize2 } from 'lucide-react';
 import type { Project } from '@/components/projects/types';
+import { resetAssistantServiceCache } from '@/lib/assistant/factory';
+import {
+  getAssistantVersion as getVersion,
+  setAssistantVersion as setVersion,
+} from '@/lib/assistant/version-selector';
 
 // Extracted modules
 import type { ProjectAssistantProps, QueryFilters } from './assistant/types';
@@ -31,6 +36,12 @@ export function ProjectAssistant({ projects }: ProjectAssistantProps) {
   const router = useRouter();
   const [isFullScreen, setIsFullScreen] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [assistantVersion, setAssistantVersionState] = useState<'old' | 'new'>(() => {
+    if (typeof window !== 'undefined') {
+      return getVersion();
+    }
+    return 'new';
+  });
 
   const {
     isOpen,
@@ -144,6 +155,33 @@ export function ProjectAssistant({ projects }: ProjectAssistantProps) {
               </span>
             </div>
             <div className="flex items-center gap-1 ml-auto shrink-0">
+              {/* Version Toggle */}
+              <SimpleTooltip
+                content={
+                  assistantVersion === 'old'
+                    ? 'Version OLD (monolithique) - Cliquer pour basculer vers NEW'
+                    : 'Version NEW (refactorée) - Cliquer pour basculer vers OLD'
+                }
+              >
+                <button
+                  onClick={() => {
+                    const newVersion = assistantVersion === 'old' ? 'new' : 'old';
+                    setVersion(newVersion);
+                    setAssistantVersionState(newVersion);
+                    resetAssistantServiceCache();
+                    // Optionnel: recharger la page pour s'assurer que tout est bien rechargé
+                    // window.location.reload();
+                  }}
+                  className={`px-2.5 py-1.5 text-xs font-medium rounded-md transition-colors border ${
+                    assistantVersion === 'old'
+                      ? 'bg-orange-500/20 text-orange-300 border-orange-500/30 hover:bg-orange-500/30'
+                      : 'bg-green-500/20 text-green-300 border-green-500/30 hover:bg-green-500/30'
+                  }`}
+                  title={`Version: ${assistantVersion.toUpperCase()}`}
+                >
+                  {assistantVersion === 'old' ? 'OLD' : 'NEW'}
+                </button>
+              </SimpleTooltip>
               <SimpleTooltip content={isFullScreen ? 'Réduire' : 'Plein écran'}>
                 <button
                   onClick={() => setIsFullScreen(!isFullScreen)}

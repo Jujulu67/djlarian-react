@@ -7,6 +7,7 @@
 import type { Project } from '@/components/projects/types';
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import type { Message, QueryFilters, UpdateData } from '../types';
+import { debugLogObject, isAssistantDebugEnabled } from '@/lib/assistant/utils/debug';
 
 interface HandleConfirmUpdateParams {
   msg: Message;
@@ -80,14 +81,55 @@ export async function handleConfirmUpdate({
     }
 
     // Normal case: batch update
+    const updateConfirmation = msg.updateConfirmation!;
+    const scopeSource = updateConfirmation.scopeSource;
+    const affectedProjectIds =
+      updateConfirmation.affectedProjectIds || updateConfirmation.affectedProjects.map((p) => p.id);
+    const detectedCount = affectedProjectIds.length;
+
+    // Logs avant appel API
+    const hasFilterInPayload = Object.keys(filters).some(
+      (key) =>
+        filters[key as keyof QueryFilters] !== undefined &&
+        filters[key as keyof QueryFilters] !== null
+    );
+
+    debugLogObject('handleConfirmUpdate', '📤 Avant appel API', {
+      scopeSource: scopeSource || 'unknown',
+      affectedProjectIdsCount: detectedCount,
+      affectedProjectIdsSample: affectedProjectIds.slice(0, 3),
+      payloadSummary: {
+        progress: updateData.newProgress,
+        status: updateData.newStatus,
+        deadline: updateData.newDeadline,
+        note: updateData.newNote ? 'present' : undefined,
+      },
+      hasFilterInPayload,
+    });
+
     const payload: Record<string, unknown> = {};
 
-    // Add filters
-    if (filters.minProgress !== undefined) payload.minProgress = filters.minProgress;
-    if (filters.maxProgress !== undefined) payload.maxProgress = filters.maxProgress;
-    if (filters.status) payload.status = filters.status;
-    if (filters.hasDeadline !== undefined) payload.hasDeadline = filters.hasDeadline;
-    if (filters.noProgress) payload.noProgress = true;
+    // Si scope = LastListedIds, utiliser les IDs au lieu des filtres
+    if (scopeSource === 'LastListedIds' && affectedProjectIds.length > 0) {
+      payload.projectIds = affectedProjectIds;
+      payload.scopeSource = 'LastListedIds';
+      debugLogObject('handleConfirmUpdate', '🎯 Utilisation des IDs (LastListedIds)', {
+        projectIdsCount: affectedProjectIds.length,
+        projectIdsSample: affectedProjectIds.slice(0, 3),
+      });
+    } else {
+      // Sinon, utiliser les filtres (comportement existant)
+      // Add filters
+      if (filters.minProgress !== undefined) payload.minProgress = filters.minProgress;
+      if (filters.maxProgress !== undefined) payload.maxProgress = filters.maxProgress;
+      if (filters.status) payload.status = filters.status;
+      if (filters.hasDeadline !== undefined) payload.hasDeadline = filters.hasDeadline;
+      if (filters.noProgress) payload.noProgress = true;
+      if (filters.collab) payload.collab = filters.collab;
+      if (filters.style) payload.style = filters.style;
+      if (filters.label) payload.label = filters.label;
+      if (filters.labelFinal) payload.labelFinal = filters.labelFinal;
+    }
 
     // Add new values
     if (updateData.newProgress !== undefined) payload.newProgress = updateData.newProgress;
@@ -111,15 +153,45 @@ export async function handleConfirmUpdate({
     }
 
     const result = await response.json();
-    const modifiedCount = result.data?.count || 0;
-    const expectedCount = msg.updateConfirmation!.affectedProjects.length;
+    const apiUpdatedCount = result.data?.count || 0;
+    const expectedCount = detectedCount;
+
+    // Logs après réponse API
+    const mismatch = apiUpdatedCount !== expectedCount;
+    debugLogObject('handleConfirmUpdate', '📥 Après réponse API', {
+      detectedCount: expectedCount,
+      apiUpdatedCount,
+      mismatch,
+      mismatchDetails: mismatch
+        ? {
+            expected: expectedCount,
+            actual: apiUpdatedCount,
+            difference: apiUpdatedCount - expectedCount,
+          }
+        : undefined,
+    });
+
+    // Afficher un warning visible en UI si mismatch (dev only)
+    if (mismatch && isAssistantDebugEnabled()) {
+      console.error(
+        `[handleConfirmUpdate] ⚠️ MISMATCH DÉTECTÉ: ${expectedCount} projets détectés, ${apiUpdatedCount} projets modifiés par l'API`
+      );
+      // Ajouter un warning dans le message
+      const warningMessage = `⚠️ [DEBUG] Mismatch détecté: ${expectedCount} détectés, ${apiUpdatedCount} modifiés`;
+      console.error(warningMessage);
+    }
 
     let successMessage =
-      modifiedCount > 0
-        ? modifiedCount !== expectedCount
-          ? `✅ ${modifiedCount} projet(s) modifié(s) avec succès ! (${expectedCount} détecté(s), ${modifiedCount} modifié(s))`
-          : `✅ ${modifiedCount} projet(s) modifié(s) avec succès !`
+      apiUpdatedCount > 0
+        ? apiUpdatedCount !== expectedCount
+          ? `✅ ${apiUpdatedCount} projet(s) modifié(s) avec succès ! (${expectedCount} détecté(s), ${apiUpdatedCount} modifié(s))`
+          : `✅ ${apiUpdatedCount} projet(s) modifié(s) avec succès !`
         : "Aucun projet n'a été modifié.";
+
+    // Si mismatch, ajouter un avertissement visible
+    if (mismatch && isAssistantDebugEnabled()) {
+      successMessage += `\n\n⚠️ [DEBUG] Mismatch: ${expectedCount} détectés, ${apiUpdatedCount} modifiés`;
+    }
 
     // Update lastFilters
     const newLastFilters: QueryFilters = {};
@@ -166,6 +238,16 @@ export async function handleConfirmUpdate({
     });
 
     // Update message with success
+    // Utiliser les fieldsToShow du routeur si disponibles, sinon par défaut
+    const fieldsToShow = msg.updateConfirmation?.fieldsToShow || [
+      'status',
+      'progress',
+      'collab',
+      'releaseDate',
+      'deadline',
+      'style',
+    ];
+
     setMessages((prev) =>
       prev.map((m, i) =>
         i === idx
@@ -175,7 +257,7 @@ export async function handleConfirmUpdate({
               data: {
                 projects: updatedProjects as Project[],
                 type: 'update',
-                fieldsToShow: ['status', 'progress', 'collab', 'releaseDate', 'deadline', 'style'],
+                fieldsToShow,
               },
               updateConfirmation: undefined,
             }

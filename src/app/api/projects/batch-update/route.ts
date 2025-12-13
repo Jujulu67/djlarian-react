@@ -64,6 +64,9 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const {
+      // IDs spécifiques des projets à modifier (priorité sur les filtres)
+      projectIds,
+      scopeSource,
       // Filtres pour identifier les projets à modifier
       minProgress,
       maxProgress,
@@ -85,6 +88,33 @@ export async function POST(request: NextRequest) {
       newLabel,
       newLabelFinal,
     } = body;
+
+    // Logs des inputs
+    console.log('[Batch Update API] 📥 Inputs reçus:', {
+      projectIdsCount: projectIds?.length || 0,
+      scopeSource: scopeSource || 'filter-based',
+      filterSummary: {
+        minProgress,
+        maxProgress,
+        status,
+        hasDeadline,
+        noProgress,
+        collab,
+        style,
+        label,
+        labelFinal,
+      },
+      mutationSummary: {
+        newProgress,
+        newStatus,
+        newDeadline,
+        pushDeadlineBy,
+        newCollab,
+        newStyle,
+        newLabel,
+        newLabelFinal,
+      },
+    });
 
     // Vérifier qu'il y a au moins une modification à faire
     // null est une valeur valide pour newDeadline (indique la suppression)
@@ -109,87 +139,97 @@ export async function POST(request: NextRequest) {
       userId: session.user.id,
     };
 
-    console.log('[Batch Update API] 📥 Paramètres reçus:', {
-      minProgress,
-      maxProgress,
-      status,
-      hasDeadline,
-      deadlineDate,
-      noProgress,
-      collab,
-      style,
-      label,
-      labelFinal,
-      newProgress,
-      newStatus,
-      newDeadline,
-      pushDeadlineBy,
-      newCollab,
-      newStyle,
-      newLabel,
-      newLabelFinal,
-    });
+    // Règle de sécurité : si projectIds est fourni, utiliser les IDs (priorité absolue)
+    if (projectIds && Array.isArray(projectIds) && projectIds.length > 0) {
+      whereClause.id = { in: projectIds };
+      console.log('[Batch Update API] 🎯 Utilisation des IDs (scope = IDs)', {
+        projectIdsCount: projectIds.length,
+        projectIdsSample: projectIds.slice(0, 3),
+      });
+    } else {
+      // Sinon, construire le where à partir des filtres
+      // Vérifier qu'il y a au moins un filtre non vide
+      const hasAnyFilter =
+        minProgress !== undefined ||
+        maxProgress !== undefined ||
+        status ||
+        hasDeadline !== undefined ||
+        deadlineDate ||
+        noProgress !== undefined ||
+        collab ||
+        style ||
+        label ||
+        labelFinal;
 
-    // Filtre pour les projets sans progression (doit être vérifié en premier)
-    if (noProgress === true) {
-      whereClause.progress = null;
-      console.log('[Batch Update API] 🔍 Filtre noProgress activé');
-    } else if (minProgress !== undefined || maxProgress !== undefined) {
-      // Filtres de progression (seulement si noProgress n'est pas activé)
-      whereClause.progress = {};
-      if (minProgress !== undefined) {
-        whereClause.progress.gte = minProgress;
+      if (!hasAnyFilter) {
+        // Refuser les requêtes sans scope (pas d'IDs, pas de filtre)
+        console.error("[Batch Update API] ❌ Refus: scope vide (pas d'ids, pas de filtre)");
+        return createBadRequestResponse(
+          "Refus: scope vide (pas d'ids, pas de filtre). Fournissez soit projectIds, soit au moins un filtre."
+        );
       }
-      if (maxProgress !== undefined) {
-        whereClause.progress.lte = maxProgress;
+
+      // Filtre pour les projets sans progression (doit être vérifié en premier)
+      if (noProgress === true) {
+        whereClause.progress = null;
+        console.log('[Batch Update API] 🔍 Filtre noProgress activé');
+      } else if (minProgress !== undefined || maxProgress !== undefined) {
+        // Filtres de progression (seulement si noProgress n'est pas activé)
+        whereClause.progress = {};
+        if (minProgress !== undefined) {
+          whereClause.progress.gte = minProgress;
+        }
+        if (maxProgress !== undefined) {
+          whereClause.progress.lte = maxProgress;
+        }
+        console.log('[Batch Update API] 🔍 Filtres de progression:', whereClause.progress);
       }
-      console.log('[Batch Update API] 🔍 Filtres de progression:', whereClause.progress);
-    }
 
-    // Filtre par statut
-    if (status) {
-      whereClause.status = status;
-      console.log('[Batch Update API] 🔍 Filtre statut:', status);
-    }
-
-    // Filtre par deadline
-    if (hasDeadline !== undefined) {
-      if (hasDeadline) {
-        whereClause.deadline = { not: null };
-      } else {
-        whereClause.deadline = null;
+      // Filtre par statut
+      if (status) {
+        whereClause.status = status;
+        console.log('[Batch Update API] 🔍 Filtre statut:', status);
       }
-    }
 
-    if (deadlineDate) {
-      const dateObj = new Date(deadlineDate);
-      if (!isNaN(dateObj.getTime())) {
-        whereClause.deadline = dateObj.toISOString().split('T')[0];
+      // Filtre par deadline
+      if (hasDeadline !== undefined) {
+        if (hasDeadline) {
+          whereClause.deadline = { not: null };
+        } else {
+          whereClause.deadline = null;
+        }
       }
-    }
 
-    // Filtre par collaborateur
-    if (collab) {
-      whereClause.collab = collab;
-      console.log('[Batch Update API] 🔍 Filtre collaborateur:', collab);
-    }
+      if (deadlineDate) {
+        const dateObj = new Date(deadlineDate);
+        if (!isNaN(dateObj.getTime())) {
+          whereClause.deadline = dateObj.toISOString().split('T')[0];
+        }
+      }
 
-    // Filtre par style
-    if (style) {
-      whereClause.style = style;
-      console.log('[Batch Update API] 🔍 Filtre style:', style);
-    }
+      // Filtre par collaborateur
+      if (collab) {
+        whereClause.collab = collab;
+        console.log('[Batch Update API] 🔍 Filtre collaborateur:', collab);
+      }
 
-    // Filtre par label
-    if (label) {
-      whereClause.label = label;
-      console.log('[Batch Update API] 🔍 Filtre label:', label);
-    }
+      // Filtre par style
+      if (style) {
+        whereClause.style = style;
+        console.log('[Batch Update API] 🔍 Filtre style:', style);
+      }
 
-    // Filtre par label final
-    if (labelFinal) {
-      whereClause.labelFinal = labelFinal;
-      console.log('[Batch Update API] 🔍 Filtre labelFinal:', labelFinal);
+      // Filtre par label
+      if (label) {
+        whereClause.label = label;
+        console.log('[Batch Update API] 🔍 Filtre label:', label);
+      }
+
+      // Filtre par label final
+      if (labelFinal) {
+        whereClause.labelFinal = labelFinal;
+        console.log('[Batch Update API] 🔍 Filtre labelFinal:', labelFinal);
+      }
     }
 
     // Construire les données de mise à jour
@@ -335,6 +375,15 @@ export async function POST(request: NextRequest) {
       where: whereClause,
     });
     console.log('[Batch Update API] 📊 Nombre de projets correspondant aux critères:', countBefore);
+    console.log('[Batch Update API] 📊 Requête Prisma résumée:', {
+      where: projectIds
+        ? `id in [${projectIds.length} IDs]`
+        : Object.keys(whereClause)
+            .filter((k) => k !== 'userId')
+            .map((k) => `${k}: ${JSON.stringify(whereClause[k])}`)
+            .join(', ') || 'userId only',
+      dataKeys: Object.keys(updateData),
+    });
 
     // Exécuter la mise à jour
     const result = await prisma.project.updateMany({
@@ -342,7 +391,11 @@ export async function POST(request: NextRequest) {
       data: updateData,
     });
 
-    console.log('[Batch Update API] ✅ Projets modifiés:', result.count);
+    console.log('[Batch Update API] ✅ Résultat:', {
+      countUpdated: result.count,
+      expectedCount: projectIds ? projectIds.length : countBefore,
+      match: projectIds ? result.count === projectIds.length : 'N/A (filter-based)',
+    });
 
     // Invalider le cache après modification
     invalidateProjectsCache(session.user.id);

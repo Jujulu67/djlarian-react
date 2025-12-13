@@ -7,8 +7,9 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Project } from '@/components/projects/types';
-import { processProjectCommand } from '@/app/actions/assistant';
+import { getAssistantService } from '@/lib/assistant/factory';
 import type { Message } from '../types';
+import { debugLog, isAssistantDebugEnabled } from '@/lib/assistant/utils/debug';
 
 export interface UseAssistantChatOptions {
   projects: Project[];
@@ -47,6 +48,11 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
   >([]);
   const [localProjects, setLocalProjects] = useState<Project[]>(projects);
   const localProjectsRef = useRef<Project[]>(projects);
+  // Mémoire de travail pour le routeur NEW
+  const lastAppliedFilterRef = useRef<
+    import('@/lib/assistant/router/types').ProjectFilter | undefined
+  >(undefined);
+  const lastListedProjectIdsRef = useRef<string[] | undefined>(undefined);
 
   // Sync with props
   useEffect(() => {
@@ -79,6 +85,8 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
     setLastFilters(null);
     setLastResults([]);
     setConversationHistory([]);
+    lastAppliedFilterRef.current = undefined;
+    lastListedProjectIdsRef.current = undefined;
   }, []);
 
   const handleSubmit = useCallback(
@@ -96,8 +104,167 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
       try {
         console.log('[Assistant] 📝 Question reçue:', currentInput);
 
-        // Use the Server Action directly
-        const response = await processProjectCommand(currentInput);
+        // Vérifier la version sélectionnée
+        const { getAssistantVersion } = await import('@/lib/assistant/version-selector');
+        const version = getAssistantVersion();
+
+        // Si version NEW : utiliser le routeur côté client (0 DB pour listing)
+        if (version === 'new') {
+          // Logs avant appel routeur (debug)
+          debugLog('hook', '📤 Avant appel routeur', {
+            message: currentInput.substring(0, 100),
+            projectsCount: localProjectsRef.current.length,
+            lastListedProjectIdsCount: lastListedProjectIdsRef.current?.length || 0,
+            lastAppliedFilter: lastAppliedFilterRef.current,
+            contextPassed: {
+              lastListedProjectIds: lastListedProjectIdsRef.current?.slice(0, 5) || [], // Afficher seulement les 5 premiers
+              lastAppliedFilterSummary: lastAppliedFilterRef.current
+                ? Object.keys(lastAppliedFilterRef.current).filter(
+                    (k) =>
+                      lastAppliedFilterRef.current?.[k as keyof typeof lastAppliedFilterRef.current]
+                  )
+                : [],
+            },
+          });
+
+          const { routeProjectCommandClient } =
+            await import('@/lib/assistant/router/client-router');
+          const result = await routeProjectCommandClient(currentInput, localProjectsRef.current, {
+            conversationHistory,
+            lastFilters,
+            lastAppliedFilter: lastAppliedFilterRef.current,
+            lastListedProjectIds: lastListedProjectIdsRef.current,
+          });
+
+          // Traiter le résultat selon le type
+          if (result.type === 'list') {
+            // Listing : tout est fait côté client, pas d'appel serveur
+            // Stocker la mémoire de travail pour les prochaines commandes
+            lastAppliedFilterRef.current = result.appliedFilter;
+            lastListedProjectIdsRef.current = result.listedProjectIds;
+
+            // Logs de debug pour la mémoire de travail
+            debugLog('hook', '📋 LIST résultat - Mémoire de travail stockée', {
+              listedProjectIdsCount: result.listedProjectIds.length,
+              appliedFilter: result.appliedFilter,
+              projectsCount: result.projects.length,
+            });
+
+            setMessages((prev) => [
+              ...prev,
+              {
+                role: 'assistant',
+                content: result.message,
+                timestamp: new Date(),
+                data: {
+                  projects: result.projects,
+                  type: 'list',
+                  fieldsToShow: result.fieldsToShow,
+                },
+              },
+            ]);
+          } else if (result.type === 'create') {
+            // Création : appeler l'API serveur pour persister
+            const createData = result.createData || {
+              name: result.project.name,
+              status: result.project.status,
+              progress: result.project.progress,
+              collab: result.project.collab,
+              style: result.project.style,
+              deadline:
+                result.project.deadline && typeof result.project.deadline !== 'string'
+                  ? (result.project.deadline as Date).toISOString().split('T')[0]
+                  : (result.project.deadline as string | null | undefined),
+            };
+
+            const createPayload = {
+              name: createData.name,
+              status: createData.status || 'EN_COURS',
+              progress: createData.progress,
+              collab: createData.collab,
+              style: createData.style,
+              deadline: createData.deadline,
+            };
+
+            const createResponse = await fetch('/api/projects', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(createPayload),
+            });
+
+            if (!createResponse.ok) {
+              throw new Error('Erreur lors de la création du projet');
+            }
+
+            const createdProject = await createResponse.json();
+            const actualProject = createdProject.data || createdProject;
+
+            // Mettre à jour les projets locaux
+            setLocalProjects((prev) => [...prev, actualProject]);
+            localProjectsRef.current = [...localProjectsRef.current, actualProject];
+
+            setMessages((prev) => [
+              ...prev,
+              {
+                role: 'assistant',
+                content: `Projet "${actualProject.name}" créé avec succès.`,
+                timestamp: new Date(),
+              },
+            ]);
+
+            // Déclencher l'événement pour le scroll et l'animation
+            window.dispatchEvent(
+              new CustomEvent('projectCreatedFromAssistant', {
+                detail: {
+                  projectId: actualProject.id,
+                  project: actualProject,
+                },
+              })
+            );
+
+            router.refresh();
+          } else if (result.type === 'update' || result.type === 'add_note') {
+            // Modification/Note : afficher la confirmation
+            // La confirmation doit afficher les projets comme un listing
+            setMessages((prev) => [
+              ...prev,
+              {
+                role: 'assistant',
+                content: result.message,
+                timestamp: new Date(),
+                // Afficher les projets affectés comme un listing
+                data: {
+                  projects: result.pendingAction.affectedProjects,
+                  type: 'update',
+                  fieldsToShow: result.pendingAction.fieldsToShow,
+                },
+                updateConfirmation: {
+                  filters: result.pendingAction.filters,
+                  updateData: result.pendingAction.mutation as any,
+                  affectedProjects: result.pendingAction.affectedProjects,
+                  affectedProjectIds: result.pendingAction.affectedProjectIds,
+                  scopeSource: result.pendingAction.scopeSource,
+                  fieldsToShow: result.pendingAction.fieldsToShow,
+                },
+              },
+            ]);
+          } else if (result.type === 'general') {
+            // Question généraliste (Groq)
+            setMessages((prev) => [
+              ...prev,
+              {
+                role: 'assistant',
+                content: result.response,
+                timestamp: new Date(),
+              },
+            ]);
+          }
+          return; // Sortir après traitement du résultat du routeur NEW
+        }
+
+        // Si version OLD : utiliser le factory (ancien système)
+        const assistantService = getAssistantService();
+        const response = await assistantService.processProjectCommand(currentInput);
 
         // Parser la réponse pour détecter les données structurées (projets créés, listes, etc.)
         let messageContent = response;

@@ -29,6 +29,9 @@ export interface Message {
     filters: QueryFilters;
     updateData: UpdateData;
     affectedProjects: Project[];
+    affectedProjectIds?: string[];
+    scopeSource?: 'LastListedIds' | 'LastAppliedFilter' | 'AllProjects' | 'ExplicitFilter';
+    fieldsToShow?: string[];
   };
 }
 
