@@ -21,6 +21,7 @@
     "test:coverage": "jest --coverage",
     "test:ci": "jest --ci --coverage --maxWorkers=2 && node scripts/check-coverage-thresholds.mjs",
     "test:assistant-router": "jest src/lib/assistant/router/__tests__/router.mutations-after-list.test.ts src/components/assistant/handlers/__tests__/handleConfirmUpdate.test.ts src/app/api/projects/batch-update/__tests__/route.test.ts --maxWorkers=2",
+    "test:assistant-nlp": "jest src/lib/assistant/query-parser/__tests__/detect-filters-canonical.test.ts src/lib/assistant/query-parser/__tests__/detect-filters-fuzzy.test.ts --maxWorkers=2",
     "test:coverage:check": "jest --coverage && node scripts/check-coverage-thresholds.mjs",
     "prepare": "husky install || true",
     "db:setup:local": "bash scripts/setup-local-db.sh",
