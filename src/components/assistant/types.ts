@@ -33,6 +33,10 @@ export interface Message {
     scopeSource?: 'LastListedIds' | 'LastAppliedFilter' | 'AllProjects' | 'ExplicitFilter';
     fieldsToShow?: string[];
   };
+  scopeConfirmation?: {
+    proposedMutation: UpdateData;
+    totalProjectsCount: number;
+  };
 }
 
 export interface UpdateData {

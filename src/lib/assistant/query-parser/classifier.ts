@@ -19,6 +19,10 @@ export interface QueryClassification {
   isConversationalQuestion: boolean;
   understood: boolean;
   isComplex: boolean;
+  /** Détection d'une demande de vue détails (ex: "affiche tous les détails") */
+  isDetailsViewRequested: boolean;
+  /** Détection d'une demande explicite de tous les projets (ex: "tous les projets", "global", "sans filtre") */
+  isAllProjectsRequested: boolean;
 }
 
 /**
@@ -117,13 +121,32 @@ export function classifyQuery(
   const isShortListButConversational = isShortListRequest && isConversationalStart;
 
   // Détecter les demandes de détails (avec ou sans verbe explicite)
+  // IMPORTANT: "tous les détails" ne signifie PAS "tous les projets", c'est juste "tous les champs"
   const hasDetailsRequest =
     /(?:avec|donne|montre|affiche)\s+(?:tous\s+les?\s+)?(?:les?\s+)?(?:détails?|details?|infos?|informations?)/i.test(
       lowerQuery
     ) ||
     /^(?:tous\s+les?\s+)?(?:les?\s+)?(?:détails?|details?|infos?|informations?)(?:\s+sur)?\s*$/i.test(
       lowerQuery.trim()
+    ) ||
+    /(?:détails?|details?)\s+complets?|toutes?\s+les?\s+infos?|tout\s+afficher|affiche\s+tout/i.test(
+      lowerQuery
     );
+
+  // Détecter une demande explicite de "tous les projets" / "global" / "sans filtre"
+  // IMPORTANT: Distinguer "tous les détails" (champs) de "tous les projets" (scope)
+  const isAllProjectsRequested =
+    /(?:tous\s+les?\s+projets?|toutes?\s+les?\s+projets?|l['']?ensemble\s+des?\s+projets?|global|sans\s+filtre|aucun\s+filtre)/i.test(
+      lowerQuery
+    ) ||
+    // "affiche tous les détails de tous les projets" -> isAllProjectsRequested = true
+    /(?:détails?|details?|infos?)\s+(?:de|des?|sur)\s+(?:tous\s+les?\s+projets?|toutes?\s+les?\s+projets?|l['']?ensemble)/i.test(
+      lowerQuery
+    );
+
+  // Détecter une demande de vue détails (sans mention explicite de "tous les projets")
+  // Si "tous les détails" est présent MAIS PAS "tous les projets", c'est une vue détails
+  const isDetailsViewRequested = hasDetailsRequest && !isAllProjectsRequested;
 
   const isList =
     hasExplicitListVerb ||
@@ -148,32 +171,8 @@ export function classifyQuery(
   // Exemples à exclure : "projet de macron", "projet de loi", "projet politique", etc.
   const hasProjectMentionRaw = /projet|project/i.test(lowerQuery);
 
-  // #region agent log
-  if (typeof fetch !== 'undefined') {
-    fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        location: 'classifier.ts:40-58',
-        message: 'Détection patterns de base',
-        data: {
-          query: query.substring(0, 100),
-          isUpdate,
-          isCreate,
-          isCount,
-          isList,
-          hasFilters: Object.keys(filters).length > 0,
-          hasProjectMentionRaw,
-          hasActionVerb,
-        },
-        timestamp: Date.now(),
-        sessionId: 'debug-session',
-        runId: 'initial',
-        hypothesisId: 'A',
-      }),
-    }).catch(() => {});
-  }
-  // #endregion
+  // Debug log (utilise le système de debug existant)
+  // Removed hardcoded fetch to localhost endpoint - use debugLog instead
   const isProjectInNonMusicalContext =
     /projet\s+(?:de|du|des?|politique|loi|réforme|société|économique|social|éducatif|culturel|scientifique|recherche|construction|bâtiment|immobilier|développement|numérique|informatique|web|site|application|logiciel|software)/i.test(
       lowerQuery
@@ -343,35 +342,8 @@ export function classifyQuery(
     ((isCount || isList || isCreate || isUpdate) && !isConversationalQuestion) ||
     (hasProjectMention && !isConversationalQuestion);
 
-  // #region agent log
-  if (typeof fetch !== 'undefined') {
-    fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        location: 'classifier.ts:214-219',
-        message: 'Calcul final understood',
-        data: {
-          query: query.substring(0, 100),
-          understood,
-          isQuestionAboutAssistantProjects,
-          isLongPersonalMessage,
-          hasFilters: Object.keys(filters).length > 0,
-          isCount,
-          isList,
-          isCreate,
-          isUpdate,
-          isConversationalQuestion,
-          hasProjectMention,
-        },
-        timestamp: Date.now(),
-        sessionId: 'debug-session',
-        runId: 'initial',
-        hypothesisId: 'C',
-      }),
-    }).catch(() => {});
-  }
-  // #endregion
+  // Debug log (utilise le système de debug existant)
+  // Removed hardcoded fetch to localhost endpoint - use debugLog instead
 
   if (isQuestionAboutAssistantProjects || isLongPersonalMessage) {
     console.log('[Parse Query API] 🔍 Détection conversationnelle:', {
@@ -421,5 +393,7 @@ export function classifyQuery(
     isConversationalQuestion,
     understood,
     isComplex,
+    isDetailsViewRequested,
+    isAllProjectsRequested,
   };
 }

@@ -249,15 +249,32 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
               },
             ]);
           } else if (result.type === 'general') {
-            // Question généraliste (Groq)
-            setMessages((prev) => [
-              ...prev,
-              {
-                role: 'assistant',
-                content: result.response,
-                timestamp: new Date(),
-              },
-            ]);
+            // Vérifier si c'est une confirmation de scope manquant
+            if ('confirmationType' in result && result.confirmationType === 'scope_missing') {
+              // Confirmation de scope manquant : afficher warning avec mutation proposée
+              setMessages((prev) => [
+                ...prev,
+                {
+                  role: 'assistant',
+                  content: result.response,
+                  timestamp: new Date(),
+                  scopeConfirmation: {
+                    proposedMutation: result.proposedMutation as any,
+                    totalProjectsCount: result.totalProjectsCount,
+                  },
+                },
+              ]);
+            } else {
+              // Question généraliste (Groq)
+              setMessages((prev) => [
+                ...prev,
+                {
+                  role: 'assistant',
+                  content: result.response,
+                  timestamp: new Date(),
+                },
+              ]);
+            }
           }
           return; // Sortir après traitement du résultat du routeur NEW
         }

@@ -27,6 +27,7 @@ import { extractCreateData } from '../query-parser/creates';
 import { filterProjects } from '@/components/assistant/utils/filterProjects';
 import { getConversationalResponse } from '../conversational/groq-responder';
 import { debugLog, debugLogObject, isAssistantDebugEnabled } from '../utils/debug';
+import { sanitizeForLogs, sanitizeObjectForLogs } from '../utils/sanitize-logs';
 
 /**
  * Applique les filtres et le tri sur les projets en mémoire (0 DB)
@@ -124,6 +125,69 @@ function isFilterEmpty(filter: QueryFilters | ProjectFilter | undefined | null):
 }
 
 /**
+ * Vérifie si un filtre est un filtre scoping (qui restreint réellement un subset métier)
+ *
+ * Un filtre scoping est un filtre qui restreint un subset métier (ex: status, collab, style, etc.)
+ *
+ * Retourne false si :
+ * - Le filtre est vide
+ * - Le filtre contient uniquement hasDeadline (qui peut être un qualifier de mutation, pas un filtre scoping)
+ * - Le filtre contient uniquement des "qualifiers techniques" non scoping
+ *
+ * Retourne true si le filtre contient au moins un critère scoping réel (status, collab, style, label, progress, etc.)
+ */
+export function isScopingFilter(filter: QueryFilters | ProjectFilter | undefined | null): boolean {
+  if (!filter) {
+    return false;
+  }
+
+  // Vérifier chaque propriété scoping
+  const hasStatus = filter.status !== undefined && filter.status !== null && filter.status !== '';
+  const hasMinProgress = filter.minProgress !== undefined && filter.minProgress !== null;
+  const hasMaxProgress = filter.maxProgress !== undefined && filter.maxProgress !== null;
+  const hasCollab = filter.collab !== undefined && filter.collab !== null && filter.collab !== '';
+  const hasStyle = filter.style !== undefined && filter.style !== null && filter.style !== '';
+  const hasLabel = filter.label !== undefined && filter.label !== null && filter.label !== '';
+  const hasLabelFinal =
+    'labelFinal' in filter &&
+    filter.labelFinal !== undefined &&
+    filter.labelFinal !== null &&
+    filter.labelFinal !== '';
+  const hasName = filter.name !== undefined && filter.name !== null && filter.name !== '';
+  const hasNoProgress = filter.noProgress !== undefined && filter.noProgress !== null;
+  const hasYear = 'year' in filter && filter.year !== undefined && filter.year !== null;
+  const hasDeadline = filter.hasDeadline !== undefined && filter.hasDeadline !== null;
+
+  // Si on a au moins un critère scoping réel (autre que hasDeadline), c'est un filtre scoping
+  const hasScopingCriteria =
+    hasStatus ||
+    hasMinProgress ||
+    hasMaxProgress ||
+    hasCollab ||
+    hasStyle ||
+    hasLabel ||
+    hasLabelFinal ||
+    hasName ||
+    hasNoProgress ||
+    hasYear;
+
+  // Si on a au moins un critère scoping, c'est un filtre scoping
+  if (hasScopingCriteria) {
+    return true;
+  }
+
+  // Si on a uniquement hasDeadline dans les filters, c'est un filtre scoping explicite
+  // (car si hasDeadline est dans filters, c'est que l'utilisateur l'a explicitement demandé,
+  // contrairement à hasDeadline dans updateData qui peut être juste une conséquence de la mutation)
+  if (hasDeadline) {
+    return true;
+  }
+
+  // Sinon, pas de filtre scoping
+  return false;
+}
+
+/**
  * Résume un filtre pour les logs (affiche seulement les propriétés non vides)
  */
 function summarizeFilter(
@@ -164,7 +228,8 @@ function generateActionId(): string {
 function buildActionDescription(
   type: ProjectCommandType.UPDATE | ProjectCommandType.ADD_NOTE,
   mutation: ProjectMutation,
-  affectedCount: number
+  affectedCount: number,
+  skippedCount?: number
 ): string {
   if (type === ProjectCommandType.ADD_NOTE) {
     if (mutation.projectName) {
@@ -175,13 +240,49 @@ function buildActionDescription(
 
   // Type UPDATE
   const changes: string[] = [];
-  if (mutation.newStatus) changes.push(`statut → ${mutation.newStatus}`);
-  if (mutation.newDeadline) changes.push(`deadline → ${mutation.newDeadline}`);
-  if (mutation.newProgress !== undefined) changes.push(`progression → ${mutation.newProgress}%`);
-  if (mutation.newCollab) changes.push(`collab → ${mutation.newCollab}`);
-  if (mutation.newStyle) changes.push(`style → ${mutation.newStyle}`);
 
-  return `Modifier ${affectedCount} projet(s) : ${changes.join(', ')}`;
+  // Gestion spéciale pour pushDeadlineBy (décalage de deadline)
+  if (mutation.pushDeadlineBy) {
+    const delta = mutation.pushDeadlineBy;
+    const parts: string[] = [];
+    if (delta.days) {
+      parts.push(`${delta.days > 0 ? '+' : ''}${delta.days} jour${delta.days !== 1 ? 's' : ''}`);
+    }
+    if (delta.weeks) {
+      parts.push(
+        `${delta.weeks > 0 ? '+' : ''}${delta.weeks} semaine${delta.weeks !== 1 ? 's' : ''}`
+      );
+    }
+    if (delta.months) {
+      parts.push(`${delta.months > 0 ? '+' : ''}${delta.months} mois`);
+    }
+    if (delta.years) {
+      parts.push(`${delta.years > 0 ? '+' : ''}${delta.years} an${delta.years !== 1 ? 's' : ''}`);
+    }
+    if (parts.length > 0) {
+      changes.push(`Décaler la deadline de ${parts.join(', ')}`);
+    } else {
+      changes.push('Décaler la deadline');
+    }
+  } else {
+    // Autres mutations
+    if (mutation.newStatus) changes.push(`statut → ${mutation.newStatus}`);
+    if (mutation.newDeadline) changes.push(`deadline → ${mutation.newDeadline}`);
+    if (mutation.newProgress !== undefined) changes.push(`progression → ${mutation.newProgress}%`);
+    if (mutation.newCollab) changes.push(`collab → ${mutation.newCollab}`);
+    if (mutation.newStyle) changes.push(`style → ${mutation.newStyle}`);
+  }
+
+  let description = `Modifier ${affectedCount} projet(s)`;
+  if (changes.length > 0) {
+    description += ` : ${changes.join(', ')}`;
+  }
+
+  if (skippedCount && skippedCount > 0) {
+    description += ` (${skippedCount} projet(s) ignoré(s) - pas de deadline)`;
+  }
+
+  return description;
 }
 
 /**
@@ -198,9 +299,10 @@ export async function routeProjectCommand(
   const { context, conversationHistory, lastFilters } = options;
   const { projects, availableCollabs, availableStyles, projectCount } = context;
 
-  // Logs d'entrée (debug)
+  // Logs d'entrée (debug) - Sanitizer le message utilisateur
+  const sanitizedMessage = sanitizeForLogs(userMessage, 200);
   debugLog('router', '📥 Entrée du routeur', {
-    message: userMessage.substring(0, 100), // Limiter la taille pour les logs
+    message: sanitizedMessage,
     projectsCount: projects.length,
     lastListedProjectIdsCount: context.lastListedProjectIds?.length || 0,
     lastAppliedFilter: summarizeFilter(context.lastAppliedFilter),
@@ -274,12 +376,103 @@ export async function routeProjectCommand(
   if (classification.isList || classification.isCount) {
     console.log('[Router] 📋 Routing vers Listing (côté client)');
 
-    const projectFilter: ProjectFilter = {
-      ...filters,
-      // TODO: Détecter sortBy et sortDirection depuis la requête si nécessaire
-    };
+    // Détecter si un filtre explicite est présent
+    const hasExplicitFilter = !isFilterEmpty(filters);
 
-    const { filtered, count } = applyProjectFilterAndSort(projects, projectFilter);
+    // Détecter une intention "vue détails" (via classification ou extraction fieldsToShow)
+    const isDetailsViewRequested =
+      classification.isDetailsViewRequested ||
+      (fieldsToShow && fieldsToShow.length > 0 && fieldsToShow.length >= 3);
+
+    // Détecter une demande explicite de "tous les projets"
+    const isAllProjectsRequested = classification.isAllProjectsRequested;
+
+    // Calculer le scope selon la mémoire de travail (comme pour UPDATE)
+    let scopedProjects: Project[];
+    let scopeSource: 'LastListedIds' | 'LastAppliedFilter' | 'AllProjects' | 'ExplicitFilter';
+    let effectiveFilter: ProjectFilter;
+
+    if (!hasExplicitFilter && isDetailsViewRequested && !isAllProjectsRequested) {
+      // Cas spécial : demande de détails sans filtre explicite et sans "tous les projets"
+      // → Utiliser le working set si disponible
+      const { lastListedProjectIds, lastAppliedFilter } = context;
+
+      if (lastListedProjectIds && lastListedProjectIds.length > 0) {
+        // Priorité 1 : Utiliser les IDs du dernier listing
+        console.log(
+          '[Router] 📋 LIST sans filtre explicite (vue détails) → scope = last listing (IDs)'
+        );
+        scopeSource = 'LastListedIds';
+        scopedProjects = projects.filter((p) => lastListedProjectIds.includes(p.id));
+        effectiveFilter = {}; // Pas de filtre, on utilise les IDs
+      } else if (lastAppliedFilter && !isFilterEmpty(lastAppliedFilter)) {
+        // Priorité 2 : Utiliser le dernier filtre appliqué
+        console.log('[Router] 📋 LIST sans filtre explicite (vue détails) → scope = last filter');
+        scopeSource = 'LastAppliedFilter';
+        const { filtered } = applyProjectFilterAndSort(projects, lastAppliedFilter);
+        scopedProjects = filtered;
+        effectiveFilter = lastAppliedFilter;
+      } else {
+        // Fallback : tous les projets (pas de working set disponible)
+        console.log(
+          '[Router] 📋 LIST sans filtre explicite et sans historique → scope = tous les projets'
+        );
+        scopeSource = 'AllProjects';
+        scopedProjects = projects;
+        effectiveFilter = {};
+      }
+    } else if (hasExplicitFilter || isAllProjectsRequested) {
+      // Filtre explicite présent OU demande explicite de "tous les projets" : utiliser le filtre
+      console.log(
+        `[Router] 📋 LIST avec ${hasExplicitFilter ? 'filtre explicite' : 'demande tous les projets'} → scope = filtre de la commande`
+      );
+      scopeSource = 'ExplicitFilter';
+      effectiveFilter = {
+        ...filters,
+        // TODO: Détecter sortBy et sortDirection depuis la requête si nécessaire
+      };
+      const { filtered } = applyProjectFilterAndSort(projects, effectiveFilter);
+      scopedProjects = filtered;
+    } else {
+      // Comportement par défaut : utiliser le filtre (même s'il est vide)
+      scopeSource = 'ExplicitFilter';
+      effectiveFilter = {
+        ...filters,
+      };
+      const { filtered } = applyProjectFilterAndSort(projects, effectiveFilter);
+      scopedProjects = filtered;
+    }
+
+    // Si c'est une vue détails, forcer fieldsToShow à "all" (liste complète standardisée)
+    const finalFieldsToShow =
+      isDetailsViewRequested && !isAllProjectsRequested
+        ? [
+            'status',
+            'progress',
+            'collab',
+            'releaseDate',
+            'deadline',
+            'style',
+            'label',
+            'labelFinal',
+          ]
+        : fieldsToShow && fieldsToShow.length > 0
+          ? fieldsToShow
+          : ['progress', 'status', 'deadline'];
+
+    const count = scopedProjects.length;
+
+    // Logs du scope choisi (debug)
+    debugLog('router', '🎯 LIST Scope choisi', {
+      scopeSource,
+      scopeCount: count,
+      effectiveFilter: summarizeFilter(effectiveFilter),
+      lastListedProjectIdsCount: context.lastListedProjectIds?.length || 0,
+      lastAppliedFilterSummary: summarizeFilter(context.lastAppliedFilter),
+      isDetailsViewRequested,
+      isAllProjectsRequested,
+      hasExplicitFilter,
+    });
 
     const message =
       classification.isCount && !classification.isList
@@ -290,12 +483,12 @@ export async function routeProjectCommand(
 
     return {
       type: ProjectCommandType.LIST,
-      projects: filtered,
+      projects: scopedProjects,
       count,
-      fieldsToShow: fieldsToShow || ['progress', 'status', 'deadline'],
+      fieldsToShow: finalFieldsToShow,
       message,
-      appliedFilter: projectFilter,
-      listedProjectIds: filtered.map((p) => p.id),
+      appliedFilter: effectiveFilter,
+      listedProjectIds: scopedProjects.map((p) => p.id),
     };
   }
 
@@ -366,11 +559,13 @@ export async function routeProjectCommand(
         newStatus: updateData?.newStatus,
         newProgress: updateData?.newProgress,
         newDeadline: updateData?.newDeadline ? String(updateData.newDeadline) : undefined,
+        pushDeadlineBy: updateData?.pushDeadlineBy,
         newCollab: updateData?.newCollab,
         newStyle: updateData?.newStyle,
         newNote: updateData?.newNote,
       },
       extractedFilter: summarizeFilter(filters),
+      hasDeadlineIntent: /deadline|date\s*limite/i.test(userMessage),
     });
 
     if (!updateData) {
@@ -382,19 +577,30 @@ export async function routeProjectCommand(
       };
     }
 
-    // Détecter si un filtre explicite est présent
-    const hasExplicitFilter = !isFilterEmpty(filters);
+    // Détecter si un filtre scoping explicite est présent
+    // Utiliser isScopingFilter au lieu de isFilterEmpty pour ignorer hasDeadline seul
+    const hasExplicitScopingFilter = isScopingFilter(filters);
     const filterSummary = summarizeFilter(filters);
     const filterKeys = Object.keys(filterSummary).filter((k) => k !== 'empty');
-    const filterEmptyReason = isFilterEmpty(filters)
-      ? 'filtre vide (toutes les propriétés sont undefined/null/vides)'
-      : `filtre contient: ${filterKeys.join(', ')}`;
+    const isFilterEmptyResult = isFilterEmpty(filters);
+    const isScopingFilterResult = isScopingFilter(filters);
 
-    debugLog('router', '🔍 HasExplicitFilter', {
-      hasExplicitFilter,
-      reason: hasExplicitFilter
-        ? `explicite car ${filterEmptyReason.replace('filtre vide', 'filtre non vide')}`
-        : `non explicite car ${filterEmptyReason}`,
+    let filterReason = '';
+    if (isFilterEmptyResult) {
+      filterReason = 'filtre vide (toutes les propriétés sont undefined/null/vides)';
+    } else if (!isScopingFilterResult && filters.hasDeadline !== undefined) {
+      filterReason = 'seulement hasDeadline (qualifier de mutation, pas filtre scoping)';
+    } else {
+      filterReason = `filtre contient: ${filterKeys.join(', ')}`;
+    }
+
+    debugLog('router', '🔍 HasExplicitScopingFilter', {
+      hasExplicitScopingFilter,
+      isFilterEmpty: isFilterEmptyResult,
+      isScopingFilter: isScopingFilterResult,
+      reason: hasExplicitScopingFilter
+        ? `filtre scoping explicite: ${filterReason}`
+        : `pas de filtre scoping explicite: ${filterReason}`,
       filterSummary: summarizeFilter(filters),
     });
 
@@ -403,7 +609,7 @@ export async function routeProjectCommand(
     let effectiveFilters: QueryFilters;
     let scopeSource: 'LastListedIds' | 'LastAppliedFilter' | 'AllProjects' | 'ExplicitFilter';
 
-    if (!hasExplicitFilter) {
+    if (!hasExplicitScopingFilter) {
       // Pas de filtre explicite : utiliser la mémoire de travail
       const { lastListedProjectIds, lastAppliedFilter } = context;
 
@@ -421,20 +627,157 @@ export async function routeProjectCommand(
         affectedProjects = filtered;
         effectiveFilters = lastAppliedFilter;
       } else {
-        // Fallback : tous les projets (avec avertissement)
-        console.log(
-          '[Router] ⚠️ UPDATE sans filtre explicite et sans historique → scope = tous les projets'
+        // GARDE-FOU : Pas de scope récent, demander confirmation explicite au lieu de fallback automatique
+        // Construire un résumé détaillé pour le warning
+        const mutationSummary = {
+          newProgress: updateData.newProgress,
+          newStatus: updateData.newStatus,
+          newDeadline: updateData.newDeadline ? String(updateData.newDeadline) : undefined,
+          pushDeadlineBy: updateData.pushDeadlineBy,
+          newCollab: updateData.newCollab,
+          newStyle: updateData.newStyle,
+          newLabel: updateData.newLabel,
+          newLabelFinal: updateData.newLabelFinal,
+          newNote: updateData.newNote,
+        };
+
+        // Sanitizer les données avant de logger
+        const sanitizedLogData = sanitizeObjectForLogs({
+          userMessage: userMessage,
+          lastListedProjectIdsCount: lastListedProjectIds?.length || 0,
+          projectsCount: projects.length,
+          hasLastAppliedFilter: !!lastAppliedFilter,
+          lastAppliedFilterSummary: summarizeFilter(lastAppliedFilter || {}),
+          mutationSummary,
+        });
+
+        console.warn('[Router] ⚠️ GARDE-FOU: Pas de scope récent pour mutation', sanitizedLogData);
+
+        // Demander confirmation explicite au lieu de fallback automatique
+        const mutationDescription = buildActionDescription(
+          ProjectCommandType.UPDATE,
+          {
+            newProgress: updateData.newProgress,
+            newStatus: updateData.newStatus,
+            newDeadline: updateData.newDeadline ?? undefined, // Convert null to undefined
+            pushDeadlineBy: updateData.pushDeadlineBy,
+            newCollab: updateData.newCollab,
+            newStyle: updateData.newStyle,
+            newLabel: updateData.newLabel,
+            newLabelFinal: updateData.newLabelFinal,
+            newNote: updateData.newNote,
+          },
+          projects.length,
+          0
         );
-        scopeSource = 'AllProjects';
-        affectedProjects = projects;
-        effectiveFilters = {};
+
+        return {
+          type: ProjectCommandType.GENERAL,
+          confirmationType: 'scope_missing' as const,
+          response: `Je n'ai pas de scope récent (aucun projet listé précédemment). Tu veux appliquer cette modification à tous les projets ?\n\n${mutationDescription}`,
+          proposedMutation: {
+            newProgress: updateData.newProgress,
+            newStatus: updateData.newStatus,
+            newDeadline: updateData.newDeadline ?? undefined,
+            pushDeadlineBy: updateData.pushDeadlineBy,
+            newCollab: updateData.newCollab,
+            newStyle: updateData.newStyle,
+            newLabel: updateData.newLabel,
+            newLabelFinal: updateData.newLabelFinal,
+            newNote: updateData.newNote,
+          },
+          totalProjectsCount: projects.length,
+        };
       }
     } else {
-      // Filtre explicite présent : l'utiliser (ignore le working set)
-      console.log('[Router] ✏️ UPDATE avec filtre explicite → scope = filtre de la commande');
+      // Filtre scoping explicite présent : l'utiliser (ignore le working set)
+      console.log(
+        '[Router] ✏️ UPDATE avec filtre scoping explicite → scope = filtre de la commande'
+      );
       scopeSource = 'ExplicitFilter';
       affectedProjects = calculateAffectedProjects(projects, filters);
       effectiveFilters = filters;
+    }
+
+    // ========================================
+    // GARDE-FOU : Vérifier la cohérence du scope choisi
+    // ========================================
+    // Si scopeSource === LastListedIds mais qu'il n'y a pas d'IDs ou de projets affectés,
+    // demander confirmation explicite à l'utilisateur au lieu de fallback automatique
+    if (scopeSource === 'LastListedIds') {
+      const { lastListedProjectIds } = context;
+      if (
+        !lastListedProjectIds ||
+        lastListedProjectIds.length === 0 ||
+        affectedProjects.length === 0
+      ) {
+        // Construire un résumé détaillé pour le warning
+        const mutationSummary = {
+          newProgress: updateData.newProgress,
+          newStatus: updateData.newStatus,
+          newDeadline: updateData.newDeadline ? String(updateData.newDeadline) : undefined,
+          pushDeadlineBy: updateData.pushDeadlineBy,
+          newCollab: updateData.newCollab,
+          newStyle: updateData.newStyle,
+          newLabel: updateData.newLabel,
+          newLabelFinal: updateData.newLabelFinal,
+          newNote: updateData.newNote,
+        };
+
+        // Sanitizer les données avant de logger
+        const sanitizedGuardrailLogData = sanitizeObjectForLogs({
+          userMessage: userMessage,
+          lastListedProjectIdsCount: lastListedProjectIds?.length || 0,
+          projectsCount: projects.length,
+          affectedProjectsLength: affectedProjects.length,
+          mutationSummary,
+          context: {
+            hasLastAppliedFilter: !!context.lastAppliedFilter,
+            lastAppliedFilterSummary: summarizeFilter(context.lastAppliedFilter || {}),
+          },
+        });
+
+        console.warn(
+          '[Router] ⚠️ GARDE-FOU: LastListedIds choisi mais lastListedProjectIds est vide ou aucun projet trouvé',
+          sanitizedGuardrailLogData
+        );
+
+        // Au lieu de fallback automatique, demander confirmation explicite
+        const mutationDescription = buildActionDescription(
+          ProjectCommandType.UPDATE,
+          {
+            newProgress: updateData.newProgress,
+            newStatus: updateData.newStatus,
+            newDeadline: updateData.newDeadline ?? undefined, // Convert null to undefined
+            pushDeadlineBy: updateData.pushDeadlineBy,
+            newCollab: updateData.newCollab,
+            newStyle: updateData.newStyle,
+            newLabel: updateData.newLabel,
+            newLabelFinal: updateData.newLabelFinal,
+            newNote: updateData.newNote,
+          },
+          projects.length,
+          0
+        );
+
+        return {
+          type: ProjectCommandType.GENERAL,
+          confirmationType: 'scope_missing' as const,
+          response: `Je n'ai pas de scope récent (aucun projet listé précédemment). Tu veux appliquer cette modification à tous les projets ?\n\n${mutationDescription}`,
+          proposedMutation: {
+            newProgress: updateData.newProgress,
+            newStatus: updateData.newStatus,
+            newDeadline: updateData.newDeadline ?? undefined,
+            pushDeadlineBy: updateData.pushDeadlineBy,
+            newCollab: updateData.newCollab,
+            newStyle: updateData.newStyle,
+            newLabel: updateData.newLabel,
+            newLabelFinal: updateData.newLabelFinal,
+            newNote: updateData.newNote,
+          },
+          totalProjectsCount: projects.length,
+        };
+      }
     }
 
     // Logs du scope choisi (debug)
@@ -446,12 +789,91 @@ export async function routeProjectCommand(
       lastAppliedFilterSummary: summarizeFilter(context.lastAppliedFilter),
     });
 
+    // Pour les mutations de deadline (pushDeadlineBy ou newDeadline), filtrer les projets sans deadline
+    const isDeadlineMutation = !!(updateData.pushDeadlineBy || updateData.newDeadline);
+    let skippedNoDeadlineCount = 0;
+    if (isDeadlineMutation) {
+      const beforeCount = affectedProjects.length;
+      affectedProjects = affectedProjects.filter(
+        (p) => p.deadline !== null && p.deadline !== undefined
+      );
+      skippedNoDeadlineCount = beforeCount - affectedProjects.length;
+      if (skippedNoDeadlineCount > 0) {
+        debugLog('router', '⏭️ SkippedNoDeadline', {
+          skippedCount: skippedNoDeadlineCount,
+          beforeCount,
+          afterCount: affectedProjects.length,
+        });
+      }
+    }
+
     if (affectedProjects.length === 0) {
-      // Logs détaillés pour comprendre pourquoi aucun match (debug)
-      debugLog('router', '❌ WhyNoMatch', {
+      // Cas spécial : Si on arrive ici avec aucun projet trouvé et qu'il n'y a pas de scope récent,
+      // demander clarification à l'utilisateur.
+      // Note: scopeSource ne peut pas être 'AllProjects' ici car le garde-fou retourne déjà dans ce cas
+      if (!context.lastListedProjectIds || context.lastListedProjectIds.length === 0) {
+        // Construire un résumé détaillé pour le warning
+        const mutationSummary = {
+          newProgress: updateData.newProgress,
+          newStatus: updateData.newStatus,
+          newDeadline: updateData.newDeadline ? String(updateData.newDeadline) : undefined,
+          pushDeadlineBy: updateData.pushDeadlineBy,
+          newCollab: updateData.newCollab,
+          newStyle: updateData.newStyle,
+          newLabel: updateData.newLabel,
+          newLabelFinal: updateData.newLabelFinal,
+          newNote: updateData.newNote,
+        };
+
+        // Sanitizer les données avant de logger
+        const sanitizedEdgeCaseLogData = sanitizeObjectForLogs({
+          userMessage: userMessage,
+          scopeSource,
+          lastListedProjectIdsCount: 0,
+          projectsCount: projects.length,
+          mutationSummary,
+          effectiveFilter: summarizeFilter(effectiveFilters),
+        });
+
+        console.warn(
+          '[Router] ⚠️ Aucun projet trouvé - pas de scope récent',
+          sanitizedEdgeCaseLogData
+        );
+
+        // Le garde-fou a fait un fallback mais il n'y a toujours aucun projet
+        // (peut arriver si projects.length === 0, ce qui est un cas edge)
+        const errorMessage =
+          projects.length === 0
+            ? "Je n'ai trouvé aucun projet. Pouvez-vous préciser quels projets vous souhaitez modifier ?"
+            : "Je n'ai pas pu identifier quels projets modifier. Pouvez-vous préciser ? (ex: 'pour les terminés', 'pour les projets en cours')";
+
+        return {
+          type: ProjectCommandType.GENERAL,
+          response: errorMessage,
+        };
+      }
+
+      // Construire un résumé détaillé pour le warning
+      const mutationSummary = {
+        newProgress: updateData.newProgress,
+        newStatus: updateData.newStatus,
+        newDeadline: updateData.newDeadline ? String(updateData.newDeadline) : undefined,
+        pushDeadlineBy: updateData.pushDeadlineBy,
+        newCollab: updateData.newCollab,
+        newStyle: updateData.newStyle,
+        newLabel: updateData.newLabel,
+        newLabelFinal: updateData.newLabelFinal,
+        newNote: updateData.newNote,
+      };
+
+      // Logs détaillés pour comprendre pourquoi aucun match (debug) - Sanitizer les données
+      const sanitizedDebugData = sanitizeObjectForLogs({
+        userMessage: userMessage,
         scopeSource,
         effectiveFilter: summarizeFilter(effectiveFilters),
         totalProjects: projects.length,
+        lastListedProjectIdsCount: context.lastListedProjectIds?.length || 0,
+        mutationSummary,
         sampleProjects: projects.slice(0, 3).map((p) => ({
           id: p.id,
           name: p.name,
@@ -459,6 +881,20 @@ export async function routeProjectCommand(
           progress: p.progress,
         })),
       });
+
+      debugLog('router', '❌ WhyNoMatch', sanitizedDebugData);
+
+      // Warning détaillé pour production - Sanitizer les données
+      const sanitizedNoMatchLogData = sanitizeObjectForLogs({
+        userMessage: userMessage,
+        scopeSource,
+        lastListedProjectIdsCount: context.lastListedProjectIds?.length || 0,
+        projectsCount: projects.length,
+        mutationSummary,
+        effectiveFilter: summarizeFilter(effectiveFilters),
+      });
+
+      console.warn('[Router] ⚠️ Aucun projet trouvé pour mutation', sanitizedNoMatchLogData);
 
       // Message d'erreur avec détails en mode debug
       const effectiveFilterSummary = summarizeFilter(effectiveFilters);
@@ -476,6 +912,7 @@ export async function routeProjectCommand(
     const mutation: ProjectMutation = {
       newStatus: updateData.newStatus,
       newDeadline: updateData.newDeadline || undefined,
+      pushDeadlineBy: updateData.pushDeadlineBy,
       newProgress: updateData.newProgress,
       newCollab: updateData.newCollab,
       newStyle: updateData.newStyle,
@@ -505,7 +942,12 @@ export async function routeProjectCommand(
       affectedProjectIds: affectedProjects.map((p) => p.id),
       scopeSource,
       fieldsToShow: fieldsToShowForConfirmation,
-      description: buildActionDescription(actionType, mutation, affectedProjects.length),
+      description: buildActionDescription(
+        actionType,
+        mutation,
+        affectedProjects.length,
+        skippedNoDeadlineCount
+      ),
     };
 
     return {

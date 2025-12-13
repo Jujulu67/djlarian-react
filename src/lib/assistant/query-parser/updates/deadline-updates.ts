@@ -15,7 +15,7 @@ export function extractDeadlineUpdate(
   updateData: UpdateData
 ): void {
   // 1. Détecter la suppression de deadlines
-  if (extractRemoveDeadline(lowerQuery, filters, updateData)) {
+  if (extractRemoveDeadline(query, lowerQuery, filters, updateData)) {
     return;
   }
 
@@ -32,6 +32,7 @@ export function extractDeadlineUpdate(
  * Détecte la suppression de deadlines
  */
 function extractRemoveDeadline(
+  query: string,
   lowerQuery: string,
   filters: Record<string, any>,
   updateData: UpdateData
@@ -46,13 +47,37 @@ function extractRemoveDeadline(
   for (const pattern of removeDeadlinePatterns) {
     if (pattern.test(lowerQuery)) {
       updateData.newDeadline = null;
-      filters.hasDeadline = true;
-      updateData.hasDeadline = true;
+      // Pour la suppression, on a besoin que les projets aient une deadline
+      // Mais on vérifie si c'est un filtre explicite ou juste une conséquence
+      const explicitDeadlineFilter = hasExplicitDeadlineFilter(query);
+      if (explicitDeadlineFilter) {
+        filters.hasDeadline = true;
+        updateData.hasDeadline = true;
+      } else {
+        // Pas de filtre explicite → on ne met PAS hasDeadline dans filters
+        updateData.hasDeadline = true;
+      }
       console.log('[Parse Query API] ✅ Suppression de deadlines détectée');
       return true;
     }
   }
   return false;
+}
+
+/**
+ * Détecte si l'utilisateur a explicitement demandé un filtre deadline
+ * (ex: "avec deadline", "qui ont une deadline", "ayant une deadline")
+ */
+function hasExplicitDeadlineFilter(query: string): boolean {
+  const lowerQuery = query.toLowerCase();
+  // Patterns pour filtre deadline explicite (scoping)
+  const explicitDeadlineFilterPatterns = [
+    /(?:avec|qui\s*ont|ayant|qui\s*poss[èe]dent)\s+(?:une\s+)?deadline/i,
+    /(?:projets?\s+)?(?:avec|qui\s*ont|ayant)\s+(?:une\s+)?deadline/i,
+    /(?:les?\s+)?projets?\s+(?:avec|qui\s*ont|ayant)\s+(?:une\s+)?deadline/i,
+    /deadline\s*pr[ée]vue/i,
+  ];
+  return explicitDeadlineFilterPatterns.some((pattern) => pattern.test(lowerQuery));
 }
 
 /**
@@ -63,17 +88,56 @@ function extractPushDeadline(
   filters: Record<string, any>,
   updateData: UpdateData
 ): boolean {
+  const lowerQuery = query.toLowerCase();
+
+  // Détecter une intention deadline (debug)
+  const hasDeadlineIntent =
+    /(?:deadline|dead\s*line|date\s*limite|deal[il]?n?e?)/i.test(query) ||
+    /(?:pousse|pousser|déplace|déplacer|retarde|retarder|décal|décaler|repousse|repousser|reporte|reporter|ajoute|ajouter)\s+(?:leur|les?|la|le|l'|leurs?|son|sa|ses|mes|mon|ma|nos|notre|vos|votre)\s+(?:deadline|dead\s*line|date\s*limite)/i.test(
+      query
+    );
+
+  // Détecter si l'utilisateur a explicitement demandé un filtre deadline
+  const explicitDeadlineFilter = hasExplicitDeadlineFilter(query);
+
+  debugLog('deadline-updates', '🔍 DetectedDeadlineIntent', {
+    hasDeadlineIntent,
+    explicitDeadlineFilter,
+    query: query.substring(0, 100),
+  });
+
+  // Patterns améliorés pour supporter "leur deadline", "la deadline", etc.
   const pushDeadlinePatterns = [
+    // "pousse leur deadline de 1 mois" / "pousse la deadline d'un mois" / "pousse leur deadline de un mois"
+    // Pattern pour semaines avec article ou nombre
+    /(?:pousse|pousser|déplace|déplacer|retarde|retarder|décal|décaler|repousse|repousser|reporte|reporter|ajoute|ajouter)\s+(?:leur|les?|la|le|l'|leurs?|son|sa|ses|mes|mon|ma|nos|notre|vos|votre)\s+(?:deadlines?|dealines?|dead\s*lines?|dates?\s*limites?)\s+(?:d[\u2019']?une|de\s+une|d'1|de\s+1|de\s+(\d+))\s+(semaine|semaines?|week|weeks?)/i,
+    // Pattern pour jours avec article ou nombre
+    /(?:pousse|pousser|déplace|déplacer|retarde|retarder|décal|décaler|repousse|repousser|reporte|reporter|ajoute|ajouter)\s+(?:leur|les?|la|le|l'|leurs?|son|sa|ses|mes|mon|ma|nos|notre|vos|votre)\s+(?:deadlines?|dealines?|dead\s*lines?|dates?\s*limites?)\s+(?:d[\u2019']?un|de\s+un|d'1|de\s+1|de\s+(\d+))\s+(jour|jours?|day|days?)/i,
+    // Pattern pour mois avec article ou nombre (IMPORTANT: "de un mois" ou "d'un mois")
+    /(?:pousse|pousser|déplace|déplacer|retarde|retarder|décal|décaler|repousse|repousser|reporte|reporter|ajoute|ajouter)\s+(?:leur|les?|la|le|l'|leurs?|son|sa|ses|mes|mon|ma|nos|notre|vos|votre)\s+(?:deadlines?|dealines?|dead\s*lines?|dates?\s*limites?)\s+(?:d[\u2019']?un|de\s+un|d'1|de\s+1|de\s+(\d+))\s+(mois|month|months?)/i,
+    // "décale la date limite de 2 semaines" (avec "date limite" au lieu de "deadline")
+    /(?:décale|décaler|retarde|retarder|pousse|pousser)\s+(?:leur|les?|la|le|l'|leurs?|son|sa|ses|mes|mon|ma|nos|notre|vos|votre)\s+(?:date|dates?)\s+limite\s+(?:d[\u2019']?une|de\s+une|d[\u2019']?un|de\s+un|d'1|de\s+1|de\s+(\d+))\s+(semaine|semaines?|jour|jours?|mois|month|months?)/i,
+    // "reporte de 10 jours" (sans mention explicite de deadline)
+    /(?:reporte|reporter|décal|décaler|retarde|retarder)\s+de\s+(\d+)\s+(jour|jours?|semaine|semaines?|mois|month|months?)/i,
+    // "ajoute 1 mois à la deadline"
+    /(?:ajoute|ajouter)\s+(\d+)\s+(semaine|semaines?|jour|jours?|mois|month|months?)\s+(?:à|aux?)\s+(?:leur|les?|la|le|l'|leurs?|son|sa|ses|mes|mon|ma|nos|notre|vos|votre)\s+(?:deadlines?|dealines?|dead\s*lines?|dates?\s*limites?)/i,
+    // Patterns avec "toutes les deadlines" (anciens, conservés pour compatibilité)
     /(?:pousse|pousser|déplace|déplacer|retarde|retarder|décal|décaler|prévoit|prévoir|avance|avancer)\s+(?:toutes?\s+)?les?\s+(?:deadlines?|dealines?|dead\s*lines?|dates?\s*limites?)\s+(?:d[\u2019']?une|de\s+une|de\s+(\d+))\s+(semaine|semaines?|week|weeks?)/i,
     /(?:pousse|pousser|déplace|déplacer|retarde|retarder|décal|décaler|prévoit|prévoir|avance|avancer)\s+(?:toutes?\s+)?les?\s+(?:deadlines?|dealines?|dead\s*lines?|dates?\s*limites?)\s+(?:d[\u2019']?un|de\s+un|de\s+(\d+))\s+(jour|jours?|day|days?)/i,
     /(?:pousse|pousser|déplace|déplacer|retarde|retarder|décal|décaler|prévoit|prévoir|avance|avancer)\s+(?:toutes?\s+)?les?\s+(?:deadlines?|dealines?|dead\s*lines?|dates?\s*limites?)\s+de\s+(\d+)?\s+(mois|month|months?)/i,
+    // Patterns avec "avance" / "prévoit"
     /(?:avance|avancer|prévoit|prévoir)\s+(?:les?\s+)?(?:deadlines?|dealines?|dead\s*lines?|dates?\s*limites?)\s+(?:d[\u2019']?une|de\s+une|d[\u2019']?un|de\s+un|de\s+(\d+))\s+(semaine|semaines?|jour|jours?|mois|month|months?)/i,
+    // Patterns avec "recule"
     /(?:recule|recul|reculer)\s+les\s+deadlines\s+(?:d['\u2019]?une|de\s+une|d['\u2019]?un|de\s+un|de\s+(\d+))\s+(semaine|semaines?|jour|jours?|mois|month|months?)/i,
+    // Patterns avec "enlève" / "retire"
     /(?:enlève|enlever|enleve|retire|retirer|recul|reculer)\s+(?:une|un|(\d+))?\s+(semaine|semaines?|jour|jours?|mois|month|months?)\s+(?:aux|à\s+les?|des?)\s+(?:deadlines?|dealines?|dead\s*lines?|dates?\s*limites?)/i,
     /(?:enlève|enlever|enleve|retire|retirer|recul|reculer)\s+(?:une|un|(\d+))?\s+(semaine|semaines?|jour|jours?|mois|month|months?)\s+(?:aux|à\s+les?|des?)\s*(?:deadlines?|dealines?|dead\s*lines?|dates?\s*limites?)?/i,
+    // Patterns anglais
     /(?:push|delay|postpone|move)\s+(?:all\s+)?(?:deadlines?|dates?\s*limites?)\s+by\s+(\d+)?\s*(week|weeks?|day|days?|month|months?)/i,
     /(?:remove|subtract|take\s+off)\s+(\d+)?\s*(week|weeks?|day|days?|month|months?)\s+(?:from|off)\s+(?:all\s+)?(?:deadlines?|dates?\s*limites?)/i,
   ];
+
+  let parsedDelta: { days?: number; weeks?: number; months?: number; years?: number } | null = null;
 
   for (const pattern of pushDeadlinePatterns) {
     const match = query.match(pattern);
@@ -83,42 +147,111 @@ function extractPushDeadline(
           match[0]
         );
 
-      let amount = 1;
-      if (match[1] && !isNaN(parseInt(match[1], 10))) {
-        amount = parseInt(match[1], 10);
+      // Parser la quantité (nombre ou article)
+      let amount = 1; // Par défaut: 1
+      const numberMatch = match[1];
+      if (numberMatch && !isNaN(parseInt(numberMatch, 10))) {
+        // Nombre explicite (ex: "de 2 semaines")
+        amount = parseInt(numberMatch, 10);
+      } else {
+        // Article "un", "une", "d'un", "d'une" → 1
+        const hasArticle = /(?:d[\u2019']?une?|de\s+une?|d'1|de\s+1|une|un)/i.test(match[0]);
+        if (hasArticle) {
+          amount = 1;
+        }
+        // Si aucun nombre ni article, on garde 1 par défaut
       }
+
       if (isNegative) amount = -amount;
 
       // Trouver l'unité
       let unit = null;
       for (let i = match.length - 1; i >= 2; i--) {
-        if (match[i] && /^(semaine|semaines?|jour|jours?|mois|month|months?)$/i.test(match[i])) {
+        if (
+          match[i] &&
+          /^(semaine|semaines?|jour|jours?|mois|month|months?|an|ans?|année|années?|year|years?)$/i.test(
+            match[i]
+          )
+        ) {
           unit = match[i].toLowerCase();
           break;
         }
       }
 
       if (!isNaN(amount) && amount !== 0 && unit) {
-        filters.hasDeadline = true;
-        updateData.hasDeadline = true;
-        updateData.pushDeadlineBy = {};
+        parsedDelta = {};
 
         if (unit.includes('semaine') || unit.includes('week')) {
-          updateData.pushDeadlineBy.weeks = amount;
+          parsedDelta.weeks = amount;
         } else if (unit.includes('jour') || unit.includes('day')) {
-          updateData.pushDeadlineBy.days = amount;
+          parsedDelta.days = amount;
         } else if (unit.includes('mois') || unit.includes('month')) {
-          updateData.pushDeadlineBy.months = amount;
+          parsedDelta.months = amount;
+        } else if (unit.includes('an') || unit.includes('année') || unit.includes('year')) {
+          parsedDelta.years = amount;
         }
+
+        debugLog('deadline-updates', '📊 ParsedDelta', {
+          parsedDelta,
+          amount,
+          unit,
+          isNegative,
+          matchedPattern: pattern.toString(),
+        });
+
+        // IMPORTANT: Ne mettre hasDeadline dans filters QUE si l'utilisateur l'a explicitement demandé
+        // Sinon, c'est juste une conséquence de la mutation (on modifie la deadline, donc on a besoin qu'elle existe)
+        // mais ce n'est PAS un filtre scoping qui doit remplacer le working set
+        if (explicitDeadlineFilter) {
+          // Filtre explicite demandé par l'utilisateur → c'est un filtre scoping
+          filters.hasDeadline = true;
+          updateData.hasDeadline = true;
+          debugLog('deadline-updates', '✅ ExplicitDeadlineFilter', {
+            reason: 'User explicitly requested deadline filter',
+          });
+        } else {
+          // Pas de filtre explicite → on ne met PAS hasDeadline dans filters
+          // La mutation nécessite une deadline existante, mais ce n'est pas un filtre scoping
+          // On garde hasDeadline dans updateData pour information, mais pas dans filters
+          updateData.hasDeadline = true;
+          debugLog('deadline-updates', '✅ MutationQualifierOnly', {
+            reason: 'hasDeadline is mutation qualifier, not scoping filter',
+            filtersHasDeadline: filters.hasDeadline,
+          });
+        }
+
+        updateData.pushDeadlineBy = parsedDelta;
 
         console.log(
           '[Parse Query API] ✅ Décalage de deadlines détecté:',
-          updateData.pushDeadlineBy
+          updateData.pushDeadlineBy,
+          explicitDeadlineFilter
+            ? '(avec filtre deadline explicite)'
+            : '(sans filtre deadline explicite)'
         );
+
+        debugLog('deadline-updates', '✅ FinalUpdateData', {
+          pushDeadlineBy: updateData.pushDeadlineBy,
+          hasDeadline: updateData.hasDeadline,
+          explicitDeadlineFilter,
+          filtersHasDeadline: filters.hasDeadline,
+        });
+
         return true;
       }
     }
   }
+
+  // Si on a détecté une intention deadline mais pas de mutation, logger pourquoi
+  if (hasDeadlineIntent && !updateData.pushDeadlineBy) {
+    debugLog('deadline-updates', '❌ WhyNoMutation', {
+      query: query.substring(0, 100),
+      reason: 'No valid delta pattern matched',
+      hasDeadlineKeyword: /deadline|date\s*limite/i.test(query),
+      hasPushVerb: /(?:pousse|déplace|retarde|décal|repousse|reporte|ajoute)/i.test(query),
+    });
+  }
+
   return false;
 }
 

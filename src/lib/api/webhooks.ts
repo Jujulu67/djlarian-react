@@ -1,6 +1,7 @@
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import { defaultConfigs } from '@/config/defaults';
+import { sanitizeObjectForLogs, sanitizeForLogs } from '@/lib/assistant/utils/sanitize-logs';
 
 /**
  * Récupère l'URL du webhook depuis la base de données
@@ -72,6 +73,11 @@ export async function sendWebhook(
       return;
     }
 
+    // Sanitizer les données avant de les envoyer (security-critical)
+    // Note: On sanitize seulement pour les logs, pas pour le webhook lui-même
+    // car le webhook peut avoir besoin des données complètes
+    const sanitizedDataForLogs = sanitizeObjectForLogs(data);
+
     const payload: WebhookPayload = {
       event,
       timestamp: new Date().toISOString(),
@@ -91,13 +97,23 @@ export async function sendWebhook(
       .then(async (response) => {
         if (!response.ok) {
           const errorText = await response.text().catch(() => 'Unknown error');
-          logger.warn(`Webhook failed: ${response.status} ${response.statusText} - ${errorText}`);
+          // Sanitizer l'errorText au cas où il contiendrait des données sensibles
+          const sanitizedErrorText =
+            typeof errorText === 'string' ? sanitizeForLogs(errorText) : String(errorText);
+          logger.warn(
+            `Webhook failed: ${response.status} ${response.statusText} - ${sanitizedErrorText}`
+          );
         } else {
-          logger.debug(`Webhook sent successfully: ${event}`);
+          logger.debug(`Webhook sent successfully: ${event}`, sanitizedDataForLogs);
         }
       })
       .catch((error) => {
-        logger.error(`Error sending webhook: ${error.message}`);
+        // Sanitizer le message d'erreur
+        const sanitizedError = sanitizeObjectForLogs({
+          message: error.message,
+          stack: error.stack,
+        });
+        logger.error(`Error sending webhook:`, sanitizedError);
       });
   } catch (error) {
     logger.error("Erreur lors de l'envoi du webhook:", error);

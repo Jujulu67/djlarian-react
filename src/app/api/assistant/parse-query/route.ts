@@ -64,32 +64,8 @@ export async function POST(request: NextRequest) {
     // Filtrer et valider l'historique conversationnel
     const filteredHistory = filterConversationHistory(conversationHistory);
 
-    // #region agent log
-    if (typeof fetch !== 'undefined') {
-      fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          location: 'parse-query/route.ts:62',
-          message: 'Avant parseQuery - contexte disponible',
-          data: {
-            query: query.substring(0, 100),
-            hasConversationHistory: filteredHistory.length > 0,
-            conversationHistoryLength: filteredHistory.length,
-            lastUserMessage:
-              filteredHistory
-                .filter((m) => m.role === 'user')
-                .slice(-1)[0]
-                ?.content?.substring(0, 100) || null,
-          },
-          timestamp: Date.now(),
-          sessionId: 'debug-session',
-          runId: 'initial',
-          hypothesisId: 'B',
-        }),
-      }).catch(() => {});
-    }
-    // #endregion
+    // Debug log (utilise le système de debug existant)
+    // Removed hardcoded fetch to localhost endpoint - use debugLog instead
 
     const result = parseQuery(
       query,
@@ -99,41 +75,8 @@ export async function POST(request: NextRequest) {
       lastFilters
     );
 
-    // #region agent log
-    if (typeof fetch !== 'undefined') {
-      fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          location: 'parse-query/route.ts:63',
-          message: 'parseQuery appelé (API endpoint)',
-          data: {
-            query: query.substring(0, 100),
-            availableCollabs: availableCollabs.length,
-            availableStyles: availableStyles.length,
-            result: {
-              type: result.type,
-              understood: result.understood,
-              isConversational: result.isConversational,
-              filtersCount: Object.keys(result.filters || {}).length,
-              filters: result.filters,
-              hasUpdateData: !!result.updateData,
-              updateData: result.updateData
-                ? {
-                    newStatus: result.updateData.newStatus,
-                    status: result.updateData.status,
-                  }
-                : null,
-            },
-          },
-          timestamp: Date.now(),
-          sessionId: 'debug-session',
-          runId: 'initial',
-          hypothesisId: 'A',
-        }),
-      }).catch(() => {});
-    }
-    // #endregion
+    // Debug log (utilise le système de debug existant)
+    // Removed hardcoded fetch to localhost endpoint - use debugLog instead
 
     console.log('[Parse Query API] Requête:', query);
     console.log('[Parse Query API] Résultat:', result);

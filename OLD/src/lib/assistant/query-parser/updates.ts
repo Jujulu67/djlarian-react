@@ -349,28 +349,6 @@ export function extractUpdateData(
   // IMPORTANT: "en cours" commence par "en", donc "passe les projets en cours en annulé" = "[en cours] en [annulé]"
   let foundEnXenYPattern = false;
   let bestMatch: { status1: string; status2: string; matchLength: number } | null = null;
-  // #region agent log
-  if (typeof fetch !== 'undefined') {
-    fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        location: 'updates.ts:339-377',
-        message: 'Début détection pattern X en Y',
-        data: {
-          query: query.substring(0, 100),
-          cleanedQuery: cleanedQuery.substring(0, 100),
-          filtersStatus: filters.status,
-          hasProjectMention: /projet/i.test(query),
-        },
-        timestamp: Date.now(),
-        sessionId: 'debug-session',
-        runId: 'post-fix',
-        hypothesisId: 'C',
-      }),
-    }).catch(() => {});
-  }
-  // #endregion
   for (const { pattern: pattern1, status: status1 } of statusPatterns) {
     for (const { pattern: pattern2, status: status2 } of statusPatterns) {
       if (status1 === status2) continue; // Ignorer si c'est le même statut
@@ -412,32 +390,6 @@ export function extractUpdateData(
       // Utiliser la requête nettoyée (sans guillemets) pour la détection
       const XEnYMatch = XEnYPattern.test(cleanedQuery);
       const deXaYMatch = deXaYPattern.test(cleanedQuery);
-
-      // #region agent log
-      if (typeof fetch !== 'undefined' && (XEnYMatch || deXaYMatch)) {
-        fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            location: 'updates.ts:374',
-            message: 'Pattern X en Y matché',
-            data: {
-              query: query.substring(0, 100),
-              status1,
-              status2,
-              XEnYMatch,
-              deXaYMatch,
-              pattern1Source: pattern1Source.substring(0, 50),
-              pattern2Source: pattern2Source.substring(0, 50),
-            },
-            timestamp: Date.now(),
-            sessionId: 'debug-session',
-            runId: 'post-fix',
-            hypothesisId: 'D',
-          }),
-        }).catch(() => {});
-      }
-      // #endregion
 
       if (XEnYMatch || deXaYMatch) {
         // Vérifier que le match correspond bien aux statuts attendus
@@ -527,36 +479,6 @@ export function extractUpdateData(
                 bestMatch = { status1, status2, matchLength };
               }
             }
-
-            // #region agent log
-            if (typeof fetch !== 'undefined') {
-              fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  location: 'updates.ts:410',
-                  message: 'Validation match X en Y',
-                  data: {
-                    query: query.substring(0, 100),
-                    status1,
-                    status2,
-                    match1: match[1],
-                    match2: match[2],
-                    match1IsStatus1,
-                    match2IsStatus2,
-                    isMatch1Valid,
-                    isMatch2Valid,
-                    isValidMatch,
-                    matchLength: match[0].length,
-                  },
-                  timestamp: Date.now(),
-                  sessionId: 'debug-session',
-                  runId: 'post-fix',
-                  hypothesisId: 'D',
-                }),
-              }).catch(() => {});
-            }
-            // #endregion
           }
         } else if (deXaYMatch) {
           // Pour "de X à Y", on doit vérifier que "de" est bien présent avant le premier statut
@@ -595,54 +517,8 @@ export function extractUpdateData(
       filtre: bestMatch.status1,
       nouvelleValeur: bestMatch.status2,
     });
-    // #region agent log
-    if (typeof fetch !== 'undefined') {
-      fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          location: 'updates.ts:435',
-          message: 'Pattern X en Y confirmé',
-          data: {
-            query: query.substring(0, 100),
-            filtre: bestMatch.status1,
-            nouvelleValeur: bestMatch.status2,
-            updateDataStatus: updateData.status,
-            updateDataNewStatus: updateData.newStatus,
-          },
-          timestamp: Date.now(),
-          sessionId: 'debug-session',
-          runId: 'post-fix',
-          hypothesisId: 'D',
-        }),
-      }).catch(() => {});
-    }
-    // #endregion
     foundEnXenYPattern = true;
   }
-
-  // #region agent log
-  if (typeof fetch !== 'undefined') {
-    fetch('http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        location: 'updates.ts:395',
-        message: 'Fin détection pattern X en Y',
-        data: {
-          query: query.substring(0, 100),
-          foundEnXenYPattern,
-          updateDataStatus: updateData.status,
-          updateDataNewStatus: updateData.newStatus,
-        },
-        timestamp: Date.now(),
-        sessionId: 'debug-session',
-        runId: 'post-fix',
-        hypothesisId: 'D',
-      }),
-    }).catch(() => {});
-  }
-  // #endregion
 
   // Extraire le statut de filtre (pour identifier les projets)
   // IMPORTANT: Faire cela APRÈS la détection du pattern "X en Y" pour éviter d'écraser le résultat du pattern
