@@ -223,6 +223,102 @@ function generateActionId(): string {
 }
 
 /**
+ * Génère un diff avant→après pour un projet
+ */
+function generateProjectPreviewDiff(
+  project: Project,
+  mutation: ProjectMutation
+): import('./types').ProjectPreviewDiff {
+  const changes: string[] = [];
+
+  // Progress
+  if (mutation.newProgress !== undefined) {
+    const before = project.progress ?? null;
+    const after = mutation.newProgress;
+    changes.push(`progress ${before !== null ? `${before}%` : '-'} → ${after}%`);
+  }
+
+  // Status
+  if (mutation.newStatus) {
+    const before = project.status || '-';
+    const after = mutation.newStatus;
+    changes.push(`status ${before} → ${after}`);
+  }
+
+  // Deadline
+  if (mutation.pushDeadlineBy && project.deadline) {
+    const beforeDate = new Date(project.deadline);
+    const afterDate = new Date(beforeDate);
+    if (mutation.pushDeadlineBy.days) {
+      afterDate.setDate(afterDate.getDate() + mutation.pushDeadlineBy.days);
+    }
+    if (mutation.pushDeadlineBy.weeks) {
+      afterDate.setDate(afterDate.getDate() + mutation.pushDeadlineBy.weeks * 7);
+    }
+    if (mutation.pushDeadlineBy.months) {
+      afterDate.setMonth(afterDate.getMonth() + mutation.pushDeadlineBy.months);
+    }
+    if (mutation.pushDeadlineBy.years) {
+      afterDate.setFullYear(afterDate.getFullYear() + mutation.pushDeadlineBy.years);
+    }
+    const beforeStr = beforeDate.toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: '2-digit',
+    });
+    const afterStr = afterDate.toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: '2-digit',
+    });
+    changes.push(`deadline ${beforeStr} → ${afterStr}`);
+  } else if (mutation.newDeadline !== undefined) {
+    const before = project.deadline
+      ? new Date(project.deadline).toLocaleDateString('fr-FR', {
+          day: '2-digit',
+          month: '2-digit',
+          year: '2-digit',
+        })
+      : '-';
+    const after = mutation.newDeadline
+      ? new Date(mutation.newDeadline).toLocaleDateString('fr-FR', {
+          day: '2-digit',
+          month: '2-digit',
+          year: '2-digit',
+        })
+      : '-';
+    changes.push(`deadline ${before} → ${after}`);
+  }
+
+  // Label
+  if (mutation.newLabel !== undefined) {
+    const before = project.label || '-';
+    const after = mutation.newLabel || '-';
+    changes.push(`label ${before} → ${after}`);
+  }
+
+  // LabelFinal
+  if (mutation.newLabelFinal !== undefined) {
+    const before = project.labelFinal || '-';
+    const after = mutation.newLabelFinal || '-';
+    changes.push(`labelFinal ${before} → ${after}`);
+  }
+
+  // Note (ajout)
+  if (mutation.newNote) {
+    changes.push(
+      `note + "${mutation.newNote.substring(0, 30)}${mutation.newNote.length > 30 ? '...' : ''}"`
+    );
+  }
+
+  return {
+    id: project.id,
+    name: project.name,
+    changes,
+  };
+}
+
+/**
  * Construit une description lisible de l'action
  */
 function buildActionDescription(
@@ -296,12 +392,14 @@ export async function routeProjectCommand(
   userMessage: string,
   options: RouterOptions
 ): Promise<ProjectCommandResult> {
-  const { context, conversationHistory, lastFilters } = options;
+  const { context, conversationHistory, lastFilters, requestId } = options;
   const { projects, availableCollabs, availableStyles, projectCount } = context;
 
   // Logs d'entrée (debug) - Sanitizer le message utilisateur
   const sanitizedMessage = sanitizeForLogs(userMessage, 200);
-  debugLog('router', '📥 Entrée du routeur', {
+  const logPrefix = requestId ? `[${requestId}]` : '';
+  debugLog('router', `${logPrefix} 📥 Entrée du routeur`, {
+    requestId,
     message: sanitizedMessage,
     projectsCount: projects.length,
     lastListedProjectIdsCount: context.lastListedProjectIds?.length || 0,
@@ -367,6 +465,7 @@ export async function routeProjectCommand(
     return {
       type: ProjectCommandType.GENERAL,
       response,
+      requestId,
     };
   }
 
@@ -489,6 +588,7 @@ export async function routeProjectCommand(
       message,
       appliedFilter: effectiveFilter,
       listedProjectIds: scopedProjects.map((p) => p.id),
+      requestId,
     };
   }
 
@@ -504,6 +604,7 @@ export async function routeProjectCommand(
       return {
         type: ProjectCommandType.GENERAL,
         response: "Je n'ai pas pu extraire le nom du projet à créer. Pouvez-vous reformuler ?",
+        requestId,
       };
     }
 
@@ -542,6 +643,7 @@ export async function routeProjectCommand(
       } as Project,
       message: `Création du projet "${createData.name}" en cours...`,
       createData, // Inclure les données brutes pour l'API
+      requestId,
     };
   }
 
@@ -574,6 +676,7 @@ export async function routeProjectCommand(
         type: ProjectCommandType.GENERAL,
         response:
           "Je n'ai pas pu comprendre quelle modification effectuer. Pouvez-vous reformuler ?",
+        requestId,
       };
     }
 
@@ -687,6 +790,7 @@ export async function routeProjectCommand(
             newNote: updateData.newNote,
           },
           totalProjectsCount: projects.length,
+          requestId,
         };
       }
     } else {
@@ -776,6 +880,7 @@ export async function routeProjectCommand(
             newNote: updateData.newNote,
           },
           totalProjectsCount: projects.length,
+          requestId,
         };
       }
     }
@@ -850,6 +955,7 @@ export async function routeProjectCommand(
         return {
           type: ProjectCommandType.GENERAL,
           response: errorMessage,
+          requestId,
         };
       }
 
@@ -905,6 +1011,7 @@ export async function routeProjectCommand(
       return {
         type: ProjectCommandType.GENERAL,
         response: errorMessage,
+        requestId,
       };
     }
 
@@ -933,13 +1040,18 @@ export async function routeProjectCommand(
     // Utiliser les champs du dernier listing si disponibles, sinon par défaut
     const fieldsToShowForConfirmation = fieldsToShow || ['progress', 'status', 'deadline'];
 
+    // Générer previewDiff pour les 3 premiers projets
+    const previewDiff: import('./types').ProjectPreviewDiff[] = affectedProjects
+      .slice(0, 3)
+      .map((project) => generateProjectPreviewDiff(project, mutation));
+
     const pendingAction: PendingConfirmationAction = {
       actionId: generateActionId(),
       type: actionType,
       filters: effectiveFilters,
       mutation,
       affectedProjects,
-      affectedProjectIds: affectedProjects.map((p) => p.id),
+      affectedProjectIds: Array.from(new Set(affectedProjects.map((p) => p.id))), // Dédoublonnage en défense en profondeur
       scopeSource,
       fieldsToShow: fieldsToShowForConfirmation,
       description: buildActionDescription(
@@ -948,12 +1060,15 @@ export async function routeProjectCommand(
         affectedProjects.length,
         skippedNoDeadlineCount
       ),
+      requestId,
+      previewDiff: previewDiff.length > 0 ? previewDiff : undefined,
     };
 
     return {
       type: actionType,
       pendingAction,
       message: `${pendingAction.description}. Confirmez-vous cette action ?`,
+      requestId,
     };
   }
 
@@ -975,5 +1090,6 @@ export async function routeProjectCommand(
   return {
     type: ProjectCommandType.GENERAL,
     response,
+    requestId,
   };
 }

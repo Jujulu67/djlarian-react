@@ -32,6 +32,8 @@ export interface Message {
     affectedProjectIds?: string[];
     scopeSource?: 'LastListedIds' | 'LastAppliedFilter' | 'AllProjects' | 'ExplicitFilter';
     fieldsToShow?: string[];
+    requestId?: string;
+    previewDiff?: Array<{ id: string; name: string; changes: string[] }>;
   };
   scopeConfirmation?: {
     proposedMutation: UpdateData;

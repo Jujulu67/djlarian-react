@@ -25,6 +25,7 @@ export async function routeProjectCommandClient(
     lastFilters?: Record<string, any>;
     lastAppliedFilter?: import('./types').ProjectFilter;
     lastListedProjectIds?: string[];
+    requestId?: string;
   }
 ): Promise<ProjectCommandResult> {
   // Extraire les collabs et styles disponibles depuis les projets
@@ -44,6 +45,7 @@ export async function routeProjectCommandClient(
     context,
     conversationHistory: options?.conversationHistory,
     lastFilters: options?.lastFilters,
+    requestId: options?.requestId,
   };
 
   return await routeProjectCommand(userMessage, routerOptions);

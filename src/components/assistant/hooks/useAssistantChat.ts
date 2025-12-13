@@ -10,6 +10,7 @@ import type { Project } from '@/components/projects/types';
 import { getAssistantService } from '@/lib/assistant/factory';
 import type { Message } from '../types';
 import { debugLog, isAssistantDebugEnabled } from '@/lib/assistant/utils/debug';
+import { generateRequestId } from '@/lib/assistant/utils/generate-request-id';
 
 export interface UseAssistantChatOptions {
   projects: Project[];
@@ -110,8 +111,12 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
 
         // Si version NEW : utiliser le routeur côté client (0 DB pour listing)
         if (version === 'new') {
+          // Générer un requestId pour cette requête
+          const requestId = generateRequestId();
+
           // Logs avant appel routeur (debug)
-          debugLog('hook', '📤 Avant appel routeur', {
+          debugLog('hook', `[${requestId}] 📤 Avant appel routeur`, {
+            requestId,
             message: currentInput.substring(0, 100),
             projectsCount: localProjectsRef.current.length,
             lastListedProjectIdsCount: lastListedProjectIdsRef.current?.length || 0,
@@ -134,6 +139,7 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
             lastFilters,
             lastAppliedFilter: lastAppliedFilterRef.current,
             lastListedProjectIds: lastListedProjectIdsRef.current,
+            requestId,
           });
 
           // Traiter le résultat selon le type
@@ -245,6 +251,8 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
                   affectedProjectIds: result.pendingAction.affectedProjectIds,
                   scopeSource: result.pendingAction.scopeSource,
                   fieldsToShow: result.pendingAction.fieldsToShow,
+                  requestId: result.pendingAction.requestId || result.requestId,
+                  previewDiff: result.pendingAction.previewDiff,
                 },
               },
             ]);
@@ -262,6 +270,7 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
                     proposedMutation: result.proposedMutation as any,
                     totalProjectsCount: result.totalProjectsCount,
                   },
+                  // Note: requestId peut être stocké dans un champ séparé si nécessaire
                 },
               ]);
             } else {

@@ -66,6 +66,18 @@ export interface ProjectMutation {
 }
 
 /**
+ * Diff avant→après pour un projet
+ */
+export interface ProjectPreviewDiff {
+  /** ID du projet */
+  id: string;
+  /** Nom du projet */
+  name: string;
+  /** Liste des changements formatés (ex: "progress 30% → 50%", "status EN_COURS → TERMINE") */
+  changes: string[];
+}
+
+/**
  * Action en attente de confirmation
  */
 export interface PendingConfirmationAction {
@@ -87,6 +99,10 @@ export interface PendingConfirmationAction {
   fieldsToShow: string[];
   /** Message de description de l'action */
   description: string;
+  /** ID de corrélation pour tracer la requête de bout en bout (optionnel) */
+  requestId?: string;
+  /** Diff avant→après pour les 3 premiers projets affectés (optionnel) */
+  previewDiff?: ProjectPreviewDiff[];
 }
 
 /**
@@ -106,6 +122,8 @@ export interface ListCommandResult {
   appliedFilter: ProjectFilter;
   /** IDs des projets listés (pour mémoire de travail) */
   listedProjectIds: string[];
+  /** ID de corrélation pour tracer la requête de bout en bout (optionnel) */
+  requestId?: string;
 }
 
 /**
@@ -126,6 +144,8 @@ export interface CreateCommandResult {
     status?: string;
     style?: string;
   };
+  /** ID de corrélation pour tracer la requête de bout en bout (optionnel) */
+  requestId?: string;
 }
 
 /**
@@ -137,6 +157,8 @@ export interface PendingActionResult {
   pendingAction: PendingConfirmationAction;
   /** Message de réponse */
   message: string;
+  /** ID de corrélation pour tracer la requête de bout en bout (optionnel) */
+  requestId?: string;
 }
 
 /**
@@ -146,6 +168,8 @@ export interface GeneralCommandResult {
   type: ProjectCommandType.GENERAL;
   /** Réponse textuelle de Groq */
   response: string;
+  /** ID de corrélation pour tracer la requête de bout en bout (optionnel) */
+  requestId?: string;
 }
 
 /**
@@ -164,6 +188,8 @@ export interface PendingScopeConfirmationResult {
   proposedMutation: ProjectMutation;
   /** Nombre total de projets qui seraient affectés */
   totalProjectsCount: number;
+  /** ID de corrélation pour tracer la requête de bout en bout (optionnel) */
+  requestId?: string;
 }
 
 /**
@@ -204,4 +230,6 @@ export interface RouterOptions {
   conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string; timestamp: Date }>;
   /** Filtres de la dernière requête (pour inférence) - DEPRECATED, utiliser context.lastAppliedFilter */
   lastFilters?: QueryFilters;
+  /** ID de corrélation pour tracer la requête de bout en bout (optionnel) */
+  requestId?: string;
 }
