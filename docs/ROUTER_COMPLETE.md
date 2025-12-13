@@ -152,7 +152,6 @@ Refactoring complet du système de gestion de commandes projets pour :
    - Utilise maintenant `routeProjectCommandClient()` au lieu de `processProjectCommand()`
    - Gère les résultats du routeur (LIST, CREATE, UPDATE, ADD_NOTE, GENERAL)
    - Appels API uniquement pour persistance (create/update/note)
-   - Vérifie la version (NEW vs OLD) et route vers le bon système
 
 ---
 
@@ -309,35 +308,14 @@ Les lignes non couvertes dans `router.ts` sont principalement :
 
 ## 🧪 Guide de Test en Live
 
-### Activation de la Version NEW
+### Utilisation de l'Assistant
 
-#### Méthode 1 : Via l'Interface (Recommandé)
+L'assistant utilise maintenant exclusivement le routeur NEW (version refactorée) qui traite les commandes côté client pour les listings et filtrages, réduisant les appels DB à zéro.
 
-1. **Ouvrir l'assistant** : Cliquer sur le bouton de l'assistant en bas à droite de la page projets
-2. **Vérifier le badge** : Dans le header de l'assistant, vous verrez un badge "OLD" ou "NEW"
-3. **Basculer vers NEW** :
-   - Si le badge affiche "OLD" (orange), cliquer dessus
-   - Le badge devrait changer en "NEW" (vert)
-   - Le choix est sauvegardé automatiquement dans `localStorage`
-
-#### Méthode 2 : Via la Console du Navigateur
-
-1. Ouvrir la console du navigateur (F12)
-2. Exécuter :
-   ```javascript
-   localStorage.setItem('assistant-version', 'new');
-   ```
-3. Recharger la page
-
-#### Méthode 3 : Par Défaut
-
-La version NEW est la **version par défaut**, donc si vous n'avez jamais changé de version, vous utilisez déjà NEW.
-
-### Vérification que la Version NEW est Active
+### Vérification du Fonctionnement
 
 #### Indicateurs Visuels
 
-- **Badge dans l'UI** : Le badge affiche "NEW" (vert)
 - **Console** : Les logs affichent `[Router] 📋 Routing vers Listing (côté client)` au lieu d'appels serveur
 
 #### Test Rapide
@@ -388,56 +366,18 @@ La version NEW est la **version par défaut**, donc si vous n'avez jamais chang�
 - ✅ Réponse de Groq (IA généraliste)
 - ✅ Aucun tool de mutation accessible
 
-### Basculer entre OLD et NEW
-
-#### Pour Comparer
-
-1. Tester une commande avec NEW (ex: `liste les projets`)
-2. Noter le comportement
-3. Basculer vers OLD (cliquer sur le badge)
-4. Tester la même commande
-5. Comparer les résultats
-
-#### Différences Attendues
-
-| Fonctionnalité | NEW (Routeur)            | OLD (Factory)            |
-| -------------- | ------------------------ | ------------------------ |
-| Listing        | 0 DB, côté client        | Appels DB via Prisma     |
-| Filtrage       | Instantané, côté client  | Appels DB                |
-| Création       | Routeur + API            | Factory + API            |
-| Modification   | Confirmation obligatoire | Confirmation obligatoire |
-| Groq           | Sandboxé (pas de tools)  | Sandboxé (pas de tools)  |
-
 ### Dépannage
 
-#### Le badge ne change pas
-
-1. Vérifier la console pour les erreurs
-2. Vider le cache du navigateur
-3. Vérifier `localStorage` :
-   ```javascript
-   localStorage.getItem('assistant-version');
-   ```
-
-#### La version NEW ne fonctionne pas
+#### L'assistant ne fonctionne pas
 
 1. Vérifier que les fichiers du routeur existent :
    - `src/lib/assistant/router/router.ts`
    - `src/lib/assistant/router/client-router.ts`
 2. Vérifier la console pour les erreurs
-3. Vérifier que le hook utilise bien la version :
+3. Vérifier que le hook utilise bien le routeur :
    ```javascript
-   // Dans useAssistantChat.ts ligne 100
-   const version = getAssistantVersion();
-   console.log('Version active:', version);
-   ```
-
-#### Revenir à OLD
-
-1. Cliquer sur le badge "NEW" pour basculer vers "OLD"
-2. Ou via console :
-   ```javascript
-   localStorage.setItem('assistant-version', 'old');
+   // Dans useAssistantChat.ts
+   const { routeProjectCommandClient } = await import('@/lib/assistant/router/client-router');
    ```
 
 ### Logs de Debug
@@ -517,10 +457,7 @@ Les projets sont maintenus dans `localProjectsRef.current` pour garantir que le 
 
 ### Compatibilité
 
-Le système est compatible avec l'ancien flux (OLD) via le factory pattern existant. Le hook vérifie la version et route vers le bon système :
-
-- Si `version === 'new'` → utilise le routeur côté client
-- Sinon → utilise le factory (version OLD)
+Le système utilise maintenant exclusivement le routeur NEW qui traite les commandes côté client pour les listings et filtrages, réduisant les appels DB à zéro.
 
 ---
 
@@ -530,7 +467,7 @@ Le système est compatible avec l'ancien flux (OLD) via le factory pattern exist
 2. ✅ Hook modifié pour utiliser le routeur
 3. ✅ Tests unitaires créés
 4. ⏳ Tests d'intégration (optionnel)
-5. ⏳ Migration progressive de l'ancien système (si nécessaire)
+5. ✅ Migration complète vers le routeur NEW (terminée)
 6. ⏳ Ajouter des tests pour les cas d'erreur
 7. ⏳ Tester les cas limites (projets vides, filtres invalides, etc.)
 8. ⏳ Augmenter la couverture de `client-router.ts`

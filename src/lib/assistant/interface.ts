@@ -1,6 +1,5 @@
 /**
- * Interface commune pour les implémentations OLD et NEW de l'assistant
- * Permet de basculer entre les deux versions sans modifier le code appelant
+ * Interface pour l'implémentation de l'assistant
  */
 export interface IAssistantService {
   /**
