@@ -8,6 +8,8 @@
  *   debugLog('location', 'message', { data });
  */
 
+import { sanitizeObjectForLogs } from './sanitize-logs';
+
 const DEBUG_ENDPOINT = 'http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54c1d798768';
 
 interface LogData {
@@ -44,10 +46,13 @@ export function debugLog(
   // Skip if debug is not enabled
   if (!isDebugEnabled()) return;
 
+  // Sanitizer les données avant de les logger (security-critical)
+  const sanitizedData = sanitizeObjectForLogs(data);
+
   const logData: LogData = {
     location,
     message,
-    data,
+    data: sanitizedData,
     timestamp: Date.now(),
     sessionId: options?.sessionId ?? 'debug-session',
     runId: options?.runId ?? 'initial',

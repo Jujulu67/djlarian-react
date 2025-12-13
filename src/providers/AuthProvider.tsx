@@ -4,6 +4,7 @@ import { SessionProvider } from 'next-auth/react';
 import { Session } from 'next-auth';
 
 import ErrorBoundary from '@/components/ErrorBoundary';
+import { shouldShowIngestLocalhostWarning } from '@/lib/utils/warning-flags';
 
 // Cache global pour dédupliquer les requêtes de session
 let sessionRequestCache: {
@@ -187,16 +188,16 @@ if (typeof window !== 'undefined') {
     }
 
     // Intercepter les appels de télémétrie /ingest pour éviter ERR_CONNECTION_REFUSED en dev
-    // Guard dev-only: si NODE_ENV === 'development' et endpoint localhost → ne rien envoyer
-    if (
-      url &&
-      typeof url === 'string' &&
-      url.includes('/ingest/') &&
-      (url.includes('127.0.0.1') || url.includes('localhost'))
-    ) {
-      // En développement, ignorer silencieusement les appels vers localhost/ingest
+    // Guard DEV-ONLY: ne s'applique qu'en développement
+    const isIngestCall = url && typeof url === 'string' && url.includes('/ingest/');
+    const isLocalhost =
+      url && typeof url === 'string' && (url.includes('127.0.0.1') || url.includes('localhost'));
+
+    if (isIngestCall && isLocalhost) {
+      // En développement uniquement: intercepter et retourner une réponse factice
       if (process.env.NODE_ENV === 'development') {
         // Retourner une promesse résolue avec une réponse factice pour éviter les erreurs
+        // Pas d'appel réseau, pas de console.error
         return Promise.resolve(
           new Response(JSON.stringify({ success: true }), {
             status: 200,
@@ -205,20 +206,15 @@ if (typeof window !== 'undefined') {
         );
       }
 
-      // En production, essayer l'appel mais absorber silencieusement les erreurs de connexion
-      return originalFetch(...args).catch((error) => {
-        // Absorber uniquement les erreurs ERR_CONNECTION_REFUSED sans les logger
-        // Ne pas afficher console.error pour éviter de polluer la console
-        if (error?.message?.includes('ERR_CONNECTION_REFUSED') || error?.code === 'ECONNREFUSED') {
-          // Retourner une réponse factice pour éviter que l'erreur remonte
-          return new Response(JSON.stringify({ success: false, error: 'Connection refused' }), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
-          });
-        }
-        // Pour les autres erreurs, les laisser remonter normalement
-        throw error;
-      });
+      // En production: détecter la mauvaise config et logger une alerte (une seule fois)
+      // Ne pas masquer l'erreur, laisser l'appel passer normalement
+      if (shouldShowIngestLocalhostWarning()) {
+        console.warn(
+          '[AuthProvider] Ingest endpoint is localhost in production. Check configuration.'
+        );
+      }
+      // Laisser l'appel passer normalement (pas de catch silencieux)
+      return originalFetch(...args);
     }
 
     return originalFetch(...args);

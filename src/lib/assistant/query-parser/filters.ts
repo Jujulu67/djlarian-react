@@ -223,8 +223,9 @@ export function detectFilters(
   // Exemple: "passe les à en cours" -> "en cours" est la nouvelle valeur, pas un filtre
   // IMPORTANT: Ne pas détecter un statut comme filtre s'il fait partie d'un pattern "de X à Y"
   // Exemple: "passe les projets de EN_COURS à TERMINE" -> "TERMINE" est la nouvelle valeur, pas un filtre
+  // IMPORTANT: Détecter aussi les commandes UPDATE avec un statut entre le verbe et "à" (ex: "passe les terminés à 20%")
   const isUpdateCommand =
-    /(?:passe|met|mets?|change|changer|modifie|modifier|marque|marquer)\s+(?:les?\s+)(?:projets?\s+)?(?:à|en|comme)/i.test(
+    /(?:passe|met|mets?|change|changer|modifie|modifier|marque|marquer)\s+(?:les?\s+)?(?:projets?\s+)?(?:.*?\s+)?(?:à|en|comme)/i.test(
       query
     );
   const hasDeXaYPattern =
@@ -274,8 +275,61 @@ export function detectFilters(
     },
   ];
 
+  // Détecter d'abord les patterns explicites "pour les [statut]", "sur les [statut]", etc.
+  // Ces patterns sont toujours des filtres, même dans les commandes UPDATE
+  const explicitFilterPatterns = [
+    /(?:pour|sur|des?)\s+(?:les?\s+)?(?:projets?\s+)?(termin[ée]s?|en\s*cours|annul[ée]s?|archiv[ée]s?|ghost\s*prod)/i,
+    /(?:les?\s+)?(termin[ée]s?|en\s*cours|annul[ée]s?|archiv[ée]s?|ghost\s*prod)\s+(?:pour|sur)/i,
+  ];
+
+  for (const explicitPattern of explicitFilterPatterns) {
+    const explicitMatch = lowerQuery.match(explicitPattern);
+    if (explicitMatch) {
+      const statusText = explicitMatch[1]?.toLowerCase().trim();
+      if (statusText) {
+        // Mapper le texte au statut correspondant
+        const statusMapping: Record<string, string> = {
+          terminé: 'TERMINE',
+          terminés: 'TERMINE',
+          terminées: 'TERMINE',
+          termine: 'TERMINE',
+          'en cours': 'EN_COURS',
+          encours: 'EN_COURS',
+          annulé: 'ANNULE',
+          annulés: 'ANNULE',
+          annulées: 'ANNULE',
+          annule: 'ANNULE',
+          archivé: 'ARCHIVE',
+          archivés: 'ARCHIVE',
+          archivées: 'ARCHIVE',
+          archive: 'ARCHIVE',
+          'ghost prod': 'GHOST_PRODUCTION',
+          'ghost production': 'GHOST_PRODUCTION',
+          ghostprod: 'GHOST_PRODUCTION',
+        };
+        const mappedStatus = statusMapping[statusText];
+        if (mappedStatus) {
+          filters.status = mappedStatus;
+          console.log(
+            '[Parse Query API] ✅ Statut détecté comme filtre explicite (pattern "pour/sur"):',
+            mappedStatus,
+            'dans:',
+            query
+          );
+          // Ne pas continuer la boucle, on a trouvé le filtre
+          break;
+        }
+      }
+    }
+  }
+
   for (const { pattern, status } of statusPatterns) {
     if (pattern.test(lowerQuery)) {
+      // Si on a déjà détecté un statut via les patterns explicites, ne pas continuer
+      if (filters.status) {
+        break;
+      }
+
       // Si c'est un pattern "de X à Y", ne pas détecter les statuts comme filtres
       // car ils font partie du pattern et seront gérés par extractUpdateData
       if (hasDeXaYPattern) {
@@ -290,22 +344,28 @@ export function detectFilters(
 
       // Si c'est une commande de mise à jour, vérifier que le statut n'est pas après "à" ou "en"
       // (car dans ce cas, c'est la nouvelle valeur, pas un filtre)
+      // IMPORTANT: Si le statut apparaît AVANT "à" ou "en" dans la phrase, c'est un filtre explicite
+      // Exemple: "passe les terminés à 20%" -> "terminés" est avant "à", donc c'est un filtre
+      // Exemple: "mets les projets en cours en fini" -> "en cours" est avant "en fini", donc c'est un filtre
       if (isUpdateCommand) {
         // Chercher où le statut apparaît dans la requête
         const match = lowerQuery.match(pattern);
         if (match && match.index !== undefined) {
           const statusIndex = match.index;
           const textBeforeStatus = lowerQuery.substring(0, statusIndex).trim();
+          const textAfterStatus = lowerQuery
+            .substring(statusIndex + (match[0]?.length || 0))
+            .trim();
+
           // Si le statut est précédé de "à", "en" ou "comme" (nouvelle valeur), ne pas l'utiliser comme filtre
           // Exemple: "passe les à en cours" -> "en cours" est après "à", donc c'est la nouvelle valeur
           // Exemple: "marques les projets en TERMINE" -> "TERMINE" est après "en", donc c'est la nouvelle valeur
-          // Le pattern cherche "à", "en" ou "comme" suivi de zéro ou plus espaces à la fin du texte avant le statut
-          // On cherche aussi directement "à en" ou "à en cours" pour être plus précis
-          // IMPORTANT: Pour "en TERMINE", on doit vérifier que "en" est bien présent avant le statut
           const endsWithAorEn = /(?:^|\s)(?:à|en|comme|as)\s*$/.test(textBeforeStatus);
           const hasAEnPattern = /\s+à\s+(?:en|comme|as)\s*$/.test(textBeforeStatus);
           // Vérifier aussi si le statut est directement après "en" (ex: "en TERMINE", "en cours")
           const hasEnBeforeStatus = /\ben\s+$/.test(textBeforeStatus);
+
+          // Si le statut est précédé de "à", "en" ou "comme", c'est la nouvelle valeur, pas un filtre
           if (endsWithAorEn || hasAEnPattern || hasEnBeforeStatus) {
             // C'est la nouvelle valeur, pas un filtre - continuer à chercher d'autres statuts
             console.log(
@@ -317,6 +377,21 @@ export function detectFilters(
               textBeforeStatus
             );
             continue;
+          }
+
+          // Si le statut apparaît AVANT "à" ou "en" dans la phrase, c'est un filtre explicite
+          // Vérifier si "à" ou "en" apparaît après le statut dans la phrase
+          const hasAorEnAfterStatus = /^(?:\s+)?(?:à|en|comme|as)\s+/.test(textAfterStatus);
+          if (hasAorEnAfterStatus) {
+            // Le statut apparaît avant "à" ou "en", donc c'est un filtre explicite
+            console.log(
+              '[Parse Query API] ✅ Statut détecté comme filtre explicite (avant "à"/"en"):',
+              status,
+              'dans:',
+              query
+            );
+            filters.status = status;
+            break;
           }
         }
       }
@@ -512,10 +587,34 @@ export function detectFilters(
   }
 
   // Détecter deadline
-  if (/avec\s*deadline|deadline\s*pr[ée]vue/i.test(lowerQuery)) {
-    filters.hasDeadline = true;
-  } else if (/sans\s*deadline|pas\s*de\s*deadline/i.test(lowerQuery)) {
-    filters.hasDeadline = false;
+  // Patterns: "avec deadline", "deadline prévue", "pour les projets avec deadline", "qui ont une deadline", "qui ont deadline"
+  const hasDeadlinePatterns = [
+    /(?:pour|sur|des?)\s+(?:les?\s+)?(?:projets?\s+)?(?:avec|qui\s+ont\s+(?:une\s+)?|ayant\s+une?\s+)deadline/i,
+    /avec\s*deadline|deadline\s*pr[ée]vue|qui\s+ont\s+(?:une\s+)?deadline|ayant\s+une?\s+deadline/i,
+  ];
+  const hasNoDeadlinePatterns = [
+    /(?:pour|sur|des?)\s+(?:les?\s+)?(?:projets?\s+)?(?:sans|qui\s+n['']ont\s+pas\s+de|n['']ayant\s+pas\s+de)\s+deadline/i,
+    /sans\s*deadline|pas\s*de\s*deadline|qui\s+n['']ont\s+pas\s+de\s+deadline/i,
+  ];
+
+  let hasDeadlineDetected = false;
+  for (const pattern of hasDeadlinePatterns) {
+    if (pattern.test(lowerQuery)) {
+      filters.hasDeadline = true;
+      hasDeadlineDetected = true;
+      console.log('[Parse Query API] ✅ Filtre hasDeadline=true détecté:', query);
+      break;
+    }
+  }
+
+  if (!hasDeadlineDetected) {
+    for (const pattern of hasNoDeadlinePatterns) {
+      if (pattern.test(lowerQuery)) {
+        filters.hasDeadline = false;
+        console.log('[Parse Query API] ✅ Filtre hasDeadline=false détecté:', query);
+        break;
+      }
+    }
   }
 
   // ========================================

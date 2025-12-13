@@ -42,6 +42,13 @@ export interface ProjectMutation {
   newStatus?: string;
   /** Nouvelle deadline */
   newDeadline?: string;
+  /** Décalage de deadline (relatif) */
+  pushDeadlineBy?: {
+    days?: number;
+    weeks?: number;
+    months?: number;
+    years?: number;
+  };
   /** Nouvelle progression */
   newProgress?: number;
   /** Nouveau collaborateur */
@@ -142,13 +149,32 @@ export interface GeneralCommandResult {
 }
 
 /**
+ * Résultat d'une demande de confirmation de scope manquant
+ *
+ * Différent de PendingUpdateConfirmation : cette confirmation demande à l'utilisateur
+ * s'il veut appliquer une mutation à tous les projets (car pas de scope récent).
+ */
+export interface PendingScopeConfirmationResult {
+  type: ProjectCommandType.GENERAL;
+  /** Type spécial pour identifier cette confirmation */
+  confirmationType: 'scope_missing';
+  /** Message demandant confirmation */
+  response: string;
+  /** Mutation qui serait appliquée si confirmé */
+  proposedMutation: ProjectMutation;
+  /** Nombre total de projets qui seraient affectés */
+  totalProjectsCount: number;
+}
+
+/**
  * Résultat d'une commande projet
  */
 export type ProjectCommandResult =
   | ListCommandResult
   | CreateCommandResult
   | PendingActionResult
-  | GeneralCommandResult;
+  | GeneralCommandResult
+  | PendingScopeConfirmationResult;
 
 /**
  * Contexte disponible pour le routeur

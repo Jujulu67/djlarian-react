@@ -117,6 +117,47 @@ describe("handleConfirmUpdate - Tests d'intégration", () => {
       expect(payload).not.toHaveProperty('maxProgress');
     });
 
+    it('MUST send projectIds (not filters) for progress mutation with LastListedIds', async () => {
+      const affectedProjectIds = ['1', '2', '3'];
+      const msg = createMockMessage('LastListedIds', affectedProjectIds, {});
+      // Simuler une mutation de progression
+      if (msg.updateConfirmation) {
+        msg.updateConfirmation.updateData = {
+          newProgress: 20,
+        };
+      }
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: { count: 3 } }),
+      });
+
+      await handleConfirmUpdate({
+        msg,
+        idx: 0,
+        router: mockRouter,
+        setIsLoading: mockSetIsLoading,
+        setMessages: mockSetMessages,
+        setLocalProjects: mockSetLocalProjects,
+        localProjectsRef: mockLocalProjectsRef,
+        setLastFilters: mockSetLastFilters,
+      });
+
+      const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
+      const payload = JSON.parse(fetchCall[1].body);
+
+      // Avec LastListedIds, on envoie projectIds, pas les filtres
+      expect(payload).toHaveProperty('projectIds');
+      expect(payload.projectIds).toEqual(affectedProjectIds);
+      expect(payload.scopeSource).toBe('LastListedIds');
+      expect(payload).toHaveProperty('newProgress');
+      expect(payload.newProgress).toBe(20);
+      // Les filtres ne doivent PAS être présents
+      expect(payload).not.toHaveProperty('status');
+      expect(payload).not.toHaveProperty('minProgress');
+      expect(payload).not.toHaveProperty('maxProgress');
+    });
+
     it('should fail if projectIds are missing when scopeSource is LastListedIds', async () => {
       const msg = createMockMessage('LastListedIds', ['1', '2', '3'], {});
       // Simuler un cas où affectedProjectIds serait undefined (ne devrait pas arriver, mais test de garde-fou)

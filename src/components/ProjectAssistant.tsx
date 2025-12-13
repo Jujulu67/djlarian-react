@@ -25,7 +25,7 @@ import {
 } from '@/lib/assistant/version-selector';
 
 // Extracted modules
-import type { ProjectAssistantProps, QueryFilters } from './assistant/types';
+import type { ProjectAssistantProps, QueryFilters, Message } from './assistant/types';
 import { useAssistantChat } from './assistant/hooks/useAssistantChat';
 import { handleConfirmUpdate, handleCancelUpdate } from './assistant/handlers/handleConfirmUpdate';
 import { ProjectResultsView } from './assistant/components/ProjectResultsView';
@@ -387,6 +387,20 @@ function MessageBubble({
           />
         )}
 
+        {/* Scope missing warning */}
+        {msg.scopeConfirmation && (
+          <ScopeMissingWarning
+            msg={msg}
+            idx={idx}
+            router={router}
+            setIsLoading={setIsLoading}
+            setMessages={setMessages}
+            setLocalProjects={setLocalProjects}
+            localProjectsRef={localProjectsRef}
+            setLastFilters={setLastFilters}
+          />
+        )}
+
         {/* Confirmation buttons */}
         {msg.updateConfirmation && (
           <ConfirmationButtons
@@ -406,6 +420,150 @@ function MessageBubble({
         <span className="text-[10px] opacity-40 mt-1 px-1">
           {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </span>
+      </div>
+    </div>
+  );
+}
+
+function ScopeMissingWarning({
+  msg,
+  idx,
+  router,
+  setIsLoading,
+  setMessages,
+  setLocalProjects,
+  localProjectsRef,
+  setLastFilters,
+}: MessageBubbleProps) {
+  if (!msg.scopeConfirmation) return null;
+
+  const { proposedMutation, totalProjectsCount } = msg.scopeConfirmation;
+
+  // Construire la description de la mutation
+  const mutationParts: string[] = [];
+  if (proposedMutation.newProgress !== undefined) {
+    mutationParts.push(`progression → ${proposedMutation.newProgress}%`);
+  }
+  if (proposedMutation.newStatus) {
+    mutationParts.push(`statut → ${proposedMutation.newStatus}`);
+  }
+  if (proposedMutation.newDeadline) {
+    mutationParts.push(`deadline → ${proposedMutation.newDeadline}`);
+  }
+  if (proposedMutation.pushDeadlineBy) {
+    const delta = proposedMutation.pushDeadlineBy;
+    const parts: string[] = [];
+    if (delta.days)
+      parts.push(`${delta.days > 0 ? '+' : ''}${delta.days} jour${delta.days !== 1 ? 's' : ''}`);
+    if (delta.weeks)
+      parts.push(
+        `${delta.weeks > 0 ? '+' : ''}${delta.weeks} semaine${delta.weeks !== 1 ? 's' : ''}`
+      );
+    if (delta.months) parts.push(`${delta.months > 0 ? '+' : ''}${delta.months} mois`);
+    if (delta.years)
+      parts.push(`${delta.years > 0 ? '+' : ''}${delta.years} an${delta.years !== 1 ? 's' : ''}`);
+    if (parts.length > 0) {
+      mutationParts.push(`décaler deadline de ${parts.join(', ')}`);
+    }
+  }
+  if (proposedMutation.newCollab) {
+    mutationParts.push(`collab → ${proposedMutation.newCollab}`);
+  }
+  if (proposedMutation.newStyle) {
+    mutationParts.push(`style → ${proposedMutation.newStyle}`);
+  }
+  if (proposedMutation.newLabel) {
+    mutationParts.push(`label → ${proposedMutation.newLabel}`);
+  }
+  if (proposedMutation.newLabelFinal) {
+    mutationParts.push(`label final → ${proposedMutation.newLabelFinal}`);
+  }
+  if (proposedMutation.newNote) {
+    mutationParts.push(
+      `note → ${proposedMutation.newNote.substring(0, 50)}${proposedMutation.newNote.length > 50 ? '...' : ''}`
+    );
+  }
+
+  const handleConfirm = async () => {
+    // Créer une action de confirmation avec AllProjects comme scope
+    const confirmationMsg: Message = {
+      role: 'assistant',
+      content: `Modification de tous les projets (${totalProjectsCount}) : ${mutationParts.join(', ')}`,
+      timestamp: new Date(),
+      updateConfirmation: {
+        filters: {},
+        updateData: proposedMutation,
+        affectedProjects: [], // Sera rempli par le handler
+        scopeSource: 'AllProjects',
+        fieldsToShow: ['progress', 'status', 'deadline'],
+      },
+    };
+
+    // Remplacer le message actuel par la confirmation
+    setMessages((prev) => {
+      const newMessages = [...prev];
+      newMessages[idx] = confirmationMsg;
+      return newMessages;
+    });
+
+    // Déclencher la confirmation
+    await handleConfirmUpdate({
+      msg: confirmationMsg,
+      idx,
+      router,
+      setIsLoading,
+      setMessages,
+      setLocalProjects,
+      localProjectsRef,
+      setLastFilters,
+    });
+  };
+
+  return (
+    <div className="mt-3 w-full">
+      {/* Warning box */}
+      <div
+        className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-4 mb-3"
+        role="alert"
+        aria-live="polite"
+      >
+        <div className="flex items-start gap-2">
+          <span className="text-yellow-400 text-lg" aria-hidden="true">
+            ⚠️
+          </span>
+          <div className="flex-1">
+            <p className="text-yellow-200 font-semibold mb-1">
+              Aucun scope récent. Cette action s'appliquerait à{' '}
+              <strong>tous les projets ({totalProjectsCount})</strong>.
+            </p>
+            {mutationParts.length > 0 && (
+              <div className="mt-2 text-sm text-yellow-100/90">
+                <p className="font-medium mb-1">Modifications proposées :</p>
+                <ul className="list-disc list-inside space-y-1">
+                  {mutationParts.map((part, i) => (
+                    <li key={i}>{part}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Action buttons */}
+      <div className="flex gap-2">
+        <button
+          onClick={handleConfirm}
+          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
+        >
+          Confirmer pour tous les projets
+        </button>
+        <button
+          onClick={() => handleCancelUpdate(idx, setMessages)}
+          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors"
+        >
+          Annuler
+        </button>
       </div>
     </div>
   );

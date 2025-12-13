@@ -2,6 +2,7 @@
  * Tests d'intégration pour l'API batch-update
  *
  * Objectif : Vérifier que l'API refuse les requêtes sans scope
+ * @jest-environment node
  */
 
 import { POST } from '../route';
@@ -28,6 +29,19 @@ jest.mock('@/auth', () => ({
 
 jest.mock('next/cache', () => ({
   revalidateTag: jest.fn(),
+}));
+
+jest.mock('@sentry/nextjs', () => ({
+  captureException: jest.fn(),
+}));
+
+jest.mock('@/lib/api/errorHandler', () => ({
+  handleApiError: jest.fn((error) => {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }),
 }));
 
 const mockAuth = auth as jest.MockedFunction<typeof auth>;

@@ -40,6 +40,32 @@ const mockGetConversationalResponse = getConversationalResponse as jest.MockedFu
 >;
 const mockFilterProjects = filterProjects as jest.MockedFunction<typeof filterProjects>;
 
+/**
+ * Helper pour créer un mock de classification avec les champs par défaut
+ */
+function createMockClassification(overrides: Partial<ReturnType<typeof classifyQuery>> = {}) {
+  return {
+    isMetaQuestion: false,
+    isUpdate: false,
+    isCreate: false,
+    isCount: false,
+    isList: false,
+    lang: 'fr' as const,
+    hasActionVerb: false,
+    hasProjectMention: false,
+    isProjectInNonMusicalContext: false,
+    hasProjectRelatedFilters: false,
+    isActionVerbButNotProjectRelated: false,
+    isQuestionAboutAssistantProjects: false,
+    isConversationalQuestion: false,
+    understood: false,
+    isComplex: false,
+    isDetailsViewRequested: false,
+    isAllProjectsRequested: false,
+    ...overrides,
+  };
+}
+
 describe('Router - Classification et Routing', () => {
   const mockProjects: Project[] = [
     {
@@ -100,6 +126,8 @@ describe('Router - Classification et Routing', () => {
         isComplex: false,
         isMetaQuestion: false,
         lang: 'fr',
+        isDetailsViewRequested: false,
+        isAllProjectsRequested: false,
       });
       mockFilterProjects.mockReturnValue({
         filtered: mockProjects,
@@ -146,6 +174,8 @@ describe('Router - Classification et Routing', () => {
         isComplex: false,
         isMetaQuestion: false,
         lang: 'fr',
+        isDetailsViewRequested: false,
+        isAllProjectsRequested: false,
       });
       mockFilterProjects.mockReturnValue({
         filtered: filteredProjects,
@@ -173,23 +203,15 @@ describe('Router - Classification et Routing', () => {
   describe('Création', () => {
     it('devrait router vers CREATE avec les données extraites', async () => {
       mockDetectFilters.mockReturnValue({ filters: {}, fieldsToShow: [] });
-      mockClassifyQuery.mockReturnValue({
-        isList: false,
-        isCount: false,
-        isUpdate: false,
-        isCreate: true,
-        isConversationalQuestion: false,
-        hasActionVerb: true,
-        hasProjectMention: true,
-        isProjectInNonMusicalContext: false,
-        hasProjectRelatedFilters: true,
-        isActionVerbButNotProjectRelated: false,
-        isQuestionAboutAssistantProjects: false,
-        understood: true,
-        isComplex: false,
-        isMetaQuestion: false,
-        lang: 'fr',
-      });
+      mockClassifyQuery.mockReturnValue(
+        createMockClassification({
+          isCreate: true,
+          hasActionVerb: true,
+          hasProjectMention: true,
+          hasProjectRelatedFilters: true,
+          understood: true,
+        })
+      );
       mockExtractCreateData.mockReturnValue({
         name: 'Nouveau Projet',
         status: 'EN_COURS',
@@ -216,23 +238,15 @@ describe('Router - Classification et Routing', () => {
         filters: { status: 'EN_COURS' },
         fieldsToShow: [],
       });
-      mockClassifyQuery.mockReturnValue({
-        isList: false,
-        isCount: false,
-        isUpdate: true,
-        isCreate: false,
-        isConversationalQuestion: false,
-        hasActionVerb: true,
-        hasProjectMention: true,
-        isProjectInNonMusicalContext: false,
-        hasProjectRelatedFilters: true,
-        isActionVerbButNotProjectRelated: false,
-        isQuestionAboutAssistantProjects: false,
-        understood: true,
-        isComplex: false,
-        isMetaQuestion: false,
-        lang: 'fr',
-      });
+      mockClassifyQuery.mockReturnValue(
+        createMockClassification({
+          isUpdate: true,
+          hasActionVerb: true,
+          hasProjectMention: true,
+          hasProjectRelatedFilters: true,
+          understood: true,
+        })
+      );
       mockExtractUpdateData.mockReturnValue({
         newStatus: 'TERMINE',
       });
@@ -278,6 +292,8 @@ describe('Router - Classification et Routing', () => {
         isComplex: false,
         isMetaQuestion: false,
         lang: 'fr',
+        isDetailsViewRequested: false,
+        isAllProjectsRequested: false,
       });
       mockGetConversationalResponse.mockResolvedValue('Réponse de Groq');
 
@@ -315,6 +331,8 @@ describe('Router - Classification et Routing', () => {
         isComplex: false,
         isMetaQuestion: false,
         lang: 'fr',
+        isDetailsViewRequested: false,
+        isAllProjectsRequested: false,
       });
       mockGetConversationalResponse.mockResolvedValue('Réponse');
 
@@ -817,6 +835,588 @@ describe('Router - Classification et Routing', () => {
           // Vérifier que les projets affectés sont bien ceux du working set
           const affectedIds = updateResult.pendingAction.affectedProjects.map((p) => p.id);
           expect(affectedIds).toEqual(expect.arrayContaining(['1', '2']));
+        }
+      });
+    });
+  });
+
+  describe('LIST avec working set (vue détails)', () => {
+    describe('LIST en cours → "affiche tous les détails"', () => {
+      it('devrait utiliser lastListedProjectIds quand "affiche tous les détails" est demandé sans filtre', async () => {
+        // Étape 1 : LIST avec filtre "en cours" (phrase réelle)
+        mockDetectFilters.mockReturnValue({
+          filters: { status: 'EN_COURS' },
+          fieldsToShow: ['status', 'progress'],
+        });
+        mockClassifyQuery.mockReturnValue({
+          isList: true,
+          isCount: false,
+          isUpdate: false,
+          isCreate: false,
+          isConversationalQuestion: false,
+          hasActionVerb: true,
+          hasProjectMention: true,
+          isProjectInNonMusicalContext: false,
+          hasProjectRelatedFilters: true,
+          isActionVerbButNotProjectRelated: false,
+          isQuestionAboutAssistantProjects: false,
+          understood: true,
+          isComplex: false,
+          isMetaQuestion: false,
+          lang: 'fr',
+          isDetailsViewRequested: false,
+          isAllProjectsRequested: false,
+        });
+        const filteredProjects = [mockProjects[0]]; // Seulement le projet "EN_COURS"
+        mockFilterProjects.mockReturnValue({
+          filtered: filteredProjects,
+          nullProgressCount: 0,
+          hasProgressFilter: false,
+        });
+
+        const listResult = await routeProjectCommand('liste les en cours', {
+          context: mockContext,
+        });
+
+        expect(listResult.type).toBe(ProjectCommandType.LIST);
+        if (listResult.type === ProjectCommandType.LIST) {
+          expect(listResult.projects).toHaveLength(1);
+          expect(listResult.listedProjectIds).toEqual(['1']);
+          expect(listResult.appliedFilter.status).toBe('EN_COURS');
+        }
+
+        // Étape 2 : LIST avec "affiche tous les détails" (sans filtre explicite)
+        mockDetectFilters.mockReturnValue({
+          filters: {}, // IMPORTANT : filtre vide
+          fieldsToShow: ['status', 'progress', 'collab', 'deadline'],
+        });
+        mockClassifyQuery.mockReturnValue({
+          isList: true,
+          isCount: false,
+          isUpdate: false,
+          isCreate: false,
+          isConversationalQuestion: false,
+          hasActionVerb: true,
+          hasProjectMention: true,
+          isProjectInNonMusicalContext: false,
+          hasProjectRelatedFilters: false,
+          isActionVerbButNotProjectRelated: false,
+          isQuestionAboutAssistantProjects: false,
+          understood: true,
+          isComplex: false,
+          isMetaQuestion: false,
+          lang: 'fr',
+          isDetailsViewRequested: true, // IMPORTANT : vue détails demandée
+          isAllProjectsRequested: false, // IMPORTANT : pas "tous les projets"
+        });
+
+        const contextWithWorkingSet = {
+          ...mockContext,
+          lastListedProjectIds: ['1'], // IDs du dernier listing
+          lastAppliedFilter: { status: 'EN_COURS' },
+        };
+
+        const detailsResult = await routeProjectCommand('affiche tous les détails', {
+          context: contextWithWorkingSet,
+        });
+
+        expect(detailsResult.type).toBe(ProjectCommandType.LIST);
+        if (detailsResult.type === ProjectCommandType.LIST) {
+          // Doit utiliser le working set (lastListedProjectIds), pas tous les projets
+          expect(detailsResult.projects).toHaveLength(1);
+          expect(detailsResult.projects[0].id).toBe('1');
+          expect(detailsResult.projects[0].status).toBe('EN_COURS');
+          // fieldsToShow doit être "all" (liste complète)
+          expect(detailsResult.fieldsToShow.length).toBeGreaterThan(3);
+          expect(detailsResult.fieldsToShow).toContain('status');
+          expect(detailsResult.fieldsToShow).toContain('progress');
+          expect(detailsResult.fieldsToShow).toContain('collab');
+          expect(detailsResult.listedProjectIds).toEqual(['1']);
+        }
+      });
+    });
+
+    describe('LIST en cours → "affiche tous les détails de tous les projets"', () => {
+      it('devrait utiliser tous les projets quand "tous les projets" est explicitement mentionné', async () => {
+        // Étape 1 : LIST avec filtre "en cours"
+        mockDetectFilters.mockReturnValue({
+          filters: { status: 'EN_COURS' },
+          fieldsToShow: ['status', 'progress'],
+        });
+        mockClassifyQuery.mockReturnValue({
+          isList: true,
+          isCount: false,
+          isUpdate: false,
+          isCreate: false,
+          isConversationalQuestion: false,
+          hasActionVerb: true,
+          hasProjectMention: true,
+          isProjectInNonMusicalContext: false,
+          hasProjectRelatedFilters: true,
+          isActionVerbButNotProjectRelated: false,
+          isQuestionAboutAssistantProjects: false,
+          understood: true,
+          isComplex: false,
+          isMetaQuestion: false,
+          lang: 'fr',
+          isDetailsViewRequested: false,
+          isAllProjectsRequested: false,
+        });
+        const filteredProjects = [mockProjects[0]];
+        mockFilterProjects.mockReturnValue({
+          filtered: filteredProjects,
+          nullProgressCount: 0,
+          hasProgressFilter: false,
+        });
+
+        const listResult = await routeProjectCommand('liste les en cours', {
+          context: mockContext,
+        });
+
+        expect(listResult.type).toBe(ProjectCommandType.LIST);
+        if (listResult.type === ProjectCommandType.LIST) {
+          expect(listResult.listedProjectIds).toEqual(['1']);
+        }
+
+        // Étape 2 : LIST avec "affiche tous les détails de tous les projets"
+        mockDetectFilters.mockReturnValue({
+          filters: {}, // Pas de filtre de statut
+          fieldsToShow: ['status', 'progress', 'collab', 'deadline'],
+        });
+        mockClassifyQuery.mockReturnValue({
+          isList: true,
+          isCount: false,
+          isUpdate: false,
+          isCreate: false,
+          isConversationalQuestion: false,
+          hasActionVerb: true,
+          hasProjectMention: true,
+          isProjectInNonMusicalContext: false,
+          hasProjectRelatedFilters: false,
+          isActionVerbButNotProjectRelated: false,
+          isQuestionAboutAssistantProjects: false,
+          understood: true,
+          isComplex: false,
+          isMetaQuestion: false,
+          lang: 'fr',
+          isDetailsViewRequested: true,
+          isAllProjectsRequested: true, // IMPORTANT : "tous les projets" explicitement demandé
+        });
+        // Tous les projets doivent être retournés
+        mockFilterProjects.mockReturnValue({
+          filtered: mockProjects, // Tous les projets
+          nullProgressCount: 0,
+          hasProgressFilter: false,
+        });
+
+        const contextWithWorkingSet = {
+          ...mockContext,
+          lastListedProjectIds: ['1'], // Working set existe mais doit être ignoré
+          lastAppliedFilter: { status: 'EN_COURS' },
+        };
+
+        const allProjectsResult = await routeProjectCommand(
+          'affiche tous les détails de tous les projets',
+          {
+            context: contextWithWorkingSet,
+          }
+        );
+
+        expect(allProjectsResult.type).toBe(ProjectCommandType.LIST);
+        if (allProjectsResult.type === ProjectCommandType.LIST) {
+          // Doit retourner TOUS les projets, pas seulement ceux du working set
+          expect(allProjectsResult.projects.length).toBe(2);
+          expect(allProjectsResult.projects.map((p) => p.id)).toEqual(['1', '2']);
+          expect(allProjectsResult.listedProjectIds.length).toBe(2);
+        }
+      });
+    });
+
+    describe('Sans historique → "affiche tous les détails"', () => {
+      it('devrait gérer sans crash et retourner tous les projets si aucun working set', async () => {
+        // Contexte sans working set
+        const contextWithoutWorkingSet = {
+          ...mockContext,
+          lastListedProjectIds: undefined,
+          lastAppliedFilter: undefined,
+        };
+
+        mockDetectFilters.mockReturnValue({
+          filters: {}, // Pas de filtre
+          fieldsToShow: ['status', 'progress', 'collab', 'deadline'],
+        });
+        mockClassifyQuery.mockReturnValue({
+          isList: true,
+          isCount: false,
+          isUpdate: false,
+          isCreate: false,
+          isConversationalQuestion: false,
+          hasActionVerb: true,
+          hasProjectMention: true,
+          isProjectInNonMusicalContext: false,
+          hasProjectRelatedFilters: false,
+          isActionVerbButNotProjectRelated: false,
+          isQuestionAboutAssistantProjects: false,
+          understood: true,
+          isComplex: false,
+          isMetaQuestion: false,
+          lang: 'fr',
+          isDetailsViewRequested: true,
+          isAllProjectsRequested: false,
+        });
+        // Tous les projets (fallback)
+        mockFilterProjects.mockReturnValue({
+          filtered: mockProjects,
+          nullProgressCount: 0,
+          hasProgressFilter: false,
+        });
+
+        const result = await routeProjectCommand('affiche tous les détails', {
+          context: contextWithoutWorkingSet,
+        });
+
+        expect(result.type).toBe(ProjectCommandType.LIST);
+        if (result.type === ProjectCommandType.LIST) {
+          // Doit retourner tous les projets (pas de crash)
+          expect(result.projects.length).toBe(2);
+          expect(result.fieldsToShow.length).toBeGreaterThan(3);
+          expect(result.listedProjectIds.length).toBe(2);
+        }
+      });
+    });
+  });
+
+  describe('Deadline push avec working set', () => {
+    describe('LIST collabs → UPDATE deadline push', () => {
+      it('devrait utiliser lastListedProjectIds pour "pousse leur deadline de 1 mois"', async () => {
+        // Étape 1 : LIST avec filtre "collabs avec hoho" (17 projets)
+        const mockProjectsWithCollab = Array.from({ length: 17 }, (_, i) => ({
+          ...mockProjects[0],
+          id: `collab-${i + 1}`,
+          name: `Projet Collab ${i + 1}`,
+          collab: 'hoho',
+          deadline: '2024-12-31',
+        }));
+
+        const contextWithCollabs = {
+          ...mockContext,
+          projects: [...mockProjects, ...mockProjectsWithCollab],
+          projectCount: 19,
+        };
+
+        mockDetectFilters.mockReturnValue({
+          filters: { collab: 'hoho' },
+          fieldsToShow: ['status', 'progress', 'collab'],
+        });
+        mockClassifyQuery.mockReturnValue(
+          createMockClassification({
+            isList: true,
+            hasActionVerb: true,
+            hasProjectMention: true,
+            hasProjectRelatedFilters: true,
+            understood: true,
+          })
+        );
+        mockFilterProjects.mockReturnValue({
+          filtered: mockProjectsWithCollab,
+          nullProgressCount: 0,
+          hasProgressFilter: false,
+        });
+
+        const listResult = await routeProjectCommand('affiche toutes les collabs avec hoho', {
+          context: contextWithCollabs,
+        });
+
+        expect(listResult.type).toBe(ProjectCommandType.LIST);
+        if (listResult.type === ProjectCommandType.LIST) {
+          expect(listResult.projects).toHaveLength(17);
+          expect(listResult.listedProjectIds).toHaveLength(17);
+        }
+
+        // Étape 2 : UPDATE avec "pousse leur deadline de 1 mois" (sans filtre explicite)
+        mockDetectFilters.mockReturnValue({
+          filters: {}, // IMPORTANT : filtre vide, pas de collab
+          fieldsToShow: ['deadline'],
+        });
+        mockClassifyQuery.mockReturnValue(
+          createMockClassification({
+            isUpdate: true,
+            hasActionVerb: true,
+            hasProjectMention: true,
+            hasProjectRelatedFilters: false,
+            understood: true,
+          })
+        );
+        mockExtractUpdateData.mockReturnValue({
+          pushDeadlineBy: { months: 1 },
+        });
+
+        const contextWithWorkingSet = {
+          ...contextWithCollabs,
+          lastListedProjectIds: mockProjectsWithCollab.map((p) => p.id), // 17 IDs
+          lastAppliedFilter: { collab: 'hoho' },
+        };
+
+        const updateResult = await routeProjectCommand('pousse leur deadline de 1 mois', {
+          context: contextWithWorkingSet,
+        });
+
+        expect(updateResult.type).toBe(ProjectCommandType.UPDATE);
+        if (
+          updateResult.type === ProjectCommandType.UPDATE ||
+          updateResult.type === ProjectCommandType.ADD_NOTE
+        ) {
+          // Doit utiliser le working set (lastListedProjectIds), pas tous les projets
+          expect(updateResult.pendingAction.affectedProjects).toHaveLength(17);
+          expect(updateResult.pendingAction.affectedProjectIds).toHaveLength(17);
+          expect(updateResult.pendingAction.scopeSource).toBe('LastListedIds');
+          expect(updateResult.pendingAction.mutation.pushDeadlineBy).toBeDefined();
+          expect(updateResult.pendingAction.mutation.pushDeadlineBy?.months).toBe(1);
+        }
+      });
+
+      it('devrait détecter pushDeadlineBy dans updateData', async () => {
+        const contextWithWorkingSet = {
+          ...mockContext,
+          lastListedProjectIds: ['1', '2'],
+          lastAppliedFilter: { status: 'EN_COURS' },
+        };
+
+        mockDetectFilters.mockReturnValue({
+          filters: {},
+          fieldsToShow: ['deadline'],
+        });
+        mockClassifyQuery.mockReturnValue(
+          createMockClassification({
+            isUpdate: true,
+            hasActionVerb: true,
+            hasProjectMention: true,
+            hasProjectRelatedFilters: false,
+            understood: true,
+          })
+        );
+        // IMPORTANT: extractUpdateData doit retourner pushDeadlineBy
+        mockExtractUpdateData.mockReturnValue({
+          pushDeadlineBy: { months: 1 },
+        });
+
+        const updateResult = await routeProjectCommand('pousse leur deadline de 1 mois', {
+          context: contextWithWorkingSet,
+        });
+
+        expect(updateResult.type).toBe(ProjectCommandType.UPDATE);
+        if (
+          updateResult.type === ProjectCommandType.UPDATE ||
+          updateResult.type === ProjectCommandType.ADD_NOTE
+        ) {
+          expect(updateResult.pendingAction.mutation.pushDeadlineBy).toBeDefined();
+          expect(updateResult.pendingAction.mutation.pushDeadlineBy?.months).toBe(1);
+        }
+      });
+
+      it('ne devrait PAS considérer hasDeadline dans updateData comme filtre scoping si pas explicitement demandé', async () => {
+        // Bug reproduction: hasDeadline dans updateData ne doit PAS déclencher ExplicitFilter
+        const mockProjectsWithDeadline = Array.from({ length: 17 }, (_, i) => ({
+          ...mockProjects[0],
+          id: `collab-${i + 1}`,
+          name: `Projet Collab ${i + 1}`,
+          collab: 'hoho',
+          deadline: '2024-12-31',
+        }));
+
+        const contextWithCollabs = {
+          ...mockContext,
+          projects: [...mockProjects, ...mockProjectsWithDeadline],
+          projectCount: 19,
+          lastListedProjectIds: mockProjectsWithDeadline.map((p) => p.id), // 17 IDs
+          lastAppliedFilter: { collab: 'hoho' },
+        };
+
+        // IMPORTANT: extractUpdateData retourne hasDeadline=true mais filters est vide
+        // (simule le comportement après le fix: hasDeadline n'est pas dans filters)
+        mockDetectFilters.mockReturnValue({
+          filters: {}, // Vide - hasDeadline n'est PAS dans filters
+          fieldsToShow: ['deadline'],
+        });
+        mockClassifyQuery.mockReturnValue(
+          createMockClassification({
+            isUpdate: true,
+            hasActionVerb: true,
+            hasProjectMention: true,
+            hasProjectRelatedFilters: false,
+            understood: true,
+          })
+        );
+        mockExtractUpdateData.mockReturnValue({
+          pushDeadlineBy: { months: 1 },
+          hasDeadline: true, // Dans updateData mais PAS dans filters
+        });
+
+        const updateResult = await routeProjectCommand('pousse leur deadline de 1 mois', {
+          context: contextWithCollabs,
+        });
+
+        expect(updateResult.type).toBe(ProjectCommandType.UPDATE);
+        if (
+          updateResult.type === ProjectCommandType.UPDATE ||
+          updateResult.type === ProjectCommandType.ADD_NOTE
+        ) {
+          // Doit utiliser LastListedIds, PAS ExplicitFilter
+          expect(updateResult.pendingAction.scopeSource).toBe('LastListedIds');
+          expect(updateResult.pendingAction.affectedProjects).toHaveLength(17);
+          expect(updateResult.pendingAction.affectedProjectIds).toHaveLength(17);
+        }
+      });
+
+      it('devrait utiliser ExplicitFilter si filtre deadline est explicitement demandé', async () => {
+        // Cas où l'utilisateur demande explicitement "avec deadline"
+        const mockProjectsWithDeadline = Array.from({ length: 43 }, (_, i) => ({
+          ...mockProjects[0],
+          id: `deadline-${i + 1}`,
+          name: `Projet Deadline ${i + 1}`,
+          deadline: '2024-12-31',
+        }));
+
+        const contextWithDeadlines = {
+          ...mockContext,
+          projects: [...mockProjects, ...mockProjectsWithDeadline],
+          projectCount: 45,
+          lastListedProjectIds: ['1', '2'], // Working set existe mais doit être ignoré
+        };
+
+        // IMPORTANT: filters contient hasDeadline=true (filtre explicite)
+        mockDetectFilters.mockReturnValue({
+          filters: { hasDeadline: true }, // Filtre explicite
+          fieldsToShow: ['deadline'],
+        });
+        mockClassifyQuery.mockReturnValue(
+          createMockClassification({
+            isUpdate: true,
+            hasActionVerb: true,
+            hasProjectMention: true,
+            hasProjectRelatedFilters: true, // Filtre présent
+            understood: true,
+          })
+        );
+        mockExtractUpdateData.mockReturnValue({
+          pushDeadlineBy: { months: 1 },
+          hasDeadline: true,
+        });
+        mockFilterProjects.mockReturnValue({
+          filtered: mockProjectsWithDeadline,
+          nullProgressCount: 0,
+          hasProgressFilter: false,
+        });
+
+        const updateResult = await routeProjectCommand(
+          'pousse la deadline des projets avec deadline de 1 mois',
+          {
+            context: contextWithDeadlines,
+          }
+        );
+
+        expect(updateResult.type).toBe(ProjectCommandType.UPDATE);
+        if (
+          updateResult.type === ProjectCommandType.UPDATE ||
+          updateResult.type === ProjectCommandType.ADD_NOTE
+        ) {
+          // Doit utiliser ExplicitFilter, pas LastListedIds
+          expect(updateResult.pendingAction.scopeSource).toBe('ExplicitFilter');
+          expect(updateResult.pendingAction.affectedProjects).toHaveLength(43);
+        }
+      });
+
+      it('devrait skip les projets sans deadline pour les mutations de deadline', async () => {
+        const mockProjectsMixed = [
+          { ...mockProjects[0], id: 'with-deadline-1', deadline: '2024-12-31' },
+          { ...mockProjects[0], id: 'with-deadline-2', deadline: '2024-12-31' },
+          { ...mockProjects[0], id: 'no-deadline-1', deadline: null },
+          { ...mockProjects[0], id: 'no-deadline-2', deadline: null },
+        ];
+
+        const contextWithMixed = {
+          ...mockContext,
+          projects: mockProjectsMixed,
+          projectCount: 4,
+          lastListedProjectIds: mockProjectsMixed.map((p) => p.id),
+        };
+
+        mockDetectFilters.mockReturnValue({
+          filters: {},
+          fieldsToShow: ['deadline'],
+        });
+        mockClassifyQuery.mockReturnValue(
+          createMockClassification({
+            isUpdate: true,
+            hasActionVerb: true,
+            hasProjectMention: true,
+            hasProjectRelatedFilters: false,
+            understood: true,
+          })
+        );
+        mockExtractUpdateData.mockReturnValue({
+          pushDeadlineBy: { months: 1 },
+        });
+
+        const updateResult = await routeProjectCommand('pousse leur deadline de 1 mois', {
+          context: contextWithMixed,
+        });
+
+        expect(updateResult.type).toBe(ProjectCommandType.UPDATE);
+        if (
+          updateResult.type === ProjectCommandType.UPDATE ||
+          updateResult.type === ProjectCommandType.ADD_NOTE
+        ) {
+          // Doit skip les projets sans deadline
+          expect(updateResult.pendingAction.affectedProjects).toHaveLength(2);
+          expect(updateResult.pendingAction.affectedProjects.map((p) => p.id)).toEqual([
+            'with-deadline-1',
+            'with-deadline-2',
+          ]);
+          // Le message doit mentionner les projets ignorés
+          expect(updateResult.pendingAction.description).toContain('2 projet(s) ignoré(s)');
+        }
+      });
+
+      it('devrait afficher un message de confirmation clair pour pushDeadlineBy', async () => {
+        const contextWithWorkingSet = {
+          ...mockContext,
+          projects: [
+            { ...mockProjects[0], id: '1', deadline: '2024-12-31' },
+            { ...mockProjects[0], id: '2', deadline: '2024-12-31' },
+          ],
+          lastListedProjectIds: ['1', '2'],
+        };
+
+        mockDetectFilters.mockReturnValue({
+          filters: {},
+          fieldsToShow: ['deadline'],
+        });
+        mockClassifyQuery.mockReturnValue(
+          createMockClassification({
+            isUpdate: true,
+            hasActionVerb: true,
+            hasProjectMention: true,
+            hasProjectRelatedFilters: false,
+            understood: true,
+          })
+        );
+        mockExtractUpdateData.mockReturnValue({
+          pushDeadlineBy: { months: 1 },
+        });
+
+        const updateResult = await routeProjectCommand('pousse leur deadline de 1 mois', {
+          context: contextWithWorkingSet,
+        });
+
+        expect(updateResult.type).toBe(ProjectCommandType.UPDATE);
+        if (
+          updateResult.type === ProjectCommandType.UPDATE ||
+          updateResult.type === ProjectCommandType.ADD_NOTE
+        ) {
+          // Le message doit contenir "Décaler la deadline de +1 mois"
+          expect(updateResult.pendingAction.description).toContain('Décaler la deadline');
+          expect(updateResult.pendingAction.description).toContain('+1 mois');
         }
       });
     });
