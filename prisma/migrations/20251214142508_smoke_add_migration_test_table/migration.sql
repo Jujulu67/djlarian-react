@@ -1,5 +1,6 @@
 -- DropIndex
-DROP INDEX "MergeToken_token_key";
+-- Utiliser IF EXISTS pour éviter l'erreur si l'index a déjà été supprimé par une migration précédente
+DROP INDEX IF EXISTS "MergeToken_token_key";
 
 -- AlterTable
 ALTER TABLE "Project" ADD COLUMN     "deadline" TIMESTAMP(3);
