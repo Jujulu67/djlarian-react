@@ -31,7 +31,7 @@ export interface QueryClassification {
 export function classifyQuery(
   query: string,
   lowerQuery: string,
-  filters: Record<string, any>
+  filters: Record<string, unknown>
 ): QueryClassification {
   // ... (keeping lines 34-341 as is in the file, we are just fixing the interface and the end)
 
@@ -215,7 +215,7 @@ export function classifyQuery(
     );
 
   if (isQuestionAboutAssistantProjects) {
-    console.log("[Parse Query API] Question sur les projets de l'assistant détectée pour:", query);
+    console.warn("[Parse Query API] Question sur les projets de l'assistant détectée pour:", query);
   }
 
   // Détecter les messages très longs qui sont clairement conversationnels
@@ -239,7 +239,7 @@ export function classifyQuery(
 
   // Debug pour les messages longs
   if (query.length > 200) {
-    console.log('[Parse Query API] 🔍 Détection message long:', {
+    console.warn('[Parse Query API] 🔍 Détection message long:', {
       length: query.length,
       hasProjectMention,
       hasActionVerb,
@@ -346,7 +346,7 @@ export function classifyQuery(
   // Removed hardcoded fetch to localhost endpoint - use debugLog instead
 
   if (isQuestionAboutAssistantProjects || isLongPersonalMessage) {
-    console.log('[Parse Query API] 🔍 Détection conversationnelle:', {
+    console.warn('[Parse Query API] 🔍 Détection conversationnelle:', {
       isQuestionAboutAssistantProjects,
       isLongPersonalMessage,
       isConversationalQuestion,

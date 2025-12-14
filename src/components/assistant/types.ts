@@ -11,6 +11,7 @@ export interface QueryFilters {
   collab?: string;
   style?: string;
   label?: string;
+  labelFinal?: string;
   hasDeadline?: boolean;
   name?: string;
   noProgress?: boolean;
@@ -52,6 +53,7 @@ export interface UpdateData {
     days?: number;
     weeks?: number;
     months?: number;
+    years?: number;
   };
   newCollab?: string;
   newStyle?: string;

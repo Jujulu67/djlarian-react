@@ -16,10 +16,10 @@ export function detectDeadlineFromQuery(query: string): {
   // Patterns pour "avec deadline", "sans deadline", "qui ont une deadline"
   if (/avec\s*deadline|qui\s*ont\s*(?:une\s*)?deadline|deadline\s*prévue/i.test(lowerQuery)) {
     result.hasDeadline = true;
-    console.log('[Assistant] Deadline détectée: hasDeadline = true');
+    console.warn('[Assistant] Deadline détectée: hasDeadline = true');
   } else if (/sans\s*deadline|pas\s*de\s*deadline/i.test(lowerQuery)) {
     result.hasDeadline = false;
-    console.log('[Assistant] Deadline détectée: hasDeadline = false');
+    console.warn('[Assistant] Deadline détectée: hasDeadline = false');
   }
 
   // Patterns pour dates relatives : "vendredi", "lundi prochain", "dans 3 jours", etc.
@@ -39,7 +39,7 @@ export function detectDeadlineFromQuery(query: string): {
       const parsed = parseRelativeDate(dateStr);
       if (parsed) {
         result.deadlineDate = parsed;
-        console.log(`[Assistant] Date de deadline détectée: ${result.deadlineDate}`);
+        console.warn(`[Assistant] Date de deadline détectée: ${result.deadlineDate}`);
         return result;
       }
     }

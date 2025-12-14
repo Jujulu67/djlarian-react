@@ -119,7 +119,7 @@ export async function processProjectCommand(userInput: string) {
     // Récupérer le contexte de conversation (projets précédemment listés, etc.)
     const resolution = await resolveContextReference(currentUserId, normalizedInput);
 
-    console.log('[Assistant] 🧠 Mémoire/Contexte récupéré:', {
+    console.warn('[Assistant] 🧠 Mémoire/Contexte récupéré:', {
       hasContext: resolution.resolved,
       filters: resolution.filters,
       message: resolution.message,
@@ -131,7 +131,7 @@ export async function processProjectCommand(userInput: string) {
       // Fusionner les filtres du contexte avec les filtres actuels
       filters = { ...resolution.filters, ...filters };
       contextResolutionMessage = resolution.message;
-      console.log('[Assistant] Contexte résolu:', {
+      console.warn('[Assistant] Contexte résolu:', {
         referenceType,
         projectCount: resolution.projectIds.length,
         appliedFilters: Object.keys(filters),
@@ -161,7 +161,7 @@ export async function processProjectCommand(userInput: string) {
   });
 
   // Log console pour debug
-  console.log('[ROUTING DEBUG]', {
+  console.warn('[ROUTING DEBUG]', {
     query: normalizedInput.substring(0, 50),
     isUpdate: classification.isUpdate,
     isList: classification.isList,
@@ -189,7 +189,7 @@ export async function processProjectCommand(userInput: string) {
       (hasContextReference && !classification.isUpdate) ||
       isContextualListRequest
     ) {
-      console.log('[Assistant] 🚀 Exécution DIRECTE (LISTE/COMPTAGE)');
+      console.warn('[Assistant] 🚀 Exécution DIRECTE (LISTE/COMPTAGE)');
 
       const params = {
         ...filters,
@@ -198,18 +198,24 @@ export async function processProjectCommand(userInput: string) {
 
       try {
         if (getProjects && typeof getProjects.execute === 'function') {
-          const result = await getProjects.execute(params, {} as any);
-          const typedResult = result as any;
+          // @ts-expect-error - SDK AI v5 type inference issue with ToolCallOptions
+          const result = await getProjects.execute(params, {});
+          const typedResult = result as {
+            count?: number;
+            projects?: Array<{ id: string; name: string }>;
+            message?: string;
+          };
 
           if (typedResult && typeof typedResult === 'object' && 'count' in typedResult) {
             // Sauvegarder le contexte
             updateConversationContext(currentUserId, {
-              lastProjectIds: (typedResult.projects || []).map((p: any) => p.id),
-              lastProjectNames: (typedResult.projects || []).map((p: any) => p.name),
+              lastProjectIds: (typedResult.projects || []).map((p) => p.id),
+              lastProjectNames: (typedResult.projects || []).map((p) => p.name || ''),
               lastProjectCount: typedResult.count,
               lastFilters: params,
               lastActionType: 'list',
-              lastStatusFilter: params.status || null,
+              lastStatusFilter:
+                params.status && typeof params.status === 'string' ? params.status : null,
             });
 
             if (typedResult.count === 0) {
@@ -238,7 +244,7 @@ export async function processProjectCommand(userInput: string) {
             if (reDetectedFields && reDetectedFields.length > 0) {
               // Si des champs ont été explicitement demandés (ex: "tous les détails"), les utiliser
               fieldsToShow = reDetectedFields;
-              console.log('[Assistant] Champs à afficher détectés depuis requête:', fieldsToShow);
+              console.warn('[Assistant] Champs à afficher détectés depuis requête:', fieldsToShow);
             } else {
               // Sinon, utiliser les champs par défaut + ceux filtrés
               fieldsToShow = ['progress', 'status', 'deadline'];
@@ -248,7 +254,7 @@ export async function processProjectCommand(userInput: string) {
               if (filters.style && !fieldsToShow.includes('style')) fieldsToShow.push('style');
               if (filters.releaseDate && !fieldsToShow.includes('releaseDate'))
                 fieldsToShow.push('releaseDate');
-              console.log('[Assistant] Champs par défaut utilisés:', fieldsToShow);
+              console.warn('[Assistant] Champs par défaut utilisés:', fieldsToShow);
             }
 
             return JSON.stringify({
@@ -268,7 +274,7 @@ export async function processProjectCommand(userInput: string) {
 
     // CAS 2: MISE À JOUR (UPDATE)
     if (classification.isUpdate) {
-      console.log('[Assistant] 🚀 Exécution DIRECTE (UPDATE)');
+      console.warn('[Assistant] 🚀 Exécution DIRECTE (UPDATE)');
 
       // Extraction des paramètres de mise à jour via updates.ts
       const availableStyles = ['Techno', 'House', 'DNB', 'Dubstep', 'Trance'];
@@ -284,13 +290,14 @@ export async function processProjectCommand(userInput: string) {
 
         try {
           if (updateProjects && typeof updateProjects.execute === 'function') {
-            const result = await updateProjects.execute(validUpdateParams, {} as any);
-            const typedResult = result as any;
+            // @ts-expect-error - SDK AI v5 type inference issue with ToolCallOptions
+            const result = await updateProjects.execute(validUpdateParams, {});
+            const typedResult = result as { count?: number; message?: string };
 
             if (typedResult && typeof typedResult === 'object') {
               revalidatePath('/projects');
 
-              if (typedResult.count > 0) {
+              if (typedResult.count !== undefined && typedResult.count > 0) {
                 updateConversationContext(currentUserId, {
                   lastActionType: 'update',
                   lastActionTimestamp: Date.now(),
@@ -312,7 +319,7 @@ export async function processProjectCommand(userInput: string) {
 
     // CAS 3: CRÉATION (CREATE)
     if (classification.isCreate && !classification.isUpdate) {
-      console.log('[Assistant] 🚀 Exécution DIRECTE (CREATE)');
+      console.warn('[Assistant] 🚀 Exécution DIRECTE (CREATE)');
 
       // Utiliser le parseur pour extraire les données de création
       const { parseQuery } = await import('@/lib/assistant/query-parser');
@@ -322,28 +329,49 @@ export async function processProjectCommand(userInput: string) {
       const parseResult = parseQuery(normalizedInput, availableCollabs, availableStyles);
 
       if (parseResult.createData && parseResult.createData.name) {
+        const validStyles = ['Techno', 'House', 'DNB', 'Dubstep', 'Trance'] as const;
+        const validStatuses = [
+          'EN_COURS',
+          'TERMINE',
+          'ANNULE',
+          'A_REWORK',
+          'GHOST_PRODUCTION',
+          'ARCHIVE',
+        ] as const;
+
         const createParams = {
           name: parseResult.createData.name,
-          style: parseResult.createData.style || undefined,
+          style:
+            parseResult.createData.style &&
+            validStyles.includes(parseResult.createData.style as (typeof validStyles)[number])
+              ? (parseResult.createData.style as (typeof validStyles)[number])
+              : undefined,
           collab: parseResult.createData.collab || undefined,
-          status: parseResult.createData.status || 'EN_COURS',
+          status: (parseResult.createData.status &&
+          validStatuses.includes(parseResult.createData.status as (typeof validStatuses)[number])
+            ? parseResult.createData.status
+            : 'EN_COURS') as (typeof validStatuses)[number],
           deadline: parseResult.createData.deadline || undefined,
           label: undefined,
         };
 
         try {
           if (createProjects && typeof createProjects.execute === 'function') {
-            const result = await createProjects.execute(createParams, {} as any);
-            const typedResult = result as any;
+            // @ts-expect-error - SDK AI v5 type inference issue with ToolCallOptions
+            const result = await createProjects.execute(createParams, {});
+            const typedResult = result as { project?: { id: string }; message?: string };
 
             if (typedResult && typeof typedResult === 'object') {
               revalidatePath('/projects');
 
               // Sauvegarder le contexte
+              const createdProjectId = typedResult.project?.id;
               updateConversationContext(currentUserId, {
                 lastActionType: 'create',
                 lastActionTimestamp: Date.now(),
-                lastCreatedProjectId: typedResult.project?.id || null,
+                ...(createdProjectId
+                  ? { lastProjectIds: [createdProjectId] }
+                  : { lastProjectIds: [] }),
               });
 
               // Retourner le message avec les données du projet pour déclencher l'événement côté client
@@ -373,11 +401,11 @@ export async function processProjectCommand(userInput: string) {
   // FALLBACK IA (GROQ)
   // ========================================
 
-  console.log("[Assistant] 🤖 Passage à l'IA (Conversationnel ou Fallback)", {
+  console.warn("[Assistant] 🤖 Passage à l'IA (Conversationnel ou Fallback)", {
     isComplex: classification.isComplex,
   });
 
-  const availableTools: Record<string, any> = {};
+  const availableTools: Record<string, unknown> = {};
   if (!classification.isConversationalQuestion) {
     availableTools.getProjects = getProjects;
     availableTools.updateProjects = updateProjects;
@@ -396,14 +424,15 @@ export async function processProjectCommand(userInput: string) {
 - ✅ Utilisez directement l'outil avec les paramètres JSON fournis par le système
 
 Date: ${today}\nUtilisateur: ${currentUserName || 'Inconnu'}\n${isAdmin ? 'Rôle: ADMIN' : ''}\n\n${contextResolutionMessage ? `CONTEXTE: ${contextResolutionMessage}\n\n` : ''}User Query: ${normalizedInput}`,
+      // @ts-expect-error - SDK AI v5 type inference issue with tool types
       tools: Object.keys(availableTools).length > 0 ? availableTools : undefined,
-    }).catch(async (error: any) => {
+    }).catch(async (error: unknown) => {
       console.error('[Assistant] Erreur lors de generateText:', error);
       throw error;
     });
 
     if (typeof result === 'string') {
-      return result;
+      return result as string;
     }
 
     const { text, toolResults } = result;
@@ -414,8 +443,18 @@ Date: ${today}\nUtilisateur: ${currentUserName || 'Inconnu'}\n${isAdmin ? 'Rôle
 
     if (toolResults && toolResults.length > 0) {
       const firstResult = toolResults[0];
-      const typedResult = (firstResult as any).result;
-      const toolName = (firstResult as any).toolName;
+      const typedResult = (
+        firstResult as {
+          result?: {
+            message?: string;
+            count?: number;
+            project?: unknown;
+            projects?: Array<{ id: string; name: string }>;
+          };
+          toolName?: string;
+        }
+      ).result;
+      const toolName = (firstResult as { result?: unknown; toolName?: string }).toolName;
 
       let response = '';
       if (text) response += text + '\n\n';
@@ -453,7 +492,7 @@ Date: ${today}\nUtilisateur: ${currentUserName || 'Inconnu'}\n${isAdmin ? 'Rôle
           if (reDetectedFields && reDetectedFields.length > 0) {
             // Si des champs ont été explicitement demandés (ex: "tous les détails"), les utiliser
             fieldsToShow = reDetectedFields;
-            console.log(
+            console.warn(
               '[Assistant] Champs à afficher détectés depuis requête (IA):',
               fieldsToShow
             );
@@ -466,7 +505,7 @@ Date: ${today}\nUtilisateur: ${currentUserName || 'Inconnu'}\n${isAdmin ? 'Rôle
             if (filters.style && !fieldsToShow.includes('style')) fieldsToShow.push('style');
             if (filters.releaseDate && !fieldsToShow.includes('releaseDate'))
               fieldsToShow.push('releaseDate');
-            console.log('[Assistant] Champs par défaut utilisés (IA):', fieldsToShow);
+            console.warn('[Assistant] Champs par défaut utilisés (IA):', fieldsToShow);
           }
 
           return JSON.stringify({

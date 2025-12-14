@@ -78,10 +78,10 @@ export async function POST(request: NextRequest) {
     // Debug log (utilise le système de debug existant)
     // Removed hardcoded fetch to localhost endpoint - use debugLog instead
 
-    console.log('[Parse Query API] Requête:', query);
-    console.log('[Parse Query API] Résultat:', result);
+    console.warn('[Parse Query API] Requête:', query);
+    console.warn('[Parse Query API] Résultat:', result);
     if (result.isConversational !== undefined) {
-      console.log('[Parse Query API] isConversational:', result.isConversational);
+      console.warn('[Parse Query API] isConversational:', result.isConversational);
     }
     // Debug pour les questions qui ne devraient pas parser
     // Exclure les cas où on a détecté une note (updateData avec projectName et newNote)
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
       (result.updateData as any).projectName &&
       (result.updateData as any).newNote;
     if (result.understood && !/projet|project/i.test(query.toLowerCase()) && !hasNoteUpdate) {
-      console.log(
+      console.warn(
         '[Parse Query API] ⚠️ Question non liée aux projets mais understood=true:',
         query
       );
@@ -104,11 +104,11 @@ export async function POST(request: NextRequest) {
       let contextResponse: string;
 
       if (process.env.GROQ_API_KEY) {
-        console.log('[Parse Query API] Question générale détectée, appel à Groq...');
+        console.warn('[Parse Query API] Question générale détectée, appel à Groq...');
 
         // Filtrer et valider l'historique conversationnel
         const filteredHistory = filterConversationHistory(conversationHistory);
-        console.log('[Parse Query API] Historique filtré:', {
+        console.warn('[Parse Query API] Historique filtré:', {
           originalLength: conversationHistory?.length || 0,
           filteredLength: filteredHistory.length,
         });
@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
         contextResponse = `Salut ! 🎵 Je suis l'assistant de tes projets musicaux. Demande-moi "combien de ghost prod j'ai" ou "liste mes projets terminés".`;
       }
 
-      console.log('[Parse Query API] Réponse Groq:', contextResponse);
+      console.warn('[Parse Query API] Réponse Groq:', contextResponse);
 
       return NextResponse.json({
         ...result,

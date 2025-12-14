@@ -80,7 +80,7 @@ export async function getConversationalResponse(
       }
 
       if (isDebugEnabled && preparedContext) {
-        console.log('[Groq 8B] Contexte préparé:', {
+        console.warn('[Groq 8B] Contexte préparé:', {
           factualMemory: !!preparedContext.factualMemory,
           interpretativeNotes: !!preparedContext.interpretativeNotes,
           recentMessages: preparedContext.recentMessages?.length || 0,
@@ -122,7 +122,7 @@ export async function getConversationalResponse(
       const userPromptStartsWith = userPrompt.substring(0, 100);
       const hasIdentityLine = userPrompt.includes('IDENTITÉ: Tu es LARIAN BOT');
 
-      console.log('[Groq 8B] Appel avec format system + messages', {
+      console.warn('[Groq 8B] Appel avec format system + messages', {
         mode,
         hasHistory: conversationHistory && conversationHistory.length > 0,
         historyLength: conversationHistory?.length || 0,
@@ -143,7 +143,7 @@ export async function getConversationalResponse(
     // Logs dev-only pour rendre le routage observable
     if (isDebugEnabled || process.env.NODE_ENV === 'development') {
       const userPromptStartsWith = userPrompt.substring(0, 100);
-      console.log('[Groq Model Routing] 🎯 Sélection du modèle', {
+      console.warn('[Groq Model Routing] 🎯 Sélection du modèle', {
         requestId: requestId || `groq-${Date.now()}`,
         chosenModelId: modelId,
         reason: isComplex
@@ -171,7 +171,7 @@ export async function getConversationalResponse(
 
     // Log réponse uniquement en debug/dev (éviter les romans en prod)
     if (isDebugEnabled || process.env.NODE_ENV === 'development') {
-      console.log('[Groq 8B] Réponse:', result.text.substring(0, 100) + '...');
+      console.warn('[Groq 8B] Réponse:', result.text.substring(0, 100) + '...');
     }
     return result.text.trim();
   } catch (error) {

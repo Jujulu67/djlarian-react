@@ -1,4 +1,3 @@
-import { shouldUseBlobStorage } from '../getStorageConfig';
 import { logger } from '@/lib/logger';
 import fs from 'fs';
 import path from 'path';
@@ -24,6 +23,14 @@ jest.mock('@/lib/logger', () => ({
   },
 }));
 
+// Mock getActiveDatabaseTarget
+const mockGetActiveDatabaseTarget = jest.fn();
+jest.mock('@/lib/database-target', () => ({
+  getActiveDatabaseTarget: (...args: any[]) => mockGetActiveDatabaseTarget(...args),
+}));
+
+import { shouldUseBlobStorage } from '../getStorageConfig';
+
 describe('getStorageConfig', () => {
   const originalEnv = process.env.NODE_ENV;
   const originalBlobToken = process.env.BLOB_READ_WRITE_TOKEN;
@@ -41,20 +48,24 @@ describe('getStorageConfig', () => {
   });
 
   describe('shouldUseBlobStorage', () => {
-    it('should return true in production when blob is configured', () => {
+    beforeEach(() => {
+      mockGetActiveDatabaseTarget.mockResolvedValue('local');
+    });
+
+    it('should return true in production when blob is configured', async () => {
       process.env.NODE_ENV = 'production';
       process.env.BLOB_READ_WRITE_TOKEN = 'test-token';
 
-      const result = shouldUseBlobStorage();
+      const result = await shouldUseBlobStorage();
 
       expect(result).toBe(true);
     });
 
-    it('should return false in production when blob is not configured', () => {
+    it('should return false in production when blob is not configured', async () => {
       process.env.NODE_ENV = 'production';
       delete process.env.BLOB_READ_WRITE_TOKEN;
 
-      const result = shouldUseBlobStorage();
+      const result = await shouldUseBlobStorage();
 
       expect(result).toBe(false);
       expect(logger.warn).toHaveBeenCalledWith(
@@ -62,26 +73,22 @@ describe('getStorageConfig', () => {
       );
     });
 
-    it('should return true in development when switch is enabled and blob is configured', () => {
+    it('should return true in development when switch is enabled and blob is configured', async () => {
       process.env.NODE_ENV = 'development';
       process.env.BLOB_READ_WRITE_TOKEN = 'test-token';
-      (fs.existsSync as jest.Mock).mockReturnValue(true);
-      (fs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify({ useProduction: true }));
-      (path.join as jest.Mock).mockReturnValue('.db-switch.json');
+      mockGetActiveDatabaseTarget.mockResolvedValue('production');
 
-      const result = shouldUseBlobStorage();
+      const result = await shouldUseBlobStorage();
 
       expect(result).toBe(true);
     });
 
-    it('should return false in development when switch is enabled but blob is not configured', () => {
+    it('should return false in development when switch is enabled but blob is not configured', async () => {
       process.env.NODE_ENV = 'development';
       delete process.env.BLOB_READ_WRITE_TOKEN;
-      (fs.existsSync as jest.Mock).mockReturnValue(true);
-      (fs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify({ useProduction: true }));
-      (path.join as jest.Mock).mockReturnValue('.db-switch.json');
+      mockGetActiveDatabaseTarget.mockResolvedValue('production');
 
-      const result = shouldUseBlobStorage();
+      const result = await shouldUseBlobStorage();
 
       expect(result).toBe(false);
       expect(logger.warn).toHaveBeenCalledWith(
@@ -89,82 +96,38 @@ describe('getStorageConfig', () => {
       );
     });
 
-    it('should return false in development when switch is disabled', () => {
+    it('should return false in development when switch is disabled', async () => {
       process.env.NODE_ENV = 'development';
       process.env.BLOB_READ_WRITE_TOKEN = 'test-token';
-      (fs.existsSync as jest.Mock).mockReturnValue(true);
-      (fs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify({ useProduction: false }));
-      (path.join as jest.Mock).mockReturnValue('.db-switch.json');
+      mockGetActiveDatabaseTarget.mockResolvedValue('local');
 
-      const result = shouldUseBlobStorage();
+      const result = await shouldUseBlobStorage();
 
       expect(result).toBe(false);
     });
 
-    it('should return false in development when switch file does not exist', () => {
+    it('should return false in development when target is local', async () => {
       process.env.NODE_ENV = 'development';
       process.env.BLOB_READ_WRITE_TOKEN = 'test-token';
-      (fs.existsSync as jest.Mock).mockReturnValue(false);
+      mockGetActiveDatabaseTarget.mockResolvedValue('local');
 
-      const result = shouldUseBlobStorage();
+      const result = await shouldUseBlobStorage();
 
       expect(result).toBe(false);
     });
 
-    it('should handle switch file read errors gracefully', () => {
+    it('should handle errors gracefully', async () => {
       process.env.NODE_ENV = 'development';
       process.env.BLOB_READ_WRITE_TOKEN = 'test-token';
-      (fs.existsSync as jest.Mock).mockReturnValue(true);
-      (fs.readFileSync as jest.Mock).mockImplementation(() => {
-        throw new Error('File read error');
-      });
-      (path.join as jest.Mock).mockReturnValue('.db-switch.json');
+      mockGetActiveDatabaseTarget.mockRejectedValue(new Error('Database target error'));
 
-      const result = shouldUseBlobStorage();
+      const result = await shouldUseBlobStorage();
 
       expect(result).toBe(false);
       expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('Erreur lecture switch'),
+        expect.stringContaining('Erreur lecture cible DB'),
         expect.any(Error)
       );
-    });
-
-    it('should handle invalid JSON in switch file', () => {
-      process.env.NODE_ENV = 'development';
-      process.env.BLOB_READ_WRITE_TOKEN = 'test-token';
-      (fs.existsSync as jest.Mock).mockReturnValue(true);
-      (fs.readFileSync as jest.Mock).mockReturnValue('invalid json');
-      (path.join as jest.Mock).mockReturnValue('.db-switch.json');
-
-      const result = shouldUseBlobStorage();
-
-      expect(result).toBe(false);
-      expect(logger.warn).toHaveBeenCalled();
-    });
-
-    it('should handle switch file with useProduction false', () => {
-      process.env.NODE_ENV = 'development';
-      process.env.BLOB_READ_WRITE_TOKEN = 'test-token';
-      (fs.existsSync as jest.Mock).mockReturnValue(true);
-      (fs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify({ useProduction: false }));
-      (path.join as jest.Mock).mockReturnValue('.db-switch.json');
-
-      const result = shouldUseBlobStorage();
-
-      expect(result).toBe(false);
-    });
-
-    it('should handle switch file with useProduction true but no blob token', () => {
-      process.env.NODE_ENV = 'development';
-      delete process.env.BLOB_READ_WRITE_TOKEN;
-      (fs.existsSync as jest.Mock).mockReturnValue(true);
-      (fs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify({ useProduction: true }));
-      (path.join as jest.Mock).mockReturnValue('.db-switch.json');
-
-      const result = shouldUseBlobStorage();
-
-      expect(result).toBe(false);
-      expect(logger.warn).toHaveBeenCalled();
     });
   });
 });

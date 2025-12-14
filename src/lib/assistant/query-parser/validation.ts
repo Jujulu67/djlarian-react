@@ -138,7 +138,7 @@ export function validateConversationHistory(
 /**
  * Valide les filtres de la dernière requête
  */
-export function validateLastFilters(filters: unknown): Record<string, any> | undefined {
+export function validateLastFilters(filters: unknown): Record<string, unknown> | undefined {
   if (filters === undefined || filters === null) {
     return undefined;
   }
@@ -148,7 +148,7 @@ export function validateLastFilters(filters: unknown): Record<string, any> | und
   }
 
   // Valider que les valeurs sont de types acceptables
-  const validated: Record<string, any> = {};
+  const validated: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(filters)) {
     // Accepter seulement les types primitifs et les objets simples
     if (

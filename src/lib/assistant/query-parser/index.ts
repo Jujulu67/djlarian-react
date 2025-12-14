@@ -32,7 +32,7 @@ export function parseQuery(
   availableCollabs: string[],
   availableStyles: string[],
   conversationHistory?: Array<{ role: string; content: string }>,
-  lastFilters?: Record<string, any>
+  lastFilters?: Record<string, unknown>
 ): ParseQueryResult {
   try {
     // Valider et nettoyer la requête
@@ -74,7 +74,7 @@ export function parseQuery(
     );
     if (inferredStatus) {
       filters.status = inferredStatus;
-      console.log('[Parse Query API] ✅ Status inféré:', inferredStatus);
+      console.warn('[Parse Query API] ✅ Status inféré:', inferredStatus);
     }
 
     // Classifier la requête
@@ -123,7 +123,7 @@ export function parseQuery(
     // (car les patterns de notes comme "magnetize, contenu" ne contiennent pas de verbe d'action)
     // MAIS: Ne pas extraire si c'est une question (liste, combien, etc.) SAUF si c'est aussi une commande de modification
     const shouldExtractUpdate = (classification.isUpdate || true) && !isQuestion;
-    console.log(
+    console.warn(
       '[Parse Query API] 🔍 shouldExtractUpdate:',
       shouldExtractUpdate,
       'isUpdate:',
@@ -135,7 +135,7 @@ export function parseQuery(
       // Essayer d'extraire les données de mise à jour seulement si ce n'est pas une question
       // extractUpdateData retournera null si ce n'est pas une mise à jour
       const updateData = extractUpdateData(query, lowerQuery, filters, styles);
-      console.log(
+      console.warn(
         '[Parse Query API] 🔍 extractUpdateData result:',
         updateData ? 'has data' : 'null',
         updateData
@@ -163,13 +163,13 @@ export function parseQuery(
         if (hasValidUpdateData) {
           classification.understood = true;
           classification.isConversationalQuestion = false;
-          console.log(
+          console.warn(
             '[Parse Query API] ✅ Requête comprise grâce aux données de mise à jour extraites'
           );
         }
 
         // Construire les filtres pour updateData (réutiliser ceux déjà détectés)
-        const updateFilters: Record<string, any> = {};
+        const updateFilters: Record<string, unknown> = {};
 
         if (filters.minProgress !== undefined) {
           updateFilters.minProgress = filters.minProgress;
@@ -219,7 +219,7 @@ export function parseQuery(
       const createData = extractCreateData(query, lowerQuery, collabs, styles);
       if (createData && createData.name) {
         // Si on a réussi à extraire un nom, c'est une commande de création valide
-        console.log('[Parse Query API] ✅ Données de création extraites:', createData);
+        console.warn('[Parse Query API] ✅ Données de création extraites:', createData);
         return {
           filters: {},
           type: 'create',

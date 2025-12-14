@@ -11,7 +11,7 @@ import { findStyleFromString } from '../../parsers/style-matcher';
 export function extractMetadataUpdate(
   query: string,
   cleanedQuery: string,
-  filters: Record<string, any>,
+  filters: Record<string, unknown>,
   updateData: UpdateData,
   availableStyles: string[]
 ): void {
@@ -26,7 +26,7 @@ export function extractMetadataUpdate(
  */
 function extractCollabUpdate(
   query: string,
-  filters: Record<string, any>,
+  filters: Record<string, unknown>,
   updateData: UpdateData
 ): void {
   // Pattern "collab avec X à Y" (filtre X, nouvelle valeur Y)
@@ -61,7 +61,7 @@ function extractCollabUpdate(
       if (!ignoredWords.includes(newCollab.toLowerCase()) && newCollab.length > 0) {
         filters.collab = filterCollab;
         updateData.newCollab = newCollab;
-        console.log(
+        console.warn(
           '[Parse Query API] ✅ Pattern "collab avec X à Y" détecté:',
           `filtre=${filterCollab}, nouvelle valeur=${newCollab}`
         );
@@ -91,7 +91,7 @@ function extractCollabUpdate(
       }
       if (!ignoredWords.includes(collabName.toLowerCase()) && collabName.length > 0) {
         updateData.newCollab = collabName;
-        console.log('[Parse Query API] ✅ Nouveau collaborateur détecté:', collabName);
+        console.warn('[Parse Query API] ✅ Nouveau collaborateur détecté:', collabName);
         return;
       }
     }
@@ -103,7 +103,7 @@ function extractCollabUpdate(
  */
 function extractStyleUpdate(
   cleanedQuery: string,
-  filters: Record<string, any>,
+  filters: Record<string, unknown>,
   updateData: UpdateData,
   availableStyles: string[]
 ): void {
@@ -117,7 +117,7 @@ function extractStyleUpdate(
     filters.style = filterStyle;
     const styleMatch = findStyleFromString(newStyle, availableStyles);
     updateData.newStyle = styleMatch ? styleMatch.style : newStyle;
-    console.log(
+    console.warn(
       '[Parse Query API] ✅ Pattern "de style X à Y" détecté:',
       `filtre=${filterStyle}, nouvelle valeur=${updateData.newStyle}`
     );
@@ -156,7 +156,7 @@ function extractStyleUpdate(
 
       const styleMatch = findStyleFromString(styleName, availableStyles);
       updateData.newStyle = styleMatch ? styleMatch.style : styleName;
-      console.log('[Parse Query API] ✅ Nouveau style détecté:', updateData.newStyle);
+      console.warn('[Parse Query API] ✅ Nouveau style détecté:', updateData.newStyle);
       return;
     }
   }
@@ -192,7 +192,7 @@ function extractLabelUpdate(query: string, updateData: UpdateData): void {
       const labelName = match[1].trim();
       if (!ignoredWords.includes(labelName.toLowerCase())) {
         updateData.newLabel = labelName;
-        console.log('[Parse Query API] ✅ Nouveau label détecté:', labelName);
+        console.warn('[Parse Query API] ✅ Nouveau label détecté:', labelName);
         return;
       }
     }
@@ -217,7 +217,7 @@ function extractLabelFinalUpdate(query: string, updateData: UpdateData): void {
       const labelFinalName = match[1].trim();
       if (!ignoredWords.includes(labelFinalName.toLowerCase())) {
         updateData.newLabelFinal = labelFinalName;
-        console.log('[Parse Query API] ✅ Nouveau label final détecté:', labelFinalName);
+        console.warn('[Parse Query API] ✅ Nouveau label final détecté:', labelFinalName);
         return;
       }
     }

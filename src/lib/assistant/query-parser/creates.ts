@@ -125,7 +125,7 @@ export function extractCreateData(
       const ignoredWords = ['le', 'la', 'les', 'un', 'une', 'projet', 'project', 'nouveau', 'new'];
       if (potentialName && !ignoredWords.includes(potentialName.toLowerCase())) {
         createData.name = potentialName;
-        console.log(
+        console.warn(
           '[Parse Query API] ✅ Nom extrait avec pattern:',
           pattern,
           '→',
@@ -146,7 +146,7 @@ export function extractCreateData(
       const ignoredWords = ['le', 'la', 'les', 'un', 'une', 'projet', 'project', 'nouveau', 'new'];
       if (!ignoredWords.includes(potentialName.toLowerCase())) {
         createData.name = potentialName;
-        console.log('[Parse Query API] ✅ Nom extrait avec pattern simple →', createData.name);
+        console.warn('[Parse Query API] ✅ Nom extrait avec pattern simple →', createData.name);
       }
     }
   }
@@ -240,18 +240,18 @@ export function extractCreateData(
   const styleMatch = findStyleFromString(query, availableStyles);
   if (styleMatch) {
     createData.style = styleMatch.style;
-    console.log('[Parse Query API] Style détecté:', {
+    console.warn('[Parse Query API] Style détecté:', {
       matchedText: styleMatch.matchedText,
       style: styleMatch.style,
       availableStyles: availableStyles,
     });
   } else {
-    console.log('[Parse Query API] Aucun style détecté pour:', query);
+    console.warn('[Parse Query API] Aucun style détecté pour:', query);
   }
 
   // Si on a au moins un nom, c'est une commande de création valide
   if (createData.name) {
-    console.log('[Parse Query API] createData final:', createData);
+    console.warn('[Parse Query API] createData final:', createData);
     return createData;
   }
 

@@ -33,28 +33,28 @@ export function isAssistantDebugEnabled(): boolean {
  * @param message - Message principal
  * @param data - Données supplémentaires à logger
  */
-export function debugLog(category: string, message: string, data?: any): void {
+export function debugLog(category: string, message: string, data?: unknown): void {
   if (!isAssistantDebugEnabled()) {
     return;
   }
 
   const prefix = `[Assistant Debug:${category}]`;
   if (data !== undefined) {
-    console.log(prefix, message, data);
+    console.warn(prefix, message, data);
   } else {
-    console.log(prefix, message);
+    console.warn(prefix, message);
   }
 }
 
 /**
  * Log conditionnel avec formatage spécial pour les objets complexes
  */
-export function debugLogObject(category: string, message: string, obj: any): void {
+export function debugLogObject(category: string, message: string, obj: unknown): void {
   if (!isAssistantDebugEnabled()) {
     return;
   }
 
   const prefix = `[Assistant Debug:${category}]`;
-  console.log(prefix, message);
-  console.log(prefix, '→', JSON.stringify(obj, null, 2));
+  console.warn(prefix, message);
+  console.warn(prefix, '→', JSON.stringify(obj, null, 2));
 }

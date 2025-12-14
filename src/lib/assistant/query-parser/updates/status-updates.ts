@@ -18,7 +18,7 @@ interface BestMatch {
 export function extractStatusUpdate(
   cleanedQuery: string,
   cleanedLowerQuery: string,
-  filters: Record<string, any>,
+  filters: Record<string, unknown>,
   updateData: UpdateData
 ): boolean {
   let foundEnXenYPattern = false;
@@ -88,7 +88,7 @@ export function extractStatusUpdate(
     if (filters.status === bestMatch.status1) {
       delete filters.status;
     }
-    console.log('[Parse Query API] ✅ Pattern "X en Y" ou "de X à Y" détecté:', {
+    console.warn('[Parse Query API] ✅ Pattern "X en Y" ou "de X à Y" détecté:', {
       filtre: bestMatch.status1,
       nouvelleValeur: bestMatch.status2,
     });
@@ -96,7 +96,7 @@ export function extractStatusUpdate(
   }
 
   // Copier le filtre de statut si pas de pattern "X en Y"
-  if (!foundEnXenYPattern && filters.status) {
+  if (!foundEnXenYPattern && filters.status && typeof filters.status === 'string') {
     updateData.status = filters.status;
   }
 
@@ -174,7 +174,7 @@ function validateStatusMatch(
 function extractSimpleStatusUpdate(
   cleanedQuery: string,
   cleanedLowerQuery: string,
-  filters: Record<string, any>,
+  filters: Record<string, unknown>,
   updateData: UpdateData
 ): void {
   for (const { pattern, status } of statusPatterns) {
@@ -205,7 +205,7 @@ function extractSimpleStatusUpdate(
     for (const updateVerbPattern of updateVerbPatterns) {
       if (updateVerbPattern.test(cleanedQuery)) {
         updateData.newStatus = status;
-        console.log('[Parse Query API] ✅ Nouveau statut détecté:', status);
+        console.warn('[Parse Query API] ✅ Nouveau statut détecté:', status);
         return;
       }
     }

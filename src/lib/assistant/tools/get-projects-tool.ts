@@ -86,10 +86,16 @@ export function createGetProjectsTool({
       if (!finalStatus || finalStatus === 'undefined' || finalStatus === 'null') {
         const detectedStatus = detectStatusFromQuery(normalizedInput);
         if (detectedStatus) {
-          console.log(
+          console.warn(
             `[Assistant] Statut détecté automatiquement: ${detectedStatus} (non fourni par l'IA ou undefined)`
           );
-          finalStatus = detectedStatus as any;
+          finalStatus = detectedStatus as
+            | 'EN_COURS'
+            | 'TERMINE'
+            | 'ANNULE'
+            | 'A_REWORK'
+            | 'GHOST_PRODUCTION'
+            | 'ARCHIVE';
         }
       }
 
@@ -127,7 +133,7 @@ export function createGetProjectsTool({
 
       // Mode test : retourner des données simulées
       if (isTestMode) {
-        console.log('[TEST MODE] Simulation de lecture:', { where: whereClause });
+        console.warn('[TEST MODE] Simulation de lecture:', { where: whereClause });
         // Simuler des projets
         const simulatedCount = Math.floor(Math.random() * 5) + 1; // 1-5 projets
         const parsedDeadline = deadlineDate ? parseRelativeDate(deadlineDate) : null;

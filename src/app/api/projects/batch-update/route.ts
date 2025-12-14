@@ -96,6 +96,9 @@ export async function POST(request: NextRequest) {
       newLabelFinal,
     } = body;
 
+    // Préparer le préfixe de log
+    const logPrefix = requestId ? `[${requestId}]` : '';
+
     // Vérifier l'idempotency si confirmationId est fourni
     if (confirmationId) {
       // Guard runtime: vérifier que le client Prisma est à jour
@@ -127,8 +130,7 @@ export async function POST(request: NextRequest) {
 
       if (existingConfirmation) {
         // Confirmation déjà traitée : retourner 200 avec duplicated: true
-        const logPrefix = requestId ? `[${requestId}]` : '';
-        console.log(`[Batch Update API] ${logPrefix} 🔄 Idempotency: confirmationId déjà vu`, {
+        console.warn(`[Batch Update API] ${logPrefix} 🔄 Idempotency: confirmationId déjà vu`, {
           requestId,
           confirmationId,
           userId: session.user.id,
@@ -197,7 +199,7 @@ export async function POST(request: NextRequest) {
       // Si conflits détectés, retourner 409
       if (conflictProjectIds.length > 0) {
         const logPrefix = requestId ? `[${requestId}]` : '';
-        console.log(`[Batch Update API] ${logPrefix} ⚠️ Concurrency conflict détecté`, {
+        console.warn(`[Batch Update API] ${logPrefix} ⚠️ Concurrency conflict détecté`, {
           requestId,
           confirmationId,
           projectIdsCount: projectIds.length,
@@ -216,8 +218,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Logs des inputs avec requestId
-    const logPrefix = requestId ? `[${requestId}]` : '';
-    console.log(`[Batch Update API] ${logPrefix} 📥 Inputs reçus:`, {
+    console.warn(`[Batch Update API] ${logPrefix} 📥 Inputs reçus:`, {
       requestId,
       confirmationId,
       projectIdsCount: projectIds?.length || 0,
@@ -271,7 +272,7 @@ export async function POST(request: NextRequest) {
     // Règle de sécurité : si projectIds est fourni, utiliser les IDs (priorité absolue)
     if (projectIds && Array.isArray(projectIds) && projectIds.length > 0) {
       whereClause.id = { in: projectIds };
-      console.log(`[Batch Update API] ${logPrefix} 🎯 Utilisation des IDs (scope = IDs)`, {
+      console.warn(`[Batch Update API] ${logPrefix} 🎯 Utilisation des IDs (scope = IDs)`, {
         requestId,
         projectIdsCount: projectIds.length,
         projectIdsSample: projectIds.slice(0, 3),
@@ -307,7 +308,7 @@ export async function POST(request: NextRequest) {
       // Filtre pour les projets sans progression (doit être vérifié en premier)
       if (noProgress === true) {
         whereClause.progress = null;
-        console.log('[Batch Update API] 🔍 Filtre noProgress activé');
+        console.warn('[Batch Update API] 🔍 Filtre noProgress activé');
       } else if (minProgress !== undefined || maxProgress !== undefined) {
         // Filtres de progression (seulement si noProgress n'est pas activé)
         whereClause.progress = {};
@@ -317,13 +318,13 @@ export async function POST(request: NextRequest) {
         if (maxProgress !== undefined) {
           whereClause.progress.lte = maxProgress;
         }
-        console.log('[Batch Update API] 🔍 Filtres de progression:', whereClause.progress);
+        console.warn('[Batch Update API] 🔍 Filtres de progression:', whereClause.progress);
       }
 
       // Filtre par statut
       if (status) {
         whereClause.status = status;
-        console.log('[Batch Update API] 🔍 Filtre statut:', status);
+        console.warn('[Batch Update API] 🔍 Filtre statut:', status);
       }
 
       // Filtre par deadline
@@ -345,25 +346,25 @@ export async function POST(request: NextRequest) {
       // Filtre par collaborateur
       if (collab) {
         whereClause.collab = collab;
-        console.log('[Batch Update API] 🔍 Filtre collaborateur:', collab);
+        console.warn('[Batch Update API] 🔍 Filtre collaborateur:', collab);
       }
 
       // Filtre par style
       if (style) {
         whereClause.style = style;
-        console.log('[Batch Update API] 🔍 Filtre style:', style);
+        console.warn('[Batch Update API] 🔍 Filtre style:', style);
       }
 
       // Filtre par label
       if (label) {
         whereClause.label = label;
-        console.log('[Batch Update API] 🔍 Filtre label:', label);
+        console.warn('[Batch Update API] 🔍 Filtre label:', label);
       }
 
       // Filtre par label final
       if (labelFinal) {
         whereClause.labelFinal = labelFinal;
-        console.log('[Batch Update API] 🔍 Filtre labelFinal:', labelFinal);
+        console.warn('[Batch Update API] 🔍 Filtre labelFinal:', labelFinal);
       }
     }
 
@@ -406,7 +407,7 @@ export async function POST(request: NextRequest) {
         select: { id: true, deadline: true },
       });
 
-      console.log(
+      console.warn(
         `[Batch Update API] ${logPrefix} 📅 Décalage de deadlines: ${projectsToUpdate.length} projet(s) trouvé(s)`,
         { requestId }
       );
@@ -505,7 +506,7 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      console.log(`[Batch Update API] ${logPrefix} ✅ ${updatedCount} deadline(s) décalée(s)`, {
+      console.warn(`[Batch Update API] ${logPrefix} ✅ ${updatedCount} deadline(s) décalée(s)`, {
         requestId,
         confirmationId,
       });
@@ -532,7 +533,7 @@ export async function POST(request: NextRequest) {
       // null indique la suppression de la deadline
       if (newDeadline === null) {
         updateData.deadline = null;
-        console.log('[Batch Update API] 🗑️ Suppression de deadline demandée');
+        console.warn('[Batch Update API] 🗑️ Suppression de deadline demandée');
       } else {
         // Parser la date pour la définir
         const parsedDate = parseRelativeDate(newDeadline);
@@ -568,14 +569,14 @@ export async function POST(request: NextRequest) {
       updateData.labelFinal = newLabelFinal;
     }
 
-    console.log(
+    console.warn(
       `[Batch Update API] ${logPrefix} 🔍 Clause WHERE finale:`,
       JSON.stringify(whereClause, null, 2),
       {
         requestId,
       }
     );
-    console.log(
+    console.warn(
       `[Batch Update API] ${logPrefix} 📝 Données de mise à jour:`,
       JSON.stringify(updateData, null, 2),
       { requestId }
@@ -585,14 +586,14 @@ export async function POST(request: NextRequest) {
     const countBefore = await prisma.project.count({
       where: whereClause,
     });
-    console.log(
+    console.warn(
       `[Batch Update API] ${logPrefix} 📊 Nombre de projets correspondant aux critères:`,
       countBefore,
       {
         requestId,
       }
     );
-    console.log(`[Batch Update API] ${logPrefix} 📊 Requête Prisma résumée:`, {
+    console.warn(`[Batch Update API] ${logPrefix} 📊 Requête Prisma résumée:`, {
       requestId,
       where: projectIds
         ? `id in [${projectIds.length} IDs]`
@@ -631,7 +632,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Transaction atomique: insert confirmation + update projets
-      await prisma.$transaction(async (tx) => {
+      result = await prisma.$transaction(async (tx) => {
         // Créer l'entrée de confirmation (sera rollback si l'update échoue)
         await tx.assistantConfirmation.create({
           data: {
@@ -641,7 +642,7 @@ export async function POST(request: NextRequest) {
         });
 
         // Exécuter la mise à jour
-        result = await tx.project.updateMany({
+        return await tx.project.updateMany({
           where: whereClause,
           data: updateData,
         });
@@ -654,7 +655,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    console.log(`[Batch Update API] ${logPrefix} ✅ Résultat:`, {
+    console.warn(`[Batch Update API] ${logPrefix} ✅ Résultat:`, {
       requestId,
       confirmationId,
       countUpdated: result.count,

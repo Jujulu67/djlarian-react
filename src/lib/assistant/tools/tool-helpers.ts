@@ -16,19 +16,19 @@ export function buildWhereClause(
   status?: string,
   hasDeadline?: boolean,
   deadlineDate?: string
-): any {
-  const whereClause: any = {
+): Record<string, unknown> {
+  const whereClause: Record<string, unknown> = {
     userId: targetUserId,
   };
 
   // Filtres de progression
   if (minProgress !== undefined || maxProgress !== undefined) {
-    whereClause.progress = {};
+    whereClause.progress = {} as { gte?: number; lte?: number };
     if (minProgress !== undefined) {
-      whereClause.progress.gte = minProgress;
+      (whereClause.progress as { gte?: number; lte?: number }).gte = minProgress;
     }
     if (maxProgress !== undefined) {
-      whereClause.progress.lte = maxProgress;
+      (whereClause.progress as { gte?: number; lte?: number }).lte = maxProgress;
     }
   }
 
@@ -66,8 +66,8 @@ export function buildWhereClause(
 /**
  * Construit l'objet data pour une mise à jour Prisma
  */
-export function buildUpdateData(newDeadline?: string, newStatus?: string): any {
-  const data: any = {};
+export function buildUpdateData(newDeadline?: string, newStatus?: string): Record<string, unknown> {
+  const data: Record<string, unknown> = {};
 
   // Traitement de la deadline avec conversion des dates relatives
   if (newDeadline) {

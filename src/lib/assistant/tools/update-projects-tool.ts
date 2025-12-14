@@ -113,7 +113,7 @@ export function createUpdateProjectsTool({
 
         // Mode test : ne pas modifier la base de données
         if (isTestMode) {
-          console.log("[TEST MODE] Simulation d'ajout de note:", {
+          console.warn("[TEST MODE] Simulation d'ajout de note:", {
             projectName: projectMatch.project.name,
             generatedNote: generatedNote.substring(0, 100) + '...',
           });
@@ -140,7 +140,7 @@ export function createUpdateProjectsTool({
       const whereClause = buildWhereClause(targetUserId, minProgress, maxProgress);
 
       // Construction de la mise à jour
-      let data: any;
+      let data: Record<string, unknown>;
       try {
         data = buildUpdateData(newDeadline, newStatus);
       } catch (error) {
@@ -164,7 +164,7 @@ export function createUpdateProjectsTool({
       // Mode test : ne pas modifier la base de données
       if (isTestMode) {
         // Simuler une mise à jour sans vraiment modifier
-        console.log('[TEST MODE] Simulation de mise à jour:', {
+        console.warn('[TEST MODE] Simulation de mise à jour:', {
           where: whereClause,
           data: data,
         });

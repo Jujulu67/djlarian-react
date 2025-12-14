@@ -6,12 +6,19 @@ import { UpdateData, debugLog } from './types';
 /**
  * Copie les filtres de progression depuis filters vers updateData
  */
-export function copyProgressFilters(filters: Record<string, any>, updateData: UpdateData): void {
-  if (filters.minProgress !== undefined) {
+export function copyProgressFilters(
+  filters: Record<string, unknown>,
+  updateData: UpdateData
+): void {
+  if (
+    filters.minProgress !== undefined &&
+    filters.minProgress !== null &&
+    typeof filters.minProgress === 'number'
+  ) {
     updateData.minProgress = filters.minProgress;
   }
-  if (filters.maxProgress !== undefined) {
-    updateData.maxProgress = filters.maxProgress;
+  if (filters.maxProgress !== undefined && filters.maxProgress !== null) {
+    updateData.maxProgress = filters.maxProgress as number;
   }
   if (filters.noProgress) {
     updateData.noProgress = true;
@@ -23,7 +30,7 @@ export function copyProgressFilters(filters: Record<string, any>, updateData: Up
  */
 export function extractDeXaYProgress(
   cleanedQuery: string,
-  filters: Record<string, any>,
+  filters: Record<string, unknown>,
   updateData: UpdateData
 ): boolean {
   const deXaYPattern = /(?:de|depuis)\s+(\d+)\s*%\s+à\s+(\d+)(?:\s*%|$)/i;
@@ -43,7 +50,7 @@ export function extractDeXaYProgress(
       filters.minProgress = filterValue;
       filters.maxProgress = filterValue;
       updateData.newProgress = newValue;
-      console.log(
+      console.warn(
         '[Parse Query API] ✅ Pattern "de X% à Y" détecté:',
         `filtre=${filterValue}%, nouvelle valeur=${newValue}%`
       );
@@ -59,7 +66,7 @@ export function extractDeXaYProgress(
 export function extractNewProgress(
   cleanedQuery: string,
   lowerQuery: string,
-  filters: Record<string, any>,
+  filters: Record<string, unknown>,
   updateData: UpdateData
 ): void {
   // Si déjà détecté via pattern "de X% à Y", skip
