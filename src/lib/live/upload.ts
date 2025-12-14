@@ -14,7 +14,7 @@ export async function uploadAudioFile(
   fileId: string,
   userId: string
 ): Promise<{ url: string; size: number }> {
-  const useBlobStorage = shouldUseBlobStorage();
+  const useBlobStorage = await shouldUseBlobStorage();
 
   // Convertir le fichier en buffer
   const arrayBuffer = await file.arrayBuffer();
@@ -64,7 +64,7 @@ export async function uploadAudioFile(
  * SERVER-ONLY: Utilise fs et path (modules Node.js)
  */
 export async function deleteAudioFile(fileUrl: string): Promise<void> {
-  const useBlobStorage = shouldUseBlobStorage();
+  const useBlobStorage = await shouldUseBlobStorage();
 
   if (useBlobStorage) {
     // Supprimer de Blob Storage

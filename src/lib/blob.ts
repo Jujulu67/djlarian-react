@@ -8,13 +8,12 @@ import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 
 // Vérifier si Vercel Blob est configuré
-// Sur Vercel, BLOB_READ_WRITE_TOKEN est automatiquement disponible
-// En local avec switch production, le switch met BLOB_READ_WRITE_TOKEN dans .env.local
-// à partir de BLOB_READ_WRITE_TOKEN_PRODUCTION (après redémarrage du serveur)
-// Utiliser un getter pour vérifier à chaque appel (au cas où les variables d'environnement changent)
+// ⚠️ IMPORTANT: Avec le hot swap, process.env.BLOB_READ_WRITE_TOKEN est mis à jour
+// lors du switch DB dans l'API route. Le SDK @vercel/blob lit directement cette variable.
 export const isBlobConfigured = !!process.env.BLOB_READ_WRITE_TOKEN;
 
 // Fonction helper pour vérifier à la volée (utile si les variables d'environnement changent)
+// ⚠️ IMPORTANT: Avec le hot swap, cette valeur change lors du switch
 export function getIsBlobConfigured(): boolean {
   return !!process.env.BLOB_READ_WRITE_TOKEN;
 }

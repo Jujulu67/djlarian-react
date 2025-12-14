@@ -195,7 +195,7 @@ Si vous préférez PostgreSQL local (via Docker) :
 2. **Mettre à jour `.env.local`** :
 
    ```env
-   DATABASE_URL="postgresql://postgres:dev@localhost:5432/larian"
+   DATABASE_URL="postgresql://postgres:dev@127.0.0.1:5433/larian"
    ```
 
 3. **Modifier `prisma/schema.prisma`** :

@@ -778,10 +778,16 @@ if [ "$USE_PRODUCTION" = "true" ] && [ "$NODE_ENV" != "production" ]; then
   fi
 fi
 
-# Toujours régénérer le client Prisma pour s'assurer qu'il correspond au schéma
-echo "🔄 Régénération du client Prisma..."
-npx prisma generate > /dev/null 2>&1 || npx prisma generate
-# Corriger les fichiers default.js et default.mjs pour Prisma 7
-node scripts/fix-prisma-types.mjs > /dev/null 2>&1 || node scripts/fix-prisma-types.mjs
-echo "✅ Client Prisma régénéré"
+# ⚠️ IMPORTANT: En développement, on ne régénère Prisma que si nécessaire
+# Le schéma est toujours PostgreSQL, donc pas besoin de régénérer à chaque fois
+# On ne régénère que si on est en production ou si explicitement demandé
+if [ "$NODE_ENV" = "production" ] || [ "$FORCE_PRISMA_GENERATE" = "true" ]; then
+  echo "🔄 Régénération du client Prisma..."
+  npx prisma generate > /dev/null 2>&1 || npx prisma generate
+  # Corriger les fichiers default.js et default.mjs pour Prisma 7
+  node scripts/fix-prisma-types.mjs > /dev/null 2>&1 || node scripts/fix-prisma-types.mjs
+  echo "✅ Client Prisma régénéré"
+else
+  echo "ℹ️  Schéma toujours PostgreSQL, pas besoin de régénérer Prisma"
+fi
 

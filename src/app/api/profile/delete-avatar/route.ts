@@ -29,7 +29,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     const oldImage = user.image;
-    const useBlobStorage = shouldUseBlobStorage();
+    const useBlobStorage = await shouldUseBlobStorage();
 
     // Supprimer l'image du stockage
     if (useBlobStorage) {

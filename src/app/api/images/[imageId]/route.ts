@@ -43,7 +43,7 @@ export async function GET(
     }
 
     // Utiliser la fonction utilitaire qui respecte le switch
-    const useBlobStorage = shouldUseBlobStorage();
+    const useBlobStorage = await shouldUseBlobStorage();
 
     const blobConfigured = !!process.env.BLOB_READ_WRITE_TOKEN;
     logger.debug(`[API IMAGES] Configuration:`, {

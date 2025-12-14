@@ -82,13 +82,23 @@ sentry.properties
 # Local SQLite database
 prisma/dev.db
 prisma/dev.db.backup
+prisma/dev.db.backup.*
 prisma/*.db
 prisma/*.sqlite
 prisma/schema.prisma.postgresql.backup
 
+# Database dumps/backups
+dumps/
+backups/
+*.db.backup*
+*.sqlite.backup*
+
 # Database switch config
 .db-switch.json
 .git-rewrite/
+
+# Docker Compose overrides (personal configs)
+docker-compose.override.yml
 
 # Dev server PID files
 .dev-server.pid

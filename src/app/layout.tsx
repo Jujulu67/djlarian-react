@@ -8,7 +8,7 @@ import './globals.css';
 import HydrationWrapper from '@/components/HydrationWrapper';
 import ClientOnly from '@/components/ClientOnly';
 import UmamiAnalytics from '@/components/analytics/UmamiScript';
-import prisma from '@/lib/prisma';
+import prisma, { initializePrisma } from '@/lib/prisma';
 import { defaultConfigs } from '@/config/defaults';
 import { auth } from '@/auth';
 
@@ -30,6 +30,11 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const isProduction = process.env.NODE_ENV === 'production';
+
+  // Initialiser le système Prisma avec hot swap (au premier chargement)
+  if (!isProduction) {
+    await initializePrisma();
+  }
 
   // Récupérer la session côté serveur pour la passer au SessionProvider
   // Cela évite le délai de chargement initial de la session côté client

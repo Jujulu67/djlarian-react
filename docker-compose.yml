@@ -1,33 +1,20 @@
-version: '3'
 services:
-  umami:
-    image: ghcr.io/umami-software/umami:postgresql-latest
+  postgres:
+    image: postgres:16-alpine
+    container_name: djlarian-postgres-local
+    environment:
+      POSTGRES_USER: djlarian
+      POSTGRES_PASSWORD: djlarian_dev_password
+      POSTGRES_DB: djlarian_dev
     ports:
-      - '3001:3000' # Exposition sur le port 3001 pour éviter conflit avec l'app Next.js (port 3000)
-    environment:
-      DATABASE_URL: postgresql://umami:${POSTGRES_PASSWORD}@db:5432/umami
-      DATABASE_TYPE: postgresql
-      HASH_SALT: ${HASH_SALT} # Utiliser une variable d'environnement
-    depends_on:
-      - db
-    restart: always
-    networks:
-      - umami-network
-  db:
-    image: postgres:14-alpine
-    environment:
-      POSTGRES_DB: umami
-      POSTGRES_USER: umami
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD} # Utiliser une variable d'environnement
+      - '5433:5432' # Port 5433 pour éviter conflit avec PostgreSQL natif
     volumes:
-      - umami-db-data:/var/lib/postgresql/data # Monter un volume nommé
-    restart: always
-    networks:
-      - umami-network
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U djlarian']
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 volumes:
-  umami-db-data: # Définir le volume nommé
-
-networks:
-  umami-network: # Définir le réseau
-    driver: bridge
+  postgres_data:

@@ -63,7 +63,7 @@ function listLocalFiles(): Array<{
 // GET - Récupérer toutes les images
 export async function GET() {
   try {
-    const useBlobStorage = shouldUseBlobStorage();
+    const useBlobStorage = await shouldUseBlobStorage();
 
     // OPTIMISATION: Utiliser la DB au lieu de list() pour éviter les Advanced Operations
     let blobImages: Array<{

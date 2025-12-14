@@ -9,7 +9,7 @@ import { shouldUseBlobStorage } from '@/lib/utils/getStorageConfig';
  * - false => utilise le dossier local public/uploads (développement/test)
  */
 export async function GET() {
-  const useBlobStorage = shouldUseBlobStorage();
+  const useBlobStorage = await shouldUseBlobStorage();
 
   return NextResponse.json(
     {

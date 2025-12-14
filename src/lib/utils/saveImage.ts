@@ -18,7 +18,7 @@ export async function saveImage(
   imageBuffer: Buffer,
   originalBuffer?: Buffer
 ): Promise<string | null> {
-  const useBlobStorage = shouldUseBlobStorage();
+  const useBlobStorage = await shouldUseBlobStorage();
 
   if (useBlobStorage) {
     // Sauvegarder dans Vercel Blob
