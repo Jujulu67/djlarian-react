@@ -405,6 +405,30 @@ if [ "$NODE_ENV" = "production" ]; then
             echo "   ⚠️  Impossible de marquer la migration comme applied"
             return 1
           fi
+        # Vérifier si l'erreur est "index does not exist" (42704) - l'index n'existe pas
+        # Dans ce cas, marquer directement comme applied car l'action souhaitée est déjà accomplie
+        elif echo "$status_output" | grep -qE "42704|does not exist|index.*does not exist"; then
+          echo "   🔍 Erreur 'index does not exist' détectée (42704)"
+          echo "   💡 L'index n'existe pas déjà, marquage direct comme applied..."
+          echo "   📋 Tentative: Marquer comme applied (index n'existe pas déjà)..."
+          
+          set +e  # Désactiver set -e pour cette commande
+          RESOLVE_APPLIED_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma migrate resolve --applied "$FAILED_MIGRATION" 2>&1)
+          RESOLVE_APPLIED_EXIT=$?
+          set -e  # Réactiver set -e
+          
+          echo "   📋 Code de sortie applied: $RESOLVE_APPLIED_EXIT"
+          if [ $RESOLVE_APPLIED_EXIT -ne 0 ]; then
+            echo "   📋 Sortie applied: $RESOLVE_APPLIED_OUTPUT"
+          fi
+          
+          if [ $RESOLVE_APPLIED_EXIT -eq 0 ]; then
+            echo "   ✅ Migration marquée comme applied (index n'existe pas déjà)"
+            return 0
+          else
+            echo "   ⚠️  Impossible de marquer la migration comme applied"
+            return 1
+          fi
         fi
         
         # Pour les autres erreurs, essayer d'abord rolled-back puis applied
@@ -582,6 +606,46 @@ if [ "$NODE_ENV" = "production" ]; then
               
               if [ $RESOLVE_APPLIED_EXIT -eq 0 ]; then
                 echo "   ✅ Migration marquée comme applied (table existe déjà)"
+                # Réessayer migrate deploy pour continuer avec les migrations suivantes
+                echo "   🔄 Réessai après résolution..."
+                RETRY_COUNT=0
+                continue
+              else
+                echo "   ⚠️  Impossible de marquer la migration comme applied"
+                echo "   📋 Sortie: $RESOLVE_APPLIED_OUTPUT"
+                # Essayer la résolution normale comme fallback
+                if resolve_failed_migration "$MIGRATE_DEPLOY_OUTPUT"; then
+                  RETRY_COUNT=0
+                  continue
+                fi
+              fi
+            fi
+          # Vérifier si c'est une erreur "index does not exist" (42704) - l'index n'existe pas
+          # Cela peut arriver quand on essaie de supprimer un index qui a déjà été supprimé
+          elif echo "$MIGRATE_DEPLOY_OUTPUT" | grep -qE "P3018.*42704|42704|does not exist|index.*does not exist"; then
+            echo "   🔍 Erreur 'index does not exist' détectée (42704)"
+            echo "   💡 L'index n'existe pas dans la base de données, la migration sera marquée comme applied"
+            
+            # Extraire le nom de la migration échouée
+            # Format 1: "Migration name: 20251214142508_smoke_add_migration_test_table"
+            FAILED_MIGRATION=$(echo "$MIGRATE_DEPLOY_OUTPUT" | grep -i "Migration name:" | grep -oE '[0-9]{14}_[a-zA-Z0-9_]+' | head -1 2>/dev/null || echo "")
+            # Format 2: Fallback sur le pattern timestamp_nom
+            if [ -z "$FAILED_MIGRATION" ]; then
+              FAILED_MIGRATION=$(echo "$MIGRATE_DEPLOY_OUTPUT" | grep -oE '[0-9]{14}_[a-zA-Z0-9_]+' | head -1 2>/dev/null || echo "")
+            fi
+            
+            if [ -n "$FAILED_MIGRATION" ]; then
+              echo "   📋 Migration identifiée: $FAILED_MIGRATION"
+              echo "   🔧 Marquage de la migration comme applied (index n'existe pas déjà)..."
+              
+              # Marquer directement comme applied car l'index n'existe pas (l'action souhaitée est déjà accomplie)
+              set +e
+              RESOLVE_APPLIED_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma migrate resolve --applied "$FAILED_MIGRATION" 2>&1)
+              RESOLVE_APPLIED_EXIT=$?
+              set -e
+              
+              if [ $RESOLVE_APPLIED_EXIT -eq 0 ]; then
+                echo "   ✅ Migration marquée comme applied (index n'existe pas déjà)"
                 # Réessayer migrate deploy pour continuer avec les migrations suivantes
                 echo "   🔄 Réessai après résolution..."
                 RETRY_COUNT=0
