@@ -224,7 +224,7 @@ export function detectStatusFromQuery(query: string): string | null {
         const score = 1.0;
         if (!bestMatch || score > bestMatch.score) {
           bestMatch = { status: status.value, score };
-          console.log(
+          console.warn(
             `[Assistant] Statut détecté par match exact: "${status.value}" (keyword: "${keyword}", query: "${query}")`
           );
           return status.value;
@@ -275,7 +275,7 @@ export function detectStatusFromQuery(query: string): string | null {
               const score = 0.8;
               if (!bestMatch || score > bestMatch.score) {
                 bestMatch = { status: status.value, score };
-                console.log(
+                console.warn(
                   `[Assistant] Statut détecté par pattern flexible: "${status.value}" (query: "${query}")`
                 );
                 return status.value;
@@ -288,7 +288,7 @@ export function detectStatusFromQuery(query: string): string | null {
             const score = 0.85;
             if (!bestMatch || score > bestMatch.score) {
               bestMatch = { status: status.value, score };
-              console.log(
+              console.warn(
                 `[Assistant] Statut détecté par pattern spécial: "${status.value}" (query: "${query}")`
               );
               return status.value;
@@ -307,7 +307,7 @@ export function detectStatusFromQuery(query: string): string | null {
   }
 
   if (bestMatch) {
-    console.log(
+    console.warn(
       `[Assistant] Statut détecté par similarité: "${bestMatch.status}" (score: ${bestMatch.score.toFixed(2)}, query: "${query}")`
     );
     return bestMatch.status;

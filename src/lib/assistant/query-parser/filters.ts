@@ -15,14 +15,14 @@ import {
  */
 const isDebugPatterns = () => process.env.ASSISTANT_DEBUG_PATTERNS === 'true';
 
-const debugLog = (...args: any[]) => {
+const debugLog = (...args: unknown[]) => {
   if (isDebugPatterns()) {
-    console.log(...args);
+    console.warn(...args);
   }
 };
 
 export interface FilterResult {
-  filters: Record<string, any>;
+  filters: Record<string, unknown>;
   fieldsToShow: string[];
 }
 
@@ -35,7 +35,7 @@ export function detectFilters(
   availableCollabs: string[],
   availableStyles: string[]
 ): FilterResult {
-  const filters: Record<string, any> = {};
+  const filters: Record<string, unknown> = {};
   const fieldsToShow: string[] = [];
 
   // Détecter "sans avancement" / "no progress" / "not set"
@@ -45,7 +45,7 @@ export function detectFilters(
     )
   ) {
     filters.noProgress = true;
-    console.log('[Parse Query API] Filtre noProgress détecté pour:', query);
+    console.warn('[Parse Query API] Filtre noProgress détecté pour:', query);
   }
 
   // Détecter demande de champs spécifiques à afficher
@@ -187,7 +187,7 @@ export function detectFilters(
         ) {
           filters.minProgress = exactValue;
           filters.maxProgress = exactValue;
-          console.log('[Parse Query API] ✅ Filtre progression exacte détecté:', exactValue);
+          console.warn('[Parse Query API] ✅ Filtre progression exacte détecté:', exactValue);
           break;
         }
       }
@@ -322,7 +322,7 @@ export function detectFilters(
         const mappedStatus = statusMapping[statusText];
         if (mappedStatus) {
           filters.status = mappedStatus;
-          console.log(
+          console.warn(
             '[Parse Query API] ✅ Statut détecté comme filtre explicite (pattern "pour/sur"):',
             mappedStatus,
             'dans:',
@@ -345,7 +345,7 @@ export function detectFilters(
       // Si c'est un pattern "de X à Y", ne pas détecter les statuts comme filtres
       // car ils font partie du pattern et seront gérés par extractUpdateData
       if (hasDeXaYPattern) {
-        console.log(
+        console.warn(
           '[Parse Query API] ⚠️ Statut détecté mais ignoré (pattern "de X à Y"):',
           status,
           'dans:',
@@ -380,7 +380,7 @@ export function detectFilters(
           // Si le statut est précédé de "à", "en" ou "comme", c'est la nouvelle valeur, pas un filtre
           if (endsWithAorEn || hasAEnPattern || hasEnBeforeStatus) {
             // C'est la nouvelle valeur, pas un filtre - continuer à chercher d'autres statuts
-            console.log(
+            console.warn(
               '[Parse Query API] ⚠️ Statut détecté mais ignoré (nouvelle valeur):',
               status,
               'dans:',
@@ -396,7 +396,7 @@ export function detectFilters(
           const hasAorEnAfterStatus = /^(?:\s+)?(?:à|en|comme|as)\s+/.test(textAfterStatus);
           if (hasAorEnAfterStatus) {
             // Le statut apparaît avant "à" ou "en", donc c'est un filtre explicite
-            console.log(
+            console.warn(
               '[Parse Query API] ✅ Statut détecté comme filtre explicite (avant "à"/"en"):',
               status,
               'dans:',
@@ -408,7 +408,7 @@ export function detectFilters(
         }
       }
       filters.status = status;
-      console.log('[Parse Query API] ✅ Statut détecté comme filtre:', status, 'dans:', query);
+      console.warn('[Parse Query API] ✅ Statut détecté comme filtre:', status, 'dans:', query);
       break;
     }
   }
@@ -614,7 +614,7 @@ export function detectFilters(
     if (pattern.test(lowerQuery)) {
       filters.hasDeadline = true;
       hasDeadlineDetected = true;
-      console.log('[Parse Query API] ✅ Filtre hasDeadline=true détecté:', query);
+      console.warn('[Parse Query API] ✅ Filtre hasDeadline=true détecté:', query);
       break;
     }
   }
@@ -623,7 +623,7 @@ export function detectFilters(
     for (const pattern of hasNoDeadlinePatterns) {
       if (pattern.test(lowerQuery)) {
         filters.hasDeadline = false;
-        console.log('[Parse Query API] ✅ Filtre hasDeadline=false détecté:', query);
+        console.warn('[Parse Query API] ✅ Filtre hasDeadline=false détecté:', query);
         break;
       }
     }
@@ -679,13 +679,14 @@ export function detectFilters(
       const excludedStatusText = match[1].toLowerCase().trim();
       const excludedStatus = statusMappingForExclusion[excludedStatusText];
       if (excludedStatus) {
-        if (!filters.excludeStatuses) {
+        if (!filters.excludeStatuses || !Array.isArray(filters.excludeStatuses)) {
           filters.excludeStatuses = [];
         }
-        if (!filters.excludeStatuses.includes(excludedStatus)) {
-          filters.excludeStatuses.push(excludedStatus);
+        const excludeStatuses = filters.excludeStatuses as string[];
+        if (!excludeStatuses.includes(excludedStatus)) {
+          excludeStatuses.push(excludedStatus);
         }
-        console.log('[Parse Query API] ✅ Exclusion de statut détectée:', excludedStatus);
+        console.warn('[Parse Query API] ✅ Exclusion de statut détectée:', excludedStatus);
       }
     }
   }

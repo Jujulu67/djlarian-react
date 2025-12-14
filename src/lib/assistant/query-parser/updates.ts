@@ -28,7 +28,7 @@ export type { UpdateData } from './updates/types';
 export function extractUpdateData(
   query: string,
   lowerQuery: string,
-  filters: Record<string, any>,
+  filters: Record<string, unknown>,
   availableStyles: string[]
 ): UpdateData | null {
   // Nettoyer les guillemets dans la requête pour éviter les problèmes de détection
@@ -51,27 +51,27 @@ export function extractUpdateData(
   copyProgressFilters(filters, updateData);
 
   // Extraire hasDeadline
-  if (filters.hasDeadline !== undefined) {
-    updateData.hasDeadline = filters.hasDeadline;
+  if (filters.hasDeadline !== undefined && filters.hasDeadline !== null) {
+    updateData.hasDeadline = filters.hasDeadline as boolean;
   }
 
   // Extraire collab (filtre)
-  if (filters.collab) {
+  if (filters.collab && typeof filters.collab === 'string') {
     updateData.collab = filters.collab;
   }
 
   // Extraire style (filtre)
-  if (filters.style) {
+  if (filters.style && typeof filters.style === 'string') {
     updateData.style = filters.style;
   }
 
   // Extraire label (filtre)
-  if (filters.label) {
+  if (filters.label && typeof filters.label === 'string') {
     updateData.label = filters.label;
   }
 
   // Extraire labelFinal (filtre)
-  if (filters.labelFinal) {
+  if (filters.labelFinal && typeof filters.labelFinal === 'string') {
     updateData.labelFinal = filters.labelFinal;
   }
 
@@ -98,7 +98,7 @@ export function extractUpdateData(
   if (noteData) {
     updateData.projectName = noteData.projectName;
     updateData.newNote = noteData.newNote;
-    console.log('[Parse Query API] ✅ Données de note détectées:', noteData);
+    console.warn('[Parse Query API] ✅ Données de note détectées:', noteData);
   }
 
   // Si on a au moins une modification à faire, c'est une commande de modification valide
@@ -113,7 +113,7 @@ export function extractUpdateData(
     updateData.newLabelFinal !== undefined ||
     updateData.newNote !== undefined
   ) {
-    console.log('[Parse Query API] updateData final:', updateData);
+    console.warn('[Parse Query API] updateData final:', updateData);
     return updateData;
   }
 
@@ -147,7 +147,7 @@ function extractNoteUpdateData(
   ) {
     // C'est probablement une phrase conversationnelle, pas une note
     // Sauf si c'est explicitement un pattern de note comme "Session X du jour" ou "Note pour X"
-    console.log(
+    console.warn(
       '[Parse Query API] ⚠️ Phrase conversationnelle détectée, skip extraction de note:',
       query
     );
@@ -324,7 +324,7 @@ function extractNoteUpdateData(
       // Pour le pattern direct, on exige au moins 3 caractères pour éviter les faux positifs
       const minLength = i === notePatterns.length - 1 ? 3 : 2;
       if (projectName.length >= minLength && noteContent.length > 0) {
-        console.log('[Parse Query API] ✅ Note détectée:', {
+        console.warn('[Parse Query API] ✅ Note détectée:', {
           projectName,
           noteContent: noteContent.substring(0, 50) + '...',
           patternIndex: i,
@@ -373,7 +373,7 @@ function extractNoteUpdateData(
       !commonWords.includes(projectName.toLowerCase()) &&
       !startsWithConnector
     ) {
-      console.log('[Parse Query API] ✅ Note détectée (pattern direct):', {
+      console.warn('[Parse Query API] ✅ Note détectée (pattern direct):', {
         projectName,
         noteContent: noteContent.substring(0, 50) + '...',
       });

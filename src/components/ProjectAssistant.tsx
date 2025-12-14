@@ -319,6 +319,7 @@ interface MessageBubbleProps {
 function MessageBubble({
   msg,
   idx,
+  isLoading,
   router,
   setIsLoading,
   setMessages,
@@ -355,6 +356,7 @@ function MessageBubble({
           <ScopeMissingWarning
             msg={msg}
             idx={idx}
+            isLoading={isLoading}
             router={router}
             setIsLoading={setIsLoading}
             setMessages={setMessages}

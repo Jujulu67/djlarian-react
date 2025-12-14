@@ -27,7 +27,7 @@ export function filterProjects(projects: Project[], filters: QueryFilters): Filt
       // Si on cherche des projets sans avancement, on retourne directement le résultat
       // (les autres filtres comme statut, collab, etc. sont déjà vérifiés avant)
       if (!hasNoProgress) {
-        console.log(
+        console.warn(
           '[Filter Projects] ❌ Projet exclu (a une progression):',
           project.name,
           project.progress

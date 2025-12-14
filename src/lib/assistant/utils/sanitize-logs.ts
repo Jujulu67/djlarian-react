@@ -63,7 +63,7 @@ export function sanitizeForLogs(text: string, maxLength: number = 200): string {
 /**
  * Sanitize un objet pour les logs (récursif)
  */
-export function sanitizeObjectForLogs(obj: any, maxStringLength: number = 200): any {
+export function sanitizeObjectForLogs(obj: unknown, maxStringLength: number = 200): unknown {
   if (obj === null || obj === undefined) {
     return obj;
   }
@@ -80,7 +80,7 @@ export function sanitizeObjectForLogs(obj: any, maxStringLength: number = 200): 
     return obj.map((item) => sanitizeObjectForLogs(item, maxStringLength));
   }
 
-  const sanitized: Record<string, any> = {};
+  const sanitized: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
     // Ne pas sanitizer certaines clés qui sont sûres (comme des IDs, counts, etc.)
     const safeKeys = ['id', 'count', 'length', 'index', 'type', 'status', 'progress'];

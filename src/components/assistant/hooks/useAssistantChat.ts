@@ -7,7 +7,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Project } from '@/components/projects/types';
-import type { Message } from '../types';
+import type { Message, QueryFilters, UpdateData } from '../types';
 import { debugLog, isAssistantDebugEnabled } from '@/lib/assistant/utils/debug';
 import { generateRequestId } from '@/lib/assistant/utils/generate-request-id';
 import { generateConfirmationId } from '@/lib/assistant/utils/generate-confirmation-id';
@@ -40,7 +40,7 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [lastFilters, setLastFilters] = useState<any | null>(null);
+  const [lastFilters, setLastFilters] = useState<QueryFilters | null>(null);
   const [lastResults, setLastResults] = useState<Project[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -103,7 +103,7 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
       setInput('');
 
       try {
-        console.log('[Assistant] 📝 Question reçue:', currentInput);
+        console.warn('[Assistant] 📝 Question reçue:', currentInput);
 
         // Générer un requestId pour cette requête
         const requestId = generateRequestId();
@@ -129,7 +129,7 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
         const { routeProjectCommandClient } = await import('@/lib/assistant/router/client-router');
         const result = await routeProjectCommandClient(currentInput, localProjectsRef.current, {
           conversationHistory,
-          lastFilters,
+          lastFilters: lastFilters ? (lastFilters as Record<string, unknown>) : undefined,
           lastAppliedFilter: lastAppliedFilterRef.current,
           lastListedProjectIds: lastListedProjectIdsRef.current,
           requestId,
@@ -243,7 +243,7 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
               },
               updateConfirmation: {
                 filters: result.pendingAction.filters,
-                updateData: result.pendingAction.mutation as any,
+                updateData: result.pendingAction.mutation as UpdateData,
                 affectedProjects: result.pendingAction.affectedProjects,
                 affectedProjectIds: result.pendingAction.affectedProjectIds,
                 scopeSource: result.pendingAction.scopeSource,
@@ -266,7 +266,7 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
                 content: result.response,
                 timestamp: new Date(),
                 scopeConfirmation: {
-                  proposedMutation: result.proposedMutation as any,
+                  proposedMutation: result.proposedMutation as UpdateData,
                   totalProjectsCount: result.totalProjectsCount,
                 },
                 // Note: requestId peut être stocké dans un champ séparé si nécessaire

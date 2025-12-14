@@ -192,12 +192,12 @@ export function isScopingFilter(filter: QueryFilters | ProjectFilter | undefined
  */
 function summarizeFilter(
   filter: QueryFilters | ProjectFilter | undefined | null
-): Record<string, any> {
+): Record<string, unknown> {
   if (!filter) {
     return { empty: true };
   }
 
-  const summary: Record<string, any> = {};
+  const summary: Record<string, unknown> = {};
   if (filter.status) summary.status = filter.status;
   if (filter.minProgress !== undefined) summary.minProgress = filter.minProgress;
   if (filter.maxProgress !== undefined) summary.maxProgress = filter.maxProgress;
@@ -534,7 +534,7 @@ export async function routeProjectCommand(
       effectiveFilter = {}; // Pas de filtre, on utilise les IDs
 
       if (isAssistantDebugEnabled()) {
-        console.log('[Router] 🔎 DetailIntent', {
+        console.warn('[Router] 🔎 DetailIntent', {
           scopeSource,
           listedCount: scopedProjects.length,
           requestId,
@@ -575,7 +575,7 @@ export async function routeProjectCommand(
       effectiveFilter = lastAppliedFilter;
 
       if (isAssistantDebugEnabled()) {
-        console.log('[Router] 🔎 DetailIntent', {
+        console.warn('[Router] 🔎 DetailIntent', {
           scopeSource,
           listedCount: scopedProjects.length,
           requestId,
@@ -613,7 +613,7 @@ export async function routeProjectCommand(
       scopeSource = 'scope_missing';
 
       if (isAssistantDebugEnabled()) {
-        console.log('[Router] 🔎 DetailIntent', {
+        console.warn('[Router] 🔎 DetailIntent', {
           scopeSource,
           listedCount: 0,
           requestId,
@@ -646,7 +646,7 @@ export async function routeProjectCommand(
       );
     if (hasMutationSignals) {
       // Pas une question sur les capacités, c'est une commande → laisser passer vers Groq normal
-      console.log("[Router] 🛡️ Signal de mutation détecté, pas d'interception capabilities");
+      console.warn("[Router] 🛡️ Signal de mutation détecté, pas d'interception capabilities");
     } else {
       // Patterns explicites pour questions sur capacités (pas de commandes)
       // Exemples: "quelles sont tes fonctionnalités", "que peux-tu faire", "capabilités", "tu peux faire quoi"
@@ -668,7 +668,7 @@ export async function routeProjectCommand(
           ));
 
       if (isExplicitCapabilitiesQuestion) {
-        console.log('[Router] 🛡️ Interception question fonctionnalités (réponse hardcodée)');
+        console.warn('[Router] 🛡️ Interception question fonctionnalités (réponse hardcodée)');
         return {
           type: ProjectCommandType.GENERAL,
           response: [
@@ -697,7 +697,7 @@ export async function routeProjectCommand(
       }
     }
 
-    console.log('[Router] 🧠 Routing vers Groq (question généraliste)');
+    console.warn('[Router] 🧠 Routing vers Groq (question généraliste)');
 
     // Utiliser isComplex de la classification pour le routing de modèle
     const isComplex = classification.isComplex || false;
@@ -729,7 +729,7 @@ export async function routeProjectCommand(
   // ROUTING : Listing (0 DB, tout côté client)
   // ========================================
   if (classification.isList || classification.isCount) {
-    console.log('[Router] 📋 Routing vers Listing (côté client)');
+    console.warn('[Router] 📋 Routing vers Listing (côté client)');
 
     // Détecter si un filtre explicite est présent
     const hasExplicitFilter = !isFilterEmpty(filters);
@@ -754,7 +754,7 @@ export async function routeProjectCommand(
 
       if (lastListedProjectIds && lastListedProjectIds.length > 0) {
         // Priorité 1 : Utiliser les IDs du dernier listing
-        console.log(
+        console.warn(
           '[Router] 📋 LIST sans filtre explicite (vue détails) → scope = last listing (IDs)'
         );
         scopeSource = 'LastListedIds';
@@ -762,14 +762,14 @@ export async function routeProjectCommand(
         effectiveFilter = {}; // Pas de filtre, on utilise les IDs
       } else if (lastAppliedFilter && !isFilterEmpty(lastAppliedFilter)) {
         // Priorité 2 : Utiliser le dernier filtre appliqué
-        console.log('[Router] 📋 LIST sans filtre explicite (vue détails) → scope = last filter');
+        console.warn('[Router] 📋 LIST sans filtre explicite (vue détails) → scope = last filter');
         scopeSource = 'LastAppliedFilter';
         const { filtered } = applyProjectFilterAndSort(projects, lastAppliedFilter);
         scopedProjects = filtered;
         effectiveFilter = lastAppliedFilter;
       } else {
         // Fallback : tous les projets (pas de working set disponible)
-        console.log(
+        console.warn(
           '[Router] 📋 LIST sans filtre explicite et sans historique → scope = tous les projets'
         );
         scopeSource = 'AllProjects';
@@ -778,7 +778,7 @@ export async function routeProjectCommand(
       }
     } else if (hasExplicitFilter || isAllProjectsRequested) {
       // Filtre explicite présent OU demande explicite de "tous les projets" : utiliser le filtre
-      console.log(
+      console.warn(
         `[Router] 📋 LIST avec ${hasExplicitFilter ? 'filtre explicite' : 'demande tous les projets'} → scope = filtre de la commande`
       );
       scopeSource = 'ExplicitFilter';
@@ -852,9 +852,14 @@ export async function routeProjectCommand(
   // ROUTING : Création
   // ========================================
   if (classification.isCreate && !classification.isUpdate) {
-    console.log('[Router] ➕ Routing vers Création');
+    console.warn('[Router] ➕ Routing vers Création');
 
-    const createData = extractCreateData(userMessage, lowerQuery, filters as any, availableStyles);
+    const createData = extractCreateData(
+      userMessage,
+      lowerQuery,
+      availableCollabs,
+      availableStyles
+    );
 
     if (!createData || !createData.name) {
       return {
@@ -874,7 +879,14 @@ export async function routeProjectCommand(
         // Le vrai projet sera créé côté serveur via l'API
         id: 'pending',
         name: createData.name,
-        status: (createData.status as any) || 'EN_COURS',
+        status:
+          (createData.status as
+            | 'EN_COURS'
+            | 'TERMINE'
+            | 'ANNULE'
+            | 'A_REWORK'
+            | 'GHOST_PRODUCTION'
+            | 'ARCHIVE') || 'EN_COURS',
         progress: createData.progress || null,
         collab: createData.collab || null,
         style: createData.style || null,
@@ -907,7 +919,7 @@ export async function routeProjectCommand(
   // ROUTING : Modification via filtre (nécessite confirmation)
   // ========================================
   if (classification.isUpdate) {
-    console.log('[Router] ✏️ Routing vers Modification (avec confirmation)');
+    console.warn('[Router] ✏️ Routing vers Modification (avec confirmation)');
 
     const updateData = extractUpdateData(userMessage, lowerQuery, filters, availableStyles);
 
@@ -974,13 +986,13 @@ export async function routeProjectCommand(
 
       if (lastListedProjectIds && lastListedProjectIds.length > 0) {
         // Priorité 1 : Utiliser les IDs du dernier listing
-        console.log('[Router] ✏️ UPDATE sans filtre explicite → scope = last listing (IDs)');
+        console.warn('[Router] ✏️ UPDATE sans filtre explicite → scope = last listing (IDs)');
         scopeSource = 'LastListedIds';
         affectedProjects = projects.filter((p) => lastListedProjectIds.includes(p.id));
         effectiveFilters = {}; // Pas de filtre, on utilise les IDs
       } else if (lastAppliedFilter && !isFilterEmpty(lastAppliedFilter)) {
         // Priorité 2 : Utiliser le dernier filtre appliqué
-        console.log('[Router] ✏️ UPDATE sans filtre explicite → scope = last filter');
+        console.warn('[Router] ✏️ UPDATE sans filtre explicite → scope = last filter');
         scopeSource = 'LastAppliedFilter';
         const { filtered } = applyProjectFilterAndSort(projects, lastAppliedFilter);
         affectedProjects = filtered;
@@ -1051,7 +1063,7 @@ export async function routeProjectCommand(
       }
     } else {
       // Filtre scoping explicite présent : l'utiliser (ignore le working set)
-      console.log(
+      console.warn(
         '[Router] ✏️ UPDATE avec filtre scoping explicite → scope = filtre de la commande'
       );
       scopeSource = 'ExplicitFilter';
@@ -1306,13 +1318,12 @@ export async function routeProjectCommand(
     const expectedUpdatedAtById: Record<string, string> = {};
     for (const project of affectedProjects) {
       if (project.updatedAt) {
-        // Convertir en ISO string (gérer Date ou string)
+        // updatedAt est toujours une string dans le type Project
+        // S'assurer que c'est au format ISO
         const updatedAt =
-          project.updatedAt instanceof Date
-            ? project.updatedAt.toISOString()
-            : typeof project.updatedAt === 'string'
-              ? project.updatedAt
-              : new Date(project.updatedAt).toISOString();
+          typeof project.updatedAt === 'string'
+            ? project.updatedAt
+            : new Date(project.updatedAt).toISOString();
         expectedUpdatedAtById[project.id] = updatedAt;
       }
       // Si updatedAt est null/undefined, on ne l'inclut pas (sera considéré comme conflit côté serveur)
@@ -1350,7 +1361,7 @@ export async function routeProjectCommand(
   // ========================================
   // FALLBACK : Question généraliste
   // ========================================
-  console.log('[Router] 🤖 Fallback vers Groq');
+  console.warn('[Router] 🤖 Fallback vers Groq');
 
   // Utiliser isComplex de la classification pour le routing de modèle
   const isComplex = classification.isComplex || false;

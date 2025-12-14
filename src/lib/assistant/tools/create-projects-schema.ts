@@ -23,11 +23,24 @@ export const createProjectSchema = z.object({
     .describe(
       'Statut initial. Valeurs possibles: EN_COURS, TERMINE, ANNULE, A_REWORK, GHOST_PRODUCTION, ARCHIVE. Par défaut: EN_COURS.'
     ),
-  // Accepter string YYYY-MM-DD
+  // Accepter string YYYY-MM-DD ou objet (fix pour hallucination IA)
   deadline: z
-    .string()
+    .union([
+      z.string(),
+      z.object({
+        date: z.string(),
+      }),
+    ])
     .nullable()
     .optional()
+    .transform((val) => {
+      if (!val) return null;
+      if (typeof val === 'string') return val;
+      if (typeof val === 'object' && 'date' in val) {
+        return val.date;
+      }
+      return null;
+    })
     .describe('Date butoir au format ISO YYYY-MM-DD. Peut être null ou omis.'),
   label: z.string().nullable().optional().describe('Label. Peut être null ou omis.'),
 });

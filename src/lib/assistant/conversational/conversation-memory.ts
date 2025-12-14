@@ -15,7 +15,7 @@ export interface ConversationContext {
   lastProjectNames: string[];
   lastProjectCount: number;
   // Dernier filtre utilisé
-  lastFilters: Record<string, any>;
+  lastFilters: Record<string, unknown>;
   // Type de la dernière action
   lastActionType: 'list' | 'count' | 'update' | 'create' | 'search' | null;
   // Timestamp de la dernière action
@@ -84,7 +84,7 @@ export function updateConversationContext(
 
   contextStore.set(userId, newContext);
 
-  console.log('[ConversationMemory] Contexte mis à jour pour', userId, {
+  console.warn('[ConversationMemory] Contexte mis à jour pour', userId, {
     projectCount: newContext.lastProjectCount,
     actionType: newContext.lastActionType,
     filters: Object.keys(newContext.lastFilters),
@@ -176,7 +176,7 @@ export function resolveContextReference(
   query: string
 ): {
   resolved: boolean;
-  filters: Record<string, any>;
+  filters: Record<string, unknown>;
   projectIds: string[];
   message?: string;
 } {
@@ -222,7 +222,7 @@ export function resolveContextReference(
     };
   }
 
-  console.log('[ConversationMemory] Résolution de référence contextuelle:', {
+  console.warn('[ConversationMemory] Résolution de référence contextuelle:', {
     referenceType,
     lastProjectCount: context.lastProjectCount,
     lastFilters: context.lastFilters,

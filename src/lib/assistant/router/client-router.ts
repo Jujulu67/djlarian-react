@@ -22,7 +22,7 @@ export async function routeProjectCommandClient(
   projects: Project[],
   options?: {
     conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string; timestamp: Date }>;
-    lastFilters?: Record<string, any>;
+    lastFilters?: Record<string, unknown>;
     lastAppliedFilter?: import('./types').ProjectFilter;
     lastListedProjectIds?: string[];
     requestId?: string;

@@ -18,7 +18,7 @@ import {
 export function extractDeadlineUpdate(
   query: string,
   lowerQuery: string,
-  filters: Record<string, any>,
+  filters: Record<string, unknown>,
   updateData: UpdateData
 ): void {
   // 1. Détecter la suppression de deadlines
@@ -41,7 +41,7 @@ export function extractDeadlineUpdate(
 function extractRemoveDeadline(
   query: string,
   lowerQuery: string,
-  filters: Record<string, any>,
+  filters: Record<string, unknown>,
   updateData: UpdateData
 ): boolean {
   const removeDeadlinePatterns = [
@@ -64,7 +64,7 @@ function extractRemoveDeadline(
         // Pas de filtre explicite → on ne met PAS hasDeadline dans filters
         updateData.hasDeadline = true;
       }
-      console.log('[Parse Query API] ✅ Suppression de deadlines détectée');
+      console.warn('[Parse Query API] ✅ Suppression de deadlines détectée');
       return true;
     }
   }
@@ -92,7 +92,7 @@ function hasExplicitDeadlineFilter(query: string): boolean {
  */
 function extractPushDeadline(
   query: string,
-  filters: Record<string, any>,
+  filters: Record<string, unknown>,
   updateData: UpdateData
 ): boolean {
   const lowerQuery = query.toLowerCase();
@@ -249,7 +249,7 @@ function extractPushDeadline(
 
         updateData.pushDeadlineBy = parsedDelta;
 
-        console.log(
+        console.warn(
           '[Parse Query API] ✅ Décalage de deadlines détecté:',
           updateData.pushDeadlineBy,
           explicitDeadlineFilter
@@ -308,7 +308,7 @@ function extractNewDeadline(query: string, updateData: UpdateData): void {
       const parsedDate = parseRelativeDate(dateStr);
       if (parsedDate) {
         updateData.newDeadline = parsedDate;
-        console.log('[Parse Query API] ✅ Nouvelle deadline détectée:', dateStr, '->', parsedDate);
+        console.warn('[Parse Query API] ✅ Nouvelle deadline détectée:', dateStr, '->', parsedDate);
         return;
       }
     }

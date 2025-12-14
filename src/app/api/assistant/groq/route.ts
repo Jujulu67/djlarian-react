@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     const isDebugEnabled =
       process.env.ASSISTANT_DEBUG === 'true' || process.env.ASSISTANT_DEBUG === '1';
     if (isDebugEnabled || process.env.NODE_ENV === 'development') {
-      console.log(`[Groq API] ${logPrefix} 📥 Requête reçue`, {
+      console.warn(`[Groq API] ${logPrefix} 📥 Requête reçue`, {
         requestId: clientRequestId,
         messageLength: message.length,
         message: sanitizedMessage,
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
 
     // Logs debug (derrière flag)
     if (isDebugEnabled) {
-      console.log(`[Groq API Debug] ${logPrefix} Avant appel getConversationalResponse`, {
+      console.warn(`[Groq API Debug] ${logPrefix} Avant appel getConversationalResponse`, {
         requestId: clientRequestId || requestId,
         messageLength: message.length,
         hasHistory: filteredHistory.length > 0,
@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
     const isIdentityQuery = /qui\s+es\s*[-]?tu|who\s+are\s+you/i.test(message);
     if (isIdentityQuery && (process.env.NODE_ENV === 'development' || isDebugEnabled)) {
       // On ne peut pas accéder directement au system prompt ici, mais on peut logger ce qu'on sait
-      console.log(`[Groq API Identity Check] ${logPrefix} Question d'identité détectée`, {
+      console.warn(`[Groq API Identity Check] ${logPrefix} Question d'identité détectée`, {
         requestId: clientRequestId || requestId,
         message: sanitizeForLogs(message, 100),
         hasHistory: filteredHistory.length > 0,
@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
 
     // Log réponse uniquement en debug/dev (éviter les romans en prod)
     if (isDebugEnabled || process.env.NODE_ENV === 'development') {
-      console.log(`[Groq API] ${logPrefix} ✅ Réponse générée`, {
+      console.warn(`[Groq API] ${logPrefix} ✅ Réponse générée`, {
         requestId: clientRequestId,
         responseLength: response.length,
         response: sanitizedResponse,

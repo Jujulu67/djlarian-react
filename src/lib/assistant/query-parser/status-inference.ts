@@ -52,7 +52,7 @@ export function hasNewStatusTarget(query: string): boolean {
  * Infer status from lastFilters (priority 1)
  */
 export function inferStatusFromLastFilters(
-  lastFilters: Record<string, any> | undefined
+  lastFilters: Record<string, unknown> | undefined
 ): ProjectStatus | null {
   if (!lastFilters?.status) return null;
 
@@ -104,8 +104,8 @@ export function inferStatusFromHistory(
  */
 export function inferStatusFromContext(
   query: string,
-  currentFilters: Record<string, any>,
-  lastFilters?: Record<string, any>,
+  currentFilters: Record<string, unknown>,
+  lastFilters?: Record<string, unknown>,
   conversationHistory?: ConversationMessage[]
 ): ProjectStatus | null {
   // Only infer if:

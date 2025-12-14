@@ -15,7 +15,7 @@ const DEBUG_ENDPOINT = 'http://127.0.0.1:7242/ingest/38d751ea-33eb-440f-a5ab-c54
 interface LogData {
   location: string;
   message: string;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   timestamp?: number;
   sessionId?: string;
   runId?: string;
@@ -40,7 +40,7 @@ export function isDebugEnabled(): boolean {
 export function debugLog(
   location: string,
   message: string,
-  data: Record<string, any>,
+  data: Record<string, unknown>,
   options?: { hypothesisId?: string; runId?: string; sessionId?: string }
 ): void {
   // Skip if debug is not enabled
@@ -52,7 +52,7 @@ export function debugLog(
   const logData: LogData = {
     location,
     message,
-    data: sanitizedData,
+    data: sanitizedData as Record<string, unknown>,
     timestamp: Date.now(),
     sessionId: options?.sessionId ?? 'debug-session',
     runId: options?.runId ?? 'initial',
@@ -89,7 +89,7 @@ export function truncate(str: string, maxLength: number = 100): string {
 /**
  * Helper to safely extract keys for logging objects
  */
-export function safeKeys(obj: Record<string, any> | null | undefined): string[] {
+export function safeKeys(obj: Record<string, unknown> | null | undefined): string[] {
   if (!obj || typeof obj !== 'object') return [];
   return Object.keys(obj);
 }

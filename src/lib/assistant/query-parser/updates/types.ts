@@ -85,8 +85,8 @@ export const statusPatterns: { pattern: RegExp; status: string }[] = [
  */
 export const isDebugPatterns = () => process.env.ASSISTANT_DEBUG_PATTERNS === 'true';
 
-export const debugLog = (...args: any[]) => {
+export const debugLog = (...args: unknown[]) => {
   if (isDebugPatterns()) {
-    console.log(...args);
+    console.warn(...args);
   }
 };

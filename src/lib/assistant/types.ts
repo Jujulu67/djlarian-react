@@ -3,7 +3,7 @@
  */
 
 export interface ParseQueryResult {
-  filters: Record<string, any>;
+  filters: Record<string, unknown>;
   type: string;
   understood: boolean;
   clarification: string | null;

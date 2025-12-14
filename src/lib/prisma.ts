@@ -286,7 +286,7 @@ function getDefaultPrisma(): InstanceType<typeof PrismaClient> {
 const prisma = new Proxy({} as InstanceType<typeof PrismaClient>, {
   get(_target, prop) {
     const client = getDefaultPrisma();
-    const value = (client as Record<string, unknown>)[prop as string];
+    const value = (client as unknown as Record<string, unknown>)[prop as string];
 
     if (typeof value === 'function') {
       return value.bind(client);

@@ -56,6 +56,7 @@ export const createCreateProjectsTool = ({
         - "style" doit être une des valeurs exactes ou null.
         - Ne pas inventer de clés (pas de descriptions, pas de sentiment).`,
     parameters,
+    // @ts-expect-error - SDK AI v5 type inference issue
     execute: async ({
       name,
       style,
@@ -77,7 +78,7 @@ export const createCreateProjectsTool = ({
         }
 
         let finalStyle: string | null = null;
-        if (style && style !== '' && style !== null) {
+        if (style) {
           // Vérifier que le style est valide
           const validStyles = ['Techno', 'House', 'DNB', 'Dubstep', 'Trance'];
           if (validStyles.includes(style)) {
@@ -88,8 +89,6 @@ export const createCreateProjectsTool = ({
         let finalStatus = 'EN_COURS'; // Default
         if (
           status &&
-          status !== '' &&
-          status !== null &&
           ['EN_COURS', 'TERMINE', 'ANNULE', 'A_REWORK', 'GHOST_PRODUCTION', 'ARCHIVE'].includes(
             status
           )
