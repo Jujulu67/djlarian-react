@@ -70,6 +70,19 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
 
+  // Synchroniser conversationHistory avec messages (pour isFirstAssistantTurn)
+  useEffect(() => {
+    // Construire l'historique à partir des messages (user + assistant)
+    const history = messages
+      .filter((msg) => msg.role === 'user' || msg.role === 'assistant')
+      .map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+        timestamp: msg.timestamp,
+      }));
+    setConversationHistory(history);
+  }, [messages]);
+
   // Computed values
   const uniqueCollabs = useMemo(
     () => [...new Set(localProjectsRef.current.filter((p) => p.collab).map((p) => p.collab!))],
@@ -108,6 +121,16 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
         // Générer un requestId pour cette requête
         const requestId = generateRequestId();
 
+        // Construire l'historique à partir des messages actuels (AVANT d'ajouter le nouveau message user)
+        // Cela garantit que l'historique est à jour pour le calcul de isFirstAssistantTurn
+        const currentHistory = messages
+          .filter((msg) => msg.role === 'user' || msg.role === 'assistant')
+          .map((msg) => ({
+            role: msg.role,
+            content: msg.content,
+            timestamp: msg.timestamp,
+          }));
+
         // Logs avant appel routeur (debug)
         debugLog('hook', `[${requestId}] 📤 Avant appel routeur`, {
           requestId,
@@ -128,7 +151,7 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
 
         const { routeProjectCommandClient } = await import('@/lib/assistant/router/client-router');
         const result = await routeProjectCommandClient(currentInput, localProjectsRef.current, {
-          conversationHistory,
+          conversationHistory: currentHistory,
           lastFilters: lastFilters ? (lastFilters as Record<string, unknown>) : undefined,
           lastAppliedFilter: lastAppliedFilterRef.current,
           lastListedProjectIds: lastListedProjectIdsRef.current,
@@ -228,22 +251,29 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
           // Générer un confirmationId unique pour l'idempotency
           const confirmationId = generateConfirmationId();
 
-          // La confirmation doit afficher les projets comme un listing
+          const mutation = result.pendingAction.mutation as UpdateData;
+          // Cas spécial : ajout de note à un projet spécifique
+          // Ne pas afficher la liste des projets, mais plutôt la note qui va être ajoutée
+          const isSpecificProjectNote = !!(mutation.projectName && mutation.newNote);
+
+          // La confirmation doit afficher les projets comme un listing (sauf pour note spécifique)
           setMessages((prev) => [
             ...prev,
             {
               role: 'assistant',
               content: result.message,
               timestamp: new Date(),
-              // Afficher les projets affectés comme un listing
-              data: {
-                projects: result.pendingAction.affectedProjects,
-                type: 'update',
-                fieldsToShow: result.pendingAction.fieldsToShow,
-              },
+              // Afficher les projets affectés comme un listing (sauf pour note spécifique)
+              data: isSpecificProjectNote
+                ? undefined
+                : {
+                    projects: result.pendingAction.affectedProjects,
+                    type: 'update',
+                    fieldsToShow: result.pendingAction.fieldsToShow,
+                  },
               updateConfirmation: {
                 filters: result.pendingAction.filters,
-                updateData: result.pendingAction.mutation as UpdateData,
+                updateData: mutation,
                 affectedProjects: result.pendingAction.affectedProjects,
                 affectedProjectIds: result.pendingAction.affectedProjectIds,
                 scopeSource: result.pendingAction.scopeSource,

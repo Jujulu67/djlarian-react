@@ -63,14 +63,19 @@ export async function handleConfirmUpdate({
       // Dispatch event for ProjectsClient
       const projectId = result.data?.projectId || msg.updateConfirmation!.affectedProjects[0]?.id;
       if (projectId) {
-        window.dispatchEvent(
-          new CustomEvent('projectsUpdatedFromAssistant', {
-            detail: { projectIds: [projectId], updates: { note: true } },
-          })
-        );
+        // Attendre un peu pour s'assurer que le cache est invalidé côté serveur
+        // avant de déclencher le refresh
+        setTimeout(() => {
+          window.dispatchEvent(
+            new CustomEvent('projectsUpdatedFromAssistant', {
+              detail: { projectIds: [projectId], updates: { note: true } },
+            })
+          );
+        }, 200);
       }
 
-      setTimeout(() => router.refresh(), 500);
+      // Refresh après un délai plus long pour laisser le temps au cache d'être invalidé
+      setTimeout(() => router.refresh(), 800);
 
       // Mark message as processed
       setMessages((prev) =>

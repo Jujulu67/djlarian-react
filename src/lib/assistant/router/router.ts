@@ -728,7 +728,8 @@ export async function routeProjectCommand(
   // ========================================
   // ROUTING : Listing (0 DB, tout côté client)
   // ========================================
-  if (classification.isList || classification.isCount) {
+  // Ne traiter LIST que si ce n'est PAS un UPDATE (UPDATE a priorité)
+  if ((classification.isList || classification.isCount) && !classification.isUpdate) {
     console.warn('[Router] 📋 Routing vers Listing (côté client)');
 
     // Détecter si un filtre explicite est présent
@@ -998,68 +999,83 @@ export async function routeProjectCommand(
         affectedProjects = filtered;
         effectiveFilters = lastAppliedFilter;
       } else {
-        // GARDE-FOU : Pas de scope récent, demander confirmation explicite au lieu de fallback automatique
-        // Construire un résumé détaillé pour le warning
-        const mutationSummary = {
-          newProgress: updateData.newProgress,
-          newStatus: updateData.newStatus,
-          newDeadline: updateData.newDeadline ? String(updateData.newDeadline) : undefined,
-          pushDeadlineBy: updateData.pushDeadlineBy,
-          newCollab: updateData.newCollab,
-          newStyle: updateData.newStyle,
-          newLabel: updateData.newLabel,
-          newLabelFinal: updateData.newLabelFinal,
-          newNote: updateData.newNote,
-        };
-
-        // Sanitizer les données avant de logger
-        const sanitizedLogData = sanitizeObjectForLogs({
-          userMessage: userMessage,
-          lastListedProjectIdsCount: lastListedProjectIds?.length || 0,
-          projectsCount: projects.length,
-          hasLastAppliedFilter: !!lastAppliedFilter,
-          lastAppliedFilterSummary: summarizeFilter(lastAppliedFilter || {}),
-          mutationSummary,
-        });
-
-        console.warn('[Router] ⚠️ GARDE-FOU: Pas de scope récent pour mutation', sanitizedLogData);
-
-        // Demander confirmation explicite au lieu de fallback automatique
-        const mutationDescription = buildActionDescription(
-          ProjectCommandType.UPDATE,
-          {
+        // CAS SPÉCIAL : Ajout de note à un projet spécifique (projectName + newNote)
+        // Dans ce cas, on n'a pas besoin de scope - on cherche directement le projet par nom
+        if (updateData.projectName && updateData.newNote) {
+          console.warn(
+            '[Router] ✏️ Ajout de note à projet spécifique → bypass garde-fou, recherche par nom'
+          );
+          // On va continuer avec affectedProjects vide, le projet sera trouvé par nom plus tard
+          scopeSource = 'ExplicitFilter'; // Utiliser ExplicitFilter pour indiquer qu'on a un projet spécifique
+          affectedProjects = []; // Sera rempli lors de la recherche par nom
+          effectiveFilters = { name: updateData.projectName };
+        } else {
+          // GARDE-FOU : Pas de scope récent, demander confirmation explicite au lieu de fallback automatique
+          // Construire un résumé détaillé pour le warning
+          const mutationSummary = {
             newProgress: updateData.newProgress,
             newStatus: updateData.newStatus,
-            newDeadline: updateData.newDeadline ?? undefined, // Convert null to undefined
+            newDeadline: updateData.newDeadline ? String(updateData.newDeadline) : undefined,
             pushDeadlineBy: updateData.pushDeadlineBy,
             newCollab: updateData.newCollab,
             newStyle: updateData.newStyle,
             newLabel: updateData.newLabel,
             newLabelFinal: updateData.newLabelFinal,
             newNote: updateData.newNote,
-          },
-          projects.length,
-          0
-        );
+          };
 
-        return {
-          type: ProjectCommandType.GENERAL,
-          confirmationType: 'scope_missing' as const,
-          response: `Je n'ai pas de scope récent (aucun projet listé précédemment). Tu veux appliquer cette modification à tous les projets ?\n\n${mutationDescription}`,
-          proposedMutation: {
-            newProgress: updateData.newProgress,
-            newStatus: updateData.newStatus,
-            newDeadline: updateData.newDeadline ?? undefined,
-            pushDeadlineBy: updateData.pushDeadlineBy,
-            newCollab: updateData.newCollab,
-            newStyle: updateData.newStyle,
-            newLabel: updateData.newLabel,
-            newLabelFinal: updateData.newLabelFinal,
-            newNote: updateData.newNote,
-          },
-          totalProjectsCount: projects.length,
-          requestId,
-        };
+          // Sanitizer les données avant de logger
+          const sanitizedLogData = sanitizeObjectForLogs({
+            userMessage: userMessage,
+            lastListedProjectIdsCount: lastListedProjectIds?.length || 0,
+            projectsCount: projects.length,
+            hasLastAppliedFilter: !!lastAppliedFilter,
+            lastAppliedFilterSummary: summarizeFilter(lastAppliedFilter || {}),
+            mutationSummary,
+          });
+
+          console.warn(
+            '[Router] ⚠️ GARDE-FOU: Pas de scope récent pour mutation',
+            sanitizedLogData
+          );
+
+          // Demander confirmation explicite au lieu de fallback automatique
+          const mutationDescription = buildActionDescription(
+            ProjectCommandType.UPDATE,
+            {
+              newProgress: updateData.newProgress,
+              newStatus: updateData.newStatus,
+              newDeadline: updateData.newDeadline ?? undefined, // Convert null to undefined
+              pushDeadlineBy: updateData.pushDeadlineBy,
+              newCollab: updateData.newCollab,
+              newStyle: updateData.newStyle,
+              newLabel: updateData.newLabel,
+              newLabelFinal: updateData.newLabelFinal,
+              newNote: updateData.newNote,
+            },
+            projects.length,
+            0
+          );
+
+          return {
+            type: ProjectCommandType.GENERAL,
+            confirmationType: 'scope_missing' as const,
+            response: `Je n'ai pas de scope récent (aucun projet listé précédemment). Tu veux appliquer cette modification à tous les projets ?\n\n${mutationDescription}`,
+            proposedMutation: {
+              newProgress: updateData.newProgress,
+              newStatus: updateData.newStatus,
+              newDeadline: updateData.newDeadline ?? undefined,
+              pushDeadlineBy: updateData.pushDeadlineBy,
+              newCollab: updateData.newCollab,
+              newStyle: updateData.newStyle,
+              newLabel: updateData.newLabel,
+              newLabelFinal: updateData.newLabelFinal,
+              newNote: updateData.newNote,
+            },
+            totalProjectsCount: projects.length,
+            requestId,
+          };
+        }
       }
     } else {
       // Filtre scoping explicite présent : l'utiliser (ignore le working set)
@@ -1180,7 +1196,11 @@ export async function routeProjectCommand(
       }
     }
 
-    if (affectedProjects.length === 0) {
+    // Si c'est un ajout de note à un projet spécifique (projectName + newNote),
+    // on ne vérifie pas affectedProjects.length car le projet sera trouvé par nom plus tard
+    const isSpecificProjectNote = !!(updateData.projectName && updateData.newNote);
+
+    if (affectedProjects.length === 0 && !isSpecificProjectNote) {
       // Cas spécial : Si on arrive ici avec aucun projet trouvé et qu'il n'y a pas de scope récent,
       // demander clarification à l'utilisateur.
       // Note: scopeSource ne peut pas être 'AllProjects' ici car le garde-fou retourne déjà dans ce cas
@@ -1309,9 +1329,13 @@ export async function routeProjectCommand(
     const fieldsToShowForConfirmation = fieldsToShow || ['progress', 'status', 'deadline'];
 
     // Générer previewDiff pour les 3 premiers projets
-    const previewDiff: import('./types').ProjectPreviewDiff[] = affectedProjects
-      .slice(0, 3)
-      .map((project) => generateProjectPreviewDiff(project, mutation));
+    // Pour un ajout de note à un projet spécifique, on n'a pas besoin de previewDiff
+    // car le projet sera trouvé par nom plus tard
+    const previewDiff: import('./types').ProjectPreviewDiff[] = isSpecificProjectNote
+      ? []
+      : affectedProjects
+          .slice(0, 3)
+          .map((project) => generateProjectPreviewDiff(project, mutation));
 
     // Construire expectedUpdatedAtById pour vérification concurrency optimiste
     // Seulement si on a des projets avec updatedAt valide
@@ -1319,14 +1343,52 @@ export async function routeProjectCommand(
     for (const project of affectedProjects) {
       if (project.updatedAt) {
         // updatedAt est toujours une string dans le type Project
-        // S'assurer que c'est au format ISO
-        const updatedAt =
-          typeof project.updatedAt === 'string'
-            ? project.updatedAt
-            : new Date(project.updatedAt).toISOString();
+        // S'assurer que c'est au format ISO et valide
+        let updatedAt: string;
+        if (typeof project.updatedAt === 'string') {
+          // Vérifier que c'est un format ISO valide
+          const date = new Date(project.updatedAt);
+          if (isNaN(date.getTime())) {
+            // Date invalide, logger et ignorer
+            debugLog('router', '⚠️ updatedAt invalide ignoré', {
+              projectId: project.id,
+              projectName: project.name,
+              updatedAt: project.updatedAt,
+            });
+            continue;
+          }
+          updatedAt = date.toISOString();
+        } else {
+          // Si c'est un objet Date, le convertir
+          const date = new Date(project.updatedAt);
+          if (isNaN(date.getTime())) {
+            debugLog('router', '⚠️ updatedAt invalide ignoré', {
+              projectId: project.id,
+              projectName: project.name,
+              updatedAt: project.updatedAt,
+            });
+            continue;
+          }
+          updatedAt = date.toISOString();
+        }
         expectedUpdatedAtById[project.id] = updatedAt;
       }
       // Si updatedAt est null/undefined, on ne l'inclut pas (sera considéré comme conflit côté serveur)
+    }
+
+    // Logs de debug pour la construction de expectedUpdatedAtById
+    if (isAssistantDebugEnabled() && Object.keys(expectedUpdatedAtById).length > 0) {
+      debugLog('router', '🔍 expectedUpdatedAtById construit', {
+        totalProjects: affectedProjects.length,
+        projectsWithUpdatedAt: Object.keys(expectedUpdatedAtById).length,
+        sample: Object.entries(expectedUpdatedAtById)
+          .slice(0, 3)
+          .map(([id, updatedAt]) => ({
+            id,
+            updatedAt,
+            projectName: affectedProjects.find((p) => p.id === id)?.name,
+          })),
+      });
     }
 
     const pendingAction: PendingConfirmationAction = {
