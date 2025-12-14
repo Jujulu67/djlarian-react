@@ -1,217 +1,69 @@
-// Prisma Client pour Vercel (Node.js runtime natif)
-// Prisma 7 nécessite des adaptateurs explicites pour chaque base de données
-import fs from 'fs';
-import path from 'path';
+/**
+ * Prisma Client avec hot swap de base de données
+ *
+ * Permet de basculer entre Local et Production sans redémarrage.
+ * Utilise un cache de clients Prisma par URL pour éviter les reconnexions inutiles.
+ */
 
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 import { PrismaNeon } from '@prisma/adapter-neon';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 
+import {
+  getActiveDatabaseTarget,
+  getBlobTokenForTarget,
+  getDatabaseUrlForTarget,
+  initializeDatabaseTarget,
+} from '@/lib/database-target';
 import { logger } from '@/lib/logger';
 
 declare global {
+  // Cache de clients Prisma par URL (pour éviter les reconnexions)
+  var __prismaClients: Map<string, InstanceType<typeof PrismaClient>> | undefined;
+  // Client Prisma par défaut (pour compatibilité avec l'usage existant)
   var prisma: InstanceType<typeof PrismaClient> | undefined;
+  // Mutex pour éviter les race conditions lors du switch
+  var __prismaMutex: Promise<void> | undefined;
+  // URL actuelle du client par défaut
+  var __prismaCurrentUrl: string | undefined;
 }
 
-// Fonction pour obtenir la DATABASE_URL selon le switch
-function getDatabaseUrl(): string {
-  // En production, toujours utiliser la DATABASE_URL de l'environnement
-  if (process.env.NODE_ENV === 'production') {
-    return process.env.DATABASE_URL || '';
-  }
-
-  // En développement, vérifier le fichier de switch
-  try {
-    const switchPath = path.join(process.cwd(), '.db-switch.json');
-    if (fs.existsSync(switchPath)) {
-      const switchConfig = JSON.parse(fs.readFileSync(switchPath, 'utf-8'));
-      if (switchConfig.useProduction) {
-        // Le switch indique PostgreSQL
-        if (!process.env.DATABASE_URL_PRODUCTION) {
-          logger.error(
-            "⚠️  ERREUR: Le switch PostgreSQL est activé mais DATABASE_URL_PRODUCTION n'est pas défini dans .env.local"
-          );
-          logger.error(
-            '   Ajoutez DATABASE_URL_PRODUCTION dans votre .env.local pour utiliser PostgreSQL en local.'
-          );
-          // Ne pas lever d'erreur ici, on la lèvera plus tard après avoir vérifié le schema
-        } else {
-          // Vérifier que le schéma Prisma correspond
-          const schemaPath = path.join(process.cwd(), 'prisma', 'schema.prisma');
-          if (fs.existsSync(schemaPath)) {
-            const schemaContent = fs.readFileSync(schemaPath, 'utf-8');
-            if (!schemaContent.includes('provider = "postgresql"')) {
-              logger.warn(
-                "Le schéma Prisma est en SQLite mais le switch indique PostgreSQL. Utilisez le switch dans l'admin panel pour synchroniser le schéma."
-              );
-            }
-          }
-          return process.env.DATABASE_URL_PRODUCTION;
-        }
-      }
-    }
-  } catch (error) {
-    // En cas d'erreur, utiliser la DATABASE_URL par défaut
-    logger.warn('Erreur lors de la lecture du switch de base de données', error);
-  }
-
-  // Par défaut, utiliser DATABASE_URL (qui pointe vers SQLite local en dev)
-  return process.env.DATABASE_URL || '';
+// Initialiser le cache global si nécessaire
+if (!global.__prismaClients) {
+  global.__prismaClients = new Map();
 }
 
-// Créer le client Prisma (singleton pattern)
-// Sur Vercel, le runtime Node.js supporte nativement Prisma
-let databaseUrl = getDatabaseUrl();
-
-// Vérification de cohérence schema.prisma vs switch et correction de databaseUrl si nécessaire
-// IMPORTANT: Cette vérification doit être faite AVANT la création de l'adaptateur
-if (process.env.NODE_ENV !== 'production') {
-  try {
-    const schemaPath = path.join(process.cwd(), 'prisma', 'schema.prisma');
-    const switchPath = path.join(process.cwd(), '.db-switch.json');
-
-    if (fs.existsSync(schemaPath)) {
-      const schemaContent = fs.readFileSync(schemaPath, 'utf-8');
-      const isPostgreSQL = schemaContent.includes('provider = "postgresql"');
-      const isSQLite = schemaContent.includes('provider = "sqlite"');
-
-      // Lire le switch pour déterminer le provider attendu
-      let expectedProvider: 'postgresql' | 'sqlite' = 'sqlite'; // Par défaut SQLite
-      if (fs.existsSync(switchPath)) {
-        try {
-          const switchConfig = JSON.parse(fs.readFileSync(switchPath, 'utf-8'));
-          expectedProvider = switchConfig.useProduction ? 'postgresql' : 'sqlite';
-        } catch (error) {
-          // Si erreur de lecture, utiliser SQLite par défaut
-          logger.warn('Erreur lors de la lecture du switch, utilisation de SQLite par défaut');
-        }
-      }
-
-      // Vérifier la cohérence et synchroniser si nécessaire
-      const actualProvider = isPostgreSQL ? 'postgresql' : 'sqlite';
-
-      if (actualProvider !== expectedProvider) {
-        logger.warn(
-          `⚠️  Incohérence détectée: schema.prisma est en ${actualProvider} mais le switch indique ${expectedProvider}. Synchronisation automatique...`
-        );
-
-        // Synchroniser automatiquement le schéma
-        try {
-          let newSchemaContent = schemaContent;
-          if (expectedProvider === 'sqlite') {
-            newSchemaContent = newSchemaContent.replace(
-              /provider\s*=\s*"postgresql"/,
-              'provider = "sqlite"'
-            );
-          } else {
-            newSchemaContent = newSchemaContent.replace(
-              /provider\s*=\s*"sqlite"/,
-              'provider = "postgresql"'
-            );
-          }
-
-          fs.writeFileSync(schemaPath, newSchemaContent, 'utf-8');
-          logger.info(`✅ Schema.prisma synchronisé vers ${expectedProvider}`);
-        } catch (error) {
-          logger.error('Erreur lors de la synchronisation automatique du schéma', error);
-        }
-      }
-
-      // Vérifier aussi la cohérence avec DATABASE_URL
-      // Si le switch indique PostgreSQL mais que databaseUrl pointe vers SQLite,
-      // forcer l'utilisation de DATABASE_URL_PRODUCTION
-      const isSQLiteUrl = databaseUrl.startsWith('file:');
-      const isPostgreSQLUrl =
-        databaseUrl.startsWith('postgresql://') || databaseUrl.startsWith('postgres://');
-
-      // Si le schema est en PostgreSQL mais que l'URL est SQLite, et que le switch indique PostgreSQL
-      if (isPostgreSQL && isSQLiteUrl && expectedProvider === 'postgresql') {
-        if (process.env.DATABASE_URL_PRODUCTION) {
-          logger.warn(
-            `⚠️  Schema.prisma est en PostgreSQL mais DATABASE_URL pointe vers SQLite. Utilisation de DATABASE_URL_PRODUCTION...`
-          );
-          databaseUrl = process.env.DATABASE_URL_PRODUCTION;
-        } else {
-          logger.error(
-            "⚠️  ERREUR: schema.prisma est en PostgreSQL mais DATABASE_URL pointe vers SQLite et DATABASE_URL_PRODUCTION n'est pas défini. Impossible de continuer."
-          );
-          throw new Error(
-            'Incohérence entre schema.prisma (PostgreSQL) et DATABASE_URL (SQLite). Définissez DATABASE_URL_PRODUCTION ou changez le switch.'
-          );
-        }
-      } else if (isSQLite && isPostgreSQLUrl && expectedProvider === 'sqlite') {
-        // Si le schema est en SQLite mais que l'URL est PostgreSQL, et que le switch indique SQLite
-        logger.warn(
-          "⚠️  ATTENTION: schema.prisma est en SQLite mais DATABASE_URL pointe vers PostgreSQL. Utilisez le switch DB dans l'admin panel pour synchroniser."
-        );
-      }
-    }
-
-    // Supprimer le marqueur de redémarrage requis au démarrage
-    const restartMarkerPath = path.join(process.cwd(), '.db-restart-required.json');
-    if (fs.existsSync(restartMarkerPath)) {
-      // Vérifier si le schéma correspond à la configuration
-      const switchPath = path.join(process.cwd(), '.db-switch.json');
-      if (fs.existsSync(switchPath)) {
-        const switchConfig = JSON.parse(fs.readFileSync(switchPath, 'utf-8'));
-        const schemaPath = path.join(process.cwd(), 'prisma', 'schema.prisma');
-        const schemaContent = fs.readFileSync(schemaPath, 'utf-8');
-
-        const expectedProvider = switchConfig.useProduction ? 'postgresql' : 'sqlite';
-        const actualProvider = schemaContent.includes('provider = "postgresql"')
-          ? 'postgresql'
-          : 'sqlite';
-
-        // Si le schéma correspond à la configuration, supprimer le marqueur
-        if (expectedProvider === actualProvider) {
-          fs.unlinkSync(restartMarkerPath);
-          logger.debug('PRISMA - Marqueur de redémarrage supprimé - configuration synchronisée');
-        }
-      }
-    }
-  } catch (error) {
-    // Si c'est une erreur critique de configuration, la propager
-    if (error instanceof Error && error.message.includes('Incohérence entre schema.prisma')) {
-      throw error;
-    }
-    // Sinon, ignorer les erreurs de nettoyage
-    logger.warn('Erreur lors de la vérification de cohérence (non-bloquante):', error);
-  }
-}
-
-// Déterminer le type de base de données et créer l'adaptateur approprié
+/**
+ * Détermine le type de base de données et crée l'adaptateur approprié
+ */
 function createAdapter(databaseUrl: string): PrismaBetterSqlite3 | PrismaNeon | PrismaPg {
   const isSQLiteUrl = databaseUrl.startsWith('file:');
   const isPostgreSQLUrl =
     databaseUrl.startsWith('postgresql://') || databaseUrl.startsWith('postgres://');
-  const isNeonUrl =
-    databaseUrl.includes('neon.tech') ||
-    databaseUrl.includes('neon.tech') ||
-    databaseUrl.includes('neon');
+  const isNeonUrl = databaseUrl.includes('neon.tech') || databaseUrl.includes('neon');
 
   if (isSQLiteUrl) {
-    // SQLite - utiliser better-sqlite3 adapter
+    // SQLite - uniquement pour les tests
+    logger.warn(
+      '⚠️  SQLite détecté. PostgreSQL est maintenant requis. SQLite est uniquement supporté pour les tests.'
+    );
     try {
-      // Vérifier que better-sqlite3 est disponible
-
       const betterSqlite3 = require('better-sqlite3');
       if (!betterSqlite3) {
-        throw new Error('better-sqlite3 module not found');
+        throw new Error('better-sqlite3 module not found (requis uniquement pour les tests)');
       }
       return new PrismaBetterSqlite3({
         url: databaseUrl || 'file:./dev.db',
       });
     } catch (error) {
       logger.error("Erreur lors de l'initialisation de l'adaptateur SQLite:", error);
-      throw error;
+      throw new Error(
+        "SQLite n'est plus supporté en développement. Utilisez PostgreSQL local (localhost:5433)."
+      );
     }
   } else if (isNeonUrl) {
     // Neon - utiliser Neon adapter
-    // PrismaNeon utilise automatiquement le driver serverless Neon (@neondatabase/serverless)
-    // quand la connectionString pointe vers Neon avec pooler
-    // Le driver serverless est optimisé pour les environnements serverless comme Vercel
-    // Il gère automatiquement le pooling et les connexions HTTP/WebSocket
     return new PrismaNeon({
       connectionString: databaseUrl,
     });
@@ -221,39 +73,233 @@ function createAdapter(databaseUrl: string): PrismaBetterSqlite3 | PrismaNeon | 
       connectionString: databaseUrl,
     });
   } else {
-    // Par défaut, essayer SQLite
-    logger.warn('Type de base de données non reconnu, utilisation de SQLite par défaut');
-    return new PrismaBetterSqlite3({
-      url: databaseUrl || 'file:./dev.db',
-    });
+    throw new Error(
+      `Type de base de données non reconnu dans DATABASE_URL. Attendu: postgresql:// ou postgres://. URL: ${databaseUrl.substring(0, 50)}...`
+    );
   }
 }
 
-// Créer l'adaptateur APRÈS avoir corrigé databaseUrl si nécessaire
-const adapter = createAdapter(databaseUrl);
+/**
+ * Configuration des logs Prisma
+ */
+function getPrismaLogConfig(): Array<'query' | 'error' | 'warn' | 'info'> {
+  const shouldLogQueries =
+    process.env.PRISMA_LOG_QUERIES === 'true' || process.env.PRISMA_LOG_QUERIES === '1';
 
-// Configuration des logs Prisma
-// Par défaut, masquer les queries en développement pour réduire le bruit
-// Réactiver avec PRISMA_LOG_QUERIES=true pour le debug
-const shouldLogQueries =
-  process.env.PRISMA_LOG_QUERIES === 'true' || process.env.PRISMA_LOG_QUERIES === '1';
-
-const prismaLogConfig: Array<'query' | 'error' | 'warn' | 'info'> =
-  process.env.NODE_ENV === 'development'
+  return process.env.NODE_ENV === 'development'
     ? shouldLogQueries
       ? ['query', 'error', 'warn']
       : ['error', 'warn']
     : ['error'];
+}
 
-const prisma: InstanceType<typeof PrismaClient> =
-  global.prisma ||
-  new PrismaClient({
+/**
+ * Crée un nouveau client Prisma pour une URL donnée
+ */
+function createPrismaClient(databaseUrl: string): InstanceType<typeof PrismaClient> {
+  const adapter = createAdapter(databaseUrl);
+  const logConfig = getPrismaLogConfig();
+
+  const client = new PrismaClient({
     adapter,
-    log: prismaLogConfig,
+    log: logConfig,
   });
 
+  if (process.env.NODE_ENV === 'development') {
+    const maskedUrl = databaseUrl.replace(/:([^:@]+)@/, ':****@');
+    logger.debug(`[PRISMA] Client créé pour: ${maskedUrl.substring(0, 80)}...`);
+  }
+
+  return client;
+}
+
+/**
+ * Déconnecte proprement un client Prisma
+ */
+async function disconnectPrismaClient(client: InstanceType<typeof PrismaClient>): Promise<void> {
+  try {
+    await client.$disconnect();
+  } catch (error) {
+    // Ignorer les erreurs de déconnexion (client peut déjà être déconnecté)
+    logger.debug('[PRISMA] Erreur lors de la déconnexion (non-bloquante):', error);
+  }
+}
+
+/**
+ * Met à jour le client Prisma par défaut selon la cible DB active
+ *
+ * Cette fonction est thread-safe grâce au mutex global.
+ * Si la cible change, l'ancien client est déconnecté et un nouveau est créé.
+ */
+export async function updateDefaultPrismaClient(): Promise<InstanceType<typeof PrismaClient>> {
+  // Attendre que le mutex soit libéré si un switch est en cours
+  if (global.__prismaMutex) {
+    await global.__prismaMutex;
+  }
+
+  // Créer un nouveau mutex pour cette opération
+  let resolveMutex: () => void;
+  global.__prismaMutex = new Promise((resolve) => {
+    resolveMutex = resolve;
+  });
+
+  try {
+    // Récupérer la cible active et l'URL correspondante
+    const target = await getActiveDatabaseTarget();
+    const databaseUrl = await getDatabaseUrlForTarget(target);
+
+    // Si l'URL n'a pas changé, retourner le client existant
+    if (global.__prismaCurrentUrl === databaseUrl && global.prisma) {
+      return global.prisma;
+    }
+
+    // Déconnecter l'ancien client si nécessaire
+    if (global.prisma && global.__prismaCurrentUrl !== databaseUrl) {
+      logger.debug("[PRISMA] Déconnexion de l'ancien client...");
+      await disconnectPrismaClient(global.prisma);
+
+      // Retirer l'ancien client du cache
+      if (global.__prismaCurrentUrl) {
+        global.__prismaClients!.delete(global.__prismaCurrentUrl);
+      }
+    }
+
+    // Vérifier si on a déjà un client pour cette URL dans le cache
+    let client = global.__prismaClients!.get(databaseUrl);
+
+    if (!client) {
+      // Créer un nouveau client pour cette URL
+      client = createPrismaClient(databaseUrl);
+      global.__prismaClients!.set(databaseUrl, client);
+    }
+
+    // Mettre à jour le client par défaut
+    global.prisma = client;
+    global.__prismaCurrentUrl = databaseUrl;
+
+    if (process.env.NODE_ENV === 'development') {
+      logger.debug(`[PRISMA] Client mis à jour pour la cible: ${target}`);
+    }
+
+    return client;
+  } finally {
+    // Libérer le mutex
+    resolveMutex!();
+    global.__prismaMutex = undefined;
+  }
+}
+
+/**
+ * Récupère le client Prisma pour la cible DB active (avec cache)
+ *
+ * Cette fonction est thread-safe grâce au mutex global.
+ * Si la cible change, l'ancien client est déconnecté et un nouveau est créé.
+ */
+export async function getPrismaClient(): Promise<InstanceType<typeof PrismaClient>> {
+  return updateDefaultPrismaClient();
+}
+
+/**
+ * Force la déconnexion de tous les clients Prisma (utile lors d'un switch)
+ */
+export async function disconnectAllPrismaClients(): Promise<void> {
+  const clients = Array.from(global.__prismaClients!.values());
+  global.__prismaClients!.clear();
+  global.prisma = undefined;
+  global.__prismaCurrentUrl = undefined;
+
+  // Déconnecter tous les clients en parallèle
+  await Promise.all(clients.map(disconnectPrismaClient));
+}
+
+/**
+ * Initialise le système Prisma (appelé au démarrage)
+ */
+export async function initializePrisma(): Promise<void> {
+  if (process.env.NODE_ENV === 'production') {
+    // En production, toujours utiliser production
+    await initializeDatabaseTarget();
+  } else {
+    // En dev, initialiser depuis le fichier
+    await initializeDatabaseTarget();
+  }
+
+  // ⚠️ IMPORTANT: Mettre à jour process.env.BLOB_READ_WRITE_TOKEN selon la cible active
+  // Le SDK @vercel/blob lit directement cette variable
+  try {
+    const target = await getActiveDatabaseTarget();
+    const blobToken = await getBlobTokenForTarget(target);
+    if (blobToken) {
+      process.env.BLOB_READ_WRITE_TOKEN = blobToken;
+      logger.debug(`[PRISMA] BLOB_READ_WRITE_TOKEN initialisé pour la cible: ${target}`);
+    } else {
+      delete process.env.BLOB_READ_WRITE_TOKEN;
+    }
+  } catch (error) {
+    logger.warn("[PRISMA] Erreur lors de l'initialisation du token Blob (non-bloquante):", error);
+  }
+
+  // Précharger le client pour la cible active
+  try {
+    await updateDefaultPrismaClient();
+  } catch (error) {
+    logger.warn('[PRISMA] Erreur lors du préchargement du client (non-bloquante):', error);
+  }
+}
+
+/**
+ * Export par défaut pour compatibilité avec le code existant
+ *
+ * ⚠️ IMPORTANT: Ce client est mis à jour automatiquement lors d'un switch DB.
+ * L'export par défaut pointe toujours vers global.prisma qui est mis à jour lors du switch.
+ *
+ * Pour les nouvelles routes, préférez utiliser getPrismaClient() pour garantir
+ * que vous utilisez toujours la bonne cible.
+ */
+function getDefaultPrisma(): InstanceType<typeof PrismaClient> {
+  // Toujours retourner global.prisma qui est mis à jour lors du switch
+  if (global.prisma) {
+    return global.prisma;
+  }
+
+  // Si le client n'est pas encore initialisé, créer un client par défaut
+  // (sera mis à jour lors de l'initialisation)
+  const defaultUrl =
+    process.env.DATABASE_URL ||
+    process.env.DATABASE_URL_LOCAL ||
+    'postgresql://djlarian:djlarian_dev_password@localhost:5433/djlarian_dev?sslmode=disable';
+
+  const client = createPrismaClient(defaultUrl);
+  global.prisma = client;
+  global.__prismaCurrentUrl = defaultUrl;
+
+  // Initialiser de manière asynchrone (non-bloquant)
+  initializePrisma().catch((error) => {
+    logger.warn("[PRISMA] Erreur lors de l'initialisation (non-bloquante):", error);
+  });
+
+  return client;
+}
+
+// Créer un proxy qui délègue toutes les propriétés à global.prisma
+// Cela garantit que l'export par défaut pointe toujours vers le client actuel
+const prisma = new Proxy({} as InstanceType<typeof PrismaClient>, {
+  get(_target, prop) {
+    const client = getDefaultPrisma();
+    const value = (client as Record<string, unknown>)[prop as string];
+
+    if (typeof value === 'function') {
+      return value.bind(client);
+    }
+    return value;
+  },
+});
+
 if (process.env.NODE_ENV !== 'production') {
-  global.prisma = prisma;
+  // S'assurer que global.prisma est défini
+  if (!global.prisma) {
+    global.prisma = getDefaultPrisma();
+  }
 }
 
 export default prisma;

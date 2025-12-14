@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Déterminer si on utilise Blob Storage
-    const useBlobStorage = shouldUseBlobStorage();
+    const useBlobStorage = await shouldUseBlobStorage();
     let imageUrl: string;
 
     if (useBlobStorage) {

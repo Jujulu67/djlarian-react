@@ -22,7 +22,8 @@ export async function GET(request: NextRequest) {
       return createUnauthorizedResponse('Non authentifié');
     }
 
-    // Vérifier que BLOB_READ_WRITE_TOKEN est configuré
+    // ⚠️ IMPORTANT: Récupérer le token selon la cible DB active (hot swap)
+    // Le token est mis à jour dans process.env.BLOB_READ_WRITE_TOKEN lors du switch
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
       return NextResponse.json({ error: 'Blob Storage non configuré' }, { status: 503 });
     }

@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Utiliser la fonction utilitaire qui respecte le switch
-    let useBlobStorage = shouldUseBlobStorage();
+    let useBlobStorage = await shouldUseBlobStorage();
 
     // Si on veut utiliser Blob mais qu'il n'est pas configuré, fallback vers local
     if (useBlobStorage && !blobConfigured) {
