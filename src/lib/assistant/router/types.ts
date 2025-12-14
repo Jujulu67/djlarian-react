@@ -124,6 +124,8 @@ export interface ListCommandResult {
   appliedFilter: ProjectFilter;
   /** IDs des projets listés (pour mémoire de travail) */
   listedProjectIds: string[];
+  /** Mode d'affichage : 'compact' par défaut, 'detailed' pour afficher plus de champs */
+  displayMode?: 'compact' | 'detailed';
   /** ID de corrélation pour tracer la requête de bout en bout (optionnel) */
   requestId?: string;
 }

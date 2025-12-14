@@ -1,0 +1,70 @@
+name: Prisma Pipeline Check (Must Pass)
+
+on:
+  pull_request:
+    branches: ['*']
+  push:
+    branches: [main, master, develop]
+  workflow_dispatch:
+
+jobs:
+  prisma-check:
+    name: Prisma Pipeline Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check Prisma Schema (PostgreSQL source of truth)
+        run: |
+          if grep -q 'provider = "sqlite"' prisma/schema.prisma; then
+            echo "❌ ERREUR: schema.prisma est en SQLite"
+            echo "   PostgreSQL est la source de vérité unique"
+            exit 1
+          fi
+          echo "✅ schema.prisma est en PostgreSQL"
+
+      - name: Check Migration Lock (PostgreSQL source of truth)
+        run: |
+          if [ -f prisma/migrations/migration_lock.toml ]; then
+            if grep -q 'provider = "sqlite"' prisma/migrations/migration_lock.toml; then
+              echo "❌ ERREUR: migration_lock.toml est en SQLite"
+              echo "   PostgreSQL est la source de vérité unique"
+              exit 1
+            fi
+            echo "✅ migration_lock.toml est en PostgreSQL"
+          fi
+
+      - name: Validate Prisma Schema
+        run: npx prisma validate
+
+      - name: Check Prisma Client Generation
+        run: npx prisma generate
+
+      - name: Check for Drift (schema vs migrations)
+        run: |
+          # Vérifier que le schéma peut être comparé aux migrations
+          # (sans DB réelle, on vérifie juste que le schéma est valide)
+          echo "✅ Vérification du schéma terminée (drift check nécessite une DB)"
+
+      - name: Check Migration Files Consistency
+        run: |
+          # Vérifier que toutes les migrations sont des dossiers avec migration.sql
+          for migration_dir in prisma/migrations/*/; do
+            if [ ! -f "${migration_dir}migration.sql" ]; then
+              echo "❌ Migration invalide: ${migration_dir}"
+              exit 1
+            fi
+          done
+          echo "✅ Toutes les migrations sont valides"

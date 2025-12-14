@@ -89,13 +89,6 @@ describe('audio-analysis', () => {
       expect(mockClose).toHaveBeenCalled();
     });
 
-    // Skip: FileReader error handling is difficult to mock reliably
-    // The error path is covered by the decodeAudioData error test
-    it.skip('should handle FileReader error', async () => {
-      // This test is skipped because FileReader error simulation
-      // requires complex timing control that is difficult to mock reliably
-    });
-
     it('should handle mono audio', async () => {
       const mockAudioBuffer = {
         duration: 30,

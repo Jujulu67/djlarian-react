@@ -159,6 +159,7 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
                 projects: result.projects,
                 type: 'list',
                 fieldsToShow: result.fieldsToShow,
+                displayMode: result.displayMode,
               },
             },
           ]);

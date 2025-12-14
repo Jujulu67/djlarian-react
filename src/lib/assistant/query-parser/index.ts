@@ -107,6 +107,7 @@ export function parseQuery(
         type: 'search',
         understood: false, // Force l'appel à Groq
         clarification: null,
+        isComplex: classification.isComplex,
       };
     }
 
@@ -208,6 +209,7 @@ export function parseQuery(
           lang: classification.lang,
           updateData,
           clarification: null,
+          isComplex: classification.isComplex,
         };
       }
     }
@@ -225,6 +227,7 @@ export function parseQuery(
           lang: classification.lang,
           createData,
           clarification: null,
+          isComplex: classification.isComplex,
         };
       }
     }
@@ -255,6 +258,7 @@ export function parseQuery(
       understood: classification.understood,
       lang: classification.lang,
       isConversational: classification.isConversationalQuestion,
+      isComplex: classification.isComplex,
       fieldsToShow: shouldIgnoreFilters
         ? undefined
         : fieldsToShow.length > 0
@@ -289,6 +293,7 @@ export function parseQuery(
           ? error.message
           : 'Une erreur est survenue lors du parsing de la requête',
       isConversational: false,
+      isComplex: true, // En cas d'erreur, utiliser 70B par sécurité
     };
   }
 }

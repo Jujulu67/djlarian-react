@@ -108,48 +108,6 @@ describe('ErrorBoundary', () => {
     expect(mockSentryCaptureException).not.toHaveBeenCalled();
   });
 
-  // Skip: setState in componentDidCatch cannot be tested reliably with React Testing Library
-  // The ErrorBoundary calls setState({ hasError: false }) in componentDidCatch to ignore certain errors,
-  // but React Testing Library cannot properly handle this pattern without triggering warnings.
-  // The functionality works correctly in production, but testing it requires complex workarounds
-  // that make the tests brittle and unreliable.
-  it.skip('should ignore message port closed errors', () => {
-    const ThrowPortError = () => {
-      throw new Error('message port closed');
-    };
-
-    const { container } = render(
-      <ErrorBoundary>
-        <ThrowPortError />
-      </ErrorBoundary>
-    );
-
-    expect(mockLoggerError).toHaveBeenCalled();
-    const errorCall = mockLoggerError.mock.calls[0];
-    expect(errorCall[0]).toContain('message port closed');
-  });
-
-  // Skip: setState in componentDidCatch cannot be tested reliably with React Testing Library
-  // The ErrorBoundary calls setState({ hasError: false }) in componentDidCatch to ignore certain errors,
-  // but React Testing Library cannot properly handle this pattern without triggering warnings.
-  // The functionality works correctly in production, but testing it requires complex workarounds
-  // that make the tests brittle and unreliable.
-  it.skip('should ignore hydration errors', () => {
-    const ThrowHydrationError = () => {
-      throw new Error('Hydration failed');
-    };
-
-    const { container } = render(
-      <ErrorBoundary>
-        <ThrowHydrationError />
-      </ErrorBoundary>
-    );
-
-    expect(mockLoggerError).toHaveBeenCalled();
-    const errorCall = mockLoggerError.mock.calls[0];
-    expect(errorCall[0]).toContain('Hydration');
-  });
-
   it('should allow retry when button is clicked', () => {
     const { rerender } = render(
       <ErrorBoundary>

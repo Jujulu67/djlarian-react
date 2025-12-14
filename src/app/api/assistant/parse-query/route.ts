@@ -113,6 +113,9 @@ export async function POST(request: NextRequest) {
           filteredLength: filteredHistory.length,
         });
 
+        // Utiliser isComplex du résultat parseQuery si disponible
+        const isComplex = result.isComplex || false;
+
         contextResponse = await getConversationalResponse(
           query,
           {
@@ -120,7 +123,9 @@ export async function POST(request: NextRequest) {
             collabCount: availableCollabs.length,
             styleCount: availableStyles.length,
           },
-          filteredHistory.length > 0 ? filteredHistory : undefined
+          filteredHistory.length > 0 ? filteredHistory : undefined,
+          isComplex,
+          undefined // Pas de requestId dans ce chemin
         );
       } else {
         // Fallback si pas de clé API

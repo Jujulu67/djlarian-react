@@ -589,24 +589,26 @@ function ConfirmationButtons({
         </div>
       )}
 
-      {/* Preview Diff avant→après */}
-      {updateConfirmation?.previewDiff && updateConfirmation.previewDiff.length > 0 && (
-        <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-3 text-xs">
-          <div className="text-slate-400 mb-2 font-semibold">Aperçu des changements</div>
-          <div className="space-y-2">
-            {updateConfirmation.previewDiff.map((diff) => (
-              <div key={diff.id} className="bg-slate-800/30 rounded p-2">
-                <div className="text-slate-200 font-medium mb-1">{diff.name}</div>
-                <ul className="list-disc list-inside space-y-0.5 text-slate-300">
-                  {diff.changes.map((change, idx) => (
-                    <li key={idx}>{change}</li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+      {/* Preview Diff avant→après (dev-only) */}
+      {isAssistantDebugEnabled() &&
+        updateConfirmation?.previewDiff &&
+        updateConfirmation.previewDiff.length > 0 && (
+          <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-3 text-xs">
+            <div className="text-slate-400 mb-2 font-semibold">Aperçu des changements</div>
+            <div className="space-y-2">
+              {updateConfirmation.previewDiff.map((diff) => (
+                <div key={diff.id} className="bg-slate-800/30 rounded p-2">
+                  <div className="text-slate-200 font-medium mb-1">{diff.name}</div>
+                  <ul className="list-disc list-inside space-y-0.5 text-slate-300">
+                    {diff.changes.map((change, idx) => (
+                      <li key={idx}>{change}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       <div className="flex gap-2">
         <button
