@@ -380,6 +380,34 @@ if [ "$NODE_ENV" = "production" ]; then
       
       if [ -n "$FAILED_MIGRATION" ]; then
         echo "   🔧 Résolution de la migration échouée: $FAILED_MIGRATION"
+        
+        # Vérifier si l'erreur est "relation already exists" (42P07) - la table existe déjà
+        # Dans ce cas, marquer directement comme applied sans essayer rolled-back
+        if echo "$status_output" | grep -qE "42P07|already exists|relation.*already exists"; then
+          echo "   🔍 Erreur 'relation already exists' détectée (42P07)"
+          echo "   💡 La table existe déjà, marquage direct comme applied..."
+          echo "   📋 Tentative: Marquer comme applied (table existe déjà)..."
+          
+          set +e  # Désactiver set -e pour cette commande
+          RESOLVE_APPLIED_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma migrate resolve --applied "$FAILED_MIGRATION" 2>&1)
+          RESOLVE_APPLIED_EXIT=$?
+          set -e  # Réactiver set -e
+          
+          echo "   📋 Code de sortie applied: $RESOLVE_APPLIED_EXIT"
+          if [ $RESOLVE_APPLIED_EXIT -ne 0 ]; then
+            echo "   📋 Sortie applied: $RESOLVE_APPLIED_OUTPUT"
+          fi
+          
+          if [ $RESOLVE_APPLIED_EXIT -eq 0 ]; then
+            echo "   ✅ Migration marquée comme applied (table existe déjà)"
+            return 0
+          else
+            echo "   ⚠️  Impossible de marquer la migration comme applied"
+            return 1
+          fi
+        fi
+        
+        # Pour les autres erreurs, essayer d'abord rolled-back puis applied
         echo "   📋 Tentative 1: Marquer comme rolled-back..."
         
         # Marquer la migration comme rolled-back pour pouvoir la réappliquer
@@ -528,8 +556,48 @@ if [ "$NODE_ENV" = "production" ]; then
           echo "   📋 Sortie migrate deploy (erreur):"
           echo "$MIGRATE_DEPLOY_OUTPUT" | head -20 | sed 's/^/      /'
           
+          # Vérifier si c'est une erreur "relation already exists" (42P07) - la table existe déjà
+          # Cela peut arriver avec P3018 (migration failed to apply) ou directement avec 42P07
+          if echo "$MIGRATE_DEPLOY_OUTPUT" | grep -qE "P3018.*42P07|42P07|already exists|relation.*already exists"; then
+            echo "   🔍 Erreur 'relation already exists' détectée (42P07)"
+            echo "   💡 La table existe déjà dans la base de données, la migration sera marquée comme applied"
+            
+            # Extraire le nom de la migration échouée
+            # Format 1: "Migration name: 20251214140000_add_assistant_confirmation"
+            FAILED_MIGRATION=$(echo "$MIGRATE_DEPLOY_OUTPUT" | grep -i "Migration name:" | grep -oE '[0-9]{14}_[a-zA-Z0-9_]+' | head -1 2>/dev/null || echo "")
+            # Format 2: Fallback sur le pattern timestamp_nom
+            if [ -z "$FAILED_MIGRATION" ]; then
+              FAILED_MIGRATION=$(echo "$MIGRATE_DEPLOY_OUTPUT" | grep -oE '[0-9]{14}_[a-zA-Z0-9_]+' | head -1 2>/dev/null || echo "")
+            fi
+            
+            if [ -n "$FAILED_MIGRATION" ]; then
+              echo "   📋 Migration identifiée: $FAILED_MIGRATION"
+              echo "   🔧 Marquage de la migration comme applied (table existe déjà)..."
+              
+              # Marquer directement comme applied car la table existe déjà
+              set +e
+              RESOLVE_APPLIED_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma migrate resolve --applied "$FAILED_MIGRATION" 2>&1)
+              RESOLVE_APPLIED_EXIT=$?
+              set -e
+              
+              if [ $RESOLVE_APPLIED_EXIT -eq 0 ]; then
+                echo "   ✅ Migration marquée comme applied (table existe déjà)"
+                # Réessayer migrate deploy pour continuer avec les migrations suivantes
+                echo "   🔄 Réessai après résolution..."
+                RETRY_COUNT=0
+                continue
+              else
+                echo "   ⚠️  Impossible de marquer la migration comme applied"
+                echo "   📋 Sortie: $RESOLVE_APPLIED_OUTPUT"
+                # Essayer la résolution normale comme fallback
+                if resolve_failed_migration "$MIGRATE_DEPLOY_OUTPUT"; then
+                  RETRY_COUNT=0
+                  continue
+                fi
+              fi
+            fi
           # Vérifier si c'est une erreur de migration échouée (P3009)
-          if echo "$MIGRATE_DEPLOY_OUTPUT" | grep -qE "P3009|failed migrations|failed migration"; then
+          elif echo "$MIGRATE_DEPLOY_OUTPUT" | grep -qE "P3009|failed migrations|failed migration"; then
             echo "   ⚠️  Migration échouée détectée dans migrate deploy, tentative de résolution..."
             
             # Extraire le nom de la migration échouée
