@@ -25,44 +25,28 @@ set -e
 # Variable pour savoir si le schéma a été modifié
 SCHEMA_CHANGED=false
 
-# Si on est en production, forcer PostgreSQL
+# Si on est en production, vérifier PostgreSQL (ne plus modifier)
 if [ "$NODE_ENV" = "production" ]; then
+  # ⚠️  IMPORTANT: Ne plus modifier schema.prisma en production
+  # PostgreSQL est la source de vérité unique, le schéma doit être en PostgreSQL
   if grep -q 'provider = "sqlite"' "$SCHEMA_PATH"; then
-    echo "⚠️  Schema.prisma est en SQLite, correction vers PostgreSQL pour la production..."
-    
-    # Remplacer SQLite par PostgreSQL
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-      # macOS
-      sed -i '' 's/provider = "sqlite"/provider = "postgresql"/' "$SCHEMA_PATH"
-    else
-      # Linux
-      sed -i 's/provider = "sqlite"/provider = "postgresql"/' "$SCHEMA_PATH"
-    fi
-    
-    echo "✅ Schema.prisma corrigé vers PostgreSQL"
-    SCHEMA_CHANGED=true
+    echo "❌ ERREUR: schema.prisma est en SQLite en production!"
+    echo "   PostgreSQL est la source de vérité unique"
+    echo "   Modifiez schema.prisma pour utiliser PostgreSQL avant le build"
+    exit 1
   else
-    echo "✅ Schema.prisma est déjà en PostgreSQL"
+    echo "✅ Schema.prisma est en PostgreSQL (source de vérité)"
   fi
   
-  # Vérifier et corriger migration_lock.toml si nécessaire
+  # Vérifier migration_lock.toml (ne plus modifier)
   MIGRATION_LOCK_PATH="prisma/migrations/migration_lock.toml"
   if [ -f "$MIGRATION_LOCK_PATH" ]; then
     if grep -q 'provider = "sqlite"' "$MIGRATION_LOCK_PATH"; then
-      echo "⚠️  migration_lock.toml est en SQLite, correction vers PostgreSQL pour la production..."
-      
-      # Remplacer SQLite par PostgreSQL dans migration_lock.toml
-      if [[ "$OSTYPE" == "darwin"* ]]; then
-        # macOS
-        sed -i '' 's/provider = "sqlite"/provider = "postgresql"/' "$MIGRATION_LOCK_PATH"
-      else
-        # Linux
-        sed -i 's/provider = "sqlite"/provider = "postgresql"/' "$MIGRATION_LOCK_PATH"
-      fi
-      
-      echo "✅ migration_lock.toml corrigé vers PostgreSQL"
+      echo "❌ ERREUR: migration_lock.toml est en SQLite en production!"
+      echo "   Modifiez migration_lock.toml pour utiliser PostgreSQL avant le build"
+      exit 1
     else
-      echo "✅ migration_lock.toml est déjà en PostgreSQL"
+      echo "✅ migration_lock.toml est en PostgreSQL"
     fi
   fi
   
@@ -751,46 +735,29 @@ if [ -f "$SWITCH_PATH" ]; then
   fi
 fi
 
-# Si le switch est on (useProduction: true), forcer PostgreSQL
-if [ "$USE_PRODUCTION" = "true" ]; then
-  if grep -q 'provider = "sqlite"' "$SCHEMA_PATH"; then
-    echo "⚠️  Schema.prisma est en SQLite, correction vers PostgreSQL (switch activé)..."
-    
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-      sed -i '' 's/provider = "sqlite"/provider = "postgresql"/' "$SCHEMA_PATH"
-    else
-      sed -i 's/provider = "sqlite"/provider = "postgresql"/' "$SCHEMA_PATH"
-    fi
-    
-    echo "✅ Schema.prisma corrigé vers PostgreSQL"
-    SCHEMA_CHANGED=true
-  else
-    echo "✅ Schema.prisma est déjà en PostgreSQL"
+# ⚠️  IMPORTANT: Ne plus modifier schema.prisma selon le switch
+# PostgreSQL est la source de vérité unique
+# Vérifier seulement que le schéma est en PostgreSQL
+if grep -q 'provider = "sqlite"' "$SCHEMA_PATH"; then
+  echo "❌ ERREUR: schema.prisma est en SQLite"
+  echo "   PostgreSQL est maintenant la source de vérité unique"
+  echo "   Modifiez manuellement schema.prisma pour utiliser PostgreSQL"
+  echo "   Ou utilisez: npm run prisma:fix:schema"
+  exit 1
+fi
+
+echo "✅ Schema.prisma est en PostgreSQL (source de vérité)"
+
+# Vérifier migration_lock.toml (ne plus modifier)
+MIGRATION_LOCK_PATH="prisma/migrations/migration_lock.toml"
+if [ -f "$MIGRATION_LOCK_PATH" ]; then
+  if grep -q 'provider = "sqlite"' "$MIGRATION_LOCK_PATH"; then
+    echo "❌ ERREUR: migration_lock.toml est en SQLite"
+    echo "   Modifiez manuellement migration_lock.toml pour utiliser PostgreSQL"
+    echo "   Ou utilisez: npm run prisma:fix:migration-lock"
+    exit 1
   fi
-  
-  # Vérifier et corriger migration_lock.toml si nécessaire
-  MIGRATION_LOCK_PATH="prisma/migrations/migration_lock.toml"
-  if [ -f "$MIGRATION_LOCK_PATH" ]; then
-    if grep -q 'provider = "sqlite"' "$MIGRATION_LOCK_PATH"; then
-      echo "⚠️  migration_lock.toml est en SQLite, correction vers PostgreSQL (switch activé)..."
-      
-      # Remplacer SQLite par PostgreSQL dans migration_lock.toml
-      if [[ "$OSTYPE" == "darwin"* ]]; then
-        # macOS
-        sed -i '' 's/provider = "sqlite"/provider = "postgresql"/' "$MIGRATION_LOCK_PATH"
-      else
-        # Linux
-        sed -i 's/provider = "sqlite"/provider = "postgresql"/' "$MIGRATION_LOCK_PATH"
-      fi
-      
-      echo "✅ migration_lock.toml corrigé vers PostgreSQL"
-    else
-      echo "✅ migration_lock.toml est déjà en PostgreSQL"
-    fi
-  fi
-else
-  # Si le switch est off, ne pas forcer PostgreSQL (laisser SQLite)
-  echo "ℹ️  Mode développement avec switch off - PostgreSQL non forcé (utilise SQLite si configuré)"
+  echo "✅ migration_lock.toml est en PostgreSQL"
 fi
 
 # En développement avec switch ON, vérifier DATABASE_URL_PRODUCTION
@@ -811,20 +778,10 @@ if [ "$USE_PRODUCTION" = "true" ] && [ "$NODE_ENV" != "production" ]; then
   fi
 fi
 
-# Si le schéma a été modifié, régénérer le client Prisma
-# Aussi régénérer si on est en mode production (switch activé) pour s'assurer que le client correspond
-if [ "$SCHEMA_CHANGED" = true ] || [ "$USE_PRODUCTION" = "true" ]; then
-  echo "🔄 Régénération du client Prisma..."
-  npx prisma generate > /dev/null 2>&1 || npx prisma generate
-  # Corriger les fichiers default.js et default.mjs pour Prisma 7
-  node scripts/fix-prisma-types.mjs > /dev/null 2>&1 || node scripts/fix-prisma-types.mjs
-  echo "✅ Client Prisma régénéré"
-else
-  # Même si le schéma n'a pas changé, s'assurer que les fichiers default.js et default.mjs existent
-  # (nécessaire pour Prisma 7 avec tsx)
-  if [ ! -f "node_modules/.prisma/client/default.js" ]; then
-    echo "🔄 Création des fichiers default.js et default.mjs pour Prisma 7..."
-    node scripts/fix-prisma-types.mjs > /dev/null 2>&1 || node scripts/fix-prisma-types.mjs
-  fi
-fi
+# Toujours régénérer le client Prisma pour s'assurer qu'il correspond au schéma
+echo "🔄 Régénération du client Prisma..."
+npx prisma generate > /dev/null 2>&1 || npx prisma generate
+# Corriger les fichiers default.js et default.mjs pour Prisma 7
+node scripts/fix-prisma-types.mjs > /dev/null 2>&1 || node scripts/fix-prisma-types.mjs
+echo "✅ Client Prisma régénéré"
 

@@ -24,6 +24,7 @@ export interface Message {
     projects: Project[];
     type: 'count' | 'list' | 'search' | 'create' | 'update';
     fieldsToShow: string[];
+    displayMode?: 'compact' | 'detailed';
   };
   updateConfirmation?: {
     filters: QueryFilters;

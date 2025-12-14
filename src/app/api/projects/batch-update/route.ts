@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { revalidateTag } from 'next/cache';
 
 import { auth } from '@/auth';
@@ -98,6 +98,29 @@ export async function POST(request: NextRequest) {
 
     // Vérifier l'idempotency si confirmationId est fourni
     if (confirmationId) {
+      // Guard runtime: vérifier que le client Prisma est à jour
+      if (
+        !prisma.assistantConfirmation ||
+        typeof prisma.assistantConfirmation.findUnique !== 'function'
+      ) {
+        const errorMessage =
+          'Prisma client out of date: assistantConfirmation model not found. Run: prisma generate';
+        console.error(`[Batch Update API] ${logPrefix} ❌ ${errorMessage}`, {
+          requestId,
+          confirmationId,
+          userId: session.user.id,
+          hasAssistantConfirmation: !!prisma.assistantConfirmation,
+          assistantConfirmationType: typeof prisma.assistantConfirmation,
+        });
+        return NextResponse.json(
+          {
+            error: errorMessage,
+            details: 'The Prisma client needs to be regenerated. Please run: prisma generate',
+          },
+          { status: 500 }
+        );
+      }
+
       const existingConfirmation = await prisma.assistantConfirmation.findUnique({
         where: { confirmationId },
       });
@@ -392,6 +415,27 @@ export async function POST(request: NextRequest) {
 
       // Utiliser une transaction si confirmationId est fourni (garantit l'atomicité)
       if (confirmationId) {
+        // Guard runtime: vérifier que le client Prisma est à jour
+        if (
+          !prisma.assistantConfirmation ||
+          typeof prisma.assistantConfirmation.findUnique !== 'function'
+        ) {
+          const errorMessage =
+            'Prisma client out of date: assistantConfirmation model not found. Run: prisma generate';
+          console.error(`[Batch Update API] ${logPrefix} ❌ ${errorMessage}`, {
+            requestId,
+            confirmationId,
+            userId: session.user.id,
+          });
+          return NextResponse.json(
+            {
+              error: errorMessage,
+              details: 'The Prisma client needs to be regenerated. Please run: prisma generate',
+            },
+            { status: 500 }
+          );
+        }
+
         await prisma.$transaction(async (tx) => {
           // Créer l'entrée de confirmation (sera rollback si l'update échoue)
           await tx.assistantConfirmation.create({
@@ -565,6 +609,27 @@ export async function POST(request: NextRequest) {
     let result: { count: number };
 
     if (confirmationId) {
+      // Guard runtime: vérifier que le client Prisma est à jour
+      if (
+        !prisma.assistantConfirmation ||
+        typeof prisma.assistantConfirmation.findUnique !== 'function'
+      ) {
+        const errorMessage =
+          'Prisma client out of date: assistantConfirmation model not found. Run: prisma generate';
+        console.error(`[Batch Update API] ${logPrefix} ❌ ${errorMessage}`, {
+          requestId,
+          confirmationId,
+          userId: session.user.id,
+        });
+        return NextResponse.json(
+          {
+            error: errorMessage,
+            details: 'The Prisma client needs to be regenerated. Please run: prisma generate',
+          },
+          { status: 500 }
+        );
+      }
+
       // Transaction atomique: insert confirmation + update projets
       await prisma.$transaction(async (tx) => {
         // Créer l'entrée de confirmation (sera rollback si l'update échoue)

@@ -174,13 +174,6 @@ describe('fetchWithAuth edge cases', () => {
     });
   });
 
-  // Skip: Complex concurrent refresh logic requires precise timing control
-  // The refreshSession function uses a shared promise that's difficult to test reliably
-  it.skip('should handle multiple concurrent 401 errors', async () => {
-    // This test is skipped because testing concurrent refresh requires
-    // complex mocking of shared state that is difficult to verify reliably
-  });
-
   it('should clear sessionRequestCache on refresh', async () => {
     const mockWindow = window as typeof window & {
       sessionRequestCache?: unknown;
@@ -216,13 +209,6 @@ describe('fetchWithAuth edge cases', () => {
 
     expect(response.status).toBe(401);
     expect(signOut).toHaveBeenCalled();
-  });
-
-  // Skip: Fake timers with async operations are difficult to test reliably
-  // The delay logic is covered by the retry mechanism tests
-  it.skip('should retry with delay when maxRetries > 1', async () => {
-    // This test is skipped because testing setTimeout with fake timers
-    // in async operations requires complex timing control
   });
 
   it('should sign out when maxRetries is 0 and status is 401', async () => {

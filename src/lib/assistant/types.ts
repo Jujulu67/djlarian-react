@@ -9,6 +9,7 @@ export interface ParseQueryResult {
   clarification: string | null;
   lang?: string;
   isConversational?: boolean;
+  isComplex?: boolean;
   fieldsToShow?: string[];
   createData?: {
     name: string;

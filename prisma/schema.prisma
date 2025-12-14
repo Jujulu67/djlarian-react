@@ -6,6 +6,10 @@ generator client {
 
 datasource db {
   provider = "sqlite"
+  // PostgreSQL est la source de vérité pour toutes les migrations
+  // Les migrations sont créées et appliquées uniquement sur PostgreSQL
+  // En développement local, utilisez DATABASE_URL_PRODUCTION pour pointer vers PostgreSQL
+  // Pour les tests, SQLite peut être utilisé avec db push (sans migrations)
 }
 
 model Account {

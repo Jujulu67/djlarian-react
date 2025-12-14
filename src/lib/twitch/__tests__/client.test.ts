@@ -118,25 +118,6 @@ describe('Twitch Client', () => {
       });
     });
 
-    // Skip: Complex mocking of Twitch API responses requires precise sequencing
-    // The function makes multiple fetch calls that need to be mocked in exact order
-    // These tests work correctly but require more complex setup to pass reliably
-    it.skip('should return subscribed with tier 1', async () => {
-      // Test implementation skipped due to complex mocking requirements
-    });
-
-    it.skip('should return subscribed with tier 2', async () => {
-      // Test implementation skipped due to complex mocking requirements
-    });
-
-    it.skip('should return subscribed with tier 3', async () => {
-      // Test implementation skipped due to complex mocking requirements
-    });
-
-    it.skip('should return not subscribed when subscription response is 404', async () => {
-      // Test implementation skipped due to complex mocking requirements
-    });
-
     it('should handle errors gracefully', async () => {
       process.env.TWITCH_BROADCASTER_ID = 'broadcaster-1';
       (prisma.account.findFirst as jest.Mock).mockRejectedValue(new Error('Database error'));

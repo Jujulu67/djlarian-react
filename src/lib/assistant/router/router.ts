@@ -25,9 +25,9 @@ import { detectFilters } from '../query-parser/filters';
 import { extractUpdateData } from '../query-parser/updates';
 import { extractCreateData } from '../query-parser/creates';
 import { filterProjects } from '@/components/assistant/utils/filterProjects';
-import { getConversationalResponse } from '../conversational/groq-responder';
 import { debugLog, debugLogObject, isAssistantDebugEnabled } from '../utils/debug';
 import { sanitizeForLogs, sanitizeObjectForLogs } from '../utils/sanitize-logs';
+import type { ConversationMessage } from '../conversational/memory-manager';
 
 /**
  * Applique les filtres et le tri sur les projets en mémoire (0 DB)
@@ -220,6 +220,73 @@ function summarizeFilter(
  */
 function generateActionId(): string {
   return `action_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
+/**
+ * Appelle l'API Groq pour obtenir une réponse conversationnelle
+ * Utilise fetch vers /api/assistant/groq (fonctionne côté client et serveur)
+ */
+async function callGroqApi(
+  message: string,
+  context: { projectCount: number; collabCount: number; styleCount: number },
+  conversationHistory?: ConversationMessage[],
+  requestId?: string,
+  isComplex?: boolean,
+  isFirstAssistantTurn?: boolean
+): Promise<string> {
+  try {
+    // Construire l'URL de l'API
+    // Côté client: URL relative fonctionne
+    // Côté serveur: utiliser headers() ou NEXT_PUBLIC_SITE_URL si disponible
+    let apiUrl = '/api/assistant/groq';
+
+    // Si on est côté serveur et qu'on a NEXT_PUBLIC_SITE_URL, l'utiliser
+    if (typeof window === 'undefined' && process.env.NEXT_PUBLIC_SITE_URL) {
+      apiUrl = `${process.env.NEXT_PUBLIC_SITE_URL}${apiUrl}`;
+    }
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        message,
+        context,
+        conversationHistory,
+        requestId,
+        isComplex: isComplex || false,
+        isFirstAssistantTurn:
+          isFirstAssistantTurn !== undefined
+            ? isFirstAssistantTurn
+            : !conversationHistory || conversationHistory.length === 0,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(`Groq API error (${response.status}): ${errorData.error || 'Unknown error'}`);
+    }
+
+    const data = await response.json();
+
+    if (!data.text || typeof data.text !== 'string') {
+      throw new Error('Invalid response from Groq API: missing text field');
+    }
+
+    return data.text;
+  } catch (error) {
+    // Log l'erreur (sanitizer)
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const sanitizedError = sanitizeForLogs(errorMessage, 200);
+    console.error("[Router] ❌ Erreur lors de l'appel à Groq API", {
+      requestId,
+      error: sanitizedError,
+    });
+
+    // Retourner un message de fallback
+    return `Salut ! 🎵 Je suis LARIAN, ton assistant pour tes ${context.projectCount} projets. Demande-moi "combien de ghost prod j'ai" ou "liste mes projets terminés".`;
+  }
 }
 
 /**
@@ -447,19 +514,208 @@ export async function routeProjectCommand(
   debugLog('router', '🎯 DecisionPath', { path: decisionPath });
 
   // ========================================
+  // GUARD : Intercepter "en détail" comme LIST refinement (AVANT Groq)
+  // ========================================
+  // Détecter une intention "en détail" pour relister le dernier scope en mode détaillé
+  const detailIntentPattern =
+    /^(en\s+d[ée]tail|en\s+details?|d[ée]tails?|plus\s+de\s+d[ée]tails?|affiche\s+(en\s+)?d[ée]tail|affiche\s+le\s+d[ée]tail)\s*[?]?$/i;
+  const isDetailIntent = detailIntentPattern.test(lowerQuery.trim());
+
+  if (isDetailIntent) {
+    const { lastListedProjectIds, lastAppliedFilter } = context;
+    let scopeSource: 'LastListedIds' | 'LastAppliedFilter' | 'scope_missing';
+    let scopedProjects: Project[];
+    let effectiveFilter: ProjectFilter;
+
+    if (lastListedProjectIds && lastListedProjectIds.length > 0) {
+      // Priorité 1 : Utiliser les IDs du dernier listing
+      scopeSource = 'LastListedIds';
+      scopedProjects = projects.filter((p) => lastListedProjectIds.includes(p.id));
+      effectiveFilter = {}; // Pas de filtre, on utilise les IDs
+
+      if (isAssistantDebugEnabled()) {
+        console.log('[Router] 🔎 DetailIntent', {
+          scopeSource,
+          listedCount: scopedProjects.length,
+          requestId,
+        });
+      }
+
+      const count = scopedProjects.length;
+      const message =
+        count === 0
+          ? "Je n'ai trouvé aucun projet correspondant au dernier listing."
+          : `J'ai trouvé ${count} projet(s) en détail.`;
+
+      return {
+        type: ProjectCommandType.LIST,
+        projects: scopedProjects,
+        count,
+        fieldsToShow: [
+          'status',
+          'progress',
+          'collab',
+          'releaseDate',
+          'deadline',
+          'style',
+          'label',
+          'labelFinal',
+        ],
+        message,
+        appliedFilter: effectiveFilter,
+        listedProjectIds: scopedProjects.map((p) => p.id),
+        displayMode: 'detailed',
+        requestId,
+      };
+    } else if (lastAppliedFilter && !isFilterEmpty(lastAppliedFilter)) {
+      // Priorité 2 : Utiliser le dernier filtre appliqué
+      scopeSource = 'LastAppliedFilter';
+      const { filtered } = applyProjectFilterAndSort(projects, lastAppliedFilter);
+      scopedProjects = filtered;
+      effectiveFilter = lastAppliedFilter;
+
+      if (isAssistantDebugEnabled()) {
+        console.log('[Router] 🔎 DetailIntent', {
+          scopeSource,
+          listedCount: scopedProjects.length,
+          requestId,
+        });
+      }
+
+      const count = scopedProjects.length;
+      const message =
+        count === 0
+          ? "Je n'ai trouvé aucun projet correspondant au dernier filtre."
+          : `J'ai trouvé ${count} projet(s) en détail.`;
+
+      return {
+        type: ProjectCommandType.LIST,
+        projects: scopedProjects,
+        count,
+        fieldsToShow: [
+          'status',
+          'progress',
+          'collab',
+          'releaseDate',
+          'deadline',
+          'style',
+          'label',
+          'labelFinal',
+        ],
+        message,
+        appliedFilter: effectiveFilter,
+        listedProjectIds: scopedProjects.map((p) => p.id),
+        displayMode: 'detailed',
+        requestId,
+      };
+    } else {
+      // Pas de scope récent : demander clarification
+      scopeSource = 'scope_missing';
+
+      if (isAssistantDebugEnabled()) {
+        console.log('[Router] 🔎 DetailIntent', {
+          scopeSource,
+          listedCount: 0,
+          requestId,
+        });
+      }
+
+      return {
+        type: ProjectCommandType.GENERAL,
+        response:
+          "Je n'ai pas de scope récent (aucun projet listé précédemment). Pouvez-vous d'abord lister des projets ? (ex: 'liste les en cours')",
+        requestId,
+      };
+    }
+  }
+
+  // ========================================
   // ROUTING : Question généraliste → Groq (lecture seule)
   // ========================================
   if (classification.isConversationalQuestion && !classification.hasActionVerb) {
+    // Guard: Intercepter les questions sur les fonctionnalités pour éviter les hallucinations
+    // ⚠️ IMPORTANT: Ne pas intercepter les vraies commandes (ex: "tu peux passer leur progression à 20%")
+    // On détecte uniquement les questions explicites sur les capacités, pas les commandes avec "tu peux"
+    const normalized = userMessage.toLowerCase();
+
+    // Sécurité absolue: si on détecte des signaux de mutation, NE JAMAIS intercepter
+    // (même si la classification est incorrecte)
+    const hasMutationSignals =
+      /(\d+%|pourcent|progression|avancement|deadline|date\s*limite|échéance|statut|status|note|label|collab|style|collaborateur|termin[ée]|annul[ée]|en\s*cours)/i.test(
+        normalized
+      );
+    if (hasMutationSignals) {
+      // Pas une question sur les capacités, c'est une commande → laisser passer vers Groq normal
+      console.log("[Router] 🛡️ Signal de mutation détecté, pas d'interception capabilities");
+    } else {
+      // Patterns explicites pour questions sur capacités (pas de commandes)
+      // Exemples: "quelles sont tes fonctionnalités", "que peux-tu faire", "capabilités", "tu peux faire quoi"
+      // Exemples à NE PAS capturer: "tu peux passer leur progression à 20%", "tu peux ajouter un projet"
+      const isExplicitCapabilitiesQuestion =
+        // Questions directes sur les capacités (début de phrase)
+        /^(quelles? sont (tes|vos) (fonctionnalit|capacit)|que (peux|sais)[- ]tu faire|quelles? (sont|tes) (fonctionnalit|capacit)|(dis|dit)[- ]moi (ce que|quelles) (tu peux|tes)|(liste|décris) (tes|vos) (fonctionnalit|capacit))/i.test(
+          normalized
+        ) ||
+        // Questions avec "capabilités" ou "fonctionnalités" seules (mot-clé principal)
+        /^(fonctionnalit|capacit)\s*[?]?$/i.test(normalized) ||
+        // Questions avec "tu peux faire quoi" / "que sais-tu faire" (variantes)
+        /^(tu peux faire quoi|que sais[- ]tu faire)\s*[?]?$/i.test(normalized) ||
+        // Questions avec "capabilités" ou "fonctionnalités" en contexte de question (mais pas commande)
+        (/(fonctionnalit|capacit|que (peux|sais)[- ]tu|tu peux faire quoi)/i.test(normalized) &&
+          // Mais PAS si c'est une commande (contient des verbes d'action + projet/objet)
+          !/(passer|mettre|modifier|ajouter|créer|faire) (leur|les|un|une|des|le|la)/i.test(
+            normalized
+          ));
+
+      if (isExplicitCapabilitiesQuestion) {
+        console.log('[Router] 🛡️ Interception question fonctionnalités (réponse hardcodée)');
+        return {
+          type: ProjectCommandType.GENERAL,
+          response: [
+            'CAPABILITIES_CONTRACT_v1', // Marqueur stable pour tests anti-flaky
+            'Je suis **LARIAN BOT** (assistant studio de gestion de projets musicaux).',
+            '',
+            '**Fonctionnalités disponibles :**',
+            '',
+            '• **Lister / filtrer / trier** les projets (0 DB, tout côté client)',
+            '• **Créer** un projet (persistance via API)',
+            '• **Modifier en batch** avec confirmation obligatoire :',
+            '  - Progression (%), statut, deadline, collab, style, labels',
+            '  - Scope intelligent (dernier listing / filtre explicite)',
+            '  - Sécurité : idempotency + optimistic concurrency',
+            '• **Ajouter une note** avec confirmation',
+            '',
+            '**Limitations contractuelles :**',
+            '',
+            '• Je ne pilote **pas** Ableton, Logic, Pro Tools, ou autres DAW',
+            '• Je ne pilote **pas** Spotify, Apple Music, ou autres plateformes',
+            '• Je ne pilote **pas** Trello, Asana, ou autres outils externes',
+            '• Je gère uniquement les projets musicaux dans cette application',
+          ].join('\n'),
+          requestId,
+        };
+      }
+    }
+
     console.log('[Router] 🧠 Routing vers Groq (question généraliste)');
 
-    const response = await getConversationalResponse(
+    // Utiliser isComplex de la classification pour le routing de modèle
+    const isComplex = classification.isComplex || false;
+
+    // Calculer isFirstAssistantTurn: vrai si pas d'historique conversationnel
+    const isFirstAssistantTurn = !conversationHistory || conversationHistory.length === 0;
+
+    const response = await callGroqApi(
       userMessage,
       {
         projectCount,
         collabCount: availableCollabs.length,
         styleCount: availableStyles.length,
       },
-      conversationHistory
+      conversationHistory,
+      requestId,
+      isComplex,
+      isFirstAssistantTurn
     );
 
     return {
@@ -1096,14 +1352,23 @@ export async function routeProjectCommand(
   // ========================================
   console.log('[Router] 🤖 Fallback vers Groq');
 
-  const response = await getConversationalResponse(
+  // Utiliser isComplex de la classification pour le routing de modèle
+  const isComplex = classification.isComplex || false;
+
+  // Calculer isFirstAssistantTurn: vrai si pas d'historique conversationnel
+  const isFirstAssistantTurn = !conversationHistory || conversationHistory.length === 0;
+
+  const response = await callGroqApi(
     userMessage,
     {
       projectCount,
       collabCount: availableCollabs.length,
       styleCount: availableStyles.length,
     },
-    conversationHistory
+    conversationHistory,
+    requestId,
+    isComplex,
+    isFirstAssistantTurn
   );
 
   return {
