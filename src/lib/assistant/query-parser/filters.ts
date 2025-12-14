@@ -519,6 +519,12 @@ export function detectFilters(
   if ((!hasStatusUpdatePattern && !hasCollaborateurPattern) || hasExplicitStylePattern) {
     const styleMatch = findStyleFromString(query, availableStyles);
     if (styleMatch) {
+      // Log de debug pour voir ce qui est détecté
+      console.warn('[Parse Query API] 🔍 Style détecté par findStyleFromString:', {
+        style: styleMatch.style,
+        matchedText: styleMatch.matchedText,
+        query: query.substring(0, 50),
+      });
       // Vérifier que le style détecté n'est pas un faux positif
       // Si on a "en cours en collaborateur", ne pas détecter "cours" comme style
       // SAUF si on a explicitement "en style cours"
@@ -533,8 +539,41 @@ export function detectFilters(
         (styleLower === 'cours' || styleLower === 'en') &&
         (hasEnCoursStatus || query.toLowerCase().includes('en collaborateur'));
 
-      if (!isFalsePositive) {
+      // Vérifier aussi si c'est un faux positif lié à "progression" → "Progressive"
+      const queryLower = query.toLowerCase();
+      const hasProgressionKeywords =
+        queryLower.includes('progression') ||
+        queryLower.includes('avancement') ||
+        (queryLower.includes('progress') && !queryLower.includes('progressive'));
+      const hasExplicitStyleKeyword = queryLower.includes('style');
+
+      // Si on a matché "Progressive" mais que la requête contient "progression" sans "style",
+      // c'est un faux positif (car "progression" contient "prog" qui est une variation de "Progressive")
+      // Simplification: si on a "Progressive" + mots de progression sans "style", c'est toujours un faux positif
+      const isProgressionFalsePositive =
+        styleMatch.style === 'Progressive' && hasProgressionKeywords && !hasExplicitStyleKeyword;
+
+      // Log de debug pour comprendre pourquoi la condition ne matche pas
+      if (styleMatch.style === 'Progressive') {
+        console.warn('[Parse Query API] 🔍 Debug Progressive detection:', {
+          style: styleMatch.style,
+          matchedText: styleMatch.matchedText,
+          matchedTextLower,
+          hasProgressionKeywords,
+          hasExplicitStyleKeyword,
+          isProgressionFalsePositive,
+          query: query.substring(0, 50),
+        });
+      }
+
+      if (!isFalsePositive && !isProgressionFalsePositive) {
         filters.style = styleMatch.style;
+        console.warn('[Parse Query API] ✅ Style défini dans filters:', filters.style);
+      } else if (isProgressionFalsePositive) {
+        console.warn(
+          '[Parse Query API] ⚠️ Style "Progressive" détecté dans filters mais ignoré (faux positif via "prog" dans "progression"):',
+          styleMatch.style
+        );
       }
     }
   }

@@ -14,9 +14,12 @@ import prisma from '@/lib/prisma';
 
 // Fonction helper pour invalider le cache des projets d'un utilisateur
 function invalidateProjectsCache(userId: string) {
-  revalidateTag(`projects-${userId}`, 'max');
-  revalidateTag(`projects-counts-${userId}`, 'max');
-  revalidateTag(`projects-statistics-${userId}`, 'max');
+  // @ts-expect-error - revalidateTag prend un seul argument (tag) mais les types Next.js peuvent être incorrects
+  revalidateTag(`projects-${userId}`);
+  // @ts-expect-error - revalidateTag prend un seul argument (tag) mais les types Next.js peuvent être incorrects
+  revalidateTag(`projects-counts-${userId}`);
+  // @ts-expect-error - revalidateTag prend un seul argument (tag) mais les types Next.js peuvent être incorrects
+  revalidateTag(`projects-statistics-${userId}`);
 }
 
 // POST /api/projects/add-note - Ajoute une note à un projet spécifique

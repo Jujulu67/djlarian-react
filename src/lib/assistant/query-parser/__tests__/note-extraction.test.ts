@@ -92,6 +92,24 @@ describe('Extraction de notes - Patterns de base', () => {
     });
   });
 
+  describe('Pattern "Ajoute une note au projet [nom]"', () => {
+    it('devrait détecter "ajoute une note au projet dont go, j\'ai refait le mix"', () => {
+      const result = extractNoteData("ajoute une note au projet dont go, j'ai refait le mix");
+
+      expect(result).not.toBeNull();
+      expect(result?.projectName).toBe('dont go'); // Le projet s'appelle "dont go", donc on capture le nom complet
+      expect(result?.newNote).toContain("j'ai refait le mix");
+    });
+
+    it('devrait détecter "ajoute une note au projet magnetize, test" (sans "dont")', () => {
+      const result = extractNoteData('ajoute une note au projet magnetize, test');
+
+      expect(result).not.toBeNull();
+      expect(result?.projectName).toBe('magnetize');
+      expect(result?.newNote).toBe('test');
+    });
+  });
+
   describe('Pattern "Ajoute une note à [nom]"', () => {
     it('devrait détecter "Ajoute une note à magnetize, j\'ai fini"', () => {
       const result = extractNoteData("Ajoute une note à magnetize, j'ai fini");

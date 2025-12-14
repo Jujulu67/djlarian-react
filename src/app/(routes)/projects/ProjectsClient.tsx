@@ -135,7 +135,12 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
     setAuthError(null);
 
     try {
-      const response = await fetchWithAuth(`/api/projects`);
+      // Ajouter un paramètre de cache-busting pour forcer le rechargement après ajout de note
+      // et utiliser cache: 'no-store' pour éviter le cache du navigateur
+      const cacheBuster = `?t=${Date.now()}`;
+      const response = await fetchWithAuth(`/api/projects${cacheBuster}`, {
+        cache: 'no-store',
+      });
 
       if (response.ok) {
         const result = await response.json();
@@ -962,7 +967,10 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
       // Si une note a été ajoutée, recharger les projets depuis le serveur
       // car la note est complexe (template, tâches extraites, etc.) et difficile à mettre à jour localement
       if (updates.note) {
-        fetchProjects();
+        // Attendre un peu pour s'assurer que le cache est invalidé côté serveur
+        setTimeout(() => {
+          fetchProjects();
+        }, 100);
       }
 
       // Rafraîchir les compteurs

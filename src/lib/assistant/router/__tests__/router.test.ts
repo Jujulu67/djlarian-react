@@ -1884,4 +1884,192 @@ describe('Router - Classification et Routing', () => {
       });
     });
   });
+
+  describe('ADD_NOTE avec mot "fini" dans la phrase', () => {
+    it('devrait router vers ADD_NOTE et non LIST quand "fini" est dans le contenu de la note', async () => {
+      // Cas spécifique: "ajoute une note au projet funky, mastering fini"
+      // Le mot "fini" ne doit pas être détecté comme filtre statut TERMINE
+      // mais comme partie du contenu de la note
+      const funkyProject = {
+        ...mockProjects[0],
+        id: 'funky-1',
+        name: 'funky',
+        status: 'EN_COURS',
+      };
+
+      mockDetectFilters.mockReturnValue({
+        filters: {}, // Pas de filtre statut, "fini" est dans le contenu de la note
+        fieldsToShow: [],
+      });
+
+      // IMPORTANT: Le classifier doit détecter isUpdate=true et isList=false
+      // grâce à la vérification isNoteAdditionPattern
+      mockClassifyQuery.mockReturnValue({
+        isList: false, // Ne doit PAS être détecté comme liste
+        isCount: false,
+        isUpdate: true, // Doit être détecté comme update (ajout de note)
+        isCreate: false,
+        isConversationalQuestion: false,
+        hasActionVerb: true,
+        hasProjectMention: true,
+        isProjectInNonMusicalContext: false,
+        hasProjectRelatedFilters: false, // Pas de filtre projet
+        isActionVerbButNotProjectRelated: false,
+        isQuestionAboutAssistantProjects: false,
+        understood: true,
+        isComplex: false,
+        isMetaQuestion: false,
+        lang: 'fr',
+        isDetailsViewRequested: false,
+        isAllProjectsRequested: false,
+      });
+
+      // IMPORTANT: extractUpdateData doit retourner projectName et newNote
+      mockExtractUpdateData.mockReturnValue({
+        projectName: 'funky',
+        newNote: 'mastering fini', // "fini" est dans le contenu de la note
+      });
+
+      const contextWithFunky = {
+        ...mockContext,
+        projects: [funkyProject, ...mockProjects],
+        projectCount: mockProjects.length + 1,
+      };
+
+      const result = await routeProjectCommand('ajoute une note au projet funky, mastering fini', {
+        context: contextWithFunky,
+      });
+
+      // Doit router vers ADD_NOTE, pas LIST
+      expect(result.type).toBe(ProjectCommandType.ADD_NOTE);
+
+      if (result.type === ProjectCommandType.ADD_NOTE) {
+        expect(result.pendingAction.mutation.projectName).toBe('funky');
+        expect(result.pendingAction.mutation.newNote).toBe('mastering fini');
+        // Vérifier que ce n'est pas routé vers LIST
+        expect(result.type).not.toBe(ProjectCommandType.LIST);
+      }
+    });
+
+    it('devrait router vers LIST si "fini" est un filtre statut explicite (pas dans une note)', async () => {
+      // Cas différent: "liste les projets finis" → doit être LIST avec filtre statut
+      mockDetectFilters.mockReturnValue({
+        filters: { status: 'TERMINE' }, // "fini" est détecté comme filtre statut
+        fieldsToShow: [],
+      });
+
+      mockClassifyQuery.mockReturnValue({
+        isList: true, // Doit être détecté comme liste
+        isCount: false,
+        isUpdate: false, // Pas un update
+        isCreate: false,
+        isConversationalQuestion: false,
+        hasActionVerb: true,
+        hasProjectMention: true,
+        isProjectInNonMusicalContext: false,
+        hasProjectRelatedFilters: true, // Filtre statut présent
+        isActionVerbButNotProjectRelated: false,
+        isQuestionAboutAssistantProjects: false,
+        understood: true,
+        isComplex: false,
+        isMetaQuestion: false,
+        lang: 'fr',
+        isDetailsViewRequested: false,
+        isAllProjectsRequested: false,
+      });
+
+      mockFilterProjects.mockReturnValue({
+        filtered: mockProjects.filter((p) => p.status === 'TERMINE'),
+        count: 0,
+      });
+
+      const result = await routeProjectCommand('liste les projets finis', {
+        context: mockContext,
+      });
+
+      // Doit router vers LIST, pas ADD_NOTE
+      expect(result.type).toBe(ProjectCommandType.LIST);
+      expect(result.type).not.toBe(ProjectCommandType.ADD_NOTE);
+    });
+  });
+
+  describe('Questions conversationnelles avec "combien"', () => {
+    it('devrait router vers GENERAL pour "combien de temps pour cuire une pizza?" (pas LIST)', async () => {
+      // Question conversationnelle qui ne devrait PAS être détectée comme isCount
+      mockDetectFilters.mockReturnValue({
+        filters: {},
+        fieldsToShow: [],
+      });
+
+      mockClassifyQuery.mockReturnValue({
+        isList: false, // Ne doit PAS être détecté comme liste
+        isCount: false, // Ne doit PAS être détecté comme count (pas de contexte projet)
+        isUpdate: false,
+        isCreate: false,
+        isConversationalQuestion: true, // Doit être détecté comme conversationnel
+        hasActionVerb: false, // Pas de verbe d'action
+        hasProjectMention: false, // Pas de mention de projet
+        isProjectInNonMusicalContext: false,
+        hasProjectRelatedFilters: false,
+        isActionVerbButNotProjectRelated: false,
+        isQuestionAboutAssistantProjects: false,
+        understood: false, // Question non liée aux projets
+        isComplex: false,
+        isMetaQuestion: false,
+        lang: 'fr',
+        isDetailsViewRequested: false,
+        isAllProjectsRequested: false,
+      });
+
+      const result = await routeProjectCommand('combien de temps pour cuire une pizza?', {
+        context: mockContext,
+      });
+
+      // Doit router vers GENERAL (Groq), pas LIST
+      expect(result.type).toBe(ProjectCommandType.GENERAL);
+      expect(result.type).not.toBe(ProjectCommandType.LIST);
+      expect(result.type).not.toBe(ProjectCommandType.COUNT);
+    });
+
+    it('devrait router vers LIST pour "combien de projets en cours?" (isCount)', async () => {
+      // Question sur les projets qui DOIT être détectée comme isCount
+      mockDetectFilters.mockReturnValue({
+        filters: { status: 'EN_COURS' },
+        fieldsToShow: [],
+      });
+
+      mockClassifyQuery.mockReturnValue({
+        isList: false,
+        isCount: true, // Doit être détecté comme count (contexte projet)
+        isUpdate: false,
+        isCreate: false,
+        isConversationalQuestion: false,
+        hasActionVerb: true, // "combien" est un verbe d'action pour les projets
+        hasProjectMention: true, // Mention de "projets"
+        isProjectInNonMusicalContext: false,
+        hasProjectRelatedFilters: true, // Filtre statut présent
+        isActionVerbButNotProjectRelated: false,
+        isQuestionAboutAssistantProjects: false,
+        understood: true,
+        isComplex: false,
+        isMetaQuestion: false,
+        lang: 'fr',
+        isDetailsViewRequested: false,
+        isAllProjectsRequested: false,
+      });
+
+      mockFilterProjects.mockReturnValue({
+        filtered: mockProjects.filter((p) => p.status === 'EN_COURS'),
+        count: 1,
+      });
+
+      const result = await routeProjectCommand('combien de projets en cours?', {
+        context: mockContext,
+      });
+
+      // Doit router vers LIST (ou COUNT), pas GENERAL
+      expect([ProjectCommandType.LIST, ProjectCommandType.COUNT]).toContain(result.type);
+      expect(result.type).not.toBe(ProjectCommandType.GENERAL);
+    });
+  });
 });

@@ -61,8 +61,26 @@ export function extractUpdateData(
   }
 
   // Extraire style (filtre)
+  // IMPORTANT: Ne pas copier filters.style si c'est un faux positif "Progressive" via "progression"
   if (filters.style && typeof filters.style === 'string') {
-    updateData.style = filters.style;
+    const queryLower = cleanedQuery.toLowerCase();
+    const hasProgressionKeywords =
+      queryLower.includes('progression') ||
+      queryLower.includes('avancement') ||
+      (queryLower.includes('progress') && !queryLower.includes('progressive'));
+    const hasExplicitStyleKeyword = queryLower.includes('style');
+
+    // Si c'est "Progressive" et qu'on a des mots de progression sans "style", ignorer
+    const isProgressionFalsePositive =
+      filters.style === 'Progressive' && hasProgressionKeywords && !hasExplicitStyleKeyword;
+
+    if (!isProgressionFalsePositive) {
+      updateData.style = filters.style;
+    } else {
+      console.warn(
+        '[Parse Query API] ⚠️ filters.style "Progressive" ignoré dans updateData (faux positif via "prog" dans "progression")'
+      );
+    }
   }
 
   // Extraire label (filtre)
@@ -161,6 +179,11 @@ function extractNoteUpdateData(
     /session\s+([a-z0-9_]+(?:\s+[a-z0-9_]+)*)\s+du\s+jour[,\s]+(.+)/i,
     // "Note pour [nom], [contenu]" ou "Note pour [nom]: [contenu]"
     /note\s+pour\s+([a-z0-9_]+(?:\s+[a-z0-9_]+)*)[:,\s]+(.+)/i,
+    // "Ajoute une note au projet dont [nom], [contenu]" (pattern spécifique pour "dont" - PRIORITAIRE)
+    // Capture "dont [nom]" comme nom de projet complet
+    /ajoute\s+(?:une\s+)?note\s+au\s+projet\s+dont\s+([a-z0-9_]+(?:\s+[a-z0-9_]+)*)[:,\s]+(.+)/i,
+    // "Ajoute une note au projet [nom], [contenu]" (pattern général pour "au projet" sans "dont")
+    /ajoute\s+(?:une\s+)?note\s+au\s+projet\s+([a-z0-9_]+(?:\s+[a-z0-9_]+)*)[:,\s]+(.+)/i,
     // "Ajoute une note à [nom], [contenu]" ou "Ajoute une note à [nom]: [contenu]"
     /ajoute\s+(?:une\s+)?note\s+à\s+([a-z0-9_]+(?:\s+[a-z0-9_]+)*)[:,\s]+(.+)/i,
     // "Ajoute une note pour [nom] disant [contenu]" (pattern spécifique pour "disant" - PRIORITAIRE)
@@ -184,8 +207,14 @@ function extractNoteUpdateData(
     const pattern = notePatterns[i];
     const match = query.match(pattern);
     if (match && match[1] && match[2]) {
-      const projectName = match[1].trim();
+      let projectName = match[1].trim();
       let noteContent = match[2].trim();
+
+      // Si c'est le pattern avec "dont" (index 2), préfixer "dont " au nom du projet
+      // Le pattern à l'index 2 est: /ajoute\s+(?:une\s+)?note\s+au\s+projet\s+dont\s+([a-z0-9_]+(?:\s+[a-z0-9_]+)*)[:,\s]+(.+)/i
+      if (i === 2) {
+        projectName = `dont ${projectName}`;
+      }
 
       // Ignorer si le nom du projet contient "qui dit" ou "disant" (géré par les patterns spécifiques)
       // Cela peut arriver avec les patterns généraux qui sont trop permissifs

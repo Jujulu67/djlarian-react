@@ -77,10 +77,23 @@ export function classifyQuery(
     }
   }
   // Comptage - tolérant aux fautes de frappe courantes
-  const isCount =
+  // IMPORTANT: Ne détecter "combien" que s'il est suivi de mots liés aux projets
+  // pour éviter de détecter des questions conversationnelles comme "combien de temps", "combien ça coûte"
+  const hasCountWord =
     /combien|cb|cbn|combiens?|combie|combin|cobien|conbien|nombre|nombres?|compte|compter|total|how\s*many|count|howmany/i.test(
       lowerQuery
     );
+  // Vérifier que "combien" est suivi de mots liés aux projets (projets, en cours, terminés, etc.)
+  const hasProjectContextAfterCount =
+    /combien.*(?:projets?|projects?|en\s+cours|terminés?|termines?|annulés?|annules?|ghost|collab|collaborations?|styles?|labels?|sous\s+les?\s+\d+%|avec|sans)/i.test(
+      lowerQuery
+    );
+  // Ou si c'est "nombre de projets" / "total projets" / "compte projets"
+  const hasExplicitProjectCount = /(?:nombre|total|compte).*(?:projets?|projects?)/i.test(
+    lowerQuery
+  );
+
+  const isCount = hasCountWord && (hasProjectContextAfterCount || hasExplicitProjectCount);
   // Détecter "liste" mais être plus strict avec "quels/quelle" - seulement si suivi de "projets" ou autre contexte
   // AUSSI: Détecter les questions implicites comme "et les terminés?", "et les ghost prod?" qui sont des questions de liste
   // Tolérer les verbes tronqués courants (fautes de frappe)
@@ -148,12 +161,20 @@ export function classifyQuery(
   // Si "tous les détails" est présent MAIS PAS "tous les projets", c'est une vue détails
   const isDetailsViewRequested = hasDetailsRequest && !isAllProjectsRequested;
 
+  // PRIORITÉ : Si c'est un ajout de note, forcer isUpdate et désactiver isList
+  // pour éviter que les patterns d'ajout de note soient interceptés par la détection de filtres
+  const isNoteAdditionPattern =
+    /(?:ajoute|ajouter)\s+(?:une\s+)?note|note\s+(?:pour|à)|session\s+.*du\s+jour/i.test(
+      lowerQuery
+    );
+
   const isList =
-    hasExplicitListVerb ||
-    hasQuestionWord ||
-    hasImplicitListPattern ||
-    hasDetailsRequest ||
-    (isShortListRequest && !isShortListButConversational);
+    !isNoteAdditionPattern && // Ne pas détecter comme liste si c'est un ajout de note
+    (hasExplicitListVerb ||
+      hasQuestionWord ||
+      hasImplicitListPattern ||
+      hasDetailsRequest ||
+      (isShortListRequest && !isShortListButConversational));
 
   // Détecter la langue de la requête
   const isEnglish =
@@ -327,6 +348,12 @@ export function classifyQuery(
         (/^(?:qu['']?est[- ]?ce|que|quoi|comment|pourquoi|où|quand|qui)/i.test(lowerQuery.trim()) &&
           !isCount &&
           !isList &&
+          Object.keys(filters).length === 0) ||
+        // Questions avec "combien" qui ne sont PAS liées aux projets
+        // Exemples: "combien de temps", "combien ça coûte", "combien pour cuire une pizza"
+        (/^combien/i.test(lowerQuery.trim()) &&
+          !isCount && // Pas détecté comme isCount (donc pas lié aux projets)
+          !hasProjectMention && // Pas de mention de projet
           Object.keys(filters).length === 0)));
 
   // Comprendre les expressions liées aux projets (FR + EN)

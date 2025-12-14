@@ -174,26 +174,95 @@ export async function POST(request: NextRequest) {
       const currentProjectsMap = new Map(currentProjects.map((p) => [p.id, p.updatedAt]));
 
       // Vérifier chaque ID attendu
+      const conflictDetails: Array<{
+        projectId: string;
+        reason: string;
+        expectedUpdatedAt?: string;
+        currentUpdatedAt?: Date | string;
+        timeDiff?: number;
+      }> = [];
+
       for (const projectId of projectIds) {
         const expectedUpdatedAt = expectedUpdatedAtById[projectId];
         const currentUpdatedAt = currentProjectsMap.get(projectId);
 
         // Conflit si:
         // 1. Projet manquant en base
-        // 2. expectedUpdatedAt manquant dans le mapping
-        // 3. Mismatch de timestamp (comparer en getTime() pour éviter différences de format)
         if (!currentUpdatedAt) {
           conflictProjectIds.push(projectId);
-        } else if (!expectedUpdatedAt) {
-          conflictProjectIds.push(projectId);
-        } else {
-          // Comparer les timestamps (convertir en Date puis getTime())
-          const expectedTime = new Date(expectedUpdatedAt).getTime();
-          const currentTime = currentUpdatedAt.getTime();
-          if (expectedTime !== currentTime) {
-            conflictProjectIds.push(projectId);
-          }
+          conflictDetails.push({
+            projectId,
+            reason: 'project_missing',
+          });
+          continue;
         }
+
+        // 2. expectedUpdatedAt manquant dans le mapping
+        if (!expectedUpdatedAt) {
+          conflictProjectIds.push(projectId);
+          conflictDetails.push({
+            projectId,
+            reason: 'expectedUpdatedAt_missing',
+            currentUpdatedAt: currentUpdatedAt.toISOString(),
+          });
+          continue;
+        }
+
+        // 3. Mismatch de timestamp (comparer en getTime() pour éviter différences de format)
+        // Convertir les deux en Date puis comparer les timestamps
+        const expectedDate = new Date(expectedUpdatedAt);
+        const currentDate =
+          currentUpdatedAt instanceof Date ? currentUpdatedAt : new Date(currentUpdatedAt);
+
+        // Vérifier que les dates sont valides
+        if (isNaN(expectedDate.getTime())) {
+          conflictProjectIds.push(projectId);
+          conflictDetails.push({
+            projectId,
+            reason: 'expectedUpdatedAt_invalid',
+            expectedUpdatedAt,
+            currentUpdatedAt: currentDate.toISOString(),
+          });
+          continue;
+        }
+
+        if (isNaN(currentDate.getTime())) {
+          conflictProjectIds.push(projectId);
+          conflictDetails.push({
+            projectId,
+            reason: 'currentUpdatedAt_invalid',
+            expectedUpdatedAt,
+            currentUpdatedAt: currentUpdatedAt.toString(),
+          });
+          continue;
+        }
+
+        // Comparer les timestamps (tolérance de 1 seconde pour les arrondis de millisecondes)
+        const expectedTime = expectedDate.getTime();
+        const currentTime = currentDate.getTime();
+        const timeDiff = Math.abs(expectedTime - currentTime);
+
+        // Conflit seulement si la différence est > 1 seconde (pas juste des millisecondes)
+        if (timeDiff > 1000) {
+          conflictProjectIds.push(projectId);
+          conflictDetails.push({
+            projectId,
+            reason: 'timestamp_mismatch',
+            expectedUpdatedAt,
+            currentUpdatedAt: currentDate.toISOString(),
+            timeDiff,
+          });
+        }
+      }
+
+      // Logs de debug détaillés pour chaque conflit
+      if (conflictProjectIds.length > 0) {
+        console.warn(`[Batch Update API] ${logPrefix} ⚠️ Conflits détectés (détails)`, {
+          requestId,
+          confirmationId,
+          conflictCount: conflictProjectIds.length,
+          conflictDetails: conflictDetails.slice(0, 5), // Limiter à 5 pour éviter les logs trop longs
+        });
       }
 
       // Si conflits détectés, retourner 409
@@ -205,6 +274,7 @@ export async function POST(request: NextRequest) {
           projectIdsCount: projectIds.length,
           conflictCount: conflictProjectIds.length,
           conflictProjectIdsSample: conflictProjectIds.slice(0, 3),
+          conflictDetails: conflictDetails.slice(0, 5), // Inclure les détails dans le log principal
         });
 
         // Retourner 409 avec les détails du conflit

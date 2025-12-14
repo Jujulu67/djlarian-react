@@ -27,6 +27,7 @@ import { ProjectResultsView } from './assistant/components/ProjectResultsView';
 import { SimpleTooltip } from './assistant/components/SimpleTooltip';
 import { RichTextRenderer } from './assistant/components/RichTextRenderer';
 import { isAssistantDebugEnabled } from '@/lib/assistant/utils/debug';
+import { generateNoteFromContent } from '@/lib/assistant/parsers/note-generator';
 
 export function ProjectAssistant({ projects }: ProjectAssistantProps) {
   const router = useRouter();
@@ -211,6 +212,31 @@ export function ProjectAssistant({ projects }: ProjectAssistantProps) {
                 ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
+                onPaste={(e) => {
+                  // Récupérer le texte collé
+                  const pastedText = e.clipboardData.getData('text');
+                  // Supprimer les sauts de ligne en fin de texte
+                  const cleanedText = pastedText.replace(/\n+$/, '');
+
+                  // Si le texte a été modifié, empêcher le comportement par défaut
+                  if (pastedText !== cleanedText) {
+                    e.preventDefault();
+                    // Insérer le texte nettoyé à la position du curseur
+                    const target = e.currentTarget;
+                    const start = target.selectionStart;
+                    const end = target.selectionEnd;
+                    const newValue = input.substring(0, start) + cleanedText + input.substring(end);
+                    setInput(newValue);
+
+                    // Repositionner le curseur après le texte collé
+                    setTimeout(() => {
+                      if (inputRef.current) {
+                        const newCursorPos = start + cleanedText.length;
+                        inputRef.current.setSelectionRange(newCursorPos, newCursorPos);
+                      }
+                    }, 0);
+                  }
+                }}
                 onKeyDown={handleKeyDown}
                 placeholder="Pose ta question... (Shift+Enter pour saut de ligne)"
                 className="w-full pl-4 pr-12 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-slate-500 focus:outline-none focus:border-purple-500/50 focus:bg-white/10 transition-all text-sm resize-none custom-scrollbar min-h-[46px] max-h-[150px]"
@@ -350,6 +376,19 @@ function MessageBubble({
             fieldsToShow={msg.data.fieldsToShow || []}
           />
         )}
+
+        {/* Afficher la note qui va être ajoutée pour un projet spécifique */}
+        {msg.updateConfirmation?.updateData?.projectName &&
+          msg.updateConfirmation?.updateData?.newNote && (
+            <div className="mt-3 bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+              <div className="text-blue-300 font-semibold mb-2 text-sm">
+                Note à ajouter au projet "{msg.updateConfirmation.updateData.projectName}"
+              </div>
+              <div className="text-slate-200 text-sm whitespace-pre-wrap bg-slate-900/50 rounded p-3 border border-slate-700/50">
+                {generateNoteFromContent(msg.updateConfirmation.updateData.newNote)}
+              </div>
+            </div>
+          )}
 
         {/* Scope missing warning */}
         {msg.scopeConfirmation && (

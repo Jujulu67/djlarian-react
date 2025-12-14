@@ -107,6 +107,24 @@ function extractStyleUpdate(
   updateData: UpdateData,
   availableStyles: string[]
 ): void {
+  // Vérification préalable : si la requête contient "progression" ou "avancement" sans mention explicite de "style",
+  // c'est probablement une commande de progression, pas de style
+  const queryLower = cleanedQuery.toLowerCase();
+  const hasProgressionKeywords =
+    queryLower.includes('progression') ||
+    queryLower.includes('avancement') ||
+    (queryLower.includes('progress') && !queryLower.includes('progressive'));
+  const hasExplicitStyleKeyword = queryLower.includes('style');
+
+  // Si on a des mots de progression mais pas de mention explicite de "style", ignorer complètement l'extraction de style
+  if (hasProgressionKeywords && !hasExplicitStyleKeyword) {
+    console.warn(
+      '[Parse Query API] ⚠️ Extraction de style ignorée (requête contient progression/avancement sans "style"):',
+      cleanedQuery
+    );
+    return;
+  }
+
   // Pattern "de style X à Y"
   const filterToNewPattern = /(?:de|depuis)\s+style\s+([A-Za-z0-9_\s]+)\s+à\s+([A-Za-z0-9_\s]+)/i;
   const filterMatch = cleanedQuery.match(filterToNewPattern);
@@ -146,15 +164,80 @@ function extractStyleUpdate(
     'cours',
     'attente',
     'termine',
+    'progression',
+    'avancement',
+    'progress',
+    'pourcent',
+    'pourcentage',
+    'percent',
+    'percentage',
   ];
 
   for (const pattern of newStylePatterns) {
     const match = cleanedQuery.match(pattern);
     if (match && match[1]) {
       const styleName = match[1].trim();
-      if (ignoredWords.includes(styleName.toLowerCase())) continue;
+
+      // Ignorer les mots liés à la progression/avancement
+      const lowerStyleName = styleName.toLowerCase();
+
+      // Vérification préalable : si la requête contient "progression" ou "avancement" AVANT le match,
+      // c'est probablement une commande de progression, pas de style
+      const queryLower = cleanedQuery.toLowerCase();
+      if (
+        queryLower.includes('progression') ||
+        queryLower.includes('avancement') ||
+        queryLower.includes('progress') ||
+        (queryLower.includes('pourcent') && !queryLower.includes('style'))
+      ) {
+        // Si la requête contient des mots de progression ET qu'on n'a pas explicitement mentionné "style",
+        // ignorer cette détection de style
+        if (!queryLower.includes('style')) {
+          console.warn(
+            '[Parse Query API] ⚠️ Style détecté mais ignoré (requête contient progression/avancement):',
+            styleName
+          );
+          continue;
+        }
+      }
+
+      if (ignoredWords.includes(lowerStyleName)) continue;
+
+      // Ignorer si le nom contient "progression", "avancement", "progress", "%", etc.
+      if (
+        lowerStyleName.includes('progression') ||
+        lowerStyleName.includes('avancement') ||
+        lowerStyleName.includes('progress') ||
+        lowerStyleName.includes('%') ||
+        lowerStyleName.includes('pourcent')
+      ) {
+        continue;
+      }
 
       const styleMatch = findStyleFromString(styleName, availableStyles);
+
+      // Vérification finale : si on a matché "Progressive" mais que la requête contient "progression" ou "avancement",
+      // c'est un faux positif (car "progression" contient "prog" qui est une variation de "Progressive")
+      if (styleMatch && styleMatch.style === 'Progressive') {
+        // Si la requête contient "progression" ou "avancement" sans "style", ignorer
+        if (hasProgressionKeywords && !hasExplicitStyleKeyword) {
+          console.warn(
+            '[Parse Query API] ⚠️ Style "Progressive" détecté mais ignoré (faux positif via "prog" dans "progression"):',
+            styleName
+          );
+          continue;
+        }
+
+        // Si le styleName contient "prog" mais n'est pas exactement "progressive" ou "prog", ignorer
+        if (lowerStyleName.includes('prog') && !lowerStyleName.match(/^(progressive|prog)$/)) {
+          console.warn(
+            '[Parse Query API] ⚠️ Style "Progressive" détecté mais ignoré (faux positif):',
+            styleName
+          );
+          continue;
+        }
+      }
+
       updateData.newStyle = styleMatch ? styleMatch.style : styleName;
       console.warn('[Parse Query API] ✅ Nouveau style détecté:', updateData.newStyle);
       return;
