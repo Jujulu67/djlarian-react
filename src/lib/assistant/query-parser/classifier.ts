@@ -83,9 +83,10 @@ export function classifyQuery(
     /combien|cb|cbn|combiens?|combie|combin|cobien|conbien|nombre|nombres?|compte|compter|total|how\s*many|count|howmany/i.test(
       lowerQuery
     );
-  // Vérifier que "combien" est suivi de mots liés aux projets (projets, en cours, terminés, etc.)
+  // Vérifier que "combien" (ou ses variantes cb, cbn, count, etc.) est suivi de mots liés aux projets
+  // IMPORTANT: Inclure toutes les variantes de "combien" utilisées dans hasCountWord
   const hasProjectContextAfterCount =
-    /combien.*(?:projets?|projects?|en\s+cours|terminés?|termines?|annulés?|annules?|ghost|collab|collaborations?|styles?|labels?|sous\s+les?\s+\d+%|avec|sans)/i.test(
+    /(?:combien|cb|cbn|combiens?|combie|combin|cobien|conbien|conbin|count|how\s*many).*(?:projets?|projects?|en\s+cours|encours|terminés?|termines?|annulés?|annules?|ghost|collab|collaborations?|styles?|labels?|sous\s+les?\s+\d+%|avec|sans)/i.test(
       lowerQuery
     );
   // Ou si c'est "nombre de projets" / "total projets" / "compte projets"

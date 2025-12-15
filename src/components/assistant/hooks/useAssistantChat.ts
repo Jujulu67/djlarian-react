@@ -3,6 +3,11 @@
 /**
  * Hook managing all ProjectAssistant state and logic
  * Extracted from ProjectAssistant.tsx for better maintainability
+ *
+ * O10: Session persistence via SessionPersistence.ts
+ * - sessionId survit au refresh (sessionStorage)
+ * - tabId isole les onglets
+ * - userId persiste entre sessions (localStorage)
  */
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -11,6 +16,22 @@ import type { Message, QueryFilters, UpdateData } from '../types';
 import { debugLog, isAssistantDebugEnabled } from '@/lib/assistant/utils/debug';
 import { generateRequestId } from '@/lib/assistant/utils/generate-request-id';
 import { generateConfirmationId } from '@/lib/assistant/utils/generate-confirmation-id';
+// O10: Session persistence pour survivre au refresh et isoler les onglets
+import {
+  getOrCreateSessionId,
+  getOrCreateTabId,
+  getSessionInfo,
+  resetSession as resetSessionStorage,
+} from '@/lib/assistant/utils/SessionPersistence';
+// 🔒 Architecture mémoire étanche - Ne pas mélanger chat et actions
+// NOTE: classifyUserMessage supprimé - le routing est fait UNIQUEMENT par router/router.ts (I2)
+import {
+  trackChatMessage,
+  trackActionContext,
+  resetSession,
+  debugMemoryState,
+  getConversationMemorySize,
+} from '@/lib/assistant/memory';
 
 export interface UseAssistantChatOptions {
   projects: Project[];
@@ -44,9 +65,7 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
   const [lastResults, setLastResults] = useState<Project[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [conversationHistory, setConversationHistory] = useState<
-    Array<{ role: 'user' | 'assistant'; content: string; timestamp: Date }>
-  >([]);
+  // 🔒 SUPPRIMÉ: conversationHistory state fantôme - géré par ConversationMemory (I3)
   const [localProjects, setLocalProjects] = useState<Project[]>(projects);
   const localProjectsRef = useRef<Project[]>(projects);
   // Mémoire de travail pour le routeur NEW
@@ -54,6 +73,23 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
     import('@/lib/assistant/router/types').ProjectFilter | undefined
   >(undefined);
   const lastListedProjectIdsRef = useRef<string[] | undefined>(undefined);
+
+  // 🔒 O10: Session ID stable via SessionPersistence (survit au refresh, isolé par onglet)
+  // Utilise useRef pour éviter les re-renders inutiles, initialisé côté client
+  const sessionIdRef = useRef<string>('');
+
+  // O10: Initialiser le sessionId côté client uniquement (évite SSR)
+  useEffect(() => {
+    if (!sessionIdRef.current) {
+      sessionIdRef.current = getOrCreateSessionId();
+
+      // Log debug pour vérifier la persistence
+      if (isAssistantDebugEnabled()) {
+        const sessionInfo = getSessionInfo();
+        console.warn('[Assistant] 🔒 Session persistence initialized:', sessionInfo);
+      }
+    }
+  }, []);
 
   // Sync with props
   useEffect(() => {
@@ -70,18 +106,7 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
 
-  // Synchroniser conversationHistory avec messages (pour isFirstAssistantTurn)
-  useEffect(() => {
-    // Construire l'historique à partir des messages (user + assistant)
-    const history = messages
-      .filter((msg) => msg.role === 'user' || msg.role === 'assistant')
-      .map((msg) => ({
-        role: msg.role,
-        content: msg.content,
-        timestamp: msg.timestamp,
-      }));
-    setConversationHistory(history);
-  }, [messages]);
+  // 🔒 SUPPRIMÉ: useEffect sync messages→history (I3 - source de vérité unique = ConversationMemory)
 
   // Computed values
   const uniqueCollabs = useMemo(
@@ -98,9 +123,14 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
     setMessages([]);
     setLastFilters(null);
     setLastResults([]);
-    setConversationHistory([]);
+    // 🔒 SUPPRIMÉ: setConversationHistory([]) - state fantôme éliminé (I3)
     lastAppliedFilterRef.current = undefined;
     lastListedProjectIdsRef.current = undefined;
+    // 🔒 Reset des mémoires étanches (source de vérité unique)
+    resetSession(sessionIdRef.current);
+    // O10: Générer un nouveau sessionId pour vraiment "recommencer"
+    sessionIdRef.current = resetSessionStorage();
+    console.warn('[Assistant] 🔄 Session reset, nouveau sessionId:', sessionIdRef.current);
   }, []);
 
   const handleSubmit = useCallback(
@@ -118,18 +148,33 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
       try {
         console.warn('[Assistant] 📝 Question reçue:', currentInput);
 
+        // 🔒 Classification SUPPRIMÉE côté client (I2 - un seul routeur)
+        // Le routing se fait UNIQUEMENT par routeProjectCommand() dans router/router.ts
+        // Pas de double classification pour éviter les décisions concurrentes
+
         // Générer un requestId pour cette requête
         const requestId = generateRequestId();
 
-        // Construire l'historique à partir des messages actuels (AVANT d'ajouter le nouveau message user)
-        // Cela garantit que l'historique est à jour pour le calcul de isFirstAssistantTurn
-        const currentHistory = messages
-          .filter((msg) => msg.role === 'user' || msg.role === 'assistant')
-          .map((msg) => ({
-            role: msg.role,
-            content: msg.content,
-            timestamp: msg.timestamp,
-          }));
+        // 🔒 CRITIQUE: Utiliser l'historique filtré de ConversationMemory
+        // Cela garantit que Groq ne reçoit JAMAIS les résultats d'actions (listings, etc.)
+        const { getFilteredConversationHistory: getFilteredHistory } =
+          await import('@/lib/assistant/memory');
+        const filteredHistory = getFilteredHistory(sessionIdRef.current);
+
+        // Convertir au format attendu par le router
+        const currentHistory = filteredHistory.map((msg) => ({
+          role: msg.role,
+          content: msg.content,
+          timestamp: new Date(), // Le timestamp exact n'est pas critique pour Groq
+        }));
+
+        console.warn('[Assistant] 🔒 Historique filtré pour Groq:', {
+          originalMessagesCount: messages.length,
+          filteredHistoryCount: currentHistory.length,
+          filteredPreview: currentHistory
+            .slice(-3)
+            .map((m) => `[${m.role}] ${m.content.substring(0, 30)}...`),
+        });
 
         // Logs avant appel routeur (debug)
         debugLog('hook', `[${requestId}] 📤 Avant appel routeur`, {
@@ -171,6 +216,10 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
             appliedFilter: result.appliedFilter,
             projectsCount: result.projects.length,
           });
+
+          // 🔒 Tracker dans ActionMemory (PAS dans ConversationMemory!)
+          trackActionContext(sessionIdRef.current, 'LIST', result.listedProjectIds);
+          debugMemoryState(sessionIdRef.current);
 
           setMessages((prev) => [
             ...prev,
@@ -226,6 +275,10 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
           setLocalProjects((prev) => [...prev, actualProject]);
           localProjectsRef.current = [...localProjectsRef.current, actualProject];
 
+          // 🔒 Tracker dans ActionMemory (PAS dans ConversationMemory!)
+          trackActionContext(sessionIdRef.current, 'CREATE', [actualProject.id]);
+          debugMemoryState(sessionIdRef.current);
+
           setMessages((prev) => [
             ...prev,
             {
@@ -255,6 +308,14 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
           // Cas spécial : ajout de note à un projet spécifique
           // Ne pas afficher la liste des projets, mais plutôt la note qui va être ajoutée
           const isSpecificProjectNote = !!(mutation.projectName && mutation.newNote);
+
+          // 🔒 Tracker dans ActionMemory (PAS dans ConversationMemory!)
+          trackActionContext(
+            sessionIdRef.current,
+            result.type === 'add_note' ? 'NOTE' : 'UPDATE',
+            result.pendingAction.affectedProjectIds || []
+          );
+          debugMemoryState(sessionIdRef.current);
 
           // La confirmation doit afficher les projets comme un listing (sauf pour note spécifique)
           setMessages((prev) => [
@@ -304,6 +365,11 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
             ]);
           } else {
             // Question généraliste (Groq)
+            // 🔒 Tracker dans ConversationMemory (chat uniquement)
+            trackChatMessage(sessionIdRef.current, 'user', currentInput);
+            trackChatMessage(sessionIdRef.current, 'assistant', result.response);
+            debugMemoryState(sessionIdRef.current);
+
             setMessages((prev) => [
               ...prev,
               {

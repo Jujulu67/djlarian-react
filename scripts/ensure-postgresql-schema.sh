@@ -381,12 +381,21 @@ if [ "$NODE_ENV" = "production" ]; then
       if [ -n "$FAILED_MIGRATION" ]; then
         echo "   🔧 Résolution de la migration échouée: $FAILED_MIGRATION"
         
-        # Vérifier si l'erreur est "relation already exists" (42P07) - la table existe déjà
-        # Dans ce cas, marquer directement comme applied sans essayer rolled-back
-        if echo "$status_output" | grep -qE "42P07|already exists|relation.*already exists"; then
-          echo "   🔍 Erreur 'relation already exists' détectée (42P07)"
-          echo "   💡 La table existe déjà, marquage direct comme applied..."
-          echo "   📋 Tentative: Marquer comme applied (table existe déjà)..."
+        # Vérifier si l'erreur est "already exists" - l'objet existe déjà
+        # Codes d'erreur possibles: 42P07 (table), 42701 (column), 42P16 (constraint)
+        if echo "$status_output" | grep -qE "42P07|42701|42P16|already exists|relation.*already exists|column.*already exists"; then
+          ERROR_CODE=$(echo "$status_output" | grep -oE "(42P07|42701|42P16)" | head -1 || echo "unknown")
+          if echo "$status_output" | grep -qE "column.*already exists|42701"; then
+            echo "   🔍 Erreur 'column already exists' détectée (42701)"
+            echo "   💡 La colonne existe déjà, marquage direct comme applied..."
+          elif echo "$status_output" | grep -qE "relation.*already exists|42P07"; then
+            echo "   🔍 Erreur 'relation already exists' détectée (42P07)"
+            echo "   💡 La table existe déjà, marquage direct comme applied..."
+          else
+            echo "   🔍 Erreur 'already exists' détectée ($ERROR_CODE)"
+            echo "   💡 L'objet existe déjà, marquage direct comme applied..."
+          fi
+          echo "   📋 Tentative: Marquer comme applied (objet existe déjà)..."
           
           set +e  # Désactiver set -e pour cette commande
           RESOLVE_APPLIED_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma migrate resolve --applied "$FAILED_MIGRATION" 2>&1)
@@ -399,18 +408,33 @@ if [ "$NODE_ENV" = "production" ]; then
           fi
           
           if [ $RESOLVE_APPLIED_EXIT -eq 0 ]; then
-            echo "   ✅ Migration marquée comme applied (table existe déjà)"
+            if echo "$status_output" | grep -qE "column.*already exists|42701"; then
+              echo "   ✅ Migration marquée comme applied (colonne existe déjà)"
+            elif echo "$status_output" | grep -qE "relation.*already exists|42P07"; then
+              echo "   ✅ Migration marquée comme applied (table existe déjà)"
+            else
+              echo "   ✅ Migration marquée comme applied (objet existe déjà)"
+            fi
             return 0
           else
             echo "   ⚠️  Impossible de marquer la migration comme applied"
             return 1
           fi
-        # Vérifier si l'erreur est "index does not exist" (42704) - l'index n'existe pas
-        # Dans ce cas, marquer directement comme applied car l'action souhaitée est déjà accomplie
-        elif echo "$status_output" | grep -qE "42704|does not exist|index.*does not exist"; then
-          echo "   🔍 Erreur 'index does not exist' détectée (42704)"
-          echo "   💡 L'index n'existe pas déjà, marquage direct comme applied..."
-          echo "   📋 Tentative: Marquer comme applied (index n'existe pas déjà)..."
+        # Vérifier si l'erreur est "does not exist" - l'objet n'existe pas
+        # Codes d'erreur possibles: 42704 (index), 42P01 (table), 42703 (column)
+        elif echo "$status_output" | grep -qE "42704|42P01|42703|does not exist"; then
+          ERROR_CODE=$(echo "$status_output" | grep -oE "(42704|42P01|42703)" | head -1 || echo "unknown")
+          if echo "$status_output" | grep -qE "table.*does not exist|42P01"; then
+            echo "   🔍 Erreur 'table does not exist' détectée (42P01)"
+            echo "   💡 La table n'existe pas déjà, marquage direct comme applied..."
+          elif echo "$status_output" | grep -qE "index.*does not exist|42704"; then
+            echo "   🔍 Erreur 'index does not exist' détectée (42704)"
+            echo "   💡 L'index n'existe pas déjà, marquage direct comme applied..."
+          else
+            echo "   🔍 Erreur 'does not exist' détectée ($ERROR_CODE)"
+            echo "   💡 L'objet n'existe pas déjà, marquage direct comme applied..."
+          fi
+          echo "   📋 Tentative: Marquer comme applied (objet n'existe pas déjà)..."
           
           set +e  # Désactiver set -e pour cette commande
           RESOLVE_APPLIED_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma migrate resolve --applied "$FAILED_MIGRATION" 2>&1)
@@ -423,7 +447,13 @@ if [ "$NODE_ENV" = "production" ]; then
           fi
           
           if [ $RESOLVE_APPLIED_EXIT -eq 0 ]; then
-            echo "   ✅ Migration marquée comme applied (index n'existe pas déjà)"
+            if echo "$status_output" | grep -qE "table.*does not exist|42P01"; then
+              echo "   ✅ Migration marquée comme applied (table n'existe pas déjà)"
+            elif echo "$status_output" | grep -qE "index.*does not exist|42704"; then
+              echo "   ✅ Migration marquée comme applied (index n'existe pas déjà)"
+            else
+              echo "   ✅ Migration marquée comme applied (objet n'existe pas déjà)"
+            fi
             return 0
           else
             echo "   ⚠️  Impossible de marquer la migration comme applied"
@@ -580,11 +610,23 @@ if [ "$NODE_ENV" = "production" ]; then
           echo "   📋 Sortie migrate deploy (erreur):"
           echo "$MIGRATE_DEPLOY_OUTPUT" | head -20 | sed 's/^/      /'
           
-          # Vérifier si c'est une erreur "relation already exists" (42P07) - la table existe déjà
-          # Cela peut arriver avec P3018 (migration failed to apply) ou directement avec 42P07
-          if echo "$MIGRATE_DEPLOY_OUTPUT" | grep -qE "P3018.*42P07|42P07|already exists|relation.*already exists"; then
-            echo "   🔍 Erreur 'relation already exists' détectée (42P07)"
-            echo "   💡 La table existe déjà dans la base de données, la migration sera marquée comme applied"
+          # Vérifier si c'est une erreur "already exists" - l'objet existe déjà
+          # Codes d'erreur possibles:
+          # - 42P07: relation (table) already exists
+          # - 42701: column already exists
+          # - 42P16: constraint already exists
+          if echo "$MIGRATE_DEPLOY_OUTPUT" | grep -qE "P3018.*(42P07|42701|42P16)|42P07|42701|42P16|already exists|relation.*already exists|column.*already exists"; then
+            ERROR_CODE=$(echo "$MIGRATE_DEPLOY_OUTPUT" | grep -oE "(42P07|42701|42P16)" | head -1 || echo "unknown")
+            if echo "$MIGRATE_DEPLOY_OUTPUT" | grep -qE "column.*already exists|42701"; then
+              echo "   🔍 Erreur 'column already exists' détectée (42701)"
+              echo "   💡 La colonne existe déjà dans la base de données, la migration sera marquée comme applied"
+            elif echo "$MIGRATE_DEPLOY_OUTPUT" | grep -qE "relation.*already exists|42P07"; then
+              echo "   🔍 Erreur 'relation already exists' détectée (42P07)"
+              echo "   💡 La table existe déjà dans la base de données, la migration sera marquée comme applied"
+            else
+              echo "   🔍 Erreur 'already exists' détectée ($ERROR_CODE)"
+              echo "   💡 L'objet existe déjà dans la base de données, la migration sera marquée comme applied"
+            fi
             
             # Extraire le nom de la migration échouée
             # Format 1: "Migration name: 20251214140000_add_assistant_confirmation"
@@ -605,7 +647,13 @@ if [ "$NODE_ENV" = "production" ]; then
               set -e
               
               if [ $RESOLVE_APPLIED_EXIT -eq 0 ]; then
-                echo "   ✅ Migration marquée comme applied (table existe déjà)"
+                if echo "$MIGRATE_DEPLOY_OUTPUT" | grep -qE "column.*already exists|42701"; then
+                  echo "   ✅ Migration marquée comme applied (colonne existe déjà)"
+                elif echo "$MIGRATE_DEPLOY_OUTPUT" | grep -qE "relation.*already exists|42P07"; then
+                  echo "   ✅ Migration marquée comme applied (table existe déjà)"
+                else
+                  echo "   ✅ Migration marquée comme applied (objet existe déjà)"
+                fi
                 # Réessayer migrate deploy pour continuer avec les migrations suivantes
                 echo "   🔄 Réessai après résolution..."
                 RETRY_COUNT=0
@@ -620,11 +668,23 @@ if [ "$NODE_ENV" = "production" ]; then
                 fi
               fi
             fi
-          # Vérifier si c'est une erreur "index does not exist" (42704) - l'index n'existe pas
-          # Cela peut arriver quand on essaie de supprimer un index qui a déjà été supprimé
-          elif echo "$MIGRATE_DEPLOY_OUTPUT" | grep -qE "P3018.*42704|42704|does not exist|index.*does not exist"; then
-            echo "   🔍 Erreur 'index does not exist' détectée (42704)"
-            echo "   💡 L'index n'existe pas dans la base de données, la migration sera marquée comme applied"
+          # Vérifier si c'est une erreur "does not exist" - l'objet n'existe pas
+          # Codes d'erreur possibles:
+          # - 42704: index does not exist
+          # - 42P01: table does not exist (pour DROP TABLE)
+          # - 42703: column does not exist
+          elif echo "$MIGRATE_DEPLOY_OUTPUT" | grep -qE "P3018.*(42704|42P01|42703)|42704|42P01|42703|does not exist"; then
+            ERROR_CODE=$(echo "$MIGRATE_DEPLOY_OUTPUT" | grep -oE "(42704|42P01|42703)" | head -1 || echo "unknown")
+            if echo "$MIGRATE_DEPLOY_OUTPUT" | grep -qE "table.*does not exist|42P01"; then
+              echo "   🔍 Erreur 'table does not exist' détectée (42P01)"
+              echo "   💡 La table n'existe pas dans la base de données, la migration sera marquée comme applied"
+            elif echo "$MIGRATE_DEPLOY_OUTPUT" | grep -qE "index.*does not exist|42704"; then
+              echo "   🔍 Erreur 'index does not exist' détectée (42704)"
+              echo "   💡 L'index n'existe pas dans la base de données, la migration sera marquée comme applied"
+            else
+              echo "   🔍 Erreur 'does not exist' détectée ($ERROR_CODE)"
+              echo "   💡 L'objet n'existe pas dans la base de données, la migration sera marquée comme applied"
+            fi
             
             # Extraire le nom de la migration échouée
             # Format 1: "Migration name: 20251214142508_smoke_add_migration_test_table"
@@ -645,7 +705,13 @@ if [ "$NODE_ENV" = "production" ]; then
               set -e
               
               if [ $RESOLVE_APPLIED_EXIT -eq 0 ]; then
-                echo "   ✅ Migration marquée comme applied (index n'existe pas déjà)"
+                if echo "$MIGRATE_DEPLOY_OUTPUT" | grep -qE "table.*does not exist|42P01"; then
+                  echo "   ✅ Migration marquée comme applied (table n'existe pas déjà)"
+                elif echo "$MIGRATE_DEPLOY_OUTPUT" | grep -qE "index.*does not exist|42704"; then
+                  echo "   ✅ Migration marquée comme applied (index n'existe pas déjà)"
+                else
+                  echo "   ✅ Migration marquée comme applied (objet n'existe pas déjà)"
+                fi
                 # Réessayer migrate deploy pour continuer avec les migrations suivantes
                 echo "   🔄 Réessai après résolution..."
                 RETRY_COUNT=0
