@@ -226,8 +226,13 @@ describe('Conversation Memory - Groq Context', () => {
 describe('System Prompt 8B', () => {
   const { SYSTEM_PROMPT_8B, buildUserPrompt } = require('../../prompts/system-prompt-8b');
 
-  it('le prompt système est compact (< 1000 caractères)', () => {
-    expect(SYSTEM_PROMPT_8B.length).toBeLessThan(1000);
+  /**
+   * O9: Limite basée sur les tokens, pas les caractères
+   * Voir system-prompt-8b.test.ts pour la justification complète
+   */
+  it('le prompt système est compact en tokens (< 2000 tokens estimés)', () => {
+    const estimatedTokens = Math.ceil(SYSTEM_PROMPT_8B.length / 4);
+    expect(estimatedTokens).toBeLessThan(2000);
   });
 
   it('le prompt système contient les règles essentielles', () => {

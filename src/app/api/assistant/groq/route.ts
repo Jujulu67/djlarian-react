@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getConversationalResponse } from '@/lib/assistant/conversational/groq-responder';
 import type { ConversationMessage } from '@/lib/assistant/conversational/memory-manager';
 import { sanitizeForLogs, sanitizeObjectForLogs } from '@/lib/assistant/utils/sanitize-logs';
+import {
+  getSessionRateLimiter,
+  createRateLimitResponse,
+} from '@/lib/assistant/rate-limit/SessionRateLimiter';
+import { redactPii, isDebugAllowed } from '@/lib/assistant/security/PiiRedactor';
 
 /**
  * Filtre et valide l'historique conversationnel
@@ -57,11 +62,27 @@ export async function POST(request: NextRequest) {
       requestId: clientRequestId,
       isComplex,
       isFirstAssistantTurn,
+      sessionId, // O12: Support pour rate limiting par session
     } = body;
+
+    // O12: Rate limiting par session
+    if (sessionId) {
+      const rateLimiter = getSessionRateLimiter();
+      const rateLimitResult = await rateLimiter.check(sessionId);
+
+      if (!rateLimitResult.allowed) {
+        const response = createRateLimitResponse(rateLimitResult);
+        return NextResponse.json(response.body, {
+          status: response.status,
+          headers: response.headers,
+        });
+      }
+    }
 
     // Validation: message non vide
     if (!message || typeof message !== 'string' || message.trim() === '') {
-      const sanitizedMessage = sanitizeForLogs(String(message || ''), 100);
+      // O13: Redacter les PII dans les logs
+      const sanitizedMessage = redactPii(sanitizeForLogs(String(message || ''), 100));
       console.warn(`[Groq API] ${requestId} ❌ Message vide ou invalide`, {
         requestId: clientRequestId,
         message: sanitizedMessage,
@@ -72,14 +93,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Sanitizer le message pour les logs
-    const sanitizedMessage = sanitizeForLogs(message, 200);
+    // Sanitizer le message pour les logs (O13: avec redaction PII)
+    const sanitizedMessage = redactPii(sanitizeForLogs(message, 200));
     const logPrefix = clientRequestId ? `[${clientRequestId}]` : `[${requestId}]`;
 
-    // Logs debug sanitaires (uniquement en debug/dev)
-    const isDebugEnabled =
-      process.env.ASSISTANT_DEBUG === 'true' || process.env.ASSISTANT_DEBUG === '1';
-    if (isDebugEnabled || process.env.NODE_ENV === 'development') {
+    // O13: Logs debug avec garde-fou production et redaction PII
+    const debugEnabled = isDebugAllowed();
+    if (debugEnabled) {
       console.warn(`[Groq API] ${logPrefix} 📥 Requête reçue`, {
         requestId: clientRequestId,
         messageLength: message.length,
@@ -113,7 +133,7 @@ export async function POST(request: NextRequest) {
     };
 
     // Logs debug (derrière flag)
-    if (isDebugEnabled) {
+    if (debugEnabled) {
       console.warn(`[Groq API Debug] ${logPrefix} Avant appel getConversationalResponse`, {
         requestId: clientRequestId || requestId,
         messageLength: message.length,
@@ -125,11 +145,11 @@ export async function POST(request: NextRequest) {
 
     // Assertion dev-only: vérifier l'identité sur "qui es-tu" / "who are you"
     const isIdentityQuery = /qui\s+es\s*[-]?tu|who\s+are\s+you/i.test(message);
-    if (isIdentityQuery && (process.env.NODE_ENV === 'development' || isDebugEnabled)) {
+    if (isIdentityQuery && debugEnabled) {
       // On ne peut pas accéder directement au system prompt ici, mais on peut logger ce qu'on sait
       console.warn(`[Groq API Identity Check] ${logPrefix} Question d'identité détectée`, {
         requestId: clientRequestId || requestId,
-        message: sanitizeForLogs(message, 100),
+        message: redactPii(sanitizeForLogs(message, 100)),
         hasHistory: filteredHistory.length > 0,
         // Note: systemPromptLength et userPromptStartsWith seront loggés dans groq-responder.ts si ASSISTANT_DEBUG=true
       });
@@ -145,11 +165,11 @@ export async function POST(request: NextRequest) {
       computedIsFirstAssistantTurn
     );
 
-    // Sanitizer la réponse pour les logs
-    const sanitizedResponse = sanitizeForLogs(response, 200);
+    // Sanitizer la réponse pour les logs (O13: avec redaction PII)
+    const sanitizedResponse = redactPii(sanitizeForLogs(response, 200));
 
-    // Log réponse uniquement en debug/dev (éviter les romans en prod)
-    if (isDebugEnabled || process.env.NODE_ENV === 'development') {
+    // Log réponse uniquement en debug (O13: garde-fou production)
+    if (debugEnabled) {
       console.warn(`[Groq API] ${logPrefix} ✅ Réponse générée`, {
         requestId: clientRequestId,
         responseLength: response.length,

@@ -7,6 +7,10 @@
  * - Historique formaté en messages séparés
  *
  * ⚠️ SERVER-ONLY: Ce module ne peut pas être exécuté côté client
+ *
+ * O6: Utilise ModelLimits pour capper max_completion_tokens
+ * O7: Feature flag pour max_tokens déprécié
+ * O8: Utilise SanitizeGroqMessages pour validation stricte des messages
  */
 import 'server-only';
 import { generateText } from 'ai';
@@ -22,6 +26,13 @@ import { SYSTEM_DISCIPLINE_PROMPT } from '../prompts/system-discipline-prompt';
 import { InferModeFromQuery } from './mode-inference';
 import { sanitizeForLogs } from '../utils/sanitize-logs';
 import { formatConversationContextForPrompt } from './memory-manager';
+import { capMaxCompletionTokens, getModelMaxOutput } from '../memory/ModelLimits';
+import { sanitizeGroqMessages, ValidGroqMessage } from '../memory/SanitizeGroqMessages';
+
+/**
+ * O7: Feature flag pour envoyer max_tokens (déprécié)
+ */
+const SEND_DEPRECATED_MAX_TOKENS = process.env.GROQ_SEND_DEPRECATED_MAX_TOKENS === 'true';
 
 /**
  * Génère une réponse conversationnelle avec Groq pour les questions générales
@@ -202,49 +213,96 @@ export async function getConversationalResponse(
     // Appel Groq avec format optimisé pour caching
     // Le system: est cacheable car statique (discipline + identité combinés)
     // Les messages: contiennent l'historique + le prompt user final
-    // ⚠️ IMPORTANT: Même prompts pour 8B et 70B (identité et discipline ne dépendent pas du modèle)
-    // ⚠️ IMPORTANT: L'API Groq exige un format strict: messages doit être un tableau de { role: 'user' | 'assistant', content: string }
-    // Ne pas inclure de champs supplémentaires comme timestamp, id, etc.
-    // ⚠️ CRITIQUE: S'assurer que les messages sont des objets JSON simples (pas de classes, pas de méthodes)
-    // En sérialisant/désérialisant via JSON pour garantir la pureté des objets
+    // O8: Validation stricte via SanitizeGroqMessages (remplace les anciens workarounds)
     try {
-      // Sérialiser puis désérialiser pour garantir des objets JSON purs (évite les problèmes de prototype)
-      const cleanMessages = JSON.parse(JSON.stringify(messages)) as Array<{
-        role: 'user' | 'assistant';
-        content: string;
-      }>;
+      // O8: Sanitizer les messages via le module dédié (validation + cleanup)
+      // Ceci remplace l'ancien workaround JSON.parse/stringify + gestion manual des prototypes
+      const sanitizeResult = sanitizeGroqMessages(messages, { debug: isDebugEnabled });
 
-      // ⚠️ WORKAROUND: Pour les questions d'identité avec historique, utiliser uniquement la question simple
-      // L'API Groq semble avoir des problèmes avec les messages multiples contenant de longs prompts
-      // Les instructions d'identité sont déjà dans le system prompt, donc on peut utiliser juste la question
-      // ⚠️ WORKAROUND: Si le dernier message (userPrompt) est trop long (>1000 caractères) et qu'il y a beaucoup de messages,
-      // utiliser uniquement la question simple pour éviter l'erreur "unsupported content types"
-      const lastMessageContentLength =
-        cleanMessages[cleanMessages.length - 1]?.content?.length || 0;
-      const hasLongUserPrompt = lastMessageContentLength > 1000;
-      const hasManyMessages = cleanMessages.length > 4;
+      if (sanitizeResult.sanitized && isDebugEnabled) {
+        console.warn('[Groq 8B] Messages sanitized:', {
+          issueCount: sanitizeResult.issues.length,
+          issues: sanitizeResult.issues,
+        });
+      }
 
-      const finalMessages =
-        isIdentityQuery && cleanMessages.length > 1
-          ? [{ role: 'user' as const, content: String(query) }] // Utiliser uniquement la question simple
-          : hasLongUserPrompt && hasManyMessages
-            ? [
-                ...cleanMessages.slice(0, -1), // Garder tous les messages sauf le dernier
-                { role: 'user' as const, content: String(query) }, // Remplacer le dernier message par la question simple
-              ]
-            : cleanMessages;
+      // O8: Messages propres après sanitization
+      let finalMessages = sanitizeResult.messages;
 
-      const result = await generateText({
-        model: groq(modelId),
-        system: combinedSystemPrompt,
-        messages: finalMessages,
+      // O8: Cas spécial - questions d'identité (réponse hardcodée déjà gérée plus haut)
+      // Pour les prompts trop longs, simplifier vers la question originale
+      // NOTE: Ce n'est plus un "workaround" mais une optimisation documentée
+      const lastMessageLength = finalMessages[finalMessages.length - 1]?.content?.length || 0;
+      const MAX_USER_PROMPT_LENGTH = 800; // Limite produit pour éviter erreurs API
+
+      if (lastMessageLength > MAX_USER_PROMPT_LENGTH) {
+        if (isDebugEnabled) {
+          console.warn('[Groq 8B] Long prompt detected, simplifying:', {
+            originalLength: lastMessageLength,
+            threshold: MAX_USER_PROMPT_LENGTH,
+          });
+        }
+        // Remplacer le dernier message par la question simple
+        finalMessages = [
+          ...finalMessages.slice(0, -1),
+          { role: 'user' as const, content: String(query) },
+        ];
+      }
+
+      // Debug: log des messages finaux
+      if (isDebugEnabled) {
+        console.warn('[Groq 8B] Final messages:', {
+          count: finalMessages.length,
+          lengths: finalMessages.map((m) => m.content.length),
+          preview: finalMessages.slice(-1).map((m) => m.content.substring(0, 50)),
+        });
+      }
+
+      // O6: Cap max_completion_tokens selon les limites du modèle
+      const requestedTokens = 1024;
+      const cappedTokens = capMaxCompletionTokens(modelId, requestedTokens);
+
+      // O7: Construire le payload avec feature flag pour max_tokens
+      const groqPayload: Record<string, unknown> = {
+        model: modelId,
+        messages: [
+          { role: 'system', content: combinedSystemPrompt },
+          ...finalMessages.map((m) => ({ role: m.role, content: m.content })),
+        ],
+        temperature: 0.7,
+        max_completion_tokens: cappedTokens,
+      };
+
+      // O7: Ajouter max_tokens seulement si feature flag activé
+      if (SEND_DEPRECATED_MAX_TOKENS) {
+        groqPayload.max_tokens = cappedTokens;
+        if (isDebugEnabled) {
+          console.warn('[Groq Responder] ⚠️ DEPRECATED: max_tokens fallback enabled');
+        }
+      }
+
+      const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${groqApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(groqPayload),
       });
+
+      if (!groqResponse.ok) {
+        const errorText = await groqResponse.text();
+        throw new Error(`Groq API error ${groqResponse.status}: ${errorText}`);
+      }
+
+      const groqData = await groqResponse.json();
+      const resultText = groqData.choices?.[0]?.message?.content || '';
 
       // Log réponse uniquement en debug/dev (éviter les romans en prod)
       if (isDebugEnabled || process.env.NODE_ENV === 'development') {
-        console.warn('[Groq 8B] Réponse:', result.text.substring(0, 100) + '...');
+        console.warn('[Groq 8B] Réponse (fetch direct):', resultText.substring(0, 100) + '...');
       }
-      return result.text.trim();
+      return resultText.trim();
     } catch (apiError) {
       // Log détaillé de l'erreur pour debug
       if (isDebugEnabled || process.env.NODE_ENV === 'development' || isIdentityQuery) {
