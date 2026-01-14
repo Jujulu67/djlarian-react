@@ -5,7 +5,7 @@ import { Search, RotateCcw } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useCallback, useEffect, useMemo } from 'react';
 
-import { Select } from '@/components/ui/Select';
+import { LegacySelect as Select } from '@/components/ui/LegacySelect';
 import { LiveSubmissionStatus } from '@/types/live';
 
 interface SubmissionsFiltersProps {

@@ -2,7 +2,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 import { decryptLicenseData, ensureSodium } from '../src/lib/license/crypto';
 import sodium from 'libsodium-wrappers';
-import fetch from 'node-fetch';
+// Native fetch available in Node 18+
 import * as dotenv from 'dotenv';
 import path from 'path';
 

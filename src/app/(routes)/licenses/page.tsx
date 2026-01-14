@@ -15,7 +15,7 @@ export default async function LicensesPage() {
     redirect('/auth/signin?callbackUrl=/licenses');
   }
 
-  let userLicenses = [];
+  let userLicenses: any[] = [];
   let error = null;
 
   try {

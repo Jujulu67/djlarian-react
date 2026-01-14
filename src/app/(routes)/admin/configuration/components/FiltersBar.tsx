@@ -6,7 +6,7 @@ import type { ImageMeta } from '@/app/api/admin/images/shared';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Input } from '@/components/ui/Input';
-import { Select } from '@/components/ui/Select';
+import { LegacySelect as Select } from '@/components/ui/LegacySelect';
 import { logger } from '@/lib/logger';
 import { isNotEmpty } from '@/lib/utils/arrayHelpers';
 
