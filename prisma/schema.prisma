@@ -174,6 +174,7 @@ model User {
   FriendshipRequests     Friendship[]            @relation("FriendshipRequester")
   FriendshipReceived     Friendship[]            @relation("FriendshipRecipient")
   assistantConfirmations AssistantConfirmation[]
+  licenses               License[]
 }
 
 model VerificationToken {
@@ -447,4 +448,64 @@ model UserSlotMachineTokens {
 
   @@index([userId])
   @@index([lastResetDate])
+}
+
+// ============================================================================
+// LICENSING MODELS
+// ============================================================================
+model License {
+  id              String        @id @default(cuid())
+  licenseKey      String        @unique  // Format: LARIAN-XXXX-XXXX-XXXX
+  
+  // Owner
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // License config
+  licenseType     LicenseType   @default(STANDARD)
+  maxActivations  Int           @default(3)
+  expirationDate  DateTime?     // null = perpétuelle
+  
+  // Status
+  revoked         Boolean       @default(false)
+  revokedReason   String?
+  
+  // Metadata
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  notes           String?       // Admin notes
+  
+  // Payment (pour plus tard)
+  stripePaymentId String?
+  
+  // Relations
+  activations     Activation[]
+}
+
+model Activation {
+  id            String   @id @default(cuid())
+  
+  // License reference
+  licenseId     String
+  license       License  @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+  
+  // Machine info
+  machineId     String   // SHA-256 hardware fingerprint
+  osInfo        String?  // ex: "macOS 14.0", "Windows 11"
+  pluginVersion String?  // ex: "1.0.0"
+  
+  // Timestamps
+  activatedAt   DateTime @default(now())
+  lastValidated DateTime @default(now())
+  
+  // Unique constraint: 1 machine = 1 activation per license
+  @@unique([licenseId, machineId])
+}
+
+enum LicenseType {
+  STANDARD   // Licence standard
+  EDU        // Éducation (-50%)
+  NFR        // Not For Resale (reviewers)
+  BETA       // Beta testers
+  LIFETIME   // Achat lifetime deal
 }

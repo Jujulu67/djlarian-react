@@ -16,6 +16,7 @@ import {
   History,
   Radio,
   Gamepad2,
+  KeyRound,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -505,6 +506,20 @@ const Navigation = () => {
                               </Link>
                             </motion.div>
 
+                            <motion.div
+                              initial={{ x: -5, opacity: 0 }}
+                              animate={{ x: 0, opacity: 1 }}
+                              transition={{ delay: 0.14, duration: 0.1 }}
+                            >
+                              <Link
+                                href="/licenses"
+                                className="flex items-center px-4 py-2 text-sm text-white/90 hover:text-white hover:bg-purple-500/10 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-inset"
+                              >
+                                <KeyRound className="w-4 h-4 mr-2" />
+                                Mes Licences
+                              </Link>
+                            </motion.div>
+
                             {/* Jeu / Arcade Link - Conditional */}
                             {(session.user?.gameHighScore || 0) > 0 ||
                             session.user?.hasDiscoveredCasino ? (
@@ -710,6 +725,18 @@ const Navigation = () => {
                           >
                             <FolderKanban className="w-4 h-4 mr-2" />
                             Mes Projets
+                          </Link>
+
+                          <Link
+                            href="/licenses"
+                            className="flex items-center px-4 py-2 text-sm text-white/90 hover:text-white hover:bg-purple-500/10 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-inset"
+                            onClick={() => {
+                              setIsMobileUserMenuOpen(false);
+                              setIsMobileMenuOpen(false);
+                            }}
+                          >
+                            <KeyRound className="w-4 h-4 mr-2" />
+                            Mes Licences
                           </Link>
 
                           {/* Jeu / Arcade Link - Conditional Mobile */}
