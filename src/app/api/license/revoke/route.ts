@@ -1,5 +1,5 @@
 import { auth } from '@/auth';
-import { db } from '@/lib/db';
+import prisma from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
@@ -18,7 +18,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { licenseId } = revokeLicenseSchema.parse(body);
 
-    const license = await db.license.update({
+    const license = await prisma.license.update({
       where: {
         id: licenseId,
       },
