@@ -4,7 +4,7 @@
 import { parseRelativeDate } from '../parsers/date-parser';
 import prisma from '@/lib/prisma';
 import { findProjectCandidates } from '@/lib/utils/findProjectCandidates';
-import type { Project } from '@/components/projects/types';
+import type { Project } from '@/lib/domain/projects';
 
 /**
  * Construit une clause WHERE Prisma pour filtrer les projets

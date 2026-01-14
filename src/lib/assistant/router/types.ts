@@ -3,8 +3,7 @@
  * Définit les structures de données pour le routing et le traitement des commandes
  */
 
-import type { Project } from '@/components/projects/types';
-import type { QueryFilters } from '@/components/assistant/types';
+import type { Project, QueryFilters } from '@/lib/domain/projects';
 
 /**
  * Type de commande projet détecté par le routeur

@@ -1,4 +1,5 @@
-import { ProjectStatus, PROJECT_STATUSES } from '@/components/projects/types';
+import type { ProjectStatus } from '@/lib/domain/projects';
+import { PROJECT_STATUSES } from '@/lib/domain/projects';
 
 export interface ParsedProjectRow {
   name: string;

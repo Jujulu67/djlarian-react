@@ -1,21 +1,13 @@
 /**
  * Types pour le composant ProjectAssistant
+ *
+ * Note: QueryFilters is re-exported from the domain layer.
+ * Other UI-specific types remain here.
  */
-import type { Project } from '@/components/projects/types';
+import type { Project } from '@/lib/domain/projects';
 
-// Type pour les filtres de requête extraits par l'IA
-export interface QueryFilters {
-  status?: string;
-  minProgress?: number;
-  maxProgress?: number;
-  collab?: string;
-  style?: string;
-  label?: string;
-  labelFinal?: string;
-  hasDeadline?: boolean;
-  name?: string;
-  noProgress?: boolean;
-}
+// Re-export QueryFilters from domain layer (canonical source)
+export type { QueryFilters } from '@/lib/domain/projects';
 
 export interface Message {
   role: 'user' | 'assistant';
@@ -28,7 +20,7 @@ export interface Message {
     displayMode?: 'compact' | 'detailed';
   };
   updateConfirmation?: {
-    filters: QueryFilters;
+    filters: import('@/lib/domain/projects').QueryFilters;
     updateData: UpdateData;
     affectedProjects: Project[];
     affectedProjectIds?: string[];
@@ -82,7 +74,7 @@ export interface ParsedQueryUpdateData extends UpdateData {
 }
 
 export interface ParsedQuery {
-  filters: QueryFilters;
+  filters: import('@/lib/domain/projects').QueryFilters;
   type: 'count' | 'list' | 'search' | 'create' | 'update';
   understood: boolean;
   clarification?: string;

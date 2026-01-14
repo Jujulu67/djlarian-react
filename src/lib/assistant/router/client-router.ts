@@ -7,7 +7,7 @@
 
 import { routeProjectCommand } from './router';
 import type { RouterContext, RouterOptions, ProjectCommandResult } from './types';
-import type { Project } from '@/components/projects/types';
+import type { Project } from '@/lib/domain/projects';
 
 /**
  * Route une commande utilisateur côté client avec les projets en mémoire

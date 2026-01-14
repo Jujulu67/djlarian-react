@@ -102,6 +102,27 @@ const eslintConfig = [
       // Règles d'import
       // import/order désactivé : règle de style, pas critique pour le fonctionnement
       'import/order': 'off',
+      // Layering: lib ne doit pas importer depuis app ou components (sauf re-exports types)
+      'import/no-restricted-paths': [
+        'error',
+        {
+          zones: [
+            // lib → app : interdit
+            {
+              target: './src/lib/**/*',
+              from: './src/app/**/*',
+              message: 'lib layer cannot import from app layer. Move shared logic to lib.',
+            },
+            // lib → components : interdit (sauf si c'est un fichier de types qui re-exporte)
+            {
+              target: './src/lib/**/*',
+              from: './src/components/**/*',
+              except: ['./src/components/**/types.ts'],
+              message: 'lib layer cannot import from components layer. Import from @/lib/domain/projects instead.',
+            },
+          ],
+        },
+      ],
 
       // Règles d'accessibilité
       'jsx-a11y/anchor-is-valid': 'error', // Critique : liens valides

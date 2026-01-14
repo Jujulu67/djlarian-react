@@ -1,6 +1,6 @@
 import { Project as PrismaProject } from '@prisma/client';
 
-import { Project, ProjectStatus } from '@/components/projects/types';
+import type { Project, ProjectStatus } from '@/lib/domain/projects';
 
 /**
  * Serialize a Prisma Project to a client-safe Project type

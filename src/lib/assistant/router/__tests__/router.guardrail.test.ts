@@ -10,7 +10,7 @@ import './router-test-mocks';
 
 import { routeProjectCommand } from '../router';
 import { ProjectCommandType } from '../types';
-import type { Project } from '@/components/projects/types';
+import type { Project } from '@/lib/domain/projects';
 import {
   resetTestProjectFactory,
   createProjectsDataset,
@@ -20,7 +20,7 @@ import {
 import { detectFilters } from '../../query-parser/filters';
 import { classifyQuery } from '../../query-parser/classifier';
 import { extractUpdateData } from '../../query-parser/updates';
-import { filterProjects } from '@/components/assistant/utils/filterProjects';
+import { filterProjects } from '@/lib/domain/projects';
 
 const mockDetectFilters = detectFilters as jest.MockedFunction<typeof detectFilters>;
 const mockClassifyQuery = classifyQuery as jest.MockedFunction<typeof classifyQuery>;

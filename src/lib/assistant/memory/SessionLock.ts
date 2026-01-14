@@ -53,6 +53,7 @@ export async function withSessionLock<T>(sessionId: string, fn: () => Promise<T>
   const previousLock = sessionLocks.get(sessionId);
   if (previousLock) {
     if (isDebug()) {
+      // eslint-disable-next-line no-console -- Debug-only log gated behind ASSISTANT_DEBUG
       console.log(`[SessionLock] Session ${sessionId}: waiting for previous lock...`);
     }
     await previousLock;
@@ -67,6 +68,7 @@ export async function withSessionLock<T>(sessionId: string, fn: () => Promise<T>
 
   try {
     if (isDebug()) {
+      // eslint-disable-next-line no-console -- Debug-only log gated behind ASSISTANT_DEBUG
       console.log(`[SessionLock] Session ${sessionId}: acquired lock`);
     }
     return await fn();
@@ -84,6 +86,7 @@ export async function withSessionLock<T>(sessionId: string, fn: () => Promise<T>
     }
 
     if (isDebug()) {
+      // eslint-disable-next-line no-console -- Debug-only log gated behind ASSISTANT_DEBUG
       console.log(`[SessionLock] Session ${sessionId}: released lock`);
     }
   }

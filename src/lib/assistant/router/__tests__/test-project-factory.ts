@@ -5,7 +5,7 @@
  * Les IDs sont générés de manière séquentielle : TestProject-0001, TestProject-0002, etc.
  */
 
-import type { Project } from '@/components/projects/types';
+import type { Project } from '@/lib/domain/projects';
 
 /**
  * Compteur global pour générer des IDs uniques

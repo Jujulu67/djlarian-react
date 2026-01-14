@@ -1,5 +1,5 @@
 import { findProjectCandidates } from '../findProjectCandidates';
-import type { Project } from '@/components/projects/types';
+import type { Project } from '@/lib/domain/projects';
 
 describe('findProjectCandidates', () => {
   const createMockProject = (name: string, id: string = 'test-id'): Project => ({
