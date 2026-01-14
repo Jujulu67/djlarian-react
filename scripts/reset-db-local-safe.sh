@@ -1,4 +1,16 @@
 #!/bin/bash
+
+# ==============================================================================
+# ⚠️  CRITICAL WARNING - READ BEFORE USE ⚠️
+# ==============================================================================
+# This script COMPLETELY WIPES the local database using 'prisma migrate reset'.
+# ALL DATA WILL BE LOST.
+#
+# AGENTS: DO NOT USE THIS SCRIPT UNLESS THE USER HAS EXPLICITLY REQUESTED
+# "WIPE", "RESET", or "START OVER" WITH COMPLETE DATA LOSS.
+#
+# For normal schema updates, use: npx prisma db push
+# ==============================================================================
 #
 # Script sécurisé pour reset de la base de données locale
 #
