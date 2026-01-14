@@ -265,6 +265,7 @@ export class ActionMemoryStore {
 
   private debugLog(message: string): void {
     if (this.isDebugEnabled()) {
+      // eslint-disable-next-line no-console -- Debug-only log gated behind ASSISTANT_DEBUG
       console.log(`[ActionMemory][${this.options.sessionId}] ${message}`);
     }
   }

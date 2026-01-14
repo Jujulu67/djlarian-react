@@ -18,6 +18,7 @@ import {
   RouterResult,
   ChatMessage,
   isChatMessage,
+  ActionType,
 } from './index';
 
 // =============================================================================
@@ -131,7 +132,7 @@ export function trackActionContext(
   affectedIds: string[] = []
 ): void {
   const { action } = getSessionStores(sessionId);
-  action.setLastActionType(actionType as any);
+  action.setLastActionType(actionType as ActionType);
   if (affectedIds.length > 0) {
     action.setSelectedProjectIds(affectedIds);
   }
@@ -147,7 +148,7 @@ export function setPendingConfirmation(
   const { action } = getSessionStores(sessionId);
   if (confirmation) {
     action.setPendingConfirmation({
-      actionType: confirmation.actionType as any,
+      actionType: confirmation.actionType as ActionType,
       targetIds: confirmation.targetIds,
       description: confirmation.description,
     });
@@ -239,6 +240,7 @@ export function debugMemoryState(sessionId: string): void {
 
   const { conversation, action } = getSessionStores(sessionId);
 
+  // eslint-disable-next-line no-console -- Debug-only log gated behind ASSISTANT_DEBUG
   console.log(`[MemoryAdapter][${sessionId}] État mémoires:`, {
     conversationSize: conversation.size,
     conversationTokens: conversation.totalTokens,

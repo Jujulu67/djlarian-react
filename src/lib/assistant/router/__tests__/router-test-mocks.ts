@@ -37,11 +37,15 @@ jest.mock('../../query-parser/creates', () => ({
   extractCreateData: jest.fn(),
 }));
 
-// Mock filterProjects
-// Chemin depuis src/lib/assistant/router/__tests__/ vers src/components/assistant/utils/
-jest.mock('@/components/assistant/utils/filterProjects', () => ({
-  filterProjects: jest.fn(),
-}));
+// Mock filterProjects - keep the actual module exports for types, only mock filterProjects
+// Chemin depuis src/lib/assistant/router/__tests__/ vers src/lib/domain/projects/
+jest.mock('@/lib/domain/projects', () => {
+  const actual = jest.requireActual('@/lib/domain/projects');
+  return {
+    ...actual,
+    filterProjects: jest.fn(),
+  };
+});
 
 // Mock conversational groq-responder
 // Chemin depuis src/lib/assistant/router/__tests__/ vers src/lib/assistant/conversational/

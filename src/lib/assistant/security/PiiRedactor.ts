@@ -228,8 +228,10 @@ export function safeDebugLog(
   if (data) {
     // Redacter toutes les valeurs string dans data
     const redactedData = redactObject(data);
+    // eslint-disable-next-line no-console -- Debug-only log gated behind isDebugAllowed()
     console.log(prefix, redactedMessage, redactedData);
   } else {
+    // eslint-disable-next-line no-console -- Debug-only log gated behind isDebugAllowed()
     console.log(prefix, redactedMessage);
   }
 }

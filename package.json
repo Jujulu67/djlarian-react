@@ -67,7 +67,9 @@
     "test:e2e": "npx playwright test",
     "test:e2e:ui": "npx playwright test --ui",
     "test:e2e:debug": "npx playwright test --debug",
-    "test:db-safety": "node scripts/test-db-safety-guards.mjs"
+    "test:db-safety": "node scripts/test-db-safety-guards.mjs",
+    "check:boundaries": "node scripts/check-layer-boundaries.mjs",
+    "check:all": "npm run type-check && npm run lint && npm run test:no-skips && npm run check:boundaries"
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.80",

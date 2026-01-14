@@ -83,6 +83,7 @@ export async function handleUserInput(
   const routerResult = classifier.route(userInput, !!pendingConfirmation);
 
   if (debug) {
+    // eslint-disable-next-line no-console -- Debug-only log gated behind ASSISTANT_DEBUG
     console.log(
       `[HandleUserInput][${requestId}] Decision: ${routerResult.decision} (${routerResult.confidence})`
     );

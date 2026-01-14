@@ -18,17 +18,17 @@ jest.mock('../../query-parser/filters');
 jest.mock('../../query-parser/updates');
 jest.mock('../../query-parser/creates');
 jest.mock('../../conversational/groq-responder');
-jest.mock('@/components/assistant/utils/filterProjects');
+jest.mock('@/lib/domain/projects');
 
 import { routeProjectCommand } from '../router';
 import { ProjectCommandType } from '../types';
-import type { Project } from '@/components/projects/types';
+import type { Project } from '@/lib/domain/projects';
 
 import { classifyQuery } from '../../query-parser/classifier';
 import { detectFilters } from '../../query-parser/filters';
 import { extractUpdateData } from '../../query-parser/updates';
 import { extractCreateData } from '../../query-parser/creates';
-import { filterProjects } from '@/components/assistant/utils/filterProjects';
+import { filterProjects } from '@/lib/domain/projects';
 
 const mockClassifyQuery = classifyQuery as jest.MockedFunction<typeof classifyQuery>;
 const mockDetectFilters = detectFilters as jest.MockedFunction<typeof detectFilters>;

@@ -1,6 +1,6 @@
 import { Workbook } from 'exceljs';
-import { Project } from '@/components/projects/types';
-import { PROJECT_STATUSES } from '@/components/projects/types';
+import type { Project } from '@/lib/domain/projects';
+import { PROJECT_STATUSES } from '@/lib/domain/projects';
 
 /**
  * Exporte les projets vers un fichier Excel avec un header stylé

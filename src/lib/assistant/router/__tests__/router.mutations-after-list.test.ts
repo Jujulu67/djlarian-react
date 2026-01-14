@@ -21,16 +21,22 @@ jest.mock('../../query-parser/filters');
 jest.mock('../../query-parser/updates');
 jest.mock('../../query-parser/creates');
 jest.mock('../../conversational/groq-responder');
-jest.mock('@/components/assistant/utils/filterProjects');
+jest.mock('@/lib/domain/projects', () => {
+  const actual = jest.requireActual('@/lib/domain/projects');
+  return {
+    ...actual,
+    filterProjects: jest.fn(),
+  };
+});
 
 import { routeProjectCommand } from '../router';
 import { ProjectCommandType, type ProjectFilter } from '../types';
-import type { Project } from '@/components/projects/types';
+import type { Project } from '@/lib/domain/projects';
 
 import { classifyQuery } from '../../query-parser/classifier';
 import { detectFilters } from '../../query-parser/filters';
 import { extractUpdateData } from '../../query-parser/updates';
-import { filterProjects } from '@/components/assistant/utils/filterProjects';
+import { filterProjects } from '@/lib/domain/projects';
 import {
   resetTestProjectFactory,
   createTestProject,
@@ -175,7 +181,9 @@ describe('Router - Mutations après LIST filtré (Matrice de tests)', () => {
     } else {
       return projects.filter((p) => {
         return Object.entries(mutationFilters).every(([key, value]) => {
-          if (key === 'status') return p.status === value;
+          if (key === 'status') {
+            return p.status === value;
+          }
           if (key === 'collab') return p.collab === value;
           if (key === 'style') return p.style === value;
           if (key === 'hasDeadline') return (p.deadline !== null) === value;
@@ -279,10 +287,18 @@ describe('Router - Mutations après LIST filtré (Matrice de tests)', () => {
     // IMPORTANT: Utiliser mockReturnValue au lieu de mockReturnValueOnce car filterProjects
     // peut être appelé plusieurs fois (dans calculateAffectedProjects, etc.)
     // On s'assure que le mock retourne toujours les bons projets filtrés
-    mockFilterProjects.mockReturnValue({
-      filtered: affectedProjects,
-      nullProgressCount: 0,
-      hasProgressFilter: false,
+    // mockFilterProjects.mockReturnValue({
+    //   filtered: affectedProjects,
+    //   nullProgressCount: 0,
+    //   hasProgressFilter: false,
+    // });
+    // Reset previous mocks
+    mockFilterProjects.mockReset();
+
+    mockFilterProjects.mockImplementation((p, f) => {
+      const actual = jest.requireActual('@/lib/domain/projects');
+      const result = actual.filterProjects(p, f);
+      return result;
     });
 
     const contextWithWorkingSet = createContextWithWorkingSet(

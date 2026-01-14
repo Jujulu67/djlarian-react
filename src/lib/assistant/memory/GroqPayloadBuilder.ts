@@ -212,6 +212,7 @@ export class GroqPayloadBuilder {
 
     // Log debug sanitisé
     if (this.debug) {
+      // eslint-disable-next-line no-console -- Debug-only log gated behind ASSISTANT_DEBUG
       console.log('[GroqPayloadBuilder] Payload built:', {
         messageCount: messages.length,
         estimatedTokens: totalTokens,
@@ -248,6 +249,7 @@ export class GroqPayloadBuilder {
 
     // Debug payload en mode ASSISTANT_DEBUG=true (O2)
     if (this.debug) {
+      // eslint-disable-next-line no-console -- Debug-only log gated behind ASSISTANT_DEBUG
       console.log('[GroqPayloadBuilder] 🔍 Payload debug:', {
         model: payload.model,
         messageCount: payload.messages.length,
@@ -344,6 +346,7 @@ export class GroqPayloadBuilder {
 
   private log(message: string): void {
     if (this.debug) {
+      // eslint-disable-next-line no-console -- Debug-only log gated behind ASSISTANT_DEBUG
       console.log(`[GroqPayloadBuilder] ${message}`);
     }
   }

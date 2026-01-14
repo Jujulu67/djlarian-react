@@ -1,5 +1,5 @@
 import { exportProjectsToExcel } from '../exportProjectsToExcel';
-import type { Project } from '@/components/projects/types';
+import type { Project } from '@/lib/domain/projects';
 
 // Mock exceljs
 const mockWorksheet = {

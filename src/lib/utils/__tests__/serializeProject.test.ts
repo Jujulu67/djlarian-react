@@ -1,6 +1,6 @@
 import { serializeProject, serializeProjects } from '../serializeProject';
 import { Project as PrismaProject } from '@prisma/client';
-import { Project } from '@/components/projects/types';
+import { Project } from '@/lib/domain/projects';
 
 describe('serializeProject', () => {
   it('should serialize a project with all fields', () => {

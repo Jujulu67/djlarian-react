@@ -2,7 +2,7 @@
  * Détection de projets candidats basée sur la similarité de nom
  */
 
-import { Project } from '@/components/projects/types';
+import type { Project } from '@/lib/domain/projects';
 
 export interface ProjectCandidate {
   project: Project;
