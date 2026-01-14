@@ -16,7 +16,7 @@ export default async function AdminLicensesPage() {
     redirect('/');
   }
 
-  let licenses = [];
+  let licenses: any[] = [];
   let error = null;
 
   try {

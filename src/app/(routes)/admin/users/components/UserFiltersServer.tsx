@@ -5,7 +5,7 @@ import { Search, Star, RotateCcw } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useCallback, useEffect, useMemo } from 'react';
 
-import { Select } from '../../../../../components/ui/Select';
+import { LegacySelect as Select } from '@/components/ui/LegacySelect';
 
 interface UserFiltersServerProps {
   searchValue?: string;
