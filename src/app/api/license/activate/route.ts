@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { signMessage, encryptLicenseData } from '@/lib/license/crypto';
+import { signMessage, encryptLicenseData, ensureSodium } from '@/lib/license/crypto';
 import { getLicenseTypeIndex } from '@/lib/license/types';
 
 interface ActivationRequest {
@@ -15,6 +15,23 @@ export async function POST(req: NextRequest) {
   try {
     const body: ActivationRequest = await req.json();
     const { email, license_key, machine_id, plugin_version, os_info } = body;
+
+    console.log('[License Activate] Request received for:', license_key);
+    console.log(
+      '[License Activate] ED25519_PRIVATE_KEY exists:',
+      !!process.env.ED25519_PRIVATE_KEY
+    );
+
+    // 0. Initialize libsodium and check for private key
+    await ensureSodium();
+
+    if (!process.env.ED25519_PRIVATE_KEY) {
+      console.error('[License Activate] ED25519_PRIVATE_KEY is not configured!');
+      return NextResponse.json(
+        { success: false, error: 'Server configuration error' },
+        { status: 500 }
+      );
+    }
 
     // 1. Valider les inputs
     if (!email || !license_key || !machine_id) {
