@@ -24,7 +24,7 @@ export default function AdminLivePage() {
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen text-gray-100 p-4 sm:p-6 lg:p-8 flex items-center justify-center">
+      <div className="min-h-[calc(100vh-4rem)] text-gray-100 p-4 sm:p-6 lg:p-8 flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-400">Chargement...</p>
         </div>
@@ -33,7 +33,7 @@ export default function AdminLivePage() {
   }
 
   return (
-    <div className="min-h-screen text-gray-100">
+    <div className="min-h-[calc(100vh-4rem)] text-gray-100">
       <div className="p-4 sm:p-6 lg:p-8">
         <Link
           href="/admin"

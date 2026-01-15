@@ -464,7 +464,7 @@ export default function EventFormPage() {
 
   if (loading && isEditMode) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-8">
+      <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-b from-gray-900 to-black p-8">
         <div className="container mx-auto">
           <div className="flex justify-center items-center min-h-[60vh]">
             <div className="animate-pulse flex flex-col items-center">
@@ -478,7 +478,7 @@ export default function EventFormPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-8 pt-32">
+    <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-b from-gray-900 to-black p-8 pt-32">
       <div className="container mx-auto max-w-5xl">
         <div className="flex justify-between items-center mb-8">
           <Link

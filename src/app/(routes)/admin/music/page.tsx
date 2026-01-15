@@ -420,7 +420,7 @@ export default function AdminMusicPage() {
 
   if (tracks.isLoading)
     return (
-      <div className="min-h-screen pt-24 flex justify-center items-center">
+      <div className="min-h-[calc(100vh-4rem)] pt-24 flex justify-center items-center">
         <RefreshCw className="w-8 h-8 text-purple-500 animate-spin" />
       </div>
     );
@@ -430,7 +430,7 @@ export default function AdminMusicPage() {
     : null;
 
   return (
-    <div className="min-h-screen pt-8 pb-16 px-4">
+    <div className="min-h-[calc(100vh-4rem)] pt-8 pb-16 px-4">
       {/* Affichage du bandeau/toast global si succès mais track non visible */}
       {success.successTrackId && !successTrackInList && (
         <div className="fixed left-1/2 z-50 -translate-x-1/2 top-[80px] bg-green-600/90 text-white px-6 py-4 rounded-xl shadow-lg flex items-center gap-4 animate-highlight-ring transition-opacity duration-500">

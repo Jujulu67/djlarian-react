@@ -1,6 +1,13 @@
 import { render, screen } from '@testing-library/react';
 import Navigation from '../Navigation';
 
+// Mock global fetch
+global.fetch = jest.fn(() =>
+  Promise.resolve({
+    json: () => Promise.resolve({ shopEnabled: true }),
+  })
+) as jest.Mock;
+
 // Mock next/navigation
 jest.mock('next/navigation', () => ({
   usePathname: () => '/',

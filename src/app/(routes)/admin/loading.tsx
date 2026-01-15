@@ -2,7 +2,7 @@ import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 export default function AdminLoading() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-[#0c0117] to-black">
+    <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-black via-[#0c0117] to-black">
       <div className="container mx-auto px-4 py-12">
         <div className="mb-12 text-center">
           <div className="animate-pulse">

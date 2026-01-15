@@ -17,6 +17,7 @@ import {
   Radio,
   Gamepad2,
   KeyRound,
+  ShoppingBag,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -44,6 +45,7 @@ const Navigation = () => {
   const [mounted, setMounted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [shopEnabled, setShopEnabled] = useState(true);
 
   // Fonction de déconnexion simplifiée et fiable
   const handleSignOut = async () => {
@@ -160,12 +162,28 @@ const Navigation = () => {
     }
   }, []);
 
+  // Fetch shop enabled setting
+  useEffect(() => {
+    fetch('/api/shop/settings')
+      .then((res) => res.json())
+      .then((data) => {
+        setShopEnabled(data.shopEnabled !== false);
+      })
+      .catch(() => {
+        // Keep default (enabled)
+      });
+  }, []);
+
+  const isAdmin = session?.user?.role === 'ADMIN';
+
   const links = [
     { href: '/', label: 'Home', icon: Home },
     { href: '/music', label: 'Music', icon: Music },
     { href: '/events', label: 'Events', icon: Calendar },
     { href: '/live', label: 'Live', icon: Radio },
     { href: '/gallery', label: 'Gallery', icon: ImageIcon },
+    // Only show Shop if enabled OR user is admin
+    ...(shopEnabled || isAdmin ? [{ href: '/shop', label: 'Shop', icon: ShoppingBag }] : []),
     { href: '/contact', label: 'Contact', icon: Mail },
   ];
 

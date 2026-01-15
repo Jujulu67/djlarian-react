@@ -304,7 +304,7 @@ export default function AdminEventsPage() {
   // Afficher un état de chargement
   if (status === 'loading' || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-8">
+      <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-b from-gray-900 to-black p-8">
         <div className="container mx-auto">
           <div className="flex justify-center items-center min-h-[60vh]">
             <div className="animate-pulse flex flex-col items-center">
@@ -320,7 +320,7 @@ export default function AdminEventsPage() {
   // Afficher un message d'erreur
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-8">
+      <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-b from-gray-900 to-black p-8">
         <div className="container mx-auto">
           <div className="flex justify-center items-center min-h-[60vh]">
             <div className="bg-red-500/10 border border-red-500/50 p-8 rounded-lg text-center">
@@ -341,7 +341,7 @@ export default function AdminEventsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-8 pt-12">
+    <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-b from-gray-900 to-black p-8 pt-12">
       <div className="container mx-auto max-w-6xl">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
           <h1 className="text-3xl font-bold text-white flex items-center gap-2">
