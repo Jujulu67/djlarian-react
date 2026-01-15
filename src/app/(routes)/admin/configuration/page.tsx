@@ -668,7 +668,7 @@ export default function ConfigurationPage() {
   if (isLoading && !general.siteName) {
     // Vérifie une valeur pour éviter le flash
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-[#0c0117] to-black">
+      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-gradient-to-br from-black via-[#0c0117] to-black">
         <p className="text-white text-xl animate-pulse">Chargement des configurations...</p>
       </div>
     );
@@ -678,7 +678,7 @@ export default function ConfigurationPage() {
   if (error && !general.siteName) {
     // Affiche l'erreur seulement si le fallback n'a pas fonctionné
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-black via-[#0c0117] to-black text-red-400">
+      <div className="min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center bg-gradient-to-br from-black via-[#0c0117] to-black text-red-400">
         <p className="text-xl mb-4">Erreur critique lors du chargement : {error}</p>
         <Button onClick={fetchConfigurations} className="bg-red-500/20 hover:bg-red-500/30">
           Réessayer
@@ -689,7 +689,7 @@ export default function ConfigurationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-[#0c0117] to-black text-white">
+    <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-black via-[#0c0117] to-black text-white">
       {/* Indicateurs de chargement, succès, erreur (inchangés) */}
       {isLoading && (
         <div className="fixed top-4 right-4 z-50">

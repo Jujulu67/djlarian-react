@@ -336,7 +336,7 @@ export default async function AdminActivitiesPage({
   };
 
   return (
-    <div className="p-4 md:p-8 min-h-screen bg-gradient-radial from-gray-950 to-black text-white">
+    <div className="p-4 md:p-8 min-h-[calc(100vh-4rem)] bg-gradient-radial from-gray-950 to-black text-white">
       <div className="max-w-7xl mx-auto">
         {/* Structure réorganisée en 3 sections distinctes et séparées */}
 

@@ -120,7 +120,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
   if (isVip) currentParams.set('isVip', isVip);
 
   return (
-    <div className="min-h-screen text-gray-100 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-[calc(100vh-4rem)] text-gray-100 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
         <Link
           href="/admin"

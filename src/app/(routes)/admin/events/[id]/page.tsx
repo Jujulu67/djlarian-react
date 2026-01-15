@@ -238,7 +238,7 @@ export default function EventDetailsPage() {
   // Afficher un état de chargement
   if (status === 'loading' || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-8">
+      <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-b from-gray-900 to-black p-8">
         <div className="container mx-auto max-w-6xl">
           <div className="flex justify-center items-center min-h-[60vh]">
             <div className="animate-pulse flex flex-col items-center">
@@ -260,7 +260,7 @@ export default function EventDetailsPage() {
   // Afficher un message d'erreur
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-8">
+      <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-b from-gray-900 to-black p-8">
         <div className="container mx-auto max-w-6xl">
           <div className="flex flex-col items-center justify-center min-h-[60vh]">
             <div className="bg-gray-800/40 backdrop-blur-sm border border-red-500/30 p-8 rounded-xl text-center max-w-lg shadow-xl">
@@ -286,7 +286,7 @@ export default function EventDetailsPage() {
   // Afficher le message si l'événement n'est pas trouvé
   if (!event) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-8">
+      <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-b from-gray-900 to-black p-8">
         <div className="container mx-auto max-w-6xl">
           <div className="flex flex-col items-center justify-center min-h-[60vh]">
             <div className="bg-gray-800/30 backdrop-blur-sm p-8 rounded-xl text-center max-w-lg border border-gray-700 shadow-xl">
@@ -312,7 +312,7 @@ export default function EventDetailsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-8 pt-8 pb-16">
+    <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-b from-gray-900 to-black p-8 pt-8 pb-16">
       <div className="container mx-auto max-w-6xl">
         {/* En-tête avec titre et retour */}
         <div className="mb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">

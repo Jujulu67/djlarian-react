@@ -28,7 +28,7 @@ export default function EditEventRedirect() {
   }, [eventId, router]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-8 flex items-center justify-center">
+    <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-b from-gray-900 to-black p-8 flex items-center justify-center">
       <div className="flex flex-col items-center">
         <Loader2 className="w-12 h-12 text-purple-500 mb-4 animate-spin" />
         <h2 className="text-2xl font-semibold text-white">Redirection...</h2>

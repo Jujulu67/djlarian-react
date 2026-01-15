@@ -233,14 +233,14 @@ export default function StatisticsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-[#0c0117] to-black">
+      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-gradient-to-br from-black via-[#0c0117] to-black">
         <p className="text-white text-xl">Chargement des statistiques...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-[#0c0117] to-black text-white">
+    <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-black via-[#0c0117] to-black text-white">
       <div className="container mx-auto px-4 py-12">
         <div className="mb-8">
           <Link

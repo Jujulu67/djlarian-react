@@ -13,6 +13,7 @@ import {
   ArrowRight,
   FolderKanban,
   KeyRound,
+  ShoppingBag,
 } from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -167,7 +168,7 @@ export default async function AdminPage() {
     .slice(0, 5);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-[#0c0117] to-black">
+    <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-black via-[#0c0117] to-black">
       <div className="container mx-auto px-4 py-12">
         <div className="mb-12 text-center">
           <h1 className="text-5xl font-audiowide text-white mb-4">
@@ -548,6 +549,52 @@ export default async function AdminPage() {
                 </Link>
                 <span className="text-xs text-indigo-300/70 flex items-center">
                   <Clock className="h-3 w-3 mr-1" /> Dernière mise à jour: 1j
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Carte Boutique */}
+          <div className="glass rounded-xl backdrop-blur-md overflow-hidden group relative transition-all duration-300 hover:shadow-[0_0_30px_rgba(139,92,246,0.3)] border border-purple-500/20">
+            <div className="absolute inset-0 bg-gradient-to-br from-orange-600/5 to-amber-600/5 opacity-70 group-hover:opacity-100 transition-opacity"></div>
+            <div className="absolute -bottom-20 -right-20 w-48 h-48 bg-orange-500/10 rounded-full blur-3xl group-hover:bg-orange-500/20 transition-all duration-500"></div>
+
+            <div className="p-6 relative z-10">
+              <div className="bg-orange-500/20 w-12 h-12 flex items-center justify-center rounded-lg mb-4">
+                <ShoppingBag className="text-orange-400 h-6 w-6" />
+              </div>
+              <h2 className="text-2xl font-audiowide text-white mb-2 group-hover:text-orange-300 transition-colors">
+                Boutique
+              </h2>
+              <p className="text-gray-400 mb-8">
+                Gérez les paramètres de la boutique, les liens Stripe et les prix des produits.
+              </p>
+
+              <div className="flex space-x-2 mb-6">
+                <span className="bg-orange-900/30 text-orange-300 text-xs px-2 py-1 rounded-full">
+                  Stripe
+                </span>
+                <span className="bg-amber-900/30 text-amber-300 text-xs px-2 py-1 rounded-full">
+                  Prix
+                </span>
+                <span className="bg-yellow-900/30 text-yellow-300 text-xs px-2 py-1 rounded-full">
+                  Produits
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <Link
+                  href="/admin/shop"
+                  className="relative overflow-hidden px-6 py-2.5 rounded-lg bg-gradient-to-r from-orange-600 to-amber-600 text-white font-medium group admin-button-link"
+                >
+                  <span className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-orange-600 to-amber-600 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                  <span className="relative flex items-center">
+                    Configurer
+                    <Zap className="ml-2 h-4 w-4" />
+                  </span>
+                </Link>
+                <span className="text-xs text-orange-300/70 flex items-center">
+                  <ShoppingBag className="h-3 w-3 mr-1" /> LarianCrusher
                 </span>
               </div>
             </div>
