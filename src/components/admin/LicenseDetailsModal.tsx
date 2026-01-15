@@ -12,10 +12,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { ShieldAlert, Trash2, Calendar, Monitor, Cpu, RotateCw, Loader2 } from 'lucide-react';
+import { ShieldAlert, Trash2, Calendar, Monitor, Cpu, RotateCw, Loader2, Copy } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
+import { toast } from 'react-hot-toast';
 
 interface LicenseDetailsModalProps {
   license: any; // Type LicenseWithRelations from parent
@@ -46,9 +47,32 @@ export function LicenseDetailsModal({ license, isOpen, onClose }: LicenseDetails
 
       router.refresh(); // Refresh server data
       onClose(); // Close modal since data is stale
-      alert('Licence révoquée avec succès.');
+      toast.success('Licence révoquée avec succès.');
     } catch (error: any) {
-      alert(`Erreur: ${error.message}`);
+      toast.error(`Erreur: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleReactivateLicense = async () => {
+    if (!confirm('Êtes-vous sûr de vouloir réactiver cette licence ?')) return;
+
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/license/reactivate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ licenseId: license.id }),
+      });
+
+      if (!res.ok) throw new Error(await res.text());
+
+      router.refresh(); // Refresh server data
+      onClose(); // Close modal since data is stale
+      toast.success('Licence réactivée avec succès.');
+    } catch (error: any) {
+      toast.error(`Erreur: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -58,17 +82,6 @@ export function LicenseDetailsModal({ license, isOpen, onClose }: LicenseDetails
     if (!confirm('Désactiver cette machine ?')) return;
 
     try {
-      // We need the machineId, but the API expects { licenseKey, machineId } OR we can make a specific admin endpoint.
-      // The existing /api/license/deactivate is for the USER (checks ownership).
-      // Admin needs a way to force deactivate.
-      // Let's use the revoke endpoint or create a new one?
-      // Actually, the /api/license/deactivate endpoint checks:
-      // const license = await db.license.findUnique(...)
-      // if (license.userId !== session.user.id) return Unauthorized.
-      // So Admin CANNOT use that user endpoint easily unless we modify it to allow Admin.
-
-      // NOTE: I will update the deactivate endpoint to allow ADMIN role to bypass ownership check.
-
       const res = await fetch('/api/license/deactivate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -88,6 +101,11 @@ export function LicenseDetailsModal({ license, isOpen, onClose }: LicenseDetails
     }
   };
 
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success(`${label} copié !`);
+  };
+
   return (
     <Modal
       onClose={onClose}
@@ -99,8 +117,13 @@ export function LicenseDetailsModal({ license, isOpen, onClose }: LicenseDetails
         <div className="flex justify-between items-start">
           <div>
             <h2 className="text-2xl font-audiowide text-white mb-2">Détails de la licence</h2>
-            <div className="flex items-center space-x-2 text-gray-400 font-mono bg-black/30 px-3 py-1 rounded">
-              <span className="select-all">{license.licenseKey}</span>
+            <div
+              className="flex items-center space-x-2 text-gray-400 font-mono bg-black/30 px-3 py-1 rounded cursor-pointer hover:text-white transition-colors group"
+              onClick={() => copyToClipboard(license.licenseKey, 'Clé de licence')}
+              title="Cliquer pour copier"
+            >
+              <span>{license.licenseKey}</span>
+              <Copy className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
           </div>
           <div className="flex flex-col items-end space-y-2">
@@ -130,15 +153,19 @@ export function LicenseDetailsModal({ license, isOpen, onClose }: LicenseDetails
             </span>
           </div>
         </div>
-
-        {/* User Info */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-purple-900/10 p-4 rounded-lg border border-purple-500/10">
           <div>
             <h3 className="text-sm font-semibold text-purple-300 uppercase tracking-wider mb-2">
               Propriétaire
             </h3>
             <p className="text-white">{license.user.name || 'Sans nom'}</p>
-            <p className="text-gray-400 text-sm">{license.user.email}</p>
+            <p
+              className="text-gray-400 text-sm cursor-pointer hover:text-white flex items-center gap-2 group"
+              onClick={() => license.user.email && copyToClipboard(license.user.email, 'Email')}
+            >
+              {license.user.email}
+              <Copy className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </p>
             <p className="text-gray-500 text-xs mt-1">ID: {license.userId}</p>
           </div>
           <div>
@@ -238,33 +265,62 @@ export function LicenseDetailsModal({ license, isOpen, onClose }: LicenseDetails
           </div>
         </div>
 
-        {/* Danger Zone */}
-        {!license.revoked && (
-          <div className="border border-red-900/30 rounded-lg p-4 bg-red-950/10 mt-8">
-            <h3 className="text-red-400 font-semibold flex items-center mb-2">
+        {/* Actions Zone */}
+        <div
+          className={`border rounded-lg p-4 mt-8 ${license.revoked ? 'border-green-900/30 bg-green-950/10' : 'border-red-900/30 bg-red-950/10'}`}
+        >
+          <h3
+            className={`${license.revoked ? 'text-green-400' : 'text-red-400'} font-semibold flex items-center mb-4`}
+          >
+            {license.revoked ? (
+              <RotateCw className="mr-2 h-5 w-5" />
+            ) : (
               <ShieldAlert className="mr-2 h-5 w-5" />
-              Zone de Danger
-            </h3>
-            <div className="flex justify-between items-center">
-              <p className="text-gray-400 text-sm">
-                Révoquer cette licence empêchera toute future validation. Cette action est
-                irréversible (pour le moment).
-              </p>
+            )}
+            {license.revoked ? 'Réactivation' : 'Zone de Danger'}
+          </h3>
+
+          <div className="flex flex-col gap-4">
+            <p className="text-gray-400 text-sm">
+              {license.revoked
+                ? "Cette licence est actuellement révoquée. Vous pouvez la réactiver pour permettre à l'utilisateur de s'en servir à nouveau."
+                : 'Révoquer cette licence empêchera toute future validation. Cette action est immédiate.'}
+            </p>
+
+            {license.revoked ? (
+              <Button
+                className="bg-green-900/50 hover:bg-green-900 border border-green-800 text-green-100 w-full"
+                onClick={handleReactivateLicense}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Réactivation...
+                  </>
+                ) : (
+                  'Réactiver la Licence'
+                )}
+              </Button>
+            ) : (
               <Button
                 variant="destructive"
-                className="bg-red-900/50 hover:bg-red-900 border border-red-800"
+                className="bg-red-900/50 hover:bg-red-900 border border-red-800 w-full"
                 onClick={handleRevokeLicense}
                 disabled={isLoading}
               >
                 {isLoading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Révocation...
+                  </>
                 ) : (
                   'Révoquer la Licence'
                 )}
               </Button>
-            </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </Modal>
   );

@@ -12,20 +12,29 @@ import {
   CheckCircle,
   Trash2,
 } from 'lucide-react';
+import { FaApple, FaWindows } from 'react-icons/fa';
 import { toast } from 'sonner';
 import { formatDistanceToNow, format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 interface UserLicenseCardProps {
   license: any;
+  userEmail?: string | null;
 }
 
-export function UserLicenseCard({ license }: UserLicenseCardProps) {
+export function UserLicenseCard({ license, userEmail }: UserLicenseCardProps) {
   const [isDeactivating, setIsDeactivating] = useState<string | null>(null);
 
   const handleCopyKey = () => {
     navigator.clipboard.writeText(license.licenseKey);
     toast.success('Clé de licence copiée !');
+  };
+
+  const handleCopyEmail = () => {
+    if (userEmail) {
+      navigator.clipboard.writeText(userEmail);
+      toast.success('Email copié !');
+    }
   };
 
   const handleDeactivate = async (machineId: string) => {
@@ -91,6 +100,28 @@ export function UserLicenseCard({ license }: UserLicenseCardProps) {
           </div>
         </div>
 
+        {/* Email Associé */}
+        {userEmail && (
+          <div className="bg-black/40 rounded-lg p-4 border border-white/5 mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div className="w-full">
+              <div className="text-xs text-gray-500 mb-1 uppercase tracking-wider">
+                Email Associé
+              </div>
+              <div className="text-lg md:text-xl font-mono text-purple-200 tracking-wider break-all">
+                {userEmail}
+              </div>
+            </div>
+            <Button
+              onClick={handleCopyEmail}
+              variant="secondary"
+              className="shrink-0 bg-white/5 hover:bg-white/10 border border-white/10 text-white"
+            >
+              <Copy className="w-4 h-4 mr-2" />
+              Copier
+            </Button>
+          </div>
+        )}
+
         {/* License Key */}
         <div className="bg-black/40 rounded-lg p-4 border border-white/5 mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="w-full">
@@ -135,17 +166,33 @@ export function UserLicenseCard({ license }: UserLicenseCardProps) {
           </div>
 
           <div className="bg-white/5 rounded-lg p-4 border border-white/5">
-            <div className="flex items-center gap-2 text-gray-400 mb-2">
+            <div className="flex items-center gap-2 text-gray-400 mb-3">
               <Download className="w-4 h-4" />
               <span className="text-sm">Téléchargements</span>
             </div>
-            <div className="text-white font-medium">
-              <a
-                href="/download"
-                className="text-blue-400 hover:text-blue-300 underline underline-offset-4"
+            <div className="flex flex-col gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                className="w-full justify-start bg-white/5 hover:bg-white/10 border border-white/10 text-white h-9"
+                onClick={() =>
+                  window.open(`/api/license/download?id=${license.id}&os=mac`, '_blank')
+                }
               >
-                Voir les installateurs
-              </a>
+                <FaApple className="w-4 h-4 mr-2 text-gray-300" />
+                <span className="text-xs">Mac (Universal)</span>
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="w-full justify-start bg-white/5 hover:bg-white/10 border border-white/10 text-white h-9"
+                onClick={() =>
+                  window.open(`/api/license/download?id=${license.id}&os=windows`, '_blank')
+                }
+              >
+                <FaWindows className="w-4 h-4 mr-2 text-blue-400" />
+                <span className="text-xs">Windows (x64)</span>
+              </Button>
             </div>
           </div>
         </div>
