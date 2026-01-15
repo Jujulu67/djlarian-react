@@ -40,7 +40,7 @@ export default async function LicensesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black pt-24 pb-12">
+    <div className="min-h-[calc(100vh-4rem)] bg-black pt-24 pb-12">
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
@@ -67,7 +67,11 @@ export default async function LicensesPage() {
           <div className="space-y-6">
             {userLicenses.length > 0 ? (
               userLicenses.map((license: any) => (
-                <UserLicenseCard key={license.id} license={license} />
+                <UserLicenseCard
+                  key={license.id}
+                  license={license}
+                  userEmail={session.user.email}
+                />
               ))
             ) : (
               <div className="bg-white/5 border border-white/10 rounded-xl p-10 text-center">

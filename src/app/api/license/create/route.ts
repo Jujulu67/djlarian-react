@@ -10,6 +10,7 @@ const createLicenseSchema = z
     email: z.string().email().optional(),
     type: z.enum(['STANDARD', 'EDU', 'NFR', 'BETA', 'LIFETIME']).default('STANDARD'),
     expirationDate: z.string().optional(), // ISO string
+    createIfMissing: z.boolean().optional().default(false),
   })
   .refine((data) => data.userId || data.email, {
     message: 'Either userId or email must be provided',
@@ -34,9 +35,25 @@ export async function POST(req: Request) {
         where: { email: validatedData.email },
       });
       if (!user) {
-        return new NextResponse('User not found with this email', { status: 404 });
+        if (validatedData.createIfMissing) {
+          // Create the user automatically
+          // Since we don't have a password, we can create it without one (if allowed by schema)
+          // Or set a random temporary one.
+          // Schema has `hashedPassword String?`, so we can leave it null.
+          const newUser = await prisma.user.create({
+            data: {
+              email: validatedData.email,
+              name: validatedData.email.split('@')[0], // Default name from email part
+              role: 'USER',
+            },
+          });
+          targetUserId = newUser.id;
+        } else {
+          return new NextResponse('User not found with this email', { status: 404 });
+        }
+      } else {
+        targetUserId = user.id;
       }
-      targetUserId = user.id;
     }
 
     if (!targetUserId) {
