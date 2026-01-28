@@ -95,7 +95,7 @@ GOOGLE_CLIENT_SECRET=votre_client_secret_google
 ### Étape 5 : Tester
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 Ouvrir http://localhost:3000 → Cliquer "Connexion" → Vérifier que le bouton **"Continuer avec Google"** apparaît.
@@ -143,7 +143,7 @@ TWITCH_CLIENT_SECRET=votre_client_secret_twitch
 ### Étape 4 : Tester
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 Ouvrir http://localhost:3000 → Cliquer "Connexion" → Vérifier que le bouton **"Continuer avec Twitch"** apparaît.
@@ -155,7 +155,7 @@ Ouvrir http://localhost:3000 → Cliquer "Connexion" → Vérifier que le bouton
 ### Vérifier la configuration
 
 ```bash
-npm run check-env
+pnpm run check-env
 ```
 
 Le script affichera :
@@ -190,7 +190,7 @@ Réponse attendue :
 **Solution** :
 
 1. Vérifier `.env.local` existe et contient les variables
-2. Redémarrer le serveur : `npm run dev`
+2. Redémarrer le serveur : `pnpm run dev`
 3. Vérifier via `/api/auth/providers`
 
 ### Erreur "redirect_uri_mismatch"
@@ -212,7 +212,7 @@ Réponse attendue :
 **Solution** :
 
 1. Vérifier que `DATABASE_URL` est configuré
-2. Appliquer les migrations : `npx prisma migrate deploy`
+2. Appliquer les migrations : `pnpm prisma migrate deploy`
 3. Vérifier les logs du serveur
 
 ---
@@ -264,7 +264,7 @@ Pour plus de détails, voir :
 
 - **Guide complet OAuth** : `docs/OAUTH_SETUP.md`
 - **Gestion des secrets** : `SECRETS_MANAGEMENT.md`
-- **Vérification env** : `npm run check-env`
+- **Vérification env** : `pnpm run check-env`
 
 ---
 

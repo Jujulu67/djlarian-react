@@ -28,7 +28,7 @@ node scripts/migrate-blob-images-to-db.mjs
 Si vous utilisez SQLite local, vous devrez peut-être recompiler better-sqlite3 :
 
 ```bash
-npm rebuild better-sqlite3
+pnpm rebuild better-sqlite3
 node scripts/migrate-blob-images-to-db.mjs
 ```
 

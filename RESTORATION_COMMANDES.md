@@ -67,7 +67,7 @@ psql "postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?ss
 
 ```bash
 # Tester que les garde-fous fonctionnent
-npm run test:db-safety
+pnpm run test:db-safety
 
 # Ou directement
 node scripts/test-db-safety-guards.mjs
@@ -77,10 +77,10 @@ node scripts/test-db-safety-guards.mjs
 
 ```bash
 # ❌ SANS protection (refusé automatiquement)
-npm run db:reset:local
+pnpm run db:reset:local
 
 # ✅ AVEC protection (requis)
-ALLOW_DB_WIPE_LOCAL=1 DB_WIPE_CONFIRM=$(date +%s) npm run db:reset:local
+ALLOW_DB_WIPE_LOCAL=1 DB_WIPE_CONFIRM=$(date +%s) pnpm run db:reset:local
 ```
 
 Le script demandera aussi une confirmation finale (taper "WIPE").
@@ -95,7 +95,7 @@ docker compose ps
 docker compose logs postgres | tail -20
 
 # Vérifier le statut des migrations
-npx prisma migrate status
+pnpm prisma migrate status
 
 # Tester la connexion
 psql "postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable" -c "SELECT 1;"
@@ -114,5 +114,5 @@ docker compose ps | grep postgres
 docker compose restart postgres
 
 # Vérifier les migrations
-npx prisma migrate status
+pnpm prisma migrate status
 ```

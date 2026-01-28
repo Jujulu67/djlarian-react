@@ -99,9 +99,9 @@ async function checkTables() {
     if (missingTables.length > 0) {
       console.log('   1. La migration a été marquée comme appliquée mais les tables n\'existent pas');
       console.log('   2. Résolvez la migration échouée:');
-      console.log('      npx prisma migrate resolve --rolled-back 20251128000927_init');
+      console.log('      pnpm prisma migrate resolve --rolled-back 20251128000927_init');
       console.log('   3. Réappliquez la migration:');
-      console.log('      npx prisma migrate deploy');
+      console.log('      pnpm prisma migrate deploy');
     } else {
       console.log('   ✅ La base de données semble correcte');
     }
@@ -111,7 +111,7 @@ async function checkTables() {
     if (error.code === 'P2021') {
       console.error('   La table _prisma_migrations n\'existe pas.');
       console.error('   La base de données n\'a jamais été migrée.');
-      console.error('   Exécutez: npx prisma migrate deploy');
+      console.error('   Exécutez: pnpm prisma migrate deploy');
     }
   } finally {
     await prisma.$disconnect();

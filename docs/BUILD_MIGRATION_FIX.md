@@ -47,9 +47,9 @@ Le build Vercel échouait à cause des migrations Prisma qui rencontraient des c
    🔄 Tentative de synchronisation avec 'prisma db push' (fallback)...
    ✅ Schéma synchronisé avec db push (fallback)
    💡 Pour résoudre manuellement après le build:
-      1. Vérifiez: npx prisma migrate status
-      2. Résolvez les migrations: npx prisma migrate resolve --applied <migration_name>
-      3. Réappliquez: npx prisma migrate deploy
+      1. Vérifiez: pnpm prisma migrate status
+      2. Résolvez les migrations: pnpm prisma migrate resolve --applied <migration_name>
+      3. Réappliquez: pnpm prisma migrate deploy
 ```
 
 ### ⚠️ Scénario 3 : Toutes les migrations échouent
@@ -73,13 +73,13 @@ Si vous voyez des avertissements dans les logs, vous pouvez résoudre les migrat
 
 ```bash
 # 1. Vérifier l'état
-npx prisma migrate status
+pnpm prisma migrate status
 
 # 2. Résoudre les migrations manquantes
-npx prisma migrate resolve --applied <migration_name>
+pnpm prisma migrate resolve --applied <migration_name>
 
 # 3. Appliquer les migrations en attente
-npx prisma migrate deploy
+pnpm prisma migrate deploy
 ```
 
 ## 📝 Notes Importantes

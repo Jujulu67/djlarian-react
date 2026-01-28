@@ -57,7 +57,7 @@ console.log('');
 console.log('🔍 Vérification de l\'état actuel...\n');
 
 try {
-  const statusOutput = execSync('PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma migrate status', {
+  const statusOutput = execSync('PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true pnpm prisma migrate status', {
     encoding: 'utf-8',
     cwd: rootDir,
     stdio: 'pipe'
@@ -90,7 +90,7 @@ console.log('🔧 Marquage des migrations baseline comme appliquées...\n');
 for (const migrationName of baselineMigrations) {
   try {
     console.log(`   📝 ${migrationName}...`);
-    execSync(`PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma migrate resolve --applied ${migrationName}`, {
+    execSync(`PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true pnpm prisma migrate resolve --applied ${migrationName}`, {
       encoding: 'utf-8',
       cwd: rootDir,
       stdio: 'pipe'
@@ -110,7 +110,7 @@ console.log('\n✅ Synchronisation terminée !');
 console.log('\n📝 Vérification finale:');
 
 try {
-  const finalStatus = execSync('PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma migrate status', {
+  const finalStatus = execSync('PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true pnpm prisma migrate status', {
     encoding: 'utf-8',
     cwd: rootDir,
     stdio: 'pipe'

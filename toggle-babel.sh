@@ -17,7 +17,7 @@ if [ "$1" == "dev" ]; then
   };
 };" > babel.config.js
     echo "✅ Mode développement: babel.config.js modifié pour ignorer tous les fichiers"
-    echo "⚙️  Vous pouvez maintenant lancer 'npm run dev'"
+    echo "⚙️  Vous pouvez maintenant lancer 'pnpm run dev'"
   else
     echo "🔍 babel.config.js non trouvé"
   fi
@@ -26,7 +26,7 @@ elif [ "$1" == "test" ]; then
   if [ -f "babel.config.js.full" ]; then
     cp babel.config.js.full babel.config.js
     echo "✅ Mode test: babel.config.js restauré à sa version complète"
-    echo "⚙️  Vous pouvez maintenant lancer 'npm test'"
+    echo "⚙️  Vous pouvez maintenant lancer 'pnpm test'"
   else
     echo "🔍 babel.config.js.full non trouvé. Vous devez d'abord exécuter ./toggle-babel.sh dev"
   fi

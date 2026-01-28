@@ -118,10 +118,10 @@ Le script `db:reset:local` nécessite maintenant:
 
 ```bash
 # ❌ SANS protection (refusé)
-npm run db:reset:local
+pnpm run db:reset:local
 
 # ✅ AVEC protection (requis)
-ALLOW_DB_WIPE_LOCAL=1 DB_WIPE_CONFIRM=$(date +%s) npm run db:reset:local
+ALLOW_DB_WIPE_LOCAL=1 DB_WIPE_CONFIRM=$(date +%s) pnpm run db:reset:local
 ```
 
 **Protections**:
@@ -201,7 +201,7 @@ node scripts/test-db-safety-guards.mjs
 2. **Vérifier les migrations**:
 
    ```bash
-   npx prisma migrate status
+   pnpm prisma migrate status
    ```
 
 3. **Vérifier la connexion**:

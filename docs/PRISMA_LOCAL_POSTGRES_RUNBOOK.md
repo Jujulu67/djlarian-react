@@ -62,7 +62,7 @@ DATABASE_URL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlaria
 5. **Bootstrap la base de données**:
 
 ```bash
-npm run prisma:bootstrap:local
+pnpm run prisma:bootstrap:local
 ```
 
 ### Commandes Utiles
@@ -130,7 +130,7 @@ DATABASE_URL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlaria
 4. **Bootstrap la base de données**:
 
 ```bash
-npm run prisma:bootstrap:local
+pnpm run prisma:bootstrap:local
 ```
 
 ### Commandes Utiles
@@ -165,7 +165,7 @@ dropdb -U djlarian djlarian_dev
 ### Bootstrap Local
 
 ```bash
-npm run prisma:bootstrap:local
+pnpm run prisma:bootstrap:local
 ```
 
 - Vérifie `DATABASE_URL`
@@ -177,32 +177,32 @@ npm run prisma:bootstrap:local
 
 ```bash
 # Créer une nouvelle migration
-npm run prisma:migrate:dev -- --name nom_migration
+pnpm run prisma:migrate:dev -- --name nom_migration
 
 # Appliquer les migrations (production-safe)
-npm run prisma:migrate:deploy
+pnpm run prisma:migrate:deploy
 
 # Vérifier l'état des migrations
-npx prisma migrate status
+pnpm prisma migrate status
 
 # Vérifier le drift
-npm run prisma:check:drift
+pnpm run prisma:check:drift
 ```
 
 ### Client Prisma
 
 ```bash
 # Générer le client
-npm run prisma:generate
+pnpm run prisma:generate
 
 # Valider le schéma et générer
-npm run prisma:check:client
+pnpm run prisma:check:client
 ```
 
 ### Studio (GUI)
 
 ```bash
-npm run db:studio
+pnpm run db:studio
 ```
 
 ---
@@ -244,10 +244,10 @@ psql -U djlarian -d djlarian_dev < projects.sql
 
 ```bash
 # Vérifier que les migrations sont appliquées
-npx prisma migrate status
+pnpm prisma migrate status
 
 # Si des migrations sont en attente:
-npm run prisma:migrate:deploy
+pnpm run prisma:migrate:deploy
 ```
 
 ### Erreur: "database does not exist"
@@ -273,12 +273,12 @@ docker-compose exec postgres createdb -U djlarian djlarian_dev
 # Docker
 docker-compose down -v
 docker-compose up -d
-npm run prisma:bootstrap:local
+pnpm run prisma:bootstrap:local
 
 # Natif
 dropdb -U djlarian djlarian_dev
 createdb -U djlarian djlarian_dev
-npm run prisma:bootstrap:local
+pnpm run prisma:bootstrap:local
 ```
 
 ---
@@ -289,16 +289,16 @@ npm run prisma:bootstrap:local
 
 ```bash
 # 1. Vérifier la connexion
-npx prisma db execute --stdin <<< "SELECT 1;"
+pnpm prisma db execute --stdin <<< "SELECT 1;"
 
 # 2. Vérifier les migrations
-npx prisma migrate status
+pnpm prisma migrate status
 
 # 3. Vérifier les tables
-npx prisma db execute --stdin <<< "\dt"
+pnpm prisma db execute --stdin <<< "\dt"
 
 # 4. Lancer l'app
-npm run dev
+pnpm run dev
 ```
 
 ---

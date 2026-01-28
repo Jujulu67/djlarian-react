@@ -138,13 +138,13 @@ async function diagnose() {
       
       console.log('   Option A: Rollback et réappliquer la migration');
       console.log('   ```bash');
-      console.log('   npx prisma migrate resolve --rolled-back 20251128000927_init');
-      console.log('   npx prisma migrate deploy');
+      console.log('   pnpm prisma migrate resolve --rolled-back 20251128000927_init');
+      console.log('   pnpm prisma migrate deploy');
       console.log('   ```\n');
       
       console.log('   Option B: Utiliser prisma db push (temporaire, pour tester)');
       console.log('   ```bash');
-      console.log('   npx prisma db push --accept-data-loss');
+      console.log('   pnpm prisma db push --accept-data-loss');
       console.log('   ```\n');
       
       console.log('   Option C: Créer une nouvelle migration baseline');
@@ -152,9 +152,9 @@ async function diagnose() {
       console.log('   # Supprimer l\'ancienne migration');
       console.log('   rm -rf prisma/migrations/20251128000927_init');
       console.log('   # Créer une nouvelle migration');
-      console.log('   npx prisma migrate dev --name init --create-only');
+      console.log('   pnpm prisma migrate dev --name init --create-only');
       console.log('   # Appliquer');
-      console.log('   npx prisma migrate deploy');
+      console.log('   pnpm prisma migrate deploy');
       console.log('   ```\n');
       
       // Lire le fichier de migration pour voir ce qui devrait être créé

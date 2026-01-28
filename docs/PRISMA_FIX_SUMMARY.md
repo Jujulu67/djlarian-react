@@ -91,20 +91,20 @@ grep 'provider =' prisma/schema.prisma
 # Doit afficher: provider = "postgresql"
 
 # Si ce n'est pas le cas:
-npm run prisma:fix:schema
+pnpm run prisma:fix:schema
 
 # 2. Vérifier que migration_lock.toml est en PostgreSQL
 grep 'provider =' prisma/migrations/migration_lock.toml
 # Doit afficher: provider = "postgresql"
 
 # Si ce n'est pas le cas:
-npm run prisma:fix:migration-lock
+pnpm run prisma:fix:migration-lock
 
 # 3. Bootstrap de la DB locale (applique les migrations manquantes)
-npm run prisma:bootstrap:local
+pnpm run prisma:bootstrap:local
 
 # 4. Vérifier que tout est OK
-npm run prisma:check:drift
+pnpm run prisma:check:drift
 ```
 
 ### Pour Appliquer la Migration AssistantConfirmation
@@ -113,20 +113,20 @@ npm run prisma:check:drift
 # La migration a déjà été créée: 20251214140000_add_assistant_confirmation
 # Il suffit de l'appliquer:
 
-npm run prisma:bootstrap:local
+pnpm run prisma:bootstrap:local
 ```
 
 ### Pour Vérifier l'État Actuel
 
 ```bash
 # État des migrations
-npx prisma migrate status
+pnpm prisma migrate status
 
 # Vérifier le drift
-npm run prisma:check:drift
+pnpm run prisma:check:drift
 
 # Valider le schéma
-npx prisma validate
+pnpm prisma validate
 ```
 
 ---
@@ -136,7 +136,7 @@ npx prisma validate
 ### 1. Vérifier que les Migrations Sont Appliquées
 
 ```bash
-npx prisma migrate status
+pnpm prisma migrate status
 # Doit afficher: "Database schema is up to date" ou "All migrations have been applied"
 ```
 
@@ -154,7 +154,7 @@ psql $DATABASE_URL_PRODUCTION -c "\dt" | grep AssistantConfirmation
 
 ```bash
 # Générer le client
-npm run prisma:generate
+pnpm run prisma:generate
 
 # Vérifier que assistantConfirmation est disponible
 node -e "const { PrismaClient } = require('@prisma/client'); const p = new PrismaClient(); console.log('assistantConfirmation:', !!p.assistantConfirmation);"
@@ -164,13 +164,13 @@ node -e "const { PrismaClient } = require('@prisma/client'); const p = new Prism
 
 ```bash
 # Tests assistant-router
-npm run test:assistant-router
+pnpm run test:assistant-router
 
 # Tests assistant-identity
-npm run test:assistant-identity
+pnpm run test:assistant-identity
 
 # Tests sans skips
-npm run test:no-skips
+pnpm run test:no-skips
 ```
 
 ### 5. Vérifier le CI
@@ -202,7 +202,7 @@ npm run test:no-skips
 
 ### Court Terme (Cette Semaine)
 
-1. ✅ Appliquer les migrations en local: `npm run prisma:bootstrap:local`
+1. ✅ Appliquer les migrations en local: `pnpm run prisma:bootstrap:local`
 2. ✅ Vérifier que la table AssistantConfirmation existe
 3. ✅ Tester que l'API batch-update fonctionne sans erreur P2021
 4. ✅ Vérifier que le CI passe
@@ -225,7 +225,7 @@ npm run test:no-skips
 
 ### Avant la Réparation
 
-- ❌ `schema.prisma` réécrit à chaque `npm run dev`
+- ❌ `schema.prisma` réécrit à chaque `pnpm run dev`
 - ❌ `migration_lock.toml` réécrit dynamiquement
 - ❌ Table `AssistantConfirmation` manquante (P2021)
 - ❌ 3 migrations non appliquées
@@ -267,11 +267,11 @@ En cas de problème:
 
 1. Consulter `docs/PRISMA_RUNBOOK.md` pour les procédures
 2. Vérifier `docs/AUDIT_PRISMA_PIPELINE.md` pour comprendre le contexte
-3. Exécuter `npm run prisma:check:drift` pour diagnostiquer
-4. Exécuter `npm run db:diagnose` pour la DB locale
-5. Exécuter `npm run db:diagnose-prod` pour la DB de production
+3. Exécuter `pnpm run prisma:check:drift` pour diagnostiquer
+4. Exécuter `pnpm run db:diagnose` pour la DB locale
+5. Exécuter `pnpm run db:diagnose-prod` pour la DB de production
 
 ---
 
 **Statut Final**: ✅ Implémentation Complète  
-**Prochaine Action**: Appliquer les migrations en local avec `npm run prisma:bootstrap:local`
+**Prochaine Action**: Appliquer les migrations en local avec `pnpm run prisma:bootstrap:local`

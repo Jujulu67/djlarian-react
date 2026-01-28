@@ -67,7 +67,7 @@ function applyMigrations() {
   console.log('🔄 Application des migrations...');
 
   try {
-    const output = execSync('npx prisma migrate deploy', {
+    const output = execSync('pnpm prisma migrate deploy', {
       stdio: 'pipe',
       cwd: rootDir,
       env: process.env,
@@ -89,9 +89,9 @@ function applyMigrations() {
     if (errorOutput.includes('P3009') || errorOutput.includes('failed migration')) {
       console.error('❌ Migration échouée détectée');
       console.error(
-        '   Résolvez-la avec: npx prisma migrate resolve --rolled-back <migration_name>'
+        '   Résolvez-la avec: pnpm prisma migrate resolve --rolled-back <migration_name>'
       );
-      console.error('   Puis réessayez: npm run prisma:bootstrap:local');
+      console.error('   Puis réessayez: pnpm run prisma:bootstrap:local');
       return false;
     }
 
@@ -108,7 +108,7 @@ function verifySchemaSync() {
   console.log('🔍 Vérification de la synchronisation du schéma...');
 
   try {
-    const output = execSync('npx prisma migrate status', {
+    const output = execSync('pnpm prisma migrate status', {
       stdio: 'pipe',
       cwd: rootDir,
       env: process.env,
@@ -154,7 +154,7 @@ function generateClient() {
   console.log('🔄 Génération du client Prisma...');
 
   try {
-    execSync('npx prisma generate', {
+    execSync('pnpm prisma generate', {
       stdio: 'pipe',
       cwd: rootDir,
     });
@@ -187,7 +187,7 @@ function main() {
   const schemaSynced = verifySchemaSync();
   if (!schemaSynced) {
     console.warn("⚠️  Le schéma n'est pas complètement synchronisé");
-    console.warn('   Vérifiez avec: npx prisma migrate status');
+    console.warn('   Vérifiez avec: pnpm prisma migrate status');
   }
 
   const clientGenerated = generateClient();

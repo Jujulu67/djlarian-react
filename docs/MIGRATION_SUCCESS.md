@@ -38,11 +38,11 @@ Les scripts de migration restent disponibles :
 
 ```bash
 # Migration complète
-npm run db:migrate:all
+pnpm run db:migrate:all
 
 # Ou étape par étape
-npm run db:migrate:production
-npm run db:migrate:blob-images
+pnpm run db:migrate:production
+pnpm run db:migrate:blob-images
 ```
 
 Les scripts sont **idempotents** : ils peuvent être exécutés plusieurs fois sans créer de doublons.

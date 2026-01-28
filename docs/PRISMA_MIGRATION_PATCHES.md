@@ -302,13 +302,13 @@ if (process.env.NODE_ENV !== 'production') {
 ### Avant (ligne 10)
 
 ```json
-    "dev": "bash scripts/ensure-sqlite-schema.sh && npx tsx scripts/update-hero-title.ts && NODE_OPTIONS='--import tsx' next dev",
+    "dev": "bash scripts/ensure-sqlite-schema.sh && pnpm tsx scripts/update-hero-title.ts && NODE_OPTIONS='--import tsx' next dev",
 ```
 
 ### Après (ligne 10)
 
 ```json
-    "dev": "npx tsx scripts/update-hero-title.ts && NODE_OPTIONS='--import tsx' next dev",
+    "dev": "pnpm tsx scripts/update-hero-title.ts && NODE_OPTIONS='--import tsx' next dev",
 ```
 
 ---
@@ -320,7 +320,7 @@ if (process.env.NODE_ENV !== 'production') {
     "db:local": "bash scripts/setup-local-db.sh",
     "db:production": "bash scripts/setup-production-db.sh",
     "db:setup:production-url": "bash scripts/setup-database-url-production.sh",
-    "db:reset:local": "rm -f prisma/dev.db && npm run db:setup:local",
+    "db:reset:local": "rm -f prisma/dev.db && pnpm run db:setup:local",
 ```
 
 ### Après (lignes 30-36)
@@ -332,7 +332,7 @@ if (process.env.NODE_ENV !== 'production') {
     "db:use:local": "echo 'DATABASE_URL_LOCAL doit être défini dans .env.local' && echo 'Utilisez le switch DB dans l\\'admin panel ou modifiez .env.local manuellement'",
     "db:use:test": "echo 'Pour les tests, utilisez une base PostgreSQL de test' && echo 'Configurez DATABASE_URL dans votre environnement de test'",
     "db:use:prod": "echo '⚠️  PROTECTION: Pour pointer vers prod, définissez ALLOW_PROD_DB=1 dans .env.local' && echo 'Utilisez le switch DB dans l\\'admin panel'",
-    "db:reset:local": "echo '⚠️  Pour reset PostgreSQL local:' && echo '  Docker: docker-compose down -v && docker-compose up -d && npm run db:bootstrap' && echo '  Natif: dropdb -U djlarian djlarian_dev && createdb -U djlarian djlarian_dev && npm run db:bootstrap'",
+    "db:reset:local": "echo '⚠️  Pour reset PostgreSQL local:' && echo '  Docker: docker-compose down -v && docker-compose up -d && pnpm run db:bootstrap' && echo '  Natif: dropdb -U djlarian djlarian_dev && createdb -U djlarian djlarian_dev && pnpm run db:bootstrap'",
 ```
 
 ---
@@ -367,7 +367,7 @@ DATABASE_URL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlaria
 EOF
 
 # 3. Bootstrap
-npm run db:bootstrap
+pnpm run db:bootstrap
 ```
 
 ### Vérification
@@ -378,11 +378,11 @@ grep 'provider =' prisma/schema.prisma
 # Attendu: provider = "postgresql"
 
 # Vérifier migrations
-npx prisma migrate status
+pnpm prisma migrate status
 # Attendu: "Database schema is up to date"
 
 # Lancer l'app
-npm run dev
+pnpm run dev
 ```
 
 ---

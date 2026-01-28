@@ -3,7 +3,7 @@
 /**
  * Script pour créer un compte admin pour le bot assistant IA
  *
- * Usage: npx tsx scripts/create-bot-admin.mjs
+ * Usage: pnpm tsx scripts/create-bot-admin.mjs
  */
 
 import { config } from 'dotenv';

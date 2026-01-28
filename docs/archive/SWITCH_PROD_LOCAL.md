@@ -79,14 +79,14 @@ export default function SettingsPage() {
 
 ### Option 3 : Script de basculement rapide
 
-Créer un script npm pour basculer rapidement :
+Créer un script pnpm pour basculer rapidement :
 
 ```json
 // package.json
 {
   "scripts": {
-    "db:switch:local": "npm run db:local",
-    "db:switch:prod": "npm run db:production && echo '⚠️ Vous utilisez maintenant la base de production'"
+    "db:switch:local": "pnpm run db:local",
+    "db:switch:prod": "pnpm run db:production && echo '⚠️ Vous utilisez maintenant la base de production'"
   }
 }
 ```

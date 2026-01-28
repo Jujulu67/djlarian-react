@@ -13,7 +13,7 @@ La table `Notification` n'existe pas en production alors que la migration a ét�
 Un script a été créé pour vérifier et créer la table `Notification` si elle n'existe pas :
 
 ```bash
-npm run db:fix-notification-table
+pnpm run db:fix-notification-table
 ```
 
 ## 🔍 Ce que fait le script
@@ -32,7 +32,7 @@ npm run db:fix-notification-table
 
    ```bash
    vercel env pull .env.local
-   npm run db:fix-notification-table
+   pnpm run db:fix-notification-table
    ```
 
 2. **Via Vercel Dashboard** :
@@ -47,7 +47,7 @@ npm run db:fix-notification-table
 export DATABASE_URL="votre-connection-string-production"
 
 # Exécuter le script
-npm run db:fix-notification-table
+pnpm run db:fix-notification-table
 ```
 
 ## 🔒 Sécurité
@@ -75,4 +75,4 @@ Pour éviter ce problème à l'avenir :
 ---
 
 **Script** : `scripts/fix-notification-table.mjs`
-**Commande** : `npm run db:fix-notification-table`
+**Commande** : `pnpm run db:fix-notification-table`

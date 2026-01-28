@@ -52,7 +52,7 @@ Les migrations devraient maintenant fonctionner après les corrections :
 **Option 1 : Utiliser `prisma db push`** (recommandé pour SQLite)
 
 ```bash
-npx prisma db push
+pnpm prisma db push
 ```
 
 Cette commande synchronise le schéma sans utiliser les migrations, ce qui évite les problèmes de compatibilité.

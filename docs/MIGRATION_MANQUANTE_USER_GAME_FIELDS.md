@@ -29,10 +29,10 @@ Pour appliquer cette migration en production :
 
 ```bash
 # Option 1: Utiliser le script de migration production
-npm run db:migrate:production
+pnpm run db:migrate:production
 
 # Option 2: Appliquer manuellement avec Prisma
-npx prisma migrate deploy
+pnpm prisma migrate deploy
 ```
 
 ## Vérification

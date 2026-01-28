@@ -1,8 +1,8 @@
 # Database Operation Rules
 
 ## Prisma Migrations & Schema Changes
-- **ALWAYS** prefer using `npx prisma db push` for schema updates during development.
-- **NEVER** run `npx prisma migrate dev` or `prisma migrate reset` without checking strictly if it will cause data loss.
+- **ALWAYS** prefer using `pnpm prisma db push` for schema updates during development.
+- **NEVER** run `pnpm prisma migrate dev` or `prisma migrate reset` without checking strictly if it will cause data loss.
 - **NEVER** use `scripts/reset-db-local-safe.sh` unless the user has **explicitly** requested a full database wipe/reset/start-over knowing that data will be lost.
 - If a migration command suggests a database reset, **STOP** and ask the user for confirmation or switch to `db push`.
 

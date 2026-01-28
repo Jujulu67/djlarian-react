@@ -63,7 +63,7 @@ echo ""
 
 # Utiliser migrate dev avec --create-only pour créer la migration sans l'appliquer
 # Puis on utilisera migrate resolve pour la marquer comme appliquée si la DB existe déjà
-npx prisma migrate dev --name init --create-only || {
+pnpm prisma migrate dev --name init --create-only || {
     echo "❌ Erreur lors de la création de la migration"
     echo "   Vérifiez que le schéma est valide et que DATABASE_URL est correcte"
     exit 1
@@ -75,9 +75,9 @@ echo ""
 echo "📝 Prochaines étapes:"
 echo "   1. Vérifiez le fichier SQL généré dans prisma/migrations/"
 echo "   2. Si la base de données existe déjà, marquez la migration comme appliquée:"
-echo "      npx prisma migrate resolve --applied init"
+echo "      pnpm prisma migrate resolve --applied init"
 echo "   3. Sinon, appliquez la migration:"
-echo "      npx prisma migrate deploy"
+echo "      pnpm prisma migrate deploy"
 echo "   4. Commitez les migrations dans Git:"
 echo "      git add prisma/migrations/"
 echo "      git commit -m 'Add Prisma migrations for PostgreSQL'"

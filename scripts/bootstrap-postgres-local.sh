@@ -94,19 +94,19 @@ echo ""
 
 # Appliquer les migrations
 echo "🔄 Application des migrations..."
-if npx prisma migrate deploy > /dev/null 2>&1; then
+if pnpm prisma migrate deploy > /dev/null 2>&1; then
   echo "✅ Migrations appliquées"
 else
   # Afficher l'erreur complète
   echo "⚠️  Erreur lors de l'application des migrations:"
-  npx prisma migrate deploy || {
+  pnpm prisma migrate deploy || {
     echo ""
     echo "❌ Échec de l'application des migrations"
     echo ""
     echo "Vérifiez:"
     echo "  1. Que PostgreSQL est démarré"
     echo "  2. Que DATABASE_URL est correct"
-    echo "  3. L'état des migrations: npx prisma migrate status"
+    echo "  3. L'état des migrations: pnpm prisma migrate status"
     exit 1
   }
 fi
@@ -115,10 +115,10 @@ echo ""
 
 # Générer le client Prisma
 echo "🔄 Génération du client Prisma..."
-if npx prisma generate > /dev/null 2>&1; then
+if pnpm prisma generate > /dev/null 2>&1; then
   echo "✅ Client Prisma généré"
 else
-  npx prisma generate || {
+  pnpm prisma generate || {
     echo "❌ Échec de la génération du client Prisma"
     exit 1
   }
@@ -135,6 +135,6 @@ echo ""
 echo "✅ Bootstrap terminé avec succès!"
 echo ""
 echo "📝 Prochaines étapes:"
-echo "   npm run dev          # Démarrer l'application"
-echo "   npm run db:studio    # Ouvrir Prisma Studio"
+echo "   pnpm run dev          # Démarrer l'application"
+echo "   pnpm run db:studio    # Ouvrir Prisma Studio"
 echo ""

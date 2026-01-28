@@ -39,7 +39,7 @@ try {
   });
 } catch (error) {
   console.error('❌ Erreur lors de l\'initialisation de PrismaClient:', error.message);
-  console.error('   Assurez-vous que le client Prisma est généré: npx prisma generate');
+  console.error('   Assurez-vous que le client Prisma est généré: pnpm prisma generate');
   process.exit(1);
 }
 

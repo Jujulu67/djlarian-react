@@ -29,20 +29,20 @@ fi
 
 # Exécuter les migrations (non-bloquant pour le build)
 echo "📋 Migration de la base de données..."
-if npm run db:migrate:production 2>&1; then
+if pnpm run db:migrate:production 2>&1; then
   echo "✅ Migration DB réussie"
 else
   echo "⚠️  Erreur lors de la migration DB (non-bloquant pour le build)"
-  echo "   Vous pouvez réexécuter manuellement: npm run db:migrate:production"
+  echo "   Vous pouvez réexécuter manuellement: pnpm run db:migrate:production"
 fi
 
 echo ""
 echo "📸 Migration des images blob..."
-if npm run db:migrate:blob-images 2>&1; then
+if pnpm run db:migrate:blob-images 2>&1; then
   echo "✅ Migration images blob réussie"
 else
   echo "⚠️  Erreur lors de la migration images blob (non-bloquant pour le build)"
-  echo "   Vous pouvez réexécuter manuellement: npm run db:migrate:blob-images"
+  echo "   Vous pouvez réexécuter manuellement: pnpm run db:migrate:blob-images"
 fi
 
 echo ""

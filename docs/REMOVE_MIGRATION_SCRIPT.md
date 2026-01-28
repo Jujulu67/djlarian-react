@@ -52,11 +52,11 @@ Si vous avez besoin de réexécuter la migration plus tard :
 
 ```bash
 # Migration manuelle
-npm run db:migrate:all
+pnpm run db:migrate:all
 
 # Ou étape par étape
-npm run db:migrate:production
-npm run db:migrate:blob-images
+pnpm run db:migrate:production
+pnpm run db:migrate:blob-images
 ```
 
 Les scripts de migration restent disponibles dans `package.json` même après avoir retiré le script du build.

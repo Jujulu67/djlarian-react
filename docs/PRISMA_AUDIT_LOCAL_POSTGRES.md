@@ -357,7 +357,7 @@ grep 'provider =' prisma/schema.prisma
 grep 'provider =' prisma/migrations/migration_lock.toml
 
 # Vérifier migrations
-npx prisma migrate status
+pnpm prisma migrate status
 
 # Vérifier switch DB
 cat .db-switch.json 2>/dev/null || echo "Pas de switch"
@@ -370,10 +370,10 @@ cat .db-switch.json 2>/dev/null || echo "Pas de switch"
 grep 'provider = "postgresql"' prisma/schema.prisma
 
 # Vérifier que migrations s'appliquent
-npx prisma migrate deploy
+pnpm prisma migrate deploy
 
 # Vérifier drift
-npx prisma migrate status
+pnpm prisma migrate status
 ```
 
 ---

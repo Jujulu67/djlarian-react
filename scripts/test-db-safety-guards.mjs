@@ -44,7 +44,7 @@ test('db:reset:local refuse sans ALLOW_DB_WIPE_LOCAL', () => {
     delete env.ALLOW_DB_WIPE_LOCAL;
     delete env.DB_WIPE_CONFIRM;
 
-    execSync('npm run db:reset:local', {
+    execSync('pnpm run db:reset:local', {
       cwd: rootDir,
       env,
       stdio: 'pipe',
@@ -71,7 +71,7 @@ test('db:reset:local refuse sans DB_WIPE_CONFIRM', () => {
     const env = { ...process.env, ALLOW_DB_WIPE_LOCAL: '1' };
     delete env.DB_WIPE_CONFIRM;
 
-    execSync('npm run db:reset:local', {
+    execSync('pnpm run db:reset:local', {
       cwd: rootDir,
       env,
       stdio: 'pipe',
@@ -114,7 +114,7 @@ test('db:reset:local refuse si le switch de production est activé', () => {
         'postgresql://djlarian:djlarian_dev_password@localhost:5433/djlarian_dev?sslmode=disable',
     };
 
-    execSync('npm run db:reset:local', {
+    execSync('pnpm run db:reset:local', {
       cwd: rootDir,
       env,
       stdio: 'pipe',
@@ -162,7 +162,7 @@ test('db:reset:local refuse si DATABASE_URL pointe vers prod', () => {
       DATABASE_URL: 'postgresql://user:pass@neon.tech/prod?sslmode=require',
     };
 
-    const result = execSync('npm run db:reset:local', {
+    const result = execSync('pnpm run db:reset:local', {
       cwd: rootDir,
       env,
       stdio: 'pipe',

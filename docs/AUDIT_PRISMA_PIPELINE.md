@@ -41,7 +41,7 @@
 
 **Impact**:
 
-- Le fichier `schema.prisma` est modifié à chaque exécution de `npm run dev` ou `npm run build`
+- Le fichier `schema.prisma` est modifié à chaque exécution de `pnpm run dev` ou `pnpm run build`
 - Les migrations créées en dev peuvent ne pas correspondre à la prod
 - Drift silencieux entre les environnements
 
@@ -86,7 +86,7 @@ fi
 **Preuve**:
 
 ```bash
-$ npx prisma migrate status
+$ pnpm prisma migrate status
 Following migrations have not yet been applied:
 20251206000000_add_slot_machine_tokens
 20251210000000_add_user_game_fields
@@ -98,8 +98,8 @@ Following migrations have not yet been applied:
 **Où**:
 
 - `package.json` → `postinstall`: `prisma generate` (ligne 13)
-- `scripts/ensure-sqlite-schema.sh`: `npx prisma generate` (ligne 193)
-- `scripts/ensure-postgresql-schema.sh`: `npx prisma generate` (lignes 224, 692, 818)
+- `scripts/ensure-sqlite-schema.sh`: `pnpm prisma generate` (ligne 193)
+- `scripts/ensure-postgresql-schema.sh`: `pnpm prisma generate` (lignes 224, 692, 818)
 - `src/lib/prisma.ts`: Pas de génération, utilise le client généré
 
 **Problème**:
@@ -118,7 +118,7 @@ Following migrations have not yet been applied:
 
 **Cause**:
 
-- `npm run dev` exécute `ensure-sqlite-schema.sh` qui ne vérifie pas/applique pas les migrations
+- `pnpm run dev` exécute `ensure-sqlite-schema.sh` qui ne vérifie pas/applique pas les migrations
 - Les développeurs doivent manuellement exécuter `prisma migrate dev`
 
 ### 6. **Utilisation de `db push` comme Fallback** ⚠️ DANGEREUX
@@ -166,7 +166,7 @@ Following migrations have not yet been applied:
 
 ```bash
 # À exécuter pour vérifier
-npx prisma migrate diff \
+pnpm prisma migrate diff \
   --from-schema-datamodel prisma/schema.prisma \
   --to-schema-datasource prisma/schema.prisma \
   --script
@@ -182,7 +182,7 @@ npx prisma migrate diff \
 #### Migrations vs DB Locale
 
 ```bash
-$ npx prisma migrate status
+$ pnpm prisma migrate status
 # Résultat: 3 migrations non appliquées
 ```
 
@@ -225,7 +225,7 @@ $ npx prisma migrate status
 
 ### Phase 2: Workflow Stable
 
-1. ✅ Scripts npm clairs pour chaque environnement
+1. ✅ Scripts pnpm clairs pour chaque environnement
 2. ✅ Documentation du workflow
 3. ✅ Garde-fous CI
 
@@ -241,13 +241,13 @@ $ npx prisma migrate status
 ### Vérifier l'état des migrations
 
 ```bash
-npx prisma migrate status
+pnpm prisma migrate status
 ```
 
 ### Vérifier le drift
 
 ```bash
-npx prisma migrate diff \
+pnpm prisma migrate diff \
   --from-schema-datamodel prisma/schema.prisma \
   --to-schema-datasource prisma/schema.prisma \
   --script
@@ -256,8 +256,8 @@ npx prisma migrate diff \
 ### Vérifier que le client est à jour
 
 ```bash
-npx prisma validate
-npx prisma generate
+pnpm prisma validate
+pnpm prisma generate
 ```
 
 ### Lister les tables en DB locale

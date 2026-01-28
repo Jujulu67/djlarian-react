@@ -27,7 +27,7 @@ fi
 # Vérifier que la base SQLite existe
 if [ ! -f "prisma/dev.db" ]; then
     echo "📦 Création de la base SQLite..."
-    npm run db:setup:local
+    pnpm run db:setup:local
 fi
 
 echo "💡 Pour restaurer les données, vous pouvez :"
@@ -35,7 +35,7 @@ echo "   1. Utiliser Prisma Studio pour copier manuellement les données"
 echo "   2. Ou utiliser un outil de conversion PostgreSQL → SQLite"
 echo ""
 echo "   Option recommandée :"
-echo "   npx prisma studio"
+echo "   pnpm prisma studio"
 echo "   (Ouvrir les deux bases et copier les données)"
 echo ""
 

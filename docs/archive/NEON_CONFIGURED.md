@@ -64,7 +64,7 @@ Pour tester que Neon fonctionne localement :
 
 ```bash
 # Tester la connection
-npx prisma studio
+pnpm prisma studio
 ```
 
 Cela ouvrira Prisma Studio et vous pourrez voir vos tables dans la base Neon.

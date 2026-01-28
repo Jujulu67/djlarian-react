@@ -24,13 +24,13 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm ci
 
       - name: Check for skipped tests (no .skip/.only allowed)
-        run: npm run test:no-skips
+        run: pnpm run test:no-skips
 
       - name: Test Assistant Router (must pass)
-        run: npm run test:assistant-router
+        run: pnpm run test:assistant-router
 
       - name: Test Assistant Identity (must pass - canary test)
-        run: npm run test:assistant-identity
+        run: pnpm run test:assistant-identity

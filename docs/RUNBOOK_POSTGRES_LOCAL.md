@@ -22,9 +22,9 @@ DATABASE_URL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlaria
 ### 3. Bootstrap Schéma
 
 ```bash
-npm run prisma:generate
-npx prisma migrate deploy
-npx prisma migrate status
+pnpm run prisma:generate
+pnpm prisma migrate deploy
+pnpm prisma migrate status
 ```
 
 ## 📋 Commandes Utiles
@@ -33,33 +33,33 @@ npx prisma migrate status
 
 ```bash
 # Générer Prisma Client
-npm run prisma:generate
+pnpm run prisma:generate
 
 # Appliquer migrations
-npx prisma migrate deploy
+pnpm prisma migrate deploy
 
 # Vérifier statut migrations
-npx prisma migrate status
+pnpm prisma migrate status
 
 # Valider schema
-npx prisma validate
+pnpm prisma validate
 
 # Prisma Studio (GUI)
-npm run db:studio
+pnpm run db:studio
 ```
 
 ### Reset Local
 
 ```bash
 # Reset complet (wipe volume Docker + réappliquer migrations)
-npm run db:reset:local
+pnpm run db:reset:local
 
 # Équivalent manuel
 docker compose down -v
 docker compose up -d
 sleep 3
 export DATABASE_URL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable"
-npx prisma migrate deploy
+pnpm prisma migrate deploy
 ```
 
 ### Backup & Restore
@@ -115,7 +115,7 @@ psql "$DATABASE_URL" -c "SELECT COUNT(*) FROM \"Project\";"
 
 ```bash
 # Statut des migrations
-npx prisma migrate status
+pnpm prisma migrate status
 
 # Historique des migrations appliquées
 psql "$DATABASE_URL" -c "SELECT * FROM \"_prisma_migrations\" ORDER BY finished_at DESC LIMIT 10;"
@@ -140,7 +140,7 @@ docker compose restart postgres
 
 ```bash
 # Les migrations ne sont pas appliquées
-npx prisma migrate deploy
+pnpm prisma migrate deploy
 
 # Vérifier que les tables existent
 psql "$DATABASE_URL" -c "\dt"
@@ -169,7 +169,7 @@ docker compose down -v
 docker compose up -d
 
 # Réappliquer migrations
-npm run db:bootstrap
+pnpm run db:bootstrap
 ```
 
 ## 📊 Monitoring

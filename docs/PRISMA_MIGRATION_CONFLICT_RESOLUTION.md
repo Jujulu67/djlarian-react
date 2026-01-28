@@ -36,9 +36,9 @@ Si les migrations dans la DB sont déjà appliquées et fonctionnent correctemen
 export DATABASE_URL="votre-connection-string-postgresql"
 
 # Marquer chaque migration manquante comme appliquée
-npx prisma migrate resolve --applied 20250424125117_init
-npx prisma migrate resolve --applied 20250426202133_add_publish_at_to_event
-npx prisma migrate resolve --applied 20250426205234_add_publish_at_to_track
+pnpm prisma migrate resolve --applied 20250424125117_init
+pnpm prisma migrate resolve --applied 20250426202133_add_publish_at_to_event
+pnpm prisma migrate resolve --applied 20250426205234_add_publish_at_to_track
 ```
 
 ### Option 2 : Créer des migrations baseline
@@ -57,9 +57,9 @@ mkdir -p prisma/migrations/20250426205234_add_publish_at_to_track
 echo "-- Baseline migration (already applied in production)" > prisma/migrations/20250426205234_add_publish_at_to_track/migration.sql
 
 # 2. Marquer ces migrations comme appliquées
-npx prisma migrate resolve --applied 20250424125117_init
-npx prisma migrate resolve --applied 20250426202133_add_publish_at_to_event
-npx prisma migrate resolve --applied 20250426205234_add_publish_at_to_track
+pnpm prisma migrate resolve --applied 20250424125117_init
+pnpm prisma migrate resolve --applied 20250426202133_add_publish_at_to_event
+pnpm prisma migrate resolve --applied 20250426205234_add_publish_at_to_track
 ```
 
 ### Option 3 : Vérifier l'état actuel
@@ -67,7 +67,7 @@ npx prisma migrate resolve --applied 20250426205234_add_publish_at_to_track
 Pour voir l'état actuel des migrations :
 
 ```bash
-npx prisma migrate status
+pnpm prisma migrate status
 ```
 
 ## 🚨 Migrations Échouées
@@ -76,10 +76,10 @@ Si une migration a échoué, vous pouvez la résoudre avec :
 
 ```bash
 # Si la migration doit être réappliquée
-npx prisma migrate resolve --rolled-back <migration_name>
+pnpm prisma migrate resolve --rolled-back <migration_name>
 
 # Si la migration est déjà appliquée (partiellement)
-npx prisma migrate resolve --applied <migration_name>
+pnpm prisma migrate resolve --applied <migration_name>
 ```
 
 ## 📝 Notes Importantes
@@ -95,7 +95,7 @@ Après avoir résolu le conflit, vérifiez que tout fonctionne :
 
 ```bash
 # Vérifier l'état des migrations
-npx prisma migrate status
+pnpm prisma migrate status
 
 # Devrait afficher : "Database schema is up to date"
 ```

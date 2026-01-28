@@ -543,7 +543,7 @@ Lines        : 66.88% ( 6770/10122 )
 
 - Dossier de tests : `./e2e`
 - BaseURL : `http://localhost:3000`
-- Démarrage automatique du serveur dev (`npm run dev`)
+- Démarrage automatique du serveur dev (`pnpm run dev`)
 - Réutilisation du serveur existant si disponible
 - Support Chromium (Firefox/WebKit commentés)
 - Timeout : 30s par test
@@ -563,12 +563,12 @@ Lines        : 66.88% ( 6770/10122 )
 
 ---
 
-### 4. Scripts npm ajoutés ✅
+### 4. Scripts pnpm ajoutés ✅
 
 ```json
-"test:e2e": "npx playwright test",
-"test:e2e:ui": "npx playwright test --ui",
-"test:e2e:debug": "npx playwright test --debug"
+"test:e2e": "pnpm playwright test",
+"test:e2e:ui": "pnpm playwright test --ui",
+"test:e2e:debug": "pnpm playwright test --debug"
 ```
 
 ---
@@ -581,7 +581,7 @@ Lines        : 66.88% ( 6770/10122 )
 | `playwright.config.ts` | Configuration     | ✅ Créé    |
 | `e2e/README.md`        | Documentation     | ✅ Créé    |
 | `e2e/tsconfig.json`    | Config TypeScript | ✅ Créé    |
-| Scripts npm            | 3 scripts         | ✅ Ajoutés |
+| Scripts pnpm           | 3 scripts         | ✅ Ajoutés |
 
 **Tests E2E:** 3 tests créés et **tous passent** ✅ (login réussi, rejet password invalide, rejet email inexistant)
 
@@ -631,7 +631,7 @@ Lines        : 66.88% ( 6770/10122 )
 ✅ **Smoke Test E2E créé** pour le Login  
 ✅ **Configuration Playwright complète**  
 ✅ **Documentation détaillée**  
-✅ **Scripts npm ajoutés** pour faciliter l'exécution  
+✅ **Scripts pnpm ajoutés** pour faciliter l'exécution  
 ✅ **Pattern Setup/Teardown** implémenté
 
 ### Points Forts
@@ -646,7 +646,7 @@ Lines        : 66.88% ( 6770/10122 )
 ⚠️ **Prérequis:** Les tests nécessitent que le schéma de la base de données soit à jour :
 
 ```bash
-npm run db:setup:local  # Pour SQLite local
+pnpm run db:setup:local  # Pour SQLite local
 ```
 
 ⚠️ **Serveur dev:** Playwright démarre automatiquement le serveur ou réutilise un serveur existant sur le port 3000.

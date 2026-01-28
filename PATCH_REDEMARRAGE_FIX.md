@@ -118,7 +118,7 @@
 
 ### Étapes de test:
 
-1. Lancer `npm run dev:auto`
+1. Lancer `pnpm run dev:auto`
 2. Aller sur `/admin/configuration`
 3. Déclencher plusieurs switchs DB (prod → local → prod → local)
 4. Vérifier dans les logs:

@@ -68,18 +68,18 @@ Ces migrations étaient des doublons vides créés par erreur.
 1. **Créer des migrations baseline** :
 
    ```bash
-   npm run db:create-baselines
+   pnpm run db:create-baselines
    ```
 
 2. **Nettoyer les doublons** :
 
    ```bash
-   npm run db:cleanup-duplicates
+   pnpm run db:cleanup-duplicates
    ```
 
 3. **Analyser l'état des migrations** :
    ```bash
-   npm run db:analyze-migrations
+   pnpm run db:analyze-migrations
    ```
 
 ### Processus Automatique

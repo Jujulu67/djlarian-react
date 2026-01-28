@@ -78,7 +78,7 @@ Le fichier `migration_lock.toml` doit être :
 Avant de push une nouvelle migration :
 
 1. ✅ Vérifier que `migration_lock.toml` est en `sqlite`
-2. ✅ Tester la migration en local : `npx prisma migrate dev`
+2. ✅ Tester la migration en local : `pnpm prisma migrate dev`
 3. ✅ Vérifier que le SQL est compatible PostgreSQL
 4. ✅ Le build Vercel mettra automatiquement `migration_lock.toml` en `postgresql`
 
@@ -86,15 +86,15 @@ Avant de push une nouvelle migration :
 
 ```bash
 # Vérifier l'alignement SQLite ↔ PostgreSQL
-npm run db:verify-alignment
+pnpm run db:verify-alignment
 
 # Synchroniser les migrations baseline
-npm run db:sync-sqlite-baselines
+pnpm run db:sync-sqlite-baselines
 ```
 
 ## 📝 Prochaines Étapes
 
-1. ✅ **Créer de nouvelles migrations** : Utiliser `npx prisma migrate dev` en local
+1. ✅ **Créer de nouvelles migrations** : Utiliser `pnpm prisma migrate dev` en local
 2. ✅ **Vérifier la compatibilité** : S'assurer que le SQL fonctionne avec PostgreSQL
 3. ✅ **Push et déployer** : Le build Vercel appliquera automatiquement les migrations
 

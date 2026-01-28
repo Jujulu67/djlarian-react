@@ -346,11 +346,11 @@ git commit -m "feat: add preview diffs for confirmations"
 
 ```bash
 # Tests existants (doivent toujours passer)
-npm run test:assistant-router
+pnpm run test:assistant-router
 
 # Tests à ajouter (recommandé)
-npm test -- src/lib/assistant/router/__tests__/router.requestid.test.ts
-npm test -- src/lib/assistant/router/__tests__/router.previewdiff.test.ts
+pnpm test -- src/lib/assistant/router/__tests__/router.requestid.test.ts
+pnpm test -- src/lib/assistant/router/__tests__/router.previewdiff.test.ts
 ```
 
 ---

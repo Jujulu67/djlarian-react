@@ -31,7 +31,7 @@ DATABASE_URL="votre-database-url-de-vercel" \
 ADMIN_EMAIL="votre-email@example.com" \
 ADMIN_PASSWORD="VotreMotDePasseSecurise123!" \
 ADMIN_NAME="Votre Nom" \
-npx tsx scripts/create-admin.ts
+pnpm tsx scripts/create-admin.ts
 ```
 
 **Où trouver la DATABASE_URL** :
@@ -95,7 +95,7 @@ setAdmin();
 ### Étape 2 : Exécuter
 
 ```bash
-DATABASE_URL="votre-database-url-de-vercel" npx tsx scripts/set-admin.ts
+DATABASE_URL="votre-database-url-de-vercel" pnpm tsx scripts/set-admin.ts
 ```
 
 ---
@@ -219,7 +219,7 @@ Une fois l'admin créé :
 # 1. Modifier scripts/create-admin.ts avec vos infos
 # 2. Exécuter avec la DATABASE_URL de production
 DATABASE_URL="postgresql://neondb_owner:xxx@ep-xxx.eu-central-1.aws.neon.tech/neondb?sslmode=require" \
-  npx tsx scripts/create-admin.ts
+  pnpm tsx scripts/create-admin.ts
 
 # 3. Résultat attendu :
 # ✅ Administrateur créé: { id: '...', email: '...', role: 'ADMIN' }

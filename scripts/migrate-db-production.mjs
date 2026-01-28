@@ -42,7 +42,7 @@ try {
   // 1. Vérifier le drift
   console.log('📋 Vérification du drift de migration...');
   try {
-    const driftCheck = execSync('npx prisma migrate status', {
+    const driftCheck = execSync('pnpm prisma migrate status', {
       encoding: 'utf-8',
       stdio: 'pipe',
       cwd: rootDir,
@@ -55,7 +55,7 @@ try {
       console.error('   Vérifiez les migrations manquantes avant de continuer.');
       console.error('\n   Pour résoudre le drift:');
       console.error('   1. Vérifiez que toutes les migrations sont appliquées');
-      console.error('   2. Ou utilisez: npx prisma migrate resolve --applied <migration_name>');
+      console.error('   2. Ou utilisez: pnpm prisma migrate resolve --applied <migration_name>');
       process.exit(1);
     } else {
       // Autre erreur, continuer quand même
@@ -66,7 +66,7 @@ try {
   // 2. Appliquer les migrations
   console.log('💾 Application des migrations...');
   try {
-    execSync('npx prisma migrate deploy', {
+    execSync('pnpm prisma migrate deploy', {
       encoding: 'utf-8',
       stdio: 'inherit',
       cwd: rootDir,

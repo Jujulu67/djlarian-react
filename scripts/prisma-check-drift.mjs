@@ -18,7 +18,7 @@ const rootDir = process.cwd();
 function validateSchema() {
   console.log('🔍 Validation du schéma Prisma...');
   try {
-    execSync('npx prisma validate', { stdio: 'pipe', cwd: rootDir });
+    execSync('pnpm prisma validate', { stdio: 'pipe', cwd: rootDir });
     console.log('✅ Schéma Prisma valide');
     return true;
   } catch (error) {
@@ -48,7 +48,7 @@ function checkDrift(databaseUrl) {
   try {
     // Utiliser migrate diff pour détecter le drift
     const output = execSync(
-      `npx prisma migrate diff --from-schema-datamodel prisma/schema.prisma --to-schema-datasource prisma/schema.prisma --script`,
+      `pnpm prisma migrate diff --from-schema-datamodel prisma/schema.prisma --to-schema-datasource prisma/schema.prisma --script`,
       {
         stdio: 'pipe',
         cwd: rootDir,
@@ -91,7 +91,7 @@ function checkMigrationsStatus() {
   console.log("🔍 Vérification de l'état des migrations...");
 
   try {
-    const output = execSync('npx prisma migrate status', {
+    const output = execSync('pnpm prisma migrate status', {
       stdio: 'pipe',
       cwd: rootDir,
     });
@@ -138,7 +138,7 @@ function checkClientGeneration() {
   console.log('🔍 Vérification de la génération du client Prisma...');
 
   try {
-    execSync('npx prisma generate', { stdio: 'pipe', cwd: rootDir });
+    execSync('pnpm prisma generate', { stdio: 'pipe', cwd: rootDir });
     console.log('✅ Client Prisma généré avec succès');
     return true;
   } catch (error) {

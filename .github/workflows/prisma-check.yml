@@ -24,7 +24,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm ci
 
       - name: Check Prisma Schema (PostgreSQL source of truth)
         run: |
@@ -47,10 +47,10 @@ jobs:
           fi
 
       - name: Validate Prisma Schema
-        run: npx prisma validate
+        run: pnpm prisma validate
 
       - name: Check Prisma Client Generation
-        run: npx prisma generate
+        run: pnpm prisma generate
 
       - name: Check for Drift (schema vs migrations)
         run: |

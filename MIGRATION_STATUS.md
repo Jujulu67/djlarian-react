@@ -8,10 +8,10 @@
 
 2. ✅ **Schema.prisma validé**
    - `provider = "postgresql"` ✅
-   - `npx prisma validate` passe ✅
+   - `pnpm prisma validate` passe ✅
 
 3. ✅ **Prisma Client généré**
-   - `npm run prisma:generate` réussi ✅
+   - `pnpm run prisma:generate` réussi ✅
 
 4. ✅ **.env.local configuré**
    - `DATABASE_URL` pointant vers PostgreSQL local ✅
@@ -37,10 +37,10 @@ bash scripts/wait-for-postgres.sh
 
 # 2. Appliquer les migrations
 export DATABASE_URL="postgresql://djlarian:djlarian_dev_password@localhost:5432/djlarian_dev?sslmode=disable"
-npx prisma migrate deploy
+pnpm prisma migrate deploy
 
 # 3. Vérifier le statut
-npx prisma migrate status
+pnpm prisma migrate status
 
 # 4. Migration des données (dry-run d'abord)
 node scripts/migrate-sqlite-to-postgres.mjs --dry-run

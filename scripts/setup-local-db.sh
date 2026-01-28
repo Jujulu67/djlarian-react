@@ -29,7 +29,7 @@ fi
 # Vérifier si Prisma est installé
 if [ ! -f "node_modules/.bin/prisma" ]; then
     echo "📦 Installation des dépendances..."
-    npm install
+    pnpm install
 fi
 
 # Sauvegarder le schema actuel
@@ -125,22 +125,22 @@ fi
 # Appliquer les migrations
 if [ "$RESET_DB" = true ] || [ ! -f "$DB_FILE" ]; then
     echo "🔄 Application des migrations Prisma (nouvelle base)..."
-    DATABASE_URL="file:./prisma/dev.db" npx prisma migrate dev --name init_sqlite || {
+    DATABASE_URL="file:./prisma/dev.db" pnpm prisma migrate dev --name init_sqlite || {
         echo "⚠️  Erreur lors de la migration. Tentative de réparation..."
         rm -f "$DB_FILE"
-        DATABASE_URL="file:./prisma/dev.db" npx prisma migrate dev --name init_sqlite
+        DATABASE_URL="file:./prisma/dev.db" pnpm prisma migrate dev --name init_sqlite
     }
 else
     echo "🔄 Vérification des migrations (base existante)..."
-    DATABASE_URL="file:./prisma/dev.db" npx prisma migrate deploy || {
+    DATABASE_URL="file:./prisma/dev.db" pnpm prisma migrate deploy || {
         echo "⚠️  Les migrations ne correspondent pas. Voulez-vous réinitialiser ?"
-        echo "   Utilisez: npm run db:reset:local"
+        echo "   Utilisez: pnpm run db:reset:local"
     }
 fi
 
 echo ""
 echo "🔧 Génération du client Prisma..."
-npx prisma generate
+pnpm prisma generate
 
 echo ""
 echo "✅ Configuration SQLite terminée !"
@@ -152,9 +152,9 @@ echo "   - prisma/schema.prisma.postgresql.backup (sauvegarde du schema PostgreS
 echo "   - .env.local (DATABASE_URL = file:./dev.db)"
 echo ""
 echo "🧪 Pour tester :"
-echo "   npx prisma studio"
+echo "   pnpm prisma studio"
 echo ""
 echo "🔄 Pour revenir à PostgreSQL/Neon :"
-echo "   npm run db:production"
+echo "   pnpm run db:production"
 echo ""
 

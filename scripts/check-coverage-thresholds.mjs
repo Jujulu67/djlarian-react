@@ -29,7 +29,7 @@ const coverageJsonPath = path.join(__dirname, '..', 'coverage', 'coverage-summar
 function checkCoverage() {
   // Vérifier si le fichier de coverage existe
   if (!fs.existsSync(coverageJsonPath)) {
-    console.error("❌ Fichier de coverage non trouvé. Exécutez d'abord: npm run test:coverage");
+    console.error("❌ Fichier de coverage non trouvé. Exécutez d'abord: pnpm run test:coverage");
     process.exit(1);
   }
 
@@ -82,7 +82,7 @@ function checkCoverage() {
   // Échouer si un seuil n'est pas atteint
   if (!allThresholdsMet) {
     console.error('❌ Les seuils de coverage ne sont pas tous atteints!');
-    console.error('   Exécutez: npm run test:coverage pour voir les détails\n');
+    console.error('   Exécutez: pnpm run test:coverage pour voir les détails\n');
     process.exit(1);
   }
 

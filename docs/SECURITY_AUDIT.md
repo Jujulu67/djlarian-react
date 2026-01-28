@@ -35,7 +35,7 @@ Cet audit de sécurité a été effectué sur le projet Larian, une application 
    - **Package**: `next@^16.0.5`
    - **CVE**: GHSA-9qr9-h5gf-34mp
    - **Recommandation**: Mettre à jour Next.js vers la dernière version (sera corrigé avec la mise à jour ci-dessus)
-   - **Action**: `npm update next@16.0.7`
+   - **Action**: `pnpm update next@16.0.7`
 
 ### Haute
 
@@ -44,7 +44,7 @@ Cet audit de sécurité a été effectué sur le projet Larian, une application 
    - **Package**: `hono` (via `@prisma/dev`)
    - **CVE**: GHSA-m732-5p4w-x69g
    - **Recommandation**: Mettre à jour Prisma vers la dernière version
-   - **Action**: `npm update @prisma/client prisma`
+   - **Action**: `pnpm update @prisma/client prisma`
 
 3. **Hono - Body Limit Middleware Bypass**
    - **Sévérité**: Modérée
@@ -204,7 +204,7 @@ Lors de l'ajout de nouvelles fonctionnalités, vérifier:
 
 1. **Mettre à jour Next.js IMMÉDIATEMENT** pour corriger CVE-2025-66478 (RCE dans React Server Components)
    ```bash
-   npm update next@16.0.7
+   pnpm update next@16.0.7
    ```
    **⚠️ URGENT**: Cette vulnérabilité permet une exécution de code à distance sans authentification. Mise à jour requise immédiatement.
 
@@ -213,13 +213,13 @@ Lors de l'ajout de nouvelles fonctionnalités, vérifier:
 2. **Mettre à jour Next.js** pour corriger les autres vulnérabilités
 
    ```bash
-   npm update next@latest
+   pnpm update next@latest
    ```
 
 3. **Mettre à jour Prisma** pour corriger les vulnérabilités hono
 
    ```bash
-   npm update @prisma/client prisma
+   pnpm update @prisma/client prisma
    ```
 
 4. **Vérifier les secrets** - S'assurer qu'aucun secret n'est commité
@@ -260,12 +260,12 @@ Deux scripts ont été créés pour faciliter les audits futurs:
 1. **`scripts/security-audit.mjs`**: Audit complet des dépendances et configuration
 
    ```bash
-   npm run audit:security
+   pnpm run audit:security
    ```
 
 2. **`scripts/security-check.mjs`**: Vérification rapide de la configuration
    ```bash
-   npm run security:check
+   pnpm run security:check
    ```
 
 ## Conclusion
