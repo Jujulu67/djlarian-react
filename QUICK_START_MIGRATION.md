@@ -29,7 +29,7 @@ Le script guide à travers toutes les étapes interactivement.
 
 ```bash
 grep "provider = " prisma/schema.prisma
-npx prisma validate
+pnpm prisma validate
 ```
 
 ### 2. Démarrer PostgreSQL
@@ -49,7 +49,7 @@ echo 'DATABASE_URL_LOCAL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:
 
 ```bash
 export DATABASE_URL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable"
-npx prisma migrate deploy
+pnpm prisma migrate deploy
 ```
 
 ### 5. Migrer Données
@@ -71,9 +71,9 @@ sed -i '' 's|^DATABASE_URL=file:.*|DATABASE_URL="postgresql://djlarian:djlarian_
 ### 7. Valider
 
 ```bash
-npm run prisma:generate
-npx prisma validate
-npm run dev
+pnpm run prisma:generate
+pnpm prisma validate
+pnpm run dev
 ```
 
 ---
@@ -91,11 +91,11 @@ npm run dev
 - [ ] Schema.prisma corrigé (`provider = "postgresql"`, ligne `url` supprimée)
 - [ ] PostgreSQL démarré (`docker compose up -d`)
 - [ ] DATABASE_URL_LOCAL dans .env.local
-- [ ] Migrations appliquées (`npx prisma migrate deploy`)
+- [ ] Migrations appliquées (`pnpm prisma migrate deploy`)
 - [ ] Données migrées (`node scripts/migrate-sqlite-to-postgres.mjs`)
 - [ ] DATABASE_URL mis à jour dans .env.local
-- [ ] `npm run prisma:generate` exécuté
-- [ ] `npm run dev` démarre sans erreurs
+- [ ] `pnpm run prisma:generate` exécuté
+- [ ] `pnpm run dev` démarre sans erreurs
 
 ---
 

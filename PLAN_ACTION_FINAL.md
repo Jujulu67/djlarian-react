@@ -38,7 +38,7 @@
 sqlite3 prisma/dev.db ".tables" | grep AssistantConfirmation
 
 # Tester que le client peut accéder à la table
-npm run prisma:generate
+pnpm run prisma:generate
 node -e "const { PrismaClient } = require('@prisma/client'); const { PrismaBetterSqlite3 } = require('@prisma/adapter-better-sqlite3'); const betterSqlite3 = require('better-sqlite3'); const db = betterSqlite3('prisma/dev.db'); const adapter = new PrismaBetterSqlite3({ url: 'file:./prisma/dev.db' }); const p = new PrismaClient({ adapter }); p.assistantConfirmation.findFirst().then(() => console.log('✅ P2021 résolu')).catch(e => console.log('❌', e.code));"
 ```
 
@@ -51,7 +51,7 @@ node -e "const { PrismaClient } = require('@prisma/client'); const { PrismaBette
 grep DATABASE_URL_PRODUCTION .env.local
 
 # 2. Appliquer les migrations PostgreSQL
-DATABASE_URL="$DATABASE_URL_PRODUCTION" npx prisma migrate deploy
+DATABASE_URL="$DATABASE_URL_PRODUCTION" pnpm prisma migrate deploy
 
 # 3. Vérifier que la table existe en PostgreSQL
 psql "$DATABASE_URL_PRODUCTION" -c "\dt" | grep AssistantConfirmation
@@ -82,12 +82,12 @@ grep 'provider =' prisma/migrations/migration_lock.toml
 # Doit afficher: provider = "postgresql"
 
 # 3. Vérifier le drift
-npm run prisma:check:drift
+pnpm run prisma:check:drift
 
 # 4. Exécuter les tests
-npm run test:assistant-router
-npm run test:assistant-identity
-npm run test:no-skips
+pnpm run test:assistant-router
+pnpm run test:assistant-identity
+pnpm run test:no-skips
 ```
 
 ---
@@ -228,7 +228,7 @@ try {
   if (error.code === 'P2021') {
     return NextResponse.json(
       {
-        error: 'Table AssistantConfirmation manquante. Exécutez: npm run prisma:bootstrap:local',
+        error: 'Table AssistantConfirmation manquante. Exécutez: pnpm run prisma:bootstrap:local',
         code: 'P2021',
       },
       { status: 500 }
@@ -283,9 +283,9 @@ provider = "postgresql"
 
 ```bash
 # À exécuter:
-npm run test:assistant-router
-npm run test:assistant-identity
-npm run test:no-skips
+pnpm run test:assistant-router
+pnpm run test:assistant-identity
+pnpm run test:no-skips
 ```
 
 ---
@@ -304,7 +304,7 @@ npm run test:no-skips
 
 1. **Migrer vers PostgreSQL local** (si souhaité)
    - Configurer `DATABASE_URL_PRODUCTION`
-   - Exécuter `npm run prisma:bootstrap:local`
+   - Exécuter `pnpm run prisma:bootstrap:local`
    - (Optionnel) Migrer les données: `node scripts/migrate-sqlite-to-postgres.mjs`
 
 2. **Tests CI**
@@ -318,7 +318,7 @@ npm run test:no-skips
 En cas de problème:
 
 1. Consulter `docs/PRISMA_RUNBOOK.md`
-2. Exécuter `npm run prisma:check:drift`
+2. Exécuter `pnpm run prisma:check:drift`
 3. Vérifier `DIAGNOSTIC_PRISMA.md`
 
 ---

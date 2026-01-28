@@ -37,7 +37,7 @@ DATABASE_URL_LOCAL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/d
 
 ### Démarrage Automatique
 
-Le script `npm run dev:auto` démarre maintenant automatiquement PostgreSQL avant le serveur Next.js.
+Le script `pnpm run dev:auto` démarre maintenant automatiquement PostgreSQL avant le serveur Next.js.
 
 ## 📊 Tables Migrées
 
@@ -74,7 +74,7 @@ Le script `npm run dev:auto` démarre maintenant automatiquement PostgreSQL avan
 ### Démarrer l'App
 
 ```bash
-npm run dev:auto
+pnpm run dev:auto
 ```
 
 PostgreSQL sera démarré automatiquement avant le serveur Next.js.
@@ -89,22 +89,22 @@ docker compose up -d postgres
 docker compose ps
 
 # Prisma Studio
-npm run db:studio
+pnpm run db:studio
 
 # Reset PostgreSQL (DESTRUCTIF)
-npm run db:reset:local
+pnpm run db:reset:local
 ```
 
 ## ✅ Prochaines Étapes (Validation)
 
-1. **Tester l'app**: `npm run dev:auto`
+1. **Tester l'app**: `pnpm run dev:auto`
 2. **Lancer les tests**:
    ```bash
-   npm run test:assistant-router
-   npm run test:assistant-identity
-   npm run test:no-skips
+   pnpm run test:assistant-router
+   pnpm run test:assistant-identity
+   pnpm run test:no-skips
    ```
-3. **Vérifier les données**: `npm run db:studio`
+3. **Vérifier les données**: `pnpm run db:studio`
 
 ## 📚 Documentation
 

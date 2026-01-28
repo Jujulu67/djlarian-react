@@ -149,10 +149,10 @@ if (isDebugAllowed()) {
 npx tsc --noEmit --skipLibCheck
 
 # Exécuter tous les tests
-npm test
+pnpm test
 
 # Tests spécifiques aux nouveaux modules
-npm test -- --testPathPattern="(StoreFactory|SessionRateLimiter|PiiRedactor)"
+pnpm test -- --testPathPattern="(StoreFactory|SessionRateLimiter|PiiRedactor)"
 ```
 
 **Résultat attendu**: 317 suites, 4323 tests passant.

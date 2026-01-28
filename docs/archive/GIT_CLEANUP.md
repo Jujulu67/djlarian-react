@@ -67,7 +67,7 @@ Les fichiers sont **supprimés du tracking git** mais **conservés sur votre dis
 
 Si vous devez tester localement avec OpenNext (pour Cloudflare), vous pouvez :
 
-1. Le régénérer avec `npm run pages:build` (si vous gardez les scripts)
+1. Le régénérer avec `pnpm run pages:build` (si vous gardez les scripts)
 2. Ou simplement le supprimer (plus nécessaire maintenant qu'on est sur Vercel)
 
 ### Historique Git

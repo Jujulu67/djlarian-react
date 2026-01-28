@@ -19,13 +19,13 @@ Toutes les occurrences de `--skip-generate` ont été retirées des commandes `d
 **Avant :**
 
 ```bash
-npx prisma db push --skip-generate --accept-data-loss
+pnpm prisma db push --skip-generate --accept-data-loss
 ```
 
 **Après :**
 
 ```bash
-npx prisma db push --accept-data-loss
+pnpm prisma db push --accept-data-loss
 ```
 
 ## 📋 Impact

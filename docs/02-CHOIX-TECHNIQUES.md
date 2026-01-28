@@ -477,7 +477,7 @@ export default sentryEnabled ? withSentryConfig(nextConfig, sentryConfig) : next
 
 - **Dépendances majeures** : Version exacte ou `^` pour patches
 - **Dépendances mineures** : `latest` pour React, `^` pour autres
-- **Sécurité** : `npm audit` régulier
+- **Sécurité** : `pnpm audit` régulier
 - **Mises à jour** : Testées en local avant merge
 
 ### Exemples
@@ -519,8 +519,8 @@ export default sentryEnabled ? withSentryConfig(nextConfig, sentryConfig) : next
 ### Audit de Sécurité
 
 ```bash
-npm audit
-npm audit fix
+pnpm audit
+pnpm audit fix
 ```
 
 ## Conclusion

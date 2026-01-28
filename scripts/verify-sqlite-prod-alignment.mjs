@@ -33,7 +33,7 @@ let sqliteMigrations = [];
 
 if (!existsSync(sqlitePath)) {
   console.log(`   ⚠️  Base SQLite non trouvée: ${sqlitePath}`);
-  console.log('   💡 Créez d\'abord la base SQLite avec: npx prisma migrate dev\n');
+  console.log('   💡 Créez d\'abord la base SQLite avec: pnpm prisma migrate dev\n');
 } else {
   console.log(`   ✅ Base SQLite trouvée: ${sqlitePath}\n`);
   

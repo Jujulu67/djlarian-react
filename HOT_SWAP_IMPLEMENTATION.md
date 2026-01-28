@@ -155,7 +155,7 @@ Une fois le hot swap stable, supprimer:
 
 Pour tester le hot swap:
 
-1. Lancer `npm run dev`
+1. Lancer `pnpm run dev`
 2. Aller sur `/admin/configuration`
 3. Faire plusieurs switchs Local ↔ Prod
 4. Vérifier:

@@ -4,7 +4,7 @@
  * Garantit que tous les items définis dans src/lib/live/items.ts existent
  * avec les mêmes caractéristiques (nom, description, icône) qu'en développement
  * 
- * Usage: npm run db:seed:live-items
+ * Usage: pnpm run db:seed:live-items
  */
 
 import { PrismaClient } from '@prisma/client';

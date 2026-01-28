@@ -37,7 +37,7 @@ Ce hook empêche de commiter si le `schema.prisma` est en SQLite.
 3. **Avant de commit** :
    - Le hook pre-commit vous empêchera de commiter avec SQLite
    - Utilisez le switch DB pour revenir à PostgreSQL
-   - Ou exécutez : `npm run db:production`
+   - Ou exécutez : `pnpm run db:production`
 4. **Commit** avec PostgreSQL dans le schema
 
 ### En Production (Vercel)
@@ -50,10 +50,10 @@ Ce hook empêche de commiter si le `schema.prisma` est en SQLite.
 
 ```bash
 # Forcer PostgreSQL (pour commit)
-npm run db:production
+pnpm run db:production
 
 # Utiliser SQLite local (pour dev)
-npm run db:local
+pnpm run db:local
 
 # Vérifier le provider actuel
 grep "provider" prisma/schema.prisma

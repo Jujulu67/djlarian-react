@@ -18,7 +18,7 @@ Ce guide explique comment migrer la base de données et les images blob en produ
 Cette étape crée la table `Image` dans la base de données.
 
 ```bash
-npm run db:migrate:production
+pnpm run db:migrate:production
 ```
 
 **Ce que fait ce script :**
@@ -32,10 +32,10 @@ npm run db:migrate:production
 
 ```bash
 # Résoudre un drift spécifique
-npx prisma migrate resolve --applied <migration_name>
+pnpm prisma migrate resolve --applied <migration_name>
 
 # Puis réessayer
-npm run db:migrate:production
+pnpm run db:migrate:production
 ```
 
 ### Étape 2 : Migration des Images Blob
@@ -43,7 +43,7 @@ npm run db:migrate:production
 Cette étape importe toutes les images blob existantes dans la table `Image`.
 
 ```bash
-npm run db:migrate:blob-images
+pnpm run db:migrate:blob-images
 ```
 
 **Ce que fait ce script :**
@@ -59,7 +59,7 @@ npm run db:migrate:blob-images
 Pour exécuter les deux étapes en une seule commande :
 
 ```bash
-npm run db:migrate:all
+pnpm run db:migrate:all
 ```
 
 ## 🔒 Sécurité et Régressions
@@ -85,15 +85,15 @@ Avant la migration, vérifiez :
 2. **Vérifier le drift**
 
    ```bash
-   npx prisma migrate status
+   pnpm prisma migrate status
    ```
 
 3. **Tester en local d'abord** (si possible)
    ```bash
    # Activer le switch de production en local
    # Puis tester les scripts
-   npm run db:migrate:production
-   npm run db:migrate:blob-images
+   pnpm run db:migrate:production
+   pnpm run db:migrate:blob-images
    ```
 
 ## 📊 Résultats Attendus
@@ -157,7 +157,7 @@ Si vous êtes sûr que toutes les images sont migrées et que vous ne voulez plu
    rm scripts/migrate-blob-images-production.mjs
    ```
 
-2. Retirer les commandes npm :
+2. Retirer les commandes pnpm :
    ```json
    // Dans package.json, retirer :
    "db:migrate:production": "...",
@@ -173,17 +173,17 @@ Si vous êtes sûr que toutes les images sont migrées et que vous ne voulez plu
 
 ```bash
 # Réexécuter la migration DB
-npm run db:migrate:production
+pnpm run db:migrate:production
 ```
 
 ### Erreur : "Drift détecté"
 
 ```bash
 # Vérifier les migrations
-npx prisma migrate status
+pnpm prisma migrate status
 
 # Résoudre le drift
-npx prisma migrate resolve --applied <migration_name>
+pnpm prisma migrate resolve --applied <migration_name>
 ```
 
 ### Erreur : "BLOB_READ_WRITE_TOKEN n'est pas configuré"
@@ -195,7 +195,7 @@ Vérifiez que `BLOB_READ_WRITE_TOKEN` est bien défini dans les variables d'envi
 Si certaines images ne sont pas migrées, réexécutez :
 
 ```bash
-npm run db:migrate:blob-images
+pnpm run db:migrate:blob-images
 ```
 
 Le script est idempotent et ne créera pas de doublons.

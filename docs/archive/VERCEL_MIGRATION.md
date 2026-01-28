@@ -37,13 +37,13 @@ Votre projet est maintenant **100% compatible Vercel** sans aucun hack ou workar
 
 ```bash
 # Supprimer les dépendances Cloudflare qui ne sont plus nécessaires
-npm uninstall @opennextjs/cloudflare wrangler @aws-sdk/client-s3
+pnpm uninstall @opennextjs/cloudflare wrangler @aws-sdk/client-s3
 
 # Installer Vercel Blob (remplacement de R2)
-npm install @vercel/blob
+pnpm install @vercel/blob
 
 # Installer les dépendances (si nécessaire)
-npm install
+pnpm install
 ```
 
 ### 3. Configurer les variables d'environnement
@@ -74,9 +74,9 @@ Dans votre dashboard Vercel, allez dans **Settings > Environment Variables** et 
 4. Configurez :
    - **Framework Preset**: Next.js
    - **Root Directory**: `.` (ou laissez vide)
-   - **Build Command**: `npm run build` (par défaut)
+   - **Build Command**: `pnpm run build` (par défaut)
    - **Output Directory**: `.next` (par défaut)
-   - **Install Command**: `npm install` (par défaut)
+   - **Install Command**: `pnpm install` (par défaut)
 
 ### 5. Déployer
 
@@ -148,13 +148,13 @@ Si vous préférez la simplicité, vous pouvez supprimer l'adaptateur et utilise
 
 - Vérifiez que toutes les variables d'environnement sont configurées
 - Vérifiez les logs de build dans Vercel
-- Testez localement avec `npm run build`
+- Testez localement avec `pnpm run build`
 
 ### Erreur de connexion à la base de données
 
 - Vérifiez que `DATABASE_URL` est correctement configuré
 - Vérifiez que votre base Neon accepte les connexions depuis Vercel (par défaut, oui)
-- Testez la connexion avec `npm run dev` localement
+- Testez la connexion avec `pnpm run dev` localement
 
 ### Erreur d'authentification
 

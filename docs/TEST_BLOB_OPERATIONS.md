@@ -166,7 +166,7 @@ Si le compteur augmente de manière inattendue :
 
 4. **Si une image n'est pas dans la DB**, réexécuter la migration :
    ```bash
-   npm run db:migrate:blob-images
+   pnpm run db:migrate:blob-images
    ```
 
 ## 📝 Notes

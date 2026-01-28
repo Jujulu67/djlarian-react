@@ -90,8 +90,8 @@ if (!databaseUrl || databaseUrl.includes('dummy') || databaseUrl.includes('local
   console.error('              (le switch remplace DATABASE_URL par DATABASE_URL_PRODUCTION)');
   console.error('   Option 2: Ajoutez DATABASE_URL_PRODUCTION dans .env.local');
   console.error('              Format: DATABASE_URL_PRODUCTION="postgresql://user:password@host.neon.tech/database?sslmode=require"');
-  console.error('   Puis relancez: npm run db:diagnose-prod');
-  console.error('\n   Ou utilisez: npm run db:setup:production-url');
+  console.error('   Puis relancez: pnpm run db:diagnose-prod');
+  console.error('\n   Ou utilisez: pnpm run db:setup:production-url');
   process.exit(1);
 }
 
@@ -103,7 +103,7 @@ if (!databaseUrl.startsWith('postgresql://') && !databaseUrl.startsWith('postgre
   console.error('   1. Activez le switch de production dans /admin/configuration');
   console.error('      (ou modifiez .db-switch.json avec {"useProduction": true})');
   console.error('   2. Définissez DATABASE_URL_PRODUCTION dans .env.local avec votre connection string Neon');
-  console.error('   3. Puis relancez: npm run db:diagnose-prod');
+  console.error('   3. Puis relancez: pnpm run db:diagnose-prod');
   process.exit(1);
 }
 
@@ -128,7 +128,7 @@ if (existsSync(schemaPath)) {
     // Régénérer le client Prisma
     const { execSync } = await import('child_process');
     try {
-      execSync('npx prisma generate', { stdio: 'pipe', cwd: rootDir });
+      execSync('pnpm prisma generate', { stdio: 'pipe', cwd: rootDir });
     } catch (error) {
       console.error('⚠️  Erreur lors de la régénération du client Prisma');
     }
@@ -301,14 +301,14 @@ async function diagnose() {
       console.log('   ```bash');
       console.log('   # Activer le switch de production');
       console.log('   # Puis dans le terminal:');
-      console.log('   npx prisma migrate resolve --rolled-back 20251128000927_init');
-      console.log('   npx prisma migrate deploy');
+      console.log('   pnpm prisma migrate resolve --rolled-back 20251128000927_init');
+      console.log('   pnpm prisma migrate deploy');
       console.log('   ```\n');
       
       console.log('   Option B: Utiliser prisma db push (temporaire, pour tester)');
       console.log('   ```bash');
       console.log('   # Activer le switch de production');
-      console.log('   npx prisma db push --accept-data-loss');
+      console.log('   pnpm prisma db push --accept-data-loss');
       console.log('   ```\n');
       
       // Générer un fichier SQL avec les CREATE TABLE manquants
@@ -346,7 +346,7 @@ async function diagnose() {
     
     if (missingTables.length > 0) {
       console.log('\n   ❌ ACTION REQUISE: Des tables manquantes doivent être créées\n');
-      console.log('   💡 Exécutez: npm run db:diagnose-prod pour voir ce rapport\n');
+      console.log('   💡 Exécutez: pnpm run db:diagnose-prod pour voir ce rapport\n');
       process.exit(1);
     } else {
       console.log('\n   ✅ La base de données est à jour avec le schéma Prisma\n');

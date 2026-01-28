@@ -18,7 +18,7 @@
 6. **Documentation inline** : Les fichiers critiques (router.ts, memory/, auth.config.ts) contiennent des commentaires explicatifs.
 7. **✅ Layering 100% respecté (post PR1-PR2)** : Aucune violation `lib → app` ou `lib → components` dans le code applicatif.
 8. **✅ Domain layer créé (PR2)** : `src/lib/domain/projects` centralise les types et la logique métier projets.
-9. **✅ Scripts de validation (PR3)** : `npm run check:boundaries` et `npm run check:all` automatisent les vérifications.
+9. **✅ Scripts de validation (PR3)** : `pnpm run check:boundaries` et `pnpm run check:all` automatisent les vérifications.
 10. **✅ Base env centralisée (PR4)** : `src/lib/env/server.ts` avec validation Zod au démarrage.
 11. **🟡 Migration process.env progressive** : ~455 occurrences hors `src/lib/env/**` à migrer.
 
@@ -37,9 +37,9 @@
 
 **Justification** :
 
-- ✅ Pas de cycles npm visibles, layering 100% respecté
+- ✅ Pas de cycles pnpm visibles, layering 100% respecté
 - ✅ Mémoire assistant isolée avec tests d'invariants
-- ✅ 0 import interdit lib→app (vérifié par `npm run check:boundaries` via ESLint)
+- ✅ 0 import interdit lib→app (vérifié par `pnpm run check:boundaries` via ESLint)
 - ✅ 0 import lib→components (re-exports depuis domain layer)
 - ✅ Base env centralisée via Zod validation (`src/lib/env/server.ts`)
 - 🟡 Migration process.env progressive (~455 restants hors env module)
@@ -131,7 +131,7 @@ if (isConfigured.groq()) {
 {
   "scripts": {
     "check:boundaries": "node scripts/check-layer-boundaries.mjs",
-    "check:all": "npm run type-check && npm run lint && npm run test:no-skips && npm run check:boundaries"
+    "check:all": "pnpm run type-check && pnpm run lint && pnpm run test:no-skips && pnpm run check:boundaries"
   }
 }
 ```
@@ -142,10 +142,10 @@ if (isConfigured.groq()) {
 
 ```bash
 # Vérification rapide des boundaries
-npm run check:boundaries
+pnpm run check:boundaries
 
 # Vérification complète (avant PR/commit)
-npm run check:all
+pnpm run check:all
 
 # TypeScript seul
 npx tsc --noEmit --skipLibCheck
@@ -260,7 +260,7 @@ npx tsc --noEmit --skipLibCheck
 **Vérification automatisée** :
 
 ```bash
-$ npm run check:boundaries
+$ pnpm run check:boundaries
 ✅ No layer boundary violations
 ```
 
@@ -474,7 +474,7 @@ $ wc -c src/lib/services/soundcloud.ts
 
 Avant chaque merge, vérifier :
 
-- [x] **1. Pas d'import lib → app** : `npm run check:boundaries` (ESLint) = ✅
+- [x] **1. Pas d'import lib → app** : `pnpm run check:boundaries` (ESLint) = ✅
 - [x] **2. Pas d'import lib → components (sauf re-exports)** : Vérifié via ESLint `import/no-restricted-paths`
 - [ ] **3. Nouveaux console._ → logger._** : `git diff --name-only | xargs grep "console\." | wc -l`
 - [ ] **4. Types explicites** : Pas de `: any` ajouté sans `eslint-disable` justifié
@@ -484,7 +484,7 @@ Avant chaque merge, vérifier :
 - [ ] **7. Pas de TODO sans ticket** : Tous les TODO ont une issue GitHub liée
 - [ ] **8. Fichiers < 500 lignes** : Nouveaux fichiers ne dépassent pas 500 LOC
 - [ ] **9. Pas de @ts-ignore** : Utiliser `@ts-expect-error` avec commentaire
-- [x] **10. Build + Tests passent** : `npm run check:all` success
+- [x] **10. Build + Tests passent** : `pnpm run check:all` success
 
 ---
 
@@ -495,13 +495,13 @@ Avant chaque merge, vérifier :
 npx tsc --noEmit --skipLibCheck
 
 # Layer boundaries
-npm run check:boundaries
+pnpm run check:boundaries
 
 # Suite complète (lint + typecheck + tests + boundaries)
-npm run check:all
+pnpm run check:all
 
 # Tests spécifiques router
-npm run test -- --testPathPattern="src/lib/assistant/router"
+pnpm run test -- --testPathPattern="src/lib/assistant/router"
 ```
 
 ---

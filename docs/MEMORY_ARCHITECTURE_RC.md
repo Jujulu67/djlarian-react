@@ -74,10 +74,10 @@
 npx tsc --noEmit --skipLibCheck
 
 # Tests complets
-npm test
+pnpm test
 
 # Tests O6-O10 spécifiques
-npm test -- --testPathPattern="ModelLimits|SanitizeGroqMessages|SessionPersistence|GroqPayloadBuilder-maxTokens"
+pnpm test -- --testPathPattern="ModelLimits|SanitizeGroqMessages|SessionPersistence|GroqPayloadBuilder-maxTokens"
 ```
 
 ## Points restants optionnels

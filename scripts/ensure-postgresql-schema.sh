@@ -205,7 +205,7 @@ if [ "$NODE_ENV" = "production" ]; then
   echo "🔄 Régénération initiale du client Prisma..."
   # Supprimer l'ancien client pour forcer une régénération complète
   rm -rf node_modules/.prisma 2>/dev/null || true
-  npx prisma generate > /dev/null 2>&1 || npx prisma generate
+  pnpm prisma generate > /dev/null 2>&1 || pnpm prisma generate
   # Corriger les fichiers default.js et default.mjs pour Prisma 7
   node scripts/fix-prisma-types.mjs > /dev/null 2>&1 || node scripts/fix-prisma-types.mjs
   echo "✅ Client Prisma régénéré (pré-migration)"
@@ -239,7 +239,7 @@ if [ "$NODE_ENV" = "production" ]; then
     # Vérifier d'abord l'état des migrations (pour éviter les timeouts de verrous)
     echo "   🔍 Vérification de l'état des migrations..."
     set +e  # Désactiver temporairement set -e pour cette section
-    MIGRATE_STATUS_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma migrate status 2>&1)
+    MIGRATE_STATUS_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true pnpm prisma migrate status 2>&1)
     MIGRATE_STATUS_EXIT_CODE=$?
     set -e  # Réactiver set -e
     
@@ -281,7 +281,7 @@ if [ "$NODE_ENV" = "production" ]; then
           # Vérifier à nouveau l'état après nettoyage
           echo "   🔄 Vérification de l'état après nettoyage..."
           set +e
-          MIGRATE_STATUS_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma migrate status 2>&1)
+          MIGRATE_STATUS_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true pnpm prisma migrate status 2>&1)
           MIGRATE_STATUS_EXIT_CODE=$?
           set -e
           
@@ -398,7 +398,7 @@ if [ "$NODE_ENV" = "production" ]; then
           echo "   📋 Tentative: Marquer comme applied (objet existe déjà)..."
           
           set +e  # Désactiver set -e pour cette commande
-          RESOLVE_APPLIED_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma migrate resolve --applied "$FAILED_MIGRATION" 2>&1)
+          RESOLVE_APPLIED_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true pnpm prisma migrate resolve --applied "$FAILED_MIGRATION" 2>&1)
           RESOLVE_APPLIED_EXIT=$?
           set -e  # Réactiver set -e
           
@@ -437,7 +437,7 @@ if [ "$NODE_ENV" = "production" ]; then
           echo "   📋 Tentative: Marquer comme applied (objet n'existe pas déjà)..."
           
           set +e  # Désactiver set -e pour cette commande
-          RESOLVE_APPLIED_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma migrate resolve --applied "$FAILED_MIGRATION" 2>&1)
+          RESOLVE_APPLIED_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true pnpm prisma migrate resolve --applied "$FAILED_MIGRATION" 2>&1)
           RESOLVE_APPLIED_EXIT=$?
           set -e  # Réactiver set -e
           
@@ -466,7 +466,7 @@ if [ "$NODE_ENV" = "production" ]; then
         
         # Marquer la migration comme rolled-back pour pouvoir la réappliquer
         set +e  # Désactiver set -e pour cette commande
-        RESOLVE_ROLLED_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma migrate resolve --rolled-back "$FAILED_MIGRATION" 2>&1)
+        RESOLVE_ROLLED_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true pnpm prisma migrate resolve --rolled-back "$FAILED_MIGRATION" 2>&1)
         RESOLVE_EXIT=$?
         set -e  # Réactiver set -e
         
@@ -484,7 +484,7 @@ if [ "$NODE_ENV" = "production" ]; then
           
           # Si rolled-back échoue, essayer applied (si la migration a partiellement réussi)
           set +e  # Désactiver set -e pour cette commande
-          RESOLVE_APPLIED_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma migrate resolve --applied "$FAILED_MIGRATION" 2>&1)
+          RESOLVE_APPLIED_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true pnpm prisma migrate resolve --applied "$FAILED_MIGRATION" 2>&1)
           RESOLVE_APPLIED_EXIT=$?
           set -e  # Réactiver set -e
           
@@ -526,7 +526,7 @@ if [ "$NODE_ENV" = "production" ]; then
     if [ "$BASELINE_CREATED" = true ]; then
       echo "   🔄 Vérification de l'état après résolution des baselines..."
       set +e
-      MIGRATE_STATUS_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma migrate status 2>&1)
+      MIGRATE_STATUS_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true pnpm prisma migrate status 2>&1)
       MIGRATE_STATUS_EXIT_CODE=$?
       set -e
     fi
@@ -537,7 +537,7 @@ if [ "$NODE_ENV" = "production" ]; then
       echo "   ✅ Toutes les migrations sont déjà appliquées selon migrate status"
       echo "   🔄 Vérification avec db push pour garantir la synchronisation du schéma..."
       set +e
-      DB_PUSH_VERIFY=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma db push --accept-data-loss 2>&1)
+      DB_PUSH_VERIFY=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true pnpm prisma db push --accept-data-loss 2>&1)
       DB_PUSH_VERIFY_EXIT=$?
       set -e
       
@@ -570,7 +570,7 @@ if [ "$NODE_ENV" = "production" ]; then
         
         echo "   📋 Tentative migrate deploy ($RETRY_COUNT/$MAX_RETRIES)..."
         set +e  # Désactiver set -e pour migrate deploy
-        MIGRATE_DEPLOY_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma migrate deploy 2>&1)
+        MIGRATE_DEPLOY_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true pnpm prisma migrate deploy 2>&1)
         MIGRATE_DEPLOY_EXIT_CODE=$?
         set -e  # Réactiver set -e
         
@@ -584,7 +584,7 @@ if [ "$NODE_ENV" = "production" ]; then
           # Parfois migrate deploy peut réussir mais le schéma peut encore avoir des différences
           echo "   🔍 Vérification du drift après migration..."
           set +e
-          DRIFT_CHECK=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma migrate status 2>&1)
+          DRIFT_CHECK=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true pnpm prisma migrate status 2>&1)
           DRIFT_EXIT=$?
           set -e
           
@@ -592,7 +592,7 @@ if [ "$NODE_ENV" = "production" ]; then
           if [ $DRIFT_EXIT -ne 0 ] || echo "$DRIFT_CHECK" | grep -qE "drift|different|Your database schema is not in sync"; then
             echo "   ⚠️  Drift détecté après migrate deploy, synchronisation avec db push..."
             set +e
-            DB_PUSH_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma db push --accept-data-loss 2>&1)
+            DB_PUSH_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true pnpm prisma db push --accept-data-loss 2>&1)
             DB_PUSH_EXIT=$?
             set -e
             
@@ -642,7 +642,7 @@ if [ "$NODE_ENV" = "production" ]; then
               
               # Marquer directement comme applied car la table existe déjà
               set +e
-              RESOLVE_APPLIED_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma migrate resolve --applied "$FAILED_MIGRATION" 2>&1)
+              RESOLVE_APPLIED_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true pnpm prisma migrate resolve --applied "$FAILED_MIGRATION" 2>&1)
               RESOLVE_APPLIED_EXIT=$?
               set -e
               
@@ -700,7 +700,7 @@ if [ "$NODE_ENV" = "production" ]; then
               
               # Marquer directement comme applied car l'index n'existe pas (l'action souhaitée est déjà accomplie)
               set +e
-              RESOLVE_APPLIED_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma migrate resolve --applied "$FAILED_MIGRATION" 2>&1)
+              RESOLVE_APPLIED_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true pnpm prisma migrate resolve --applied "$FAILED_MIGRATION" 2>&1)
               RESOLVE_APPLIED_EXIT=$?
               set -e
               
@@ -744,7 +744,7 @@ if [ "$NODE_ENV" = "production" ]; then
               echo "   💡 La migration ne sera PAS marquée comme applied automatiquement"
               echo "   💡 Cela évite de créer des tables manquantes (comme ce qui s'est passé avec Notification)"
               echo "   💡 Utilisation du fallback db push pour synchroniser le schéma"
-              echo "   💡 Si nécessaire, exécutez manuellement: npm run db:fix-notification-table"
+              echo "   💡 Si nécessaire, exécutez manuellement: pnpm run db:fix-notification-table"
               
               # Essayer la résolution normale (rolled-back puis applied)
               if resolve_failed_migration "$MIGRATE_DEPLOY_OUTPUT"; then
@@ -784,7 +784,7 @@ if [ "$NODE_ENV" = "production" ]; then
         echo "   🔄 Tentative de synchronisation avec 'prisma db push' (fallback)..."
         echo "   ⚠️  IMPORTANT: db push va synchroniser le schéma même si migrate deploy a échoué"
         set +e
-        DB_PUSH_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma db push --accept-data-loss 2>&1)
+        DB_PUSH_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true pnpm prisma db push --accept-data-loss 2>&1)
         DB_PUSH_EXIT=$?
         set -e
         
@@ -794,7 +794,7 @@ if [ "$NODE_ENV" = "production" ]; then
           # Vérifier que le schéma est vraiment synchronisé en vérifiant le drift
           echo "   🔍 Vérification finale du drift après db push..."
           set +e
-          FINAL_DRIFT_CHECK=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma migrate status 2>&1)
+          FINAL_DRIFT_CHECK=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true pnpm prisma migrate status 2>&1)
           FINAL_DRIFT_EXIT=$?
           set -e
           
@@ -812,9 +812,9 @@ if [ "$NODE_ENV" = "production" ]; then
         fi
         
         echo "   💡 Pour résoudre manuellement après le build:"
-        echo "   1. Vérifiez: npx prisma migrate status"
-        echo "   2. Résolvez les migrations: npx prisma migrate resolve --applied <migration_name>"
-        echo "   3. Réappliquez: npx prisma migrate deploy"
+        echo "   1. Vérifiez: pnpm prisma migrate status"
+        echo "   2. Résolvez les migrations: pnpm prisma migrate resolve --applied <migration_name>"
+        echo "   3. Réappliquez: pnpm prisma migrate deploy"
         # Ne pas faire exit 1 - le build doit continuer
       fi
     fi
@@ -824,10 +824,10 @@ if [ "$NODE_ENV" = "production" ]; then
     echo "   Utilisation de 'prisma db push' pour synchroniser le schéma..."
     echo "   ⚠️  ATTENTION: db push peut être moins sûr que migrate deploy"
     echo "   Pour la production, créez des migrations Prisma standard avec:"
-    echo "   npx prisma migrate dev --name init"
+    echo "   pnpm prisma migrate dev --name init"
     # db push non-bloquant pour ne pas faire échouer le build
     set +e
-    DB_PUSH_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma db push --accept-data-loss 2>&1)
+    DB_PUSH_OUTPUT=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true pnpm prisma db push --accept-data-loss 2>&1)
     DB_PUSH_EXIT=$?
     set -e
     
@@ -846,7 +846,7 @@ if [ "$NODE_ENV" = "production" ]; then
   # Même si migrate deploy a réussi, db push s'assure qu'il n'y a pas de différences subtiles
   echo "🔍 Synchronisation finale du schéma avec db push (garantie de cohérence)..."
   set +e
-  FINAL_DB_PUSH=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true npx prisma db push --accept-data-loss 2>&1)
+  FINAL_DB_PUSH=$(PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true pnpm prisma db push --accept-data-loss 2>&1)
   FINAL_DB_PUSH_EXIT=$?
   set -e
   
@@ -871,7 +871,7 @@ if [ "$NODE_ENV" = "production" ]; then
   
   # La génération du client Prisma doit toujours réussir (non-bloquant mais critique)
   set +e
-  npx prisma generate > /dev/null 2>&1 || npx prisma generate
+  pnpm prisma generate > /dev/null 2>&1 || pnpm prisma generate
   GENERATE_EXIT=$?
   set -e
   
@@ -900,17 +900,17 @@ if [ "$NODE_ENV" = "production" ]; then
       else
         echo "   ⚠️  Le seed des LiveItem a échoué, mais le build continue"
         echo "$SEED_OUTPUT" | head -15 | sed 's/^/      /'
-        echo "   💡 Vous pouvez exécuter manuellement: npm run db:seed:live-items"
+        echo "   💡 Vous pouvez exécuter manuellement: pnpm run db:seed:live-items"
       fi
     else
       echo "   ⏭️  Client Prisma non trouvé, seed des LiveItem ignoré"
-      echo "   💡 Le seed sera exécuté lors du prochain build ou manuellement: npm run db:seed:live-items"
+      echo "   💡 Le seed sera exécuté lors du prochain build ou manuellement: pnpm run db:seed:live-items"
     fi
   else
     echo "⚠️  ATTENTION: La génération du client Prisma a échoué"
     echo "   Tentative de récupération..."
     # Essayer une dernière fois sans redirection
-    npx prisma generate || {
+    pnpm prisma generate || {
       echo "❌ ERREUR CRITIQUE: Impossible de générer le client Prisma"
       echo "   Le build peut échouer. Vérifiez votre schéma Prisma."
       # Même ici, on ne fait pas échouer le build - Next.js peut fonctionner sans client Prisma généré
@@ -940,7 +940,7 @@ if grep -q 'provider = "sqlite"' "$SCHEMA_PATH"; then
   echo "❌ ERREUR: schema.prisma est en SQLite"
   echo "   PostgreSQL est maintenant la source de vérité unique"
   echo "   Modifiez manuellement schema.prisma pour utiliser PostgreSQL"
-  echo "   Ou utilisez: npm run prisma:fix:schema"
+  echo "   Ou utilisez: pnpm run prisma:fix:schema"
   exit 1
 fi
 
@@ -952,7 +952,7 @@ if [ -f "$MIGRATION_LOCK_PATH" ]; then
   if grep -q 'provider = "sqlite"' "$MIGRATION_LOCK_PATH"; then
     echo "❌ ERREUR: migration_lock.toml est en SQLite"
     echo "   Modifiez manuellement migration_lock.toml pour utiliser PostgreSQL"
-    echo "   Ou utilisez: npm run prisma:fix:migration-lock"
+    echo "   Ou utilisez: pnpm run prisma:fix:migration-lock"
     exit 1
   fi
   echo "✅ migration_lock.toml est en PostgreSQL"
@@ -966,7 +966,7 @@ if [ "$USE_PRODUCTION" = "true" ] && [ "$NODE_ENV" != "production" ]; then
       echo "⚠️  ATTENTION: DATABASE_URL_PRODUCTION n'est pas défini dans .env.local"
       echo "   Le switch PostgreSQL est activé mais DATABASE_URL_PRODUCTION est manquant."
       echo "   Ajoutez DATABASE_URL_PRODUCTION dans .env.local pour utiliser PostgreSQL en local."
-      echo "   Ou exécutez: npm run db:setup:production-url"
+      echo "   Ou exécutez: pnpm run db:setup:production-url"
     else
       echo "✅ DATABASE_URL_PRODUCTION est défini dans .env.local"
     fi
@@ -981,7 +981,7 @@ fi
 # On ne régénère que si on est en production ou si explicitement demandé
 if [ "$NODE_ENV" = "production" ] || [ "$FORCE_PRISMA_GENERATE" = "true" ]; then
   echo "🔄 Régénération du client Prisma..."
-  npx prisma generate > /dev/null 2>&1 || npx prisma generate
+  pnpm prisma generate > /dev/null 2>&1 || pnpm prisma generate
   # Corriger les fichiers default.js et default.mjs pour Prisma 7
   node scripts/fix-prisma-types.mjs > /dev/null 2>&1 || node scripts/fix-prisma-types.mjs
   echo "✅ Client Prisma régénéré"

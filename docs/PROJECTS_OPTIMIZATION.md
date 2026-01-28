@@ -230,8 +230,8 @@ Des tests unitaires complets ont été créés pour :
 **Exécuter les tests :**
 
 ```bash
-npm test
-npm run test:coverage
+pnpm test
+pnpm run test:coverage
 ```
 
 ## Recommandations

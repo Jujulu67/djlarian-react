@@ -312,7 +312,7 @@ Pour chaque test, vérifier :
 1. **Démarrer le serveur :**
 
    ```bash
-   npm run dev
+   pnpm run dev
    ```
 
 2. **Ouvrir la page des projets :**

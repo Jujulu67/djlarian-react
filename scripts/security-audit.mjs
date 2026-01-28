@@ -15,7 +15,7 @@ console.log('='.repeat(60));
 // 1. Audit npm
 console.log('\n📦 1. Audit des dépendances npm...\n');
 try {
-  const auditOutput = execSync('npm audit --json', { encoding: 'utf-8' });
+  const auditOutput = execSync('pnpm audit --json', { encoding: 'utf-8' });
   const audit = JSON.parse(auditOutput);
 
   const vulnerabilities = audit.vulnerabilities || {};
@@ -32,7 +32,7 @@ try {
 
   if (critical > 0 || high > 0) {
     console.log(`\n   ⚠️  ATTENTION: Vulnérabilités critiques/haute détectées!`);
-    console.log(`      Exécutez: npm audit fix`);
+    console.log(`      Exécutez: pnpm audit fix`);
   }
 
   // Lister les vulnérabilités critiques/haute
@@ -58,7 +58,7 @@ try {
 // 2. Vérifier les versions obsolètes
 console.log('\n📋 2. Vérification des versions obsolètes...\n');
 try {
-  const outdated = execSync('npm outdated --json', { encoding: 'utf-8' });
+  const outdated = execSync('pnpm outdated --json', { encoding: 'utf-8' });
   const outdatedPackages = JSON.parse(outdated);
   const count = Object.keys(outdatedPackages).length;
 
@@ -71,7 +71,7 @@ try {
     console.log('   ✅ Tous les packages sont à jour');
   }
 } catch (error) {
-  // npm outdated retourne un code d'erreur si des packages sont obsolètes
+  // pnpm outdated retourne un code d'erreur si des packages sont obsolètes
   if (error.status === 1) {
     const outdated = JSON.parse(error.stdout || '{}');
     const count = Object.keys(outdated).length;

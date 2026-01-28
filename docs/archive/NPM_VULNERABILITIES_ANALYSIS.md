@@ -16,7 +16,7 @@
 
 **Problème** : Regular Expression Denial of Service (ReDoS)
 **Impact** : Faible - nécessite une manipulation malveillante spécifique
-**Fix** : `npm audit fix` (non-bloquant)
+**Fix** : `pnpm audit fix` (non-bloquant)
 
 **Verdict** : ✅ **Pas de risque réel** - C'est dans les dépendances de développement (eslint, jest)
 
@@ -26,7 +26,7 @@
 
 **Problème** : Command injection via CLI
 **Impact** : Élevé, mais **uniquement dans les outils de développement**
-**Fix** : Nécessite `npm audit fix --force` (mise à jour majeure de `eslint-config-next`)
+**Fix** : Nécessite `pnpm audit fix --force` (mise à jour majeure de `eslint-config-next`)
 
 **Verdict** : ⚠️ **Risque limité** - Uniquement dans les outils de build/dev, pas dans le code de production
 
@@ -36,7 +36,7 @@
 
 **Problème** : Prototype pollution
 **Impact** : Modéré, mais dans les outils de test
-**Fix** : `npm audit fix`
+**Fix** : `pnpm audit fix`
 
 **Verdict** : ✅ **Pas de risque** - Utilisé uniquement par les outils de test (jest)
 
@@ -52,7 +52,7 @@
 - SSRF via Middleware Redirect
 
 **Impact** : Modéré - nécessite des conditions spécifiques
-**Fix** : `npm audit fix --force` (mise à jour vers Next.js 16.0.3 - breaking change)
+**Fix** : `pnpm audit fix --force` (mise à jour vers Next.js 16.0.3 - breaking change)
 
 **Verdict** : ⚠️ **À surveiller** - Next.js 15.x a des vulnérabilités connues, mais nécessitent des conditions spécifiques pour être exploitées
 
@@ -62,7 +62,7 @@
 
 **Problème** : Dépend de `glob` vulnérable
 **Impact** : Élevé, mais **uniquement dans les outils de développement**
-**Fix** : `npm audit fix --force` (mise à jour vers 16.0.3 - breaking change)
+**Fix** : `pnpm audit fix --force` (mise à jour vers 16.0.3 - breaking change)
 
 **Verdict** : ⚠️ **Risque limité** - Uniquement dans les outils de build/dev
 
@@ -74,7 +74,7 @@
 
 1. **Corriger les vulnérabilités non-bloquantes** :
    ```bash
-   npm audit fix
+   pnpm audit fix
    ```
    Cela corrigera `brace-expansion` et `js-yaml` sans breaking changes.
 
@@ -83,7 +83,7 @@
 2. **Mettre à jour Next.js** (quand vous êtes prêt) :
 
    ```bash
-   npm audit fix --force
+   pnpm audit fix --force
    ```
 
    ⚠️ **Attention** : Cela mettra à jour vers Next.js 16.0.3, ce qui peut introduire des breaking changes.
@@ -121,13 +121,13 @@
 1. ✅ Les vulnérabilités critiques sont dans les dev dependencies
 2. ✅ Les vulnérabilités Next.js nécessitent des conditions spécifiques
 3. ✅ Vercel applique des mesures de sécurité supplémentaires
-4. ✅ Vous pouvez corriger les vulnérabilités non-bloquantes avec `npm audit fix`
+4. ✅ Vous pouvez corriger les vulnérabilités non-bloquantes avec `pnpm audit fix`
 
 **Action recommandée** :
 
 ```bash
 # Corriger les vulnérabilités non-bloquantes
-npm audit fix
+pnpm audit fix
 
 # Pour Next.js, attendre la prochaine version stable ou planifier la migration vers 16.x
 ```
@@ -136,6 +136,6 @@ npm audit fix
 
 ## 📚 Ressources
 
-- [npm audit documentation](https://docs.npmjs.com/cli/v8/commands/npm-audit)
+- [pnpm audit documentation](https://docs.npmjs.com/cli/v8/commands/npm-audit)
 - [Next.js Security Advisories](https://github.com/vercel/next.js/security/advisories)
 - [Vercel Security](https://vercel.com/security)

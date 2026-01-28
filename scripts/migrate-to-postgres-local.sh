@@ -179,11 +179,11 @@ fi
 success "schema.prisma correct (url géré par prisma.config.ts)"
 
 # Valider le schema
-if npx prisma validate &>/dev/null; then
+if pnpm prisma validate &>/dev/null; then
   success "Schema Prisma valide"
 else
   error "Schema Prisma invalide"
-  npx prisma validate
+  pnpm prisma validate
   exit 1
 fi
 
@@ -201,7 +201,7 @@ echo "   Vérification que la base est propre..."
 TABLE_CHECK=$(psql "$PG_URL" -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name NOT LIKE '_prisma_%';" 2>/dev/null || echo "error")
 if [ "$TABLE_CHECK" != "error" ] && [ "$TABLE_CHECK" -gt 0 ] 2>/dev/null; then
   warning "La base contient déjà des tables ($TABLE_CHECK tables)"
-  echo "   Si vous voulez repartir propre, utilisez: npm run db:reset:local"
+  echo "   Si vous voulez repartir propre, utilisez: pnpm run db:reset:local"
   read -p "   Continuer quand même? (o/N) " -r
   if [[ ! $REPLY =~ ^[Oo]$ ]]; then
     warning "Migration annulée"
@@ -213,17 +213,17 @@ fi
 
 # Vérifier l'état des migrations
 echo "   Vérification de l'état des migrations..."
-MIGRATION_STATUS=$(npx prisma migrate status 2>&1 || true)
+MIGRATION_STATUS=$(pnpm prisma migrate status 2>&1 || true)
 
 if echo "$MIGRATION_STATUS" | grep -q "Database schema is up to date"; then
   success "Migrations déjà appliquées"
 elif echo "$MIGRATION_STATUS" | grep -q "migrations have not yet been applied"; then
   warning "Migrations non appliquées, application..."
-  npx prisma migrate deploy
+  pnpm prisma migrate deploy
   success "Migrations appliquées"
 else
   warning "État des migrations incertain, tentative d'application..."
-  npx prisma migrate deploy || {
+  pnpm prisma migrate deploy || {
     error "Échec de l'application des migrations"
     exit 1
   }
@@ -232,7 +232,7 @@ fi
 
 # Vérifier migrate status après application
 echo "   Vérification finale du statut des migrations..."
-FINAL_STATUS=$(npx prisma migrate status 2>&1 || true)
+FINAL_STATUS=$(pnpm prisma migrate status 2>&1 || true)
 if echo "$FINAL_STATUS" | grep -q "Database schema is up to date"; then
   success "Migrations confirmées: base à jour"
 else
@@ -306,12 +306,12 @@ echo ""
 
 # Générer Prisma Client
 echo "   Génération du Prisma Client..."
-npm run prisma:generate
+pnpm run prisma:generate
 success "Prisma Client généré"
 
 # Valider le schema
 echo "   Validation du schema..."
-if npx prisma validate; then
+if pnpm prisma validate; then
   success "Schema valide"
 else
   error "Schema invalide"
@@ -322,7 +322,7 @@ echo ""
 success "Migration terminée avec succès!"
 echo ""
 echo "📋 Prochaines étapes:"
-echo "   1. Vérifier que l'app démarre: npm run dev"
-echo "   2. Lancer les tests: npm run test:assistant-router"
-echo "   3. Vérifier les données dans Prisma Studio: npm run db:studio"
+echo "   1. Vérifier que l'app démarre: pnpm run dev"
+echo "   2. Lancer les tests: pnpm run test:assistant-router"
+echo "   3. Vérifier les données dans Prisma Studio: pnpm run db:studio"
 echo ""

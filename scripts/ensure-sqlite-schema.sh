@@ -42,7 +42,7 @@ if grep -q 'provider = "sqlite"' "$SCHEMA_PATH"; then
   echo "⚠️  ATTENTION: schema.prisma est en SQLite"
   echo "   PostgreSQL est maintenant la source de vérité unique"
   echo "   Modifiez manuellement schema.prisma pour utiliser PostgreSQL"
-  echo "   Ou utilisez: npm run prisma:fix:schema"
+  echo "   Ou utilisez: pnpm run prisma:fix:schema"
   exit 1
 fi
 
@@ -54,7 +54,7 @@ if [ -f "$MIGRATION_LOCK_PATH" ]; then
   if grep -q 'provider = "sqlite"' "$MIGRATION_LOCK_PATH"; then
     echo "⚠️  ATTENTION: migration_lock.toml est en SQLite"
     echo "   Modifiez manuellement migration_lock.toml pour utiliser PostgreSQL"
-    echo "   Ou utilisez: npm run prisma:fix:migration-lock"
+    echo "   Ou utilisez: pnpm run prisma:fix:migration-lock"
     exit 1
   fi
   echo "✅ migration_lock.toml est en PostgreSQL"
@@ -74,6 +74,6 @@ fi
 # Toujours régénérer le client Prisma pour s'assurer qu'il correspond au schéma
 echo "🔄 Régénération du client Prisma..."
 rm -rf node_modules/.prisma 2>/dev/null || true
-npx prisma generate > /dev/null 2>&1 || npx prisma generate
+pnpm prisma generate > /dev/null 2>&1 || pnpm prisma generate
 node scripts/fix-prisma-types.mjs > /dev/null 2>&1 || node scripts/fix-prisma-types.mjs
 echo "✅ Client Prisma régénéré"

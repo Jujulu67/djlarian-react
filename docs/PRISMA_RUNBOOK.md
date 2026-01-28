@@ -44,7 +44,7 @@ model NouveauModele {
 
 ```bash
 # Créer une migration avec un nom descriptif
-npm run prisma:migrate:dev -- --name add_nouveau_modele
+pnpm run prisma:migrate:dev -- --name add_nouveau_modele
 ```
 
 **Important**:
@@ -66,7 +66,7 @@ cat prisma/migrations/YYYYMMDDHHMMSS_add_nouveau_modele/migration.sql
 
 ```bash
 # Si la migration n'a pas été appliquée automatiquement
-npm run prisma:bootstrap:local
+pnpm run prisma:bootstrap:local
 ```
 
 #### Étape 5: Générer le Client Prisma
@@ -74,14 +74,14 @@ npm run prisma:bootstrap:local
 ```bash
 # Le client est généré automatiquement après migrate dev
 # Mais vous pouvez le régénérer manuellement si besoin
-npm run prisma:generate
+pnpm run prisma:generate
 ```
 
 #### Étape 6: Vérifier le Drift
 
 ```bash
 # Vérifier qu'il n'y a pas de drift
-npm run prisma:check:drift
+pnpm run prisma:check:drift
 ```
 
 #### Étape 7: Commit
@@ -113,7 +113,7 @@ model User {
 #### Étape 2: Créer la Migration
 
 ```bash
-npm run prisma:migrate:dev -- --name add_user_phone
+pnpm run prisma:migrate:dev -- --name add_user_phone
 ```
 
 #### Étape 3: Vérifier et Appliquer
@@ -136,10 +136,10 @@ Les migrations sont appliquées automatiquement lors du build via `ensure-postgr
 
 ```bash
 # Se connecter à la DB de production (read-only recommandé pour vérification)
-npm run db:diagnose-prod
+pnpm run db:diagnose-prod
 
 # Appliquer les migrations manuellement (si le build échoue)
-npm run prisma:migrate:deploy
+pnpm run prisma:migrate:deploy
 ```
 
 ---
@@ -153,14 +153,14 @@ npm run prisma:migrate:deploy
 # Format: DATABASE_URL_PRODUCTION="postgresql://user:password@host/database?sslmode=require"
 
 # 2. Bootstrap la DB locale
-npm run prisma:bootstrap:local
+pnpm run prisma:bootstrap:local
 ```
 
 #### Réparer une DB Locale Cassée
 
 ```bash
 # Si vous avez des erreurs P2021 (table manquante) ou P3006 (migrations)
-npm run prisma:bootstrap:local
+pnpm run prisma:bootstrap:local
 ```
 
 Ce script:
@@ -178,55 +178,55 @@ Ce script:
 
 ```bash
 # Vérifier l'état des migrations
-npx prisma migrate status
+pnpm prisma migrate status
 
 # Vérifier le drift (schéma vs DB)
-npm run prisma:check:drift
+pnpm run prisma:check:drift
 
 # Valider le schéma
-npx prisma validate
+pnpm prisma validate
 
 # Vérifier que le client peut être généré
-npm run prisma:check:client
+pnpm run prisma:check:client
 ```
 
 ### Génération
 
 ```bash
 # Générer le client Prisma
-npm run prisma:generate
+pnpm run prisma:generate
 
 # Créer une migration (dev)
-npm run prisma:migrate:dev -- --name nom_migration
+pnpm run prisma:migrate:dev -- --name nom_migration
 
 # Appliquer les migrations (production)
-npm run prisma:migrate:deploy
+pnpm run prisma:migrate:deploy
 ```
 
 ### Réparation
 
 ```bash
 # Fixer schema.prisma sur PostgreSQL
-npm run prisma:fix:schema
+pnpm run prisma:fix:schema
 
 # Fixer migration_lock.toml sur PostgreSQL
-npm run prisma:fix:migration-lock
+pnpm run prisma:fix:migration-lock
 
 # Bootstrap complet de la DB locale
-npm run prisma:bootstrap:local
+pnpm run prisma:bootstrap:local
 ```
 
 ### Exploration
 
 ```bash
 # Ouvrir Prisma Studio
-npm run db:studio
+pnpm run db:studio
 
 # Diagnostiquer la DB locale
-npm run db:diagnose
+pnpm run db:diagnose
 
 # Diagnostiquer la DB de production
-npm run db:diagnose-prod
+pnpm run db:diagnose-prod
 ```
 
 ---
@@ -251,16 +251,16 @@ P2021: The table `main.AssistantConfirmation` does not exist.
 
 ```bash
 # 1. Vérifier l'état des migrations
-npx prisma migrate status
+pnpm prisma migrate status
 
 # 2. Si des migrations sont en attente, les appliquer
-npm run prisma:bootstrap:local
+pnpm run prisma:bootstrap:local
 
 # 3. Vérifier que le client est à jour
-npm run prisma:generate
+pnpm run prisma:generate
 
 # 4. Si le problème persiste, vérifier le drift
-npm run prisma:check:drift
+pnpm run prisma:check:drift
 ```
 
 ---
@@ -283,17 +283,17 @@ P3006: Migration `20251214140000_add_assistant_confirmation` failed to apply.
 
 ```bash
 # 1. Vérifier l'état de la migration
-npx prisma migrate status
+pnpm prisma migrate status
 
 # 2. Résoudre la migration échouée
 # Si la migration a partiellement réussi:
-npx prisma migrate resolve --applied 20251214140000_add_assistant_confirmation
+pnpm prisma migrate resolve --applied 20251214140000_add_assistant_confirmation
 
 # Si la migration doit être rollback:
-npx prisma migrate resolve --rolled-back 20251214140000_add_assistant_confirmation
+pnpm prisma migrate resolve --rolled-back 20251214140000_add_assistant_confirmation
 
 # 3. Réappliquer les migrations
-npm run prisma:migrate:deploy
+pnpm run prisma:migrate:deploy
 ```
 
 ---
@@ -316,17 +316,17 @@ npm run prisma:migrate:deploy
 
 ```bash
 # 1. Vérifier le drift exact
-npx prisma migrate diff \
+pnpm prisma migrate diff \
   --from-schema-datamodel prisma/schema.prisma \
   --to-schema-datasource prisma/schema.prisma \
   --script
 
 # 2. Si le drift est attendu (modifications manuelles), créer une migration
-npm run prisma:migrate:dev -- --name fix_drift
+pnpm run prisma:migrate:dev -- --name fix_drift
 
 # 3. Si le drift est une erreur, synchroniser manuellement
 # ATTENTION: Ne faites cela qu'en local, jamais en production
-npm run prisma:bootstrap:local
+pnpm run prisma:bootstrap:local
 ```
 
 ---
@@ -345,7 +345,7 @@ npm run prisma:bootstrap:local
 
 ```bash
 # Fixer automatiquement
-npm run prisma:fix:schema
+pnpm run prisma:fix:schema
 
 # Vérifier
 grep 'provider =' prisma/schema.prisma
@@ -368,7 +368,7 @@ grep 'provider =' prisma/schema.prisma
 
 ```bash
 # Fixer automatiquement
-npm run prisma:fix:migration-lock
+pnpm run prisma:fix:migration-lock
 
 # Vérifier
 grep 'provider =' prisma/migrations/migration_lock.toml
@@ -394,10 +394,10 @@ Pour les tests d'intégration nécessitant une DB réelle:
 
 ```bash
 # Utiliser SQLite avec db push (sans migrations)
-DATABASE_URL="file:./prisma/test.db" npx prisma db push --accept-data-loss
+DATABASE_URL="file:./prisma/test.db" pnpm prisma db push --accept-data-loss
 
 # Exécuter les tests
-DATABASE_URL="file:./prisma/test.db" npm test
+DATABASE_URL="file:./prisma/test.db" pnpm test
 
 # Nettoyer après les tests
 rm -f prisma/test.db
@@ -433,8 +433,8 @@ Avant de commiter des changements Prisma:
 **Si une table est manquante en production après déploiement:**
 
 1. **Ne pas paniquer** - Les migrations sont idempotentes
-2. Vérifier l'état: `npx prisma migrate status` (sur la DB de prod)
-3. Si migration en attente: `npx prisma migrate deploy`
+2. Vérifier l'état: `pnpm prisma migrate status` (sur la DB de prod)
+3. Si migration en attente: `pnpm prisma migrate deploy`
 4. Si migration échouée: Résoudre avec `prisma migrate resolve`
 5. Si problème persiste: Créer une migration de réparation
 
@@ -444,11 +444,11 @@ Avant de commiter des changements Prisma:
 
 1. Vérifier les logs Vercel pour l'erreur exacte
 2. Se connecter à la DB (read-only si possible)
-3. Vérifier l'état: `npx prisma migrate status`
+3. Vérifier l'état: `pnpm prisma migrate status`
 4. Résoudre la migration:
    - `--applied` si partiellement réussie
    - `--rolled-back` si complètement échouée
-5. Réappliquer: `npx prisma migrate deploy`
+5. Réappliquer: `pnpm prisma migrate deploy`
 
 ### Local: DB Complètement Cassée
 
@@ -456,16 +456,16 @@ Avant de commiter des changements Prisma:
 
 ```bash
 # Option 1: Bootstrap (recommandé - préserve les données si possible)
-npm run prisma:bootstrap:local
+pnpm run prisma:bootstrap:local
 
 # Option 2: Reset complet (⚠️ PERTE DE DONNÉES)
 # Pour SQLite:
 rm -f prisma/dev.db
-npm run prisma:bootstrap:local
+pnpm run prisma:bootstrap:local
 
 # Pour PostgreSQL:
 # Supprimer et recréer la DB, puis:
-npm run prisma:bootstrap:local
+pnpm run prisma:bootstrap:local
 ```
 
 ---
@@ -488,8 +488,8 @@ npm run prisma:bootstrap:local
 ### Audit et Diagnostics
 
 - `docs/AUDIT_PRISMA_PIPELINE.md`: Audit complet du pipeline
-- `npm run db:diagnose`: Diagnostiquer la DB locale
-- `npm run db:diagnose-prod`: Diagnostiquer la DB de production
+- `pnpm run db:diagnose`: Diagnostiquer la DB locale
+- `pnpm run db:diagnose-prod`: Diagnostiquer la DB de production
 
 ---
 

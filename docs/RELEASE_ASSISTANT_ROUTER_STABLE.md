@@ -76,8 +76,8 @@ Stabiliser définitivement les tests du router assistant en rendant verts `route
 
 ### Scripts npm
 
-- ✅ `npm run test:assistant-router` : 37 tests passent en 1.244s
-- ✅ `npm run test:assistant-nlp` : 40 tests passent (inchangé)
+- ✅ `pnpm run test:assistant-router` : 37 tests passent en 1.244s
+- ✅ `pnpm run test:assistant-nlp` : 40 tests passent (inchangé)
 
 ## 🚀 Prochaines étapes recommandées
 

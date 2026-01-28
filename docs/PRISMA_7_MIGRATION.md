@@ -233,20 +233,20 @@ const prisma = new PrismaClient();
 ### Génération du Client
 
 ```bash
-npx prisma generate
+pnpm prisma generate
 ```
 
 ### Migrations
 
 ```bash
-npx prisma migrate dev
-npx prisma migrate deploy
+pnpm prisma migrate dev
+pnpm prisma migrate deploy
 ```
 
 ### Studio
 
 ```bash
-npx prisma studio
+pnpm prisma studio
 ```
 
 ## 📝 Notes Importantes

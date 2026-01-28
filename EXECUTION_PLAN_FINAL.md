@@ -46,10 +46,10 @@ Voir `docs/ENV_LOCAL_SETUP.md` pour la configuration complète.
 ### 3. Bootstrap Schéma Postgres
 
 ```bash
-npm run prisma:generate
-npx prisma validate
-npx prisma migrate deploy
-npx prisma migrate status  # Devrait afficher: "Database schema is up to date"
+pnpm run prisma:generate
+pnpm prisma validate
+pnpm prisma migrate deploy
+pnpm prisma migrate status  # Devrait afficher: "Database schema is up to date"
 ```
 
 ### 4. Backup SQLite (OBLIGATOIRE)
@@ -85,13 +85,13 @@ sqlite3 prisma/dev.db "SELECT COUNT(*) FROM Project;"  # Comparer
 
 ```bash
 # App démarre
-npm run dev
+pnpm run dev
 # Vérifier: Pas d'erreurs Prisma, connexion PostgreSQL OK
 
 # Tests critiques
-npm run test:assistant-router
-npm run test:assistant-identity
-npm run test:no-skips
+pnpm run test:assistant-router
+pnpm run test:assistant-identity
+pnpm run test:no-skips
 
 # Smoke test API (optionnel)
 # Tester /api/projects/batch-update (idempotency + concurrency)
@@ -99,7 +99,7 @@ npm run test:no-skips
 
 ## ✅ Critères d'Acceptation
 
-- [ ] `npm run dev` fonctionne avec Postgres local
+- [ ] `pnpm run dev` fonctionne avec Postgres local
 - [ ] Aucune perte de données (counts SQLite = PostgreSQL)
 - [ ] Plus aucune erreur P2021 sur `AssistantConfirmation`
 - [ ] Switch DB safe (prod protégé, `ALLOW_PROD_DB` requis)

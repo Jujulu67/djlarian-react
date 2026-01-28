@@ -9,7 +9,7 @@ Pour le développement local, vous pouvez utiliser **SQLite** (fichier local) au
 ### Option 1 : Script Automatique (Recommandé)
 
 ```bash
-npm run db:setup:local
+pnpm run db:setup:local
 ```
 
 Ce script va :
@@ -48,13 +48,13 @@ Ce script va :
 3. **Appliquer les migrations** :
 
    ```bash
-   npx prisma migrate dev --name init
-   npx prisma generate
+   pnpm prisma migrate dev --name init
+   pnpm prisma generate
    ```
 
 4. **Vérifier** :
    ```bash
-   npx prisma studio
+   pnpm prisma studio
    ```
 
 ---
@@ -64,13 +64,13 @@ Ce script va :
 ### Pour le Développement Local (SQLite)
 
 ```bash
-npm run db:local
+pnpm run db:local
 ```
 
 ### Pour la Production (PostgreSQL/Neon)
 
 ```bash
-npm run db:production
+pnpm run db:production
 ```
 
 Ces scripts modifient automatiquement `prisma/schema.prisma` et régénèrent le client Prisma.
@@ -116,13 +116,13 @@ prisma/
 1. **Démarrer l'application** :
 
    ```bash
-   npm run dev
+   pnpm run dev
    ```
 
 2. **Ouvrir Prisma Studio** :
 
    ```bash
-   npx prisma studio
+   pnpm prisma studio
    ```
 
    - Cela ouvrira http://localhost:5555
@@ -144,7 +144,7 @@ Si vous voulez copier certaines données de production vers votre base locale :
 
    ```bash
    # Se connecter à Neon
-   DATABASE_URL="postgresql://..." npx prisma studio
+   DATABASE_URL="postgresql://..." pnpm prisma studio
    ```
 
 2. **Importer dans SQLite** :
@@ -169,7 +169,7 @@ Si vous avez une erreur de type, vérifiez que votre `schema.prisma` utilise bie
 Le fichier `dev.db` sera créé automatiquement lors de la première migration. Si l'erreur persiste :
 
 ```bash
-npx prisma migrate dev
+pnpm prisma migrate dev
 ```
 
 ### Je veux réinitialiser la base locale
@@ -179,7 +179,7 @@ npx prisma migrate dev
 rm prisma/dev.db
 
 # Réappliquer les migrations
-npx prisma migrate dev
+pnpm prisma migrate dev
 ```
 
 ### Je veux utiliser PostgreSQL local au lieu de SQLite
@@ -209,7 +209,7 @@ Si vous préférez PostgreSQL local (via Docker) :
 
 4. **Appliquer les migrations** :
    ```bash
-   npx prisma migrate dev
+   pnpm prisma migrate dev
    ```
 
 ---
@@ -226,7 +226,7 @@ Si vous préférez PostgreSQL local (via Docker) :
 
 ## 📋 Checklist
 
-- [ ] Script `npm run db:setup:local` créé
+- [ ] Script `pnpm run db:setup:local` créé
 - [ ] `.env.local` configuré avec SQLite
 - [ ] `prisma/schema.prisma` modifié pour SQLite
 - [ ] Migrations appliquées

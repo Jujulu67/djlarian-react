@@ -18,8 +18,8 @@ if (!GROQ_API_KEY) {
 }
 
 // Note: Ce script nécessite que les fichiers TypeScript soient compilés
-// Pour l'utiliser, exécutez d'abord: npm run build
-// Ou utilisez tsx: npx tsx scripts/test-conversation-memory.mjs
+// Pour l'utiliser, exécutez d'abord: pnpm run build
+// Ou utilisez tsx: pnpm tsx scripts/test-conversation-memory.mjs
 
 // Import dynamique pour gérer les modules TypeScript
 async function loadModules() {
@@ -32,9 +32,9 @@ async function loadModules() {
     return { getConversationalResponse, prepareConversationContext, estimateTokens };
   } catch (error) {
     console.error(
-      '❌ Erreur lors du chargement des modules. Assurez-vous que le projet est compilé (npm run build)'
+      '❌ Erreur lors du chargement des modules. Assurez-vous que le projet est compilé (pnpm run build)'
     );
-    console.error('   Ou utilisez tsx: npx tsx scripts/test-conversation-memory.mjs');
+    console.error('   Ou utilisez tsx: pnpm tsx scripts/test-conversation-memory.mjs');
     throw error;
   }
 }

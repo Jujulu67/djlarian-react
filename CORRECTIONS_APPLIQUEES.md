@@ -22,7 +22,7 @@ datasource db {
 }
 ```
 
-**Validation:** ✅ `npx prisma validate` passe
+**Validation:** ✅ `pnpm prisma validate` passe
 
 **Note:** En Prisma 7, `url` n'est plus dans `schema.prisma` mais dans `prisma.config.ts` (déjà configuré).
 
@@ -39,12 +39,12 @@ datasource db {
 
 ---
 
-### 3. ✅ npm run db:reset:local Ajouté
+### 3. ✅ pnpm run db:reset:local Ajouté
 
 **Commande:**
 
 ```bash
-npm run db:reset:local
+pnpm run db:reset:local
 ```
 
 **Action:**
@@ -89,10 +89,10 @@ DATABASE_URL="postgresql://djlarian:djlarian_dev_password@localhost:5432/djlaria
 ### 3. Appliquer Migrations
 
 ```bash
-npm run prisma:generate
-npx prisma validate
-npx prisma migrate deploy
-npx prisma migrate status
+pnpm run prisma:generate
+pnpm prisma validate
+pnpm prisma migrate deploy
+pnpm prisma migrate status
 ```
 
 ### 4. Migrer Données
@@ -108,10 +108,10 @@ bash scripts/migrate-to-postgres-local.sh
 ### 5. Validation
 
 ```bash
-npm run dev
-npm run test:assistant-router
-npm run test:assistant-identity
-npm run test:no-skips
+pnpm run dev
+pnpm run test:assistant-router
+pnpm run test:assistant-identity
+pnpm run test:no-skips
 ```
 
 ---
@@ -120,7 +120,7 @@ npm run test:no-skips
 
 - [x] schema.prisma corrigé (`provider = "postgresql"`, pas de `url`)
 - [x] Script migrate-to-postgres-local.sh amélioré (fail fast, checks)
-- [x] npm run db:reset:local ajouté
+- [x] pnpm run db:reset:local ajouté
 - [x] .gitignore mis à jour (backups, docker-compose.override.yml)
 - [x] Documentation mise à jour (garder url → url dans prisma.config.ts)
 - [ ] PostgreSQL démarré
@@ -133,7 +133,7 @@ npm run test:no-skips
 
 ## 🎯 Résultat
 
-**Schema valide:** ✅ `npx prisma validate` passe
+**Schema valide:** ✅ `pnpm prisma validate` passe
 
 **Prêt pour migration:** Tous les scripts et configurations sont en place.
 

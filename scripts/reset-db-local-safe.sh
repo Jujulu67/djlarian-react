@@ -9,7 +9,7 @@
 # AGENTS: DO NOT USE THIS SCRIPT UNLESS THE USER HAS EXPLICITLY REQUESTED
 # "WIPE", "RESET", or "START OVER" WITH COMPLETE DATA LOSS.
 #
-# For normal schema updates, use: npx prisma db push
+# For normal schema updates, use: pnpm prisma db push
 # ==============================================================================
 #
 # Script sécurisé pour reset de la base de données locale
@@ -22,7 +22,7 @@
 # - Refuse si domaines de production détectés
 #
 # Usage:
-#   ALLOW_DB_WIPE_LOCAL=1 DB_WIPE_CONFIRM=$(date +%s) npm run db:reset:local
+#   ALLOW_DB_WIPE_LOCAL=1 DB_WIPE_CONFIRM=$(date +%s) pnpm run db:reset:local
 #
 
 set -e
@@ -66,10 +66,10 @@ if [ "$ALLOW_DB_WIPE_LOCAL" != "1" ] && [ "$ALLOW_DB_WIPE_LOCAL" != "true" ]; th
   echo "Pour autoriser le wipe, définissez:"
   echo "  export ALLOW_DB_WIPE_LOCAL=1"
   echo "  export DB_WIPE_CONFIRM=\$(date +%s)"
-  echo "  npm run db:reset:local"
+  echo "  pnpm run db:reset:local"
   echo ""
   echo "Ou utilisez directement:"
-  echo "  ALLOW_DB_WIPE_LOCAL=1 DB_WIPE_CONFIRM=\$(date +%s) npm run db:reset:local"
+  echo "  ALLOW_DB_WIPE_LOCAL=1 DB_WIPE_CONFIRM=\$(date +%s) pnpm run db:reset:local"
   exit 1
 fi
 
@@ -270,7 +270,7 @@ done
 # 4. Appliquer les migrations
 info "Application des migrations Prisma..."
 export DATABASE_URL
-if npx prisma migrate deploy; then
+if pnpm prisma migrate deploy; then
   success "Migrations appliquées"
 else
   error "Erreur lors de l'application des migrations"

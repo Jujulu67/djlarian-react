@@ -34,16 +34,16 @@ psql "$DATABASE_URL" -c "\dt"
 
 ```bash
 # 1. Générer Prisma Client
-npm run prisma:generate
+pnpm run prisma:generate
 
 # 2. Valider schema
-npx prisma validate
+pnpm prisma validate
 
 # 3. Appliquer migrations
-npx prisma migrate deploy
+pnpm prisma migrate deploy
 
 # 4. Vérifier statut
-npx prisma migrate status
+pnpm prisma migrate status
 
 # 5. Vérifier tables clés
 psql "$DATABASE_URL" -c "SELECT COUNT(*) FROM \"AssistantConfirmation\";"
@@ -52,9 +52,9 @@ psql "$DATABASE_URL" -c "\dt" | grep -E "(User|Project|AssistantConfirmation)"
 
 **Vérifications:**
 
-- [ ] `npx prisma validate` passe
-- [ ] `npx prisma migrate deploy` réussit
-- [ ] `npx prisma migrate status` = "Database schema is up to date"
+- [ ] `pnpm prisma validate` passe
+- [ ] `pnpm prisma migrate deploy` réussit
+- [ ] `pnpm prisma migrate status` = "Database schema is up to date"
 - [ ] Table `AssistantConfirmation` existe
 - [ ] Autres tables clés existent
 
@@ -144,13 +144,13 @@ grep -n "migrate deploy\|db push" scripts/ensure-postgresql-schema.sh
 
 ```bash
 # 1. App démarre
-npm run dev
+pnpm run dev
 # Vérifier: Pas d'erreurs Prisma, connexion PostgreSQL OK
 
 # 2. Tests critiques
-npm run test:assistant-router
-npm run test:assistant-identity
-npm run test:no-skips
+pnpm run test:assistant-router
+pnpm run test:assistant-identity
+pnpm run test:no-skips
 
 # 3. Smoke test API
 # Tester /api/projects/batch-update (idempotency + concurrency)
@@ -158,7 +158,7 @@ npm run test:no-skips
 
 **Vérifications:**
 
-- [ ] `npm run dev` fonctionne avec Postgres local
+- [ ] `pnpm run dev` fonctionne avec Postgres local
 - [ ] Aucune perte de données (counts + vérifs ciblées)
 - [ ] Plus aucune erreur P2021 sur `AssistantConfirmation`
 - [ ] Switch DB safe (prod protégé)
@@ -176,7 +176,7 @@ npm run test:no-skips
 
 ```bash
 # Reset PostgreSQL local (DESTRUCTIF)
-npm run db:reset:local
+pnpm run db:reset:local
 
 # Restaurer SQLite depuis backup
 node scripts/restore-sqlite-from-backup.mjs <backup_path>

@@ -10,7 +10,7 @@
   ```
 - **npm** : Inclus avec Node.js
   ```bash
-  npm --version
+  pnpm --version
   ```
 - **Git** : Pour cloner et versionner
   ```bash
@@ -38,7 +38,7 @@ cd larian-react
 ### 2. Installer les Dépendances
 
 ```bash
-npm install
+pnpm install
 ```
 
 **Note** : Le script `postinstall` s'exécute automatiquement et :
@@ -81,7 +81,7 @@ Copier le résultat dans `.env.local`.
 
 ```bash
 # Créer la base de données SQLite et appliquer les migrations
-npm run db:setup:local
+pnpm run db:setup:local
 ```
 
 Cela :
@@ -93,7 +93,7 @@ Cela :
 ### 5. Lancer le Serveur de Développement
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 Ouvrir http://localhost:3000 dans votre navigateur.
@@ -104,10 +104,10 @@ Ouvrir http://localhost:3000 dans votre navigateur.
 
 ```bash
 # Serveur standard
-npm run dev
+pnpm run dev
 
 # Serveur avec auto-restart
-npm run dev:auto
+pnpm run dev:auto
 ```
 
 **Port** : 3000 (par défaut)
@@ -118,10 +118,10 @@ npm run dev:auto
 
 ```bash
 # Build local
-npm run build
+pnpm run build
 
 # Démarrer le serveur de production
-npm start
+pnpm start
 ```
 
 **Note** : Le build vérifie automatiquement :
@@ -134,32 +134,32 @@ npm start
 
 ```bash
 # Linter (mode quiet)
-npm run lint
+pnpm run lint
 
 # Linter avec auto-fix
-npm run lint:fix
+pnpm run lint:fix
 
 # Formatter (Prettier)
-npm run format
+pnpm run format
 
 # Vérification TypeScript
-npm run type-check
+pnpm run type-check
 ```
 
 ### Tests
 
 ```bash
 # Tous les tests
-npm test
+pnpm test
 
 # Tests en mode watch
-npm run test:watch
+pnpm run test:watch
 
 # Tests avec couverture
-npm run test:coverage
+pnpm run test:coverage
 
 # Tests pour CI
-npm run test:ci
+pnpm run test:ci
 ```
 
 ## Structure du Projet
@@ -382,8 +382,8 @@ docs(readme): mise à jour de la documentation
 1. **Créer une branche** depuis `main`
 2. **Développer** la fonctionnalité
 3. **Tester** localement
-4. **Linter** : `npm run lint:fix`
-5. **Tests** : `npm test`
+4. **Linter** : `pnpm run lint:fix`
+5. **Tests** : `pnpm test`
 6. **Créer une PR** avec description claire
 7. **Attendre la review** avant merge
 
@@ -394,7 +394,7 @@ docs(readme): mise à jour de la documentation
 Interface graphique pour la base de données :
 
 ```bash
-npm run db:studio
+pnpm run db:studio
 ```
 
 Ouvre http://localhost:5555
@@ -441,7 +441,7 @@ console.log('[Component] State:', state);
 
 ```bash
 # Vérifier les erreurs TypeScript
-npm run type-check
+pnpm run type-check
 
 # Voir les erreurs en temps réel dans VS Code
 # Installer l'extension TypeScript
@@ -451,7 +451,7 @@ npm run type-check
 
 ```bash
 # Build avec logs détaillés
-npm run build
+pnpm run build
 
 # Vérifier les erreurs dans la console
 # Vérifier les logs Vercel (si déployé)
@@ -565,39 +565,39 @@ describe('Accessibility', () => {
 
 ```bash
 # Setup local
-npm run db:setup:local
+pnpm run db:setup:local
 
 # Reset (supprime et recrée)
-npm run db:reset:local
+pnpm run db:reset:local
 
 # Studio (GUI)
-npm run db:studio
+pnpm run db:studio
 
 # Import backup
-npm run db:import:backup
+pnpm run db:import:backup
 
 # Diagnostic
-npm run db:diagnose
+pnpm run db:diagnose
 ```
 
 ### Vérification
 
 ```bash
 # Vérifier les variables d'environnement
-npm run check-env
+pnpm run check-env
 
 # Vérifier le build
-npm run build
+pnpm run build
 
 # Vérifier les types
-npm run type-check
+pnpm run type-check
 ```
 
 ### Génération
 
 ```bash
 # Générer vidéo waveform
-npm run generate:waveform-video
+pnpm run generate:waveform-video
 ```
 
 ## Problèmes Courants
@@ -610,7 +610,7 @@ npm run generate:waveform-video
 
 ```bash
 rm -rf node_modules package-lock.json
-npm install
+pnpm install
 ```
 
 ### Erreur Prisma
@@ -620,8 +620,8 @@ npm install
 **Solution** :
 
 ```bash
-npx prisma generate
-npm run db:setup:local
+pnpm prisma generate
+pnpm run db:setup:local
 ```
 
 ### Erreur TypeScript
@@ -631,7 +631,7 @@ npm run db:setup:local
 **Solution** :
 
 ```bash
-npm run type-check
+pnpm run type-check
 # Vérifier tsconfig.json
 # Vérifier les imports
 ```
@@ -643,9 +643,9 @@ npm run type-check
 **Solution** :
 
 ```bash
-npm run lint:fix
-npm run type-check
-npm run build
+pnpm run lint:fix
+pnpm run type-check
+pnpm run build
 # Vérifier les logs d'erreur
 ```
 
@@ -661,7 +661,7 @@ lsof -i :3000
 # Tuer le processus
 kill -9 <PID>
 # Ou utiliser un autre port
-PORT=3001 npm run dev
+PORT=3001 pnpm run dev
 ```
 
 ## Ressources

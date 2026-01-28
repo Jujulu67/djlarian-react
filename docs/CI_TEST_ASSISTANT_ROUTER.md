@@ -3,7 +3,7 @@
 ## Script de test
 
 ```bash
-npm run test:assistant-router
+pnpm run test:assistant-router
 ```
 
 ## Temps d'exécution
@@ -41,13 +41,13 @@ npm run test:assistant-router
 ```yaml
 # GitHub Actions
 - name: Test Assistant Router (must pass)
-  run: npm run test:assistant-router
+  run: pnpm run test:assistant-router
   timeout-minutes: 2
 
 # GitLab CI
 test:assistant-router:
   script:
-    - npm run test:assistant-router
+    - pnpm run test:assistant-router
   timeout: 2m
 ```
 
@@ -56,7 +56,7 @@ test:assistant-router:
 ### Test de snapshot NLP
 
 ```bash
-npm test -- src/lib/assistant/query-parser/__tests__/detect-filters-canonical.test.ts
+pnpm test -- src/lib/assistant/query-parser/__tests__/detect-filters-canonical.test.ts
 ```
 
 - **Temps d'exécution** : ~0.6 secondes
@@ -67,7 +67,7 @@ npm test -- src/lib/assistant/query-parser/__tests__/detect-filters-canonical.te
 ### Test de garde-fou
 
 ```bash
-npm test -- src/lib/assistant/router/__tests__/router.guardrail.test.ts
+pnpm test -- src/lib/assistant/router/__tests__/router.guardrail.test.ts
 ```
 
 - **Temps d'exécution** : ~0.7 secondes
@@ -83,7 +83,7 @@ Ces tests doivent passer à chaque PR. Si un test échoue :
 2. **Vérifier les logs** - les messages d'erreur sont détaillés
 3. **Utiliser ASSISTANT_TEST_DEBUG=true** pour diagnostiquer :
    ```bash
-   ASSISTANT_TEST_DEBUG=true npm run test:assistant-router
+   ASSISTANT_TEST_DEBUG=true pnpm run test:assistant-router
    ```
 
 ## Historique

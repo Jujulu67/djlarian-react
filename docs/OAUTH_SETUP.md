@@ -107,7 +107,7 @@ GOOGLE_CLIENT_SECRET=votre_client_secret_google
 ```bash
 # Arrêter le serveur (Ctrl+C)
 # Redémarrer
-npm run dev
+pnpm run dev
 ```
 
 Le bouton **"Continuer avec Google"** devrait maintenant apparaître dans le modal de connexion.
@@ -166,7 +166,7 @@ TWITCH_CLIENT_SECRET=votre_client_secret_twitch
 ```bash
 # Arrêter le serveur (Ctrl+C)
 # Redémarrer
-npm run dev
+pnpm run dev
 ```
 
 Le bouton **"Continuer avec Twitch"** devrait maintenant apparaître dans le modal de connexion.
@@ -274,7 +274,7 @@ Réponse attendue :
 1. Vérifier que la base de données est accessible
 2. Vérifier que les migrations Prisma sont appliquées :
    ```bash
-   npx prisma migrate deploy
+   pnpm prisma migrate deploy
    ```
 3. Vérifier les logs du serveur pour voir les erreurs
 

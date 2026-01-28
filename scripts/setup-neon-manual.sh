@@ -22,7 +22,7 @@ echo ""
 # Vérifier que Prisma est installé
 if [ ! -f "node_modules/.bin/prisma" ]; then
     echo "📦 Installation des dépendances..."
-    npm install
+    pnpm install
 fi
 
 # Créer ou mettre à jour .env.local
@@ -54,11 +54,11 @@ fi
 
 echo ""
 echo "🔄 Application des migrations Prisma..."
-npx prisma migrate deploy
+pnpm prisma migrate deploy
 
 echo ""
 echo "🔧 Génération du client Prisma..."
-npx prisma generate
+pnpm prisma generate
 
 echo ""
 echo "✅ Configuration Neon terminée !"

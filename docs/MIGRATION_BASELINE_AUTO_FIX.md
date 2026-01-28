@@ -87,7 +87,7 @@ Après le premier build qui crée les baselines, vous pouvez vérifier :
 ls -la prisma/migrations/
 
 # Vérifier l'état des migrations
-npx prisma migrate status
+pnpm prisma migrate status
 ```
 
 ## 🎯 Prochaines Étapes

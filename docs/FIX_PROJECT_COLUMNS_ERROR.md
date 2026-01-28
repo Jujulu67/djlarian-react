@@ -36,16 +36,16 @@ Si vous avez cette erreur **maintenant** et ne pouvez pas attendre le prochain d
 
 ```bash
 # Vérifier l'état des migrations
-npx prisma migrate status
+pnpm prisma migrate status
 
 # Appliquer les migrations manquantes
-npm run db:migrate:production
+pnpm run db:migrate:production
 ```
 
 Ou directement :
 
 ```bash
-npx prisma migrate deploy
+pnpm prisma migrate deploy
 ```
 
 ### Option 2 : Si la migration échoue (conflit d'historique)
@@ -54,13 +54,13 @@ Si vous obtenez une erreur de drift ou de conflit d'historique :
 
 ```bash
 # 1. Vérifier l'état
-npx prisma migrate status
+pnpm prisma migrate status
 
 # 2. Si la migration est marquée comme "failed", la résoudre
-npx prisma migrate resolve --applied 20251210133500_add_progress_and_note_to_projects
+pnpm prisma migrate resolve --applied 20251210133500_add_progress_and_note_to_projects
 
 # 3. Réessayer
-npx prisma migrate deploy
+pnpm prisma migrate deploy
 ```
 
 ### Option 3 : Appliquer manuellement la migration SQL
@@ -76,7 +76,7 @@ ALTER TABLE "Project" ADD COLUMN "note" TEXT;
 Puis marquer la migration comme appliquée :
 
 ```bash
-npx prisma migrate resolve --applied 20251210133500_add_progress_and_note_to_projects
+pnpm prisma migrate resolve --applied 20251210133500_add_progress_and_note_to_projects
 ```
 
 ## 🔍 Vérification
@@ -85,7 +85,7 @@ Après avoir appliqué la migration, vérifiez que les colonnes existent :
 
 ```bash
 # Via Prisma Studio
-npx prisma studio
+pnpm prisma studio
 
 # Ou via SQL direct
 # Dans votre console Neon ou psql
@@ -101,7 +101,7 @@ Pour éviter ce problème à l'avenir :
 1. **Toujours vérifier que les migrations sont appliquées après un déploiement**
 
    ```bash
-   npx prisma migrate status
+   pnpm prisma migrate status
    ```
 
 2. **Le script de build Vercel (`ensure-postgresql-schema.sh`) applique automatiquement les migrations**, mais il peut échouer silencieusement si :

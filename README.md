@@ -44,16 +44,16 @@ git clone https://github.com/votre-username/larian-react.git
 cd larian-react
 
 # Installer les dépendances
-npm install
+pnpm install
 
 # Configurer l'environnement
 cp .env.example .env.local  # Créer et configurer .env.local
 
 # Setup base de données
-npm run db:setup:local
+pnpm run db:setup:local
 
 # Lancer le serveur de développement
-npm run dev
+pnpm run dev
 ```
 
 Pour plus de détails, voir le [Guide de Développement](docs/04-GUIDE-DEV.md).
@@ -75,19 +75,19 @@ L'application supporte l'authentification OAuth via Google et Twitch (100% gratu
 
 ```bash
 # Exécuter tous les tests
-npm test
+pnpm test
 
 # Tests en mode watch
-npm run test:watch
+pnpm run test:watch
 
 # Tests avec couverture
-npm run test:coverage
+pnpm run test:coverage
 
 # Tests pour CI/CD (avec vérification des seuils)
-npm run test:ci
+pnpm run test:ci
 
 # Vérifier les seuils de coverage
-npm run test:coverage:check
+pnpm run test:coverage:check
 ```
 
 ### Seuils de Coverage
@@ -101,7 +101,7 @@ Les tests bloquent automatiquement si les seuils suivants ne sont pas atteints :
 
 ⚠️ **Important** :
 
-- **En local/test** : `npm run build` lance automatiquement les tests (`test:ci`) et bloque si les seuils ne sont pas atteints
+- **En local/test** : `pnpm run build` lance automatiquement les tests (`test:ci`) et bloque si les seuils ne sont pas atteints
 - **En production sur Vercel** : Les tests sont automatiquement ignorés lors du build pour ne pas bloquer le déploiement
 
 ## 📜 License

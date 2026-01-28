@@ -152,7 +152,7 @@ console.log('='.repeat(60));
 console.log('');
 console.log('💡 Instructions pour tester manuellement :');
 console.log('');
-console.log('1. Démarrez le serveur : npm run dev');
+console.log('1. Démarrez le serveur : pnpm run dev');
 console.log('2. Allez sur http://localhost:3000/projects');
 console.log('3. Cliquez sur le bouton flottant (icône Sparkles)');
 console.log('4. Testez chaque cas ci-dessus');

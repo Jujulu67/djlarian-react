@@ -104,7 +104,7 @@ docker-compose up -d
 echo 'DATABASE_URL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable"' >> .env.local
 
 # 3. Bootstrap la base de données
-npm run db:bootstrap
+pnpm run db:bootstrap
 ```
 
 #### Option 2: PostgreSQL Natif (macOS)
@@ -122,7 +122,7 @@ psql postgres -c "CREATE DATABASE djlarian_dev OWNER djlarian;"
 echo 'DATABASE_URL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable"' >> .env.local
 
 # 4. Bootstrap la base de données
-npm run db:bootstrap
+pnpm run db:bootstrap
 ```
 
 ---
@@ -131,19 +131,19 @@ npm run db:bootstrap
 
 ```bash
 # Démarrer l'application
-npm run dev
+pnpm run dev
 
 # Vérifier l'état des migrations
-npx prisma migrate status
+pnpm prisma migrate status
 
 # Créer une nouvelle migration
-npm run prisma:migrate:dev -- --name nom_migration
+pnpm run prisma:migrate:dev -- --name nom_migration
 
 # Appliquer les migrations
-npm run prisma:migrate:deploy
+pnpm run prisma:migrate:deploy
 
 # Ouvrir Prisma Studio
-npm run db:studio
+pnpm run db:studio
 ```
 
 ---
@@ -171,14 +171,14 @@ grep 'provider =' prisma/schema.prisma
 # Devrait afficher: provider = "postgresql"
 
 # 2. Vérifier la connexion
-npx prisma db execute --stdin <<< "SELECT 1;"
+pnpm prisma db execute --stdin <<< "SELECT 1;"
 
 # 3. Vérifier les migrations
-npx prisma migrate status
+pnpm prisma migrate status
 # Devrait afficher: "Database schema is up to date"
 
 # 4. Lancer l'app
-npm run dev
+pnpm run dev
 ```
 
 ---
@@ -208,10 +208,10 @@ psql "$DATABASE_URL" < projects.sql
 
 ```bash
 # Vérifier que les migrations sont appliquées
-npx prisma migrate status
+pnpm prisma migrate status
 
 # Si des migrations sont en attente:
-npm run prisma:migrate:deploy
+pnpm run prisma:migrate:deploy
 ```
 
 ### Erreur: "database does not exist"
@@ -239,7 +239,7 @@ Les scripts suivants modifient encore `schema.prisma` et doivent être évités:
 
 **Utiliser à la place**:
 
-- ✅ `npm run db:bootstrap` (nouveau script, ne modifie pas schema.prisma)
+- ✅ `pnpm run db:bootstrap` (nouveau script, ne modifie pas schema.prisma)
 
 ---
 

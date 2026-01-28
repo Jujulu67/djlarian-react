@@ -21,7 +21,7 @@ Le script guide à travers toutes les étapes et demande confirmation aux moment
 # Vérifier l'état actuel
 cat prisma/schema.prisma | sed -n '1,15p'
 cat prisma/migrations/migration_lock.toml
-npx prisma -v
+pnpm prisma -v
 node -v
 echo $DATABASE_URL
 sqlite3 prisma/dev.db ".tables"
@@ -94,7 +94,7 @@ grep "provider = " prisma/schema.prisma
 # Devrait afficher: provider = "postgresql"
 
 # Valider le schema
-npx prisma validate
+pnpm prisma validate
 ```
 
 **Output attendu:**
@@ -112,7 +112,7 @@ The schema at prisma/schema.prisma is valid ✅
 export DATABASE_URL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable"
 
 # 2. Appliquer les migrations
-npx prisma migrate deploy
+pnpm prisma migrate deploy
 
 # Output attendu:
 # Applying migration `20250424125117_init`
@@ -121,7 +121,7 @@ npx prisma migrate deploy
 # X migrations applied successfully.
 
 # 3. Vérifier l'état
-npx prisma migrate status
+pnpm prisma migrate status
 
 # Output attendu:
 # Database schema is up to date!
@@ -198,31 +198,31 @@ grep "^DATABASE_URL" .env.local
 
 ```bash
 # 1. Générer Prisma Client
-npm run prisma:generate
+pnpm run prisma:generate
 
 # Output attendu:
 # Prisma Client generated
 
 # 2. Valider le schema
-npx prisma validate
+pnpm prisma validate
 
 # Output attendu:
 # The schema at prisma/schema.prisma is valid ✅
 
 # 3. Démarrer l'app
-npm run dev
+pnpm run dev
 
 # Vérifier dans les logs:
 # ✅ Pas d'erreurs Prisma
 # ✅ Connexion à PostgreSQL réussie
 
 # 4. Lancer les tests
-npm run test:assistant-router
-npm run test:assistant-identity
-npm run test:no-skips
+pnpm run test:assistant-router
+pnpm run test:assistant-identity
+pnpm run test:no-skips
 
 # 5. Vérifier les données (optionnel)
-npm run db:studio
+pnpm run db:studio
 # Ouvrir http://localhost:5555 et vérifier les tables
 ```
 
@@ -244,7 +244,7 @@ sleep 5
 
 # 4. Réappliquer les migrations
 export DATABASE_URL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable"
-npx prisma migrate deploy
+pnpm prisma migrate deploy
 
 # 5. Re-migrer les données depuis SQLite
 node scripts/migrate-sqlite-to-postgres.mjs
@@ -281,7 +281,7 @@ docker compose up -d
 ```bash
 # Les migrations ne sont pas appliquées
 export DATABASE_URL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable"
-npx prisma migrate deploy
+pnpm prisma migrate deploy
 ```
 
 ### Erreur: "P1012: url is no longer supported"
@@ -325,13 +325,13 @@ docker compose logs postgres
 - [ ] `schema.prisma` avec `provider = "postgresql"` (ligne 8)
 - [ ] Ligne `url = env("DATABASE_URL")` supprimée de `schema.prisma`
 - [ ] `DATABASE_URL_LOCAL` configuré dans `.env.local`
-- [ ] Migrations appliquées sur PostgreSQL (`npx prisma migrate deploy`)
+- [ ] Migrations appliquées sur PostgreSQL (`pnpm prisma migrate deploy`)
 - [ ] Données SQLite migrées vers PostgreSQL
 - [ ] Counts vérifiés (SQLite = PostgreSQL)
 - [ ] `DATABASE_URL` dans `.env.local` pointe vers PostgreSQL local
-- [ ] `npm run prisma:generate` exécuté
-- [ ] `npx prisma validate` passe
-- [ ] `npm run dev` démarre sans erreurs
+- [ ] `pnpm run prisma:generate` exécuté
+- [ ] `pnpm prisma validate` passe
+- [ ] `pnpm run dev` démarre sans erreurs
 - [ ] Tests passent
 - [ ] Switch DB fonctionne et est sécurisé
 

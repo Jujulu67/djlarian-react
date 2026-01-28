@@ -40,13 +40,14 @@ Neon permet de créer des **branches** (comme Git) pour séparer vos environneme
 5. **Appliquer les migrations sur la branche de développement** :
 
    ```bash
-   npx prisma migrate deploy
-   npx prisma generate
+   pnpm prisma migrate deploy
+   pnpm prisma generate
    ```
 
 6. **Vérifier que ça fonctionne** :
+
    ```bash
-   npx prisma studio
+   pnpm prisma studio
    ```
 
    - Cela devrait ouvrir Prisma Studio connecté à la branche `development`

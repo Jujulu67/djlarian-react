@@ -51,22 +51,22 @@
 
 ```bash
 # Analyser l'état des migrations
-npm run db:analyze-migrations
+pnpm run db:analyze-migrations
 
 # Vérifier l'alignement SQLite ↔ PostgreSQL
-npm run db:verify-alignment
+pnpm run db:verify-alignment
 
 # Créer des migrations baseline si nécessaire
-npm run db:create-baselines
+pnpm run db:create-baselines
 
 # Nettoyer les doublons dans la DB
-npm run db:cleanup-duplicates
+pnpm run db:cleanup-duplicates
 
 # Synchroniser les migrations baseline en SQLite
-npm run db:sync-sqlite-baselines
+pnpm run db:sync-sqlite-baselines
 
 # Corriger la table Notification si elle manque
-npm run db:fix-notification-table
+pnpm run db:fix-notification-table
 ```
 
 ### ✅ Prochaines Étapes
@@ -74,7 +74,7 @@ npm run db:fix-notification-table
 1. **Créer de nouvelles migrations** :
 
    ```bash
-   npx prisma migrate dev --name nom_de_la_migration
+   pnpm prisma migrate dev --name nom_de_la_migration
    ```
 
    - ✅ Fonctionnera en SQLite local

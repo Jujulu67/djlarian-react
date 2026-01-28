@@ -78,9 +78,9 @@ Découper `routeProjectCommand` en sous-fonctions:
    - Maintenir l'API publique inchangée
 
 5. **Validation**
-   - `npm test` - Tous les 4323 tests doivent passer
+   - `pnpm test` - Tous les 4323 tests doivent passer
    - `npx tsc --noEmit` - Pas d'erreurs TypeScript
-   - `npm run check:boundaries` - Pas de violations de layering
+   - `pnpm run check:boundaries` - Pas de violations de layering
 
 ## Constraints
 

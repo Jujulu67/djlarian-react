@@ -53,10 +53,10 @@ node scripts/restore-sqlite-backup-to-postgres.mjs prisma/dev.db.backup.2025-12-
 
 ```bash
 # ❌ Sans protection (refusé)
-npm run db:reset:local
+pnpm run db:reset:local
 
 # ✅ Avec protection (requis)
-ALLOW_DB_WIPE_LOCAL=1 DB_WIPE_CONFIRM=$(date +%s) npm run db:reset:local
+ALLOW_DB_WIPE_LOCAL=1 DB_WIPE_CONFIRM=$(date +%s) pnpm run db:reset:local
 ```
 
 ### 3. Script de Test des Garde-fous (`test-db-safety-guards.mjs`)
@@ -75,7 +75,7 @@ ALLOW_DB_WIPE_LOCAL=1 DB_WIPE_CONFIRM=$(date +%s) npm run db:reset:local
 **Usage**:
 
 ```bash
-npm run test:db-safety
+pnpm run test:db-safety
 # ou
 node scripts/test-db-safety-guards.mjs
 ```
@@ -119,15 +119,15 @@ node scripts/restore-sqlite-backup-to-postgres.mjs prisma/dev.db.backup.2025-12-
 **Avant** (dangereux):
 
 ```bash
-npm run db:reset:local  # Wipe immédiat sans protection
+pnpm run db:reset:local  # Wipe immédiat sans protection
 ```
 
 **Après** (sécurisé):
 
 ```bash
-npm run db:reset:local  # ❌ Refusé automatiquement
+pnpm run db:reset:local  # ❌ Refusé automatiquement
 
-ALLOW_DB_WIPE_LOCAL=1 DB_WIPE_CONFIRM=$(date +%s) npm run db:reset:local
+ALLOW_DB_WIPE_LOCAL=1 DB_WIPE_CONFIRM=$(date +%s) pnpm run db:reset:local
 # ✅ Accepté avec protections + confirmation finale
 ```
 
@@ -159,7 +159,7 @@ ALLOW_DB_WIPE_LOCAL=1 DB_WIPE_CONFIRM=$(date +%s) npm run db:reset:local
 ### Tests des Garde-fous
 
 ```bash
-npm run test:db-safety
+pnpm run test:db-safety
 ```
 
 **Résultats attendus**: 7 tests passés
@@ -190,7 +190,7 @@ npm run test:db-safety
 2. **Tester les garde-fous**:
 
    ```bash
-   npm run test:db-safety
+   pnpm run test:db-safety
    ```
 
 3. **Documenter** les procédures dans l'équipe

@@ -27,7 +27,7 @@ echo ""
 # Vérifier que Prisma est installé
 if [ ! -f "node_modules/.bin/prisma" ]; then
     echo "📦 Installation des dépendances..."
-    npm install
+    pnpm install
 fi
 
 echo "📋 Étapes de migration:"
@@ -37,11 +37,11 @@ echo ""
 
 # Appliquer les migrations
 echo "🔄 Application des migrations..."
-npx prisma migrate deploy
+pnpm prisma migrate deploy
 
 echo ""
 echo "🔧 Génération du client Prisma..."
-npx prisma generate
+pnpm prisma generate
 
 echo ""
 echo "✅ Migration terminée !"

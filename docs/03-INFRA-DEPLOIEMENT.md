@@ -27,7 +27,7 @@
   ```
 - **npm** : Inclus avec Node.js
   ```bash
-  npm --version
+  pnpm --version
   ```
 - **Git** : Pour cloner le repository
   ```bash
@@ -157,7 +157,7 @@ docker-compose logs -f
 1. **Créer un compte Vercel** : https://vercel.com
 2. **Installer Vercel CLI** (optionnel) :
    ```bash
-   npm i -g vercel
+   pnpm i -g vercel
    ```
 
 ### 2. Configuration du Projet
@@ -168,9 +168,9 @@ docker-compose logs -f
    - Framework Preset : Next.js (détecté automatiquement)
 
 2. **Configuration du build** :
-   - Build Command : `npm run build` (détecté automatiquement)
+   - Build Command : `pnpm run build` (détecté automatiquement)
    - Output Directory : `.next` (détecté automatiquement)
-   - Install Command : `npm install` (détecté automatiquement)
+   - Install Command : `pnpm install` (détecté automatiquement)
 
 ### 3. Variables d'Environnement
 
@@ -233,7 +233,7 @@ Dans **Settings → Environment Variables**, ajouter :
 
 2. **Configuration du build** :
    - Framework preset : `Next.js`
-   - Build command : `npm run build`
+   - Build command : `pnpm run build`
    - Build output directory : `.next`
    - Root directory : `/`
 
@@ -253,13 +253,13 @@ Dans **Settings → Environment Variables**, ajouter :
 
 ```bash
 # Setup initial
-npm run db:setup:local
+pnpm run db:setup:local
 
 # Reset (supprime et recrée)
-npm run db:reset:local
+pnpm run db:reset:local
 
 # Prisma Studio (GUI)
-npm run db:studio
+pnpm run db:studio
 ```
 
 **Fichier** : `prisma/dev.db` (créé automatiquement)
@@ -284,34 +284,34 @@ npm run db:studio
 
 ```bash
 # Appliquer les migrations
-npx prisma migrate deploy
+pnpm prisma migrate deploy
 
 # Générer le client Prisma
-npx prisma generate
+pnpm prisma generate
 ```
 
 #### 4. Vérification
 
 ```bash
 # Ouvrir Prisma Studio (connecté à Neon)
-DATABASE_URL="votre-connection-string-neon" npx prisma studio
+DATABASE_URL="votre-connection-string-neon" pnpm prisma studio
 ```
 
 ### Scripts de Migration
 
 ```bash
 # Migration production
-npm run db:migrate:production
+pnpm run db:migrate:production
 
 # Migration images Blob
-npm run db:migrate:blob-images
+pnpm run db:migrate:blob-images
 
 # Toutes les migrations
-npm run db:migrate:all
+pnpm run db:migrate:all
 
 # Diagnostic
-npm run db:diagnose
-npm run db:diagnose-prod
+pnpm run db:diagnose
+pnpm run db:diagnose-prod
 ```
 
 ## Stockage - Vercel Blob Storage
@@ -388,10 +388,10 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: '22'
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run type-check
-      - run: npm test
+      - run: pnpm ci
+      - run: pnpm run lint
+      - run: pnpm run type-check
+      - run: pnpm test
 ```
 
 ### Vercel (Automatique)
@@ -456,7 +456,7 @@ Automatiquement activé sur Vercel. Aucune configuration nécessaire.
 
 ```bash
 # Vérifier les variables d'environnement
-npm run check-env
+pnpm run check-env
 ```
 
 Affiche :
@@ -469,34 +469,34 @@ Affiche :
 
 ```bash
 # Setup local
-npm run db:setup:local
+pnpm run db:setup:local
 
 # Setup production
-npm run db:production
+pnpm run db:production
 
 # Studio (GUI)
-npm run db:studio
+pnpm run db:studio
 
 # Migrations
-npm run db:migrate:production
+pnpm run db:migrate:production
 ```
 
 ### Développement
 
 ```bash
 # Serveur de développement
-npm run dev
+pnpm run dev
 
 # Build de production
-npm run build
+pnpm run build
 
 # Linting
-npm run lint
-npm run lint:fix
+pnpm run lint
+pnpm run lint:fix
 
 # Tests
-npm test
-npm run test:coverage
+pnpm test
+pnpm run test:coverage
 ```
 
 ## Dépannage
@@ -504,15 +504,15 @@ npm run test:coverage
 ### Erreurs de Build
 
 1. **Vérifier Node.js version** : Doit être 22.x
-2. **Vérifier les variables d'environnement** : `npm run check-env`
-3. **Vérifier Prisma** : `npx prisma generate`
+2. **Vérifier les variables d'environnement** : `pnpm run check-env`
+3. **Vérifier Prisma** : `pnpm prisma generate`
 4. **Vérifier les logs Vercel** : Dashboard → Deployments → Logs
 
 ### Erreurs de Base de Données
 
 1. **Vérifier DATABASE_URL** : Format correct
-2. **Vérifier les migrations** : `npx prisma migrate deploy`
-3. **Vérifier la connexion** : `npx prisma studio`
+2. **Vérifier les migrations** : `pnpm prisma migrate deploy`
+3. **Vérifier la connexion** : `pnpm prisma studio`
 
 ### Erreurs OAuth
 
@@ -534,8 +534,8 @@ npm run test:coverage
 - [ ] Repository cloné
 - [ ] `.env.local` configuré (développement)
 - [ ] Base de données locale fonctionnelle
-- [ ] Tests passent (`npm test`)
-- [ ] Build fonctionne (`npm run build`)
+- [ ] Tests passent (`pnpm test`)
+- [ ] Build fonctionne (`pnpm run build`)
 
 ### Configuration Production
 

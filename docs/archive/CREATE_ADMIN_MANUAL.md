@@ -171,7 +171,7 @@ bcrypt.hash(password, saltRounds).then((hash) => {
 Usage :
 
 ```bash
-npx tsx scripts/hash-password.ts "MonMotDePasse123!"
+pnpm tsx scripts/hash-password.ts "MonMotDePasse123!"
 ```
 
 ---

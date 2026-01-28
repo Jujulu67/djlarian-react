@@ -14,7 +14,7 @@ echo $DATABASE_URL
 ### 1.2 Migrations Prisma
 
 ```bash
-npx prisma migrate status
+pnpm prisma migrate status
 # ✅ Résultat: 25 migrations trouvées, DB à jour
 # ✅ Connexion: PostgreSQL sur port 5433
 ```
@@ -29,9 +29,9 @@ grep provider prisma/schema.prisma
 ### 1.4 Prisma Client
 
 ```bash
-npx prisma validate
+pnpm prisma validate
 # ✅ À exécuter manuellement
-npm run prisma:generate
+pnpm run prisma:generate
 # ✅ À exécuter manuellement
 ```
 
@@ -101,7 +101,7 @@ npm run prisma:generate
 
 **Fichier**: `scripts/ensure-postgresql-schema.sh`
 
-- **Ligne 491**: `npx prisma migrate deploy` (priorité) ✅
+- **Ligne 491**: `pnpm prisma migrate deploy` (priorité) ✅
 - **Note**: Utilise `db push` en fallback uniquement si `migrate deploy` échoue
 
 ---

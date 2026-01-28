@@ -2,7 +2,7 @@
 
 # Script simplifié pour démarrer le serveur de développement
 # Avec le hot swap DB, plus besoin de redémarrage automatique lors des switchs
-# Usage: npm run dev:auto
+# Usage: pnpm run dev:auto
 
 cd "$(dirname "$0")/.."
 
@@ -204,13 +204,13 @@ start_server() {
     rm -f .next/dev/lock 2>/dev/null || true
     
     # Lancer next dev
-    NODE_OPTIONS='--import tsx' npx next dev &
-    NPM_PID=$!
-    echo $NPM_PID > "$PID_FILE"
-    echo "   Serveur démarré (PID: $NPM_PID)"
+    NODE_OPTIONS='--import tsx' pnpm next dev &
+    SERVER_PID=$!
+    echo $SERVER_PID > "$PID_FILE"
+    echo "   Serveur démarré (PID: $SERVER_PID)"
     
     # Attendre que le processus se termine
-    wait $NPM_PID
+    wait $SERVER_PID
     SERVER_EXIT_CODE=$?
     
     rm -f "$PID_FILE"

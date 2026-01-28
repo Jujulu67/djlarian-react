@@ -19,7 +19,7 @@ Au lieu de créer des migrations baseline vides, on peut **nettoyer automatiquem
 ### 1. Vérifier les migrations obsolètes (dry-run)
 
 ```bash
-npm run db:cleanup-migrations
+pnpm run db:cleanup-migrations
 ```
 
 Affiche les migrations qui seront supprimées **sans rien modifier**.
@@ -27,7 +27,7 @@ Affiche les migrations qui seront supprimées **sans rien modifier**.
 ### 2. Nettoyer les migrations obsolètes
 
 ```bash
-npm run db:cleanup-migrations:execute
+pnpm run db:cleanup-migrations:execute
 ```
 
 Supprime automatiquement les entrées de `_prisma_migrations` qui n'existent plus localement.
@@ -116,4 +116,4 @@ Le script `ensure-postgresql-schema.sh` **nettoie automatiquement** les migratio
 ---
 
 **Script** : `scripts/cleanup-old-migrations.mjs`
-**Commandes** : `npm run db:cleanup-migrations` (dry-run) | `npm run db:cleanup-migrations:execute` (exécution)
+**Commandes** : `pnpm run db:cleanup-migrations` (dry-run) | `pnpm run db:cleanup-migrations:execute` (exécution)

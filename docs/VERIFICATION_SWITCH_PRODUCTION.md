@@ -136,7 +136,7 @@ curl http://localhost:3000/api/images/[imageId]
 
 ```bash
 # Avec le switch activé, vérifier que la table Image existe
-npx prisma studio
+pnpm prisma studio
 # Ou via SQL :
 psql $DATABASE_URL -c "SELECT COUNT(*) FROM \"Image\";"
 ```

@@ -148,7 +148,7 @@ console.log('\n📝 Prochaines étapes:');
 console.log('   1. Vérifiez les migrations créées:');
 console.log('      ls -la prisma/migrations/');
 console.log('   2. Vérifiez l\'état des migrations:');
-console.log('      npm run db:analyze-migrations');
+console.log('      pnpm run db:analyze-migrations');
 console.log('   3. Commitez les migrations baseline:');
 console.log('      git add prisma/migrations/');
 console.log('      git commit -m "Add baseline migrations to align Git with production DB"');

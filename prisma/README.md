@@ -35,7 +35,7 @@ git checkout -b schema-changes
 2. Créez une migration Prisma :
 
 ```bash
-npx prisma migrate dev --name descriptive_name_of_change
+pnpm prisma migrate dev --name descriptive_name_of_change
 ```
 
 3. Vérifiez le fichier SQL généré dans `prisma/migrations/[timestamp]_descriptive_name_of_change/migration.sql`
@@ -43,7 +43,7 @@ npx prisma migrate dev --name descriptive_name_of_change
 4. Si tout semble correct, générez le client Prisma :
 
 ```bash
-npx prisma generate
+pnpm prisma generate
 ```
 
 ## Si vous rencontrez des problèmes
@@ -55,7 +55,7 @@ Si Prisma détecte un "drift" et veut réinitialiser la base de données :
 2. Utilisez `--create-only` pour examiner le SQL avant de l'appliquer :
 
 ```bash
-npx prisma migrate dev --name test_migration --create-only
+pnpm prisma migrate dev --name test_migration --create-only
 ```
 
 3. Modifiez manuellement le fichier SQL généré pour effectuer uniquement les changements nécessaires.
@@ -63,7 +63,7 @@ npx prisma migrate dev --name test_migration --create-only
 4. Appliquez la migration modifiée :
 
 ```bash
-npx prisma migrate dev --skip-generate
+pnpm prisma migrate dev --skip-generate
 ```
 
 ## En cas d'erreur grave

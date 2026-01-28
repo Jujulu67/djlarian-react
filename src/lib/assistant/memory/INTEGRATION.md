@@ -178,7 +178,7 @@ Les tests sont dans `src/lib/assistant/memory/__tests__/memory-isolation.test.ts
 ### Exécution
 
 ```bash
-npm test -- memory-isolation
+pnpm test -- memory-isolation
 ```
 
 ### Tests inclus
@@ -379,4 +379,4 @@ function reportMetrics(metrics: MemoryMetrics): void {
 - [ ] Ajouter `sessionId` dans le state React
 - [ ] Mettre à jour les composants UI pour distinguer `kind`
 - [ ] Configurer `ASSISTANT_DEBUG=true` en développement
-- [ ] Exécuter les tests: `npm test -- memory-isolation`
+- [ ] Exécuter les tests: `pnpm test -- memory-isolation`

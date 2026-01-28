@@ -11,7 +11,7 @@ echo ""
 # Vérifier si Prisma est installé
 if [ ! -f "node_modules/.bin/prisma" ]; then
     echo "📦 Installation des dépendances..."
-    npm install
+    pnpm install
 fi
 
 # Restaurer le schema PostgreSQL
@@ -79,7 +79,7 @@ fi
 
 echo ""
 echo "🔧 Génération du client Prisma..."
-npx prisma generate
+pnpm prisma generate
 
 echo ""
 echo "✅ Configuration PostgreSQL/Neon terminée !"

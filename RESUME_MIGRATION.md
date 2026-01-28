@@ -63,7 +63,7 @@ Voir `MIGRATION_COMMANDES.md` pour toutes les commandes détaillées.
 grep "provider = " prisma/schema.prisma
 # Devrait afficher: provider = "postgresql"
 
-npx prisma validate
+pnpm prisma validate
 # Devrait afficher: The schema at prisma/schema.prisma is valid ✅
 ```
 
@@ -88,8 +88,8 @@ fi
 
 ```bash
 export DATABASE_URL="postgresql://djlarian:djlarian_dev_password@localhost:5432/djlarian_dev?sslmode=disable"
-npx prisma migrate deploy
-npx prisma migrate status
+pnpm prisma migrate deploy
+pnpm prisma migrate status
 # Devrait afficher: Database schema is up to date!
 ```
 
@@ -122,18 +122,18 @@ grep "^DATABASE_URL" .env.local
 
 ```bash
 # Générer Prisma Client
-npm run prisma:generate
+pnpm run prisma:generate
 
 # Valider schema
-npx prisma validate
+pnpm prisma validate
 
 # Démarrer l'app
-npm run dev
+pnpm run dev
 
 # Tests
-npm run test:assistant-router
-npm run test:assistant-identity
-npm run test:no-skips
+pnpm run test:assistant-router
+pnpm run test:assistant-identity
+pnpm run test:no-skips
 ```
 
 ---
@@ -142,7 +142,7 @@ npm run test:no-skips
 
 - [ ] **1. Schema.prisma corrigé manuellement**
   - [ ] `provider = "postgresql"` (ligne 8)
-  - [ ] `npx prisma validate` passe (url géré par prisma.config.ts)
+  - [ ] `pnpm prisma validate` passe (url géré par prisma.config.ts)
 
 - [ ] **2. PostgreSQL Local opérationnel**
   - [ ] Docker Compose démarré (`docker compose up -d`)
@@ -154,8 +154,8 @@ npm run test:no-skips
   - [ ] `DATABASE_URL` mis à jour vers PostgreSQL local
 
 - [ ] **4. Migrations appliquées**
-  - [ ] `npx prisma migrate deploy` exécuté
-  - [ ] `npx prisma migrate status` = "up to date"
+  - [ ] `pnpm prisma migrate deploy` exécuté
+  - [ ] `pnpm prisma migrate status` = "up to date"
   - [ ] Tables créées dans PostgreSQL
 
 - [ ] **5. Données migrées**
@@ -165,9 +165,9 @@ npm run test:no-skips
   - [ ] Counts vérifiés (SQLite = PostgreSQL)
 
 - [ ] **6. Validation**
-  - [ ] `npm run prisma:generate` exécuté
-  - [ ] `npx prisma validate` passe
-  - [ ] `npm run dev` démarre sans erreurs
+  - [ ] `pnpm run prisma:generate` exécuté
+  - [ ] `pnpm prisma validate` passe
+  - [ ] `pnpm run dev` démarre sans erreurs
   - [ ] Tests passent
   - [ ] Données accessibles dans l'app
 
@@ -186,7 +186,7 @@ docker compose up -d
 
 # Réappliquer migrations
 export DATABASE_URL="postgresql://djlarian:djlarian_dev_password@localhost:5432/djlarian_dev?sslmode=disable"
-npx prisma migrate deploy
+pnpm prisma migrate deploy
 
 # Re-migrer données
 node scripts/migrate-sqlite-to-postgres.mjs
@@ -206,12 +206,12 @@ cp prisma/dev.db.backup.YYYY-MM-DDTHH-MM-SS prisma/dev.db
 
 ## 🆘 Troubleshooting Rapide
 
-| Erreur                            | Solution                                                 |
-| --------------------------------- | -------------------------------------------------------- |
-| `Cannot connect to Docker daemon` | `open -a Docker` (macOS) ou démarrer Docker Desktop      |
-| `relation does not exist`         | `npx prisma migrate deploy`                              |
-| `duplicate key value`             | Reset PostgreSQL et re-migrer (`npm run db:reset:local`) |
-| `connection refused`              | `docker compose up -d` et vérifier logs                  |
+| Erreur                            | Solution                                                  |
+| --------------------------------- | --------------------------------------------------------- |
+| `Cannot connect to Docker daemon` | `open -a Docker` (macOS) ou démarrer Docker Desktop       |
+| `relation does not exist`         | `pnpm prisma migrate deploy`                              |
+| `duplicate key value`             | Reset PostgreSQL et re-migrer (`pnpm run db:reset:local`) |
+| `connection refused`              | `docker compose up -d` et vérifier logs                   |
 
 ---
 
