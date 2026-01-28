@@ -97,7 +97,7 @@ export async function encryptLicenseData(data: object, machineId: string): Promi
 /**
  * Déchiffre les données (Pour tests seulement - le vrai déchiffrement se fait en C++)
  */
-export async function decryptLicenseData(base64Data: string, machineId: string): Promise<any> {
+export async function decryptLicenseData(base64Data: string, machineId: string): Promise<unknown> {
   await ensureSodium();
 
   const data = sodium.from_base64(base64Data, sodium.base64_variants.ORIGINAL);

@@ -30,7 +30,7 @@ export const ImageCard = ({
   onView,
   onDownload,
   onDelete,
-}: ImageCardProps): JSX.Element | null => {
+}: ImageCardProps): React.JSX.Element | null => {
   const image = group.crop || group.ori;
   if (!image) return null;
 

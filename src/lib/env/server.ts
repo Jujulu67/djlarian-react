@@ -77,20 +77,23 @@ const serverEnvSchema = z.object({
   /** Enable debug logging for assistant */
   ASSISTANT_DEBUG: z
     .string()
+    .default('false')
     .transform((v) => v === 'true' || v === '1')
-    .default('false'),
+    .pipe(z.boolean()),
 
   /** Enable test mode for assistant */
   ASSISTANT_TEST_DEBUG: z
     .string()
+    .default('false')
     .transform((v) => v === 'true' || v === '1')
-    .default('false'),
+    .pipe(z.boolean()),
 
   /** Allow production database connection (safety guard) */
   ALLOW_PROD_DB: z
     .string()
+    .default('false')
     .transform((v) => v === 'true' || v === '1')
-    .default('false'),
+    .pipe(z.boolean()),
 
   // ============================================
   // RUNTIME CONTEXT (set by platform)
@@ -118,7 +121,7 @@ function validateServerEnv(): ServerEnv {
   const result = serverEnvSchema.safeParse(process.env);
 
   if (!result.success) {
-    const errors = result.error.errors
+    const errors = result.error.issues
       .map((e) => `  - ${e.path.join('.')}: ${e.message}`)
       .join('\n');
 

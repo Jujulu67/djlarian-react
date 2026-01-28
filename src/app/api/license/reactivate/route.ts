@@ -31,7 +31,7 @@ export async function POST(req: Request) {
     return NextResponse.json(license);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return new NextResponse(JSON.stringify(error.errors), { status: 400 });
+      return new NextResponse(JSON.stringify(error.issues), { status: 400 });
     }
     console.error('[LICENSE_REACTIVATE]', error);
     return new NextResponse('Internal Error', { status: 500 });

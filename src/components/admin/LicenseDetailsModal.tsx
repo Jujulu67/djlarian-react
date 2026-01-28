@@ -18,8 +18,33 @@ import { fr } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 
+interface LicenseActivation {
+  id: string;
+  osInfo?: string;
+  pluginVersion?: string;
+  machineId: string;
+  lastValidated: Date;
+  activatedAt: Date;
+}
+
+interface LicenseWithRelations {
+  id: string;
+  licenseKey: string;
+  licenseType: string;
+  user: {
+    name: string | null;
+    email: string | null;
+  };
+  revoked: boolean;
+  expirationDate: Date | null;
+  createdAt: Date;
+  activations: LicenseActivation[];
+  maxActivations: number;
+  userId: string;
+}
+
 interface LicenseDetailsModalProps {
-  license: any; // Type LicenseWithRelations from parent
+  license: LicenseWithRelations;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -48,8 +73,9 @@ export function LicenseDetailsModal({ license, isOpen, onClose }: LicenseDetails
       router.refresh(); // Refresh server data
       onClose(); // Close modal since data is stale
       toast.success('Licence révoquée avec succès.');
-    } catch (error: any) {
-      toast.error(`Erreur: ${error.message}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Une erreur est survenue';
+      toast.error(`Erreur: ${message}`);
     } finally {
       setIsLoading(false);
     }
@@ -71,8 +97,9 @@ export function LicenseDetailsModal({ license, isOpen, onClose }: LicenseDetails
       router.refresh(); // Refresh server data
       onClose(); // Close modal since data is stale
       toast.success('Licence réactivée avec succès.');
-    } catch (error: any) {
-      toast.error(`Erreur: ${error.message}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Une erreur est survenue';
+      toast.error(`Erreur: ${message}`);
     } finally {
       setIsLoading(false);
     }
@@ -87,7 +114,7 @@ export function LicenseDetailsModal({ license, isOpen, onClose }: LicenseDetails
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           license_key: license.licenseKey,
-          machine_id: license.activations.find((a: any) => a.id === activationId)?.machineId,
+          machine_id: license.activations.find((a) => a.id === activationId)?.machineId,
         }),
       });
 
@@ -96,8 +123,9 @@ export function LicenseDetailsModal({ license, isOpen, onClose }: LicenseDetails
       router.refresh();
       onClose();
       alert('Machine désactivée.');
-    } catch (error: any) {
-      alert(`Erreur: ${error.message}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Une erreur est survenue';
+      alert(`Erreur: ${message}`);
     }
   };
 
@@ -219,7 +247,7 @@ export function LicenseDetailsModal({ license, isOpen, onClose }: LicenseDetails
                     </TableCell>
                   </TableRow>
                 ) : (
-                  license.activations.map((activation: any) => (
+                  license.activations.map((activation) => (
                     <TableRow
                       key={activation.id}
                       className="border-purple-500/10 hover:bg-purple-500/5"

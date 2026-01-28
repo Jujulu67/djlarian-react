@@ -9,7 +9,7 @@ interface MusicCardPlayerProps {
   videoId?: string | null;
   embedUrl?: string;
   currentTime?: number;
-  iframeRef: React.RefObject<HTMLIFrameElement>;
+  iframeRef: React.RefObject<HTMLIFrameElement | null>;
   isVisible: boolean;
   isLoaded: boolean;
   onLoad: () => void;

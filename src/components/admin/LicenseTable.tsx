@@ -37,16 +37,25 @@ import { fr } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
 import { LicenseDetailsModal } from './LicenseDetailsModal';
 
-// Types simplifiés pour l'affichage (éviter d'importer tout Prisma si possible)
+interface LicenseActivation {
+  id: string;
+  osInfo?: string;
+  pluginVersion?: string;
+  machineId: string;
+  lastValidated: Date;
+  activatedAt: Date;
+}
+
 interface LicenseWithRelations {
   id: string;
   licenseKey: string;
   licenseType: string;
-  activations: any[];
+  activations: LicenseActivation[];
   maxActivations: number;
   revoked: boolean;
   expirationDate: Date | null;
   createdAt: Date;
+  userId: string;
   user: {
     email: string | null;
     name: string | null;
@@ -106,8 +115,9 @@ export function LicenseTable({ licenses }: LicenseTableProps) {
 
       toast.success('Licence supprimée');
       router.refresh();
-    } catch (error: any) {
-      toast.error(`Erreur: ${error.message}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Une erreur est survenue';
+      toast.error(`Erreur: ${message}`);
     } finally {
       setIsDeleting(null);
     }

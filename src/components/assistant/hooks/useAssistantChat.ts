@@ -48,7 +48,7 @@ export interface UseAssistantChatReturn {
   localProjects: Project[];
   setLocalProjects: React.Dispatch<React.SetStateAction<Project[]>>;
   localProjectsRef: React.MutableRefObject<Project[]>;
-  messagesEndRef: React.RefObject<HTMLDivElement>;
+  messagesEndRef: React.RefObject<HTMLDivElement | null>;
 
   // Handlers
   handleReset: () => void;
@@ -64,7 +64,7 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
   const [lastFilters, setLastFilters] = useState<QueryFilters | null>(null);
   const [lastResults, setLastResults] = useState<Project[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
   // 🔒 SUPPRIMÉ: conversationHistory state fantôme - géré par ConversationMemory (I3)
   const [localProjects, setLocalProjects] = useState<Project[]>(projects);
   const localProjectsRef = useRef<Project[]>(projects);

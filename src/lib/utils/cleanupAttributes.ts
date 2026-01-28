@@ -1,7 +1,9 @@
 'use client';
 
+import { isBrowser } from './env';
+
 export function cleanupAttributes() {
-  if (typeof window === 'undefined') return;
+  if (!isBrowser()) return;
 
   const observer = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {

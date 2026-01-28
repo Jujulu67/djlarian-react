@@ -13,6 +13,13 @@ jest.mock('next-auth/react', () => ({
 // Mock fetch
 global.fetch = jest.fn();
 
+// Mock isBrowser
+jest.mock('../../utils/env', () => ({
+  isBrowser: jest.fn(() => true),
+}));
+
+import { isBrowser } from '../../utils/env';
+
 describe('fetchWithAuth', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -462,26 +469,32 @@ describe('fetchWithAuth edge cases', () => {
   });
 
   it('should handle case where refresh fails and window is undefined', async () => {
-    const originalWindow = global.window;
-    // @ts-expect-error - simulating server-side
-    delete global.window;
+    (isBrowser as jest.Mock).mockReturnValue(false);
 
-    (global.fetch as jest.Mock)
-      .mockResolvedValueOnce({ ok: false, status: 401 })
-      .mockResolvedValueOnce({ ok: false, status: 401 });
+    await jest.isolateModules(async () => {
+      const originalWindow = global.window;
+      // @ts-expect-error - simulating server-side
+      global.window = undefined;
 
-    const response = await fetchWithAuth('/api/test', {}, 1);
+      // Re-require to ensure it sees the updated global.window
+      const { fetchWithAuth: isolatedFetchWithAuth } = require('../fetchWithAuth');
 
-    expect(response.status).toBe(401);
-    expect(signOut).not.toHaveBeenCalled();
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({ ok: false, status: 401 })
+        .mockResolvedValueOnce({ ok: false, status: 401 });
 
-    global.window = originalWindow;
+      const response = await isolatedFetchWithAuth('/api/test', {}, 1);
+
+      expect(response.status).toBe(401);
+      expect(signOut).not.toHaveBeenCalled();
+
+      global.window = originalWindow;
+      (isBrowser as jest.Mock).mockReturnValue(true);
+    });
   });
 
   it('should handle case where 401 occurs with maxRetries 0 and window is undefined', async () => {
-    const originalWindow = global.window;
-    // @ts-expect-error - simulating server-side
-    delete global.window;
+    (isBrowser as jest.Mock).mockReturnValue(false);
 
     (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: false, status: 401 });
 
@@ -490,10 +503,11 @@ describe('fetchWithAuth edge cases', () => {
     expect(response.status).toBe(401);
     expect(signOut).not.toHaveBeenCalled();
 
-    global.window = originalWindow;
+    (isBrowser as jest.Mock).mockReturnValue(true);
   });
 
   it('should handle refreshSession when window is undefined', async () => {
+    (isBrowser as jest.Mock).mockReturnValue(false);
     const originalWindow = global.window;
     // @ts-expect-error - simulating server-side
     delete global.window;
@@ -511,6 +525,7 @@ describe('fetchWithAuth edge cases', () => {
     expect(response.status).toBe(200);
 
     global.window = originalWindow;
+    (isBrowser as jest.Mock).mockReturnValue(true);
   });
 
   it('should handle refreshSession when sessionRequestCache is null', async () => {

@@ -10,7 +10,7 @@ interface UseScoreManagerProps {
   setGameState: React.Dispatch<React.SetStateAction<GameState>>;
   setPatterns: React.Dispatch<React.SetStateAction<GamePattern[]>>;
   isActive: React.MutableRefObject<boolean>;
-  animationFrame: React.MutableRefObject<number | undefined>;
+  animationFrame: React.MutableRefObject<number | null>;
   endGame: () => void;
 }
 
@@ -225,7 +225,7 @@ export function useScoreManager({
           }));
           if (animationFrame.current) {
             cancelAnimationFrame(animationFrame.current);
-            animationFrame.current = undefined;
+            animationFrame.current = null;
           }
           break;
       }

@@ -22,9 +22,7 @@ const createUserSchema = z
     email: z.string().email("Format d'email invalide"),
     name: z.string().nullable().optional(),
     password: z.string().min(6, 'Le mot de passe doit contenir au moins 6 caractères'),
-    role: z.enum(['ADMIN', 'USER', 'MODERATOR'], {
-      errorMap: () => ({ message: 'Rôle invalide. Doit être ADMIN, USER ou MODERATOR.' }),
-    }),
+    role: z.enum(['ADMIN', 'USER', 'MODERATOR']),
     isVip: z.boolean().optional().default(false),
   })
   .strict();

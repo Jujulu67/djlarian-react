@@ -82,7 +82,7 @@ async function main() {
 
     // 3. Decrypt & Verify
     console.log('🔐 Decrypting license data...');
-    const decrypted = await decryptLicenseData(activateData.license_data, testMachineId);
+    const decrypted = (await decryptLicenseData(activateData.license_data, testMachineId)) as any;
     console.log('Decrypted Payload:', decrypted);
 
     // Note: Decrypted data has 'type' as integer index (0 for STANDARD) and no 'revoked' field (unless we add it to payload)

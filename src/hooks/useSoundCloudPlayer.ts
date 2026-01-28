@@ -18,7 +18,7 @@ interface UseSoundCloudPlayerReturn {
   isSoundcloudVisible: boolean;
   isSoundcloudReady: boolean;
   isSoundcloudActive: boolean;
-  soundcloudIframeRef: React.RefObject<HTMLIFrameElement>;
+  soundcloudIframeRef: React.RefObject<HTMLIFrameElement | null>;
   setIsSoundcloudVisible: (visible: boolean) => void;
   handleSoundcloudIframeLoad: () => void;
   getSoundcloudEmbedUrl: (url: string) => string;

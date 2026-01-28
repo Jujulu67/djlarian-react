@@ -1129,15 +1129,12 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
                           }}
                         >
                           <LabelList
-                            content={renderTermineLabel as (props: unknown) => React.ReactNode}
+                            content={renderTermineLabel as any}
                             position="center"
                             dataKey="TERMINE"
                           />
                           {isTopBar && (
-                            <LabelList
-                              content={renderTotalLabel as (props: unknown) => React.ReactNode}
-                              position="top"
-                            />
+                            <LabelList content={renderTotalLabel as any} position="top" />
                           )}
                         </Bar>
                       );
@@ -1162,14 +1159,11 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
                           }}
                         >
                           <LabelList
-                            content={renderGhostProdLabel as (props: unknown) => React.ReactNode}
+                            content={renderGhostProdLabel as any}
                             position="center"
                             dataKey="GHOST_PRODUCTION"
                           />
-                          <LabelList
-                            content={renderTotalLabel as (props: unknown) => React.ReactNode}
-                            position="top"
-                          />
+                          <LabelList content={renderTotalLabel as any} position="top" />
                         </Bar>
                       );
                     })()}
@@ -1713,8 +1707,9 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
                             borderRadius: '8px',
                             color: '#fff',
                           }}
-                          formatter={(value: number) => {
-                            const numValue = Number.isFinite(value) && value >= 0 ? value : 0;
+                          formatter={(value: number | undefined) => {
+                            const v = value ?? 0;
+                            const numValue = Number.isFinite(v) && v >= 0 ? v : 0;
                             return [
                               `${numValue.toLocaleString()} streams`,
                               viewMode === 'global' ? 'Total' : 'Streams',
@@ -1806,8 +1801,9 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
                       borderRadius: '8px',
                       color: '#fff',
                     }}
-                    formatter={(value: number, name: string) => {
-                      const numValue = Number(value);
+                    formatter={(value: number | undefined, name: string | undefined) => {
+                      const v = value ?? 0;
+                      const numValue = Number(v);
                       if (!Number.isFinite(numValue) || numValue < 0) {
                         return [
                           '0',

@@ -48,15 +48,26 @@ const mockUsers = [
 describe('AdminProjectsClient', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.useFakeTimers();
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       json: async () => ({ data: mockProjects }),
     });
   });
 
+  afterEach(() => {
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
+  });
+
   it('should render admin projects view', async () => {
     await act(async () => {
       render(<AdminProjectsClient initialProjects={mockProjects} users={mockUsers} />);
+    });
+
+    // Initial fetch projects/counts debounce
+    await act(async () => {
+      jest.advanceTimersByTime(300);
     });
 
     // Il y a plusieurs éléments avec "Vue Admin", utiliser getAllByText
@@ -96,7 +107,12 @@ describe('AdminProjectsClient', () => {
       render(<AdminProjectsClient initialProjects={mockProjects} users={mockUsers} />);
     });
 
-    // Wait for counts to be fetched (with debounce of 300ms, wait a bit longer)
+    // Advance time for debounce
+    await act(async () => {
+      jest.advanceTimersByTime(300);
+    });
+
+    // Wait for counts to be fetched
     await waitFor(
       () => {
         const fetchCalls = (global.fetch as jest.Mock).mock.calls;
@@ -110,7 +126,14 @@ describe('AdminProjectsClient', () => {
   });
 
   it('should filter by user', async () => {
-    render(<AdminProjectsClient initialProjects={mockProjects} users={mockUsers} />);
+    await act(async () => {
+      render(<AdminProjectsClient initialProjects={mockProjects} users={mockUsers} />);
+    });
+
+    // Advance time for initial load
+    await act(async () => {
+      jest.advanceTimersByTime(300);
+    });
 
     // Attendre que le composant soit complètement rendu
     const userButton = await screen.findByText(/Tous les utilisateurs/i, {}, { timeout: 3000 });
@@ -124,6 +147,8 @@ describe('AdminProjectsClient', () => {
 
     await act(async () => {
       fireEvent.click(userOption);
+      // Advance timers for debounce on filter change
+      jest.advanceTimersByTime(300);
     });
 
     // Attendre le debounce et la requête
@@ -140,7 +165,14 @@ describe('AdminProjectsClient', () => {
   });
 
   it('should filter by status', async () => {
-    render(<AdminProjectsClient initialProjects={mockProjects} users={mockUsers} />);
+    await act(async () => {
+      render(<AdminProjectsClient initialProjects={mockProjects} users={mockUsers} />);
+    });
+
+    // Advance time for initial load
+    await act(async () => {
+      jest.advanceTimersByTime(300);
+    });
 
     // Attendre que le composant soit complètement rendu, puis trouver le bouton (pas le texte dans les stats)
     await waitFor(
@@ -157,6 +189,7 @@ describe('AdminProjectsClient', () => {
 
     await act(async () => {
       fireEvent.click(termineButton!);
+      jest.advanceTimersByTime(300);
     });
 
     // Attendre le debounce
@@ -173,7 +206,14 @@ describe('AdminProjectsClient', () => {
   });
 
   it('should debounce fetch calls', async () => {
-    render(<AdminProjectsClient initialProjects={mockProjects} users={mockUsers} />);
+    await act(async () => {
+      render(<AdminProjectsClient initialProjects={mockProjects} users={mockUsers} />);
+    });
+
+    // Advance time for initial load
+    await act(async () => {
+      jest.advanceTimersByTime(300);
+    });
 
     // Attendre que le composant soit complètement rendu, puis trouver le bouton
     await waitFor(
@@ -187,20 +227,27 @@ describe('AdminProjectsClient', () => {
 
     const buttons = screen.getAllByText(/Terminé/i);
     const termineButton = buttons.find((btn) => btn.tagName === 'BUTTON')!;
+    (global.fetch as jest.Mock).mockClear();
 
     // Cliquer plusieurs fois rapidement
     await act(async () => {
       fireEvent.click(termineButton);
+      jest.advanceTimersByTime(50);
       fireEvent.click(termineButton);
+      jest.advanceTimersByTime(50);
       fireEvent.click(termineButton);
     });
 
     // Attendre le debounce (300ms)
-    await new Promise((resolve) => setTimeout(resolve, 350));
+    await act(async () => {
+      jest.advanceTimersByTime(350);
+    });
 
     await waitFor(
       () => {
-        // Should only call fetch once after debounce
+        // Should only call fetch once after debounce (plus initial calls if not cleared, but cleared above)
+        // Actually since we clicked 'Terminé' 3 times (toggle), logic depends on toggle implementation
+        // But debounce ensures only one final fetch happens for the final state
         const fetchCalls = (global.fetch as jest.Mock).mock.calls.filter(
           (call) => call[0] && String(call[0]).includes('/api/projects?')
         );

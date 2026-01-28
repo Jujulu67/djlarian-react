@@ -7,7 +7,7 @@ import type { GamePattern } from '@/types/game';
 const PLAYER_SIZE = 12;
 
 interface UseCanvasRendererProps {
-  canvasRef: React.RefObject<HTMLCanvasElement>;
+  canvasRef: React.RefObject<HTMLCanvasElement | null>;
   ctx: React.MutableRefObject<CanvasRenderingContext2D | null>;
   playerRef: React.MutableRefObject<{ x: number; y: number }>;
   patterns: GamePattern[];

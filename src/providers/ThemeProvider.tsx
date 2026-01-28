@@ -1,4 +1,4 @@
-import { createContext, useContext, type ReactNode } from 'react';
+import React, { createContext, useContext, type ReactNode } from 'react';
 
 import { useTheme } from '@/hooks/useTheme';
 import type { Theme } from '@/types';
@@ -14,7 +14,7 @@ interface ThemeProviderProps {
   children: ReactNode;
 }
 
-export const ThemeProvider = ({ children }: ThemeProviderProps): JSX.Element => {
+export const ThemeProvider = ({ children }: ThemeProviderProps): React.JSX.Element => {
   const [theme, setTheme] = useTheme();
 
   return <ThemeContext.Provider value={{ theme, setTheme }}>{children}</ThemeContext.Provider>;

@@ -1,7 +1,14 @@
 import React from 'react';
-
 import { setupChunkErrorHandler, withChunkErrorHandling } from '../chunkErrorHandler';
 import { logger } from '@/lib/logger';
+import { isBrowser, reloadPage } from '../env';
+
+// Mock env utility
+jest.mock('../env', () => ({
+  isBrowser: jest.fn(() => true),
+  isServer: jest.fn(() => false),
+  reloadPage: jest.fn(),
+}));
 
 // Mock logger
 jest.mock('@/lib/logger', () => ({
@@ -12,45 +19,80 @@ jest.mock('@/lib/logger', () => ({
   },
 }));
 
+// Mock sessionStorage
+const mockStorageData: Record<string, string> = {};
+const mockStorage = {
+  getItem: jest.fn((key: string) => mockStorageData[key] || null),
+  setItem: jest.fn((key: string, value: string) => {
+    mockStorageData[key] = value.toString();
+  }),
+  removeItem: jest.fn((key: string) => {
+    delete mockStorageData[key];
+  }),
+  clear: jest.fn(() => {
+    Object.keys(mockStorageData).forEach((key) => delete mockStorageData[key]);
+  }),
+  key: jest.fn(),
+  length: 0,
+};
+
+Object.defineProperty(global, 'sessionStorage', {
+  value: mockStorage,
+  configurable: true,
+  writable: true,
+});
+
+Object.defineProperty(window, 'sessionStorage', {
+  value: mockStorage,
+  configurable: true,
+  writable: true,
+});
+
 describe('chunkErrorHandler', () => {
-  let originalSessionStorage: Storage;
-  let originalWindow: typeof window;
+  let originalSessionStorage: typeof global.sessionStorage;
+  const cleanupFns: Array<() => void> = [];
 
   beforeEach(() => {
-    // Save original sessionStorage
-    originalSessionStorage = global.sessionStorage;
-
-    // Mock sessionStorage with proper jest mocks
-    const storage: Record<string, string> = {};
-    global.sessionStorage = {
-      getItem: jest.fn((key: string) => storage[key] || null),
-      setItem: jest.fn((key: string, value: string) => {
-        storage[key] = value;
-      }),
-      removeItem: jest.fn((key: string) => {
-        delete storage[key];
-      }),
-      clear: jest.fn(() => {
-        Object.keys(storage).forEach((key) => delete storage[key]);
-      }),
-      key: jest.fn(),
-      length: 0,
-    } as any;
-
-    // Mock window.location.reload
-    delete (window as any).location;
-    window.location = { reload: jest.fn() } as any;
-
     // Mock window.__NEXT_DATA__
     (window as any).__NEXT_DATA__ = { chunks: [] };
 
+    (isBrowser as jest.Mock).mockReturnValue(true);
+
     jest.useFakeTimers();
-    // Clear mocks AFTER setting up sessionStorage mocks
+    // Clear mocks and data
     jest.clearAllMocks();
+    Object.keys(mockStorageData).forEach((key) => delete mockStorageData[key]);
+
+    // Capture event listeners to clean them up
+    // Only if window exists
+    if (typeof global.window !== 'undefined') {
+      const win = global.window as any;
+      const originalAddEventListener = win.addEventListener;
+      jest
+        .spyOn(win, 'addEventListener')
+        .mockImplementation((type: any, listener: any, options: any) => {
+          if (typeof global.window !== 'undefined') {
+            originalAddEventListener.call(global.window, type, listener, options);
+          }
+          if (type === 'error') {
+            cleanupFns.push(() => {
+              if (typeof global.window !== 'undefined') {
+                (global.window as any).removeEventListener(type, listener, options);
+              }
+            });
+          }
+        });
+    }
   });
 
   afterEach(() => {
-    global.sessionStorage = originalSessionStorage;
+    cleanupFns.forEach((fn) => fn());
+    cleanupFns.length = 0;
+    jest.useRealTimers();
+    jest.restoreAllMocks();
+  });
+
+  afterEach(() => {
     jest.useRealTimers();
   });
 
@@ -146,25 +188,33 @@ describe('chunkErrorHandler', () => {
 
       jest.advanceTimersByTime(1000);
 
-      expect(window.location.reload).toHaveBeenCalled();
+      expect(reloadPage).toHaveBeenCalled();
     });
 
     it('should increment retry count on chunk error', () => {
       setupChunkErrorHandler();
 
       const errorEvent = new ErrorEvent('error', {
+        message: 'ChunkLoadError: Loading chunk failed',
         error: { name: 'ChunkLoadError', message: 'Loading chunk failed' },
       });
 
       window.dispatchEvent(errorEvent);
 
-      // Wait for async operations
-      jest.advanceTimersByTime(100);
+      // Verify directly after dispatch (synchronous)
+      expect(mockStorageData['chunkErrorRetryCount']).toBe('1');
 
-      // The function calls incrementRetryCount which calls setItem
-      // Check that the retry count was stored in sessionStorage
+      // Wait for async operations and the 1000ms timeout for reloadPage
+      jest.advanceTimersByTime(1000);
+
+      // Check again to ensure it wasn't cleared
+      expect(mockStorageData['chunkErrorRetryCount']).toBe('1');
+
       const retryCount = global.sessionStorage.getItem('chunkErrorRetryCount');
       expect(retryCount).toBe('1');
+
+      // Also verify reloadPage was called as a confirmation the logic reached the end
+      expect(reloadPage).toHaveBeenCalled();
     });
 
     it('should show error message after max retries', () => {
@@ -225,7 +275,7 @@ describe('chunkErrorHandler', () => {
       window.dispatchEvent(errorEvent);
 
       expect(logger.warn).not.toHaveBeenCalled();
-      expect(window.location.reload).not.toHaveBeenCalled();
+      expect(reloadPage).not.toHaveBeenCalled();
     });
 
     it('should log debug message when retry count is greater than 0 on setup', () => {
@@ -280,7 +330,7 @@ describe('chunkErrorHandler', () => {
     });
 
     it('should dispatch error event for ChunkLoadError', async () => {
-      const dispatchEventSpy = jest.spyOn(window, 'dispatchEvent');
+      const dispatchEventSpy = jest.spyOn(window, 'dispatchEvent').mockImplementation(() => true);
       const error = new Error('ChunkLoadError: Loading chunk failed');
       error.name = 'ChunkLoadError';
       const importFn = jest.fn().mockRejectedValue(error);
@@ -292,7 +342,7 @@ describe('chunkErrorHandler', () => {
     });
 
     it('should handle error with ChunkLoadError in message', async () => {
-      const dispatchEventSpy = jest.spyOn(window, 'dispatchEvent');
+      const dispatchEventSpy = jest.spyOn(window, 'dispatchEvent').mockImplementation(() => true);
       const error = new Error('Loading ChunkLoadError failed');
       const importFn = jest.fn().mockRejectedValue(error);
 
@@ -324,18 +374,23 @@ describe('chunkErrorHandler', () => {
 
     it('should handle error when window is undefined (server side)', async () => {
       const originalWindow = global.window;
-      delete (global as any).window;
+      // Mock isBrowser to false for this test
+      (isBrowser as jest.Mock).mockReturnValue(false);
 
-      const error = new Error('ChunkLoadError: Loading chunk failed');
-      error.name = 'ChunkLoadError';
-      const importFn = jest.fn().mockRejectedValue(error);
+      try {
+        delete (global as any).window;
 
-      const wrappedImport = withChunkErrorHandling(importFn);
-      const result = await wrappedImport();
+        const error = new Error('ChunkLoadError: Loading chunk failed');
+        error.name = 'ChunkLoadError';
+        const importFn = jest.fn().mockRejectedValue(error);
 
-      expect(result.default()).toBeNull();
+        const wrappedImport = withChunkErrorHandling(importFn);
+        const result = await wrappedImport();
 
-      (global as any).window = originalWindow;
+        expect(result.default()).toBeNull();
+      } finally {
+        (global as any).window = originalWindow;
+      }
     });
   });
 });

@@ -1,6 +1,7 @@
 import React from 'react';
-
 import { logger } from '@/lib/logger';
+import { isBrowser, reloadPage } from './env';
+
 /**
  * Utilitaire pour gérer les erreurs de chargement de chunks
  * Cette fonction configure un gestionnaire global pour intercepter et gérer
@@ -9,7 +10,7 @@ import { logger } from '@/lib/logger';
  */
 
 export function setupChunkErrorHandler() {
-  if (typeof window === 'undefined') return;
+  if (!isBrowser()) return;
 
   // Nombre maximum de tentatives de rechargement
   const MAX_RETRIES = Number(process.env.NEXT_PUBLIC_CHUNK_RETRY_COUNT || '3');
@@ -67,7 +68,7 @@ export function setupChunkErrorHandler() {
 
         // Recharger la page après un court délai
         setTimeout(() => {
-          window.location.reload();
+          reloadPage();
         }, 1000);
       } else {
         logger.error(`Échec après ${MAX_RETRIES} tentatives. Réinitialisation du compteur.`);
@@ -122,7 +123,7 @@ export function withChunkErrorHandling(
       logger.error('Erreur lors du chargement du module:', error);
 
       // Si nous sommes côté client, tenter de recharger la page
-      if (typeof window !== 'undefined') {
+      if (isBrowser()) {
         const isChunkError =
           (error instanceof Error && error.message.includes('ChunkLoadError')) ||
           (error instanceof Error && error.name === 'ChunkLoadError');

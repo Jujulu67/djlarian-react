@@ -208,7 +208,7 @@ const GameVisualizer: React.FC<GameVisualizerProps> = ({ gameData, audioElement 
   }, [gameData.gameState.isActive]);
 
   // Render instructions overlay
-  const renderInstructions = (): JSX.Element | null => {
+  const renderInstructions = (): React.JSX.Element | null => {
     // Don't show instructions if game is active
     if (gameData.gameState.isActive) {
       return null;

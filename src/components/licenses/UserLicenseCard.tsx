@@ -17,8 +17,26 @@ import { toast } from 'sonner';
 import { formatDistanceToNow, format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
+interface LicenseActivation {
+  id: string;
+  osInfo?: string;
+  pluginVersion?: string;
+  machineId: string;
+  lastValidated: Date;
+}
+
+interface UserLicense {
+  id: string;
+  licenseKey: string;
+  licenseType: string;
+  activations: LicenseActivation[];
+  maxActivations: number;
+  revoked: boolean;
+  createdAt: Date;
+}
+
 interface UserLicenseCardProps {
-  license: any;
+  license: UserLicense;
   userEmail?: string | null;
 }
 
@@ -210,7 +228,7 @@ export function UserLicenseCard({ license, userEmail }: UserLicenseCardProps) {
             </div>
           ) : (
             <div className="space-y-3">
-              {license.activations.map((activation: any) => (
+              {license.activations.map((activation) => (
                 <div
                   key={activation.id}
                   className="bg-black/20 rounded-lg p-3 flex items-center justify-between border border-white/5 hover:border-purple-500/20 transition-colors"

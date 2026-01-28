@@ -64,12 +64,14 @@ const shouldFilterMessage = (message: string): boolean => {
   );
 };
 
+import { isBrowser } from './utils/env';
+
 /**
  * Initialise les filtres de console pour supprimer les warnings/erreurs non critiques
  * À appeler une seule fois au démarrage de l'application
  */
 export function setupConsoleFilters() {
-  if (typeof window === 'undefined') {
+  if (!isBrowser()) {
     return; // Ne rien faire côté serveur
   }
 
