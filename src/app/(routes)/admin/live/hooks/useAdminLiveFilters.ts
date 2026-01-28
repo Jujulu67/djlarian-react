@@ -1,22 +1,32 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import type { SubmissionWithUser } from './useAdminLiveSubmissions';
 
 export function useAdminLiveFilters(submissions: SubmissionWithUser[]) {
-  const [searchUsername, setSearchUsername] = useState('');
-  const [showRolled, setShowRolled] = useState(true);
-  const [onlyActive, setOnlyActive] = useState(false);
+  const searchParams = useSearchParams();
+
+  const searchUsername = searchParams.get('search') || '';
+  const statusFilter = searchParams.get('status') || '';
+  const showRolled = searchParams.get('showRolled') !== 'false'; // Par défaut true
+  const onlyActive = searchParams.get('onlyActive') === 'true'; // Par défaut false
 
   const filteredSubmissions = useMemo(() => {
     let filtered = submissions;
 
-    // Filtrer par username
+    // Filtrer par username/title
     if (searchUsername) {
       const searchLower = searchUsername.toLowerCase();
       filtered = filtered.filter(
         (s) =>
           s.User.name?.toLowerCase().includes(searchLower) ||
-          s.User.email?.toLowerCase().includes(searchLower)
+          s.User.email?.toLowerCase().includes(searchLower) ||
+          s.title.toLowerCase().includes(searchLower)
       );
+    }
+
+    // Filtrer par statut (depuis SubmissionsFilters)
+    if (statusFilter) {
+      filtered = filtered.filter((s) => s.status === statusFilter);
     }
 
     // Filtrer par rolled
@@ -24,29 +34,18 @@ export function useAdminLiveFilters(submissions: SubmissionWithUser[]) {
       filtered = filtered.filter((s) => !s.isRolled);
     }
 
-    // TODO: Implémenter "Only Active" (utilisateurs actifs dans le chat Twitch < 10 min)
+    // TODO: Implémenter "Only Active"
     if (onlyActive) {
       // Pour l'instant, on garde tous les utilisateurs
-      // filtered = filtered.filter((s) => isUserActiveInTwitchChat(s.User.id));
     }
 
     return filtered;
-  }, [submissions, searchUsername, showRolled, onlyActive]);
-
-  const resetFilters = useCallback(() => {
-    setSearchUsername('');
-    setShowRolled(true);
-    setOnlyActive(false);
-  }, []);
+  }, [submissions, searchUsername, statusFilter, showRolled, onlyActive]);
 
   return {
     searchUsername,
-    setSearchUsername,
     showRolled,
-    setShowRolled,
     onlyActive,
-    setOnlyActive,
     filteredSubmissions,
-    resetFilters,
   };
 }

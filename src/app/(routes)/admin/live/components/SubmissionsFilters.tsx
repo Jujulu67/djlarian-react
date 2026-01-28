@@ -9,6 +9,7 @@ import { LegacySelect as Select } from '@/components/ui/LegacySelect';
 import { LiveSubmissionStatus } from '@/types/live';
 
 interface SubmissionsFiltersProps {
+  // Les props peuvent être optionnelles car elles sont lues depuis searchParams dans le composant
   searchValue?: string;
   statusValue?: string;
 }
@@ -20,20 +21,22 @@ export function SubmissionsFilters({
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [search, setSearch] = useState(searchValue);
-  const [status, setStatus] = useState(statusValue);
+  const [search, setSearch] = useState(searchValue || searchParams.get('search') || '');
+  const [status, setStatus] = useState(statusValue || searchParams.get('status') || '');
+  const [showRolled, setShowRolled] = useState(searchParams.get('showRolled') !== 'false');
+  const [onlyActive, setOnlyActive] = useState(searchParams.get('onlyActive') === 'true');
 
   // Update URL with new params
   const updateSearchParams = useCallback(
-    (params: Record<string, string>) => {
+    (params: Record<string, string | boolean | null>) => {
       const newParams = new URLSearchParams(searchParams.toString());
 
       // Update or remove params
       Object.entries(params).forEach(([key, value]) => {
-        if (value) {
-          newParams.set(key, value);
-        } else {
+        if (value === null || value === '' || value === undefined) {
           newParams.delete(key);
+        } else {
+          newParams.set(key, String(value));
         }
       });
 
@@ -54,11 +57,13 @@ export function SubmissionsFilters({
     [updateSearchParams]
   );
 
-  // Initialiser l'état local avec les valeurs issues des props
+  // Initialiser l'état local avec les valeurs issues de l'URL
   useEffect(() => {
-    setSearch(searchValue);
-    setStatus(statusValue);
-  }, [searchValue, statusValue]);
+    setSearch(searchParams.get('search') || '');
+    setStatus(searchParams.get('status') || '');
+    setShowRolled(searchParams.get('showRolled') !== 'false');
+    setOnlyActive(searchParams.get('onlyActive') === 'true');
+  }, [searchParams]);
 
   useEffect(() => {
     return () => {
@@ -80,52 +85,96 @@ export function SubmissionsFilters({
     updateSearchParams({ status: value });
   };
 
+  // Handle Checkboxes
+  const handleToggleShowRolled = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const checked = e.target.checked;
+    setShowRolled(checked);
+    updateSearchParams({ showRolled: checked ? null : 'false' }); // null supprime le param (par défaut true)
+  };
+
+  const handleToggleOnlyActive = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const checked = e.target.checked;
+    setOnlyActive(checked);
+    updateSearchParams({ onlyActive: checked ? 'true' : null });
+  };
+
   // Reset all filters
   const handleReset = () => {
     setSearch('');
     setStatus('');
+    setShowRolled(true);
+    setOnlyActive(false);
     router.push('/admin/live');
   };
 
   return (
-    <div className="grid gap-4 grid-cols-1 md:grid-cols-12 mb-6 items-center">
-      {/* Barre de recherche */}
-      <div className="relative md:col-span-6">
-        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-          <Search className="w-4 h-4 text-gray-400" />
+    <div className="glass-modern p-4 sm:p-6 rounded-2xl mb-6">
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-12 items-center">
+        {/* Barre de recherche */}
+        <div className="relative md:col-span-12 lg:col-span-5">
+          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <Search className="w-4 h-4 text-gray-400" />
+          </div>
+          <input
+            placeholder="Rechercher par titre, utilisateur..."
+            className="w-full rounded-lg border border-white/10 pl-10 pr-4 py-2 text-sm bg-white/5 text-white transition-colors focus:border-purple-500/50 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+            value={search}
+            onChange={handleSearchChange}
+          />
         </div>
-        <input
-          placeholder="Rechercher par titre, utilisateur..."
-          className="w-full rounded-md border border-gray-600 pl-10 pr-4 py-2.5 text-sm bg-gray-800/70 text-gray-100 transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50"
-          value={search}
-          onChange={handleSearchChange}
-        />
-      </div>
 
-      {/* Filtre par statut */}
-      <div className="md:col-span-4">
-        <Select
-          options={[
-            { value: '', label: 'Tous les statuts' },
-            { value: LiveSubmissionStatus.PENDING, label: 'En attente' },
-            { value: LiveSubmissionStatus.APPROVED, label: 'Approuvées' },
-            { value: LiveSubmissionStatus.REJECTED, label: 'Rejetées' },
-          ]}
-          value={status}
-          onChange={handleStatusChange}
-          className="w-full bg-gray-800/70 border-gray-600 text-gray-100 rounded-md focus:border-purple-500 focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50"
-        />
-      </div>
+        {/* Filtre par statut */}
+        <div className="md:col-span-6 lg:col-span-3">
+          <Select
+            options={[
+              { value: '', label: 'Tous les statuts' },
+              { value: LiveSubmissionStatus.PENDING, label: 'En attente' },
+              { value: LiveSubmissionStatus.APPROVED, label: 'Approuvées' },
+              { value: LiveSubmissionStatus.REJECTED, label: 'Rejetées' },
+            ]}
+            value={status}
+            onChange={handleStatusChange}
+            className="w-full bg-white/5 border-white/10 text-white rounded-lg focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/30"
+          />
+        </div>
 
-      {/* Bouton de réinitialisation */}
-      <div className="md:col-span-2">
-        <button
-          onClick={handleReset}
-          className="w-full inline-flex items-center justify-center px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-md transition-colors shadow-md"
-        >
-          <RotateCcw className="h-4 w-4 mr-2" />
-          Réinitialiser
-        </button>
+        {/* Checkboxes */}
+        <div className="md:col-span-6 lg:col-span-3 flex items-center gap-4">
+          <label className="flex items-center gap-2 cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={showRolled}
+              onChange={handleToggleShowRolled}
+              className="w-4 h-4 text-purple-600 rounded border-white/10 bg-white/5 focus:ring-purple-500/50"
+            />
+            <span className="text-sm text-gray-400 group-hover:text-gray-200 transition-colors">
+              Rolled
+            </span>
+          </label>
+
+          <label className="flex items-center gap-2 cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={onlyActive}
+              onChange={handleToggleOnlyActive}
+              className="w-4 h-4 text-purple-600 rounded border-white/10 bg-white/5 focus:ring-purple-500/50"
+            />
+            <span className="text-sm text-gray-400 group-hover:text-gray-200 transition-colors">
+              Active
+            </span>
+          </label>
+        </div>
+
+        {/* Bouton de réinitialisation */}
+        <div className="lg:col-span-1 flex justify-end">
+          <button
+            onClick={handleReset}
+            className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+            title="Réinitialiser les filtres"
+          >
+            <RotateCcw className="h-5 w-5" />
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -23,8 +23,10 @@ import {
   CreditCard,
   Play,
   Pause,
+  AlertTriangle,
 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useSeamlessAudioLoop } from '@/hooks/useSeamlessAudioLoop';
 
@@ -168,6 +170,56 @@ const TECH_SPECS = [
   { label: 'License', value: '1 user, 3 machines max', highlight: true },
 ];
 
+const GIFS_BASE_PATH = '/gifs/lariancrusher';
+
+const VIEW_GIFS: Record<string, { src: string; alt: string; width: number; height: number }> = {
+  oneknob: {
+    src: `${GIFS_BASE_PATH}/Oneknob.gif`,
+    alt: 'LarianCrusher OneKnob view demo',
+    width: 1000,
+    height: 700,
+  },
+  legacy: {
+    src: `${GIFS_BASE_PATH}/Legacy.gif`,
+    alt: 'LarianCrusher Legacy view demo',
+    width: 1000,
+    height: 700,
+  },
+  modern: {
+    src: `${GIFS_BASE_PATH}/Modern.gif`,
+    alt: 'LarianCrusher Modern view demo',
+    width: 1000,
+    height: 700,
+  },
+  crazy: {
+    src: `${GIFS_BASE_PATH}/Crazy.gif`,
+    alt: 'LarianCrusher Crazy view demo',
+    width: 1000,
+    height: 700,
+  },
+  draw: {
+    src: `${GIFS_BASE_PATH}/Draw.gif`,
+    alt: 'LarianCrusher Draw view demo',
+    width: 1000,
+    height: 700,
+  },
+};
+
+const SHOWCASE_GIFS: Record<string, { src: string; alt: string; width: number; height: number }> = {
+  lfo: {
+    src: `${GIFS_BASE_PATH}/LFO.gif`,
+    alt: 'LarianCrusher LFO modulation demo',
+    width: 1000,
+    height: 988,
+  },
+  visualizer: {
+    src: `${GIFS_BASE_PATH}/Vizualizer.gif`,
+    alt: 'LarianCrusher visualizer demo',
+    width: 1000,
+    height: 900,
+  },
+};
+
 // ============================================================================
 // COMPONENTS
 // ============================================================================
@@ -239,7 +291,12 @@ function FeatureCard({ feature, index }: { feature: Feature; index: number }) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
-      className="glass-modern rounded-xl p-6 hover:border-purple-500/30 transition-all duration-300 group"
+      className="glass-modern rounded-xl p-6 hover:border-purple-500/30 transition-all duration-300 group h-full md:min-h-[220px] lg:min-h-[240px] flex flex-col cursor-pointer"
+      onClick={() => {
+        if (feature.details && feature.details.length > 0) {
+          setIsExpanded((prev) => !prev);
+        }
+      }}
     >
       <div className="text-purple-400 mb-4 group-hover:scale-110 transition-transform duration-300">
         {feature.icon}
@@ -248,9 +305,12 @@ function FeatureCard({ feature, index }: { feature: Feature; index: number }) {
       <p className="text-gray-400 mb-4">{feature.description}</p>
 
       {feature.details && feature.details.length > 0 && (
-        <>
+        <div className="mt-auto pt-2">
           <button
-            onClick={() => setIsExpanded(!isExpanded)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsExpanded((prev) => !prev);
+            }}
             className="text-purple-400 text-sm flex items-center gap-1 hover:text-purple-300 transition-colors"
           >
             {isExpanded ? 'Show less' : 'Learn more'}
@@ -273,7 +333,7 @@ function FeatureCard({ feature, index }: { feature: Feature; index: number }) {
               ))}
             </ul>
           </motion.div>
-        </>
+        </div>
       )}
     </motion.div>
   );
@@ -281,6 +341,8 @@ function FeatureCard({ feature, index }: { feature: Feature; index: number }) {
 
 function ViewModeSelector() {
   const [activeView, setActiveView] = useState('oneknob');
+  const activeGif = VIEW_GIFS[activeView] || VIEW_GIFS.oneknob;
+  const activeViewMeta = VIEW_MODES.find((v) => v.id === activeView) || VIEW_MODES[0];
 
   return (
     <div className="glass-modern rounded-2xl p-6 md:p-8">
@@ -305,20 +367,21 @@ function ViewModeSelector() {
         ))}
       </div>
 
+      <div className="rounded-xl border border-white/10 bg-black/40 px-4 sm:px-5 py-3 mb-6">
+        <p className="text-gray-400 text-sm sm:text-base">{activeViewMeta.description}</p>
+      </div>
+
       {/* View content */}
-      <div className="relative aspect-video bg-black/50 rounded-xl overflow-hidden flex items-center justify-center">
-        <div className="text-center p-8">
-          <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-purple-500/20 flex items-center justify-center">
-            {VIEW_MODES.find((v) => v.id === activeView)?.icon}
-          </div>
-          <h4 className="text-xl font-bold text-white mb-2">
-            {VIEW_MODES.find((v) => v.id === activeView)?.name} View
-          </h4>
-          <p className="text-gray-400 max-w-md mx-auto">
-            {VIEW_MODES.find((v) => v.id === activeView)?.description}
-          </p>
-          <p className="text-purple-400 text-sm mt-4">[GIF placeholder - Add your demo here]</p>
-        </div>
+      <div className="rounded-xl overflow-hidden border border-white/10 bg-black/40">
+        <Image
+          src={activeGif.src}
+          alt={activeGif.alt}
+          width={activeGif.width}
+          height={activeGif.height}
+          unoptimized
+          className="w-full h-auto"
+          priority={false}
+        />
       </div>
     </div>
   );
@@ -326,6 +389,9 @@ function ViewModeSelector() {
 
 function ShowcaseSection() {
   const [activeSection, setActiveSection] = useState('lfo');
+  const activeGif = SHOWCASE_GIFS[activeSection] || SHOWCASE_GIFS.lfo;
+  const activeSectionMeta =
+    SHOWCASE_SECTIONS.find((s) => s.id === activeSection) || SHOWCASE_SECTIONS[0];
 
   return (
     <div className="glass-modern rounded-2xl p-6 md:p-8">
@@ -350,20 +416,21 @@ function ShowcaseSection() {
         ))}
       </div>
 
+      <div className="rounded-xl border border-white/10 bg-black/40 px-4 sm:px-5 py-3 mb-6">
+        <p className="text-gray-400 text-sm sm:text-base">{activeSectionMeta.description}</p>
+      </div>
+
       {/* Section content */}
-      <div className="relative aspect-video bg-black/50 rounded-xl overflow-hidden flex items-center justify-center">
-        <div className="text-center p-8">
-          <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-purple-500/20 flex items-center justify-center">
-            {SHOWCASE_SECTIONS.find((s) => s.id === activeSection)?.icon}
-          </div>
-          <h4 className="text-xl font-bold text-white mb-2">
-            {SHOWCASE_SECTIONS.find((s) => s.id === activeSection)?.title}
-          </h4>
-          <p className="text-gray-400 max-w-md mx-auto">
-            {SHOWCASE_SECTIONS.find((s) => s.id === activeSection)?.description}
-          </p>
-          <p className="text-purple-400 text-sm mt-4">[GIF placeholder - Add your demo here]</p>
-        </div>
+      <div className="rounded-xl overflow-hidden border border-white/10 bg-black/40">
+        <Image
+          src={activeGif.src}
+          alt={activeGif.alt}
+          width={activeGif.width}
+          height={activeGif.height}
+          unoptimized
+          className="w-full h-auto"
+          priority={false}
+        />
       </div>
     </div>
   );
@@ -446,15 +513,23 @@ function BeforeAfterSection() {
     <div className="glass-modern rounded-2xl p-6 md:p-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <h3 className="text-2xl font-bold text-white">Hear the Difference</h3>
-        <button
-          onClick={() => setGainMatch(!gainMatch)}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 self-start md:self-auto ${
-            gainMatch ? 'bg-purple-600 text-white' : 'bg-white/10 text-gray-400 hover:text-white'
-          }`}
-        >
-          <ToggleLeft className={`w-5 h-5 transition-transform ${gainMatch ? 'rotate-180' : ''}`} />
-          Gain Match {gainMatch ? 'ON' : 'OFF'}
-        </button>
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-4">
+          <div className="flex items-center gap-2 text-xs text-yellow-300 bg-yellow-500/10 px-3 py-1 rounded-md">
+            <AlertTriangle className="w-4 h-4" />
+            <span>Without gain match, volume can be really loud.</span>
+          </div>
+          <button
+            onClick={() => setGainMatch(!gainMatch)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 self-start md:self-auto ${
+              gainMatch ? 'bg-purple-600 text-white' : 'bg-white/10 text-gray-400 hover:text-white'
+            }`}
+          >
+            <ToggleLeft
+              className={`w-5 h-5 transition-transform ${gainMatch ? 'rotate-180' : ''}`}
+            />
+            Gain Match {gainMatch ? 'ON' : 'OFF'}
+          </button>
+        </div>
       </div>
 
       {/* Mode Selector - Tabs Style */}
@@ -608,7 +683,7 @@ export default function LarianCrusherPage() {
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-600/30 via-transparent to-transparent" />
         </div>
 
-        <div className="relative z-10 max-w-6xl mx-auto px-4">
+        <div className="relative z-10 max-w-7xl mx-auto px-4">
           {/* Breadcrumb */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -622,7 +697,7 @@ export default function LarianCrusherPage() {
             <span className="text-white">LarianCrusher</span>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 gap-12 items-center">
+          <div className="grid md:grid-cols-[1fr_1.15fr] gap-12 items-center">
             {/* Left: Text */}
             <motion.div
               initial={{ opacity: 0, x: -30 }}
@@ -672,16 +747,18 @@ export default function LarianCrusherPage() {
               initial={{ opacity: 0, x: 30 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="relative"
+              className="relative justify-self-end md:scale-[1.06] lg:scale-[1.12] origin-left md:translate-x-6 lg:translate-x-10"
             >
-              <div className="aspect-square rounded-2xl bg-gradient-to-br from-purple-500/10 to-blue-500/10 border border-white/10 flex items-center justify-center overflow-hidden">
-                <div className="text-center p-8">
-                  <div className="w-32 h-32 mx-auto mb-6 rounded-2xl bg-purple-500/20 flex items-center justify-center animate-pulse">
-                    <Sparkles className="w-16 h-16 text-purple-400" />
-                  </div>
-                  <p className="text-gray-400">[Plugin screenshot or GIF]</p>
-                  <p className="text-purple-400 text-sm mt-2">Add your demo media here</p>
-                </div>
+              <div className="rounded-2xl bg-gradient-to-br from-purple-500/10 to-blue-500/10 border border-white/10 overflow-hidden">
+                <Image
+                  src={`${GIFS_BASE_PATH}/GlobalOverview.gif`}
+                  alt="LarianCrusher overview demo"
+                  width={1000}
+                  height={700}
+                  unoptimized
+                  className="w-full h-auto"
+                  priority
+                />
               </div>
 
               {/* Floating badge - dynamic version */}

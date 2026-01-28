@@ -438,7 +438,7 @@ export default function EventDetailPage() {
                 </button>
 
                 {showShareOptions && (
-                  <div className="absolute right-0 mt-2 bg-white shadow-lg rounded-lg p-3 z-10 flex flex-col w-40">
+                  <div className="absolute right-0 mt-2 bg-white shadow-lg rounded-lg p-3 z-10 flex flex-col w-40 !text-black">
                     <button
                       onClick={() => handleShare('facebook')}
                       className="flex items-center p-2 hover:bg-purple-100 rounded"

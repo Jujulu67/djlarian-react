@@ -86,7 +86,7 @@ export default async function LicensesPage() {
                 <Link href="/#plugins">
                   <Button
                     size="lg"
-                    className="bg-white text-black hover:bg-gray-200 rounded-full px-8"
+                    className="bg-white !text-black hover:bg-gray-200 rounded-full px-8"
                   >
                     Voir les plugins
                     <ExternalLink className="w-4 h-4 ml-2" />

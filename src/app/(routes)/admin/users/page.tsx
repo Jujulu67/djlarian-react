@@ -38,7 +38,7 @@ type PageProps = {
   }>;
 };
 
-export default async function AdminUsersPage({ searchParams }: PageProps) {
+async function AdminUsersContent({ searchParams }: PageProps) {
   const session = await auth();
 
   if (!session?.user?.role || session.user.role !== 'ADMIN') {
@@ -159,5 +159,23 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
         />
       </div>
     </div>
+  );
+}
+
+import { Suspense } from 'react';
+
+export default function AdminUsersPage(props: PageProps) {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-8">
+          <div className="text-white font-audiowide animate-pulse">
+            Chargement des utilisateurs...
+          </div>
+        </div>
+      }
+    >
+      <AdminUsersContent {...props} />
+    </Suspense>
   );
 }

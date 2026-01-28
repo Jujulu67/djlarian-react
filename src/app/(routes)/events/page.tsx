@@ -24,7 +24,7 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 
 import { logger } from '@/lib/logger';
 import { getImageUrl } from '@/lib/utils/getImageUrl';
@@ -65,7 +65,7 @@ type Event = {
   updatedAt?: string;
 };
 
-export default function EventsPage() {
+function EventsContent() {
   const searchParams = useSearchParams();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -673,10 +673,18 @@ export default function EventsPage() {
                     </p>
 
                     <div className="flex justify-between items-center">
-                      <span className="text-white group-hover:text-gray-300 transition-colors text-sm font-medium flex items-center">
+                      <Link
+                        href={
+                          event.isVirtualOccurrence && event.virtualStartDate
+                            ? `/events/${event.masterId}?date=${encodeURIComponent(event.virtualStartDate)}`
+                            : `/events/${event.id}`
+                        }
+                        className="text-white group-hover:text-gray-300 transition-colors text-sm font-medium flex items-center"
+                        aria-label={`Voir les détails de l'événement: ${event.title}`}
+                      >
                         <Eye className="w-4 h-4 mr-1.5" />
                         Voir l'événement
-                      </span>
+                      </Link>
 
                       {event.tickets?.buyUrl && !isPastEvent(event.startDate) && (
                         <a
@@ -693,26 +701,7 @@ export default function EventsPage() {
                   </div>
 
                   {/* Effet de brillance au survol */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-purple-500/0 via-purple-500/5 to-purple-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
-
-                  {/* Lien qui couvre toute la carte, sauf pour le bouton d'achat de billets */}
-                  <Link
-                    href={
-                      event.isVirtualOccurrence && event.virtualStartDate
-                        ? `/events/${event.masterId}?date=${encodeURIComponent(event.virtualStartDate)}` // URL propre avec paramètre de requête
-                        : `/events/${event.id}`
-                    }
-                    className="absolute inset-0 z-10"
-                    aria-label={`Voir les détails de l'événement: ${event.title}`}
-                    onClick={(e) => {
-                      // Empêcher la navigation si l'utilisateur clique sur le bouton d'achat de billets
-                      if ((e.target as HTMLElement).closest('a[href^="http"]')) {
-                        e.preventDefault();
-                      }
-                    }}
-                  >
-                    <span className="sr-only">Voir les détails</span>
-                  </Link>
+                  <div className="absolute inset-0 bg-gradient-to-r from-purple-500/0 via-purple-500/5 to-purple-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
 
                   {/* Add badge for virtual occurrence */}
                   {event.isVirtualOccurrence && (
@@ -831,5 +820,28 @@ export default function EventsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function EventsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-8">
+          <div className="container mx-auto max-w-6xl">
+            <div className="flex justify-center items-center min-h-[60vh]">
+              <div className="animate-pulse flex flex-col items-center">
+                <Loader2 className="w-16 h-16 text-purple-500 mb-4 animate-spin" />
+                <h2 className="text-2xl font-semibold text-white mt-4">
+                  Chargement des événements...
+                </h2>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <EventsContent />
+    </Suspense>
   );
 }

@@ -80,7 +80,7 @@ export default function LatestReleases({
           signal: abortController.signal,
         });
         if (!response.ok) {
-          throw new Error('Erreur lors de la récupération des morceaux');
+          throw new Error('Error fetching tracks');
         }
         const result = await response.json();
         // La réponse API utilise createSuccessResponse qui retourne { data: [...] }
@@ -107,7 +107,7 @@ export default function LatestReleases({
         if ((err as Error).name === 'AbortError' || !isMounted) return;
         logger.error('Erreur:', err);
         if (isMounted) {
-          setError('Impossible de charger les dernières sorties');
+          setError('Unable to load latest releases');
         }
       } finally {
         if (isMounted) {
@@ -195,12 +195,14 @@ export default function LatestReleases({
     );
   }
 
+  // Calculer dynamiquement si on a besoin de l'espace pour 2 lignes
+  // En se basant sur une longueur moyenne de titre > 32 caractères
+  const hasLongTitle = releases.some((r) => r.title.length > 32);
+
   return (
     <>
       {/* Injection des keyframes CSS pour l'animation du glow */}
-      <style jsx global>
-        {glowAnimation}
-      </style>
+      <style dangerouslySetInnerHTML={{ __html: glowAnimation }} />
 
       <section className="py-20 relative overflow-hidden">
         {/* Animated Gradient Background */}
@@ -229,14 +231,14 @@ export default function LatestReleases({
                 viewport={isFirstSection ? undefined : { once: true }}
                 transition={{ delay: isFirstSection ? 0 : index * 0.1 }}
                 onClick={() => handleCardClick(release.id)}
-                className="relative lift-3d"
+                className="relative lift-3d h-full"
               >
                 {/* Card with Golden Glow Effect */}
                 <div
-                  className="cursor-pointer golden-border rounded-lg overflow-hidden shadow-xl transform-gpu transition-all duration-500 hover:scale-[1.05] group focus-within:outline-2 focus-within:outline-purple-500 focus-within:outline-offset-2"
+                  className="cursor-pointer golden-border rounded-lg overflow-hidden shadow-xl transform-gpu transition-all duration-500 hover:scale-[1.05] group focus-within:outline-2 focus-within:outline-purple-500 focus-within:outline-offset-2 h-full flex flex-col"
                   role="button"
                   tabIndex={0}
-                  aria-label={`Voir les détails de ${release.title} par ${release.artist}`}
+                  aria-label={`View details for ${release.title} by ${release.artist}`}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       handleCardClick(release.id);
@@ -247,7 +249,7 @@ export default function LatestReleases({
                     {release.imageId && !imageErrors[release.id] ? (
                       <Image
                         src={getImageUrl(release.imageId) || ''}
-                        alt={`Pochette de ${release.title} par ${release.artist}`}
+                        alt={`Cover for ${release.title} by ${release.artist}`}
                         fill
                         className="object-cover object-center rounded-lg shadow-lg transition-opacity duration-300"
                         priority={index < 3}
@@ -277,24 +279,28 @@ export default function LatestReleases({
                     </div>
                   </div>
 
-                  <div className="p-6 relative">
-                    {/* Title */}
-                    <h3 className="text-xl font-bold mb-2 text-white hover:text-purple-300 transition-colors duration-300">
+                  <div className="p-6 relative flex flex-col flex-1">
+                    {/* Title - Dynamic height: 2 lines space only if needed */}
+                    <h3
+                      className={`text-xl font-bold mb-2 text-white hover:text-purple-300 transition-colors duration-300 line-clamp-2 flex items-start ${
+                        hasLongTitle ? 'min-h-[3.5rem]' : ''
+                      }`}
+                    >
                       {release.title}
                     </h3>
                     <div className="flex items-center gap-2 text-gray-400 mb-4">
                       <span>{release.artist}</span>
                       <span>•</span>
                       <span>
-                        {new Date(release.releaseDate).toLocaleDateString('fr-FR', {
+                        {new Date(release.releaseDate).toLocaleDateString('en-US', {
                           year: 'numeric',
                           month: 'long',
                         })}
                       </span>
                     </div>
 
-                    {/* Icons */}
-                    <div className="flex gap-4">
+                    {/* Icons - Pushed to bottom */}
+                    <div className="flex gap-4 mt-auto min-h-[2rem] items-center">
                       {release.platforms.spotify?.url && (
                         <a
                           href={release.platforms.spotify.url}
@@ -302,7 +308,7 @@ export default function LatestReleases({
                           rel="noopener noreferrer"
                           className="text-2xl text-gray-300 hover:text-green-400 transition-all duration-300 transform hover:scale-125 hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-black rounded"
                           onClick={(e) => e.stopPropagation()}
-                          aria-label={`Écouter ${release.title} sur Spotify`}
+                          aria-label={`Listen to ${release.title} on Spotify`}
                         >
                           <FaSpotify />
                         </a>
@@ -314,7 +320,7 @@ export default function LatestReleases({
                           rel="noopener noreferrer"
                           className="text-2xl text-gray-300 hover:text-pink-400 transition-all duration-300 transform hover:scale-125 hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 focus:ring-offset-black rounded"
                           onClick={(e) => e.stopPropagation()}
-                          aria-label={`Écouter ${release.title} sur Apple Music`}
+                          aria-label={`Listen to ${release.title} on Apple Music`}
                         >
                           <FaApple />
                         </a>
@@ -326,7 +332,7 @@ export default function LatestReleases({
                           rel="noopener noreferrer"
                           className="text-2xl text-gray-300 hover:text-orange-400 transition-all duration-300 transform hover:scale-125 hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-black rounded"
                           onClick={(e) => e.stopPropagation()}
-                          aria-label={`Écouter ${release.title} sur SoundCloud`}
+                          aria-label={`Listen to ${release.title} on SoundCloud`}
                         >
                           <FaSoundcloud />
                         </a>

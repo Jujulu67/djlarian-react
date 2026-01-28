@@ -19,7 +19,7 @@ const TwitchStream = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Détecter si on est sur mobile
+  // Detect mobile device
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth <= 768);
@@ -29,7 +29,7 @@ const TwitchStream = () => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Vérifier le statut du stream
+  // Check stream status
   useEffect(() => {
     const checkStreamStatus = async () => {
       try {
@@ -45,7 +45,7 @@ const TwitchStream = () => {
     };
 
     checkStreamStatus();
-    // Vérifier toutes les 60 secondes
+    // Check every 60 seconds
     const interval = setInterval(checkStreamStatus, 60000);
     return () => clearInterval(interval);
   }, []);
@@ -106,7 +106,7 @@ const TwitchStream = () => {
                 className="btn-modern px-5 py-2.5 md:px-6 md:py-3 border-2 border-purple-500/50 hover:border-purple-500 hover:bg-purple-500/20 text-white rounded-full transition-all duration-300 text-sm md:text-base font-semibold glass-modern-hover micro-bounce focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-black"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                aria-label="Recevoir des notifications pour les streams"
+                aria-label="Get notified for streams"
               >
                 Get Notified
               </motion.button>
@@ -124,7 +124,7 @@ const TwitchStream = () => {
               <div className="w-full h-full flex items-center justify-center glass-modern">
                 <div className="text-purple-400 animate-pulse font-semibold flex items-center gap-2">
                   <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" />
-                  <span>Vérification du statut...</span>
+                  <span>Checking status...</span>
                 </div>
               </div>
             ) : streamStatus?.isLive ? (
@@ -171,7 +171,7 @@ const TwitchStream = () => {
               </div>
             ) : (
               <div className="w-full h-full relative flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900/20 to-black overflow-hidden">
-                {/* Animated background particles - réduites sur mobile pour performance */}
+                {/* Animated background particles - reduced on mobile for performance */}
                 <div className="absolute inset-0">
                   {[...Array(isMobile ? 8 : 15)].map((_, i) => (
                     <motion.div
@@ -235,8 +235,8 @@ const TwitchStream = () => {
                     transition={{ delay: 0.3 }}
                     className="text-gray-300 mb-4 md:mb-6 text-xs md:text-sm lg:text-base max-w-md mx-auto px-2 leading-relaxed"
                   >
-                    LarianMusic n'est pas en direct pour le moment. Revenez bientôt pour des sets
-                    exclusifs et des interactions en direct !
+                    LarianMusic is not live at the moment. Check back soon for exclusive sets and
+                    live interactions!
                   </motion.p>
 
                   {/* CTA Button - taille adaptée mobile */}
@@ -250,7 +250,7 @@ const TwitchStream = () => {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     className="inline-flex items-center gap-2 px-5 py-2.5 md:px-6 md:py-3 bg-gradient-to-r from-[#9146FF] to-[#7a3dd1] hover:from-[#a855f7] hover:to-[#9146FF] text-white rounded-full transition-all duration-300 text-sm md:text-base font-semibold glow-purple"
-                    aria-label="Visiter la chaîne Twitch de LarianMusic"
+                    aria-label="Visit LarianMusic Twitch channel"
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -260,7 +260,7 @@ const TwitchStream = () => {
                     >
                       <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z" />
                     </svg>
-                    <span className="whitespace-nowrap">Visiter la chaîne</span>
+                    <span className="whitespace-nowrap">Visit Channel</span>
                   </motion.a>
                 </div>
 
@@ -282,7 +282,7 @@ const TwitchStream = () => {
             whileHover={{ scale: 1.05, y: -5 }}
             className="glass-modern glass-modern-hover rounded-2xl p-6 text-center lift-3d"
             role="article"
-            aria-label="Statistiques: 24K+ Followers"
+            aria-label="Statistics: 24K+ Followers"
           >
             <div className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400 mb-2">
               24K+
@@ -293,7 +293,7 @@ const TwitchStream = () => {
             whileHover={{ scale: 1.05, y: -5 }}
             className="glass-modern glass-modern-hover rounded-2xl p-6 text-center lift-3d"
             role="article"
-            aria-label="Statistiques: 150+ Hours Streamed"
+            aria-label="Statistics: 150+ Hours Streamed"
           >
             <div className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 mb-2">
               150+
@@ -304,7 +304,7 @@ const TwitchStream = () => {
             whileHover={{ scale: 1.05, y: -5 }}
             className="glass-modern glass-modern-hover rounded-2xl p-6 text-center lift-3d"
             role="article"
-            aria-label="Statistiques: 500+ Tracks Played"
+            aria-label="Statistics: 500+ Tracks Played"
           >
             <div className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-blue-400 to-purple-400 mb-2 animate-gradient-shift bg-[length:200%_100%]">
               500+

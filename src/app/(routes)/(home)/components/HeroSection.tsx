@@ -307,7 +307,7 @@ export default function HeroSection({ config }: HeroSectionProps) {
           animate={{ opacity: 1 }}
           transition={{ delay: 1, duration: 1 }}
           className="absolute bottom-16 left-1/2 transform -translate-x-1/2 flex flex-col items-center z-20 glass-modern px-4 py-3 rounded-full"
-          aria-label="Indicateur de défilement"
+          aria-label="Scroll Indicator"
         >
           <span className="text-white text-sm mb-2 font-montserrat">Scroll to Explore</span>
           <div className="w-0.5 h-8 bg-white/30 relative overflow-hidden rounded-full">

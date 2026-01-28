@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils/cn';
 
 export interface CheckboxProps extends React.InputHTMLAttributes<HTMLInputElement> {
   onCheckedChange?: (checked: boolean) => void;
-  label?: string;
+  label?: React.ReactNode;
   labelClassName?: string;
 }
 
