@@ -49,7 +49,7 @@ interface ProfileHeroProps {
   onCropCancel: () => void;
   onResetAvatar: () => void;
   onShowFullscreenAvatar: (show: boolean) => void;
-  fileInputRef: React.RefObject<HTMLInputElement>;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
 }
 
 export function ProfileHero({

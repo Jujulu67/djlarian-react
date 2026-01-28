@@ -7,6 +7,25 @@
 
 // Import jest-dom matchers
 require('@testing-library/jest-dom');
+// Import jest-canvas-mock
+import 'jest-canvas-mock';
+
+// Mock uuid (needs to be mocked globally because Version 9+ is ESM only)
+jest.mock('uuid', () => ({
+  v4: jest.fn(() => 'mocked-uuid-v4'),
+  v1: jest.fn(() => 'mocked-uuid-v1'),
+}));
+
+// Mock Sentry
+jest.mock('@sentry/nextjs', () => ({
+  init: jest.fn(),
+  captureException: jest.fn(),
+  captureMessage: jest.fn(),
+  withSentryConfig: jest.fn((config) => config),
+  setUser: jest.fn(),
+  setTag: jest.fn(),
+  setExtra: jest.fn(),
+}));
 
 // ========================================
 // Mocks Next.js
@@ -84,6 +103,20 @@ if (typeof window !== 'undefined') {
       removeEventListener: jest.fn(),
       dispatchEvent: jest.fn(),
     })),
+  });
+
+  // Mock HTMLMediaElement (audio/video)
+  Object.defineProperty(global.window.HTMLMediaElement.prototype, 'play', {
+    configurable: true,
+    get() {
+      return () => Promise.resolve();
+    },
+  });
+  Object.defineProperty(global.window.HTMLMediaElement.prototype, 'pause', {
+    configurable: true,
+    get() {
+      return () => {};
+    },
   });
 }
 

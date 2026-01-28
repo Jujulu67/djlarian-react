@@ -22,7 +22,7 @@ interface UseYouTubePlayerReturn {
   isYoutubeLoaded: boolean;
   isYoutubeVisible: boolean;
   isYoutubeActive: boolean;
-  iframeRef: React.RefObject<HTMLIFrameElement>;
+  iframeRef: React.RefObject<HTMLIFrameElement | null>;
   setIsYoutubeVisible: (visible: boolean) => void;
   handleIframeLoad: () => void;
   pauseAndHideYoutube: () => void;

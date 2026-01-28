@@ -25,7 +25,7 @@ export function usePatternManager({
 }: UsePatternManagerProps) {
   const patternsRef = useRef<GamePattern[]>([]);
   const lastPatternTime = useRef<number>(0);
-  const animationFrame = useRef<number>();
+  const animationFrame = useRef<number | null>(null);
 
   const generatePattern = useCallback(
     (

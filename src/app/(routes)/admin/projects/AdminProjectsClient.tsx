@@ -121,7 +121,7 @@ export const AdminProjectsClient = ({ initialProjects, users }: AdminProjectsCli
         clearTimeout(fetchTimeoutRef.current);
       }
     };
-  }, [fetchProjects, statusFilter, userFilter, initialProjects, projects.length]);
+  }, [fetchProjects, statusFilter, userFilter]);
 
   // Debounce fetchCounts avec 300ms
   useEffect(() => {

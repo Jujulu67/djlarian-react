@@ -199,18 +199,12 @@ describe('useMusicPlayer', () => {
     });
   });
   it('should auto-play track from URL parameter', async () => {
-    // Mock window.location
-    const originalLocation = window.location;
-    delete (window as any).location;
-    window.location = {
-      ...originalLocation,
-      search: '?play=1',
-      href: 'http://localhost/?play=1',
-    } as any;
+    // Set URL with query param
+    const originalUrl = window.location.href;
+    window.history.replaceState({}, '', '/?play=1');
 
-    // Mock history.replaceState
-    const replaceStateMock = jest.fn();
-    window.history.replaceState = replaceStateMock;
+    // Mock history.replaceState to verify cleanup
+    const replaceStateSpy = jest.spyOn(window.history, 'replaceState');
 
     const { result } = renderHook(() => useMusicPlayer({ filteredTracks: mockTracks }));
 
@@ -222,9 +216,10 @@ describe('useMusicPlayer', () => {
       expect(result.current.currentTrack?.id).toBe('1');
     });
     expect(result.current.isPlaying).toBe(true);
-    expect(replaceStateMock).toHaveBeenCalled();
+    expect(replaceStateSpy).toHaveBeenCalled();
 
-    // Restore window.location
-    window.location = originalLocation;
+    // Cleanup
+    window.history.replaceState({}, '', originalUrl);
+    replaceStateSpy.mockRestore();
   });
 });

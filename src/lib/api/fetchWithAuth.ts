@@ -5,6 +5,7 @@
  */
 
 import { signOut } from 'next-auth/react';
+import { isBrowser } from '@/lib/utils/env';
 
 // Cache pour éviter les refresh multiples simultanés
 let isRefreshing = false;
@@ -23,7 +24,7 @@ async function refreshSession(): Promise<boolean> {
   refreshPromise = (async () => {
     try {
       // Invalider le cache de session
-      if (typeof window !== 'undefined') {
+      if (isBrowser()) {
         const windowWithCache = window as typeof window & {
           sessionRequestCache?: unknown;
         };
@@ -97,14 +98,14 @@ export async function fetchWithAuth(
     } else {
       // Si le refresh a échoué, la session est vraiment expirée
       // Déconnecter l'utilisateur pour éviter des 401 partout
-      if (typeof window !== 'undefined') {
+      if (isBrowser()) {
         console.warn("Session expirée, déconnexion de l'utilisateur");
         signOut({ callbackUrl: '/' });
       }
     }
   } else if (response.status === 401 && maxRetries === 0) {
     // Si on n'a plus de retries et qu'on a toujours une 401, déconnecter
-    if (typeof window !== 'undefined') {
+    if (isBrowser()) {
       console.warn("Session expirée après retries, déconnexion de l'utilisateur");
       signOut({ callbackUrl: '/' });
     }

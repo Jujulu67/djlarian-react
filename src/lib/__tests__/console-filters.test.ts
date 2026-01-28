@@ -1,4 +1,9 @@
 import { setupConsoleFilters } from '../console-filters';
+import { isBrowser } from '../utils/env';
+
+jest.mock('../utils/env', () => ({
+  isBrowser: jest.fn(() => true),
+}));
 
 describe('setupConsoleFilters', () => {
   const originalConsoleWarn = console.warn;
@@ -28,14 +33,12 @@ describe('setupConsoleFilters', () => {
   });
 
   it('should return early when called server-side (no window)', () => {
-    const originalWindow = global.window;
-    // @ts-expect-error - simulating server-side
-    delete global.window;
+    (isBrowser as jest.Mock).mockReturnValue(false);
 
     const cleanup = setupConsoleFilters();
     expect(cleanup).toBeUndefined();
 
-    global.window = originalWindow;
+    (isBrowser as jest.Mock).mockReturnValue(true);
   });
 
   it('should return cleanup function when called client-side', () => {

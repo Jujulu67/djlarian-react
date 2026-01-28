@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { logger } from '@/lib/logger';
 
 interface UseAudioFrequencyCaptureProps {
-  iframeRef: React.RefObject<HTMLIFrameElement>;
+  iframeRef: React.RefObject<HTMLIFrameElement | null>;
   isPlaying: boolean;
   isVisible: boolean;
 }

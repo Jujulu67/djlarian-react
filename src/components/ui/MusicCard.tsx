@@ -25,7 +25,7 @@ interface MusicCardProps {
   onPlay: (track: Track) => void;
   isPlaying: boolean;
   isActive: boolean;
-  playerRef?: React.MutableRefObject<HTMLIFrameElement | null>;
+  playerRef?: React.RefObject<HTMLIFrameElement | null>;
   priority?: boolean;
 }
 

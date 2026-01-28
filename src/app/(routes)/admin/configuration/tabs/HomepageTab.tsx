@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useConfigs } from '@/stores/useConfigs';
 import type { HomepageConfig } from '@/types/config';
 
-const HomepageTab = (): JSX.Element => {
+const HomepageTab = (): React.JSX.Element => {
   const { homepage, update } = useConfigs();
 
   // Gérer le drag and drop pour l'ordre des sections
@@ -29,7 +29,7 @@ const HomepageTab = (): JSX.Element => {
     update('homepage', 'sectionsOrder', sections.join(','));
   };
 
-  const getSectionInfo = (id: string): { icon: JSX.Element; name: string } => {
+  const getSectionInfo = (id: string): { icon: React.JSX.Element; name: string } => {
     switch (id) {
       case 'hero':
         return { icon: <Home className="h-4 w-4" />, name: 'Héro' };

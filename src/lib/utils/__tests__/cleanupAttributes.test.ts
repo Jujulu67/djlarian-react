@@ -1,4 +1,9 @@
 import { cleanupAttributes } from '../cleanupAttributes';
+import { isBrowser } from '../env';
+
+jest.mock('../env', () => ({
+  isBrowser: jest.fn(() => true),
+}));
 
 describe('cleanupAttributes', () => {
   beforeEach(() => {
@@ -12,15 +17,14 @@ describe('cleanupAttributes', () => {
     jest.clearAllMocks();
   });
 
+  // ... (in describe)
   it('should return undefined when called server-side (no window)', () => {
-    const originalWindow = global.window;
-    // @ts-expect-error - simulating server-side
-    delete global.window;
+    (isBrowser as jest.Mock).mockReturnValue(false);
 
     const result = cleanupAttributes();
     expect(result).toBeUndefined();
 
-    global.window = originalWindow;
+    (isBrowser as jest.Mock).mockReturnValue(true);
   });
 
   it('should setup MutationObserver and return cleanup function', () => {

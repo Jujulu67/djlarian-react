@@ -56,7 +56,7 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
 
   const [patterns, setPatterns] = useState<GamePattern[]>([]);
   const isActive = useRef(false);
-  const animationFrame = useRef<number>();
+  const animationFrame = useRef<number | null>(null);
   const gameProgress = useRef(0);
   const playerPosition = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const lastAudioUpdate = useRef(0);
@@ -97,7 +97,7 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
       isActive.current = false;
       if (animationFrame.current) {
         cancelAnimationFrame(animationFrame.current);
-        animationFrame.current = undefined;
+        animationFrame.current = null;
       }
     },
   });
@@ -119,7 +119,7 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
       logger.debug('Jeu non actif, arrêt de la boucle de jeu');
       if (animationFrame.current) {
         cancelAnimationFrame(animationFrame.current);
-        animationFrame.current = undefined;
+        animationFrame.current = null;
       }
       return;
     }
@@ -281,7 +281,7 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
 
       if (animationFrame.current) {
         cancelAnimationFrame(animationFrame.current);
-        animationFrame.current = undefined;
+        animationFrame.current = null;
       }
 
       setGameState((prev) => ({
@@ -338,7 +338,7 @@ export const useGameManager = (audioElement: HTMLAudioElement | null) => {
 
     if (animationFrame.current) {
       cancelAnimationFrame(animationFrame.current);
-      animationFrame.current = undefined;
+      animationFrame.current = null;
     }
   }, [setGameState, saveHighScore]);
 

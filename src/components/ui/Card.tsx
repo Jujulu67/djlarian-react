@@ -21,7 +21,7 @@ export const Card = ({
   footer,
   isHoverable = false,
   isInteractive = false,
-}: CardProps): JSX.Element => {
+}: CardProps): React.JSX.Element => {
   const baseStyles =
     'overflow-hidden rounded-lg bg-white shadow dark:bg-dark-800 transition-all duration-200';
 

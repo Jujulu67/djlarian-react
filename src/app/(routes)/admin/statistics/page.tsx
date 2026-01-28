@@ -405,7 +405,7 @@ export default function StatisticsPage() {
                         color: '#fff',
                       }}
                       labelFormatter={(label) => formatXAxis(label, periodUnit)}
-                      formatter={(value: number) => [`${value} visites`, null]} // Enlever le nom de la métrique
+                      formatter={(value: number | undefined) => [`${value} visites`, '']} // Enlever le nom de la métrique
                     />
                     <Line
                       type="monotone"
