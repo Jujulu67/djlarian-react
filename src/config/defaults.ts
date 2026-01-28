@@ -4,7 +4,7 @@ import { AllConfigs } from '@/types/config';
 export const defaultConfigs: AllConfigs = {
   general: {
     siteName: 'Larian',
-    siteDescription: 'Site officiel de Larian - Musique électronique et événements.',
+    siteDescription: 'Official site of Larian - Electronic music and events.',
     contactEmail: 'contact@djlarian.com',
     timeZone: 'Europe/Paris',
     dateFormat: 'DD/MM/YYYY',

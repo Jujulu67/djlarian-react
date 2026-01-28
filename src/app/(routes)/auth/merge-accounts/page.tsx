@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import Image from 'next/image';
 
@@ -25,7 +25,7 @@ interface AccountMergeData {
   };
 }
 
-export default function MergeAccountsPage() {
+function MergeAccountsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session, update: updateSession } = useSession();
@@ -374,5 +374,22 @@ export default function MergeAccountsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function MergeAccountsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-gray-900 to-black">
+          <div className="text-center">
+            <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-purple-600 border-t-transparent mx-auto" />
+            <p className="text-gray-300">Chargement...</p>
+          </div>
+        </div>
+      }
+    >
+      <MergeAccountsContent />
+    </Suspense>
   );
 }

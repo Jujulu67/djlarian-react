@@ -495,7 +495,7 @@ const RhythmCatcher: React.FC<RhythmCatcherProps> = ({ audioSrc, onClose }) => {
       <div className="flex gap-4">
         <button
           onClick={resetGame}
-          className="flex items-center gap-2 px-6 py-3 bg-white text-black font-bold rounded-full hover:bg-gray-200 transition-colors"
+          className="flex items-center gap-2 px-6 py-3 bg-white !text-black font-bold rounded-full hover:bg-gray-200 transition-colors"
         >
           <RefreshCw size={20} /> Rejouer
         </button>

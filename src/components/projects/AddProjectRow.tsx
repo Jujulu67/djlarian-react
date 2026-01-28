@@ -87,7 +87,7 @@ export const AddProjectRow = ({
     return (
       <button
         onClick={() => setIsAdding(true)}
-        className="flex items-center gap-2 px-4 py-3 text-purple-400 hover:text-purple-300 hover:bg-white/5 transition-all rounded-lg group"
+        className="flex items-center justify-start gap-2 px-4 py-3 border-2 border-dashed border-gray-700/50 hover:border-purple-500/50 hover:bg-purple-500/5 text-gray-400 hover:text-purple-400 transition-all rounded-lg group"
         aria-label="Ajouter un nouveau projet"
       >
         <Plus size={18} className="group-hover:scale-110 transition-transform" aria-hidden="true" />
@@ -97,32 +97,34 @@ export const AddProjectRow = ({
   }
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3 bg-purple-500/10 rounded-lg border border-purple-500/20">
-      <input
-        ref={inputRef}
-        type="text"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder="Nom du projet..."
-        className="flex-1 bg-gray-800/50 border border-purple-500/30 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent"
-        disabled={isSaving}
-      />
+    <div className="flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-3 bg-purple-500/10 rounded-lg border border-purple-500/20">
+      <div className="flex flex-1 gap-3 w-full sm:w-auto items-center">
+        <input
+          ref={inputRef}
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Nom du projet..."
+          className="flex-1 bg-gray-800/50 border border-purple-500/30 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent"
+          disabled={isSaving}
+        />
 
-      <GlassSelect
-        value={status}
-        options={PROJECT_STATUSES.map((s) => ({
-          value: s.value,
-          label: s.label,
-          color: s.color,
-        }))}
-        onChange={(newValue) => setStatus(newValue as ProjectStatus)}
-        isCompact={false}
-        disabled={isSaving}
-        currentColor={PROJECT_STATUSES.find((s) => s.value === status)?.color || 'blue'}
-      />
+        <GlassSelect
+          value={status}
+          options={PROJECT_STATUSES.map((s) => ({
+            value: s.value,
+            label: s.label,
+            color: s.color,
+          }))}
+          onChange={(newValue) => setStatus(newValue as ProjectStatus)}
+          isCompact={false}
+          disabled={isSaving}
+          currentColor={PROJECT_STATUSES.find((s) => s.value === status)?.color || 'blue'}
+        />
+      </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-end gap-2 w-full sm:w-auto">
         <button
           onClick={handleSubmit}
           disabled={!name.trim() || isSaving}

@@ -4,7 +4,7 @@ import { ChevronLeft, Loader2, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import type { Crop as CropType } from 'react-image-crop';
 
 import 'react-image-crop/dist/ReactCrop.css';
@@ -32,7 +32,7 @@ const formatDateForInput = (dateString: string | null | undefined): string => {
   }
 };
 
-export default function EventFormPage() {
+function EventFormContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const routeParams = useParams();
@@ -545,5 +545,26 @@ export default function EventFormPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function EventFormPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-b from-gray-900 to-black p-8 pt-32">
+          <div className="container mx-auto">
+            <div className="flex justify-center items-center min-h-[60vh]">
+              <div className="animate-pulse flex flex-col items-center">
+                <Loader2 className="w-12 h-12 text-purple-500 mb-4 animate-spin" />
+                <h2 className="text-2xl font-semibold text-white">Chargement...</h2>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <EventFormContent />
+    </Suspense>
   );
 }

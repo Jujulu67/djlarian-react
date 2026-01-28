@@ -14,7 +14,7 @@ export default async function AdminGalleryPage() {
     <div className="min-h-[calc(100vh-4rem)] bg-gray-100 dark:bg-gray-900">
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-3xl font-bold !text-gray-900 dark:!text-white">
             Gestion de la Galerie
           </h1>
           <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md transition-colors">
@@ -63,8 +63,10 @@ export default async function AdminGalleryPage() {
               </div>
             </div>
             <div className="p-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Event 1</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
+              <h3 className="text-lg font-semibold !text-gray-900 dark:!text-white mb-2">
+                Event 1
+              </h3>
+              <p className="text-sm !text-gray-600 dark:!text-gray-300">
                 Description de l&apos;image...
               </p>
             </div>

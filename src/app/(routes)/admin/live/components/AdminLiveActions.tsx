@@ -72,7 +72,7 @@ export function AdminLiveActions() {
           onClick={refreshAllSockets}
           className="text-xs text-gray-400 hover:text-white underline transition-colors"
         >
-          {/* CLICK HERE TO REFRESH ALL SOCKETS */}
+          Refresh All Sockets
         </button>
       </div>
 

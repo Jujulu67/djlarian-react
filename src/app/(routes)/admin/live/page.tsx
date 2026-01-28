@@ -43,7 +43,19 @@ export default function AdminLivePage() {
           Retour au tableau de bord
         </Link>
       </div>
-      <AdminLiveDashboard />
+      <Suspense
+        fallback={
+          <div className="flex items-center justify-center p-12">
+            <div className="text-white font-audiowide animate-pulse">
+              Chargement du dashboard live...
+            </div>
+          </div>
+        }
+      >
+        <AdminLiveDashboard />
+      </Suspense>
     </div>
   );
 }
+
+import { Suspense } from 'react';

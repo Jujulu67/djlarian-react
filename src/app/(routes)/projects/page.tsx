@@ -11,7 +11,7 @@ export const metadata = {
   description: 'Gestion de vos projets musicaux',
 };
 
-export default async function ProjectsPage() {
+async function ProjectsContent() {
   const session = await auth();
 
   // Rediriger si non connecté
@@ -45,5 +45,21 @@ export default async function ProjectsPage() {
         <ProjectsClient initialProjects={serializedProjects} />
       </div>
     </div>
+  );
+}
+
+import { Suspense } from 'react';
+
+export default function ProjectsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-8">
+          <div className="text-white font-audiowide animate-pulse">Chargement des projets...</div>
+        </div>
+      }
+    >
+      <ProjectsContent />
+    </Suspense>
   );
 }

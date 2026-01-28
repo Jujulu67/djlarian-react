@@ -410,10 +410,6 @@ const Navigation = () => {
                     }}
                     className="relative user-menu"
                   >
-                    {/* Debug: Afficher le rôle */}
-                    <div className="absolute -top-6 left-0 text-xs text-purple-400">
-                      Role: {session?.user?.role || 'none'}
-                    </div>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -488,10 +484,7 @@ const Navigation = () => {
                                 animate={{ x: 0, opacity: 1 }}
                                 transition={{ delay: 0.05, duration: 0.1 }}
                               >
-                                <Link
-                                  href="/admin"
-                                  className="flex items-center px-4 py-2 text-sm text-white/90 hover:text-white hover:bg-purple-500/10 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-inset"
-                                >
+                                <Link href="/admin" className="navMenuItem navMenuItemDanger">
                                   <Settings className="w-4 h-4 mr-2" />
                                   Panel Admin
                                 </Link>
@@ -502,10 +495,7 @@ const Navigation = () => {
                               animate={{ x: 0, opacity: 1 }}
                               transition={{ delay: 0.1, duration: 0.1 }}
                             >
-                              <Link
-                                href="/profile"
-                                className="flex items-center px-4 py-2 text-sm text-white/90 hover:text-white hover:bg-purple-500/10 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-inset"
-                              >
+                              <Link href="/profile" className="navMenuItem">
                                 <User className="w-4 h-4 mr-2" />
                                 Profil
                               </Link>
@@ -515,10 +505,7 @@ const Navigation = () => {
                               animate={{ x: 0, opacity: 1 }}
                               transition={{ delay: 0.12, duration: 0.1 }}
                             >
-                              <Link
-                                href="/projects"
-                                className="flex items-center px-4 py-2 text-sm text-white/90 hover:text-white hover:bg-purple-500/10 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-inset"
-                              >
+                              <Link href="/projects" className="navMenuItem navMenuItemAccent">
                                 <FolderKanban className="w-4 h-4 mr-2" />
                                 Mes Projets
                               </Link>
@@ -529,10 +516,7 @@ const Navigation = () => {
                               animate={{ x: 0, opacity: 1 }}
                               transition={{ delay: 0.14, duration: 0.1 }}
                             >
-                              <Link
-                                href="/licenses"
-                                className="flex items-center px-4 py-2 text-sm text-white/90 hover:text-white hover:bg-purple-500/10 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-inset"
-                              >
+                              <Link href="/licenses" className="navMenuItem navMenuItemSuccess">
                                 <KeyRound className="w-4 h-4 mr-2" />
                                 Mes Licences
                               </Link>
@@ -546,10 +530,7 @@ const Navigation = () => {
                                 animate={{ x: 0, opacity: 1 }}
                                 transition={{ delay: 0.15, duration: 0.1 }}
                               >
-                                <Link
-                                  href="/games"
-                                  className="flex items-center px-4 py-2 text-sm text-white/90 hover:text-white hover:bg-purple-500/10 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-inset"
-                                >
+                                <Link href="/games" className="navMenuItem navMenuItemWarning">
                                   <Gamepad2 className="w-4 h-4 mr-2" />
                                   Arcade
                                 </Link>
@@ -563,7 +544,7 @@ const Navigation = () => {
                             >
                               <button
                                 onClick={handleSignOut}
-                                className="flex items-center w-full px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:ring-inset"
+                                className="navMenuItem navMenuItemDanger w-full"
                               >
                                 <LogOut className="w-4 h-4 mr-2" />
                                 Déconnexion
@@ -714,7 +695,7 @@ const Navigation = () => {
                           {session.user?.role === 'ADMIN' && (
                             <Link
                               href="/admin"
-                              className="flex items-center px-4 py-2 text-sm text-white/90 hover:text-white hover:bg-purple-500/10 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-inset"
+                              className="navMenuItem navMenuItemDanger"
                               onClick={() => {
                                 setIsMobileUserMenuOpen(false);
                                 // Fermer aussi le menu burger si ouvert
@@ -727,7 +708,7 @@ const Navigation = () => {
                           )}
                           <Link
                             href="/profile"
-                            className="flex items-center px-4 py-2 text-sm text-white/90 hover:text-white hover:bg-purple-500/10 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-inset"
+                            className="navMenuItem"
                             onClick={() => setIsMobileUserMenuOpen(false)}
                           >
                             <User className="w-4 h-4 mr-2" />
@@ -735,7 +716,7 @@ const Navigation = () => {
                           </Link>
                           <Link
                             href="/projects"
-                            className="flex items-center px-4 py-2 text-sm text-white/90 hover:text-white hover:bg-purple-500/10 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-inset"
+                            className="navMenuItem navMenuItemAccent"
                             onClick={() => {
                               setIsMobileUserMenuOpen(false);
                               setIsMobileMenuOpen(false);
@@ -747,7 +728,7 @@ const Navigation = () => {
 
                           <Link
                             href="/licenses"
-                            className="flex items-center px-4 py-2 text-sm text-white/90 hover:text-white hover:bg-purple-500/10 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-inset"
+                            className="navMenuItem navMenuItemSuccess"
                             onClick={() => {
                               setIsMobileUserMenuOpen(false);
                               setIsMobileMenuOpen(false);
@@ -762,7 +743,7 @@ const Navigation = () => {
                           session.user?.hasDiscoveredCasino ? (
                             <Link
                               href="/games"
-                              className="flex items-center px-4 py-2 text-sm text-white/90 hover:text-white hover:bg-purple-500/10 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-inset"
+                              className="navMenuItem navMenuItemWarning"
                               onClick={() => {
                                 setIsMobileUserMenuOpen(false);
                                 setIsMobileMenuOpen(false);
@@ -778,7 +759,7 @@ const Navigation = () => {
                               await handleSignOut();
                               setIsMobileUserMenuOpen(false);
                             }}
-                            className="flex items-center w-full px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:ring-inset"
+                            className="navMenuItem navMenuItemDanger w-full"
                           >
                             <LogOut className="w-4 h-4 mr-2" />
                             Déconnexion

@@ -72,7 +72,8 @@
     appearance: none !important;
     -webkit-appearance: none !important;
     -moz-appearance: none !important;
-    padding-right: 2.5rem !important; /* pr-10 */
+    padding-right: 2.5rem !important;
+    /* pr-10 */
   }
 
   /* Flèche SVG personnalisée - couleur blanche pour visibilité */
@@ -93,8 +94,10 @@
   select[class*='text-sm'] {
     background-position: right 0.5rem center !important;
     background-size: 0.875rem 0.875rem !important;
-    padding-right: 2rem !important; /* pr-8 pour les petits selects */
+    padding-right: 2rem !important;
+    /* pr-8 pour les petits selects */
   }
+
   /* Masquer le header sur mobile quand le jeu est actif */
   @media (max-width: 768px) {
     html.sound-active header {
@@ -145,6 +148,41 @@
   }
 }
 
+@layer components {
+  /* Navigation: semantic dropdown item styles.
+     We scope to header/nav to override `header nav a { color: ... }` rules via higher specificity. */
+  header nav a.navMenuItem,
+  header nav button.navMenuItem {
+    @apply flex items-center px-4 py-2 text-sm transition-colors rounded focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-inset;
+    @apply text-white/90 hover:text-white hover:bg-purple-500/10;
+  }
+
+  header nav a.navMenuItem.navMenuItemAccent,
+  header nav button.navMenuItem.navMenuItemAccent {
+    @apply text-purple-300 hover:text-purple-200 hover:bg-purple-500/10;
+  }
+
+  header nav a.navMenuItem.navMenuItemAdmin,
+  header nav button.navMenuItem.navMenuItemAdmin {
+    @apply text-red-400 hover:text-red-300 hover:bg-red-500/10 focus:ring-red-500/50;
+  }
+
+  header nav a.navMenuItem.navMenuItemDanger,
+  header nav button.navMenuItem.navMenuItemDanger {
+    @apply text-red-500 hover:text-red-400 hover:bg-red-500/10 focus:ring-red-500/50;
+  }
+
+  header nav a.navMenuItem.navMenuItemSuccess,
+  header nav button.navMenuItem.navMenuItemSuccess {
+    @apply text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 focus:ring-emerald-500/50;
+  }
+
+  header nav a.navMenuItem.navMenuItemWarning,
+  header nav button.navMenuItem.navMenuItemWarning {
+    @apply text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 focus:ring-orange-500/50;
+  }
+}
+
 @layer utilities {
   .text-gradient {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-blue-500 to-purple-600;
@@ -168,6 +206,7 @@
       opacity: 0;
       transform: scale(0.95);
     }
+
     to {
       opacity: 1;
       transform: scale(1);
@@ -216,9 +255,11 @@
   0% {
     transform: translateY(0px);
   }
+
   50% {
     transform: translateY(-10px);
   }
+
   100% {
     transform: translateY(0px);
   }
@@ -291,6 +332,7 @@
   from {
     filter: hue-rotate(0deg);
   }
+
   to {
     filter: hue-rotate(360deg);
   }
@@ -313,13 +355,16 @@
   0% {
     box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.7);
   }
+
   70% {
     box-shadow: 0 0 0 8px rgba(168, 85, 247, 0);
   }
+
   100% {
     box-shadow: 0 0 0 0 rgba(168, 85, 247, 0);
   }
 }
+
 .animate-highlight-ring {
   animation: highlight-ring 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
@@ -333,6 +378,7 @@
       0 0 20px rgba(34, 197, 94, 0.3);
     transform: scale(1);
   }
+
   50% {
     box-shadow:
       0 0 0 8px rgba(34, 197, 94, 0),
@@ -340,6 +386,7 @@
       0 0 40px rgba(34, 197, 94, 0.6);
     transform: scale(1.01);
   }
+
   100% {
     box-shadow:
       0 0 0 0 rgba(34, 197, 94, 0),
@@ -360,9 +407,11 @@
   0% {
     background-position: 0% 50%;
   }
+
   50% {
     background-position: 100% 50%;
   }
+
   100% {
     background-position: 0% 50%;
   }
@@ -373,6 +422,7 @@
   0% {
     background-position: 0% 0%;
   }
+
   100% {
     background-position: 200% 0%;
   }
@@ -383,6 +433,7 @@
   0% {
     transform: translateX(0) translateZ(0);
   }
+
   100% {
     transform: translateX(-100%) translateZ(0);
   }
@@ -394,9 +445,11 @@
     transform: translateX(-100%) translateY(-100%) rotate(45deg);
     opacity: 0;
   }
+
   50% {
     opacity: 0.4;
   }
+
   100% {
     transform: translateX(200%) translateY(200%) rotate(45deg);
     opacity: 0;
@@ -408,15 +461,19 @@
   0% {
     background-position: 0% 0%;
   }
+
   25% {
     background-position: 100% 0%;
   }
+
   50% {
     background-position: 100% 100%;
   }
+
   75% {
     background-position: 0% 100%;
   }
+
   100% {
     background-position: 0% 0%;
   }
@@ -429,6 +486,7 @@
     opacity: 0;
     transform: scale(0.8);
   }
+
   50% {
     opacity: 0.6;
     transform: scale(1);
@@ -440,6 +498,7 @@
   100% {
     opacity: 0.6;
   }
+
   50% {
     opacity: 1;
   }
@@ -449,9 +508,11 @@
   0% {
     background-position: 0% 50%;
   }
+
   50% {
     background-position: 100% 50%;
   }
+
   100% {
     background-position: 0% 50%;
   }
@@ -476,9 +537,11 @@
   0% {
     background-position: 0% 50%;
   }
+
   50% {
     background-position: 100% 50%;
   }
+
   100% {
     background-position: 0% 50%;
   }
@@ -551,6 +614,139 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Premium Easter Egg Glassmorphism (iOS Style) - Refined */
+.glass-easter-egg {
+  position: relative;
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  background-color: rgba(255, 255, 255, 0.06);
+  background-image: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(255, 255, 255, 0.05) 25%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 75%,
+    rgba(255, 255, 255, 0.12) 100%
+  );
+  background-size: 300% 300%;
+  animation: veil-shift 12s ease-in-out infinite;
+  box-shadow:
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.2),
+    /* Thinner feeling border */ inset 0 1px 1px rgba(255, 255, 255, 0.1),
+    0 8px 32px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.glass-easter-egg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 30% 40%, rgba(255, 255, 255, 0.15) 0%, transparent 40%),
+    radial-gradient(circle at 70% 60%, rgba(255, 255, 255, 0.12) 0%, transparent 40%),
+    linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
+  background-size:
+    150% 150%,
+    150% 150%,
+    250% 250%;
+  mix-blend-mode: overlay;
+  opacity: 0.3;
+  animation: veil-shift 15s ease-in-out infinite reverse;
+  pointer-events: none;
+}
+
+.glass-easter-egg:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.25),
+    inset 0 1px 3px rgba(255, 255, 255, 0.2),
+    0 10px 30px rgba(139, 92, 246, 0.15);
+  transform: translateY(-1px) scale(1.02);
+}
+
+.glass-easter-egg-content {
+  position: relative;
+  z-index: 10;
+  display: inline-block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Premium Animated Glass Container (Desktop & Mobile) */
+.glass-premium-container {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 20px 50px -10px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  position: relative;
+  /* Remove overflow: hidden to allow shadow/glow to breathe */
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1;
+}
+
+/* Inner clipping layer for visualizer and animated glass */
+.glass-premium-inner {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.glass-premium-inner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(
+    135deg,
+    rgba(139, 92, 246, 0.08) 0%,
+    transparent 25%,
+    rgba(59, 130, 246, 0.08) 50%,
+    transparent 75%,
+    rgba(139, 92, 246, 0.08) 100%
+  );
+  background-size: 300% 300%;
+  animation: veil-shift 12s ease-in-out infinite;
+  z-index: 1;
+}
+
+.glass-premium-inner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% -20%, rgba(139, 92, 246, 0.2), transparent 70%);
+  opacity: 0.6;
+  z-index: 2;
+}
+
+/* Glow border animation for premium container */
+.glow-border-premium {
+  position: relative;
+}
+
+.glow-border-premium::after {
+  content: '';
+  position: absolute;
+  inset: -0.5px;
+  /* Thinner border */
+  background: linear-gradient(
+    90deg,
+    rgba(139, 92, 246, 0.4),
+    rgba(59, 130, 246, 0.4),
+    rgba(139, 92, 246, 0.4)
+  );
+  background-size: 200% 100%;
+  border-radius: inherit;
+  z-index: -3;
+  animation: gradient-shift 4s linear infinite;
+  opacity: 0.4;
+}
+
 /* Glow Effects */
 .glow-purple {
   box-shadow:
@@ -571,6 +767,7 @@
       0 0 20px rgba(139, 92, 246, 0.4),
       0 0 40px rgba(139, 92, 246, 0.2);
   }
+
   50% {
     box-shadow:
       0 0 30px rgba(139, 92, 246, 0.6),
@@ -588,6 +785,7 @@
     border-color: rgba(139, 92, 246, 0.3);
     box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4);
   }
+
   50% {
     border-color: rgba(139, 92, 246, 0.6);
     box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2);
@@ -614,10 +812,12 @@
     transform: translateY(0) translateX(0) rotate(0deg);
     opacity: 0.3;
   }
+
   50% {
     transform: translateY(-100px) translateX(50px) rotate(180deg);
     opacity: 0.6;
   }
+
   100% {
     transform: translateY(-200px) translateX(100px) rotate(360deg);
     opacity: 0;
@@ -664,6 +864,9 @@
   background-clip: text;
   color: transparent;
   animation: gradient-shift 5s ease infinite;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  padding: 0.1em 0;
 }
 
 /* Button Modern Styles */
@@ -851,15 +1054,20 @@ a[class*='rounded-lg']:active {
 /* Scroll Snapping - Modern UX Enhancement */
 /* Applied to html when on homepage - CSS only, no JS */
 html.homepage-scroll-snap {
-  scroll-snap-type: y proximity; /* Proximity mode for smoother feel */
-  scroll-padding-top: 4rem; /* Account for fixed header */
-  scroll-behavior: smooth; /* Native smooth scroll */
+  scroll-snap-type: y proximity;
+  /* Proximity mode for smoother feel */
+  scroll-padding-top: 4rem;
+  /* Account for fixed header */
+  scroll-behavior: smooth;
+  /* Native smooth scroll */
 }
 
 .scroll-snap-section {
   scroll-snap-align: start;
-  scroll-snap-stop: normal; /* Changed from always to normal for better UX */
-  scroll-margin-top: 4rem; /* Account for fixed header */
+  scroll-snap-stop: normal;
+  /* Changed from always to normal for better UX */
+  scroll-margin-top: 4rem;
+  /* Account for fixed header */
 }
 
 /* Disable scroll snap on mobile for better UX */
@@ -893,11 +1101,13 @@ section {
 
 /* Improved color contrasts for accessibility */
 .text-gray-300 {
-  color: rgb(209, 213, 219); /* WCAG AA compliant */
+  color: rgb(209, 213, 219);
+  /* WCAG AA compliant */
 }
 
 .text-gray-400 {
-  color: rgb(156, 163, 175); /* WCAG AA compliant */
+  color: rgb(156, 163, 175);
+  /* WCAG AA compliant */
 }
 
 /* Ensure sufficient contrast for interactive elements */
@@ -917,11 +1127,13 @@ a:not([class*='btn']):not(header a):not(nav a):not(.admin-button-link):not(butto
 
 /* Purple link class for links that should have the purple color (e.g., in content, descriptions, etc.) */
 a.link-purple {
-  color: rgb(196, 181, 253); /* purple-300 - better contrast */
+  color: rgb(196, 181, 253);
+  /* purple-300 - better contrast */
 }
 
 a.link-purple:hover {
-  color: rgb(167, 139, 250); /* purple-400 */
+  color: rgb(167, 139, 250);
+  /* purple-400 */
 }
 
 /* Admin button links should keep their white text color */
@@ -969,6 +1181,73 @@ header nav a:hover,
 nav a:hover,
 header > nav > a:hover {
   color: rgb(255, 255, 255);
+}
+
+/* Navigation dropdown overrides:
+   This must live AFTER the generic `header nav a { color: white; }` rules above. */
+header nav a.navMenuItem,
+header nav button.navMenuItem {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+header nav a.navMenuItem:hover,
+header nav button.navMenuItem:hover {
+  color: rgba(255, 255, 255, 1) !important;
+  background: rgba(168, 85, 247, 0.1) !important; /* purple-500/10 */
+}
+
+header nav a.navMenuItem.navMenuItemAccent,
+header nav button.navMenuItem.navMenuItemAccent {
+  color: rgb(216, 180, 254) !important; /* purple-300 */
+}
+
+header nav a.navMenuItem.navMenuItemAccent:hover,
+header nav button.navMenuItem.navMenuItemAccent:hover {
+  color: rgb(233, 213, 255) !important; /* purple-200 */
+}
+
+header nav a.navMenuItem.navMenuItemAdmin,
+header nav button.navMenuItem.navMenuItemAdmin {
+  color: rgb(248, 113, 113) !important; /* red-400 */
+}
+
+header nav a.navMenuItem.navMenuItemAdmin:hover,
+header nav button.navMenuItem.navMenuItemAdmin:hover {
+  color: rgb(252, 165, 165) !important; /* red-300 */
+  background: rgba(239, 68, 68, 0.1) !important; /* red-500/10 */
+}
+
+header nav a.navMenuItem.navMenuItemDanger,
+header nav button.navMenuItem.navMenuItemDanger {
+  color: rgb(239, 68, 68) !important; /* red-500 */
+}
+
+header nav a.navMenuItem.navMenuItemDanger:hover,
+header nav button.navMenuItem.navMenuItemDanger:hover {
+  color: rgb(248, 113, 113) !important; /* red-400 */
+  background: rgba(239, 68, 68, 0.1) !important; /* red-500/10 */
+}
+
+header nav a.navMenuItem.navMenuItemSuccess,
+header nav button.navMenuItem.navMenuItemSuccess {
+  color: rgb(52, 211, 153) !important; /* emerald-400 */
+}
+
+header nav a.navMenuItem.navMenuItemSuccess:hover,
+header nav button.navMenuItem.navMenuItemSuccess:hover {
+  color: rgb(110, 231, 183) !important; /* emerald-300 */
+  background: rgba(16, 185, 129, 0.1) !important; /* emerald-500/10 */
+}
+
+header nav a.navMenuItem.navMenuItemWarning,
+header nav button.navMenuItem.navMenuItemWarning {
+  color: rgb(251, 146, 60) !important; /* orange-400 */
+}
+
+header nav a.navMenuItem.navMenuItemWarning:hover,
+header nav button.navMenuItem.navMenuItemWarning:hover {
+  color: rgb(253, 186, 116) !important; /* orange-300 */
+  background: rgba(249, 115, 22, 0.1) !important; /* orange-500/10 */
 }
 
 /* Ensure text on glass backgrounds is readable */
@@ -1054,6 +1333,7 @@ header > nav > a:hover {
   0% {
     background-position: -200% 0;
   }
+
   100% {
     background-position: 200% 0;
   }

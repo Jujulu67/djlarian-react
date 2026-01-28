@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion';
 import { User } from 'lucide-react';
 import { useSession, signIn } from 'next-auth/react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
@@ -18,7 +18,7 @@ import { ProfileBadges } from './components/ProfileBadges';
 import { ProfileOAuth } from './components/ProfileOAuth';
 import { ProfilePasswordModal } from './components/ProfilePasswordModal';
 
-export default function ProfilePage() {
+function ProfileContent() {
   const { data: session, update: updateSession } = useSession();
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
@@ -561,5 +561,19 @@ export default function ProfilePage() {
         onShowPasswordsChange={setShowPasswords}
       />
     </div>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-[80vh] flex items-center justify-center px-4">
+          <div className="text-white font-audiowide animate-pulse">Chargement du profil...</div>
+        </div>
+      }
+    >
+      <ProfileContent />
+    </Suspense>
   );
 }

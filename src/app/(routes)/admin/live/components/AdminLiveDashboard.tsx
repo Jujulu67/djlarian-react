@@ -7,7 +7,14 @@ import { LivePoolStats } from './LivePoolStats';
 import { AdminLivePlayerProvider } from '../context/AdminLivePlayerContext';
 import { AdminLiveSubmissionsProvider } from '../context/AdminLiveSubmissionsContext';
 
+import { SubmissionsFilters } from './SubmissionsFilters';
+import { useSearchParams } from 'next/navigation';
+
 export function AdminLiveDashboard() {
+  const searchParams = useSearchParams();
+  const search = searchParams.get('search') || '';
+  const status = searchParams.get('status') || '';
+
   return (
     <AdminLivePlayerProvider>
       <AdminLiveSubmissionsProvider>
@@ -18,6 +25,9 @@ export function AdminLiveDashboard() {
 
             {/* Section ACTIONS */}
             <AdminLiveActions />
+
+            {/* Filtres globaux */}
+            <SubmissionsFilters searchValue={search} statusValue={status} />
 
             {/* Waveform Player */}
             <AdminLivePlayer />

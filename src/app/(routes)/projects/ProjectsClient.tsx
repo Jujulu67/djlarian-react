@@ -1081,98 +1081,113 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
             </div>
           </div>
 
-          {/* Ligne 2: Filtres par statut et checkbox projets sortis */}
-          <div className="flex gap-3 items-center flex-wrap">
-            {/* Checkbox pour masquer/afficher les projets sortis */}
-            <div className="px-3 py-2 bg-gray-800/70 backdrop-blur-md rounded-xl border border-gray-700/70">
-              <Checkbox
-                checked={showReleasedProjects}
-                onCheckedChange={setShowReleasedProjects}
-                label="Afficher les projets sortis"
-                labelClassName="text-sm text-gray-300 whitespace-nowrap"
-              />
-            </div>
+          <div className="flex flex-col lg:flex-row gap-3 lg:items-center">
+            {/* Ligne 2: Checkboxes */}
+            <div className="flex gap-3 items-center flex-wrap lg:flex-nowrap">
+              {/* Checkbox pour masquer/afficher les projets sortis */}
+              <div className="px-3 py-2 bg-gray-800/70 backdrop-blur-md rounded-xl border border-gray-700/70 flex-1 sm:flex-none">
+                <Checkbox
+                  checked={showReleasedProjects}
+                  onCheckedChange={setShowReleasedProjects}
+                  label={
+                    <>
+                      <span className="sm:hidden">Projets sortis</span>
+                      <span className="hidden sm:inline">Afficher les projets sortis</span>
+                    </>
+                  }
+                  labelClassName="text-sm text-gray-300 whitespace-nowrap"
+                />
+              </div>
 
-            {/* Checkbox pour masquer/afficher les stats */}
-            <div className="px-3 py-2 bg-gray-800/70 backdrop-blur-md rounded-xl border border-gray-700/70">
-              <Checkbox
-                checked={showStats}
-                onCheckedChange={setShowStats}
-                label="Afficher les stats"
-                labelClassName="text-sm text-gray-300 whitespace-nowrap"
-              />
-            </div>
-
-            {/* Filtres par statut - scrollables sur mobile */}
-            <div className="bg-gray-800/70 backdrop-blur-md rounded-xl p-1.5 flex items-center border border-gray-700/70 shadow-lg overflow-x-auto flex-1 min-w-0">
-              <div className="flex gap-1 min-w-max">
-                <button
-                  onClick={() => setStatusFilter('ALL')}
-                  className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
-                    statusFilter === 'ALL'
-                      ? 'bg-gradient-to-r from-purple-600 to-purple-800 text-white shadow-md'
-                      : 'text-gray-300 hover:bg-gray-700/60'
-                  }`}
-                >
-                  Tous ({counts?.total ?? allProjects.length})
-                </button>
-                {PROJECT_STATUSES.map((status) => {
-                  const count =
-                    counts?.statusBreakdown?.[status.value] ??
-                    allProjects.filter((p) => p.status === status.value).length;
-                  return (
-                    <button
-                      key={status.value}
-                      onClick={() => setStatusFilter(status.value)}
-                      className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
-                        statusFilter === status.value
-                          ? 'bg-gradient-to-r from-purple-600 to-purple-800 text-white shadow-md'
-                          : 'text-gray-300 hover:bg-gray-700/60'
-                      }`}
-                    >
-                      {status.label} ({count})
-                    </button>
-                  );
-                })}
+              {/* Checkbox pour masquer/afficher les stats */}
+              <div className="px-3 py-2 bg-gray-800/70 backdrop-blur-md rounded-xl border border-gray-700/70 flex-1 sm:flex-none">
+                <Checkbox
+                  checked={showStats}
+                  onCheckedChange={setShowStats}
+                  label={
+                    <>
+                      <span className="sm:hidden">Stats</span>
+                      <span className="hidden sm:inline">Afficher les stats</span>
+                    </>
+                  }
+                  labelClassName="text-sm text-gray-300 whitespace-nowrap"
+                />
               </div>
             </div>
 
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {(searchTerm ||
-                Object.values(fieldFilters).some((v) => v.trim()) ||
-                sortField !== null) && (
+            {/* Ligne 3: Filtres par statut */}
+            <div className="flex gap-3 items-center flex-1 min-w-0">
+              {/* Filtres par statut - scrollables sur mobile */}
+              <div className="bg-gray-800/70 backdrop-blur-md rounded-xl p-1.5 flex items-center border border-gray-700/70 shadow-lg overflow-x-auto flex-1 min-w-0">
+                <div className="flex gap-1 min-w-max">
+                  <button
+                    onClick={() => setStatusFilter('ALL')}
+                    className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
+                      statusFilter === 'ALL'
+                        ? 'bg-gradient-to-r from-purple-600 to-purple-800 text-white shadow-md'
+                        : 'text-gray-300 hover:bg-gray-700/60'
+                    }`}
+                  >
+                    Tous ({counts?.total ?? allProjects.length})
+                  </button>
+                  {PROJECT_STATUSES.map((status) => {
+                    const count =
+                      counts?.statusBreakdown?.[status.value] ??
+                      allProjects.filter((p) => p.status === status.value).length;
+                    return (
+                      <button
+                        key={status.value}
+                        onClick={() => setStatusFilter(status.value)}
+                        className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
+                          statusFilter === status.value
+                            ? 'bg-gradient-to-r from-purple-600 to-purple-800 text-white shadow-md'
+                            : 'text-gray-300 hover:bg-gray-700/60'
+                        }`}
+                      >
+                        {status.label} ({count})
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {(searchTerm ||
+                  Object.values(fieldFilters).some((v) => v.trim()) ||
+                  sortField !== null) && (
+                  <button
+                    onClick={() => {
+                      setSearchTerm('');
+                      setFieldFilters({
+                        name: '',
+                        style: '',
+                        collab: '',
+                        label: '',
+                        labelFinal: '',
+                        externalLink: '',
+                      });
+                      setSortField(null);
+                      setSortDirection('asc');
+                    }}
+                    className="text-sm text-gray-400 hover:text-purple-400 transition-colors px-3 py-2 bg-gray-800/70 rounded-xl border border-gray-700/70 hover:border-purple-500/70"
+                    title="Réinitialiser les filtres"
+                  >
+                    Réinitialiser
+                  </button>
+                )}
                 <button
-                  onClick={() => {
-                    setSearchTerm('');
-                    setFieldFilters({
-                      name: '',
-                      style: '',
-                      collab: '',
-                      label: '',
-                      labelFinal: '',
-                      externalLink: '',
-                    });
-                    setSortField(null);
-                    setSortDirection('asc');
-                  }}
-                  className="text-sm text-gray-400 hover:text-purple-400 transition-colors px-3 py-2 bg-gray-800/70 rounded-xl border border-gray-700/70 hover:border-purple-500/70"
-                  title="Réinitialiser les filtres"
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`bg-gray-800/70 p-3 rounded-xl border transition-all ${
+                    showFilters
+                      ? 'border-purple-500/70 text-purple-400 bg-purple-500/10'
+                      : 'border-gray-700/70 text-gray-300 hover:border-gray-500/70'
+                  }`}
+                  aria-label="Plus de filtres"
+                  title="Filtres additionnels"
                 >
-                  Réinitialiser
+                  <Filter className="w-5 h-5" />
                 </button>
-              )}
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className={`bg-gray-800/70 p-3 rounded-xl border transition-all ${
-                  showFilters
-                    ? 'border-purple-500/70 text-purple-400 bg-purple-500/10'
-                    : 'border-gray-700/70 text-gray-300 hover:border-gray-500/70'
-                }`}
-                aria-label="Plus de filtres"
-                title="Filtres additionnels"
-              >
-                <Filter className="w-5 h-5" />
-              </button>
+              </div>
             </div>
           </div>
 

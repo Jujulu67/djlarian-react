@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 
 // ============================================================================
@@ -76,8 +77,8 @@ const PRODUCTS: Product[] = [
         description: 'Contribute & learn',
       },
     ],
-    ctaText: 'Coming Soon',
-    ctaHref: '#',
+    ctaText: 'Learn More',
+    ctaHref: '/shop/opencrusher',
     isHighlighted: false,
   },
   {
@@ -146,6 +147,8 @@ const COMPARISON_FEATURES = [
 
 function ProductCard({ product }: { product: Product }) {
   const isPro = product.badge === 'PRO';
+  const isDisabled = !product.ctaHref || product.ctaHref === '#';
+  const router = useRouter();
 
   return (
     <motion.div
@@ -154,20 +157,27 @@ function ProductCard({ product }: { product: Product }) {
       viewport={{ once: true }}
       transition={{ duration: 0.6, ease: 'easeOut' }}
       className={`
-        relative overflow-hidden rounded-2xl
+        relative overflow-hidden rounded-2xl h-full cursor-pointer
         ${isPro ? 'glass-modern border-purple-500/30' : 'glass-modern border-white/10'}
         ${isPro ? 'shadow-xl shadow-purple-500/10' : 'shadow-lg'}
         transition-all duration-300
         hover:scale-[1.02] hover:shadow-2xl
         ${isPro ? 'hover:shadow-purple-500/20 hover:border-purple-400/50' : 'hover:border-white/20'}
       `}
+      onClick={() => {
+        if (!isDisabled && product.ctaHref) {
+          router.push(product.ctaHref);
+        }
+      }}
+      role="button"
+      aria-label={`Open details for ${product.name}`}
     >
       {/* Pro glow effect */}
       {isPro && (
         <div className="absolute inset-0 bg-gradient-to-br from-purple-600/10 via-transparent to-blue-600/10 pointer-events-none" />
       )}
 
-      <div className="relative p-6 md:p-8">
+      <div className="relative p-6 md:p-8 flex flex-col h-full">
         {/* Badge */}
         <div className="flex items-center justify-between mb-4">
           <span
@@ -219,33 +229,43 @@ function ProductCard({ product }: { product: Product }) {
           ))}
         </div>
 
-        {/* Price */}
-        <div className="mb-6">
-          <span className={`text-4xl font-bold ${isPro ? 'text-white' : 'text-gray-300'}`}>
-            {product.price}
-          </span>
-          {product.priceSubtext && (
-            <span className="text-gray-500 text-sm ml-2">{product.priceSubtext}</span>
-          )}
-        </div>
+        <div className="mt-auto space-y-4">
+          {/* Price */}
+          <div>
+            <span className={`text-4xl font-bold ${isPro ? 'text-white' : 'text-gray-300'}`}>
+              {product.price}
+            </span>
+            {product.priceSubtext && (
+              <span className="text-gray-500 text-sm ml-2">{product.priceSubtext}</span>
+            )}
+          </div>
 
-        {/* CTA Button */}
-        <a
-          href={product.ctaHref}
-          className={`
-            w-full flex items-center justify-center gap-2 py-3 px-6 rounded-xl font-semibold
-            transition-all duration-300
-            ${
-              isPro
-                ? 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white glow-purple btn-modern'
-                : 'border-2 border-white/20 text-gray-300 hover:border-white/40 hover:text-white cursor-not-allowed opacity-60'
+          {/* CTA Button */}
+          <a
+            href={product.ctaHref}
+            className={`
+              w-full flex items-center justify-center gap-2 py-3 px-6 rounded-xl font-semibold
+              transition-all duration-300
+              ${
+                isDisabled
+                  ? 'border-2 border-white/20 text-gray-300 hover:border-white/40 hover:text-white cursor-not-allowed opacity-60'
+                  : isPro
+                    ? 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white glow-purple btn-modern'
+                    : 'border-2 border-white/20 text-gray-300 hover:border-white/40 hover:text-white'
+              }
+            `}
+            onClick={
+              isDisabled
+                ? (e) => {
+                    e.preventDefault();
+                  }
+                : undefined
             }
-          `}
-          onClick={isPro ? undefined : (e) => e.preventDefault()}
-        >
-          {isPro ? <Download className="w-5 h-5" /> : null}
-          {product.ctaText}
-        </a>
+          >
+            <Download className="w-5 h-5" />
+            {product.ctaText}
+          </a>
+        </div>
       </div>
     </motion.div>
   );

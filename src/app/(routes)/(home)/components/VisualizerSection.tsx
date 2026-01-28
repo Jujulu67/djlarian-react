@@ -149,12 +149,14 @@ export default function VisualizerSection({
           >
             <motion.button
               onClick={handleExperienceClick}
-              className="cursor-pointer text-gradient-animated transition-all duration-300 glass-modern px-6 py-3 rounded-full focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-black"
+              className="cursor-pointer transition-all duration-300 glass-easter-egg px-8 py-3 rounded-2xl md:rounded-full focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-offset-2 focus:ring-offset-black font-audiowide text-3xl md:text-4xl lg:text-5xl"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               aria-label={isSoundActive ? `Arrêter ${title}` : `Démarrer ${title}`}
             >
-              {isSoundActive ? `Stop ${title}` : title}
+              <span className="glass-easter-egg-content text-gradient-animated flex items-center justify-center py-1">
+                {isSoundActive ? `Stop ${title}` : title}
+              </span>
             </motion.button>
           </motion.h2>
         </div>
@@ -164,14 +166,17 @@ export default function VisualizerSection({
           whileInView={isMobile ? { opacity: 1, scale: 1 } : { opacity: 1, scale: 1 }}
           viewport={{ once: true, margin: '-50px' }}
           transition={isMobile ? { duration: 0.3, ease: 'easeOut' } : { duration: 0.8 }}
-          className={`relative w-full ${isMobile ? 'min-h-[30vh]' : 'aspect-[2/1]'} ${isMobile ? 'overflow-visible' : 'overflow-hidden'} rounded-2xl glass-modern border-2 border-purple-500/30 shadow-2xl ${isMobile ? '' : 'animate-glow-border'} ${isSoundActive && isMobile ? 'fixed top-0 left-0 right-0 z-[100] h-screen rounded-none border-0' : ''}`}
+          className={`relative w-full ${isMobile ? 'min-h-[30vh]' : 'aspect-[2/1]'} ${isMobile ? 'overflow-visible' : 'overflow-hidden'} rounded-2xl glass-premium-container glow-border-premium shadow-2xl ${isSoundActive && isMobile ? 'fixed top-0 left-0 right-0 z-[100] h-screen rounded-none border-0 transition-none' : ''}`}
           id="game-container"
           style={
             isMobile && !isSoundActive
               ? { scrollMarginTop: '80px', position: 'relative' }
-              : { position: 'relative' }
+              : { position: 'relative', overflow: 'hidden' }
           }
         >
+          {/* Animated glass background layer */}
+          <div className="glass-premium-inner" />
+
           <AnimatePresence mode="wait">
             <motion.div
               key={isSoundActive ? 'rhythm' : 'particles'}

@@ -34,16 +34,8 @@ export function AdminLiveSubmissionsTable() {
     updateSubmissionPinned,
   } = useAdminLiveSubmissionsContext();
 
-  const {
-    searchUsername,
-    setSearchUsername,
-    showRolled,
-    setShowRolled,
-    onlyActive,
-    setOnlyActive,
-    filteredSubmissions,
-    resetFilters,
-  } = useAdminLiveFilters(submissions);
+  const { searchUsername, showRolled, onlyActive, filteredSubmissions } =
+    useAdminLiveFilters(submissions);
 
   const { purgeAllSubmissions } = useAdminLiveActions(
     submissions,
@@ -172,50 +164,7 @@ export function AdminLiveSubmissionsTable() {
     >
       <div className="mb-4">
         <h2 className="text-xl sm:text-2xl font-audiowide text-white mb-2">SUBMISSIONS</h2>
-        <p className="text-xs text-gray-400">
-          {/* THIS IS JUST HERE SO THAT THE LAYOUT LOOKS NICE : D */}
-        </p>
-      </div>
-
-      {/* Filtres */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
-        <input
-          type="text"
-          placeholder="Filter usernames..."
-          value={searchUsername}
-          onChange={(e) => setSearchUsername(e.target.value)}
-          className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
-        />
-        <label className="flex items-center gap-2 cursor-pointer bg-white/5 hover:bg-white/10 px-4 py-2 rounded-lg transition-colors">
-          <input
-            type="checkbox"
-            checked={showRolled}
-            onChange={(e) => setShowRolled(e.target.checked)}
-            className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
-          />
-          <span className="text-sm text-gray-300">Show Rolled</span>
-        </label>
-        <label className="flex items-center gap-2 cursor-pointer bg-white/5 hover:bg-white/10 px-4 py-2 rounded-lg transition-colors">
-          <input
-            type="checkbox"
-            checked={onlyActive}
-            onChange={(e) => setOnlyActive(e.target.checked)}
-            className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
-          />
-          <span className="text-sm text-gray-300">Only Active</span>
-        </label>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            purgeAllSubmissions();
-          }}
-          className="bg-red-900/50 hover:bg-red-900/80 border border-red-500/30 px-4 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium text-red-200 transition-colors"
-        >
-          <Trash2 className="w-4 h-4" />
-          Purge All
-        </button>
+        <p className="text-xs text-gray-400">{/* List of current live submissions */}</p>
       </div>
 
       {/* Table */}

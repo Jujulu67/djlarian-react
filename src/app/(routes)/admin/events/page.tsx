@@ -277,13 +277,13 @@ export default function AdminEventsPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'UPCOMING':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-100 !text-blue-800';
       case 'CANCELLED':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-100 !text-red-800';
       case 'COMPLETED':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 !text-gray-800';
       default:
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-100 !text-blue-800';
     }
   };
 

@@ -269,50 +269,63 @@ export function useSeamlessAudioLoop({
   // Start playback
   const play = useCallback(
     (file: string) => {
-      const buffer = buffersRef.current.get(file);
-      if (!buffer) {
-        console.warn(`Buffer not loaded for ${file}`);
-        return;
-      }
+      // Run async logic in a fire-and-forget IIFE so the public API stays sync
+      (async () => {
+        let buffer = buffersRef.current.get(file);
 
-      const ctx = getAudioContext();
-
-      // Stop any existing playback
-      if (currentSourceRef.current) {
-        try {
-          currentSourceRef.current.source.stop();
-          currentSourceRef.current.source.disconnect();
-          currentSourceRef.current.gain.disconnect();
-        } catch (e) {
-          // Ignore
+        // On some browsers (notably iOS Safari), preloading with WebAudio can fail
+        // before a user gesture. If the buffer is missing on first play, lazily
+        // load & decode it now within the click/tap handler.
+        if (!buffer) {
+          try {
+            const url = `${basePath}/${file}`;
+            buffer = await loadAudioBuffer(url);
+            buffersRef.current.set(file, buffer);
+          } catch (err) {
+            console.warn(`Failed to lazily load buffer for ${file}:`, err);
+            return;
+          }
         }
-      }
-      if (nextSourceRef.current) {
-        try {
-          nextSourceRef.current.source.stop();
-          nextSourceRef.current.source.disconnect();
-          nextSourceRef.current.gain.disconnect();
-        } catch (e) {
-          // Ignore
+
+        const ctx = getAudioContext();
+
+        // Stop any existing playback
+        if (currentSourceRef.current) {
+          try {
+            currentSourceRef.current.source.stop();
+            currentSourceRef.current.source.disconnect();
+            currentSourceRef.current.gain.disconnect();
+          } catch (e) {
+            // Ignore
+          }
         }
-      }
+        if (nextSourceRef.current) {
+          try {
+            nextSourceRef.current.source.stop();
+            nextSourceRef.current.source.disconnect();
+            nextSourceRef.current.gain.disconnect();
+          } catch (e) {
+            // Ignore
+          }
+        }
 
-      // Create and start new source
-      const audioSource = createSource(buffer);
-      currentSourceRef.current = audioSource;
-      nextSourceRef.current = null;
-      isSchedulingRef.current = false;
+        // Create and start new source
+        const audioSource = createSource(buffer);
+        currentSourceRef.current = audioSource;
+        nextSourceRef.current = null;
+        isSchedulingRef.current = false;
 
-      audioSource.source.start(0);
-      audioSource.gain.gain.setValueAtTime(0, ctx.currentTime);
-      audioSource.gain.gain.linearRampToValueAtTime(1, ctx.currentTime + 0.05); // Quick fade in
+        audioSource.source.start(0);
+        audioSource.gain.gain.setValueAtTime(0, ctx.currentTime);
+        audioSource.gain.gain.linearRampToValueAtTime(1, ctx.currentTime + 0.05); // Quick fade in
 
-      scheduledEndRef.current = ctx.currentTime + buffer.duration;
+        scheduledEndRef.current = ctx.currentTime + buffer.duration;
 
-      setCurrentFile(file);
-      setIsPlaying(true);
+        setCurrentFile(file);
+        setIsPlaying(true);
+      })();
     },
-    [getAudioContext, createSource]
+    [basePath, getAudioContext, createSource, loadAudioBuffer]
   );
 
   // Stop playback
