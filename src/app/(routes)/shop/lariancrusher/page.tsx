@@ -250,7 +250,6 @@ function VersionBadge() {
 interface ShopSettings {
   stripePaymentLink: string;
   productPrice: number;
-  shopEnabled: boolean;
   productName: string;
 }
 
@@ -258,7 +257,6 @@ function useShopSettings(): ShopSettings {
   const [settings, setSettings] = useState<ShopSettings>({
     stripePaymentLink: process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK || '',
     productPrice: 20,
-    shopEnabled: true,
     productName: 'LarianCrusher',
   });
 
@@ -270,7 +268,6 @@ function useShopSettings(): ShopSettings {
           stripePaymentLink:
             data.stripePaymentLink || process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK || '',
           productPrice: data.productPrice || 20,
-          shopEnabled: data.shopEnabled !== false,
           productName: data.productName || 'LarianCrusher',
         });
       })

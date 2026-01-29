@@ -139,6 +139,7 @@ export const useSoundCloudPlayer = ({
   // Handle SoundCloud messages
   useEffect(() => {
     const handleSoundcloudMessage = (event: MessageEvent) => {
+      // Direct access check for faster filtering
       if (
         !soundcloudIframeRef.current ||
         event.source !== soundcloudIframeRef.current.contentWindow
@@ -146,12 +147,15 @@ export const useSoundCloudPlayer = ({
         return;
       }
 
+      // Ignore non-string data or very large payloads to save CPU
+      if (typeof event.data !== 'string' || event.data.length > 2000) {
+        return;
+      }
+
       try {
         const data = JSON.parse(event.data);
-        logger.debug(
-          `[Card ${track.id}] SoundCloud event received from OWN iframe: ${JSON.stringify(data)}`
-        );
 
+        // Only log critical events in debug mode
         if (data.method === 'ready') {
           logger.debug(
             `[Card ${track.id}] SoundCloud iframe READY event received. Setting isSoundcloudReady to true.`
@@ -173,7 +177,14 @@ export const useSoundCloudPlayer = ({
           }
         }
       } catch (e) {
-        logger.error(`[Card ${track.id}] Error parsing SoundCloud message:`, e, event.data);
+        // Only log parse errors if they don't look like common SoundCloud internal messages
+        if (!event.data.includes('__sc_')) {
+          logger.error(
+            `[Card ${track.id}] Error parsing SoundCloud message:`,
+            e,
+            event.data.substring(0, 100)
+          );
+        }
       }
     };
 
@@ -181,10 +192,9 @@ export const useSoundCloudPlayer = ({
 
     return () => {
       window.removeEventListener('message', handleSoundcloudMessage);
-      setIsSoundcloudReady(false);
-      setPlayWhenReady(false);
+      // Only reset ready state if track changes, let the hook handle unmounting logic
     };
-  }, [isActive, isPlaying, shouldActivate, track.id]);
+  }, [shouldActivate, track.id]); // Removed isActive, isPlaying to avoid event re-binding on toggles
 
   // Handle iframe load
   const handleSoundcloudIframeLoad = useCallback(() => {
@@ -214,7 +224,7 @@ export const useSoundCloudPlayer = ({
   // Get SoundCloud embed URL
   const getSoundcloudEmbedUrl = useCallback((url: string) => {
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
-    return `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%23ff5500&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false&visual=true&buying=false&sharing=false&download=false&single_active=false&callback=true&allow_api=true&origin=${encodeURIComponent(origin)}`;
+    return `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%23ff5500&auto_play=true&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false&visual=true&buying=false&sharing=false&download=false&single_active=false&callback=true&allow_api=true&origin=${encodeURIComponent(origin)}`;
   }, []);
 
   // Pause and hide SoundCloud player

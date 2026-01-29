@@ -89,24 +89,7 @@ export function useMusicPlayer({ filteredTracks }: UseMusicPlayerParams): UseMus
 
         // Force play command if switching to play
         if (willPlay) {
-          if (debounceTimeoutRef.current) {
-            clearTimeout(debounceTimeoutRef.current);
-          }
-          debounceTimeoutRef.current = setTimeout(() => {
-            const youtubeIframe = document.querySelector<HTMLIFrameElement>(
-              `iframe[id="youtube-iframe-${track.id}"]`
-            );
-            const soundcloudIframe = document.querySelector<HTMLIFrameElement>(
-              `iframe[id="soundcloud-iframe-${track.id}"]`
-            );
-
-            if (youtubeIframe) {
-              sendPlayerCommand(youtubeIframe, 'youtube', 'play');
-            }
-            if (soundcloudIframe) {
-              sendPlayerCommand(soundcloudIframe, 'soundcloud', 'play');
-            }
-          }, 100);
+          logger.debug(`[playTrack] Resuming current track via reactive state`);
         }
         return;
       }
@@ -139,30 +122,8 @@ export function useMusicPlayer({ filteredTracks }: UseMusicPlayerParams): UseMus
 
         isProcessingRef.current = false;
 
-        // Force play command after a delay to ensure iframe is ready
-        // Longer delay on mobile for better reliability
-        const delay = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? 300 : 200;
-        setTimeout(() => {
-          const youtubeIframe = document.querySelector<HTMLIFrameElement>(
-            `iframe[id="youtube-iframe-${track.id}"]`
-          );
-          const soundcloudIframe = document.querySelector<HTMLIFrameElement>(
-            `iframe[id="soundcloud-iframe-${track.id}"]`
-          );
-
-          logger.debug(
-            `[playTrack] Sending play command - YouTube: ${!!youtubeIframe}, SoundCloud: ${!!soundcloudIframe}`
-          );
-
-          if (youtubeIframe) {
-            sendPlayerCommand(youtubeIframe, 'youtube', 'play');
-          }
-          if (soundcloudIframe) {
-            sendPlayerCommand(soundcloudIframe, 'soundcloud', 'play');
-          }
-        }, delay);
-
-        logger.debug(`[playTrack] Track ${track.title} activated`);
+        isProcessingRef.current = false;
+        logger.debug(`[playTrack] Track ${track.title} activated via reactive state`);
       }, 150);
     },
     [currentTrack, isPlaying, filteredTracks, closePlayer, stopCurrentPlayer]
@@ -213,29 +174,7 @@ export function useMusicPlayer({ filteredTracks }: UseMusicPlayerParams): UseMus
       setIsPlaying(true);
       isProcessingRef.current = false;
 
-      // Force play command after a delay to ensure iframe is ready
-      // Longer delay on mobile for better reliability
-      const delay = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? 300 : 200;
-      setTimeout(() => {
-        const youtubeIframe = document.querySelector<HTMLIFrameElement>(
-          `iframe[id="youtube-iframe-${nextTrack.id}"]`
-        );
-        const soundcloudIframe = document.querySelector<HTMLIFrameElement>(
-          `iframe[id="soundcloud-iframe-${nextTrack.id}"]`
-        );
-
-        logger.debug(
-          `[playNextTrack] Sending play command - YouTube: ${!!youtubeIframe}, SoundCloud: ${!!soundcloudIframe}`
-        );
-
-        if (youtubeIframe) {
-          sendPlayerCommand(youtubeIframe, 'youtube', 'play');
-        }
-        if (soundcloudIframe) {
-          sendPlayerCommand(soundcloudIframe, 'soundcloud', 'play');
-        }
-      }, delay);
-
+      isProcessingRef.current = false;
       logger.debug(`Switched to next track: ${nextTrack.title}`);
     }, 150);
   }, [currentTrack, filteredTracks, stopCurrentPlayer]);
@@ -279,29 +218,7 @@ export function useMusicPlayer({ filteredTracks }: UseMusicPlayerParams): UseMus
       setIsPlaying(true);
       isProcessingRef.current = false;
 
-      // Force play command after a delay to ensure iframe is ready
-      // Longer delay on mobile for better reliability
-      const delay = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? 300 : 200;
-      setTimeout(() => {
-        const youtubeIframe = document.querySelector<HTMLIFrameElement>(
-          `iframe[id="youtube-iframe-${prevTrack.id}"]`
-        );
-        const soundcloudIframe = document.querySelector<HTMLIFrameElement>(
-          `iframe[id="soundcloud-iframe-${prevTrack.id}"]`
-        );
-
-        logger.debug(
-          `[playPrevTrack] Sending play command - YouTube: ${!!youtubeIframe}, SoundCloud: ${!!soundcloudIframe}`
-        );
-
-        if (youtubeIframe) {
-          sendPlayerCommand(youtubeIframe, 'youtube', 'play');
-        }
-        if (soundcloudIframe) {
-          sendPlayerCommand(soundcloudIframe, 'soundcloud', 'play');
-        }
-      }, delay);
-
+      isProcessingRef.current = false;
       logger.debug(`Switched to previous track: ${prevTrack.title}`);
     }, 150);
   }, [currentTrack, filteredTracks, stopCurrentPlayer]);

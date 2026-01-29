@@ -99,8 +99,13 @@ export const useYouTubePlayer = ({
     // When card becomes active, ensure visibility is set
     if (isPlaying && youtubeVideoId) {
       setIsYoutubeVisible(true);
-      logger.debug(`[Card ${track.id}] YouTube selected. Visibility set. Play command delayed.`);
-      setTimeout(() => sendPlayerCommand(iframeRef.current, 'youtube', 'play'), 150);
+      // Use a short delay to ensure the iframe is mounted and the ref is set
+      const timer = setTimeout(() => {
+        if (iframeRef.current) {
+          sendPlayerCommand(iframeRef.current, 'youtube', 'play');
+        }
+      }, 150);
+      return () => clearTimeout(timer);
     } else if (!isPlaying && iframeRef.current) {
       sendPlayerCommand(iframeRef.current, 'youtube', 'pause');
       setIsYoutubeVisible(true);
@@ -158,16 +163,8 @@ export const useYouTubePlayer = ({
               data.info.currentTime.toString()
             );
           }
-
-          // Ignore player state change events that could interfere with our logic
-          if (data && data.info && typeof data.info.playerState !== 'undefined') {
-            logger.debug(
-              `[Card ${track.id}] Événement YouTube ignoré - playerState: ${data.info.playerState}`
-            );
-            return;
-          }
         } catch (e) {
-          // Ignore parsing errors
+          // Ignore parsing errors for non-matching messages
         }
       };
 
