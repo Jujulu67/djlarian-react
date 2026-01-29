@@ -79,7 +79,7 @@ function parseAndTrimWav(buffer, targetSeconds) {
     trimmed: true,
     oldDuration: currentDuration,
     newDuration: targetSeconds,
-    removed: currentDuration - targetSeconds
+    removed: currentDuration - targetSeconds,
   };
 }
 
@@ -87,13 +87,7 @@ console.log('══════════════════════�
 console.log(`          TRIM TO ${TARGET_DURATION}s (8 bars @ 120 BPM)`);
 console.log('═══════════════════════════════════════════════════════════════\n');
 
-const files = [
-  'dry.wav',
-  'medium.wav',
-  'hard.wav',
-  'very_hard.wav',
-  'creative.wav',
-];
+const files = ['dry.wav', 'medium.wav', 'hard.wav', 'very_hard.wav', 'creative.wav'];
 
 for (const file of files) {
   const filePath = join(audioDir, file);
@@ -108,7 +102,9 @@ for (const file of files) {
 
   if (result.trimmed) {
     writeFileSync(filePath, result.buffer);
-    console.log(`✅ ${file}: ${result.oldDuration.toFixed(3)}s → ${result.newDuration.toFixed(3)}s (removed ${(result.removed * 1000).toFixed(0)}ms)`);
+    console.log(
+      `✅ ${file}: ${result.oldDuration.toFixed(3)}s → ${result.newDuration.toFixed(3)}s (removed ${(result.removed * 1000).toFixed(0)}ms)`
+    );
   } else {
     console.log(`✓  ${file}: ${result.duration.toFixed(3)}s (no trim needed)`);
   }

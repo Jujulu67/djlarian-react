@@ -26,7 +26,7 @@ async function checkTables() {
       WHERE table_schema = 'public' 
       AND table_name IN ('User', 'Event', 'Image', 'Project');
     `;
-    
+
     const count = parseInt(result[0]?.count || '0', 10);
     console.log(count);
     process.exit(0);
@@ -45,4 +45,3 @@ async function checkTables() {
 }
 
 checkTables();
-

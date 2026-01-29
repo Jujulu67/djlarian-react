@@ -14,18 +14,15 @@ L'animation CSS du gradient peut causer des stutters, surtout lors des refresh. 
 ### Option 1 : Avec After Effects / Premiere Pro
 
 1. **Créer un projet**
-
    - Dimensions : 800x64 pixels (ratio du waveform)
    - Durée : 2-3 secondes (pour une boucle fluide)
    - Frame rate : 60fps
 
 2. **Créer le gradient**
-
    - Gradient horizontal : `#a855f7` (purple-500) → `#3b82f6` (blue-500) → `#a855f7`
    - Largeur du gradient : 200% de la largeur (pour l'animation)
 
 3. **Animer le gradient**
-
    - Position initiale : `x = 0%`
    - Position finale : `x = 100%` (ou `x = -100%` selon la direction)
    - Animation : Linear, 2-3 secondes

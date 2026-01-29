@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
  * Script pour nettoyer automatiquement les migrations obsolètes de la base de données
- * 
+ *
  * Ce script supprime les entrées de la table _prisma_migrations qui n'existent plus
  * dans le dossier prisma/migrations local, sans affecter les données.
- * 
+ *
  * SÉCURITÉ : Ne supprime que les entrées de la table _prisma_migrations,
  *            jamais les tables ou données réelles.
  */
@@ -27,7 +27,7 @@ dotenv.config({ path: join(rootDir, '.env') });
 
 // Vérifier que DATABASE_URL est défini
 if (!process.env.DATABASE_URL) {
-  console.error('❌ DATABASE_URL n\'est pas défini');
+  console.error("❌ DATABASE_URL n'est pas défini");
   process.exit(1);
 }
 
@@ -38,14 +38,14 @@ try {
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
   });
 } catch (error) {
-  console.error('❌ Erreur lors de l\'initialisation de PrismaClient:', error.message);
+  console.error("❌ Erreur lors de l'initialisation de PrismaClient:", error.message);
   console.error('   Assurez-vous que le client Prisma est généré: pnpm prisma generate');
   process.exit(1);
 }
 
 async function getLocalMigrations() {
   const migrationsDir = join(process.cwd(), 'prisma', 'migrations');
-  
+
   if (!existsSync(migrationsDir)) {
     console.log('❌ Dossier prisma/migrations introuvable');
     return [];
@@ -76,50 +76,63 @@ async function getDatabaseMigrations() {
       FROM _prisma_migrations 
       ORDER BY migration_name
     `);
-    
+
     console.log(`✅ Connexion réussie, ${migrations.length} migrations trouvées`);
-    return migrations.map(m => m.migration_name);
+    return migrations.map((m) => m.migration_name);
   } catch (error) {
     console.error('❌ Erreur lors de la lecture des migrations de la DB:');
     console.error(`   Type: ${error.constructor.name}`);
     console.error(`   Message: ${error.message}`);
     console.error(`   Code: ${error.code || 'N/A'}`);
-    
+
     // Si la table n'existe pas encore, retourner un tableau vide
-    if (error.message && (error.message.includes('does not exist') || (error.message.includes('relation') && error.message.includes('does not exist')))) {
-      console.log('ℹ️  Table _prisma_migrations n\'existe pas encore');
+    if (
+      error.message &&
+      (error.message.includes('does not exist') ||
+        (error.message.includes('relation') && error.message.includes('does not exist')))
+    ) {
+      console.log("ℹ️  Table _prisma_migrations n'existe pas encore");
       return [];
     }
     // Si erreur de connexion, ne pas faire échouer le script
-    if (error.message && (error.message.includes('connect') || error.message.includes('timeout') || error.message.includes('ECONNREFUSED') || error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT')) {
+    if (
+      error.message &&
+      (error.message.includes('connect') ||
+        error.message.includes('timeout') ||
+        error.message.includes('ECONNREFUSED') ||
+        error.code === 'ECONNREFUSED' ||
+        error.code === 'ETIMEDOUT')
+    ) {
       console.error('⚠️  Erreur de connexion à la base de données');
       console.error('   Le nettoyage sera ignoré, les baselines seront créées à la place');
       return [];
     }
     // Ne pas throw, retourner un tableau vide pour permettre le fallback
-    console.error('⚠️  Erreur inconnue, retour d\'un tableau vide pour fallback');
+    console.error("⚠️  Erreur inconnue, retour d'un tableau vide pour fallback");
     return [];
   }
 }
 
 async function cleanupOldMigrations(dryRun = true) {
   console.log('🔍 Analyse des migrations...\n');
-  console.log(`📋 DATABASE_URL: ${process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 50) + '...' : 'NON DÉFINI'}\n`);
+  console.log(
+    `📋 DATABASE_URL: ${process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 50) + '...' : 'NON DÉFINI'}\n`
+  );
 
   const localMigrations = await getLocalMigrations();
   console.log(`📋 Migrations locales trouvées: ${localMigrations.length}`);
-  
+
   const dbMigrations = await getDatabaseMigrations();
   console.log(`📋 Migrations DB trouvées: ${dbMigrations.length}`);
 
   console.log(`📋 Migrations locales: ${localMigrations.length}`);
-  localMigrations.forEach(m => console.log(`   ✅ ${m}`));
-  
+  localMigrations.forEach((m) => console.log(`   ✅ ${m}`));
+
   console.log(`\n📋 Migrations en base de données: ${dbMigrations.length}`);
-  dbMigrations.forEach(m => console.log(`   ${localMigrations.includes(m) ? '✅' : '⚠️ '} ${m}`));
+  dbMigrations.forEach((m) => console.log(`   ${localMigrations.includes(m) ? '✅' : '⚠️ '} ${m}`));
 
   // Trouver les migrations en DB mais pas localement
-  const orphanMigrations = dbMigrations.filter(m => !localMigrations.includes(m));
+  const orphanMigrations = dbMigrations.filter((m) => !localMigrations.includes(m));
 
   if (orphanMigrations.length === 0) {
     console.log('\n✅ Aucune migration obsolète trouvée. Tout est synchronisé !');
@@ -127,7 +140,7 @@ async function cleanupOldMigrations(dryRun = true) {
   }
 
   console.log(`\n⚠️  Migrations obsolètes détectées (${orphanMigrations.length}):`);
-  orphanMigrations.forEach(m => console.log(`   🗑️  ${m}`));
+  orphanMigrations.forEach((m) => console.log(`   🗑️  ${m}`));
 
   if (dryRun) {
     console.log('\n🔍 MODE DRY-RUN (aucune modification)');
@@ -138,7 +151,7 @@ async function cleanupOldMigrations(dryRun = true) {
 
   // Supprimer les migrations obsolètes
   console.log('\n🗑️  Suppression des migrations obsolètes...');
-  
+
   for (const migration of orphanMigrations) {
     try {
       // Utiliser $executeRawUnsafe avec la syntaxe PostgreSQL correcte
@@ -156,7 +169,7 @@ async function cleanupOldMigrations(dryRun = true) {
 
   console.log('\n✅ Nettoyage terminé !');
   console.log('   Les migrations obsolètes ont été supprimées de la table _prisma_migrations.');
-  console.log('   Aucune donnée réelle n\'a été affectée.\n');
+  console.log("   Aucune donnée réelle n'a été affectée.\n");
 }
 
 async function main() {
@@ -184,4 +197,3 @@ async function main() {
 }
 
 main();
-

@@ -43,7 +43,7 @@ function parseWav(buffer) {
         sampleRate,
         bitsPerSample,
         audioData,
-        duration: chunkSize / (sampleRate * numChannels * (bitsPerSample / 8))
+        duration: chunkSize / (sampleRate * numChannels * (bitsPerSample / 8)),
       };
     }
 
@@ -127,7 +127,7 @@ function analyzeFile(filePath) {
     // Middle section (1s from center)
     middle: {
       start: Math.floor(totalSamples / 2 - 500 * msInSamples),
-      end: Math.floor(totalSamples / 2 + 500 * msInSamples)
+      end: Math.floor(totalSamples / 2 + 500 * msInSamples),
     },
     // Last 200ms
     end200ms: { start: totalSamples - 200 * msInSamples, end: totalSamples },
@@ -140,7 +140,7 @@ function analyzeFile(filePath) {
     // 2s mark (where loop would start)
     at2s: {
       start: Math.floor(totalSamples - 2 * wav.sampleRate),
-      end: Math.floor(totalSamples - 2 * wav.sampleRate + 100 * msInSamples)
+      end: Math.floor(totalSamples - 2 * wav.sampleRate + 100 * msInSamples),
     },
   };
 
@@ -150,7 +150,7 @@ function analyzeFile(filePath) {
     channels: wav.numChannels,
     bitsPerSample: wav.bitsPerSample,
     totalSamples,
-    regions: {}
+    regions: {},
   };
 
   for (const [name, { start, end }] of Object.entries(regions)) {
@@ -186,7 +186,9 @@ function analyzeFile(filePath) {
 
 // Main
 const audioDir = join(process.cwd(), 'public/audio/shop/lariancrusher');
-const files = readdirSync(audioDir).filter(f => f.endsWith('.wav')).sort();
+const files = readdirSync(audioDir)
+  .filter((f) => f.endsWith('.wav'))
+  .sort();
 
 console.log('═══════════════════════════════════════════════════════════════');
 console.log('                    AUDIO ANALYSIS REPORT');
@@ -203,7 +205,9 @@ for (const file of files) {
     const analysis = analyzeFile(filePath);
     results[file] = analysis;
 
-    console.log(`  Duration: ${analysis.duration}s | ${analysis.sampleRate}Hz | ${analysis.channels}ch | ${analysis.bitsPerSample}bit`);
+    console.log(
+      `  Duration: ${analysis.duration}s | ${analysis.sampleRate}Hz | ${analysis.channels}ch | ${analysis.bitsPerSample}bit`
+    );
     console.log('');
     console.log('  Volume Analysis (RMS in dB):');
     console.log(`    Start 100ms:  ${analysis.regions.start100ms.rmsDb} dB`);
@@ -214,12 +218,13 @@ for (const file of files) {
     console.log('  Fade Detection:');
     console.log(`    Fade-in:  ${analysis.fadeInDetected ? '⚠️  YES' : '✅ No'}`);
     console.log(`    Fade-out: ${analysis.fadeOutDetected ? '⚠️  YES' : '✅ No'}`);
-    console.log(`    Loop point (2s) consistent with end: ${analysis.loopPointConsistent ? '✅ Yes' : '⚠️  No'}`);
+    console.log(
+      `    Loop point (2s) consistent with end: ${analysis.loopPointConsistent ? '✅ Yes' : '⚠️  No'}`
+    );
 
     if (analysis.crossfadeIssue) {
       console.log(`\n  ⚠️  ISSUE: ${analysis.crossfadeIssue}`);
     }
-
   } catch (err) {
     console.log(`  ❌ Error: ${err.message}`);
   }
@@ -258,6 +263,8 @@ for (const name of pairs) {
     const diff = (normMiddle - normalMiddle).toFixed(1);
 
     console.log(`${name}:`);
-    console.log(`  Normal: ${normalMiddle.toFixed(1)} dB | Normalized: ${normMiddle.toFixed(1)} dB | Diff: ${diff} dB`);
+    console.log(
+      `  Normal: ${normalMiddle.toFixed(1)} dB | Normalized: ${normMiddle.toFixed(1)} dB | Diff: ${diff} dB`
+    );
   }
 }

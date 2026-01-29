@@ -61,7 +61,7 @@ function parseWav(buffer) {
     dataStart: dataChunkStart,
     dataSize: dataChunkSize,
     headerEnd: dataChunkStart,
-    buffer
+    buffer,
   };
 }
 
@@ -79,7 +79,7 @@ function findTrimPoint(buffer, wav) {
   // Scan from end to find last loud sample
   let lastLoudFrame = totalFrames;
   let silentFrames = 0;
-  const minSilentFrames = Math.floor(sampleRate * MIN_SILENCE_MS / 1000);
+  const minSilentFrames = Math.floor((sampleRate * MIN_SILENCE_MS) / 1000);
 
   for (let frame = totalFrames - 1; frame >= 0; frame--) {
     const frameOffset = dataStart + frame * blockAlign;
@@ -97,10 +97,11 @@ function findTrimPoint(buffer, wav) {
         const b1 = buffer[sampleOffset + 1];
         const b2 = buffer[sampleOffset + 2];
         let val = (b2 << 16) | (b1 << 8) | b0;
-        if (val & 0x800000) val |= ~0xFFFFFF;
+        if (val & 0x800000) val |= ~0xffffff;
         sample = Math.abs(val / 8388608);
       } else if (fmt.bitsPerSample === 32) {
-        if (fmt.audioFormat === 3) { // IEEE float
+        if (fmt.audioFormat === 3) {
+          // IEEE float
           sample = Math.abs(view.getFloat32(sampleOffset, true));
         } else {
           sample = Math.abs(view.getInt32(sampleOffset, true) / 2147483648);
@@ -131,7 +132,7 @@ function findTrimPoint(buffer, wav) {
     originalFrames: totalFrames,
     trimmedFrames: lastLoudFrame,
     silentFrames: totalFrames - lastLoudFrame,
-    silentMs: Math.round((totalFrames - lastLoudFrame) / sampleRate * 1000),
+    silentMs: Math.round(((totalFrames - lastLoudFrame) / sampleRate) * 1000),
     originalDuration: totalFrames / sampleRate,
     trimmedDuration: lastLoudFrame / sampleRate,
   };
@@ -204,13 +205,14 @@ for (const file of files) {
     if (needsTrim) {
       const trimmedBuffer = createTrimmedWav(buffer, wav, trim.trimmedFrames);
       writeFileSync(filePath, trimmedBuffer);
-      console.log(`  ✅ TRIMMED → ${trim.trimmedDuration.toFixed(3)}s (removed ${trim.silentMs}ms)`);
+      console.log(
+        `  ✅ TRIMMED → ${trim.trimmedDuration.toFixed(3)}s (removed ${trim.silentMs}ms)`
+      );
       totalTrimmed++;
     } else {
       console.log(`  ✓ OK (no trim needed)`);
     }
     console.log('');
-
   } catch (err) {
     console.log(`▶ ${file}`);
     console.log(`  ❌ Error: ${err.message}\n`);

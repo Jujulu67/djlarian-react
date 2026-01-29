@@ -64,7 +64,6 @@ Quand vous activez le switch :
 ### En développement local
 
 - **Switch OFF** (par défaut) :
-
   - Base de données : SQLite local (`file:./prisma/dev.db`)
   - Blob storage : Dossier local (`public/uploads/`)
 
@@ -75,12 +74,10 @@ Quand vous activez le switch :
 ## Notes importantes
 
 1. **BLOB_READ_WRITE_TOKEN_PRODUCTION est optionnel** :
-
    - Si non défini, le système utilisera `BLOB_READ_WRITE_TOKEN` tel quel (peut être un token local ou vide)
    - Si défini, il sera utilisé quand le switch est activé
 
 2. **Backup automatique** :
-
    - Les valeurs de `DATABASE_URL` et `BLOB_READ_WRITE_TOKEN` sont sauvegardées dans `.env.local.backup`
    - Elles sont restaurées automatiquement quand vous désactivez le switch
 

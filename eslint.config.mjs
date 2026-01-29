@@ -118,7 +118,8 @@ const eslintConfig = [
               target: './src/lib/**/*',
               from: './src/components/**/*',
               except: ['./src/components/**/types.ts'],
-              message: 'lib layer cannot import from components layer. Import from @/lib/domain/projects instead.',
+              message:
+                'lib layer cannot import from components layer. Import from @/lib/domain/projects instead.',
             },
           ],
         },
@@ -139,7 +140,7 @@ const eslintConfig = [
       'react-hooks/exhaustive-deps': 'warn',
       'react-hooks/set-state-in-effect': 'warn', // Peut être nécessaire dans certains cas
       'react-hooks/immutability': 'warn', // Peut être nécessaire dans certains cas
-      // Note: Les erreurs React Compiler "Cannot call impure function" et "Compilation Skipped" 
+      // Note: Les erreurs React Compiler "Cannot call impure function" et "Compilation Skipped"
       // ne sont pas contrôlables via ESLint. Elles sont générées par le compilateur React intégré dans Next.js
       // Pour ignorer les warnings du React Compiler dans la console, ils doivent être filtrés au niveau du build
     },

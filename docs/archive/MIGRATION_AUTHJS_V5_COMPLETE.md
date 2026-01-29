@@ -35,18 +35,15 @@
 Ces routes utilisent des modules Node.js incompatibles avec Edge Runtime :
 
 1. **Routes avec Next-Auth/Auth.js v5** :
-
    - `/api/auth/[...nextauth]` - Auth.js nécessite Prisma/bcrypt
    - `/api/auth/register` - Utilise bcrypt
    - `/api/upload` - Utilise Auth.js
    - Toutes les routes qui utilisent `auth()`
 
 2. **Routes avec bcrypt** :
-
    - `/api/users/[userId]` - Utilise bcrypt pour hasher les mots de passe
 
 3. **Routes avec sharp** :
-
    - `/api/music` - Utilise sharp pour traiter les images
    - `/api/music/[id]/refresh-cover` - Utilise sharp
 

@@ -14,11 +14,11 @@ console.log('='.repeat(60));
 let hasErrors = false;
 
 // 1. Vérifier les variables d'environnement
-console.log('\n📋 1. Variables d\'environnement...\n');
+console.log("\n📋 1. Variables d'environnement...\n");
 const envPath = join(process.cwd(), '.env.local');
 const requiredVars = {
   NEXTAUTH_SECRET: 'Secret NextAuth (générer avec: openssl rand -base64 32)',
-  NEXTAUTH_URL: 'URL de l\'application (ex: http://localhost:3000)',
+  NEXTAUTH_URL: "URL de l'application (ex: http://localhost:3000)",
   DATABASE_URL: 'Connection string de la base de données',
 };
 
@@ -50,8 +50,8 @@ if (existsSync(nextConfigPath)) {
     'X-XSS-Protection',
     'Referrer-Policy',
   ];
-  
-  requiredHeaders.forEach(header => {
+
+  requiredHeaders.forEach((header) => {
     if (nextConfig.includes(header)) {
       console.log(`   ✅ ${header}`);
     } else {
@@ -88,7 +88,7 @@ const searchPatterns = [
 // Note: On ne scanne pas récursivement pour éviter d'être trop lent
 // On vérifie juste que le pattern général n'existe pas dans les fichiers critiques
 console.log('   ✅ Prisma ORM utilisé (protection automatique contre SQL injection)');
-console.log('   ℹ️  Vérifiez manuellement l\'absence de $queryRaw avec interpolation');
+console.log("   ℹ️  Vérifiez manuellement l'absence de $queryRaw avec interpolation");
 
 // 5. Vérifier la validation Zod
 console.log('\n✅ 5. Validation des entrées...\n');
@@ -107,4 +107,3 @@ if (hasErrors) {
 } else {
   console.log('✅ Vérifications de base OK\n');
 }
-

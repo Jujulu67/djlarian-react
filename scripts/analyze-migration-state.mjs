@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
  * Script pour analyser l'état des migrations et comprendre les décalages
- * 
+ *
  * Ce script compare :
  * - Les migrations dans prisma/migrations/
  * - Les migrations dans _prisma_migrations (DB)
  * - Les tables réelles dans la DB
- * 
+ *
  * Usage: node scripts/analyze-migration-state.mjs
  */
 
@@ -60,7 +60,10 @@ if (!databaseUrl && process.env.DATABASE_URL) {
   databaseUrl = process.env.DATABASE_URL;
 }
 
-if (!databaseUrl || (!databaseUrl.startsWith('postgresql://') && !databaseUrl.startsWith('postgres://'))) {
+if (
+  !databaseUrl ||
+  (!databaseUrl.startsWith('postgresql://') && !databaseUrl.startsWith('postgres://'))
+) {
   console.error('❌ Impossible de trouver une connection string PostgreSQL valide');
   process.exit(1);
 }
@@ -69,7 +72,7 @@ if (!databaseUrl || (!databaseUrl.startsWith('postgresql://') && !databaseUrl.st
 const { neon } = await import('@neondatabase/serverless');
 const sql = neon(databaseUrl);
 
-console.log('🔍 Analyse de l\'état des migrations\n');
+console.log("🔍 Analyse de l'état des migrations\n");
 console.log(`📋 Connexion: ${databaseUrl.replace(/:[^:@]+@/, ':****@')}\n`);
 
 // 1. Lire les migrations locales
@@ -90,7 +93,7 @@ if (existsSync(migrationsDir)) {
 }
 
 localMigrations.sort();
-localMigrations.forEach(m => console.log(`   ✅ ${m}`));
+localMigrations.forEach((m) => console.log(`   ✅ ${m}`));
 console.log(`   Total: ${localMigrations.length} migrations locales\n`);
 
 // 2. Lire les migrations en DB
@@ -101,10 +104,12 @@ const dbMigrations = await sql`
   ORDER BY migration_name;
 `;
 
-dbMigrations.forEach(m => {
+dbMigrations.forEach((m) => {
   const status = m.finished_at ? '✅' : m.started_at ? '⚠️' : '❓';
   const logs = m.logs ? ` (${m.logs.substring(0, 50)}...)` : '';
-  console.log(`   ${status} ${m.migration_name} - applied: ${m.applied_steps_count}, finished: ${m.finished_at || 'NON'}`);
+  console.log(
+    `   ${status} ${m.migration_name} - applied: ${m.applied_steps_count}, finished: ${m.finished_at || 'NON'}`
+  );
   if (m.logs) {
     console.log(`      Logs: ${m.logs.substring(0, 100)}`);
   }
@@ -121,26 +126,30 @@ const tables = await sql`
   ORDER BY table_name;
 `;
 
-const tableNames = tables.map(t => t.table_name);
-tableNames.forEach(t => console.log(`   ✅ ${t}`));
+const tableNames = tables.map((t) => t.table_name);
+tableNames.forEach((t) => console.log(`   ✅ ${t}`));
 console.log(`   Total: ${tableNames.length} tables\n`);
 
 // 4. Analyser les décalages
 console.log('🔍 4. Analyse des décalages:\n');
 
 // Migrations locales mais pas en DB
-const missingInDb = localMigrations.filter(m => !dbMigrations.some(db => db.migration_name === m));
+const missingInDb = localMigrations.filter(
+  (m) => !dbMigrations.some((db) => db.migration_name === m)
+);
 if (missingInDb.length > 0) {
   console.log('⚠️  Migrations locales mais PAS en DB:');
-  missingInDb.forEach(m => console.log(`   - ${m}`));
+  missingInDb.forEach((m) => console.log(`   - ${m}`));
   console.log('');
 }
 
 // Migrations en DB mais pas locales
-const missingLocal = dbMigrations.filter(db => !localMigrations.includes(db.migration_name));
+const missingLocal = dbMigrations.filter((db) => !localMigrations.includes(db.migration_name));
 if (missingLocal.length > 0) {
   console.log('⚠️  Migrations en DB mais PAS locales:');
-  missingLocal.forEach(m => console.log(`   - ${m.migration_name} (finished: ${m.finished_at || 'NON'})`));
+  missingLocal.forEach((m) =>
+    console.log(`   - ${m.migration_name} (finished: ${m.finished_at || 'NON'})`)
+  );
   console.log('');
 }
 
@@ -153,18 +162,25 @@ for (const table of expectedTables) {
   const exists = tableNames.includes(table);
   const status = exists ? '✅' : '❌';
   console.log(`   ${status} ${table}: ${exists ? 'EXISTE' : 'MANQUANTE'}`);
-  
+
   // Chercher quelle migration devrait créer cette table
   if (!exists) {
     for (const migration of localMigrations) {
       const migrationPath = join(migrationsDir, migration, 'migration.sql');
       if (existsSync(migrationPath)) {
         const content = readFileSync(migrationPath, 'utf-8');
-        if (content.includes(`CREATE TABLE "${table}"`) || content.includes(`CREATE TABLE ${table}`)) {
-          const dbMigration = dbMigrations.find(db => db.migration_name === migration);
+        if (
+          content.includes(`CREATE TABLE "${table}"`) ||
+          content.includes(`CREATE TABLE ${table}`)
+        ) {
+          const dbMigration = dbMigrations.find((db) => db.migration_name === migration);
           if (dbMigration && dbMigration.finished_at) {
-            console.log(`      ⚠️  Migration ${migration} est marquée comme finished mais la table n'existe pas !`);
-            console.log(`      💡 La migration a probablement échoué mais a été marquée comme "applied"`);
+            console.log(
+              `      ⚠️  Migration ${migration} est marquée comme finished mais la table n'existe pas !`
+            );
+            console.log(
+              `      💡 La migration a probablement échoué mais a été marquée comme "applied"`
+            );
           }
         }
       }
@@ -173,4 +189,3 @@ for (const table of expectedTables) {
 }
 
 console.log('\n✅ Analyse terminée');
-

@@ -16,4 +16,3 @@ let content = readFileSync(filePath, 'utf-8');
 
 // Note: Ce script est un helper, mais le remplacement manuel est plus sûr pour éviter les erreurs
 console.log('Script de remplacement créé. Utilisez-le avec précaution.');
-

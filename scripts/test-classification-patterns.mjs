@@ -25,22 +25,40 @@ const testCases = [
   { input: 'hey comment ça va?', expected: { understood: false, type: 'conversational' } },
   { input: 'hello how are you?', expected: { understood: false, type: 'conversational' } },
   { input: 'comment cuire une pizza?', expected: { understood: false, type: 'conversational' } },
-  { input: "c'est quoi la capitale de la France?", expected: { understood: false, type: 'conversational' } },
+  {
+    input: "c'est quoi la capitale de la France?",
+    expected: { understood: false, type: 'conversational' },
+  },
   { input: 'dis moi une blague', expected: { understood: false, type: 'conversational' } },
   { input: 'raconte moi une histoire', expected: { understood: false, type: 'conversational' } },
-  
+
   // Questions conversationnelles sur les projets (doivent appeler Groq)
-  { input: "ok et concernant nos projets? Faut qu'on cook!", expected: { understood: false, type: 'conversational' } },
-  { input: "ça fait une belle liste t'en penses quoi?", expected: { understood: false, type: 'conversational' } },
+  {
+    input: "ok et concernant nos projets? Faut qu'on cook!",
+    expected: { understood: false, type: 'conversational' },
+  },
+  {
+    input: "ça fait une belle liste t'en penses quoi?",
+    expected: { understood: false, type: 'conversational' },
+  },
   { input: 'et nos projets alors?', expected: { understood: false, type: 'conversational' } },
   { input: 'alors pour nos projets?', expected: { understood: false, type: 'conversational' } },
-  { input: "qu'est-ce que tu en penses de nos projets?", expected: { understood: false, type: 'conversational' } },
-  { input: "t'en penses quoi de cette liste?", expected: { understood: false, type: 'conversational' } },
+  {
+    input: "qu'est-ce que tu en penses de nos projets?",
+    expected: { understood: false, type: 'conversational' },
+  },
+  {
+    input: "t'en penses quoi de cette liste?",
+    expected: { understood: false, type: 'conversational' },
+  },
   { input: "c'est pas mal non?", expected: { understood: false, type: 'conversational' } },
-  { input: 'ça fait beaucoup de projets tu trouves pas?', expected: { understood: false, type: 'conversational' } },
-  { input: "on a beaucoup bossé hein?", expected: { understood: false, type: 'conversational' } },
+  {
+    input: 'ça fait beaucoup de projets tu trouves pas?',
+    expected: { understood: false, type: 'conversational' },
+  },
+  { input: 'on a beaucoup bossé hein?', expected: { understood: false, type: 'conversational' } },
   { input: 'et maintenant on fait quoi?', expected: { understood: false, type: 'conversational' } },
-  
+
   // Questions d'opinion/commentaires
   { input: "c'est cool non?", expected: { understood: false, type: 'conversational' } },
   { input: 'tu penses quoi?', expected: { understood: false, type: 'conversational' } },
@@ -49,7 +67,7 @@ const testCases = [
   { input: 'what do you think?', expected: { understood: false, type: 'conversational' } },
   { input: "c'est bien fait non?", expected: { understood: false, type: 'conversational' } },
   { input: 'ça te plaît?', expected: { understood: false, type: 'conversational' } },
-  
+
   // Vraies commandes (doivent parser, pas appeler Groq)
   { input: 'liste moi les projets en cours', expected: { understood: true, type: 'list' } },
   { input: 'liste mes projets', expected: { understood: true, type: 'list' } },
@@ -57,9 +75,9 @@ const testCases = [
   { input: 'affiche les projets terminés', expected: { understood: true, type: 'list' } },
   { input: 'list my projects', expected: { understood: true, type: 'list' } },
   { input: 'show me all projects', expected: { understood: true, type: 'list' } },
-  { input: "quels sont mes projets?", expected: { understood: true, type: 'list' } },
+  { input: 'quels sont mes projets?', expected: { understood: true, type: 'list' } },
   { input: 'donne moi la liste des projets', expected: { understood: true, type: 'list' } },
-  
+
   // Commandes de comptage
   { input: "combien de projets j'ai?", expected: { understood: true, type: 'count' } },
   { input: 'combien de projets sous les 70%?', expected: { understood: true, type: 'count' } },
@@ -67,7 +85,7 @@ const testCases = [
   { input: 'how many projects do I have?', expected: { understood: true, type: 'count' } },
   { input: 'count projects under 50%', expected: { understood: true, type: 'count' } },
   { input: 'total de ghost prod', expected: { understood: true, type: 'count' } },
-  
+
   // Commandes avec filtres
   { input: 'liste mes ghost prod', expected: { understood: true, type: 'list' } },
   { input: 'projets terminés', expected: { understood: true, type: 'list' } },
@@ -79,14 +97,23 @@ const testCases = [
   { input: 'projets annulés', expected: { understood: true, type: 'list' } },
   { input: 'projets archivés', expected: { understood: true, type: 'list' } },
   { input: 'projets à rework', expected: { understood: true, type: 'list' } },
-  
+
   // Questions sur l'assistant (doivent appeler Groq)
-  { input: 'quels sont tes projets dans la vie?', expected: { understood: false, type: 'conversational' } },
-  { input: "combien de projets tu as?", expected: { understood: false, type: 'conversational' } },
+  {
+    input: 'quels sont tes projets dans la vie?',
+    expected: { understood: false, type: 'conversational' },
+  },
+  { input: 'combien de projets tu as?', expected: { understood: false, type: 'conversational' } },
   { input: 'montre moi tes projets', expected: { understood: false, type: 'conversational' } },
   { input: 'liste tes projets terminés', expected: { understood: false, type: 'conversational' } },
-  { input: "quels sont les projets que tu gères?", expected: { understood: false, type: 'conversational' } },
-  { input: "combien de projets sans avancement tu as?", expected: { understood: false, type: 'conversational' } },
+  {
+    input: 'quels sont les projets que tu gères?',
+    expected: { understood: false, type: 'conversational' },
+  },
+  {
+    input: 'combien de projets sans avancement tu as?',
+    expected: { understood: false, type: 'conversational' },
+  },
   { input: 'quels projets tu gères?', expected: { understood: false, type: 'conversational' } },
   { input: 'montre tes projets musicaux', expected: { understood: false, type: 'conversational' } },
   { input: 'liste les projets de toi', expected: { understood: false, type: 'conversational' } },
@@ -120,5 +147,6 @@ if (failures.length > 0) {
   });
 }
 
-console.log('\n💡 Pour tester réellement, il faut compiler le TypeScript et appeler les fonctions de classification.');
-
+console.log(
+  '\n💡 Pour tester réellement, il faut compiler le TypeScript et appeler les fonctions de classification.'
+);

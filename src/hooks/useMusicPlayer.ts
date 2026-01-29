@@ -87,44 +87,32 @@ export function useMusicPlayer({ filteredTracks }: UseMusicPlayerParams): UseMus
         const willPlay = !isPlaying;
         setIsPlaying(willPlay);
 
-        // Force play command if switching to play
-        if (willPlay) {
-          logger.debug(`[playTrack] Resuming current track via reactive state`);
-        }
+        // Commands are now handled by the specific player hooks
         return;
       }
 
       // New track - switch to it
       if (isProcessingRef.current) {
-        logger.debug(`[playTrack] Play blocked: processing in progress for track ${track.id}`);
+        console.warn(`[PLAYER] Play blocked: processing in progress for track ${track.id}`);
         return;
       }
 
-      isProcessingRef.current = true;
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
+      console.warn(
+        `[PLAYER] Switching to new track: ${track.title} (ID: ${track.id}) - SYNC update`
+      );
+      logger.remote(`-------------------------------------------`);
+      logger.remote(`[PLAYER] SWITCH-TRACK: ${track.title} (${track.id})`);
+
+      // Stop previous track
+      if (currentTrack) {
+        stopCurrentPlayer(currentTrack.id);
       }
-      debounceTimeoutRef.current = setTimeout(() => {
-        logger.debug(`[playTrack] Switching to new track: ${track.title} (ID: ${track.id})`);
 
-        // Stop previous track
-        if (currentTrack) {
-          logger.debug(`[playTrack] Stopping previous track: ${currentTrack.title}`);
-          stopCurrentPlayer(currentTrack.id);
-        }
-
-        // Set new track
-        const newIndex = filteredTracks.findIndex((t) => t.id === track.id);
-        logger.debug(`[playTrack] New track index: ${newIndex}`);
-        setCurrentTrack(track);
-        setIsPlaying(true);
-        setActiveIndex(newIndex >= 0 ? newIndex : null);
-
-        isProcessingRef.current = false;
-
-        isProcessingRef.current = false;
-        logger.debug(`[playTrack] Track ${track.title} activated via reactive state`);
-      }, 150);
+      // Set new track immediately to preserve user gesture for iframe rendering
+      const newIndex = filteredTracks.findIndex((t) => t.id === track.id);
+      setCurrentTrack(track);
+      setIsPlaying(true);
+      setActiveIndex(newIndex >= 0 ? newIndex : null);
     },
     [currentTrack, isPlaying, filteredTracks, closePlayer, stopCurrentPlayer]
   );
@@ -149,34 +137,20 @@ export function useMusicPlayer({ filteredTracks }: UseMusicPlayerParams): UseMus
     }
 
     const currentIndex = filteredTracks.findIndex((t) => t.id === currentTrack.id);
-    logger.debug(
-      `[playNextTrack] Current index: ${currentIndex}, total tracks: ${filteredTracks.length}`
-    );
-
     if (currentIndex === -1 || currentIndex >= filteredTracks.length - 1) {
-      logger.debug('Last track reached or invalid index');
+      console.warn('[PLAYER] Last track reached');
       return;
     }
 
-    isProcessingRef.current = true;
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current);
+    const nextTrack = filteredTracks[currentIndex + 1];
+    logger.remote(`[PLAYER] NEXT-TRACK: ${nextTrack.title} (${nextTrack.id})`);
+
+    if (currentTrack) {
+      stopCurrentPlayer(currentTrack.id);
     }
-    debounceTimeoutRef.current = setTimeout(() => {
-      const nextTrack = filteredTracks[currentIndex + 1];
-      logger.debug(`[playNextTrack] Switching to: ${nextTrack.title} (ID: ${nextTrack.id})`);
-
-      if (currentTrack) {
-        stopCurrentPlayer(currentTrack.id);
-      }
-      setCurrentTrack(nextTrack);
-      setActiveIndex(currentIndex + 1);
-      setIsPlaying(true);
-      isProcessingRef.current = false;
-
-      isProcessingRef.current = false;
-      logger.debug(`Switched to next track: ${nextTrack.title}`);
-    }, 150);
+    setCurrentTrack(nextTrack);
+    setActiveIndex(currentIndex + 1);
+    setIsPlaying(true);
   }, [currentTrack, filteredTracks, stopCurrentPlayer]);
 
   // Play previous track
@@ -193,34 +167,20 @@ export function useMusicPlayer({ filteredTracks }: UseMusicPlayerParams): UseMus
     }
 
     const currentIndex = filteredTracks.findIndex((t) => t.id === currentTrack.id);
-    logger.debug(
-      `[playPrevTrack] Current index: ${currentIndex}, total tracks: ${filteredTracks.length}`
-    );
-
     if (currentIndex <= 0) {
-      logger.debug('First track reached or invalid index');
+      console.warn('[PLAYER] First track reached');
       return;
     }
 
-    isProcessingRef.current = true;
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current);
+    const prevTrack = filteredTracks[currentIndex - 1];
+    logger.remote(`[PLAYER] PREV-TRACK: ${prevTrack.title} (${prevTrack.id})`);
+
+    if (currentTrack) {
+      stopCurrentPlayer(currentTrack.id);
     }
-    debounceTimeoutRef.current = setTimeout(() => {
-      const prevTrack = filteredTracks[currentIndex - 1];
-      logger.debug(`[playPrevTrack] Switching to: ${prevTrack.title} (ID: ${prevTrack.id})`);
-
-      if (currentTrack) {
-        stopCurrentPlayer(currentTrack.id);
-      }
-      setCurrentTrack(prevTrack);
-      setActiveIndex(currentIndex - 1);
-      setIsPlaying(true);
-      isProcessingRef.current = false;
-
-      isProcessingRef.current = false;
-      logger.debug(`Switched to previous track: ${prevTrack.title}`);
-    }, 150);
+    setCurrentTrack(prevTrack);
+    setActiveIndex(currentIndex - 1);
+    setIsPlaying(true);
   }, [currentTrack, filteredTracks, stopCurrentPlayer]);
 
   // Handle URL play parameter

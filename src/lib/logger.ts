@@ -102,6 +102,28 @@ class Logger {
         break;
     }
   }
+
+  /**
+   * Envoie un log au serveur (Next console) pour le débogage mobile
+   */
+  remote(message: string, ...args: unknown[]): void {
+    // Toujours loguer localement aussi
+    console.log(`[REMOTE] ${message}`, ...args);
+
+    if (typeof window !== 'undefined') {
+      fetch('/api/log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          level: 'info',
+          message,
+          args,
+        }),
+      }).catch(() => {
+        // Ignorer les erreurs d'envoi de log
+      });
+    }
+  }
 }
 
 // Export d'une instance singleton

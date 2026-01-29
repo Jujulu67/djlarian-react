@@ -3,7 +3,7 @@
  * Script de seed pour initialiser tous les LiveItem en base de données
  * Garantit que tous les items définis dans src/lib/live/items.ts existent
  * avec les mêmes caractéristiques (nom, description, icône) qu'en développement
- * 
+ *
  * Usage: pnpm run db:seed:live-items
  */
 
@@ -29,7 +29,7 @@ dotenv.config({ path: join(rootDir, '.env') });
 // Utilise la même logique que src/lib/prisma.ts
 function createPrismaAdapter(databaseUrl) {
   if (!databaseUrl) {
-    throw new Error('DATABASE_URL n\'est pas défini');
+    throw new Error("DATABASE_URL n'est pas défini");
   }
 
   const isSQLiteUrl = databaseUrl.startsWith('file:');
@@ -138,25 +138,39 @@ const LIVE_ITEMS = {
 // Créer le client Prisma avec l'adaptateur approprié
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
-  console.error('❌ ERREUR: DATABASE_URL n\'est pas défini');
-  console.error('   Assurez-vous que DATABASE_URL est configuré dans les variables d\'environnement');
-  console.error('   Variables d\'environnement chargées:', Object.keys(process.env).filter(k => k.includes('DATABASE')).join(', ') || 'aucune');
+  console.error("❌ ERREUR: DATABASE_URL n'est pas défini");
+  console.error(
+    "   Assurez-vous que DATABASE_URL est configuré dans les variables d'environnement"
+  );
+  console.error(
+    "   Variables d'environnement chargées:",
+    Object.keys(process.env)
+      .filter((k) => k.includes('DATABASE'))
+      .join(', ') || 'aucune'
+  );
   process.exit(1);
 }
 
 // Debug: afficher le type de base de données détecté (sans exposer les credentials)
-const dbType = databaseUrl.startsWith('file:') ? 'SQLite' : 
-               databaseUrl.includes('neon') ? 'Neon' : 
-               databaseUrl.startsWith('postgres') ? 'PostgreSQL' : 'Inconnu';
+const dbType = databaseUrl.startsWith('file:')
+  ? 'SQLite'
+  : databaseUrl.includes('neon')
+    ? 'Neon'
+    : databaseUrl.startsWith('postgres')
+      ? 'PostgreSQL'
+      : 'Inconnu';
 console.log(`   🔗 Type de base de données détecté: ${dbType}`);
 
 let adapter;
 try {
   adapter = createPrismaAdapter(databaseUrl);
 } catch (error) {
-  console.error('❌ ERREUR lors de la création de l\'adaptateur Prisma:', error.message);
+  console.error("❌ ERREUR lors de la création de l'adaptateur Prisma:", error.message);
   console.error('   Type de base de données:', dbType);
-  console.error('   DATABASE_URL (masqué):', databaseUrl.substring(0, 20) + '...' + databaseUrl.substring(databaseUrl.length - 10));
+  console.error(
+    '   DATABASE_URL (masqué):',
+    databaseUrl.substring(0, 20) + '...' + databaseUrl.substring(databaseUrl.length - 10)
+  );
   process.exit(1);
 }
 
@@ -249,4 +263,3 @@ seedLiveItems()
     console.error('Erreur fatale:', error);
     process.exit(1);
   });
-

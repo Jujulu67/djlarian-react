@@ -92,22 +92,22 @@ export const sendPlayerCommand = (
           func = 'pauseVideo';
           break;
         case 'setVolume':
-          // YouTube API expects volume from 0 to 100
-          // We might apply amplification here or in the calling function
           func = 'setVolume';
-          args = [value !== undefined ? Math.round(value * 100) : 50]; // Default to 50 if no value
+          args = [value !== undefined ? Math.round(value * 100) : 50];
           break;
         case 'seekTo':
           func = 'seekTo';
-          args = [value !== undefined ? value : 0, true]; // time in seconds, allowSeekAhead=true
+          args = [value !== undefined ? value : 0, true];
           break;
         default:
           logger.error(`Unsupported YouTube command: ${command}`);
           return;
       }
       message = JSON.stringify({ event: 'command', func, args });
-      iframe.contentWindow.postMessage(message, '*'); // Consider using specific target origin in production
-      // logger.debug(`Sent command to YouTube: ${message}`);
+      logger.remote(
+        `[CMD-YT] ${command}${value !== undefined ? ' (' + value + ')' : ''} to ${iframe.id || 'unknown'}`
+      );
+      iframe.contentWindow.postMessage(message, '*');
     } else if (platform === 'soundcloud') {
       let method: string;
       let methodValue: string | number | undefined = value;
@@ -120,24 +120,25 @@ export const sendPlayerCommand = (
           method = 'pause';
           break;
         case 'setVolume':
-          // SoundCloud API expects volume from 0 to 100
           method = 'setVolume';
           methodValue = value !== undefined ? Math.round(value * 100) : 50;
           break;
         case 'seekTo':
           method = 'seekTo';
-          methodValue = value !== undefined ? value * 1000 : 0; // time in milliseconds
+          methodValue = value !== undefined ? value * 1000 : 0;
           break;
         default:
           logger.error(`Unsupported SoundCloud command: ${command}`);
           return;
       }
       message = JSON.stringify({ method, value: methodValue });
-      iframe.contentWindow.postMessage(message, '*'); // Consider using specific target origin
-      // logger.debug(`Sent command to SoundCloud: ${message}`);
+      logger.remote(
+        `[CMD-SC] ${command}${value !== undefined ? ' (' + value + ')' : ''} to ${iframe.id || 'unknown'}`
+      );
+      iframe.contentWindow.postMessage(message, '*');
     }
   } catch (error) {
-    logger.error(`Error sending command to ${platform} iframe:`, error);
+    logger.remote(`[CMD-ERR] Error sending to ${platform}:`, error);
   }
 };
 

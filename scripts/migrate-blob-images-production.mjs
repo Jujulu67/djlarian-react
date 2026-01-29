@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
  * Script de migration des images blob en production
- * 
+ *
  * Ce script :
  * 1. Liste toutes les images blob existantes (une dernière fois avec list())
  * 2. Les stocke dans la table Image pour éviter les futurs appels list()
  * 3. Est idempotent (peut être exécuté plusieurs fois sans problème)
  * 4. Ne cause pas de régression (continue même en cas d'erreur)
- * 
+ *
  * Usage:
  *   node scripts/migrate-blob-images-production.mjs
  */
@@ -32,15 +32,16 @@ dotenv.config({ path: join(rootDir, '.env') });
 const isBlobConfigured = !!process.env.BLOB_READ_WRITE_TOKEN;
 
 if (!isBlobConfigured) {
-  console.error('❌ BLOB_READ_WRITE_TOKEN n\'est pas configuré');
-  console.error('   Ce script nécessite l\'accès à Vercel Blob');
+  console.error("❌ BLOB_READ_WRITE_TOKEN n'est pas configuré");
+  console.error("   Ce script nécessite l'accès à Vercel Blob");
   process.exit(1);
 }
 
 // Vérifier qu'on est en production ou que DATABASE_URL pointe vers PostgreSQL
 const databaseUrl = process.env.DATABASE_URL || '';
 const isProduction = process.env.NODE_ENV === 'production';
-const isPostgreSQL = databaseUrl.startsWith('postgresql://') || databaseUrl.startsWith('postgres://');
+const isPostgreSQL =
+  databaseUrl.startsWith('postgresql://') || databaseUrl.startsWith('postgres://');
 
 if (!isProduction && !isPostgreSQL) {
   console.error('❌ Ce script est destiné à la production (PostgreSQL)');
@@ -51,9 +52,7 @@ if (!isProduction && !isPostgreSQL) {
 
 // Créer l'adaptateur Prisma approprié (PostgreSQL uniquement en prod)
 function createAdapter(databaseUrl) {
-  const isNeonUrl =
-    databaseUrl.includes('neon.tech') ||
-    databaseUrl.includes('neon');
+  const isNeonUrl = databaseUrl.includes('neon.tech') || databaseUrl.includes('neon');
 
   if (isNeonUrl) {
     return new PrismaNeon({
@@ -105,7 +104,7 @@ function isOriginalImage(pathname) {
 async function migrateBlobImages() {
   // Initialiser Prisma
   await initPrisma();
-  
+
   console.log('🚀 Début de la migration des images blob vers la table Image...\n');
 
   try {
@@ -114,8 +113,8 @@ async function migrateBlobImages() {
       await prisma.$queryRaw`SELECT 1 FROM "Image" LIMIT 1`;
       console.log('   ✅ Table Image vérifiée\n');
     } catch (error) {
-      console.error('   ❌ Table Image n\'existe pas !');
-      console.error('   Exécutez d\'abord: node scripts/migrate-db-production.mjs');
+      console.error("   ❌ Table Image n'existe pas !");
+      console.error("   Exécutez d'abord: node scripts/migrate-db-production.mjs");
       process.exit(1);
     }
 
@@ -237,4 +236,3 @@ migrateBlobImages().catch((error) => {
   console.error('❌ Erreur fatale:', error);
   process.exit(1);
 });
-

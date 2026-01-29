@@ -469,7 +469,7 @@ function BeforeAfterSection() {
   const { isLoaded, isPlaying, currentFile, play, stop, switchTo } = useSeamlessAudioLoop({
     basePath: '/audio/shop/lariancrusher',
     files: audioFiles,
-    crossfadeDuration: 0.01, // 10ms micro-fade just to avoid clicks
+    crossfadeDuration: 0.1, // 100ms smooth crossfade
   });
 
   // Get the correct file name based on state
@@ -561,9 +561,9 @@ function BeforeAfterSection() {
 
       <div className="grid md:grid-cols-2 gap-6">
         {/* Original */}
-        <div
+        <button
           onClick={() => togglePlay('original')}
-          className={`bg-black/50 rounded-xl p-6 text-center group transition-all duration-300 cursor-pointer hover:bg-black/70 border-2 ${playingType === 'original' ? 'border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.2)]' : 'border-transparent'}`}
+          className={`bg-black/50 rounded-xl p-6 text-center group transition-all duration-300 cursor-pointer hover:bg-black/70 border-2 w-full text-left outline-none ${playingType === 'original' ? 'border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.2)]' : 'border-transparent'}`}
         >
           <div className="aspect-[3/1] bg-gradient-to-r from-gray-700/50 to-gray-600/50 rounded-lg mb-4 flex items-center justify-center border border-white/5">
             <Waves
@@ -583,12 +583,12 @@ function BeforeAfterSection() {
               </>
             )}
           </div>
-        </div>
+        </button>
 
         {/* Processed */}
-        <div
+        <button
           onClick={() => togglePlay('processed')}
-          className={`bg-black/50 rounded-xl p-6 text-center group transition-all duration-300 cursor-pointer hover:bg-black/70 border-2 overflow-hidden relative ${playingType === 'processed' ? 'border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.2)]' : 'border-transparent'}`}
+          className={`bg-black/50 rounded-xl p-6 text-center group transition-all duration-300 cursor-pointer hover:bg-black/70 border-2 overflow-hidden relative w-full text-left outline-none ${playingType === 'processed' ? 'border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.2)]' : 'border-transparent'}`}
         >
           <div
             className={`aspect-[3/1] rounded-lg mb-4 flex items-center justify-center transition-all duration-500 border border-white/10 ${
@@ -601,13 +601,13 @@ function BeforeAfterSection() {
               className={`w-10 h-10 transition-all duration-500 ${playingType === 'processed' ? 'scale-110' : 'group-hover:scale-110'} ${gainMatch ? 'text-green-400' : 'text-purple-400'} ${activeMode === 'creative' || playingType === 'processed' ? 'animate-pulse' : ''}`}
             />
           </div>
-          <h4 className="text-white font-semibold text-lg mb-1">
+          <h4 className="text-white font-semibold text-lg mb-1 text-center">
             Processed{' '}
             <span className="text-purple-400 ml-1">
               [{COMPARISON_MODES.find((m) => m.id === activeMode)?.label}]
             </span>
           </h4>
-          <p className="text-gray-400 text-sm italic">
+          <p className="text-gray-400 text-sm italic text-center">
             {gainMatch ? 'Gain matched' : 'Raw output'}
           </p>
           <div className="text-purple-400 text-xs mt-3 flex items-center justify-center gap-2 font-bold uppercase tracking-widest">
@@ -621,7 +621,7 @@ function BeforeAfterSection() {
               </>
             )}
           </div>
-        </div>
+        </button>
       </div>
     </div>
   );
