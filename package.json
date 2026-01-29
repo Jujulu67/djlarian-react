@@ -11,7 +11,7 @@
     "dev": "pnpm tsx scripts/update-hero-title.ts && NODE_OPTIONS='--import tsx' next dev",
     "dev:auto": "bash scripts/start-dev.sh",
     "kill-ports": "bash scripts/kill-ports.sh",
-    "build": "bash scripts/ensure-postgresql-schema.sh && node scripts/fix-prisma-types.mjs && pnpm tsx scripts/update-hero-title.ts && (if [ \"$VERCEL\" = \"1\" ] && [ \"$NODE_ENV\" = \"production\" ]; then echo '⚠️  Skip tests en production sur Vercel'; else pnpm run test:ci; fi) && (NODE_OPTIONS='--import tsx' next build 2>&1 | grep -v '\\[baseline-browser-mapping\\]'; exit ${PIPESTATUS[0]}) && echo '🔍 VERCEL DEBUG: Checking heaviest directories...' && du -h -d 2 .next/server/app/api/soundcloud || true && echo '🔍 VERCEL DEBUG: Checking node_modules size...' && du -h -d 1 node_modules | sort -hr | head -n 10 || true",
+    "build": "bash scripts/ensure-postgresql-schema.sh && node scripts/fix-prisma-types.mjs && pnpm tsx scripts/update-hero-title.ts && (if [ \"$VERCEL\" = \"1\" ] && [ \"$NODE_ENV\" = \"production\" ]; then echo '⚠️  Skip tests en production sur Vercel'; else pnpm run test:ci; fi) && (NODE_OPTIONS='--import tsx' next build 2>&1 | grep -v '\\[baseline-browser-mapping\\]'; exit ${PIPESTATUS[0]})",
     "postinstall": "prisma generate && node scripts/fix-prisma-types.mjs || true",
     "lint": "eslint --config eslint.config.mjs \"src/**/*.{ts,tsx}\" --quiet",
     "lint:fix": "eslint --config eslint.config.mjs \"src/**/*.{ts,tsx}\" --fix",
