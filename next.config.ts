@@ -59,12 +59,10 @@ const nextConfig: NextConfig = {
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 60,
   },
-  experimental: {
-    // Exclure explicitement puppeteer du tracing Vercel pour éviter de dépasser les 250MB
-    // @ts-ignore - Option valide mais manquante dans les types
-    outputFileTracingExcludes: {
-      '*': ['node_modules/puppeteer', 'node_modules/puppeteer-core'],
-    },
+  // Exclure explicitement puppeteer du tracing Vercel pour éviter de dépasser les 250MB
+  // @ts-ignore - Option valide dans Next.js 15+ mais manquante dans les types actuels
+  outputFileTracingExcludes: {
+    '*': ['node_modules/puppeteer', 'node_modules/puppeteer-core'],
   },
   // Configuration pour Prisma 7 avec tsx
   // Avec tsx loader, Node.js peut charger directement les fichiers .ts de Prisma
