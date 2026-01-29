@@ -37,6 +37,7 @@ if (!global.__prismaClients) {
 /**
  * Détermine le type de base de données et crée l'adaptateur approprié
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function createAdapter(databaseUrl: string): any {
   const isSQLiteUrl = databaseUrl.startsWith('file:');
   const isPostgreSQLUrl =

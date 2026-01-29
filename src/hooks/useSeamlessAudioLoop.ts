@@ -81,21 +81,45 @@ export function useSeamlessAudioLoop({
   }, [currentFile]);
 
   // Initialize AudioContext on first user interaction
-  const getAudioContext = useCallback(() => {
+  const getAudioContext = useCallback(async () => {
     // Create new context if none exists or if previous one was closed
     if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
-      audioContextRef.current = new AudioContext();
+      const AudioContextClass =
+        window.AudioContext ||
+        (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioContextClass) {
+        throw new Error('Web Audio API is not supported in this browser');
+      }
+      audioContextRef.current = new AudioContextClass();
     }
+
+    // Bypass iOS silent switch by playing a silent HTMLAudioElement
+    // This only works within a user gesture
+    try {
+      const silentAudio = new Audio();
+      // Use a tiny silent base64 WAV if possible, or just play/stop
+      silentAudio.src =
+        'data:audio/wav;base64,UklGRigAAABXQVZFav77vv77vv77vv77vv77vv77vv77vv77vv77vv77vv77vv77';
+      await silentAudio.play();
+      setTimeout(() => {
+        silentAudio.pause();
+        silentAudio.remove();
+      }, 100);
+    } catch (e) {
+      // Ignore errors if gesture wasn't detected or other failures
+    }
+
     if (audioContextRef.current.state === 'suspended') {
-      audioContextRef.current.resume();
+      await audioContextRef.current.resume();
     }
+
     return audioContextRef.current;
   }, []);
 
   // Load a single audio file
   const loadAudioBuffer = useCallback(
     async (url: string): Promise<AudioBuffer> => {
-      const ctx = getAudioContext();
+      const ctx = await getAudioContext();
       const response = await fetch(url);
       const arrayBuffer = await response.arrayBuffer();
       return ctx.decodeAudioData(arrayBuffer);
@@ -109,21 +133,30 @@ export function useSeamlessAudioLoop({
 
     const preloadAll = async () => {
       try {
-        const ctx = getAudioContext();
-
-        const loadPromises = files.map(async (file) => {
+        // Just warm up the buffers if we already have a context,
+        // but don't force context creation here as it's not a user gesture
+        files.map(async (file) => {
           const url = `${basePath}/${file}`;
           try {
-            const buffer = await loadAudioBuffer(url);
-            if (mounted) {
-              buffersRef.current.set(file, buffer);
+            // Check if we already have the buffer
+            if (buffersRef.current.has(file)) return;
+
+            const response = await fetch(url);
+            const arrayBuffer = await response.arrayBuffer();
+
+            // We need a context to decode, but we shouldn't create/resume it here
+            // if it's not a user gesture. We'll decode later in play() if needed.
+            // However, if we ALREADY have a running context, we can decode now.
+            if (audioContextRef.current && audioContextRef.current.state === 'running') {
+              const buffer = await audioContextRef.current.decodeAudioData(arrayBuffer);
+              if (mounted) {
+                buffersRef.current.set(file, buffer);
+              }
             }
           } catch (err) {
-            console.warn(`Failed to load ${url}:`, err);
+            console.warn(`Failed to preload ${url}:`, err);
           }
         });
-
-        await Promise.all(loadPromises);
 
         if (mounted) {
           setIsLoaded(true);
@@ -138,12 +171,12 @@ export function useSeamlessAudioLoop({
     return () => {
       mounted = false;
     };
-  }, [basePath, files, getAudioContext, loadAudioBuffer]);
+  }, [basePath, files]);
 
   // Create a new audio source with gain node
   const createSource = useCallback(
-    (buffer: AudioBuffer, startOffset: number = 0): AudioSource => {
-      const ctx = getAudioContext();
+    async (buffer: AudioBuffer, startOffset: number = 0): Promise<AudioSource> => {
+      const ctx = await getAudioContext();
       const source = ctx.createBufferSource();
       const gain = ctx.createGain();
 
@@ -190,54 +223,55 @@ export function useSeamlessAudioLoop({
       const loopDuration = buffer.duration - loopStartOffset;
 
       // Create next source starting at loop point
-      const nextAudio = createSource(buffer, loopStartOffset);
-      nextSourceRef.current = nextAudio;
+      createSource(buffer, loopStartOffset).then((nextAudio) => {
+        nextSourceRef.current = nextAudio;
 
-      // Schedule crossfade for current source (fade out)
-      if (currentSourceRef.current) {
-        const currentGain = currentSourceRef.current.gain.gain;
+        // Schedule crossfade for current source (fade out)
+        if (currentSourceRef.current) {
+          const currentGain = currentSourceRef.current.gain.gain;
+          try {
+            currentGain.cancelScheduledValues(crossfadeStart);
+            currentGain.setValueAtTime(1, crossfadeStart);
+            currentGain.setValueCurveAtTime(fadeOut, crossfadeStart, crossfadeDuration);
+          } catch (e) {
+            // Ignore scheduling conflicts
+          }
+        }
+
+        // Schedule next source to start at loop offset and fade in
         try {
-          currentGain.cancelScheduledValues(crossfadeStart);
-          currentGain.setValueAtTime(1, crossfadeStart);
-          currentGain.setValueCurveAtTime(fadeOut, crossfadeStart, crossfadeDuration);
+          nextAudio.source.start(crossfadeStart, loopStartOffset);
+          nextAudio.gain.gain.cancelScheduledValues(crossfadeStart);
+          nextAudio.gain.gain.setValueAtTime(0, crossfadeStart);
+          nextAudio.gain.gain.setValueCurveAtTime(fadeIn, crossfadeStart, crossfadeDuration);
         } catch (e) {
           // Ignore scheduling conflicts
         }
-      }
 
-      // Schedule next source to start at loop offset and fade in
-      try {
-        nextAudio.source.start(crossfadeStart, loopStartOffset);
-        nextAudio.gain.gain.cancelScheduledValues(crossfadeStart);
-        nextAudio.gain.gain.setValueAtTime(0, crossfadeStart);
-        nextAudio.gain.gain.setValueCurveAtTime(fadeIn, crossfadeStart, crossfadeDuration);
-      } catch (e) {
-        // Ignore scheduling conflicts
-      }
+        // Update timing based on loop region duration
+        nextAudio.startTime = crossfadeStart;
+        nextAudio.endTime = crossfadeStart + loopDuration;
+        scheduledEndRef.current = nextAudio.endTime;
 
-      // Update timing based on loop region duration
-      nextAudio.startTime = crossfadeStart;
-      nextAudio.endTime = crossfadeStart + loopDuration;
-      scheduledEndRef.current = nextAudio.endTime;
-
-      // When crossfade is done, swap references
-      setTimeout(
-        () => {
-          if (currentSourceRef.current) {
-            try {
-              currentSourceRef.current.source.stop();
-              currentSourceRef.current.source.disconnect();
-              currentSourceRef.current.gain.disconnect();
-            } catch (e) {
-              // Ignore if already stopped
+        // When crossfade is done, swap references
+        setTimeout(
+          () => {
+            if (currentSourceRef.current) {
+              try {
+                currentSourceRef.current.source.stop();
+                currentSourceRef.current.source.disconnect();
+                currentSourceRef.current.gain.disconnect();
+              } catch (e) {
+                // Ignore if already stopped
+              }
             }
-          }
-          currentSourceRef.current = nextSourceRef.current;
-          nextSourceRef.current = null;
-          isSchedulingRef.current = false;
-        },
-        (crossfadeStart - now + crossfadeDuration) * 1000
-      );
+            currentSourceRef.current = nextSourceRef.current;
+            nextSourceRef.current = null;
+            isSchedulingRef.current = false;
+          },
+          (crossfadeStart - now + crossfadeDuration) * 1000
+        );
+      });
     }
   }, [isPlaying, crossfadeDuration, createSource, fadeIn, fadeOut, loopLastSeconds]);
 
@@ -271,58 +305,62 @@ export function useSeamlessAudioLoop({
     (file: string) => {
       // Run async logic in a fire-and-forget IIFE so the public API stays sync
       (async () => {
-        let buffer = buffersRef.current.get(file);
+        try {
+          let buffer = buffersRef.current.get(file);
 
-        // On some browsers (notably iOS Safari), preloading with WebAudio can fail
-        // before a user gesture. If the buffer is missing on first play, lazily
-        // load & decode it now within the click/tap handler.
-        if (!buffer) {
-          try {
-            const url = `${basePath}/${file}`;
-            buffer = await loadAudioBuffer(url);
-            buffersRef.current.set(file, buffer);
-          } catch (err) {
-            console.warn(`Failed to lazily load buffer for ${file}:`, err);
-            return;
+          // On some browsers (notably iOS Safari), preloading with WebAudio can fail
+          // before a user gesture. If the buffer is missing on first play, lazily
+          // load & decode it now within the click/tap handler.
+          if (!buffer) {
+            try {
+              const url = `${basePath}/${file}`;
+              buffer = await loadAudioBuffer(url);
+              buffersRef.current.set(file, buffer);
+            } catch (err) {
+              console.warn(`Failed to lazily load buffer for ${file}:`, err);
+              return;
+            }
           }
-        }
 
-        const ctx = getAudioContext();
+          const ctx = await getAudioContext();
 
-        // Stop any existing playback
-        if (currentSourceRef.current) {
-          try {
-            currentSourceRef.current.source.stop();
-            currentSourceRef.current.source.disconnect();
-            currentSourceRef.current.gain.disconnect();
-          } catch (e) {
-            // Ignore
+          // Stop any existing playback
+          if (currentSourceRef.current) {
+            try {
+              currentSourceRef.current.source.stop();
+              currentSourceRef.current.source.disconnect();
+              currentSourceRef.current.gain.disconnect();
+            } catch (e) {
+              // Ignore
+            }
           }
-        }
-        if (nextSourceRef.current) {
-          try {
-            nextSourceRef.current.source.stop();
-            nextSourceRef.current.source.disconnect();
-            nextSourceRef.current.gain.disconnect();
-          } catch (e) {
-            // Ignore
+          if (nextSourceRef.current) {
+            try {
+              nextSourceRef.current.source.stop();
+              nextSourceRef.current.source.disconnect();
+              nextSourceRef.current.gain.disconnect();
+            } catch (e) {
+              // Ignore
+            }
           }
+
+          // Create and start new source
+          const audioSource = await createSource(buffer);
+          currentSourceRef.current = audioSource;
+          nextSourceRef.current = null;
+          isSchedulingRef.current = false;
+
+          audioSource.source.start(0);
+          audioSource.gain.gain.setValueAtTime(0, ctx.currentTime);
+          audioSource.gain.gain.linearRampToValueAtTime(1, ctx.currentTime + 0.05); // Quick fade in
+
+          scheduledEndRef.current = ctx.currentTime + buffer.duration;
+
+          setCurrentFile(file);
+          setIsPlaying(true);
+        } catch (err) {
+          console.error('Error in play:', err);
         }
-
-        // Create and start new source
-        const audioSource = createSource(buffer);
-        currentSourceRef.current = audioSource;
-        nextSourceRef.current = null;
-        isSchedulingRef.current = false;
-
-        audioSource.source.start(0);
-        audioSource.gain.gain.setValueAtTime(0, ctx.currentTime);
-        audioSource.gain.gain.linearRampToValueAtTime(1, ctx.currentTime + 0.05); // Quick fade in
-
-        scheduledEndRef.current = ctx.currentTime + buffer.duration;
-
-        setCurrentFile(file);
-        setIsPlaying(true);
       })();
     },
     [basePath, getAudioContext, createSource, loadAudioBuffer]
@@ -385,7 +423,7 @@ export function useSeamlessAudioLoop({
 
   // Switch to a different file while maintaining playback
   const switchTo = useCallback(
-    (file: string) => {
+    async (file: string) => {
       if (!isPlaying) {
         play(file);
         return;
@@ -397,69 +435,83 @@ export function useSeamlessAudioLoop({
         return;
       }
 
-      const ctx = getAudioContext();
+      try {
+        const ctx = await getAudioContext();
+        const now = ctx.currentTime;
+        const switchDuration = crossfadeDuration;
 
-      const now = ctx.currentTime;
-      const switchDuration = crossfadeDuration;
-
-      // Calculate current position in the loop (normalized 0-1)
-      let currentPosition = 0;
-      if (currentSourceRef.current && currentFileRef.current) {
-        const currentBuffer = buffersRef.current.get(currentFileRef.current);
-        if (currentBuffer) {
-          const elapsed = now - currentSourceRef.current.startTime;
-          currentPosition = (elapsed % currentBuffer.duration) / currentBuffer.duration;
+        // Calculate current position in the loop (normalized 0-1)
+        let currentPosition = 0;
+        if (currentSourceRef.current && currentFileRef.current) {
+          const currentBuffer = buffersRef.current.get(currentFileRef.current);
+          if (currentBuffer && currentBuffer.duration > 0) {
+            const elapsed = now - currentSourceRef.current.startTime;
+            currentPosition = (elapsed % currentBuffer.duration) / currentBuffer.duration;
+          }
         }
-      }
 
-      // Create new source at the same relative position
-      const startOffset = currentPosition * buffer.duration;
-      const newAudio = createSource(buffer, startOffset);
+        // Create new source at the same relative position
+        const startOffset = currentPosition * buffer.duration;
+        const safeStartOffset = isFinite(startOffset) ? startOffset : 0;
 
-      // Fade out current with equal-power curve
-      if (currentSourceRef.current) {
-        const currentGain = currentSourceRef.current.gain.gain;
-        currentGain.cancelScheduledValues(now);
-        currentGain.setValueAtTime(1, now);
-        currentGain.setValueCurveAtTime(fadeOut, now, switchDuration);
+        const newAudio = await createSource(buffer, safeStartOffset);
+        const switchNow = ctx.currentTime;
 
-        const oldSource = currentSourceRef.current;
-        setTimeout(() => {
+        // Fade out current with equal-power curve
+        if (currentSourceRef.current) {
+          const currentGain = currentSourceRef.current.gain.gain;
           try {
-            oldSource.source.stop();
-            oldSource.source.disconnect();
-            oldSource.gain.disconnect();
+            currentGain.cancelScheduledValues(switchNow);
+            currentGain.setValueAtTime(currentGain.value, switchNow);
+            currentGain.setValueCurveAtTime(fadeOut, switchNow, switchDuration);
+          } catch (e) {
+            // Ignore scheduling conflicts
+          }
+
+          const oldSource = currentSourceRef.current;
+          setTimeout(() => {
+            try {
+              oldSource.source.stop();
+              oldSource.source.disconnect();
+              oldSource.gain.disconnect();
+            } catch (e) {
+              // Ignore already stopped
+            }
+          }, switchDuration * 1000);
+        }
+
+        // Cancel any scheduled next source
+        if (nextSourceRef.current) {
+          try {
+            nextSourceRef.current.source.stop();
+            nextSourceRef.current.source.disconnect();
+            nextSourceRef.current.gain.disconnect();
           } catch (e) {
             // Ignore
           }
-        }, switchDuration * 1000);
-      }
-
-      // Cancel any scheduled next source
-      if (nextSourceRef.current) {
-        try {
-          nextSourceRef.current.source.stop();
-          nextSourceRef.current.source.disconnect();
-          nextSourceRef.current.gain.disconnect();
-        } catch (e) {
-          // Ignore
+          nextSourceRef.current = null;
         }
-        nextSourceRef.current = null;
+
+        // Start new source with fade in - equal power curve
+        try {
+          newAudio.source.start(0, safeStartOffset);
+          newAudio.gain.gain.setValueAtTime(0, switchNow);
+          newAudio.gain.gain.setValueCurveAtTime(fadeIn, switchNow, switchDuration);
+        } catch (e) {
+          console.error('Failed to start new audio source:', e);
+        }
+
+        newAudio.startTime = switchNow - safeStartOffset;
+        newAudio.endTime = switchNow + (buffer.duration - safeStartOffset);
+        scheduledEndRef.current = newAudio.endTime;
+
+        currentSourceRef.current = newAudio;
+        isSchedulingRef.current = false;
+
+        setCurrentFile(file);
+      } catch (err) {
+        console.error('Error in switchTo:', err);
       }
-
-      // Start new source with fade in - equal power curve
-      newAudio.source.start(0, startOffset);
-      newAudio.gain.gain.setValueAtTime(0, now);
-      newAudio.gain.gain.setValueCurveAtTime(fadeIn, now, switchDuration);
-
-      newAudio.startTime = now - startOffset;
-      newAudio.endTime = now + (buffer.duration - startOffset);
-      scheduledEndRef.current = newAudio.endTime;
-
-      currentSourceRef.current = newAudio;
-      isSchedulingRef.current = false;
-
-      setCurrentFile(file);
     },
     [isPlaying, crossfadeDuration, createSource, play, getAudioContext, fadeIn, fadeOut]
   );
