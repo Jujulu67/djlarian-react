@@ -5,7 +5,7 @@
  * Utilise un cache de clients Prisma par URL pour éviter les reconnexions inutiles.
  */
 
-import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+// @prisma/adapter-better-sqlite3 importé dynamiquement pour éviter d'inclure better-sqlite3 en prod
 import { PrismaNeon } from '@prisma/adapter-neon';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
@@ -37,7 +37,7 @@ if (!global.__prismaClients) {
 /**
  * Détermine le type de base de données et crée l'adaptateur approprié
  */
-function createAdapter(databaseUrl: string): PrismaBetterSqlite3 | PrismaNeon | PrismaPg {
+function createAdapter(databaseUrl: string): any {
   const isSQLiteUrl = databaseUrl.startsWith('file:');
   const isPostgreSQLUrl =
     databaseUrl.startsWith('postgresql://') || databaseUrl.startsWith('postgres://');
@@ -45,14 +45,19 @@ function createAdapter(databaseUrl: string): PrismaBetterSqlite3 | PrismaNeon | 
 
   if (isSQLiteUrl) {
     // SQLite - uniquement pour les tests
+    // Check if better-sqlite3 is available (development only)
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('SQLite not supported in production.');
+    }
+
     logger.warn(
       '⚠️  SQLite détecté. PostgreSQL est maintenant requis. SQLite est uniquement supporté pour les tests.'
     );
     try {
-      const betterSqlite3 = require('better-sqlite3');
-      if (!betterSqlite3) {
-        throw new Error('better-sqlite3 module not found (requis uniquement pour les tests)');
-      }
+      // Dynamic require to prevent bundling better-sqlite3 in production
+
+      const { PrismaBetterSqlite3 } = require('@prisma/adapter-better-sqlite3');
+
       return new PrismaBetterSqlite3({
         url: databaseUrl || 'file:./dev.db',
       });
