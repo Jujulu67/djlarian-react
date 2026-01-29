@@ -2,6 +2,8 @@ import type { NextConfig } from 'next';
 import { withSentryConfig } from '@sentry/nextjs';
 
 const nextConfig: NextConfig = {
+  // Optimisation majeure pour Vercel : ne bundle que le strict nécessaire
+  output: 'standalone',
   reactStrictMode: true, // Activé pour détecter les problèmes potentiels en développement
   // Configuration pour Puppeteer/Chromium sur Vercel
   // Ces packages doivent être externes pour fonctionner correctement dans l'environnement serverless
@@ -62,7 +64,7 @@ const nextConfig: NextConfig = {
   // Exclure explicitement puppeteer du tracing Vercel pour éviter de dépasser les 250MB
   // @ts-ignore - Option valide dans Next.js 15+ mais manquante dans les types actuels
   outputFileTracingExcludes: {
-    '*': ['node_modules/puppeteer', 'node_modules/puppeteer-core'],
+    '*': ['./node_modules/puppeteer', './node_modules/puppeteer/**/*'],
   },
   // Configuration pour Prisma 7 avec tsx
   // Avec tsx loader, Node.js peut charger directement les fichiers .ts de Prisma
