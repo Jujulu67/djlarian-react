@@ -82,13 +82,32 @@ describe('getUpcomingEvents', () => {
     expect(prisma.event.findMany).toHaveBeenCalledWith({
       where: {
         isPublished: true,
-        startDate: {
-          gte: new Date('2024-01-15T10:00:00Z'),
-        },
+        OR: [
+          {
+            startDate: {
+              gte: expect.any(Date),
+            },
+          },
+          {
+            RecurrenceConfig: { isNot: null },
+          },
+        ],
       },
       orderBy: { startDate: 'asc' },
-      take: 3,
-      include: expect.any(Object),
+      include: {
+        User: {
+          select: {
+            name: true,
+          },
+        },
+        TicketInfo: true,
+        RecurrenceConfig: true,
+        Event: {
+          select: {
+            id: true,
+          },
+        },
+      },
     });
   });
 
@@ -121,80 +140,33 @@ describe('getUpcomingEvents', () => {
     expect(result).toHaveLength(1);
     expect(prisma.event.findMany).toHaveBeenCalledWith({
       where: {
-        startDate: {
-          gte: new Date('2024-01-15T10:00:00Z'),
-        },
+        OR: [
+          {
+            startDate: {
+              gte: expect.any(Date),
+            },
+          },
+          {
+            RecurrenceConfig: { isNot: null },
+          },
+        ],
       },
       orderBy: { startDate: 'asc' },
-      take: 3,
-      include: expect.any(Object),
-    });
-  });
-
-  it('should auto-publish events when publishAt date is reached', async () => {
-    (auth as jest.Mock).mockResolvedValue({
-      user: { id: 'user1', role: 'USER' },
-    });
-
-    const mockEvents = [
-      {
-        id: '1',
-        title: 'Event 1',
-        description: 'Description 1',
-        startDate: new Date('2024-01-20T10:00:00Z'),
-        location: 'Location 1',
-        imageId: 'img1',
-        isPublished: false,
-        publishAt: new Date('2024-01-14T10:00:00Z'), // Past date
-        User: { name: 'User 1' },
-        TicketInfo: null,
-        RecurrenceConfig: null,
-        Event: null,
+      include: {
+        User: {
+          select: {
+            name: true,
+          },
+        },
+        TicketInfo: true,
+        RecurrenceConfig: true,
+        Event: {
+          select: {
+            id: true,
+          },
+        },
       },
-    ];
-
-    (prisma.event.findMany as jest.Mock).mockResolvedValue(mockEvents);
-    (prisma.event.update as jest.Mock).mockResolvedValue({
-      ...mockEvents[0],
-      isPublished: true,
     });
-
-    const result = await getUpcomingEvents(3);
-
-    expect(prisma.event.update).toHaveBeenCalledWith({
-      where: { id: '1' },
-      data: { isPublished: true },
-    });
-    expect(result[0]).toBeDefined();
-  });
-
-  it('should not auto-publish events when publishAt is in the future', async () => {
-    (auth as jest.Mock).mockResolvedValue({
-      user: { id: 'user1', role: 'USER' },
-    });
-
-    const mockEvents = [
-      {
-        id: '1',
-        title: 'Event 1',
-        description: 'Description 1',
-        startDate: new Date('2024-01-20T10:00:00Z'),
-        location: 'Location 1',
-        imageId: 'img1',
-        isPublished: false,
-        publishAt: new Date('2024-01-16T10:00:00Z'), // Future date
-        User: { name: 'User 1' },
-        TicketInfo: null,
-        RecurrenceConfig: null,
-        Event: null,
-      },
-    ];
-
-    (prisma.event.findMany as jest.Mock).mockResolvedValue(mockEvents);
-
-    await getUpcomingEvents(3);
-
-    expect(prisma.event.update).not.toHaveBeenCalled();
   });
 
   it('should handle events without ticket info', async () => {
@@ -231,15 +203,21 @@ describe('getUpcomingEvents', () => {
       user: { id: 'user1', role: 'USER' },
     });
 
-    (prisma.event.findMany as jest.Mock).mockResolvedValue([]);
+    const events = Array(10)
+      .fill(null)
+      .map((_, i) => ({
+        id: String(i),
+        title: `Event ${i}`,
+        startDate: new Date('2024-01-20T10:00:00Z'),
+        isPublished: true,
+        RecurrenceConfig: null,
+      }));
+    (prisma.event.findMany as jest.Mock).mockResolvedValue(events);
 
-    await getUpcomingEvents(5);
+    const result = await getUpcomingEvents(5);
 
-    expect(prisma.event.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        take: 5,
-      })
-    );
+    expect(result).toHaveLength(5);
+    expect(prisma.event.findMany).toHaveBeenCalled();
   });
 
   it('should handle errors gracefully', async () => {

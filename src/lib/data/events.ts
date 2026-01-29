@@ -73,14 +73,17 @@ export async function getUpcomingEvents(limit: number = 3): Promise<Event[]> {
           date: event.startDate.toISOString(),
           location: event.location,
           imageId: event.imageId,
-          ticketUrl: (event.TicketInfo as any)?.buyUrl,
+          ticketUrl: event.TicketInfo?.buyUrl ?? undefined,
           isVirtual: false,
         });
       }
 
       // Générer les occurrences virtuelles si il y a une récurrence
       if (event.RecurrenceConfig) {
-        const config = event.RecurrenceConfig as any;
+        const config = {
+          ...event.RecurrenceConfig,
+          excludedDates: (event.RecurrenceConfig.excludedDates as unknown as string[]) || [],
+        };
         const occurrences = generateOccurrences(event, config);
 
         for (const occDate of occurrences) {
@@ -92,7 +95,7 @@ export async function getUpcomingEvents(limit: number = 3): Promise<Event[]> {
               date: occDate.toISOString(),
               location: event.location,
               imageId: event.imageId,
-              ticketUrl: (event.TicketInfo as any)?.buyUrl,
+              ticketUrl: event.TicketInfo?.buyUrl ?? undefined,
               isVirtual: true,
             });
           }
@@ -113,7 +116,10 @@ export async function getUpcomingEvents(limit: number = 3): Promise<Event[]> {
 /**
  * Génère les prochaines occurrences pour un événement récurrent
  */
-function generateOccurrences(event: any, config: any): Date[] {
+function generateOccurrences(
+  event: { startDate: Date },
+  config: { endDate: Date | null; frequency: string; excludedDates: string[] }
+): Date[] {
   const occurrences: Date[] = [];
   const start = new Date(event.startDate);
   const end = config.endDate ? new Date(config.endDate) : null;
@@ -139,9 +145,8 @@ function generateOccurrences(event: any, config: any): Date[] {
   step(); // Première occurrence virtuelle après le maître
 
   while ((!end || current <= end) && current <= maxSearch) {
-    const isExcluded = ((config.excludedDates as string[]) || []).includes(
-      current.toISOString().split('T')[0]
-    );
+    const excludedDates = (config.excludedDates as unknown as string[]) || [];
+    const isExcluded = excludedDates.includes(current.toISOString().split('T')[0]);
     if (!isExcluded) {
       occurrences.push(new Date(current));
     }

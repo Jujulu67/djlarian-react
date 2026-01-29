@@ -1,5 +1,6 @@
 import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { redirect } from 'next/navigation';
 import { LicenseTable } from '@/components/admin/LicenseTable';
 import { Button } from '@/components/ui/Button';
@@ -16,7 +17,19 @@ export default async function AdminLicensesPage() {
     redirect('/');
   }
 
-  let licenses: any[] = [];
+  type LicenseWithDetails = Prisma.LicenseGetPayload<{
+    include: {
+      user: {
+        select: {
+          email: true;
+          name: true;
+        };
+      };
+      activations: true;
+    };
+  }>;
+
+  let licenses: LicenseWithDetails[] = [];
   let error = null;
 
   try {
@@ -81,19 +94,19 @@ export default async function AdminLicensesPage() {
           <div className="bg-black/40 border border-purple-500/20 rounded-lg p-4 backdrop-blur-sm">
             <div className="text-gray-400 text-sm mb-1">Activations</div>
             <div className="text-2xl font-bold text-blue-400">
-              {licenses.reduce((acc: number, l: any) => acc + l.activations.length, 0)}
+              {licenses.reduce((acc: number, l) => acc + l.activations.length, 0)}
             </div>
           </div>
           <div className="bg-black/40 border border-purple-500/20 rounded-lg p-4 backdrop-blur-sm">
             <div className="text-gray-400 text-sm mb-1">Actives</div>
             <div className="text-2xl font-bold text-green-400">
-              {licenses.filter((l: any) => !l.revoked).length}
+              {licenses.filter((l) => !l.revoked).length}
             </div>
           </div>
           <div className="bg-black/40 border border-purple-500/20 rounded-lg p-4 backdrop-blur-sm">
             <div className="text-gray-400 text-sm mb-1">Révoquées</div>
             <div className="text-2xl font-bold text-red-400">
-              {licenses.filter((l: any) => l.revoked).length}
+              {licenses.filter((l) => l.revoked).length}
             </div>
           </div>
         </div>

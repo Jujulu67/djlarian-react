@@ -44,7 +44,13 @@ export function CreateLicenseModal({ isOpen, onClose }: CreateLicenseModalProps)
         .then((data) => {
           if (data.data && Array.isArray(data.data)) {
             // Filter out users who don't have an email
-            const validUsers = data.data.filter((u: any) => u.email) as any[];
+            const validUsers = data.data.filter(
+              (u: { email?: string; name?: string }) => u.email
+            ) as {
+              id: string;
+              email: string;
+              name: string | null;
+            }[];
             setUsers(validUsers);
           }
         })
@@ -98,8 +104,8 @@ export function CreateLicenseModal({ isOpen, onClose }: CreateLicenseModalProps)
       router.refresh();
       onClose();
       toast.success(`Licence créée avec succès: ${data.licenseKey}`);
-    } catch (error: any) {
-      toast.error(`Erreur: ${error.message}`);
+    } catch (error: unknown) {
+      toast.error(`Erreur: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsLoading(false);
     }

@@ -19,8 +19,8 @@ import { fr } from 'date-fns/locale';
 
 interface LicenseActivation {
   id: string;
-  osInfo?: string;
-  pluginVersion?: string;
+  osInfo?: string | null;
+  pluginVersion?: string | null;
   machineId: string;
   lastValidated: Date;
 }
