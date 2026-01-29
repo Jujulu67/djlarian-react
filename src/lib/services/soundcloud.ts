@@ -201,6 +201,8 @@ async function loadPuppeteer(): Promise<PuppeteerLike | null> {
       } else {
         // En local, utiliser puppeteer standard
         logger.debug('[SOUNDCLOUD] Chargement de puppeteer standard (local)...');
+        // Utiliser require pour éviter que webpack ne bundle puppeteer en production
+        // @ts-ignore
         const puppeteerModule = await import('puppeteer');
         // Puppeteer standard a une méthode launch, on l'adapte à notre interface
         puppeteer = {
