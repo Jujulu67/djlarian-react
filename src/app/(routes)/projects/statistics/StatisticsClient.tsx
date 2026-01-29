@@ -1129,11 +1129,13 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
                           }}
                         >
                           <LabelList
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             content={renderTermineLabel as any}
                             position="center"
                             dataKey="TERMINE"
                           />
                           {isTopBar && (
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             <LabelList content={renderTotalLabel as any} position="top" />
                           )}
                         </Bar>
@@ -1159,10 +1161,12 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
                           }}
                         >
                           <LabelList
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             content={renderGhostProdLabel as any}
                             position="center"
                             dataKey="GHOST_PRODUCTION"
                           />
+                          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                           <LabelList content={renderTotalLabel as any} position="top" />
                         </Bar>
                       );

@@ -5,7 +5,7 @@
   "type": "module",
   "packageManager": "pnpm@10.0.0",
   "engines": {
-    "node": "22.x"
+    "node": ">=22.0.0"
   },
   "scripts": {
     "dev": "pnpm tsx scripts/update-hero-title.ts && NODE_OPTIONS='--import tsx' next dev",

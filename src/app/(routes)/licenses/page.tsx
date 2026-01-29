@@ -1,5 +1,6 @@
 import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { redirect } from 'next/navigation';
 import { UserLicenseCard } from '@/components/licenses/UserLicenseCard';
 import { KeyRound, ShoppingBag, ExternalLink } from 'lucide-react';
@@ -15,11 +16,16 @@ export default async function LicensesPage() {
     redirect('/auth/signin?callbackUrl=/licenses');
   }
 
-  let userLicenses: any[] = [];
+  type UserLicenseWithDetails = Prisma.LicenseGetPayload<{
+    include: {
+      activations: true;
+    };
+  }>;
+
+  let userLicenses: UserLicenseWithDetails[] = [];
   let error = null;
 
   try {
-    // @ts-ignore - Prisma client might be generated but DB not migrated yet
     userLicenses = await prisma.license.findMany({
       where: {
         userId: session.user.id,
@@ -66,7 +72,7 @@ export default async function LicensesPage() {
           {/* Content */}
           <div className="space-y-6">
             {userLicenses.length > 0 ? (
-              userLicenses.map((license: any) => (
+              userLicenses.map((license) => (
                 <UserLicenseCard
                   key={license.id}
                   license={license}
