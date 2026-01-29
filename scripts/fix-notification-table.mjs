@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
  * Script pour créer la table Notification si elle n'existe pas
- * 
+ *
  * Ce script vérifie si la table Notification existe et la crée si nécessaire.
  * Utile pour corriger le cas où la migration a été marquée comme "applied"
  * mais n'a jamais été réellement exécutée.
- * 
+ *
  * Usage: node scripts/fix-notification-table.mjs
  */
 
@@ -45,9 +45,11 @@ if (switchActive && existsSync(envLocalPath)) {
   const dbUrlMatch = envContent.match(/^DATABASE_URL=(.+)$/m);
   if (dbUrlMatch) {
     const url = dbUrlMatch[1].trim().replace(/^["']|["']$/g, '');
-    if ((url.startsWith('postgresql://') || url.startsWith('postgres://'))) {
+    if (url.startsWith('postgresql://') || url.startsWith('postgres://')) {
       databaseUrl = url;
-      console.log('✅ Switch de production activé, utilisation de DATABASE_URL depuis .env.local\n');
+      console.log(
+        '✅ Switch de production activé, utilisation de DATABASE_URL depuis .env.local\n'
+      );
     }
   }
 }
@@ -90,7 +92,8 @@ if (!databaseUrl) {
 console.log(`📋 Connexion à: ${databaseUrl.substring(0, 50)}...\n`);
 
 // Vérifier si c'est PostgreSQL
-const isPostgreSQL = databaseUrl.startsWith('postgresql://') || databaseUrl.startsWith('postgres://');
+const isPostgreSQL =
+  databaseUrl.startsWith('postgresql://') || databaseUrl.startsWith('postgres://');
 
 if (!isPostgreSQL) {
   console.error('❌ DATABASE_URL ne pointe pas vers PostgreSQL');
@@ -116,13 +119,13 @@ let prisma;
 try {
   const { PrismaNeon } = await import('@prisma/adapter-neon');
   const adapter = new PrismaNeon(sql);
-  
+
   prisma = new PrismaClient({
     adapter,
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
   });
 } catch (error) {
-  console.error('⚠️  Erreur lors de l\'initialisation de PrismaClient:', error.message);
+  console.error("⚠️  Erreur lors de l'initialisation de PrismaClient:", error.message);
   console.error('   On utilisera directement Neon pour les requêtes SQL');
   prisma = null;
 }
@@ -137,7 +140,7 @@ async function checkTableExists(tableName) {
         AND table_name = ${tableName}
       ) as exists;
     `;
-    
+
     return result[0]?.exists || false;
   } catch (error) {
     console.error(`❌ Erreur lors de la vérification de la table ${tableName}:`, error.message);
@@ -147,7 +150,7 @@ async function checkTableExists(tableName) {
 
 async function createNotificationTable() {
   console.log('🔧 Création de la table Notification...');
-  
+
   try {
     // Créer la table
     await sql`
@@ -166,14 +169,14 @@ async function createNotificationTable() {
         CONSTRAINT "Notification_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project" ("id") ON DELETE CASCADE ON UPDATE CASCADE
       );
     `;
-    
+
     // Créer les index
     await sql`CREATE INDEX IF NOT EXISTS "Notification_userId_idx" ON "Notification"("userId");`;
     await sql`CREATE INDEX IF NOT EXISTS "Notification_projectId_idx" ON "Notification"("projectId");`;
     await sql`CREATE INDEX IF NOT EXISTS "Notification_isRead_idx" ON "Notification"("isRead");`;
     await sql`CREATE INDEX IF NOT EXISTS "Notification_type_idx" ON "Notification"("type");`;
     await sql`CREATE INDEX IF NOT EXISTS "Notification_createdAt_idx" ON "Notification"("createdAt");`;
-    
+
     console.log('✅ Table Notification créée avec succès');
     return true;
   } catch (error) {
@@ -185,14 +188,16 @@ async function createNotificationTable() {
 async function migrateData() {
   // Vérifier si MilestoneNotification existe encore
   const milestoneTableExists = await checkTableExists('MilestoneNotification');
-  
+
   if (!milestoneTableExists) {
-    console.log('ℹ️  Table MilestoneNotification n\'existe pas, pas de migration de données nécessaire');
+    console.log(
+      "ℹ️  Table MilestoneNotification n'existe pas, pas de migration de données nécessaire"
+    );
     return true;
   }
-  
+
   console.log('🔄 Migration des données de MilestoneNotification vers Notification...');
-  
+
   try {
     // Migrer les données
     await sql`
@@ -211,14 +216,14 @@ async function migrateData() {
       FROM "MilestoneNotification"
       ON CONFLICT ("id") DO NOTHING;
     `;
-    
+
     console.log('✅ Données migrées avec succès');
-    
+
     // Supprimer l'ancienne table
-    console.log('🗑️  Suppression de l\'ancienne table MilestoneNotification...');
+    console.log("🗑️  Suppression de l'ancienne table MilestoneNotification...");
     await sql`DROP TABLE IF EXISTS "MilestoneNotification";`;
     console.log('✅ Table MilestoneNotification supprimée');
-    
+
     return true;
   } catch (error) {
     console.error('❌ Erreur lors de la migration des données:', error.message);
@@ -227,8 +232,8 @@ async function migrateData() {
 }
 
 async function addArchiveColumns() {
-  console.log('🔧 Vérification des colonnes d\'archive...');
-  
+  console.log("🔧 Vérification des colonnes d'archive...");
+
   // Vérifier si les colonnes existent déjà
   const columnsCheck = await sql`
     SELECT column_name 
@@ -237,18 +242,18 @@ async function addArchiveColumns() {
     AND table_name = 'Notification'
     AND column_name IN ('isArchived', 'deletedAt');
   `;
-  
-  const existingColumns = columnsCheck.map(c => c.column_name);
+
+  const existingColumns = columnsCheck.map((c) => c.column_name);
   const needsIsArchived = !existingColumns.includes('isArchived');
   const needsDeletedAt = !existingColumns.includes('deletedAt');
-  
+
   if (!needsIsArchived && !needsDeletedAt) {
-    console.log('✅ Colonnes d\'archive déjà présentes');
+    console.log("✅ Colonnes d'archive déjà présentes");
     return true;
   }
-  
+
   if (needsIsArchived || needsDeletedAt) {
-    console.log('🔧 Ajout des colonnes d\'archive...');
+    console.log("🔧 Ajout des colonnes d'archive...");
     try {
       if (needsIsArchived) {
         await sql`ALTER TABLE "Notification" ADD COLUMN IF NOT EXISTS "isArchived" BOOLEAN NOT NULL DEFAULT false;`;
@@ -257,36 +262,36 @@ async function addArchiveColumns() {
       if (needsDeletedAt) {
         await sql`ALTER TABLE "Notification" ADD COLUMN IF NOT EXISTS "deletedAt" TIMESTAMP(3);`;
       }
-      
-      console.log('✅ Colonnes d\'archive ajoutées');
+
+      console.log("✅ Colonnes d'archive ajoutées");
       return true;
     } catch (error) {
-      console.error('❌ Erreur lors de l\'ajout des colonnes:', error.message);
+      console.error("❌ Erreur lors de l'ajout des colonnes:", error.message);
       return false;
     }
   }
-  
+
   return true;
 }
 
 async function main() {
   console.log('🔍 Vérification de la table Notification...\n');
-  
+
   const notificationExists = await checkTableExists('Notification');
-  
+
   if (notificationExists) {
     console.log('✅ Table Notification existe déjà');
-    
+
     // Vérifier quand même les colonnes d'archive
     await addArchiveColumns();
-    
+
     console.log('\n✅ Tout est à jour !');
     await prisma.$disconnect();
     process.exit(0);
   }
-  
-  console.log('⚠️  Table Notification n\'existe pas, création...\n');
-  
+
+  console.log("⚠️  Table Notification n'existe pas, création...\n");
+
   // Créer la table
   const created = await createNotificationTable();
   if (!created) {
@@ -294,15 +299,15 @@ async function main() {
     await prisma.$disconnect();
     process.exit(1);
   }
-  
+
   // Migrer les données
   await migrateData();
-  
+
   // Ajouter les colonnes d'archive
   await addArchiveColumns();
-  
+
   console.log('\n✅ Table Notification créée et configurée avec succès !');
-  
+
   if (prisma) {
     await prisma.$disconnect();
   }
@@ -312,4 +317,3 @@ main().catch((error) => {
   console.error('\n❌ Erreur:', error);
   process.exit(1);
 });
-

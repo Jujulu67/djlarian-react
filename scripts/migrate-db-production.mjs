@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
  * Script de migration de la base de données en production
- * 
+ *
  * Ce script :
  * 1. Vérifie le drift de migration
  * 2. Applique la migration de la table Image
  * 3. Vérifie que tout est OK
- * 
+ *
  * Usage:
  *   node scripts/migrate-db-production.mjs
  */
@@ -27,7 +27,8 @@ dotenv.config({ path: join(rootDir, '.env') });
 // Vérifier qu'on est en production ou que DATABASE_URL pointe vers PostgreSQL
 const databaseUrl = process.env.DATABASE_URL || '';
 const isProduction = process.env.NODE_ENV === 'production';
-const isPostgreSQL = databaseUrl.startsWith('postgresql://') || databaseUrl.startsWith('postgres://');
+const isPostgreSQL =
+  databaseUrl.startsWith('postgresql://') || databaseUrl.startsWith('postgres://');
 
 if (!isProduction && !isPostgreSQL) {
   console.error('❌ Ce script est destiné à la production (PostgreSQL)');
@@ -73,7 +74,7 @@ try {
     });
     console.log('\n   ✅ Migrations appliquées avec succès\n');
   } catch (error) {
-    console.error('\n   ❌ Erreur lors de l\'application des migrations');
+    console.error("\n   ❌ Erreur lors de l'application des migrations");
     console.error('   Vérifiez les logs ci-dessus');
     process.exit(1);
   }
@@ -83,7 +84,7 @@ try {
   try {
     const { PrismaClient } = await import('@prisma/client');
     const prisma = new PrismaClient();
-    
+
     const tableExists = await prisma.$queryRaw`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
@@ -91,19 +92,19 @@ try {
         AND table_name = 'Image'
       );
     `;
-    
+
     if (tableExists[0]?.exists) {
       console.log('   ✅ Table Image existe\n');
-      
+
       // Compter les images
       const count = await prisma.image.count();
       console.log(`   📊 ${count} images dans la table Image\n`);
     } else {
-      console.error('   ❌ Table Image n\'existe pas !');
-      console.error('   La migration n\'a peut-être pas été appliquée correctement.');
+      console.error("   ❌ Table Image n'existe pas !");
+      console.error("   La migration n'a peut-être pas été appliquée correctement.");
       process.exit(1);
     }
-    
+
     await prisma.$disconnect();
   } catch (error) {
     console.error('   ⚠️  Impossible de vérifier la table Image:', error.message);
@@ -117,4 +118,3 @@ try {
   console.error('❌ Erreur fatale:', error);
   process.exit(1);
 }
-

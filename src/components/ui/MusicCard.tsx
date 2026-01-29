@@ -100,43 +100,9 @@ const MusicCardComponent: React.FC<MusicCardProps> = ({
       sendPlayerCommand(youtubePlayer.iframeRef.current, 'youtube', 'pause');
       sendPlayerCommand(soundcloudPlayer.soundcloudIframeRef.current, 'soundcloud', 'pause');
     } else {
-      // When card becomes active, ensure visibility is set to true
-      // Force visibility regardless of playing state to ensure card reopens
-      if (shouldUseYouTube && youtubePlayer.youtubeVideoId) {
-        youtubePlayer.setIsYoutubeVisible(true);
-      }
-      if (shouldUseSoundCloud && soundcloudPlayer.soundcloudUrl) {
-        soundcloudPlayer.setIsSoundcloudVisible(true);
-      }
-
-      const syncTimeout = setTimeout(() => {
-        setLocalIsPlaying(isPlaying);
-      }, 50);
-
-      return () => clearTimeout(syncTimeout);
+      setLocalIsPlaying(isPlaying);
     }
-  }, [
-    isActive,
-    isPlaying,
-    track.id,
-    youtubePlayer,
-    soundcloudPlayer,
-    shouldUseYouTube,
-    shouldUseSoundCloud,
-  ]);
-
-  // Force visibility when isPlaying changes from false to true (even if already active)
-  useEffect(() => {
-    if (isActive && isPlaying) {
-      // Force visibility when playing starts, even if card was already active
-      if (shouldUseYouTube && youtubePlayer.youtubeVideoId) {
-        youtubePlayer.setIsYoutubeVisible(true);
-      }
-      if (shouldUseSoundCloud && soundcloudPlayer.soundcloudUrl) {
-        soundcloudPlayer.setIsSoundcloudVisible(true);
-      }
-    }
-  }, [isPlaying, isActive, shouldUseYouTube, shouldUseSoundCloud, youtubePlayer, soundcloudPlayer]);
+  }, [isActive, isPlaying]);
 
   // Auto-scroll to card when activated (disabled on mobile for better UX)
   useEffect(() => {
@@ -152,12 +118,9 @@ const MusicCardComponent: React.FC<MusicCardProps> = ({
 
   // Handle play click
   const handlePlayClick = useCallback(() => {
-    logger.debug(`[MusicCard ${track.id}] handlePlayClick called for track: ${track.title}`);
-    logger.debug(
-      `[MusicCard ${track.id}] Current state - isActive: ${isActive}, isPlaying: ${isPlaying}`
-    );
+    logger.remote(`[CARD] CLICK-PLAY track: ${track.title} (ID: ${track.id})`);
     onPlay(track);
-  }, [onPlay, track, isActive, isPlaying]);
+  }, [onPlay, track]);
 
   // Handle close player (combines both platforms)
   const handleClosePlayer = useCallback(
@@ -329,9 +292,7 @@ export const MusicCard = React.memo(MusicCardComponent, (prevProps, nextProps) =
     prevProps.isActive === nextProps.isActive &&
     prevProps.priority === nextProps.priority &&
     prevProps.track.title === nextProps.track.title &&
-    prevProps.track.artist === nextProps.track.artist &&
-    prevProps.track.imageId === nextProps.track.imageId &&
-    JSON.stringify(prevProps.track.platforms) === JSON.stringify(nextProps.track.platforms)
+    prevProps.track.imageId === nextProps.track.imageId
   );
 });
 

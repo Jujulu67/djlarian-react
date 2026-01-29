@@ -36,10 +36,11 @@ const otherOptionalVars = {
   SPOTIFY_CLIENT_SECRET: 'Client Secret Spotify (optionnel)',
   YOUTUBE_API_KEY: 'API Key YouTube (optionnel)',
   MUSICBRAINZ_USER_AGENT: 'User-Agent MusicBrainz (requis pour enrichissement)',
-  REQUIRE_MERGE_CONFIRMATION: 'Demander confirmation avant fusion de comptes OAuth (optionnel, par défaut: true, mettre false pour fusion automatique)',
+  REQUIRE_MERGE_CONFIRMATION:
+    'Demander confirmation avant fusion de comptes OAuth (optionnel, par défaut: true, mettre false pour fusion automatique)',
 };
 
-console.log('🔍 Vérification des variables d\'environnement...\n');
+console.log("🔍 Vérification des variables d'environnement...\n");
 
 // Vérifier si .env.local existe
 const envLocalPath = join(process.cwd(), '.env.local');
@@ -81,11 +82,12 @@ let allRequiredPresent = true;
 Object.entries(requiredVars).forEach(([key, desc]) => {
   const value = envVars[key] || process.env[key];
   if (value) {
-    const maskedValue = key.includes('SECRET') || key.includes('PASSWORD') || key.includes('TOKEN')
-      ? '***' + value.slice(-4)
-      : value.length > 50
-      ? value.substring(0, 30) + '...'
-      : value;
+    const maskedValue =
+      key.includes('SECRET') || key.includes('PASSWORD') || key.includes('TOKEN')
+        ? '***' + value.slice(-4)
+        : value.length > 50
+          ? value.substring(0, 30) + '...'
+          : value;
     console.log(`   ✅ ${key} = ${maskedValue}`);
   } else {
     console.log(`   ❌ ${key} - MANQUANT (${desc})`);
@@ -104,8 +106,8 @@ Object.entries(optionalVars).forEach(([key, desc]) => {
     const maskedValue = key.includes('SECRET')
       ? '***' + value.slice(-4)
       : value.length > 50
-      ? value.substring(0, 30) + '...'
-      : value;
+        ? value.substring(0, 30) + '...'
+        : value;
     console.log(`   ✅ ${key} = ${maskedValue}`);
     if (key.includes('GOOGLE')) oauthGoogleConfigured = true;
     if (key.includes('TWITCH')) oauthTwitchConfigured = true;
@@ -122,11 +124,12 @@ let instagramPartiallyConfigured = false;
 Object.entries(instagramVars).forEach(([key, desc]) => {
   const value = envVars[key] || process.env[key];
   if (value) {
-    const maskedValue = key.includes('SECRET') || key.includes('TOKEN')
-      ? '***' + value.slice(-4)
-      : value.length > 50
-      ? value.substring(0, 30) + '...'
-      : value;
+    const maskedValue =
+      key.includes('SECRET') || key.includes('TOKEN')
+        ? '***' + value.slice(-4)
+        : value.length > 50
+          ? value.substring(0, 30) + '...'
+          : value;
     console.log(`   ✅ ${key} = ${maskedValue}`);
     instagramPartiallyConfigured = true;
   } else {
@@ -137,7 +140,7 @@ Object.entries(instagramVars).forEach(([key, desc]) => {
 // Vérifier si Instagram est complètement configuré
 if (instagramPartiallyConfigured) {
   const allInstagramVars = Object.keys(instagramVars);
-  const configuredVars = allInstagramVars.filter(key => envVars[key] || process.env[key]);
+  const configuredVars = allInstagramVars.filter((key) => envVars[key] || process.env[key]);
   instagramConfigured = configuredVars.length === allInstagramVars.length;
 }
 
@@ -149,8 +152,8 @@ Object.entries(otherOptionalVars).forEach(([key, desc]) => {
     const maskedValue = key.includes('SECRET')
       ? '***' + value.slice(-4)
       : value.length > 50
-      ? value.substring(0, 30) + '...'
-      : value;
+        ? value.substring(0, 30) + '...'
+        : value;
     console.log(`   ✅ ${key} = ${maskedValue}`);
   } else {
     console.log(`   ⚠️  ${key} - Non configuré (${desc})`);
@@ -178,7 +181,7 @@ if (oauthGoogleConfigured && oauthTwitchConfigured) {
   console.log('⚠️  OAuth Google non configuré (optionnel, voir docs/OAUTH_SETUP.md)');
 } else {
   console.log('⚠️  OAuth non configuré (optionnel mais recommandé, voir docs/OAUTH_SETUP.md)');
-  console.log('   💡 OAuth Google et Twitch sont 100% gratuits pour l\'authentification');
+  console.log("   💡 OAuth Google et Twitch sont 100% gratuits pour l'authentification");
 }
 
 // Résumé Instagram
@@ -211,4 +214,3 @@ if (envVars.NEXTAUTH_SECRET || envVars.AUTH_SECRET) {
 }
 
 process.exit(allRequiredPresent ? 0 : 1);
-

@@ -62,12 +62,10 @@ Si vous devez absolument rester sur Cloudflare (ex: contraintes client, besoin d
 **Les modifications obligatoires :**
 
 1.  **Stockage de Fichiers (CRITIQUE)** :
-
     - **État actuel** : Tentatives d'accès au disque (`fs`) détectées.
     - **Correction** : Vous DEVEZ utiliser **Cloudflare R2** (équivalent S3) pour tout upload. Le code semble prêt (`src/app/api/upload/route.ts`), mais assurez-vous qu'aucune autre partie du code ne fait de `import fs`.
 
 2.  **Prisma & Base de données** :
-
     - **État actuel** : Patch manuel dans `src/lib/prisma.ts` pour éviter `fs`.
     - **Correction** :
       - Utiliser `@prisma/adapter-neon` (déjà en place).
@@ -75,7 +73,6 @@ Si vous devez absolument rester sur Cloudflare (ex: contraintes client, besoin d
       - **Nettoyer `src/lib/prisma.ts`** : Supprimer le patch `getCurrentBinaryTarget` si vous passez correctement par `driverAdapter`.
 
 3.  **Authentification** :
-
     - S'assurer que `bcryptjs` (pure JS) est utilisé et non `bcrypt` (natif).
     - Configurer NextAuth pour utiliser l'edge runtime explicitement.
 

@@ -1,6 +1,14 @@
 'use client';
 
 import { useRef, useCallback, useEffect, useState, useMemo } from 'react';
+import { logger } from '@/lib/logger';
+
+declare global {
+  interface Window {
+    _iosAudioUnlocked?: boolean;
+    webkitAudioContext?: typeof AudioContext;
+  }
+}
 
 // Generate smooth S-curve (sigmoid) crossfade for transparent transitions
 function generateCrossfadeCurves(steps: number): {
@@ -67,6 +75,7 @@ export function useSeamlessAudioLoop({
   const buffersRef = useRef<Map<string, AudioBuffer>>(new Map());
   const currentSourceRef = useRef<AudioSource | null>(null);
   const nextSourceRef = useRef<AudioSource | null>(null);
+  const silentAudioRef = useRef<HTMLAudioElement | null>(null);
   const scheduledEndRef = useRef<number>(0);
   const isSchedulingRef = useRef(false);
   const animationFrameRef = useRef<number | null>(null);
@@ -80,103 +89,121 @@ export function useSeamlessAudioLoop({
     currentFileRef.current = currentFile;
   }, [currentFile]);
 
-  // Initialize AudioContext on first user interaction
-  const getAudioContext = useCallback(async () => {
-    // Create new context if none exists or if previous one was closed
+  // Sync-safe AudioContext getter
+  const resumeAudioContext = useCallback(() => {
+    // 1. Create context if it doesn't exist
     if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
       const AudioContextClass =
         window.AudioContext ||
         (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (!AudioContextClass) {
-        throw new Error('Web Audio API is not supported in this browser');
+      if (AudioContextClass) {
+        audioContextRef.current = new AudioContextClass();
       }
-      audioContextRef.current = new AudioContextClass();
     }
 
-    // Bypass iOS silent switch by playing a silent HTMLAudioElement
-    // This only works within a user gesture
+    const ctx = audioContextRef.current;
+    if (!ctx) return null;
+
+    // 2. MODERN IOS (17+) SILENT SWITCH BYPASS
     try {
-      const silentAudio = new Audio();
-      // Use a tiny silent base64 WAV if possible, or just play/stop
-      silentAudio.src =
-        'data:audio/wav;base64,UklGRigAAABXQVZFav77vv77vv77vv77vv77vv77vv77vv77vv77vv77vv77vv77';
-      await silentAudio.play();
-      setTimeout(() => {
-        silentAudio.pause();
-        silentAudio.remove();
-      }, 100);
-    } catch (e) {
-      // Ignore errors if gesture wasn't detected or other failures
+      if ('audioSession' in navigator) {
+        // @ts-ignore - audioSession is a newer API
+        (navigator as unknown as { audioSession: { type: string } }).audioSession.type = 'playback';
+      }
+    } catch (e) {}
+
+    // 3. RESUME THE CONTEXT
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
     }
 
-    if (audioContextRef.current.state === 'suspended') {
-      await audioContextRef.current.resume();
-    }
+    // 4. IOS SILENT SWITCH BYPASS FALLBACK (Persistent)
+    try {
+      if (!window._iosAudioUnlocked && !silentAudioRef.current) {
+        const silentAudio = new Audio();
+        silentAudioRef.current = silentAudio;
+        silentAudio.loop = true;
+        silentAudio.setAttribute('playsinline', 'true');
+        silentAudio.src =
+          'data:audio/wav;base64,UklGRigAAABXQVZFav77vv77vv77vv77vv77vv77vv77vv77vv77vv77vv77vv77';
+        silentAudio
+          .play()
+          .then(() => {
+            window._iosAudioUnlocked = true;
+            silentAudio.volume = 0;
+            logger.debug('iOS Mute Bypass Active (Silent Tag)');
+          })
+          .catch(() => {
+            silentAudioRef.current = null;
+          });
 
-    return audioContextRef.current;
+        // Oscillator burst to warm up the context internals
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        gain.gain.value = 0.001;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(0);
+        osc.stop(0.1);
+      }
+    } catch (e) {}
+
+    return ctx;
   }, []);
 
-  // Load a single audio file
-  const loadAudioBuffer = useCallback(
-    async (url: string): Promise<AudioBuffer> => {
-      const ctx = await getAudioContext();
+  // Standard decoder
+  const loadAndDecodeBuffer = useCallback(async (url: string): Promise<AudioBuffer | null> => {
+    try {
       const response = await fetch(url);
       const arrayBuffer = await response.arrayBuffer();
-      return ctx.decodeAudioData(arrayBuffer);
-    },
-    [getAudioContext]
-  );
 
-  // Preload all audio files
+      // We need a context to decode. Use the persistent one or create temporary for decoding
+      const ctx =
+        audioContextRef.current ||
+        new (
+          window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+        )();
+      return await ctx.decodeAudioData(arrayBuffer);
+    } catch (err) {
+      logger.error(`Failed to load/decode ${url}:`, err);
+      return null;
+    }
+  }, []);
+
+  // Preload and DECODE all audio files immediately on mount
   useEffect(() => {
     let mounted = true;
 
     const preloadAll = async () => {
-      try {
-        // Just warm up the buffers if we already have a context,
-        // but don't force context creation here as it's not a user gesture
-        files.map(async (file) => {
-          const url = `${basePath}/${file}`;
-          try {
-            // Check if we already have the buffer
-            if (buffersRef.current.has(file)) return;
+      const loadPromises = files.map(async (file) => {
+        const url = `${basePath}/${file}`;
+        if (buffersRef.current.has(file)) return;
 
-            const response = await fetch(url);
-            const arrayBuffer = await response.arrayBuffer();
-
-            // We need a context to decode, but we shouldn't create/resume it here
-            // if it's not a user gesture. We'll decode later in play() if needed.
-            // However, if we ALREADY have a running context, we can decode now.
-            if (audioContextRef.current && audioContextRef.current.state === 'running') {
-              const buffer = await audioContextRef.current.decodeAudioData(arrayBuffer);
-              if (mounted) {
-                buffersRef.current.set(file, buffer);
-              }
-            }
-          } catch (err) {
-            console.warn(`Failed to preload ${url}:`, err);
-          }
-        });
-
-        if (mounted) {
-          setIsLoaded(true);
+        const buffer = await loadAndDecodeBuffer(url);
+        if (buffer && mounted) {
+          buffersRef.current.set(file, buffer);
         }
-      } catch (err) {
-        console.error('Failed to preload audio:', err);
+      });
+
+      await Promise.all(loadPromises);
+      if (mounted) {
+        setIsLoaded(true);
+        logger.debug('Shop audio engine ready: All files pre-decoded.');
       }
     };
 
     preloadAll();
-
     return () => {
       mounted = false;
     };
-  }, [basePath, files]);
+  }, [basePath, files, loadAndDecodeBuffer]);
 
   // Create a new audio source with gain node
   const createSource = useCallback(
     async (buffer: AudioBuffer, startOffset: number = 0): Promise<AudioSource> => {
-      const ctx = await getAudioContext();
+      const ctx = resumeAudioContext();
+      if (!ctx) throw new Error('No audio context');
       const source = ctx.createBufferSource();
       const gain = ctx.createGain();
 
@@ -195,7 +222,7 @@ export function useSeamlessAudioLoop({
         endTime: now + duration,
       };
     },
-    [getAudioContext]
+    [resumeAudioContext]
   );
 
   // Schedule the next loop iteration
@@ -303,26 +330,22 @@ export function useSeamlessAudioLoop({
   // Start playback
   const play = useCallback(
     (file: string) => {
-      // Run async logic in a fire-and-forget IIFE so the public API stays sync
-      (async () => {
+      // 1. IMMEDIATE SYNCHRONOUS ACTION (CRITICAL FOR IOS SAFARI)
+      const ctx = resumeAudioContext();
+      if (!ctx) return;
+
+      // 2. ASYNC FLOW STARTS HERE
+      const loadAndStart = async () => {
         try {
           let buffer = buffersRef.current.get(file);
 
-          // On some browsers (notably iOS Safari), preloading with WebAudio can fail
-          // before a user gesture. If the buffer is missing on first play, lazily
-          // load & decode it now within the click/tap handler.
           if (!buffer) {
-            try {
-              const url = `${basePath}/${file}`;
-              buffer = await loadAudioBuffer(url);
-              buffersRef.current.set(file, buffer);
-            } catch (err) {
-              console.warn(`Failed to lazily load buffer for ${file}:`, err);
-              return;
-            }
+            const url = `${basePath}/${file}`;
+            buffer = (await loadAndDecodeBuffer(url)) || undefined;
+            if (buffer) buffersRef.current.set(file, buffer);
           }
 
-          const ctx = await getAudioContext();
+          if (!buffer) return;
 
           // Stop any existing playback
           if (currentSourceRef.current) {
@@ -330,18 +353,14 @@ export function useSeamlessAudioLoop({
               currentSourceRef.current.source.stop();
               currentSourceRef.current.source.disconnect();
               currentSourceRef.current.gain.disconnect();
-            } catch (e) {
-              // Ignore
-            }
+            } catch (e) {}
           }
           if (nextSourceRef.current) {
             try {
               nextSourceRef.current.source.stop();
               nextSourceRef.current.source.disconnect();
               nextSourceRef.current.gain.disconnect();
-            } catch (e) {
-              // Ignore
-            }
+            } catch (e) {}
           }
 
           // Create and start new source
@@ -352,18 +371,20 @@ export function useSeamlessAudioLoop({
 
           audioSource.source.start(0);
           audioSource.gain.gain.setValueAtTime(0, ctx.currentTime);
-          audioSource.gain.gain.linearRampToValueAtTime(1, ctx.currentTime + 0.05); // Quick fade in
+          audioSource.gain.gain.linearRampToValueAtTime(1, ctx.currentTime + 0.05);
 
           scheduledEndRef.current = ctx.currentTime + buffer.duration;
 
           setCurrentFile(file);
           setIsPlaying(true);
         } catch (err) {
-          console.error('Error in play:', err);
+          logger.error('Error in play:', err);
         }
-      })();
+      };
+
+      loadAndStart();
     },
-    [basePath, getAudioContext, createSource, loadAudioBuffer]
+    [basePath, resumeAudioContext, createSource, loadAndDecodeBuffer]
   );
 
   // Stop playback
@@ -429,14 +450,21 @@ export function useSeamlessAudioLoop({
         return;
       }
 
-      const buffer = buffersRef.current.get(file);
+      let buffer = buffersRef.current.get(file);
+      if (!buffer) {
+        const url = `${basePath}/${file}`;
+        buffer = (await loadAndDecodeBuffer(url)) || undefined;
+        if (buffer) buffersRef.current.set(file, buffer);
+      }
+
       if (!buffer) {
         console.warn(`Buffer not loaded for ${file}`);
         return;
       }
 
       try {
-        const ctx = await getAudioContext();
+        const ctx = resumeAudioContext();
+        if (!ctx) return;
         const now = ctx.currentTime;
         const switchDuration = crossfadeDuration;
 
@@ -513,7 +541,17 @@ export function useSeamlessAudioLoop({
         console.error('Error in switchTo:', err);
       }
     },
-    [isPlaying, crossfadeDuration, createSource, play, getAudioContext, fadeIn, fadeOut]
+    [
+      isPlaying,
+      crossfadeDuration,
+      createSource,
+      play,
+      resumeAudioContext,
+      fadeIn,
+      fadeOut,
+      basePath,
+      loadAndDecodeBuffer,
+    ]
   );
 
   // Cleanup on unmount

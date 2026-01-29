@@ -46,6 +46,19 @@ export const useYouTubePlayer = ({
   const [isYoutubeLoaded, setIsYoutubeLoaded] = useState(false);
   const [isYoutubeVisible, setIsYoutubeVisible] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
+
+  // Synchronous state adjustment during render to preserve User Gesture on Mobile Safari
+  const [prevIsActive, setPrevIsActive] = useState(isActive);
+  const [prevIsPlaying, setPrevIsPlaying] = useState(isPlaying);
+
+  if (isActive !== prevIsActive || isPlaying !== prevIsPlaying) {
+    if (isActive && isPlaying && shouldActivate && !isYoutubeVisible) {
+      logger.remote(`[YT-SYNC] Synchronously setting visibility to true for ${track.id}`);
+      setIsYoutubeVisible(true);
+    }
+    setPrevIsActive(isActive);
+    setPrevIsPlaying(isPlaying);
+  }
   const timeIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Extract YouTube video ID from URL
@@ -88,32 +101,68 @@ export const useYouTubePlayer = ({
     }
   }, [track, extractYoutubeId]);
 
+  // Use refs to avoid stale closures in message handlers
+  const isPlayingRef = useRef(isPlaying);
+  const isActiveRef = useRef(isActive);
+  const shouldActivateRef = useRef(shouldActivate);
+
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+    isActiveRef.current = isActive;
+    shouldActivateRef.current = shouldActivate;
+  }, [isPlaying, isActive, shouldActivate]);
+
+  // Handle YouTube messages (ready, state changes, etc.)
+  useEffect(() => {
+    const handleYouTubeMessage = (event: MessageEvent) => {
+      if (event.origin !== 'https://www.youtube.com') return;
+
+      try {
+        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+
+        // Handle "ready" event
+        if (data.event === 'onReady') {
+          setIsYoutubeLoaded(true);
+          logger.debug(`[Card ${track.id}] YouTube player READY`);
+
+          // If we should be playing and were not already, this is a good time to ensure volume
+          if (isPlayingRef.current && isActiveRef.current && iframeRef.current) {
+            const currentVolume = getInitialVolume();
+            sendPlayerCommand(iframeRef.current, 'youtube', 'setVolume', currentVolume);
+            // We rely on autoplay=1 for the initial play, but we can verify here if needed
+          }
+        }
+      } catch (e) {
+        // Ignore parsing errors
+      }
+    };
+
+    window.addEventListener('message', handleYouTubeMessage);
+    return () => window.removeEventListener('message', handleYouTubeMessage);
+  }, [track.id, youtubeVideoId]);
+
   // Control YouTube player when active state changes
   useEffect(() => {
     if (!isActive || !shouldActivate) {
-      // When card becomes inactive, hide the player
-      setIsYoutubeVisible(false);
+      if (isYoutubeVisible) setIsYoutubeVisible(false);
       return;
     }
 
-    // When card becomes active, ensure visibility is set
+    // When card becomes active
     if (isPlaying && youtubeVideoId) {
       setIsYoutubeVisible(true);
-      // Use a short delay to ensure the iframe is mounted and the ref is set
-      const timer = setTimeout(() => {
-        if (iframeRef.current) {
-          sendPlayerCommand(iframeRef.current, 'youtube', 'play');
-        }
-      }, 150);
-      return () => clearTimeout(timer);
+
+      // If already loaded, we can send commands directly
+      if (isYoutubeLoaded && iframeRef.current) {
+        sendPlayerCommand(iframeRef.current, 'youtube', 'play');
+      }
     } else if (!isPlaying && iframeRef.current) {
       sendPlayerCommand(iframeRef.current, 'youtube', 'pause');
       setIsYoutubeVisible(true);
     } else if (youtubeVideoId) {
-      // If active but not playing yet, still show the player
       setIsYoutubeVisible(true);
     }
-  }, [isActive, isPlaying, youtubeVideoId, track.id, shouldActivate]);
+  }, [isActive, isPlaying, youtubeVideoId, isYoutubeLoaded, shouldActivate]);
 
   // Determine if YouTube is active
   const isYoutubeActive = Boolean(

@@ -47,7 +47,7 @@ async function checkUser(email) {
     console.log(`   Email: ${user.email}`);
     console.log(`   Rôle: ${user.role || 'N/A'}`);
     console.log(`   Créé le: ${user.createdAt.toISOString()}`);
-    
+
     console.log(`\n🔐 Mot de passe:`);
     if (user.hashedPassword) {
       console.log(`   ✅ Mot de passe défini (hash: ${user.hashedPassword.substring(0, 20)}...)`);
@@ -80,10 +80,11 @@ async function checkUser(email) {
         console.log(`   ℹ️  Plusieurs comptes OAuth disponibles`);
       }
     } else {
-      console.log(`   ⚠️  ATTENTION: L'utilisateur ne peut pas désassocier son dernier compte OAuth`);
+      console.log(
+        `   ⚠️  ATTENTION: L'utilisateur ne peut pas désassocier son dernier compte OAuth`
+      );
       console.log(`      (Aucun mot de passe défini)`);
     }
-
   } catch (error) {
     console.error('❌ Erreur:', error);
   } finally {
@@ -93,4 +94,3 @@ async function checkUser(email) {
 
 const email = process.argv[2] || 'juan.zeiher@viacesi.fr';
 checkUser(email);
-

@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
  * Script pour synchroniser les migrations baseline de SQLite avec PostgreSQL
- * 
+ *
  * Ce script applique les migrations baseline en SQLite local pour aligner
  * avec la production PostgreSQL.
- * 
+ *
  * Usage: node scripts/sync-sqlite-baselines.mjs
  */
 
@@ -38,7 +38,7 @@ if (existsSync(switchPath)) {
 
 if (switchActive) {
   console.log('⚠️  Le switch de production est activé');
-  console.log('   Désactivez-le d\'abord pour utiliser SQLite local\n');
+  console.log("   Désactivez-le d'abord pour utiliser SQLite local\n");
   process.exit(1);
 }
 
@@ -46,40 +46,42 @@ if (switchActive) {
 const baselineMigrations = [
   '20250424125117_init',
   '20250426202133_add_publish_at_to_event',
-  '20250426205234_add_publish_at_to_track'
+  '20250426205234_add_publish_at_to_track',
 ];
 
 console.log('📋 Migrations baseline à synchroniser:');
-baselineMigrations.forEach(m => console.log(`   - ${m}`));
+baselineMigrations.forEach((m) => console.log(`   - ${m}`));
 console.log('');
 
 // Vérifier l'état actuel
-console.log('🔍 Vérification de l\'état actuel...\n');
+console.log("🔍 Vérification de l'état actuel...\n");
 
 try {
-  const statusOutput = execSync('PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true pnpm prisma migrate status', {
-    encoding: 'utf-8',
-    cwd: rootDir,
-    stdio: 'pipe'
-  });
-  
+  const statusOutput = execSync(
+    'PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true pnpm prisma migrate status',
+    {
+      encoding: 'utf-8',
+      cwd: rootDir,
+      stdio: 'pipe',
+    }
+  );
+
   console.log(statusOutput);
-  
+
   // Vérifier si les baselines sont déjà appliquées
-  const baselineApplied = baselineMigrations.every(m => statusOutput.includes(m));
-  
+  const baselineApplied = baselineMigrations.every((m) => statusOutput.includes(m));
+
   if (baselineApplied) {
     console.log('\n✅ Toutes les migrations baseline sont déjà appliquées en SQLite\n');
     process.exit(0);
   }
-  
 } catch (error) {
   const output = error.stdout || error.stderr || '';
   console.log(output);
-  
+
   // Si le statut montre des migrations manquantes, on va les marquer comme appliquées
   if (output.includes('not found locally') || output.includes('different')) {
-    console.log('\n⚠️  Conflit d\'historique détecté');
+    console.log("\n⚠️  Conflit d'historique détecté");
     console.log('   Les migrations baseline doivent être marquées comme appliquées\n');
   }
 }
@@ -90,11 +92,14 @@ console.log('🔧 Marquage des migrations baseline comme appliquées...\n');
 for (const migrationName of baselineMigrations) {
   try {
     console.log(`   📝 ${migrationName}...`);
-    execSync(`PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true pnpm prisma migrate resolve --applied ${migrationName}`, {
-      encoding: 'utf-8',
-      cwd: rootDir,
-      stdio: 'pipe'
-    });
+    execSync(
+      `PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true pnpm prisma migrate resolve --applied ${migrationName}`,
+      {
+        encoding: 'utf-8',
+        cwd: rootDir,
+        stdio: 'pipe',
+      }
+    );
     console.log(`      ✅ ${migrationName} marquée comme appliquée`);
   } catch (error) {
     const output = error.stdout || error.stderr || '';
@@ -110,14 +115,17 @@ console.log('\n✅ Synchronisation terminée !');
 console.log('\n📝 Vérification finale:');
 
 try {
-  const finalStatus = execSync('PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true pnpm prisma migrate status', {
-    encoding: 'utf-8',
-    cwd: rootDir,
-    stdio: 'pipe'
-  });
-  
+  const finalStatus = execSync(
+    'PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true pnpm prisma migrate status',
+    {
+      encoding: 'utf-8',
+      cwd: rootDir,
+      stdio: 'pipe',
+    }
+  );
+
   console.log(finalStatus);
-  
+
   if (finalStatus.includes('up to date') || finalStatus.includes('Database schema is up to date')) {
     console.log('\n✅ SQLite est maintenant aligné avec PostgreSQL !\n');
   }
@@ -125,4 +133,3 @@ try {
   const output = error.stdout || error.stderr || '';
   console.log(output);
 }
-

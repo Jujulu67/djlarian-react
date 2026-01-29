@@ -64,26 +64,22 @@
 ### ✅ Avantages de Neon pour votre cas
 
 1. **Compatible avec votre stack actuelle**
-
    - ✅ PostgreSQL (comme votre base locale)
    - ✅ Prisma fonctionne sans modification
    - ✅ Pas de migration de schéma nécessaire
 
 2. **Plan gratuit généreux**
-
    - ✅ 0.5 GB de stockage
    - ✅ 1 projet gratuit
    - ✅ Connexions illimitées
    - ✅ Pas de limite de temps
 
 3. **Optimisé pour les applications serverless**
-
    - ✅ Auto-scaling (s'endort après inactivité, se réveille automatiquement)
    - ✅ Parfait pour Cloudflare Pages/Workers
    - ✅ Latence faible grâce à leur infrastructure
 
 4. **Facilité d'utilisation**
-
    - ✅ Interface simple
    - ✅ Migration facile depuis votre base locale
    - ✅ Support des connexions TCP (nécessaire pour Prisma)

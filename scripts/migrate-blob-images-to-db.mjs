@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
  * Script de migration : Importe les URLs blob existantes dans la table Image
- * 
+ *
  * Ce script :
  * 1. Liste toutes les images blob existantes (une dernière fois avec list())
  * 2. Les stocke dans la table Image pour éviter les futurs appels list()
  * 3. Est idempotent (peut être exécuté plusieurs fois sans problème)
  * 4. Ne cause pas de régression (continue même en cas d'erreur)
- * 
+ *
  * Usage:
  *   node scripts/migrate-blob-images-to-db.mjs
  */
@@ -107,8 +107,8 @@ async function initPrisma() {
 const isBlobConfigured = !!process.env.BLOB_READ_WRITE_TOKEN;
 
 if (!isBlobConfigured) {
-  console.error('❌ BLOB_READ_WRITE_TOKEN n\'est pas configuré');
-  console.error('   Ce script nécessite l\'accès à Vercel Blob');
+  console.error("❌ BLOB_READ_WRITE_TOKEN n'est pas configuré");
+  console.error("   Ce script nécessite l'accès à Vercel Blob");
   process.exit(1);
 }
 
@@ -139,7 +139,7 @@ function isOriginalImage(pathname) {
 async function migrateBlobImages() {
   // Initialiser Prisma
   await initPrisma();
-  
+
   console.log('🚀 Début de la migration des images blob vers la table Image...\n');
 
   try {
@@ -262,4 +262,3 @@ migrateBlobImages().catch((error) => {
   console.error('❌ Erreur fatale:', error);
   process.exit(1);
 });
-

@@ -3,7 +3,7 @@
 /**
  * Script pour corriger les migrations Prisma pour qu'elles soient compatibles
  * avec SQLite ET PostgreSQL.
- * 
+ *
  * Corrections appliquées:
  * - Supprime CREATE SCHEMA (SQLite ne le supporte pas)
  * - Remplace DATETIME par TIMESTAMP(3) (compatible avec les deux)
@@ -21,7 +21,10 @@ async function fixMigrationFile(filePath) {
 
   // 1. Supprimer CREATE SCHEMA (SQLite ne le supporte pas, PostgreSQL l'ignore si le schéma existe)
   if (content.includes('CREATE SCHEMA')) {
-    content = content.replace(/-- CreateSchema\s*\nCREATE SCHEMA IF NOT EXISTS "public";\s*\n?/g, '');
+    content = content.replace(
+      /-- CreateSchema\s*\nCREATE SCHEMA IF NOT EXISTS "public";\s*\n?/g,
+      ''
+    );
     modified = true;
     console.log(`  ✅ Supprimé CREATE SCHEMA de ${filePath}`);
   }
@@ -59,11 +62,11 @@ async function main() {
     for (const entry of entries) {
       if (entry.isDirectory()) {
         const migrationFile = join(migrationsDir, entry.name, 'migration.sql');
-        
+
         try {
           await readFile(migrationFile, 'utf-8');
           checkedCount++;
-          
+
           if (await fixMigrationFile(migrationFile)) {
             fixedCount++;
           }
@@ -80,7 +83,9 @@ async function main() {
     console.log(`   - ${fixedCount} migration(s) corrigée(s)`);
 
     if (fixedCount > 0) {
-      console.log(`\n💡 Les migrations ont été corrigées pour être compatibles avec SQLite et PostgreSQL.`);
+      console.log(
+        `\n💡 Les migrations ont été corrigées pour être compatibles avec SQLite et PostgreSQL.`
+      );
     } else {
       console.log(`\n✅ Toutes les migrations sont déjà compatibles.`);
     }
@@ -91,4 +96,3 @@ async function main() {
 }
 
 main();
-

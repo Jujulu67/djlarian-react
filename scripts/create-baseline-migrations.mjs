@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
  * Script pour créer les migrations baseline manquantes dans Git
- * 
+ *
  * Ce script crée les migrations baseline qui existent en DB mais pas dans Git
  * pour aligner l'historique et éviter les conflits futurs.
- * 
+ *
  * Usage: node scripts/create-baseline-migrations.mjs
  */
 
@@ -59,7 +59,10 @@ if (!databaseUrl && process.env.DATABASE_URL) {
   databaseUrl = process.env.DATABASE_URL;
 }
 
-if (!databaseUrl || (!databaseUrl.startsWith('postgresql://') && !databaseUrl.startsWith('postgres://'))) {
+if (
+  !databaseUrl ||
+  (!databaseUrl.startsWith('postgresql://') && !databaseUrl.startsWith('postgres://'))
+) {
   console.error('❌ Impossible de trouver une connection string PostgreSQL valide');
   console.error('   Activez le switch de production dans /admin/configuration');
   process.exit(1);
@@ -98,8 +101,8 @@ const dbMigrations = await sql`
 
 // 3. Trouver les migrations en DB mais pas locales
 const missingLocal = dbMigrations
-  .filter(db => !localMigrations.includes(db.migration_name))
-  .map(db => db.migration_name);
+  .filter((db) => !localMigrations.includes(db.migration_name))
+  .map((db) => db.migration_name);
 
 if (missingLocal.length === 0) {
   console.log('✅ Toutes les migrations sont déjà synchronisées !');
@@ -108,7 +111,7 @@ if (missingLocal.length === 0) {
 }
 
 console.log(`📋 Migrations baseline à créer (${missingLocal.length}):`);
-missingLocal.forEach(m => console.log(`   - ${m}`));
+missingLocal.forEach((m) => console.log(`   - ${m}`));
 console.log('');
 
 // 4. Créer les migrations baseline
@@ -116,15 +119,15 @@ console.log('🔧 Création des migrations baseline...\n');
 
 for (const migrationName of missingLocal) {
   const baselineDir = join(migrationsDir, migrationName);
-  
+
   if (existsSync(baselineDir)) {
     console.log(`   ℹ️  ${migrationName} existe déjà, ignoré`);
     continue;
   }
-  
+
   try {
     await mkdirAsync(baselineDir, { recursive: true });
-    
+
     const migrationContent = `-- Baseline migration: Cette migration existe déjà dans la base de données de production
 -- Elle est marquée comme baseline pour synchroniser l'historique des migrations
 -- Aucune modification SQL n'est nécessaire, le schéma est déjà à jour
@@ -147,10 +150,9 @@ console.log('\n✅ Migrations baseline créées !');
 console.log('\n📝 Prochaines étapes:');
 console.log('   1. Vérifiez les migrations créées:');
 console.log('      ls -la prisma/migrations/');
-console.log('   2. Vérifiez l\'état des migrations:');
+console.log("   2. Vérifiez l'état des migrations:");
 console.log('      pnpm run db:analyze-migrations');
 console.log('   3. Commitez les migrations baseline:');
 console.log('      git add prisma/migrations/');
 console.log('      git commit -m "Add baseline migrations to align Git with production DB"');
 console.log('');
-
