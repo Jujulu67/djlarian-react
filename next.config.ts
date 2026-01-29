@@ -64,7 +64,21 @@ const nextConfig: NextConfig = {
   // Exclure explicitement puppeteer du tracing Vercel pour éviter de dépasser les 250MB
   // @ts-ignore - Option valide dans Next.js 15+ mais manquante dans les types actuels
   outputFileTracingExcludes: {
-    '*': ['./node_modules/puppeteer', './node_modules/puppeteer/**/*'],
+    '*': [
+      './node_modules/puppeteer',
+      './node_modules/puppeteer/**/*',
+      './node_modules/typescript',
+      './node_modules/typescript/**/*',
+      './node_modules/@types',
+      './node_modules/@types/**/*',
+      './node_modules/better-sqlite3',
+      // Exclure les gros fichiers statiques qui sont servis par le CDN
+      './public/uploads/**/*',
+      './public/assets/**/*',
+      './public/gifs/**/*',
+      './public/images/**/*',
+      './public/audio/**/*',
+    ],
   },
   // Configuration pour Prisma 7 avec tsx
   // Avec tsx loader, Node.js peut charger directement les fichiers .ts de Prisma
