@@ -43,6 +43,15 @@ interface Page {
     ...args: unknown[]
   ) => Promise<unknown>;
   evaluate: <T>(fn: (profileName: string) => T, ...args: unknown[]) => Promise<T>;
+  setExtraHTTPHeaders?: (headers: Record<string, string>) => Promise<void>;
+  setViewport?: (viewport: {
+    width: number;
+    height: number;
+    deviceScaleFactor?: number;
+    isMobile?: boolean;
+    hasTouch?: boolean;
+    isLandscape?: boolean;
+  }) => Promise<void>;
 }
 
 interface HTTPRequest {
@@ -368,8 +377,24 @@ async function scrapeSoundCloudTracksPage(profileName: string): Promise<SoundClo
 
     // Configurer le User-Agent
     await page.setUserAgent(
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     );
+
+    // Configurer les headers supplémentaires pour paraître plus humain
+    await page.setExtraHTTPHeaders?.({
+      'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7',
+      Referer: 'https://www.google.com/',
+    });
+
+    // Configurer un viewport réaliste
+    await page.setViewport?.({
+      width: 1280 + Math.floor(Math.random() * 100),
+      height: 720 + Math.floor(Math.random() * 100),
+      deviceScaleFactor: 1,
+    });
+
+    // Petit délai aléatoire avant la navigation
+    await new Promise((resolve) => setTimeout(resolve, 500 + Math.floor(Math.random() * 1000)));
 
     // Charger la page avec domcontentloaded (plus rapide que networkidle2)
     logger.debug(`[SOUNDCLOUD] Chargement de la page avec Puppeteer...`);
@@ -381,10 +406,13 @@ async function scrapeSoundCloudTracksPage(profileName: string): Promise<SoundClo
     // Attendre que les éléments de tracks soient présents (timeout réduit)
     logger.debug(`[SOUNDCLOUD] Attente du chargement des tracks...`);
     try {
-      await page.waitForSelector('.soundList_item, .sound__coverArt, .sound_coverArt', {
-        timeout: 3000, // Réduit à 3 secondes
-        visible: false, // Plus rapide, on n'a pas besoin que ce soit visible
-      });
+      await page.waitForSelector(
+        '.soundList_item, .soundBadge, .soundBadgeList__item, .sound__coverArt, .sound_coverArt',
+        {
+          timeout: 3000, // Réduit à 3 secondes
+          visible: false, // Plus rapide, on n'a pas besoin que ce soit visible
+        }
+      );
       logger.debug(`[SOUNDCLOUD] Éléments de tracks détectés dans le DOM`);
     } catch (error) {
       logger.debug(
@@ -401,7 +429,9 @@ async function scrapeSoundCloudTracksPage(profileName: string): Promise<SoundClo
     while (scrollAttempts < maxScrollAttempts) {
       // Compter les tracks actuellement visibles
       const currentTrackCount = await page.evaluate(() => {
-        return document.querySelectorAll('.sound_coverArt, .sound__coverArt').length;
+        return document.querySelectorAll(
+          '.sound_coverArt, .sound__coverArt, .soundBadge, .soundBadgeList__item'
+        ).length;
       });
 
       logger.debug(
@@ -423,19 +453,19 @@ async function scrapeSoundCloudTracksPage(profileName: string): Promise<SoundClo
         window.scrollTo(0, document.body.scrollHeight);
       });
 
-      // Attendre très peu (200ms) et vérifier immédiatement si de nouveaux éléments sont chargés
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      // Attendre un peu (200ms à 600ms) pour simuler une lecture humaine
+      await new Promise((resolve) => setTimeout(resolve, 200 + Math.floor(Math.random() * 400)));
 
       // Attendre que de nouveaux éléments soient chargés avec timeout très court
       try {
         await page.waitForFunction(
           (prevCount: number) => {
             const currentCount = document.querySelectorAll(
-              '.sound_coverArt, .sound__coverArt'
+              '.sound_coverArt, .sound__coverArt, .soundBadge, .soundBadgeList__item'
             ).length;
             return currentCount > prevCount;
           },
-          { timeout: 500, polling: 50 }, // Timeout très court (500ms) et polling plus fréquent
+          { timeout: 1000, polling: 100 }, // Un peu plus de temps pour laisser le contenu charger
           previousTrackCount
         );
       } catch {
@@ -480,8 +510,10 @@ async function scrapeSoundCloudTracksPage(profileName: string): Promise<SoundClo
       }> = [];
       const seenUrls = new Set<string>();
 
-      // Chercher tous les éléments .sound_coverArt et .sound__coverArt
-      const coverArts = document.querySelectorAll('.sound_coverArt, .sound__coverArt');
+      // Chercher tous les éléments de track possibles
+      const coverArts = document.querySelectorAll(
+        '.soundBadge, .soundBadgeList__item, .sound_coverArt, .sound__coverArt'
+      );
 
       coverArts.forEach((el, index) => {
         const link = el as HTMLElement;
@@ -693,7 +725,23 @@ async function scrapeSoundCloudTracksPage(profileName: string): Promise<SoundClo
               .replace(/\\/g, '')
               .replace('-t200x200', '-t500x500')
               .replace('-large', '-t500x500')
+              .replace('-badge', '-t500x500') // Gérer le nouveau format badge
               .split('?')[0];
+          }
+        }
+
+        // Si pas d'image trouvée dans le lien, chercher dans les enfants (format badge)
+        if (!imageUrl) {
+          const badgeImg = link.querySelector('img.sc-artwork, .soundBadge__artwork img');
+          if (badgeImg) {
+            const src = badgeImg.getAttribute('src');
+            if (src) {
+              imageUrl = src
+                .replace('-t200x200', '-t500x500')
+                .replace('-large', '-t500x500')
+                .replace('-badge', '-t500x500')
+                .split('?')[0];
+            }
           }
         }
 

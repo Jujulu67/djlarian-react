@@ -10,33 +10,33 @@
   }
 
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
 
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
 
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
 
     --radius: 0.5rem;
 
@@ -1193,61 +1193,76 @@ header nav button.navMenuItem {
 header nav a.navMenuItem:hover,
 header nav button.navMenuItem:hover {
   color: rgba(255, 255, 255, 1) !important;
-  background: rgba(168, 85, 247, 0.1) !important; /* purple-500/10 */
+  background: rgba(168, 85, 247, 0.1) !important;
+  /* purple-500/10 */
 }
 
 header nav a.navMenuItem.navMenuItemAccent,
 header nav button.navMenuItem.navMenuItemAccent {
-  color: rgb(216, 180, 254) !important; /* purple-300 */
+  color: rgb(216, 180, 254) !important;
+  /* purple-300 */
 }
 
 header nav a.navMenuItem.navMenuItemAccent:hover,
 header nav button.navMenuItem.navMenuItemAccent:hover {
-  color: rgb(233, 213, 255) !important; /* purple-200 */
+  color: rgb(233, 213, 255) !important;
+  /* purple-200 */
 }
 
 header nav a.navMenuItem.navMenuItemAdmin,
 header nav button.navMenuItem.navMenuItemAdmin {
-  color: rgb(248, 113, 113) !important; /* red-400 */
+  color: rgb(248, 113, 113) !important;
+  /* red-400 */
 }
 
 header nav a.navMenuItem.navMenuItemAdmin:hover,
 header nav button.navMenuItem.navMenuItemAdmin:hover {
-  color: rgb(252, 165, 165) !important; /* red-300 */
-  background: rgba(239, 68, 68, 0.1) !important; /* red-500/10 */
+  color: rgb(252, 165, 165) !important;
+  /* red-300 */
+  background: rgba(239, 68, 68, 0.1) !important;
+  /* red-500/10 */
 }
 
 header nav a.navMenuItem.navMenuItemDanger,
 header nav button.navMenuItem.navMenuItemDanger {
-  color: rgb(239, 68, 68) !important; /* red-500 */
+  color: rgb(239, 68, 68) !important;
+  /* red-500 */
 }
 
 header nav a.navMenuItem.navMenuItemDanger:hover,
 header nav button.navMenuItem.navMenuItemDanger:hover {
-  color: rgb(248, 113, 113) !important; /* red-400 */
-  background: rgba(239, 68, 68, 0.1) !important; /* red-500/10 */
+  color: rgb(248, 113, 113) !important;
+  /* red-400 */
+  background: rgba(239, 68, 68, 0.1) !important;
+  /* red-500/10 */
 }
 
 header nav a.navMenuItem.navMenuItemSuccess,
 header nav button.navMenuItem.navMenuItemSuccess {
-  color: rgb(52, 211, 153) !important; /* emerald-400 */
+  color: rgb(52, 211, 153) !important;
+  /* emerald-400 */
 }
 
 header nav a.navMenuItem.navMenuItemSuccess:hover,
 header nav button.navMenuItem.navMenuItemSuccess:hover {
-  color: rgb(110, 231, 183) !important; /* emerald-300 */
-  background: rgba(16, 185, 129, 0.1) !important; /* emerald-500/10 */
+  color: rgb(110, 231, 183) !important;
+  /* emerald-300 */
+  background: rgba(16, 185, 129, 0.1) !important;
+  /* emerald-500/10 */
 }
 
 header nav a.navMenuItem.navMenuItemWarning,
 header nav button.navMenuItem.navMenuItemWarning {
-  color: rgb(251, 146, 60) !important; /* orange-400 */
+  color: rgb(251, 146, 60) !important;
+  /* orange-400 */
 }
 
 header nav a.navMenuItem.navMenuItemWarning:hover,
 header nav button.navMenuItem.navMenuItemWarning:hover {
-  color: rgb(253, 186, 116) !important; /* orange-300 */
-  background: rgba(249, 115, 22, 0.1) !important; /* orange-500/10 */
+  color: rgb(253, 186, 116) !important;
+  /* orange-300 */
+  background: rgba(249, 115, 22, 0.1) !important;
+  /* orange-500/10 */
 }
 
 /* Ensure text on glass backgrounds is readable */

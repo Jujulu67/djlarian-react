@@ -31,15 +31,15 @@ export function ReleaseItem({ release, isSelected, onToggle }: ReleaseItemProps)
             ? `Désélectionner : ${release.title}`
             : `Sélectionner : ${release.title}`
       }
-      className={`flex items-center gap-4 p-4 rounded-lg border transition-colors ${
+      className={`flex items-center gap-4 p-4 rounded-lg border transition-all ${
         release.exists
-          ? 'bg-green-900/20 border-green-700/50 text-green-200'
+          ? 'bg-green-900/10 border-green-500/20 text-green-400'
           : isSelected
-            ? 'bg-purple-900/30 border-purple-700/50'
-            : 'bg-gray-800/40 border-gray-700/30'
+            ? 'bg-purple-900/20 border-purple-500/40 shadow-[0_0_15px_rgba(147,51,234,0.1)]'
+            : 'bg-gray-800/20 border-gray-700/30 text-muted-foreground hover:bg-gray-800/30'
       }
         cursor-pointer
-        hover:ring-2 hover:ring-purple-500`}
+        hover:ring-1 hover:ring-purple-500/50`}
     >
       {!release.exists && (
         <button
@@ -67,12 +67,12 @@ export function ReleaseItem({ release, isSelected, onToggle }: ReleaseItemProps)
       )}
       <div className="flex-1 min-w-0">
         <h4 className="font-medium truncate text-white">{release.title}</h4>
-        <p className="text-sm text-gray-400 truncate">{release.artist}</p>
+        <p className="text-sm text-muted-foreground truncate">{release.artist}</p>
         <div className="flex items-center gap-2 mt-1 flex-wrap">
-          <span className="text-xs px-2 py-0.5 rounded-full bg-purple-600/30 text-purple-200 whitespace-nowrap">
+          <span className="text-xs px-2 py-0.5 rounded-full bg-purple-600 text-white whitespace-nowrap">
             {MUSIC_TYPES.find((t) => t.value === release.type)?.label || release.type}
           </span>
-          <span className="text-xs text-gray-400 whitespace-nowrap">
+          <span className="text-xs text-muted-foreground whitespace-nowrap">
             {new Date(release.releaseDate).toLocaleDateString('fr-FR', {
               day: '2-digit',
               month: '2-digit',
@@ -80,12 +80,12 @@ export function ReleaseItem({ release, isSelected, onToggle }: ReleaseItemProps)
             })}
           </span>
           {release.isScheduled && (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-blue-700/50 text-blue-200 whitespace-nowrap">
+            <span className="text-xs px-2 py-0.5 rounded-full bg-blue-600 text-white whitespace-nowrap">
               Pré-release
             </span>
           )}
           {release.exists && (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-green-700/50 text-green-200 whitespace-nowrap">
+            <span className="text-xs px-2 py-0.5 rounded-full bg-green-600 text-white whitespace-nowrap font-medium">
               Déjà importé
             </span>
           )}
@@ -96,7 +96,7 @@ export function ReleaseItem({ release, isSelected, onToggle }: ReleaseItemProps)
           href={release.spotifyUrl || release.soundcloudUrl || release.youtubeUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg flex-shrink-0"
+          className="p-2 text-muted-foreground hover:text-white hover:bg-gray-700 rounded-lg flex-shrink-0"
           title={
             release.spotifyUrl
               ? 'Voir sur Spotify'

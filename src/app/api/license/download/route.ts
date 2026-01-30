@@ -48,7 +48,7 @@ export async function GET(req: Request) {
         Authorization: `token ${token}`,
         Accept: 'application/vnd.github.v3+json',
       },
-      next: { revalidate: 3600 }, // Cache release info for 1 hour
+      cache: 'no-store', // Disable cache to ensure we get the latest assets
     });
 
     if (!releaseRes.ok) {
@@ -76,15 +76,31 @@ export async function GET(req: Request) {
     }
 
     // 3. Stream the asset from GitHub
-    const assetRes = await fetch(asset.url, {
+    // We use manual redirect handling to ensure the Authorization header
+    // is NOT sent to the redirect destination (S3/Azure), which often causes 403s.
+    let assetRes = await fetch(asset.url, {
       headers: {
         Authorization: `token ${token}`,
-        Accept: 'application/octet-stream', // Required for asset download
+        Accept: 'application/octet-stream',
       },
+      redirect: 'manual',
     });
 
+    if (assetRes.status === 302) {
+      const redirectUrl = assetRes.headers.get('location');
+      if (redirectUrl) {
+        assetRes = await fetch(redirectUrl); // Don't send Authorization to the redirect URL
+      }
+    }
+
     if (!assetRes.ok) {
-      return new NextResponse('Failed to download asset from GitHub', { status: 502 });
+      console.error(`Failed to download asset: ${assetRes.status} ${assetRes.statusText}`, {
+        url: asset.url,
+        assetName: asset.name,
+      });
+      return new NextResponse(`Failed to download asset from GitHub (${assetRes.status})`, {
+        status: 502,
+      });
     }
 
     // Return the stream with correct headers

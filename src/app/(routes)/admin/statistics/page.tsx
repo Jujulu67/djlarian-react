@@ -262,9 +262,15 @@ export default function StatisticsPage() {
               onValueChange={(value: string) => setActiveView(value as Period)}
             >
               <TabsList className="bg-purple-900/30 border border-purple-500/20 text-purple-300">
-                <TabsTrigger value="daily">Journalier</TabsTrigger>
-                <TabsTrigger value="weekly">Hebdomadaire</TabsTrigger>
-                <TabsTrigger value="monthly">Mensuel</TabsTrigger>
+                <TabsTrigger value="daily" className="data-[state=active]:bg-purple-600">
+                  Journalier
+                </TabsTrigger>
+                <TabsTrigger value="weekly" className="data-[state=active]:bg-purple-600">
+                  Hebdomadaire
+                </TabsTrigger>
+                <TabsTrigger value="monthly" className="data-[state=active]:bg-purple-600">
+                  Mensuel
+                </TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
