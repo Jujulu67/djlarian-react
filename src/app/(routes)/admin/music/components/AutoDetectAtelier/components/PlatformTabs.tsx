@@ -90,7 +90,7 @@ export function PlatformTabs({
                 className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white focus:ring-purple-500"
                 placeholder="Ex: 4Z8W4fKeB5YxbusRsdQVPb"
               />
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Trouvez votre Artist ID sur votre profil Spotify
               </p>
             </div>
@@ -177,7 +177,7 @@ export function PlatformTabs({
                 className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white focus:ring-purple-500"
                 placeholder="Ex: soundcloud.com/larian"
               />
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 URL complète ou juste le nom d&apos;utilisateur
               </p>
             </div>

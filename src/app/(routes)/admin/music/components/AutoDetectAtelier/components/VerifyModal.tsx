@@ -120,7 +120,7 @@ export function VerifyModal({
             Vérifier ({verifyIndex + 1}/{totalReleases})
           </h2>
           {(isEnriching || isSearchingPlatforms) && (
-            <div className="flex items-center gap-2 text-sm text-gray-400">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <RefreshCw className="w-4 h-4 animate-spin" />
               {isEnriching && 'Enrichissement des métadonnées...'}
               {isSearchingPlatforms && 'Recherche des plateformes...'}
@@ -144,27 +144,27 @@ export function VerifyModal({
 
             {/* Informations Spotify enrichies */}
             {shouldShowSpotifyData && (
-              <div className="p-4 bg-purple-900/20 border border-purple-700/50 rounded-lg">
-                <h3 className="text-sm font-semibold text-purple-200 mb-3 flex items-center gap-2">
+              <div className="p-4 bg-purple-900/10 border border-purple-500/20 rounded-lg backdrop-blur-sm">
+                <h3 className="text-xs font-bold text-purple-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                   <Sparkles className="w-4 h-4" />
                   Données Spotify
                 </h3>
                 <div className="space-y-2 text-sm">
                   {spotifyOriginalData.bpm ? (
                     <div className="flex justify-between">
-                      <span className="text-gray-400">BPM:</span>
+                      <span className="text-muted-foreground">BPM:</span>
                       <span className="text-white font-medium">{spotifyOriginalData.bpm}</span>
                     </div>
                   ) : null}
                   {spotifyOriginalData.key ? (
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Clé:</span>
+                      <span className="text-muted-foreground">Clé:</span>
                       <span className="text-white font-medium">{spotifyOriginalData.key}</span>
                     </div>
                   ) : null}
                   {spotifyOriginalData.genres.length > 0 ? (
                     <div>
-                      <span className="text-gray-400 block mb-1">Genres:</span>
+                      <span className="text-muted-foreground block mb-1">Genres:</span>
                       <div className="flex flex-wrap gap-1">
                         {spotifyOriginalData.genres.slice(0, 3).map((g) => (
                           <span
@@ -205,15 +205,17 @@ export function VerifyModal({
 
             {/* Afficher les plateformes trouvées */}
             {Object.keys(platformSearchResults).length > 0 && (
-              <div className="p-3 bg-green-900/20 border border-green-700/50 rounded-lg">
-                <p className="text-xs text-green-200 mb-2 font-medium">Plateformes trouvées :</p>
+              <div className="p-3 bg-gray-900/40 border border-gray-700/50 rounded-lg backdrop-blur-sm">
+                <p className="text-[10px] text-white/90 mb-2 font-bold uppercase tracking-widest">
+                  Plateformes trouvées :
+                </p>
                 <div className="flex flex-wrap gap-2">
                   {platformSearchResults.youtube && (
                     <a
                       href={platformSearchResults.youtube.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs px-2 py-1 rounded bg-red-600/30 text-red-200 hover:bg-red-600/50 transition-colors cursor-pointer"
+                      className="text-[11px] px-2 py-1 rounded bg-red-600 text-white hover:bg-red-700 transition-all cursor-pointer font-medium"
                     >
                       YouTube
                     </a>
@@ -223,7 +225,7 @@ export function VerifyModal({
                       href={platformSearchResults.soundcloud.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs px-2 py-1 rounded bg-orange-600/30 text-orange-200 hover:bg-orange-600/50 transition-colors cursor-pointer"
+                      className="text-[11px] px-2 py-1 rounded bg-orange-600 text-white hover:bg-orange-700 transition-all cursor-pointer font-medium"
                     >
                       SoundCloud
                     </a>
@@ -233,7 +235,7 @@ export function VerifyModal({
                       href={platformSearchResults.apple.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs px-2 py-1 rounded bg-pink-600/30 text-pink-200 hover:bg-pink-600/50 transition-colors cursor-pointer"
+                      className="text-[11px] px-2 py-1 rounded bg-pink-600 text-white hover:bg-pink-700 transition-all cursor-pointer font-medium"
                     >
                       Apple Music
                     </a>
@@ -243,7 +245,7 @@ export function VerifyModal({
                       href={platformSearchResults.deezer.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs px-2 py-1 rounded bg-blue-600/30 text-blue-200 hover:bg-blue-600/50 transition-colors cursor-pointer"
+                      className="text-[11px] px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 transition-all cursor-pointer font-medium"
                     >
                       Deezer
                     </a>
@@ -386,7 +388,7 @@ export function VerifyModal({
                       href={verifyFormData.platforms.spotify.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-1.5 text-gray-400 hover:text-green-400 hover:bg-gray-600 rounded transition-colors"
+                      className="p-1.5 text-muted-foreground hover:text-green-400 hover:bg-gray-600 rounded transition-colors"
                       title="Ouvrir dans un nouvel onglet"
                     >
                       <ExternalLink className="w-4 h-4" />
@@ -407,7 +409,7 @@ export function VerifyModal({
                       href={verifyFormData.platforms.youtube.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-gray-600 rounded transition-colors"
+                      className="p-1.5 text-muted-foreground hover:text-red-400 hover:bg-gray-600 rounded transition-colors"
                       title="Ouvrir dans un nouvel onglet"
                     >
                       <ExternalLink className="w-4 h-4" />
@@ -428,7 +430,7 @@ export function VerifyModal({
                       href={verifyFormData.platforms.soundcloud.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-1.5 text-gray-400 hover:text-orange-400 hover:bg-gray-600 rounded transition-colors"
+                      className="p-1.5 text-muted-foreground hover:text-orange-400 hover:bg-gray-600 rounded transition-colors"
                       title="Ouvrir dans un nouvel onglet"
                     >
                       <ExternalLink className="w-4 h-4" />
@@ -449,7 +451,7 @@ export function VerifyModal({
                       href={verifyFormData.platforms.apple.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-1.5 text-gray-400 hover:text-pink-400 hover:bg-gray-600 rounded transition-colors"
+                      className="p-1.5 text-muted-foreground hover:text-pink-400 hover:bg-gray-600 rounded transition-colors"
                       title="Ouvrir dans un nouvel onglet"
                     >
                       <ExternalLink className="w-4 h-4" />
@@ -470,7 +472,7 @@ export function VerifyModal({
                       href={verifyFormData.platforms.deezer.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-1.5 text-gray-400 hover:text-blue-400 hover:bg-gray-600 rounded transition-colors"
+                      className="p-1.5 text-muted-foreground hover:text-blue-400 hover:bg-gray-600 rounded transition-colors"
                       title="Ouvrir dans un nouvel onglet"
                     >
                       <ExternalLink className="w-4 h-4" />
@@ -534,7 +536,7 @@ export function VerifyModal({
                     className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-purple-500 resize-none h-32"
                     placeholder="Description du morceau (pitch, contexte, etc.)"
                   />
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     Pitch, contexte de création, ou informations complémentaires
                   </p>
                 </div>
