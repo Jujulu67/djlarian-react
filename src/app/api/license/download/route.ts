@@ -96,16 +96,26 @@ async function handleDownloadRequest(req: Request) {
 
     // Find asset based on OS
     // Expecting filenames like: LarianCrusher-Mac.pkg, LarianCrusher-Win.exe, etc.
-    const asset = release.assets.find((a: any) => {
-      const name = a.name.toLowerCase();
-      if (os === 'mac') {
-        return name.endsWith('.pkg') || name.endsWith('.dmg') || name.includes('mac');
-      }
-      if (os === 'windows') {
-        return name.endsWith('.exe') || name.endsWith('.msi') || name.includes('win');
-      }
-      return false;
-    });
+    let asset;
+    const assets = release.assets || [];
+
+    if (os === 'mac') {
+      asset =
+        assets.find((a: any) => a.name.toLowerCase().endsWith('.pkg')) ||
+        assets.find((a: any) => a.name.toLowerCase().endsWith('.dmg')) ||
+        assets.find((a: any) => {
+          const lowerName = a.name.toLowerCase();
+          return lowerName.includes('mac') && !lowerName.includes('standalone');
+        });
+    } else if (os === 'windows') {
+      asset =
+        assets.find((a: any) => a.name.toLowerCase().endsWith('.exe')) ||
+        assets.find((a: any) => a.name.toLowerCase().endsWith('.msi')) ||
+        assets.find((a: any) => {
+          const lowerName = a.name.toLowerCase();
+          return lowerName.includes('win') && !lowerName.includes('standalone');
+        });
+    }
 
     if (!asset) {
       return new NextResponse(`No installer found for ${os}`, { status: 404 });
