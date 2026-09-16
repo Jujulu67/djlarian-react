@@ -6,6 +6,7 @@ import { getInitialVolume, sendPlayerCommand, applyVolumeToAllPlayers } from '..
 // Mock logger
 jest.mock('@/lib/logger', () => ({
   logger: {
+    remote: jest.fn(),
     error: jest.fn(),
     debug: jest.fn(),
   },

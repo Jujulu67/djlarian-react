@@ -9,6 +9,7 @@ import { useYouTubePlayer } from '../useYouTubePlayer';
 jest.mock('@/lib/utils/audioUtils');
 jest.mock('@/lib/logger', () => ({
   logger: {
+    remote: jest.fn(),
     debug: jest.fn(),
     warn: jest.fn(),
     error: jest.fn(),
@@ -139,8 +140,9 @@ describe('useYouTubePlayer', () => {
       })
     );
 
-    // Simulate iframe ref
+    // Attach the iframe and signal that its player is ready.
     (result.current.iframeRef as any).current = mockIframe;
+    act(() => result.current.handleIframeLoad());
 
     act(() => {
       jest.advanceTimersByTime(200);

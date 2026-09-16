@@ -9,6 +9,7 @@ import type { Track } from '@/lib/utils/types';
 // Mock dependencies
 jest.mock('@/lib/logger', () => ({
   logger: {
+    remote: jest.fn(),
     debug: jest.fn(),
   },
 }));

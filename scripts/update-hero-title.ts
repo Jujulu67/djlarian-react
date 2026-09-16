@@ -7,7 +7,7 @@ async function main() {
 
   try {
     const dbUrl = process.env.DATABASE_URL || 'file:./dev.db';
-    console.log(`ℹ️ Using Database URL: ${dbUrl}`);
+    console.log('ℹ️ Database configuration loaded.');
 
     // Strategy 1: Local SQLite (file: or sqlite:)
     // Use sqlite3 CLI to bypass Node ABI/adapter issues with better-sqlite3

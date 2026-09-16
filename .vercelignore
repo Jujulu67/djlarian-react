@@ -1,0 +1,9 @@
+# Local media backups and source copies are not part of the deployed site.
+public/**/*.bak
+GIFS/
+
+# Local diagnostics and test reports.
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
