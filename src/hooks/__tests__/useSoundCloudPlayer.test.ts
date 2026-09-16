@@ -9,6 +9,7 @@ import { useSoundCloudPlayer } from '../useSoundCloudPlayer';
 jest.mock('@/lib/utils/audioUtils');
 jest.mock('@/lib/logger', () => ({
   logger: {
+    remote: jest.fn(),
     debug: jest.fn(),
     warn: jest.fn(),
     error: jest.fn(),
@@ -144,6 +145,15 @@ describe('useSoundCloudPlayer', () => {
     );
 
     (result.current.soundcloudIframeRef as any).current = mockIframe;
+
+    act(() => {
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          data: JSON.stringify({ method: 'ready' }),
+          source: mockContentWindow as unknown as MessageEventSource,
+        })
+      );
+    });
 
     // Change to not playing to trigger pause
     rerender({ isActive: true, isPlaying: false });

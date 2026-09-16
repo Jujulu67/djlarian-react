@@ -121,9 +121,9 @@ export const useSoundCloudPlayer = ({
           logger.remote(`[SC] Executing Play command (fallback) for ${track.id}`);
           sendPlayerCommand(soundcloudIframeRef.current, 'soundcloud', 'play');
         }
+        setPlayWhenReady(false);
       }, 200);
 
-      setPlayWhenReady(false);
       return () => clearTimeout(playTimer);
     }
 

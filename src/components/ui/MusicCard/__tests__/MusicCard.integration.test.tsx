@@ -14,6 +14,7 @@ jest.mock('@/lib/utils/audioUtils', () => ({
 }));
 jest.mock('@/lib/logger', () => ({
   logger: {
+    remote: jest.fn(),
     debug: jest.fn(),
     warn: jest.fn(),
     error: jest.fn(),
