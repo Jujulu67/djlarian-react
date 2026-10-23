@@ -85,11 +85,11 @@
     "@radix-ui/react-select": "^2.3.7",
     "@radix-ui/react-slot": "^1.3.3",
     "@radix-ui/react-tabs": "^1.1.21",
-    "@sentry/nextjs": "^10.74.0",
+    "@sentry/nextjs": "^10.76.2",
     "@types/archiver": "^7.0.0",
     "@types/lodash": "^4.17.25",
     "@vercel/analytics": "^1.6.1",
-    "@vercel/blob": "^2.8.0",
+    "@vercel/blob": "^2.8.2",
     "@vercel/speed-insights": "^1.3.1",
     "ai": "^6.0.283",
     "archiver": "^7.0.1",
@@ -106,10 +106,10 @@
     "libsodium-wrappers": "^0.8.4",
     "lodash": "^4.18.1",
     "lucide-react": "^0.563.0",
-    "next": "^16.3.5",
+    "next": "^16.4.3",
     "next-auth": "5.0.0-beta.32",
     "next-themes": "^0.4.6",
-    "puppeteer-core": "^24.43.1",
+    "puppeteer-core": "^25.16.0",
     "react": "latest",
     "react-day-picker": "9.13.0",
     "react-dom": "latest",
@@ -118,14 +118,14 @@
     "react-icons": "^5.7.0",
     "react-image-crop": "^11.1.2",
     "recharts": "^3.7.0",
-    "sharp": "^0.35.4",
+    "sharp": "^0.35.5",
     "sonner": "^2.0.8",
     "swr": "^2.5.1",
     "tailwind-merge": "^3.7.0",
     "tailwindcss-animate": "^1.0.7",
     "tsx": "^4.23.13",
     "uuid": "^13.0.2",
-    "zod": "^4.6.5",
+    "zod": "^4.6.7",
     "zustand": "^5.0.15"
   },
   "devDependencies": {
@@ -170,7 +170,7 @@
     "postcss": "^8.5.28",
     "prettier": "^3.8.1",
     "prisma": "^7.10.0",
-    "puppeteer": "^24.43.1",
+    "puppeteer": "^25.16.0",
     "tailwindcss": "^4.3.3",
     "ts-jest": "^29.4.12",
     "ts-loader": "^9.6.2",
@@ -201,7 +201,9 @@
       "exceljs>uuid": "^11.1.1",
       "@prisma/config>deepmerge-ts": "^8.0.0",
       "prisma>mysql2": "^3.23.1",
-      "eslint-plugin-react-hooks": "7.0.1"
+      "eslint-plugin-react-hooks": "7.0.1",
+      "source-map-js": "^1.2.2",
+      "@vercel/cli-config>zod": "^4.6.6"
     }
   }
 }
