@@ -25,7 +25,8 @@ function daysUntil(date: Date): number {
   const target = new Date(date);
   target.setHours(0, 0, 0, 0);
   const diff = target.getTime() - now.getTime();
-  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  // round (pas ceil) : un jour de changement d'heure dure 23h ou 25h
+  return Math.round(diff / (1000 * 60 * 60 * 24));
 }
 
 /**
