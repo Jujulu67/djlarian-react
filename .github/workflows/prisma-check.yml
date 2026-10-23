@@ -11,20 +11,25 @@ jobs:
   prisma-check:
     name: Prisma Pipeline Check
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+    timeout-minutes: 10
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
+          cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Check Prisma Schema (PostgreSQL source of truth)
         run: |
