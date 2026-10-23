@@ -137,7 +137,7 @@
     "@prisma/adapter-neon": "^7.10.0",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
-    "@sparticuz/chromium-min": "^143.0.4",
+    "@sparticuz/chromium-min": "^153.0.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@testing-library/dom": "^10",
     "@testing-library/jest-dom": "^6.9.1",
