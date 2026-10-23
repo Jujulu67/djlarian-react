@@ -1,0 +1,76 @@
+name: CI (build + tests)
+
+on:
+  pull_request:
+    branches: ['*']
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Type-check, tests et build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # Valeurs factices : le build ne doit pas dépendre d'une vraie base ni de secrets
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      NEXTAUTH_SECRET: ci-secret
+      NEXTAUTH_URL: http://localhost:3000
+      NEXT_TELEMETRY_DISABLED: '1'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Security audit (prod)
+        run: pnpm audit --prod --audit-level high
+
+      - name: Type-check
+        run: pnpm type-check
+
+      - name: Tests
+        run: pnpm run test:ci
+
+      - name: Build
+        run: NODE_OPTIONS='--import tsx' pnpm exec next build
+
+  # Fusionne automatiquement les PR Dependabot de sécurité (patch/minor) une fois la CI verte.
+  # Les mises à jour majeures et les mises à jour non liées à une faille restent en attente de revue.
+  dependabot-automerge:
+    name: Auto-merge Dependabot (sécurité)
+    needs: build-and-test
+    if: github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Merge security update
+        if: steps.metadata.outputs.dependency-group == 'security'
+        run: gh pr merge --squash --delete-branch "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
