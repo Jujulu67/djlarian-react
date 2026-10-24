@@ -1,11 +1,11 @@
 import { Prisma } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 
-import { auth } from '@/auth';
 import { defaultConfigs } from '@/config/defaults';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import { isNotEmpty } from '@/lib/utils/arrayHelpers';
+import { requireAdmin } from '@/lib/api/requireAuth';
 
 // Types pour les sections de configuration
 type GeneralConfig = {
@@ -96,10 +96,8 @@ type DefaultConfigs = {
 export async function POST(req: NextRequest) {
   try {
     // Vérifier que l'utilisateur est admin
-    const session = await auth();
-    if (!session?.user?.role || session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
-    }
+    const { session, error: authError } = await requireAdmin({ nonAdminStatus: 401 });
+    if (authError) return authError;
 
     const updatePromises = [];
 

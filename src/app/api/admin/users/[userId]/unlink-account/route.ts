@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { logger } from '@/lib/logger';
+import { requireAdmin } from '@/lib/api/requireAuth';
 
 /**
  * Route pour désassocier un compte OAuth d'un utilisateur
@@ -13,12 +13,8 @@ export async function DELETE(
   { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
-    const session = await auth();
-
-    // Vérifier l'authentification et les autorisations
-    if (!session?.user?.role || session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
-    }
+    const { session, error: authError } = await requireAdmin({ nonAdminStatus: 401 });
+    if (authError) return authError;
 
     const resolvedParams = await params;
     const { userId } = resolvedParams;
