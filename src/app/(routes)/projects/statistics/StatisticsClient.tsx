@@ -32,7 +32,15 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Project, PROJECT_STATUSES } from '@/components/projects/types';
 
+import {
+  buildComparisonChartData,
+  buildComparisonProjectMapping,
+  buildYearlyProgressionData,
+  filterProjectsForComparison,
+  type ProjectMapping,
+} from './chartData';
 import { computeYearStatistics } from './computeYearStatistics';
+import { getColorForIndex, getStatusBarColors, getStatusColor } from './statusColors';
 import {
   MILESTONE_DAYS,
   MILESTONE_LABELS,
@@ -136,75 +144,17 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
   // Fonction pour filtrer les projets selon l'année
   const getFilteredProjectsForComparison = useMemo(() => {
     if (!displayStats) return [];
-    let projects: Array<{
-      projectId: string;
-      projectName: string;
-      style: string | null;
-      releaseDate: string | null;
-      streams: Array<{ day: number; value: number }>;
-    }> = displayStats.streamsEvolution;
-
-    // Filtrer par année si une année est sélectionnée
-    if (comparisonYearFilter !== null) {
-      projects = projects.filter((project) => {
-        if (!project.releaseDate) return false;
-        const projectYear = new Date(project.releaseDate).getFullYear();
-        return projectYear === comparisonYearFilter;
-      });
-    }
-
-    return projects;
+    return filterProjectsForComparison(displayStats.streamsEvolution, comparisonYearFilter);
   }, [displayStats, comparisonYearFilter]);
-
-  // Type pour le mapping des projets en mode comparaison
-  type ProjectMapping = {
-    index: number;
-    projectId: string;
-    projectName: string;
-    style?: string | null;
-    dataKey: string;
-  };
 
   // Créer le mapping des projets pour le mode comparaison (AVANT les données)
   const comparisonProjectMapping = useMemo<ProjectMapping[]>(() => {
     if (!displayStats || viewMode !== 'comparison') return [];
-    const filteredProjects = getFilteredProjectsForComparison;
-
-    if (comparisonMode === 'all') {
-      return filteredProjects.map((project, index) => ({
-        index,
-        projectId: project.projectId,
-        projectName: project.projectName,
-        style: project.style,
-        dataKey: `project${index}`,
-      }));
-    } else {
-      if (selectedProjectsForComparison.length < 2) return [];
-      const project1 = filteredProjects.find(
-        (p) => p.projectId === selectedProjectsForComparison[0]
-      );
-      const project2 = filteredProjects.find(
-        (p) => p.projectId === selectedProjectsForComparison[1]
-      );
-      if (!project1 || !project2) return [];
-
-      return [
-        {
-          index: 0,
-          projectId: project1.projectId,
-          projectName: project1.projectName,
-          style: project1.style,
-          dataKey: 'project0',
-        },
-        {
-          index: 1,
-          projectId: project2.projectId,
-          projectName: project2.projectName,
-          style: project2.style,
-          dataKey: 'project1',
-        },
-      ];
-    }
+    return buildComparisonProjectMapping(
+      getFilteredProjectsForComparison,
+      comparisonMode,
+      selectedProjectsForComparison
+    );
   }, [
     displayStats,
     viewMode,
@@ -216,67 +166,11 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
   // Fonction pour transformer les données en mode comparaison
   const getComparisonChartData = useMemo(() => {
     if (!displayStats || viewMode !== 'comparison') return [];
-    const filteredProjects = getFilteredProjectsForComparison;
-
-    if (comparisonMode === 'all') {
-      // Tous les projets (filtrés par année si nécessaire)
-      if (filteredProjects.length === 0) return [];
-
-      // Créer un objet avec tous les jalons et les valeurs de chaque projet
-      // Utiliser des noms de propriétés fixes (project0, project1, etc.) au lieu des UUIDs
-      const days = [...MILESTONE_DAYS];
-      const chartData = days
-        .map((day) => {
-          const dataPoint: Record<string, string | number | null> = { day: `J${day}` };
-          let hasData = false;
-          filteredProjects.forEach((project, index) => {
-            const streamValue = project.streams.find((s) => s.day === day);
-            const value = streamValue?.value;
-            if (value != null && Number.isFinite(value) && value > 0) {
-              hasData = true;
-              dataPoint[`project${index}`] = value;
-            } else {
-              dataPoint[`project${index}`] = null;
-            }
-          });
-          // Ne retourner que les jalons qui ont au moins une donnée
-          return hasData ? dataPoint : null;
-        })
-        .filter((point) => point !== null);
-
-      return chartData;
-    } else {
-      // 2 projets sélectionnés (filtrés par année si nécessaire)
-      if (selectedProjectsForComparison.length < 2) return [];
-      const project1 = filteredProjects.find(
-        (p) => p.projectId === selectedProjectsForComparison[0]
-      );
-      const project2 = filteredProjects.find(
-        (p) => p.projectId === selectedProjectsForComparison[1]
-      );
-      if (!project1 || !project2) return [];
-
-      const days = [...MILESTONE_DAYS];
-      return days
-        .map((day) => {
-          const stream1 = project1.streams.find((s) => s.day === day);
-          const stream2 = project2.streams.find((s) => s.day === day);
-          const value1 = stream1?.value;
-          const value2 = stream2?.value;
-          const hasValue1 = value1 != null && Number.isFinite(value1) && value1 > 0;
-          const hasValue2 = value2 != null && Number.isFinite(value2) && value2 > 0;
-
-          // Ne retourner que les jalons qui ont au moins une donnée
-          if (!hasValue1 && !hasValue2) return null;
-
-          return {
-            day: `J${day}`,
-            project0: hasValue1 ? value1 : null,
-            project1: hasValue2 ? value2 : null,
-          };
-        })
-        .filter((point) => point !== null);
-    }
+    return buildComparisonChartData(
+      getFilteredProjectsForComparison,
+      comparisonMode,
+      selectedProjectsForComparison
+    );
   }, [
     displayStats,
     viewMode,
@@ -312,100 +206,10 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
       }));
   }, [selectedProject, viewMode, displayStats, getComparisonChartData]);
 
-  // Fonction pour générer des couleurs distinctes (jusqu'à 25+ projets)
-  const getColorForIndex = (index: number, total: number): string => {
-    // Palette de base avec 8 couleurs distinctes
-    const baseColors = [
-      '#a855f7', // purple
-      '#3b82f6', // blue
-      '#10b981', // green
-      '#f59e0b', // orange
-      '#ef4444', // red
-      '#8b5cf6', // violet
-      '#06b6d4', // cyan
-      '#f97316', // orange-500
-    ];
-
-    // Si on a moins de 8 projets, utiliser la palette de base
-    if (total <= baseColors.length) {
-      return baseColors[index % baseColors.length];
-    }
-
-    // Pour plus de 8 projets, générer des couleurs HSL équitablement réparties
-    // Utiliser un angle de base pour chaque couleur
-    const hue = (index * 360) / Math.max(total, 8);
-    // Varier la saturation et la luminosité pour plus de distinction
-    const saturation = 65 + (index % 3) * 10; // Entre 65% et 85%
-    const lightness = 50 + (Math.floor(index / 3) % 3) * 5; // Entre 50% et 60%
-
-    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-  };
-
   // Calculer l'évolution annuelle des performances
   const yearlyProgressionData = useMemo(() => {
     if (!displayStats || !statistics) return [];
-    const projectsByYearMap: Record<
-      string,
-      {
-        year: number;
-        totalStreams: number;
-        averageStreams: number;
-        projectCount: number;
-      }
-    > = {};
-
-    // Grouper les projets par année de sortie
-    displayStats.streamsEvolution.forEach((project) => {
-      if (!project.releaseDate) return;
-      const year = new Date(project.releaseDate).getFullYear();
-      const yearKey = year.toString();
-
-      if (!projectsByYearMap[yearKey]) {
-        projectsByYearMap[yearKey] = {
-          year,
-          totalStreams: 0,
-          averageStreams: 0,
-          projectCount: 0,
-        };
-      }
-
-      // Utiliser J84 comme référence (ou le dernier jalon disponible)
-      const streamValues = project.streams
-        .map((s) => s.value)
-        .filter((v) => typeof v === 'number' && !isNaN(v) && v >= 0);
-
-      if (streamValues.length === 0) return; // Ignorer les projets sans données valides
-
-      const maxStreams = Math.max(...streamValues, 0);
-      if (isNaN(maxStreams) || maxStreams < 0) return; // Ignorer les valeurs invalides
-
-      projectsByYearMap[yearKey].totalStreams += maxStreams;
-      projectsByYearMap[yearKey].projectCount += 1;
-    });
-
-    // Calculer les moyennes
-    Object.values(projectsByYearMap).forEach((data) => {
-      if (data.projectCount > 0 && !isNaN(data.totalStreams)) {
-        data.averageStreams = Math.round(data.totalStreams / data.projectCount);
-      } else {
-        data.averageStreams = 0;
-      }
-      // S'assurer que les valeurs ne sont pas NaN
-      if (isNaN(data.totalStreams)) data.totalStreams = 0;
-      if (isNaN(data.averageStreams)) data.averageStreams = 0;
-      if (isNaN(data.projectCount)) data.projectCount = 0;
-    });
-
-    // Convertir en tableau et trier par année, filtrer les valeurs invalides
-    return Object.values(projectsByYearMap)
-      .filter((data) => !isNaN(data.year) && data.projectCount > 0)
-      .sort((a, b) => a.year - b.year)
-      .map((data) => ({
-        year: data.year.toString(),
-        totalStreams: Number.isFinite(data.totalStreams) ? data.totalStreams : 0,
-        averageStreams: Number.isFinite(data.averageStreams) ? data.averageStreams : 0,
-        projectCount: Number.isFinite(data.projectCount) ? data.projectCount : 0,
-      }));
+    return buildYearlyProgressionData(displayStats.streamsEvolution);
   }, [displayStats, statistics]);
 
   if (loading) {
@@ -423,65 +227,6 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
       </div>
     );
   }
-
-  const getStatusColor = (status: string) => {
-    const statusConfig = PROJECT_STATUSES.find((s) => s.value === status);
-    if (!statusConfig) return 'gray';
-
-    const colorMap: Record<string, string> = {
-      blue: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-      green: 'bg-green-500/20 text-green-400 border-green-500/30',
-      red: 'bg-red-500/20 text-red-400 border-red-500/30',
-      orange: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-      purple: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-    };
-
-    return colorMap[statusConfig.color] || 'bg-gray-500/20 text-gray-400 border-gray-500/30';
-  };
-
-  // Obtenir les couleurs pour les barres (même style que les cartes)
-  const getStatusBarColors = (status: string) => {
-    const statusConfig = PROJECT_STATUSES.find((s) => s.value === status);
-    if (!statusConfig) {
-      return {
-        fill: 'rgba(107, 114, 128, 0.2)',
-        stroke: 'rgba(107, 114, 128, 0.3)',
-        text: '#9ca3af', // gray-400
-      };
-    }
-
-    // Couleurs correspondant exactement aux cartes : bg-{color}-500/20, border-{color}-500/30, text-{color}-400
-    // Opacité augmentée pour le contour (0.6) pour une meilleure visibilité
-    const colorMap: Record<string, { fill: string; stroke: string; text: string }> = {
-      blue: {
-        fill: 'rgba(59, 130, 246, 0.2)', // bg-blue-500/20
-        stroke: 'rgba(59, 130, 246, 0.6)', // border-blue-500/60 (augmenté pour plus de visibilité)
-        text: '#60a5fa', // text-blue-400
-      },
-      green: {
-        fill: 'rgba(34, 197, 94, 0.2)', // bg-green-500/20
-        stroke: 'rgba(34, 197, 94, 0.6)', // border-green-500/60 (augmenté pour plus de visibilité)
-        text: '#4ade80', // text-green-400
-      },
-      red: {
-        fill: 'rgba(239, 68, 68, 0.2)', // bg-red-500/20
-        stroke: 'rgba(239, 68, 68, 0.6)', // border-red-500/60 (augmenté pour plus de visibilité)
-        text: '#f87171', // text-red-400
-      },
-      orange: {
-        fill: 'rgba(249, 115, 22, 0.2)', // bg-orange-500/20
-        stroke: 'rgba(249, 115, 22, 0.6)', // border-orange-500/60 (augmenté pour plus de visibilité)
-        text: '#fb923c', // text-orange-400
-      },
-      purple: {
-        fill: 'rgba(168, 85, 247, 0.2)', // bg-purple-500/20
-        stroke: 'rgba(168, 85, 247, 0.6)', // border-purple-500/60 (augmenté pour plus de visibilité)
-        text: '#c084fc', // text-purple-400
-      },
-    };
-
-    return colorMap[statusConfig.color] || colorMap.blue;
-  };
 
   // Tooltip personnalisé pour afficher les détails des projets
   const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
