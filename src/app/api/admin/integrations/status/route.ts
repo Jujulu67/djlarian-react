@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { auth } from '@/auth';
 import { logger } from '@/lib/logger';
+import { requireAdmin } from '@/lib/api/requireAuth';
 
 export async function GET(request: NextRequest) {
   try {
     // Vérifier l'authentification et les permissions administrateur
-    const session = await auth();
-    if (!session || session.user?.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
-    }
+    const { session, error: authError } = await requireAdmin({ nonAdminStatus: 401 });
+    if (authError) return authError;
 
     // Récupérer les statuts des intégrations
     const umamiUrl = process.env.NEXT_PUBLIC_UMAMI_URL;

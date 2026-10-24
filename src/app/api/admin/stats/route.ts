@@ -2,9 +2,9 @@ import { Prisma } from '@prisma/client';
 import { subDays, startOfDay, startOfWeek, startOfMonth } from 'date-fns';
 import { NextRequest, NextResponse } from 'next/server';
 
-import { auth } from '@/auth';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
+import { requireAdmin } from '@/lib/api/requireAuth';
 
 // Define Period type
 type Period = 'daily' | 'weekly' | 'monthly';
@@ -12,10 +12,8 @@ type Period = 'daily' | 'weekly' | 'monthly';
 export async function GET(request: NextRequest) {
   try {
     // Vérifier l'authentification et les permissions administrateur
-    const session = await auth();
-    if (!session || session.user?.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
-    }
+    const { session, error: authError } = await requireAdmin({ nonAdminStatus: 401 });
+    if (authError) return authError;
 
     // Lire la période depuis les paramètres de requête, défaut sur 'daily'
     const { searchParams } = request.nextUrl;
