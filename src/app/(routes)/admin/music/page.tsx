@@ -2,7 +2,7 @@
 
 import { RefreshCw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import React, { useState, useEffect, useRef, ChangeEvent, FormEvent } from 'react';
+import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { toast } from 'react-hot-toast';
 import 'react-image-crop/dist/ReactCrop.css';
 
@@ -38,7 +38,6 @@ export default function AdminMusicPage() {
 
   // États locaux
   const [activeTab, setActiveTab] = useState<AdminMusicTab>('tracks');
-  const trackRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Gestion de l'édition depuis l'URL
   useEffect(() => {
