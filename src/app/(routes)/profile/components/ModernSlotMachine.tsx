@@ -50,7 +50,6 @@ export function ModernSlotMachine({ isOpen, onClose }: ModernSlotMachineProps) {
   } = useSlotMachine();
 
   const [showPayoutTable, setShowPayoutTable] = useState(false);
-  const [reels, setReels] = useState<SymbolType[]>([]);
 
   const { playSpinSound, stopSpinSound, playReelStopSound, playWinSound, playJackpotSound } =
     useSlotMachineSounds();
@@ -87,6 +86,7 @@ export function ModernSlotMachine({ isOpen, onClose }: ModernSlotMachineProps) {
     setShowConfetti,
     setShowMultiplier,
     setMultiplierAmount,
+    scheduleEffectTimeout,
   } = useSlotWinEffects({ lastResult, isSpinning, playWinSound, playJackpotSound });
 
   const { isAutoSpinning, toggleAutoSpin } = useAutoSpin({ isOpen, isSpinning, status, spin });
@@ -148,7 +148,7 @@ export function ModernSlotMachine({ isOpen, onClose }: ModernSlotMachineProps) {
                     setMultiplierAmount(bonusWin);
                     setShowMultiplier(true);
                     setShowConfetti(true);
-                    setTimeout(() => {
+                    scheduleEffectTimeout(() => {
                       setShowMultiplier(false);
                       setShowConfetti(false);
                     }, 3000);

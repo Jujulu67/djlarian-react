@@ -1,5 +1,5 @@
 import { getNavLinks } from '../navigationConfig';
-import { getDesktopAvatarSrc, hasArcadeAccess, isNavLinkActive } from '../navigationUtils';
+import { getAvatarSrc, hasArcadeAccess, isNavLinkActive } from '../navigationUtils';
 
 describe('isNavLinkActive', () => {
   it('matches the root only on exact path', () => {
@@ -13,8 +13,8 @@ describe('isNavLinkActive', () => {
     expect(isNavLinkActive('/events', '/music')).toBe(false);
   });
 
-  it('uses a plain prefix check (current behavior: /musicx matches /music)', () => {
-    expect(isNavLinkActive('/musicx', '/music')).toBe(true);
+  it('does not match a sibling path that only shares a prefix', () => {
+    expect(isNavLinkActive('/musicx', '/music')).toBe(false);
   });
 
   it('is false when there is no pathname', () => {
@@ -43,19 +43,19 @@ describe('hasArcadeAccess', () => {
   });
 });
 
-describe('getDesktopAvatarSrc', () => {
+describe('getAvatarSrc', () => {
   it('proxies Google-hosted avatars', () => {
     const image = 'https://lh3.googleusercontent.com/a/abc=s96-c';
-    expect(getDesktopAvatarSrc(image)).toBe(`/api/images/proxy?url=${encodeURIComponent(image)}`);
+    expect(getAvatarSrc(image)).toBe(`/api/images/proxy?url=${encodeURIComponent(image)}`);
   });
 
   it('keeps other absolute URLs as-is', () => {
-    expect(getDesktopAvatarSrc('https://example.com/a.png')).toBe('https://example.com/a.png');
-    expect(getDesktopAvatarSrc('http://example.com/a.png')).toBe('http://example.com/a.png');
+    expect(getAvatarSrc('https://example.com/a.png')).toBe('https://example.com/a.png');
+    expect(getAvatarSrc('http://example.com/a.png')).toBe('http://example.com/a.png');
   });
 
   it('keeps relative URLs as-is', () => {
-    expect(getDesktopAvatarSrc('/images/avatar.png')).toBe('/images/avatar.png');
+    expect(getAvatarSrc('/images/avatar.png')).toBe('/images/avatar.png');
   });
 });
 

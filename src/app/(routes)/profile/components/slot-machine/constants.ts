@@ -20,5 +20,3 @@ export const SYMBOL_GLOWS: Record<SymbolType, string> = {
   [SymbolType.STAR]: 'shadow-[0_0_20px_rgba(253,224,71,0.6)]',
   [SymbolType.SEVEN]: 'shadow-[0_0_20px_rgba(236,72,153,0.6)]',
 };
-
-export const SPIN_DURATION = 2000;

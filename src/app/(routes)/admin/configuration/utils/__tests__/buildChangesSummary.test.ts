@@ -56,12 +56,12 @@ describe('buildChangesSummary', () => {
     const summary = buildChangesSummary(current, previous);
 
     expect(summary).toContain('<span class="text-cyan-300 font-bold">General:</span>');
-    // Comportement actuel : les libellés de CONFIG_LABEL_MAPPINGS (clés sans préfixe de section)
-    // ne sont pas retrouvés, la clé brute `section.key` est donc affichée.
-    expect(summary).toContain('general.siteName');
+    expect(summary).toContain('Nom du site');
+    expect(summary).not.toContain('general.siteName');
     expect(summary).toContain('"Nouveau nom"');
     expect(summary).toContain('<span class="text-cyan-300 font-bold">Notifications:</span>');
-    expect(summary).toContain('notifications.emailNotifications');
+    expect(summary).toContain('Notifications par email');
+    expect(summary).not.toContain('notifications.emailNotifications');
     expect(summary.indexOf('General:')).toBeLessThan(summary.indexOf('Notifications:'));
     expect(summary).not.toContain('Aucune modification');
   });
