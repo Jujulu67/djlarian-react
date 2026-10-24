@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 
+import { requireAdmin } from '@/lib/api/requireAuth';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import { convertToWebP, canConvertToWebP } from '@/lib/utils/convertToWebP';
@@ -10,6 +11,9 @@ import { saveImage } from '@/lib/utils/saveImage';
 // Refresh cover endpoint - Vercel (Node.js runtime natif)
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { error: authError } = await requireAdmin();
+  if (authError) return authError;
+
   const { id } = await params;
   if (!id) return NextResponse.json({ error: 'Missing track ID' }, { status: 400 });
 

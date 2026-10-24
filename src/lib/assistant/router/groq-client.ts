@@ -5,6 +5,8 @@
  * Utilise fetch vers /api/assistant/groq (fonctionne côté client et serveur).
  */
 
+import { internalAuthHeaders } from '@/lib/api/internalAuth';
+
 import type { ConversationMessage } from '../conversational/memory-manager';
 import { sanitizeForLogs } from '../utils/sanitize-logs';
 
@@ -45,6 +47,8 @@ export async function callGroqApi(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        // Côté serveur, pas de cookie de session : on s'authentifie avec l'en-tête interne
+        ...internalAuthHeaders(),
       },
       body: JSON.stringify({
         message,

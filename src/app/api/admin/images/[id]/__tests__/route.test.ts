@@ -4,6 +4,12 @@
  */
 import { NextRequest } from 'next/server';
 
+jest.mock('@/lib/api/requireAuth', () => ({
+  requireAuth: jest.fn(async () => ({ session: { user: { id: 'u1', role: 'ADMIN' } }, error: null })),
+  requireAdmin: jest.fn(async () => ({ session: { user: { id: 'u1', role: 'ADMIN' } }, error: null })),
+  isInternalRequest: jest.fn(() => false),
+}));
+
 import { DELETE } from '../route';
 
 // Mock dependencies

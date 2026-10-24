@@ -40,6 +40,12 @@ jest.mock('ai', () => ({
 }));
 
 // Import après les mocks
+jest.mock('@/lib/api/requireAuth', () => ({
+  requireAuth: jest.fn(async () => ({ session: { user: { id: 'u1', role: 'ADMIN' } }, error: null })),
+  requireAdmin: jest.fn(async () => ({ session: { user: { id: 'u1', role: 'ADMIN' } }, error: null })),
+  isInternalRequest: jest.fn(() => false),
+}));
+
 import { POST } from '../route';
 import { NextRequest } from 'next/server';
 
