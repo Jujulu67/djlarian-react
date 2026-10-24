@@ -1,4 +1,5 @@
 import {
+  extractYoutubeId,
   extractPlatformId,
   getEmbedUrl,
   getYouTubeThumbnail,
@@ -7,6 +8,35 @@ import {
 import { MusicPlatform } from '../types';
 
 describe('music-service', () => {
+  describe('extractYoutubeId', () => {
+    it.each([
+      ['https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'dQw4w9WgXcQ'],
+      ['https://youtube.com/watch?v=dQw4w9WgXcQ', 'dQw4w9WgXcQ'],
+      ['http://m.youtube.com/watch?v=dQw4w9WgXcQ', 'dQw4w9WgXcQ'],
+      ['https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=42s', 'dQw4w9WgXcQ'],
+      ['https://youtu.be/dQw4w9WgXcQ', 'dQw4w9WgXcQ'],
+      ['https://youtu.be/dQw4w9WgXcQ?si=abc', 'dQw4w9WgXcQ'],
+      ['https://youtu.be/a_b-C', 'a_b-C'],
+    ])('extracts the ID from %s', (url, expected) => {
+      expect(extractYoutubeId(url)).toBe(expected);
+    });
+
+    it.each([
+      'dQw4w9WgXcQ',
+      'https://www.youtube.com/embed/dQw4w9WgXcQ',
+      'https://www.youtube.com/watch?list=PL123&v=dQw4w9WgXcQ',
+      'https://example.com/watch?v=dQw4w9WgXcQ',
+      '',
+    ])('returns null for unsupported format %s', (url) => {
+      expect(extractYoutubeId(url)).toBeNull();
+    });
+
+    it('matches extractPlatformId for youtube', () => {
+      const url = 'https://youtu.be/dQw4w9WgXcQ';
+      expect(extractPlatformId(url, 'youtube')).toBe(extractYoutubeId(url));
+    });
+  });
+
   describe('extractPlatformId', () => {
     it('should extract Spotify track ID', () => {
       const result = extractPlatformId(

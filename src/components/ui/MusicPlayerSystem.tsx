@@ -24,7 +24,7 @@ import { DeezerIcon } from '@/components/icons/DeezerIcon';
 import { logger } from '@/lib/logger';
 import { isNotEmpty } from '@/lib/utils/arrayHelpers';
 import { getImageUrl } from '@/lib/utils/getImageUrl';
-import { getEmbedUrl } from '@/lib/utils/music-service';
+import { extractYoutubeId, getEmbedUrl } from '@/lib/utils/music-service';
 import type { Track, MusicPlatform } from '@/lib/utils/types';
 
 interface MusicPlayerSystemProps {
@@ -66,12 +66,6 @@ export const MusicPlayerSystem: React.FC<MusicPlayerSystemProps> = ({
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-  };
-
-  // Extraire l'ID YouTube de l'URL
-  const extractYoutubeId = (url: string): string | null => {
-    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
-    return match ? match[1] : null;
   };
 
   // Simuler la progression pour les plateformes autres que YouTube

@@ -6,6 +6,15 @@ const YOUTUBE_REGEX = /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/;
 const SOUNDCLOUD_REGEX = /soundcloud\.com\/([a-zA-Z0-9_-]+)\/([a-zA-Z0-9_-]+)/;
 
 /**
+ * Extrait l'ID d'une vidéo YouTube depuis une URL youtube.com/watch?v=ID ou youtu.be/ID.
+ * Retourne null pour tout autre format (ID nu, /embed/, /shorts/…).
+ */
+export const extractYoutubeId = (url: string): string | null => {
+  const match = url.match(YOUTUBE_REGEX);
+  return match ? match[1] : null;
+};
+
+/**
  * Extrait l'ID d'une plateforme à partir d'une URL
  */
 export const extractPlatformId = (url: string, platform: MusicPlatform): string | null => {
@@ -15,8 +24,7 @@ export const extractPlatformId = (url: string, platform: MusicPlatform): string 
       return spotifyMatch ? spotifyMatch[1] : null;
 
     case 'youtube':
-      const youtubeMatch = url.match(YOUTUBE_REGEX);
-      return youtubeMatch ? youtubeMatch[1] : null;
+      return extractYoutubeId(url);
 
     case 'soundcloud':
       const soundcloudMatch = url.match(SOUNDCLOUD_REGEX);
