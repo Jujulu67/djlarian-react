@@ -3,8 +3,12 @@ import path from 'path';
 
 import { NextRequest, NextResponse } from 'next/server';
 
+import { requireAdmin } from '@/lib/api/requireAuth';
 // Route pour vérifier si le serveur est prêt après redémarrage
 export async function GET(req: NextRequest) {
+  const { error: authError } = await requireAdmin();
+  if (authError) return authError;
+
   try {
     const restartMarkerPath = path.join(process.cwd(), '.db-restart-required.json');
 
