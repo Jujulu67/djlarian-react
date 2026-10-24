@@ -8,6 +8,7 @@ import { handleApiError } from '@/lib/api/errorHandler';
 import { createSuccessResponse, createForbiddenResponse } from '@/lib/api/responseHelpers';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
+import { addDaysInTimeZone, addMonthsInTimeZone } from '@/lib/utils/timezone';
 
 // GET - Récupérer tous les événements avec filtres optionnels
 export async function GET(request: NextRequest): Promise<Response> {
@@ -187,12 +188,10 @@ function generateRecurringDates(
     // Passer à la prochaine date selon la fréquence
     if (recurrence.frequency === 'weekly') {
       // Ajouter 7 jours pour la prochaine semaine
-      currentDate = new Date(currentDate);
-      currentDate.setDate(currentDate.getDate() + 7);
+      currentDate = addDaysInTimeZone(currentDate, 7);
     } else if (recurrence.frequency === 'monthly') {
       // Ajouter un mois
-      currentDate = new Date(currentDate);
-      currentDate.setMonth(currentDate.getMonth() + 1);
+      currentDate = addMonthsInTimeZone(currentDate, 1);
     }
 
     occurrenceCount++;
