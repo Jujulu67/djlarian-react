@@ -10,9 +10,8 @@ import { useCallback, useRef } from 'react';
  */
 export function useAuthErrorHandler() {
   const router = useRouter();
-  const { data: session, update, status } = useSession();
+  const { update } = useSession();
   const isRefreshingRef = useRef(false);
-  const pendingRetriesRef = useRef<Array<() => Promise<unknown>>>([]);
 
   /**
    * Force un refresh de la session

@@ -9,22 +9,12 @@
  * - S'assurer que Groq ne peut jamais déclencher d'actions
  */
 
-import type { Project, QueryFilters } from '@/lib/domain/projects';
-import {
-  ProjectCommandType,
-  type ProjectCommandResult,
-  type ProjectFilter,
-  type ProjectMutation,
-  type PendingConfirmationAction,
-  type RouterContext,
-  type RouterOptions,
-} from './types';
+import { ProjectCommandType, type ProjectCommandResult, type RouterOptions } from './types';
 import { classifyQuery } from '../query-parser/classifier';
 import { detectFilters } from '../query-parser/filters';
 
-import { debugLog, isAssistantDebugEnabled } from '../utils/debug';
-import { sanitizeForLogs, sanitizeObjectForLogs } from '../utils/sanitize-logs';
-import type { ConversationMessage } from '../conversational/memory-manager';
+import { debugLog } from '../utils/debug';
+import { sanitizeForLogs } from '../utils/sanitize-logs';
 
 // Imports des helpers de filtrage extraits
 import { summarizeFilter } from './filter-helpers';
@@ -55,7 +45,7 @@ export async function routeProjectCommand(
   userMessage: string,
   options: RouterOptions
 ): Promise<ProjectCommandResult> {
-  const { context, conversationHistory, lastFilters, requestId } = options;
+  const { context, conversationHistory, requestId } = options;
   const { projects, availableCollabs, availableStyles, projectCount } = context;
 
   // Logs d'entrée (debug) - Sanitizer le message utilisateur

@@ -95,8 +95,6 @@ function extractPushDeadline(
   filters: Record<string, unknown>,
   updateData: UpdateData
 ): boolean {
-  const lowerQuery = query.toLowerCase();
-
   // Détecter une intention deadline (debug)
   // Utiliser le dictionnaire NLP pour les verbes et pronoms
   const updateVerbsRegex = BuildAlternationRegexPart(UpdateVerbs);

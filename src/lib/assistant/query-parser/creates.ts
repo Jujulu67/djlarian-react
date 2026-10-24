@@ -61,50 +61,6 @@ export function extractCreateData(
 ): CreateData | null {
   const createData: CreateData = { name: '' };
 
-  // Mots-clés qui indiquent la fin du nom du projet
-  const stopWords = [
-    'en collab',
-    'collab',
-    'avec',
-    'deadline',
-    'avancé',
-    'avance',
-    'progress',
-    'progression',
-    'il est',
-    "c'est",
-    'it is',
-    "it's",
-    'status',
-    'statut',
-  ];
-
-  // Fonction pour extraire le nom en s'arrêtant aux mots-clés
-  const extractNameWithStopWords = (text: string, startPattern: RegExp): string | null => {
-    const match = text.match(startPattern);
-    if (!match) return null;
-
-    const startIndex = match.index! + match[0].length;
-    let nameEndIndex = text.length;
-
-    // Trouver le premier mot-clé d'arrêt après le début
-    for (const stopWord of stopWords) {
-      const stopIndex = text.toLowerCase().indexOf(stopWord.toLowerCase(), startIndex);
-      if (stopIndex !== -1 && stopIndex < nameEndIndex) {
-        nameEndIndex = stopIndex;
-      }
-    }
-
-    const extracted = text.substring(startIndex, nameEndIndex).trim();
-    if (!extracted) return null;
-
-    // Vérifier que ce n'est pas un mot-clé ignoré
-    const ignoredWords = ['le', 'la', 'les', 'un', 'une', 'projet', 'project', 'nouveau', 'new'];
-    if (ignoredWords.includes(extracted.toLowerCase())) return null;
-
-    return extracted;
-  };
-
   // Essayer différents patterns pour trouver le nom
   const namePatterns = [
     // Pattern le plus spécifique en premier : "ajoute le projet X" ou "créer le projet X"

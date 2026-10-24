@@ -5,12 +5,7 @@ import { isNotEmpty } from '@/lib/utils/arrayHelpers';
 import type { GameState, GamePattern } from '@/types/game';
 import type { FrequencyBand } from '@/types/game';
 
-import {
-  PRE_MAPPED_PATTERNS,
-  SCROLL_SPEED,
-  PATTERN_LIFETIME,
-  AUDIO_UPDATE_INTERVAL,
-} from './game/constants';
+import { PRE_MAPPED_PATTERNS, SCROLL_SPEED, AUDIO_UPDATE_INTERVAL } from './game/constants';
 import { useAudioAnalyser } from './game/useAudioAnalyser';
 import { usePatternManager } from './game/usePatternManager';
 import { useScoreManager } from './game/useScoreManager';

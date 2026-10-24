@@ -45,7 +45,7 @@ function extractTasks(content: string): string[] {
 /**
  * Nettoie le contenu principal en enlevant les parties de tâches
  */
-function cleanMainContent(content: string, tasks: string[]): string {
+function cleanMainContent(content: string, _tasks: string[]): string {
   let cleaned = content;
 
   // Enlever les patterns de tâches
@@ -65,35 +65,6 @@ function cleanMainContent(content: string, tasks: string[]): string {
   cleaned = cleaned.replace(/,\s*$/, '').trim();
 
   return cleaned;
-}
-
-/**
- * Détermine si une note est "simple" (courte, sans structure complexe)
- * Une note simple ne nécessite pas de template complet
- */
-function isSimpleNote(content: string, tasks: string[]): boolean {
-  // Si on a des tâches, ce n'est pas une note simple
-  if (tasks.length > 0) {
-    return false;
-  }
-
-  // Si le contenu est très court (moins de 50 caractères), c'est probablement simple
-  const cleanedContent = cleanMainContent(content, tasks);
-  if (cleanedContent.length < 50) {
-    return true;
-  }
-
-  // Si le contenu contient des sauts de ligne multiples, ce n'est pas simple
-  if (cleanedContent.split('\n').length > 2) {
-    return false;
-  }
-
-  // Si le contenu contient des structures markdown (listes, titres), ce n'est pas simple
-  if (/^#{1,6}\s|^\s*[-*+]\s|^\s*\d+\.\s/m.test(cleanedContent)) {
-    return false;
-  }
-
-  return true;
 }
 
 /**
