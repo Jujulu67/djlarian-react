@@ -39,3 +39,23 @@ export const formatNumber = (number: number): string => {
   }
   return number.toString();
 };
+
+/**
+ * Formate une date ISO en format français (DD/MM/YYYY).
+ * Renvoie '' si la date est absente, et la valeur d'origine si elle est invalide.
+ */
+export const formatDateFrench = (dateString: string | null): string => {
+  if (!dateString) return '';
+
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  } catch {
+    return dateString;
+  }
+};

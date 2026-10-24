@@ -11,15 +11,6 @@ import { useEventImageCrop } from './event-form/hooks/useEventImageCrop';
 
 export type { EventFormData, TicketInfo, RecurrenceConfig };
 
-// Définir un type pour les erreurs qui permet d'accéder aux propriétés imbriquées
-interface FormErrors extends Partial<Record<keyof EventFormData, string>> {
-  'tickets.price'?: string;
-  'tickets.buyUrl'?: string;
-  'tickets.quantity'?: string;
-  'recurrence.day'?: string;
-  'recurrence.endDate'?: string;
-}
-
 type EventFormProps = {
   formData: EventFormData;
   errors: Record<string, string>;
@@ -80,7 +71,7 @@ const EventForm: React.FC<EventFormProps> = ({
         ref={formRef}
       >
         <h2 className="text-2xl font-bold mb-6">
-          {isEditMode ? 'Modifier l&apos;événement' : 'Créer un nouvel événement'}
+          {isEditMode ? "Modifier l'événement" : 'Créer un nouvel événement'}
         </h2>
 
         <EventFormInfoSection
