@@ -1,5 +1,5 @@
 import type { LiveChances, UserLiveItem, UserTicket } from '@/types/live';
-import { LiveItemType, TicketSource } from '@/types/live';
+import { LiveItemType } from '@/types/live';
 import { getItemDefinition } from './items';
 
 /**

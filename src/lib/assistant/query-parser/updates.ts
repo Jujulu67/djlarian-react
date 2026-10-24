@@ -7,9 +7,7 @@
  * - deadline-updates.ts: Extraction de deadlines (push/remove/set)
  * - metadata-updates.ts: Extraction collab/style/labels
  */
-import { parseRelativeDate } from '../parsers/date-parser';
-import { findStyleFromString } from '../parsers/style-matcher';
-import { UpdateData, statusPatterns, debugLog } from './updates/types';
+import { UpdateData } from './updates/types';
 import {
   copyProgressFilters,
   extractDeXaYProgress,
@@ -144,7 +142,7 @@ export function extractUpdateData(
  */
 function extractNoteUpdateData(
   query: string,
-  lowerQuery: string
+  _lowerQuery: string
 ): { projectName: string; newNote: string } | null {
   // Vérification préalable : exclure les phrases conversationnelles évidentes
   // Si la requête commence par des mots de liaison ou contient des patterns conversationnels,

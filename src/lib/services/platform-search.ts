@@ -3,7 +3,6 @@
  */
 
 import { logger } from '@/lib/logger';
-import { extractPlatformId } from '@/lib/utils/music-service';
 
 import type { PlatformSearchResult } from './types';
 

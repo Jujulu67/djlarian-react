@@ -155,7 +155,7 @@ export class ActionParser {
 function createDefaultHandlers(): Map<ActionType, ActionHandler> {
   const handlers = new Map<ActionType, ActionHandler>();
 
-  handlers.set('LIST', async (action, context) => {
+  handlers.set('LIST', async (_action, _context) => {
     // Stub: remplacer par appel Prisma réel
     return { success: true, message: 'Liste récupérée', data: [], affectedCount: 0 };
   });

@@ -2,16 +2,7 @@
  * Service pour récupérer les statistiques depuis Umami Analytics
  */
 
-import {
-  subDays,
-  subMonths,
-  startOfDay,
-  endOfDay,
-  startOfWeek,
-  endOfWeek,
-  startOfMonth,
-  endOfMonth,
-} from 'date-fns';
+import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 
 import { logger } from '@/lib/logger';
 import { isNotEmpty, first } from '@/lib/utils/arrayHelpers';
