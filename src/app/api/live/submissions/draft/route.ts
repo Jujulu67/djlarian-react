@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { auth } from '@/auth';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import { deleteAudioFile } from '@/lib/live/upload';
 import { createSuccessResponse, createUnauthorizedResponse } from '@/lib/api/responseHelpers';
 import { handleApiError } from '@/lib/api/errorHandler';
 import { LiveSubmissionStatus } from '@/types/live';
+import { requireAuth } from '@/lib/api/requireAuth';
 
 // Configuration pour les routes API App Router
 export const maxDuration = 60; // 60 secondes max pour l'upload
@@ -25,11 +25,11 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return createUnauthorizedResponse('Non authentifié');
-    }
+    const { session, error } = await requireAuth({
+      requireUserId: true,
+      onAnonymous: () => createUnauthorizedResponse('Non authentifié'),
+    });
+    if (error) return error;
 
     // Le fichier est maintenant uploadé directement depuis le client vers Blob
     // On reçoit juste l'URL du fichier, le nom et la taille
@@ -125,11 +125,11 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return createUnauthorizedResponse('Non authentifié');
-    }
+    const { session, error } = await requireAuth({
+      requireUserId: true,
+      onAnonymous: () => createUnauthorizedResponse('Non authentifié'),
+    });
+    if (error) return error;
 
     const draft = await prisma.liveSubmission.findFirst({
       where: {
@@ -157,11 +157,11 @@ export async function GET(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return createUnauthorizedResponse('Non authentifié');
-    }
+    const { session, error } = await requireAuth({
+      requireUserId: true,
+      onAnonymous: () => createUnauthorizedResponse('Non authentifié'),
+    });
+    if (error) return error;
 
     const { searchParams } = new URL(request.url);
     const draftId = searchParams.get('id');

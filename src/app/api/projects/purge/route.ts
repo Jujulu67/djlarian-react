@@ -1,10 +1,10 @@
 import { NextRequest } from 'next/server';
 import { revalidateTag } from 'next/cache';
 
-import { auth } from '@/auth';
 import { handleApiError } from '@/lib/api/errorHandler';
 import { createSuccessResponse, createUnauthorizedResponse } from '@/lib/api/responseHelpers';
 import prisma from '@/lib/prisma';
+import { requireAuth } from '@/lib/api/requireAuth';
 
 // Fonction helper pour invalider le cache des projets d'un utilisateur
 function invalidateProjectsCache(userId: string) {
@@ -19,11 +19,11 @@ function invalidateProjectsCache(userId: string) {
 // DELETE /api/projects/purge - Supprime tous les projets de l'utilisateur connecté
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return createUnauthorizedResponse('Non autorisé');
-    }
+    const { session, error } = await requireAuth({
+      requireUserId: true,
+      onAnonymous: () => createUnauthorizedResponse('Non autorisé'),
+    });
+    if (error) return error;
 
     // Supprimer tous les projets de l'utilisateur
     const result = await prisma.project.deleteMany({

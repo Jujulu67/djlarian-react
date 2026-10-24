@@ -1,8 +1,7 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 
-import { auth } from '@/auth';
-import { requireAdmin } from '@/lib/api/requireAuth';
+import { requireAdmin, requireAuth } from '@/lib/api/requireAuth';
 import { handleApiError } from '@/lib/api/errorHandler';
 import {
   createCreatedResponse,
@@ -36,11 +35,11 @@ type CreateUserInput = z.infer<typeof createUserSchema>;
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return createUnauthorizedResponse('Non autorisé');
-    }
+    const { session, error } = await requireAuth({
+      requireUserId: true,
+      onAnonymous: () => createUnauthorizedResponse('Non autorisé'),
+    });
+    if (error) return error;
 
     // Permettre à tous les utilisateurs authentifiés de voir la liste des utilisateurs
     const users = await prisma.user.findMany({

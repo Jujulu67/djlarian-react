@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { auth } from '@/auth';
 import { createSuccessResponse, createUnauthorizedResponse } from '@/lib/api/responseHelpers';
 import { handleApiError } from '@/lib/api/errorHandler';
 import prisma from '@/lib/prisma';
 import { RewardType } from '@/types/slot-machine';
 import { LiveItemType } from '@/types/live';
+import { requireAuth } from '@/lib/api/requireAuth';
 
 const claimRewardSchema = z.object({
   rewardType: z.nativeEnum(RewardType),
@@ -69,11 +69,11 @@ async function getOrCreateLiveItem(itemType: LiveItemType) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return createUnauthorizedResponse('Non authentifié');
-    }
+    const { session, error } = await requireAuth({
+      requireUserId: true,
+      onAnonymous: () => createUnauthorizedResponse('Non authentifié'),
+    });
+    if (error) return error;
 
     const body = await request.json();
     const validatedData = claimRewardSchema.parse(body);

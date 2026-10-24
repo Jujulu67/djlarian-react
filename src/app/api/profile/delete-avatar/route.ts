@@ -3,7 +3,7 @@ import path from 'path';
 
 import { NextRequest, NextResponse } from 'next/server';
 
-import { auth } from '@/auth';
+import { requireAuth } from '@/lib/api/requireAuth';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import { shouldUseBlobStorage } from '@/lib/utils/getStorageConfig';
@@ -12,12 +12,12 @@ import { deleteFromBlob } from '@/lib/blob';
 // Suppression de photo de profil - Accessible aux utilisateurs connectés
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await auth();
-
     // Vérifier l'authentification
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
-    }
+    const { session, error } = await requireAuth({
+      requireUserId: true,
+      onAnonymous: () => NextResponse.json({ error: 'Non autorisé' }, { status: 401 }),
+    });
+    if (error) return error;
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },

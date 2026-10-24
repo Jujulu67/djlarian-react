@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidateTag } from 'next/cache';
 
-import { auth } from '@/auth';
 import { handleApiError } from '@/lib/api/errorHandler';
 import {
   createSuccessResponse,
@@ -10,6 +9,7 @@ import {
   createConflictResponse,
 } from '@/lib/api/responseHelpers';
 import prisma from '@/lib/prisma';
+import { requireAuth } from '@/lib/api/requireAuth';
 
 // Fonction helper pour invalider le cache des projets d'un utilisateur
 function invalidateProjectsCache(userId: string) {
@@ -57,11 +57,11 @@ function parseRelativeDate(dateStr: string): string | null {
 // POST /api/projects/batch-update - Met à jour plusieurs projets selon des critères
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return createUnauthorizedResponse('Non autorisé');
-    }
+    const { session, error } = await requireAuth({
+      requireUserId: true,
+      onAnonymous: () => createUnauthorizedResponse('Non autorisé'),
+    });
+    if (error) return error;
 
     const body = await request.json();
     const {

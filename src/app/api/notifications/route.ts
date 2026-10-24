@@ -1,9 +1,9 @@
 import { NextRequest } from 'next/server';
 
-import { auth } from '@/auth';
 import { handleApiError } from '@/lib/api/errorHandler';
 import { createSuccessResponse, createUnauthorizedResponse } from '@/lib/api/responseHelpers';
 import prisma from '@/lib/prisma';
+import { requireAuth } from '@/lib/api/requireAuth';
 
 export type NotificationType =
   | 'MILESTONE'
@@ -27,11 +27,11 @@ export type NotificationType =
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return createUnauthorizedResponse('Non autorisé');
-    }
+    const { session, error } = await requireAuth({
+      requireUserId: true,
+      onAnonymous: () => createUnauthorizedResponse('Non autorisé'),
+    });
+    if (error) return error;
 
     const { searchParams } = new URL(request.url);
     const unreadOnly = searchParams.get('unreadOnly') === 'true';
@@ -267,11 +267,11 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return createUnauthorizedResponse('Non autorisé');
-    }
+    const { session, error } = await requireAuth({
+      requireUserId: true,
+      onAnonymous: () => createUnauthorizedResponse('Non autorisé'),
+    });
+    if (error) return error;
 
     // Vérifier que l'utilisateur est admin
     const user = await prisma.user.findUnique({

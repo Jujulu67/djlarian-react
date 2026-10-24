@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server';
 import { revalidateTag } from 'next/cache';
 
-import { auth } from '@/auth';
 import { handleApiError } from '@/lib/api/errorHandler';
 import {
   createSuccessResponse,
@@ -10,6 +9,7 @@ import {
 } from '@/lib/api/responseHelpers';
 import prisma from '@/lib/prisma';
 import { serializeProjects } from '@/lib/utils/serializeProject';
+import { requireAuth } from '@/lib/api/requireAuth';
 
 // Fonction helper pour invalider le cache des projets d'un utilisateur
 function invalidateProjectsCache(userId: string) {
@@ -24,11 +24,11 @@ function invalidateProjectsCache(userId: string) {
 // PATCH /api/projects/reorder - Met à jour l'ordre de plusieurs projets
 export async function PATCH(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return createUnauthorizedResponse('Non autorisé');
-    }
+    const { session, error } = await requireAuth({
+      requireUserId: true,
+      onAnonymous: () => createUnauthorizedResponse('Non autorisé'),
+    });
+    if (error) return error;
 
     const body = await request.json();
     const { projectOrders } = body;

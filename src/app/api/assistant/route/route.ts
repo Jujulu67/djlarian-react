@@ -6,18 +6,18 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
 import { routeProjectCommand } from '@/lib/assistant/router/router';
 import type { RouterContext, RouterOptions } from '@/lib/assistant/router/types';
 import type { Project } from '@/components/projects/types';
+import { requireAuth } from '@/lib/api/requireAuth';
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
-    }
+    const { error } = await requireAuth({
+      requireUserId: true,
+      onAnonymous: () => NextResponse.json({ error: 'Non autorisé' }, { status: 401 }),
+    });
+    if (error) return error;
 
     const body = await request.json();
     const { userMessage, projects, conversationHistory, lastFilters } = body;
