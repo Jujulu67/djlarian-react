@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { signMessage } from '@/lib/license/crypto';
+import { logger } from '@/lib/logger';
 
 interface ValidationRequest {
   license_key: string;
@@ -80,7 +81,7 @@ export async function POST(req: NextRequest) {
       signature: await signMessage('active'),
     });
   } catch (error) {
-    console.error('[License Validate]', error);
+    logger.error('[License Validate]', error);
     return NextResponse.json(
       { valid: false, status: 'error', error: 'Internal server error' },
       { status: 500 }

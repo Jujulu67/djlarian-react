@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/profile/accounts
@@ -74,7 +75,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[API] Erreur récupération comptes OAuth:', error);
+    logger.error('[API] Erreur récupération comptes OAuth:', error);
     return NextResponse.json(
       { error: 'Erreur lors de la récupération des comptes' },
       { status: 500 }

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/plugin/version
@@ -36,7 +37,7 @@ export async function GET() {
       url: release.html_url,
     });
   } catch (error) {
-    console.error('[PLUGIN_VERSION_ERROR]', error);
+    logger.error('[PLUGIN_VERSION_ERROR]', error);
     return NextResponse.json({ version: 'v1.0.0', error: 'Internal error' });
   }
 }

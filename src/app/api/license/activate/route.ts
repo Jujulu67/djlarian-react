@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { signMessage, encryptLicenseData, ensureSodium } from '@/lib/license/crypto';
 import { getLicenseTypeIndex } from '@/lib/license/types';
+import { logger } from '@/lib/logger';
 
 interface ActivationRequest {
   email: string;
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
     await ensureSodium();
 
     if (!process.env.ED25519_PRIVATE_KEY) {
-      console.error('[License Activate] ED25519_PRIVATE_KEY is not configured!');
+      logger.error('[License Activate] ED25519_PRIVATE_KEY is not configured!');
       return NextResponse.json(
         { success: false, error: 'Server configuration error' },
         { status: 500 }
@@ -122,7 +123,7 @@ export async function POST(req: NextRequest) {
       remaining_activations: license.maxActivations - license.activations.length - 1,
     });
   } catch (error) {
-    console.error('[License Activate]', error);
+    logger.error('[License Activate]', error);
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }

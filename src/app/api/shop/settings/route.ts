@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 import { NextResponse } from 'next/server';
 
 /**
@@ -44,7 +45,7 @@ export async function GET() {
 
     return NextResponse.json(settingsObj);
   } catch (error) {
-    console.error('[SHOP_SETTINGS_ERROR]', error);
+    logger.error('[SHOP_SETTINGS_ERROR]', error);
     // Return defaults on error
     return NextResponse.json({
       stripePaymentLink: process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK || '',

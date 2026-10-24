@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 // GET /api/user/game-stats - Get user game stats
 export async function GET() {
@@ -25,7 +26,7 @@ export async function GET() {
 
     return NextResponse.json({ data: user });
   } catch (error) {
-    console.error('Error fetching game stats:', error);
+    logger.error('Error fetching game stats:', error);
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }
@@ -78,7 +79,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ data: { ...user, updated: true } });
   } catch (error) {
-    console.error('Error updating game stats:', error);
+    logger.error('Error updating game stats:', error);
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }

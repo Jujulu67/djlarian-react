@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 /**
  * Route pour stocker l'email dans un cookie temporaire
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
-    console.error('[API] Erreur store merge email:', error);
+    logger.error('[API] Erreur store merge email:', error);
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }

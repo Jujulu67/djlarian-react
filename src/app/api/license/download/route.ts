@@ -1,5 +1,6 @@
 import { requireAuth } from '@/lib/api/requireAuth';
 import prisma from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 import { NextResponse } from 'next/server';
 
 async function handleDownloadRequest(req: Request) {
@@ -74,7 +75,7 @@ async function handleDownloadRequest(req: Request) {
     const token = process.env.GITHUB_TOKEN;
 
     if (!token) {
-      console.error('GITHUB_TOKEN not configured');
+      logger.error('GITHUB_TOKEN not configured');
       return new NextResponse('Server configuration error', { status: 500 });
     }
 
@@ -88,7 +89,7 @@ async function handleDownloadRequest(req: Request) {
     });
 
     if (!releaseRes.ok) {
-      console.error('Failed to fetch latest release:', await releaseRes.text());
+      logger.error('Failed to fetch latest release:', await releaseRes.text());
       return new NextResponse('Failed to fetch installers', { status: 502 });
     }
 
@@ -140,7 +141,7 @@ async function handleDownloadRequest(req: Request) {
     }
 
     if (!downloadUrl) {
-      console.error(
+      logger.error(
         `Failed to get redirect URL from GitHub: ${assetRes.status} ${assetRes.statusText}`
       );
       return new NextResponse(`Failed to resolve installer URL from GitHub`, { status: 502 });
@@ -164,7 +165,7 @@ async function handleDownloadRequest(req: Request) {
     const finalAssetRes = await fetch(downloadUrl); // Don't send Authorization to the redirect URL
 
     if (!finalAssetRes.ok) {
-      console.error(
+      logger.error(
         `Failed to download asset: ${finalAssetRes.status} ${finalAssetRes.statusText}`,
         {
           url: downloadUrl,
@@ -186,7 +187,7 @@ async function handleDownloadRequest(req: Request) {
       },
     });
   } catch (error) {
-    console.error('[DOWNLOAD_ERROR]', error);
+    logger.error('[DOWNLOAD_ERROR]', error);
     return new NextResponse('Internal error', { status: 500 });
   }
 }

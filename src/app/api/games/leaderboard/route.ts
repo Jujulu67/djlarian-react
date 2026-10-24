@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requireAuth } from '@/lib/api/requireAuth';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -155,7 +156,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error('[LEADERBOARD_GET]', error);
+    logger.error('[LEADERBOARD_GET]', error);
     return new NextResponse('Internal Error', { status: 500 });
   }
 }
