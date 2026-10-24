@@ -126,4 +126,26 @@ describe('auth.config', () => {
 
     expect(result).toBe(true);
   });
+
+  it('should allow password logins for users without a credentials Account row', async () => {
+    process.env.REQUIRE_MERGE_CONFIRMATION = 'true';
+    (mockPrisma.account.findUnique as jest.Mock).mockResolvedValue(null);
+    (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue({
+      id: 'user-1',
+      email: 'test@example.com',
+      Account: [{ provider: 'google' }],
+    });
+
+    const result = await authConfig.callbacks.signIn({
+      user: { email: 'test@example.com', id: 'user-1' },
+      account: {
+        provider: 'credentials',
+        providerAccountId: 'user-1',
+        type: 'credentials',
+      },
+      profile: undefined,
+    } as any);
+
+    expect(result).toBe(true);
+  });
 });

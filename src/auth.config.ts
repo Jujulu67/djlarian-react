@@ -29,8 +29,10 @@ export const authConfig = {
   providers,
   callbacks: {
     async signIn({ user, account, profile }) {
-      // Si c'est une connexion OAuth et qu'un utilisateur existe avec le même email
-      if (account && user.email) {
+      // Si c'est une connexion OAuth et qu'un utilisateur existe avec le même email.
+      // Les connexions par mot de passe (provider 'credentials') ne sont pas concernées :
+      // authorize() a déjà vérifié le mot de passe, et elles n'ont pas de ligne Account.
+      if (account && account.provider !== 'credentials' && user.email) {
         const prismaModule = await import('@/lib/prisma');
         const prisma = prismaModule.default;
 
