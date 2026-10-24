@@ -9,7 +9,7 @@
 
 Contexte : jusqu'au 24/10/2026, le repo **public** contenait des dumps SQLite avec de vraies
 données (5 emails dont 2 admins, 3 hashes de mots de passe bcrypt, tokens OAuth Google et
-Twitch, dont un refresh token Twitch). Les fichiers ont été retirés et l'historique purgé,
+Twitch, dont un refresh token Twitch). Les fichiers ont été retirés et l'historique git réécrit le 24/10/2026,
 mais des forks, caches ou clones ont pu les récupérer avant : il faut considérer ces données
 comme compromises.
 
@@ -19,6 +19,13 @@ comme compromises.
       puis mettre à jour `GOOGLE_CLIENT_SECRET` sur Vercel. Cela invalide les tokens fuités.
 - [ ] **Régénérer le secret client Twitch** (dev.twitch.tv → Applications), puis mettre à
       jour la variable correspondante sur Vercel.
+- [ ] **Demander au support GitHub de purger les anciens commits** : l'historique a été
+      réécrit le 24/10/2026, mais les PR #1 à #4 et #16 gardent des références en lecture
+      seule vers l'ancien historique, et les commits restent accessibles par leur SHA.
+      Formulaire : https://support.github.com/contact → « Remove sensitive data », en
+      précisant le dépôt `Jujulu67/djlarian-react` et les fichiers
+      `prisma/dev.db.backup.20251214_140955`, `prisma/dev.db.before-restore.*`,
+      `prisma/prisma/dev.db`.
 - [ ] **Débrancher Cloudflare Pages** du repo GitHub s'il n'est plus utilisé : il échoue
       sur chaque PR.
 
