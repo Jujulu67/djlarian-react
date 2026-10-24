@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: Request, { params }: { params: Promise<{ userId: string }> }) {
   const session = await auth();
@@ -33,7 +34,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ user
 
     return NextResponse.json(licenses);
   } catch (error) {
-    console.error('Failed to fetch user licenses:', error);
+    logger.error('Failed to fetch user licenses:', error);
     return NextResponse.json({ error: 'Erreur lors du chargement des licences' }, { status: 500 });
   }
 }

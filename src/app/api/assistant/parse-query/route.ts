@@ -3,6 +3,7 @@ import { isInternalRequest, requireAuth } from '@/lib/api/requireAuth';
 import { parseQuery } from '@/lib/assistant/query-parser';
 import { getConversationalResponse } from '@/lib/assistant/conversational/groq-responder';
 import type { ConversationMessage } from '@/lib/assistant/conversational/memory-manager';
+import { logger } from '@/lib/logger';
 
 /**
  * Filtre et valide l'historique conversationnel
@@ -85,10 +86,10 @@ export async function POST(request: NextRequest) {
     // Debug log (utilise le système de debug existant)
     // Removed hardcoded fetch to localhost endpoint - use debugLog instead
 
-    console.warn('[Parse Query API] Requête:', query);
-    console.warn('[Parse Query API] Résultat:', result);
+    logger.warn('[Parse Query API] Requête:', query);
+    logger.warn('[Parse Query API] Résultat:', result);
     if (result.isConversational !== undefined) {
-      console.warn('[Parse Query API] isConversational:', result.isConversational);
+      logger.warn('[Parse Query API] isConversational:', result.isConversational);
     }
     // Debug pour les questions qui ne devraient pas parser
     // Exclure les cas où on a détecté une note (updateData avec projectName et newNote)
@@ -99,7 +100,7 @@ export async function POST(request: NextRequest) {
       (result.updateData as any).projectName &&
       (result.updateData as any).newNote;
     if (result.understood && !/projet|project/i.test(query.toLowerCase()) && !hasNoteUpdate) {
-      console.warn(
+      logger.warn(
         '[Parse Query API] ⚠️ Question non liée aux projets mais understood=true:',
         query
       );
@@ -111,11 +112,11 @@ export async function POST(request: NextRequest) {
       let contextResponse: string;
 
       if (process.env.GROQ_API_KEY) {
-        console.warn('[Parse Query API] Question générale détectée, appel à Groq...');
+        logger.warn('[Parse Query API] Question générale détectée, appel à Groq...');
 
         // Filtrer et valider l'historique conversationnel
         const filteredHistory = filterConversationHistory(conversationHistory);
-        console.warn('[Parse Query API] Historique filtré:', {
+        logger.warn('[Parse Query API] Historique filtré:', {
           originalLength: conversationHistory?.length || 0,
           filteredLength: filteredHistory.length,
         });
@@ -139,7 +140,7 @@ export async function POST(request: NextRequest) {
         contextResponse = `Salut ! 🎵 Je suis l'assistant de tes projets musicaux. Demande-moi "combien de ghost prod j'ai" ou "liste mes projets terminés".`;
       }
 
-      console.warn('[Parse Query API] Réponse Groq:', contextResponse);
+      logger.warn('[Parse Query API] Réponse Groq:', contextResponse);
 
       return NextResponse.json({
         ...result,
@@ -151,7 +152,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error('[Parse Query API] Erreur:', error);
+    logger.error('[Parse Query API] Erreur:', error);
     return NextResponse.json({
       filters: {},
       type: 'list',

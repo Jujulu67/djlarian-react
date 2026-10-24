@@ -1,5 +1,6 @@
 import { requireAdmin } from '@/lib/api/requireAuth';
 import prisma from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 import { NextResponse } from 'next/server';
 
 /**
@@ -30,7 +31,7 @@ export async function GET() {
 
     return NextResponse.json(settingsObj);
   } catch (error) {
-    console.error('[ADMIN_SHOP_GET_ERROR]', error);
+    logger.error('[ADMIN_SHOP_GET_ERROR]', error);
     return new NextResponse('Internal error', { status: 500 });
   }
 }
@@ -73,7 +74,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('[ADMIN_SHOP_POST_ERROR]', error);
+    logger.error('[ADMIN_SHOP_POST_ERROR]', error);
     return new NextResponse('Internal error', { status: 500 });
   }
 }

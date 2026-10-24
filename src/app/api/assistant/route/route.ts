@@ -10,6 +10,7 @@ import { auth } from '@/auth';
 import { routeProjectCommand } from '@/lib/assistant/router/router';
 import type { RouterContext, RouterOptions } from '@/lib/assistant/router/types';
 import type { Project } from '@/components/projects/types';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -53,7 +54,7 @@ export async function POST(request: NextRequest) {
     // Retourner le résultat
     return NextResponse.json(result);
   } catch (error) {
-    console.error('[API Route Router] Erreur:', error);
+    logger.error('[API Route Router] Erreur:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Erreur inconnue' },
       { status: 500 }

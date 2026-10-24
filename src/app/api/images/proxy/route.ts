@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 /**
  * Route API proxy pour servir les images externes (OAuth, etc.)
@@ -62,7 +63,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[API Images Proxy] Erreur:', error);
+    logger.error('[API Images Proxy] Erreur:', error);
     return NextResponse.json({ error: "Erreur lors du proxy de l'image" }, { status: 500 });
   }
 }

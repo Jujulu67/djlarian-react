@@ -8,6 +8,7 @@ import {
   createRateLimitResponse,
 } from '@/lib/assistant/rate-limit/SessionRateLimiter';
 import { redactPii, isDebugAllowed } from '@/lib/assistant/security/PiiRedactor';
+import { logger } from '@/lib/logger';
 
 /**
  * Filtre et valide l'historique conversationnel
@@ -90,7 +91,7 @@ export async function POST(request: NextRequest) {
     if (!message || typeof message !== 'string' || message.trim() === '') {
       // O13: Redacter les PII dans les logs
       const sanitizedMessage = redactPii(sanitizeForLogs(String(message || ''), 100));
-      console.warn(`[Groq API] ${requestId} ❌ Message vide ou invalide`, {
+      logger.warn(`[Groq API] ${requestId} ❌ Message vide ou invalide`, {
         requestId: clientRequestId,
         message: sanitizedMessage,
       });
@@ -107,7 +108,7 @@ export async function POST(request: NextRequest) {
     // O13: Logs debug avec garde-fou production et redaction PII
     const debugEnabled = isDebugAllowed();
     if (debugEnabled) {
-      console.warn(`[Groq API] ${logPrefix} 📥 Requête reçue`, {
+      logger.warn(`[Groq API] ${logPrefix} 📥 Requête reçue`, {
         requestId: clientRequestId,
         messageLength: message.length,
         message: sanitizedMessage,
@@ -141,7 +142,7 @@ export async function POST(request: NextRequest) {
 
     // Logs debug (derrière flag)
     if (debugEnabled) {
-      console.warn(`[Groq API Debug] ${logPrefix} Avant appel getConversationalResponse`, {
+      logger.warn(`[Groq API Debug] ${logPrefix} Avant appel getConversationalResponse`, {
         requestId: clientRequestId || requestId,
         messageLength: message.length,
         hasHistory: filteredHistory.length > 0,
@@ -154,7 +155,7 @@ export async function POST(request: NextRequest) {
     const isIdentityQuery = /qui\s+es\s*[-]?tu|who\s+are\s+you/i.test(message);
     if (isIdentityQuery && debugEnabled) {
       // On ne peut pas accéder directement au system prompt ici, mais on peut logger ce qu'on sait
-      console.warn(`[Groq API Identity Check] ${logPrefix} Question d'identité détectée`, {
+      logger.warn(`[Groq API Identity Check] ${logPrefix} Question d'identité détectée`, {
         requestId: clientRequestId || requestId,
         message: redactPii(sanitizeForLogs(message, 100)),
         hasHistory: filteredHistory.length > 0,
@@ -177,7 +178,7 @@ export async function POST(request: NextRequest) {
 
     // Log réponse uniquement en debug (O13: garde-fou production)
     if (debugEnabled) {
-      console.warn(`[Groq API] ${logPrefix} ✅ Réponse générée`, {
+      logger.warn(`[Groq API] ${logPrefix} ✅ Réponse générée`, {
         requestId: clientRequestId,
         responseLength: response.length,
         response: sanitizedResponse,
@@ -192,7 +193,7 @@ export async function POST(request: NextRequest) {
     const sanitizedStack =
       error instanceof Error && error.stack ? sanitizeForLogs(error.stack, 500) : undefined;
 
-    console.error(`[Groq API] ${requestId} ❌ Erreur`, {
+    logger.error(`[Groq API] ${requestId} ❌ Erreur`, {
       requestId,
       error: sanitizedError,
       stack: sanitizedStack,

@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { hkdf } from '@panva/hkdf';
 import { EncryptJWT, jwtDecrypt } from 'jose';
 import { getImageUrl } from '@/lib/utils/getImageUrl';
+import { logger } from '@/lib/logger';
 
 /**
  * Route pour prévisualiser les données de fusion avant de confirmer
@@ -94,7 +95,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[API] Erreur preview merge:', error);
+    logger.error('[API] Erreur preview merge:', error);
     return NextResponse.json(
       { error: 'Erreur lors de la récupération des données' },
       { status: 500 }

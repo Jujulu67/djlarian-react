@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { compare as bcryptCompare } from '@/lib/bcrypt-edge';
 import prisma from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 import { hkdf } from '@panva/hkdf';
 import { EncryptJWT, base64url, calculateJwkThumbprint } from 'jose';
 
@@ -19,7 +20,7 @@ export async function POST(request: NextRequest) {
     const { email, password } = body;
 
     if (!email || !password) {
-      console.warn('[API] /api/auth/signin-credentials - Credentials manquants');
+      logger.warn('[API] /api/auth/signin-credentials - Credentials manquants');
       return NextResponse.json({ error: 'Email et mot de passe requis' }, { status: 400 });
     }
 
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user || !user.hashedPassword) {
-      console.warn(
+      logger.warn(
         '[API] /api/auth/signin-credentials - Utilisateur non trouvé ou sans mot de passe'
       );
       return NextResponse.json({ error: 'CredentialsSignin' }, { status: 401 });
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
     const isPasswordValid = await bcryptCompare(password as string, user.hashedPassword);
 
     if (!isPasswordValid) {
-      console.warn('[API] /api/auth/signin-credentials - Mot de passe invalide');
+      logger.warn('[API] /api/auth/signin-credentials - Mot de passe invalide');
       return NextResponse.json({ error: 'CredentialsSignin' }, { status: 401 });
     }
 
@@ -55,7 +56,7 @@ export async function POST(request: NextRequest) {
     const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
 
     if (!secret) {
-      console.error('[API] /api/auth/signin-credentials - NEXTAUTH_SECRET non défini');
+      logger.error('[API] /api/auth/signin-credentials - NEXTAUTH_SECRET non défini');
       return NextResponse.json({ error: 'Configuration error' }, { status: 500 });
     }
 
@@ -134,7 +135,7 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
-    console.error('[API] /api/auth/signin-credentials - Erreur:', errorMessage);
+    logger.error('[API] /api/auth/signin-credentials - Erreur:', errorMessage);
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

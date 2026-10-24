@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { signMessage } from '@/lib/license/crypto';
+import { logger } from '@/lib/logger';
 
 interface DeactivationRequest {
   license_key: string;
@@ -83,7 +84,7 @@ export async function POST(req: NextRequest) {
       signature: await signMessage('deactivated'),
     });
   } catch (error) {
-    console.error('[License Deactivate]', error);
+    logger.error('[License Deactivate]', error);
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }
