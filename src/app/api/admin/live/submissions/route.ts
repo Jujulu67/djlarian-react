@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { auth } from '@/auth';
+import { requireAdmin } from '@/lib/api/requireAuth';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import { createSuccessResponse, createUnauthorizedResponse } from '@/lib/api/responseHelpers';
@@ -12,11 +12,11 @@ import { handleApiError } from '@/lib/api/errorHandler';
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session?.user || session.user.role !== 'ADMIN') {
-      return createUnauthorizedResponse('Non autorisé');
-    }
+    const { error: authError } = await requireAdmin({
+      onAnonymous: () => createUnauthorizedResponse('Non autorisé'),
+      onNonAdmin: () => createUnauthorizedResponse('Non autorisé'),
+    });
+    if (authError) return authError;
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status'); // Filtrer par status si fourni

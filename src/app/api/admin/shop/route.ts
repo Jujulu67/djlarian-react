@@ -1,4 +1,4 @@
-import { auth } from '@/auth';
+import { requireAdmin } from '@/lib/api/requireAuth';
 import prisma from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 
@@ -8,10 +8,11 @@ import { NextResponse } from 'next/server';
  */
 export async function GET() {
   try {
-    const session = await auth();
-    if (!session?.user || session.user.role !== 'ADMIN') {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
+    const { error: authError } = await requireAdmin({
+      onAnonymous: () => new NextResponse('Unauthorized', { status: 401 }),
+      onNonAdmin: () => new NextResponse('Unauthorized', { status: 401 }),
+    });
+    if (authError) return authError;
 
     const settings = await prisma.adminSettings.findMany({
       where: {
@@ -40,10 +41,11 @@ export async function GET() {
  */
 export async function POST(req: Request) {
   try {
-    const session = await auth();
-    if (!session?.user || session.user.role !== 'ADMIN') {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
+    const { error: authError } = await requireAdmin({
+      onAnonymous: () => new NextResponse('Unauthorized', { status: 401 }),
+      onNonAdmin: () => new NextResponse('Unauthorized', { status: 401 }),
+    });
+    if (authError) return authError;
 
     const body = await req.json();
     const { stripePaymentLink, productPrice, shopEnabled, productName, products } = body;

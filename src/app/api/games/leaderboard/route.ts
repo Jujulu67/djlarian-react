@@ -1,16 +1,15 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { auth } from '@/auth';
+import { requireAuth } from '@/lib/api/requireAuth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const session = await auth();
-
-    if (!session?.user) {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
+    const { error: authError } = await requireAuth({
+      onAnonymous: () => new NextResponse('Unauthorized', { status: 401 }),
+    });
+    if (authError) return authError;
 
     // 1. Rhythm Game Leaderboard (Top 10 highest scores)
     const rhythmGameLeaderboard = await prisma.user.findMany({

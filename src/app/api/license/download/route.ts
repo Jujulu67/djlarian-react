@@ -1,4 +1,4 @@
-import { auth } from '@/auth';
+import { requireAuth } from '@/lib/api/requireAuth';
 import prisma from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 
@@ -46,10 +46,10 @@ async function handleDownloadRequest(req: Request) {
       }
     } else if (licenseId) {
       // Auth via session + licenseId (Web UI flow)
-      const session = await auth();
-      if (!session?.user) {
-        return new NextResponse('Unauthorized', { status: 401 });
-      }
+      const { session, error: authError } = await requireAuth({
+        onAnonymous: () => new NextResponse('Unauthorized', { status: 401 }),
+      });
+      if (authError) return authError;
 
       license = await prisma.license.findUnique({
         where: {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { requireAdmin } from '@/lib/api/requireAuth';
 import { createUnauthorizedResponse, createSuccessResponse } from '@/lib/api/responseHelpers';
 import { handleApiError } from '@/lib/api/errorHandler';
 import prisma from '@/lib/prisma';
@@ -11,11 +11,11 @@ import { logger } from '@/lib/logger';
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session?.user || session.user.role !== 'ADMIN') {
-      return createUnauthorizedResponse('Non autorisé');
-    }
+    const { error: authError } = await requireAdmin({
+      onAnonymous: () => createUnauthorizedResponse('Non autorisé'),
+      onNonAdmin: () => createUnauthorizedResponse('Non autorisé'),
+    });
+    if (authError) return authError;
 
     const settings = await prisma.adminSettings.findMany();
 
@@ -51,11 +51,11 @@ export async function GET(request: NextRequest) {
  */
 export async function PATCH(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session?.user || session.user.role !== 'ADMIN') {
-      return createUnauthorizedResponse('Non autorisé');
-    }
+    const { error: authError } = await requireAdmin({
+      onAnonymous: () => createUnauthorizedResponse('Non autorisé'),
+      onNonAdmin: () => createUnauthorizedResponse('Non autorisé'),
+    });
+    if (authError) return authError;
 
     const body = await request.json();
     const { key, value } = body;

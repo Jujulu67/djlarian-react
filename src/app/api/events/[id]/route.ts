@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import { NextRequest } from 'next/server';
 
 import { auth } from '@/auth';
+import { requireAdmin } from '@/lib/api/requireAuth';
 import { handleApiError } from '@/lib/api/errorHandler';
 import { createSuccessResponse, createForbiddenResponse } from '@/lib/api/responseHelpers';
 import { logger } from '@/lib/logger';
@@ -170,11 +171,11 @@ export async function PATCH(
 
     logger.debug(`[API] Event with ID ${id} found, proceeding with update`);
 
-    const session = await auth();
-
-    if (!session?.user || session.user.role !== 'ADMIN') {
-      return createForbiddenResponse('Non autorisé');
-    }
+    const { session, error: authError } = await requireAdmin({
+      onAnonymous: () => createForbiddenResponse('Non autorisé'),
+      onNonAdmin: () => createForbiddenResponse('Non autorisé'),
+    });
+    if (authError) return authError;
 
     // Afficher les informations de session pour debug
     logger.debug('Session user info for update:', JSON.stringify(session.user, null, 2));
@@ -365,12 +366,12 @@ export async function DELETE(
   const resolvedParams = await params;
   try {
     const id = resolvedParams.id;
-    const session = await auth();
-
     // Vérifier l'authentification et les autorisations
-    if (!session?.user || session.user.role !== 'ADMIN') {
-      return createForbiddenResponse('Non autorisé');
-    }
+    const { error: authError } = await requireAdmin({
+      onAnonymous: () => createForbiddenResponse('Non autorisé'),
+      onNonAdmin: () => createForbiddenResponse('Non autorisé'),
+    });
+    if (authError) return authError;
 
     // Vérifier si l'événement existe
     const eventExists = await prisma.event.findUnique({

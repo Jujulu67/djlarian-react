@@ -1,4 +1,4 @@
-import { auth } from '@/auth';
+import { requireAdmin } from '@/lib/api/requireAuth';
 import prisma from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
@@ -9,11 +9,11 @@ const deleteLicenseSchema = z.object({
 
 export async function POST(req: Request) {
   try {
-    const session = await auth();
-
-    if (!session?.user || session.user.role !== 'ADMIN') {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
+    const { error: authError } = await requireAdmin({
+      onAnonymous: () => new NextResponse('Unauthorized', { status: 401 }),
+      onNonAdmin: () => new NextResponse('Unauthorized', { status: 401 }),
+    });
+    if (authError) return authError;
 
     const body = await req.json();
     const { licenseId } = deleteLicenseSchema.parse(body);
