@@ -7,23 +7,6 @@ import type { FileImportData, FileStatus } from './types';
 export const NO_RELEASE_DATE_ERROR = "Le projet sélectionné n'a pas de date de release";
 
 /**
- * Formate une date ISO en format français (DD/MM/YYYY)
- */
-export function formatDateFrench(dateString: string | null): string {
-  if (!dateString) return '';
-
-  try {
-    const date = new Date(dateString);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
-  } catch {
-    return dateString;
-  }
-}
-
-/**
  * Convertit une date ISO en date locale au format YYYY-MM-DD
  */
 export function toIsoDateOnly(dateString: string): string {

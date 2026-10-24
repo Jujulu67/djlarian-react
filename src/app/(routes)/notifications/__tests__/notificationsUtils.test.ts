@@ -1,11 +1,11 @@
 import { Bell, Calendar, Sparkles } from 'lucide-react';
 
 import type { Notification, NotificationType } from '@/hooks/useNotifications';
+import { formatDateFrench } from '@/lib/utils/format';
 
 import {
   filterArchivedByView,
   filterNotificationsByFilter,
-  formatDateFrench,
   formatDateTimeFrench,
   getNotificationProjectId,
   getNotificationStyle,
@@ -39,8 +39,8 @@ describe('formatDateFrench', () => {
     expect(formatDateFrench(new Date(2024, 0, 5, 9, 7).toISOString())).toBe('05/01/2024');
   });
 
-  it('pour une date invalide, renvoie NaN (comportement actuel, pas de fallback)', () => {
-    expect(formatDateFrench('pas une date')).toBe('NaN/NaN/NaN');
+  it("pour une date invalide, renvoie la valeur d'origine (pas NaN/NaN/NaN)", () => {
+    expect(formatDateFrench('pas une date')).toBe('pas une date');
   });
 });
 

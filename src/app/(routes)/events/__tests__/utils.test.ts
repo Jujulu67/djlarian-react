@@ -7,11 +7,8 @@ import {
   buildEventsUrl,
   calculateEndDate,
   filterEventsBySearch,
-  formatEventDate,
   generateRecurringDatesForEvent,
   generateVirtualOccurrences,
-  getStatusColor,
-  getStatusLabel,
   isPastEvent,
   sortEventsForDisplay,
 } from '../utils';
@@ -92,25 +89,6 @@ describe('filterEventsBySearch', () => {
   });
 });
 
-describe('libellés et couleurs de statut', () => {
-  it('traduit les statuts connus', () => {
-    expect(getStatusLabel('UPCOMING')).toBe('À venir');
-    expect(getStatusLabel('CANCELLED')).toBe('Annulé');
-    expect(getStatusLabel('COMPLETED')).toBe('Terminé');
-  });
-
-  it('retourne le statut brut quand il est inconnu', () => {
-    expect(getStatusLabel('DRAFT')).toBe('DRAFT');
-  });
-
-  it('associe une couleur à chaque statut, bleu par défaut', () => {
-    expect(getStatusColor('UPCOMING')).toBe('bg-blue-500');
-    expect(getStatusColor('CANCELLED')).toBe('bg-red-500');
-    expect(getStatusColor('COMPLETED')).toBe('bg-gray-500');
-    expect(getStatusColor('AUTRE')).toBe('bg-blue-500');
-  });
-});
-
 describe('dates', () => {
   beforeEach(() => {
     jest.useFakeTimers();
@@ -119,10 +97,6 @@ describe('dates', () => {
 
   afterEach(() => {
     jest.useRealTimers();
-  });
-
-  it('formate la date au format court français', () => {
-    expect(formatEventDate('2026-07-14T12:00:00')).toBe('14 juillet 2026');
   });
 
   it('indique si un événement est passé', () => {

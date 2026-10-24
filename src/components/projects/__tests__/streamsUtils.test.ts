@@ -1,6 +1,5 @@
 import {
   analyzeStreamsFile,
-  formatDateFrench,
   getFileStatus,
   getValidatedFiles,
   NO_RELEASE_DATE_ERROR,
@@ -8,6 +7,7 @@ import {
 } from '../import-streams/streamsUtils';
 import type { FileImportData } from '../import-streams/types';
 import type { Project } from '@/lib/domain/projects';
+import { formatDateFrench } from '@/lib/utils/format';
 
 function makeProject(overrides: Partial<Project>): Project {
   return {

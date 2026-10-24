@@ -1,5 +1,4 @@
-import { addDays, addMonths, format, parseISO } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import { addDays, addMonths } from 'date-fns';
 
 import { logger } from '@/lib/logger';
 
@@ -214,40 +213,6 @@ export function filterEventsBySearch(events: Event[], searchTerm: string): Event
       event.location.toLowerCase().includes(searchTermLower)
     );
   });
-}
-
-// Formater la date
-export function formatEventDate(dateString: string): string {
-  const date = parseISO(dateString);
-  return format(date, 'd MMMM yyyy', { locale: fr });
-}
-
-// Obtenir le libellé du statut
-export function getStatusLabel(status: string): string {
-  switch (status) {
-    case 'UPCOMING':
-      return 'À venir';
-    case 'CANCELLED':
-      return 'Annulé';
-    case 'COMPLETED':
-      return 'Terminé';
-    default:
-      return status;
-  }
-}
-
-// Obtenir la couleur du badge selon le statut
-export function getStatusColor(status: string): string {
-  switch (status) {
-    case 'UPCOMING':
-      return 'bg-blue-500';
-    case 'CANCELLED':
-      return 'bg-red-500';
-    case 'COMPLETED':
-      return 'bg-gray-500';
-    default:
-      return 'bg-blue-500';
-  }
 }
 
 // Vérifier si un événement est passé
