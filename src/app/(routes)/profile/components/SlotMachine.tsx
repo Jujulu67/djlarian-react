@@ -126,14 +126,18 @@ export function SlotMachine({ isOpen, onClose }: SlotMachineProps) {
   useEffect(() => {
     if (lastResult?.isWin && !isSpinning) {
       // Attendre que l'animation de spin soit terminée avant d'afficher l'animation de victoire
+      let hideTimer: ReturnType<typeof setTimeout> | undefined;
       const timer = setTimeout(() => {
         setShowWinAnimation(true);
-        const hideTimer = setTimeout(() => {
+        hideTimer = setTimeout(() => {
           setShowWinAnimation(false);
         }, 3000);
-        return () => clearTimeout(hideTimer);
       }, 2500); // Attendre que l'animation de spin se termine (2s + marge)
-      return () => clearTimeout(timer);
+      // Annuler les deux timers (le retour d'un callback de setTimeout est ignoré)
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(hideTimer);
+      };
     } else if (!lastResult?.isWin) {
       setShowWinAnimation(false);
     }
