@@ -1,19 +1,19 @@
 import { NextRequest } from 'next/server';
 import { unstable_cache } from 'next/cache';
 
-import { auth } from '@/auth';
 import { handleApiError } from '@/lib/api/errorHandler';
 import { createSuccessResponse, createUnauthorizedResponse } from '@/lib/api/responseHelpers';
 import prisma from '@/lib/prisma';
+import { requireAuth } from '@/lib/api/requireAuth';
 
 // GET /api/projects/counts - Récupère uniquement les comptes/totaux (léger et rapide)
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return createUnauthorizedResponse('Non autorisé');
-    }
+    const { session, error } = await requireAuth({
+      requireUserId: true,
+      onAnonymous: () => createUnauthorizedResponse('Non autorisé'),
+    });
+    if (error) return error;
 
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId'); // Pour admin uniquement

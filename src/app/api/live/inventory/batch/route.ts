@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
-import { auth } from '@/auth';
+import { requireAuth } from '@/lib/api/requireAuth';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import { createSuccessResponse, createUnauthorizedResponse } from '@/lib/api/responseHelpers';
@@ -37,12 +37,14 @@ export async function POST(request: NextRequest) {
   const perf = createDbPerformanceLogger('POST /api/live/inventory/batch');
   const t0 = perf.start();
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      perf.end(t0, { metadata: { error: 'Unauthorized' } });
-      return createUnauthorizedResponse('Non authentifié');
-    }
+    const { session, error } = await requireAuth({
+      requireUserId: true,
+      onAnonymous: () => {
+        perf.end(t0, { metadata: { error: 'Unauthorized' } });
+        return createUnauthorizedResponse('Non authentifié');
+      },
+    });
+    if (error) return error;
 
     const body = await request.json();
     const validationResult = batchInventorySchema.safeParse(body);

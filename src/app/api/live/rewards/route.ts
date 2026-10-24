@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
-import { auth } from '@/auth';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import { createSuccessResponse, createUnauthorizedResponse } from '@/lib/api/responseHelpers';
 import { handleApiError } from '@/lib/api/errorHandler';
 import type { LiveRewards } from '@/types/live';
 import { LiveItemType } from '@/types/live';
+import { requireAuth } from '@/lib/api/requireAuth';
 
 const updateRewardsSchema = z.object({
   loyalty: z.number().int().min(0).optional(),
@@ -21,11 +21,11 @@ const updateRewardsSchema = z.object({
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return createUnauthorizedResponse('Non authentifié');
-    }
+    const { session, error } = await requireAuth({
+      requireUserId: true,
+      onAnonymous: () => createUnauthorizedResponse('Non authentifié'),
+    });
+    if (error) return error;
 
     // Récupérer les métadonnées des items de récompense
     const loyaltyItem = await prisma.userLiveItem.findFirst({
@@ -115,11 +115,11 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return createUnauthorizedResponse('Non authentifié');
-    }
+    const { session, error } = await requireAuth({
+      requireUserId: true,
+      onAnonymous: () => createUnauthorizedResponse('Non authentifié'),
+    });
+    if (error) return error;
 
     const body = await request.json();
     const validationResult = updateRewardsSchema.safeParse(body);

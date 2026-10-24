@@ -2,7 +2,6 @@ import { NextRequest } from 'next/server';
 import { unstable_cache } from 'next/cache';
 import { revalidateTag } from 'next/cache';
 
-import { auth } from '@/auth';
 import { handleApiError } from '@/lib/api/errorHandler';
 import {
   createSuccessResponse,
@@ -12,6 +11,7 @@ import {
 } from '@/lib/api/responseHelpers';
 import prisma from '@/lib/prisma';
 import { serializeProjects, serializeProject } from '@/lib/utils/serializeProject';
+import { requireAuth } from '@/lib/api/requireAuth';
 
 // Format text in Title Case (first letter of each word in uppercase, rest in lowercase)
 const formatTitleCase = (text: string): string => {
@@ -39,11 +39,11 @@ function invalidateProjectsCache(userId: string) {
 // GET /api/projects - Liste les projets de l'utilisateur connecté (ou tous pour admin)
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return createUnauthorizedResponse('Non autorisé');
-    }
+    const { session, error } = await requireAuth({
+      requireUserId: true,
+      onAnonymous: () => createUnauthorizedResponse('Non autorisé'),
+    });
+    if (error) return error;
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
@@ -136,11 +136,11 @@ export async function GET(request: NextRequest) {
 // POST /api/projects - Crée un nouveau projet
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return createUnauthorizedResponse('Non autorisé');
-    }
+    const { session, error } = await requireAuth({
+      requireUserId: true,
+      onAnonymous: () => createUnauthorizedResponse('Non autorisé'),
+    });
+    if (error) return error;
 
     const body = await request.json();
 

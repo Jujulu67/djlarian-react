@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
+import { requireAuth } from '@/lib/api/requireAuth';
 import { logger } from '@/lib/logger';
 
 /**
@@ -10,11 +10,11 @@ import { logger } from '@/lib/logger';
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
-    }
+    const { session, error } = await requireAuth({
+      requireUserId: true,
+      onAnonymous: () => NextResponse.json({ error: 'Non authentifié' }, { status: 401 }),
+    });
+    if (error) return error;
 
     const body = await request.json();
     const { accountId } = body;

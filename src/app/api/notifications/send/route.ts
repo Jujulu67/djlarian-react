@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 
-import { auth } from '@/auth';
 import { handleApiError } from '@/lib/api/errorHandler';
 import {
   createSuccessResponse,
@@ -9,6 +8,7 @@ import {
   createBadRequestResponse,
 } from '@/lib/api/responseHelpers';
 import prisma from '@/lib/prisma';
+import { requireAuth } from '@/lib/api/requireAuth';
 
 /**
  * POST /api/notifications/send
@@ -22,11 +22,11 @@ import prisma from '@/lib/prisma';
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return createUnauthorizedResponse('Non autorisé');
-    }
+    const { session, error } = await requireAuth({
+      requireUserId: true,
+      onAnonymous: () => createUnauthorizedResponse('Non autorisé'),
+    });
+    if (error) return error;
 
     // Récupérer les infos de l'utilisateur
     const currentUser = await prisma.user.findUnique({

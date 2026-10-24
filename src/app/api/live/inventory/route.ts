@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 
-import { auth } from '@/auth';
+import { requireAuth } from '@/lib/api/requireAuth';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import { createSuccessResponse, createUnauthorizedResponse } from '@/lib/api/responseHelpers';
@@ -24,12 +24,14 @@ export async function GET(request: NextRequest) {
   const perf = createDbPerformanceLogger('GET /api/live/inventory');
   const t0 = perf.start();
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      perf.end(t0, { metadata: { error: 'Unauthorized' } });
-      return createUnauthorizedResponse('Non authentifié');
-    }
+    const { session, error } = await requireAuth({
+      requireUserId: true,
+      onAnonymous: () => {
+        perf.end(t0, { metadata: { error: 'Unauthorized' } });
+        return createUnauthorizedResponse('Non authentifié');
+      },
+    });
+    if (error) return error;
 
     // Récupérer tous les items de l'utilisateur avec leurs détails
     const t1 = Date.now();
@@ -113,12 +115,14 @@ export async function PUT(request: NextRequest) {
   const perf = createDbPerformanceLogger('PUT /api/live/inventory');
   const t0 = perf.start();
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      perf.end(t0, { metadata: { error: 'Unauthorized' } });
-      return createUnauthorizedResponse('Non authentifié');
-    }
+    const { session, error } = await requireAuth({
+      requireUserId: true,
+      onAnonymous: () => {
+        perf.end(t0, { metadata: { error: 'Unauthorized' } });
+        return createUnauthorizedResponse('Non authentifié');
+      },
+    });
+    if (error) return error;
 
     const body = await request.json();
     const validationResult = updateInventorySchema.safeParse(body);
