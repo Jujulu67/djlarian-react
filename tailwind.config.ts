@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss';
+import tailwindcssAnimate from 'tailwindcss-animate';
 
 export default {
   darkMode: 'class',
@@ -10,6 +11,12 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Accent unique de l'UI v2 (voir les tokens --brand-* dans globals.css)
+        brand: {
+          DEFAULT: 'rgb(var(--brand) / <alpha-value>)',
+          indigo: 'rgb(var(--brand-indigo) / <alpha-value>)',
+          magenta: 'rgb(var(--brand-magenta) / <alpha-value>)',
+        },
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         card: {
@@ -163,5 +170,5 @@ export default {
       },
     },
   },
-  plugins: [require('tailwindcss-animate')],
+  plugins: [tailwindcssAnimate],
 } satisfies Config;

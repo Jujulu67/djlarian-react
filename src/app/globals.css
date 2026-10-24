@@ -1,6 +1,9 @@
 @import 'tailwindcss';
 @config "../../tailwind.config.ts";
 
+/* Variant `v2:` : styles de l'UI v2 « Liquid Night », actifs sous <html data-ui="v2"> */
+@custom-variant v2 (&:where([data-ui='v2'], [data-ui='v2'] *));
+
 @layer base {
   /* Désactiver le défilement automatique pour éviter les avertissements */
   html {
@@ -1099,30 +1102,33 @@ section {
   scroll-margin-top: 80px;
 }
 
-/* Improved color contrasts for accessibility */
-.text-gray-300 {
-  color: rgb(209, 213, 219);
-  /* WCAG AA compliant */
-}
+/* Contrastes et couleurs de liens : réservé à l'UI legacy. En v2, ces règles hors couche ne doivent plus écraser les utilitaires Tailwind. */
+:where(html:not([data-ui='v2'])) {
+  /* Improved color contrasts for accessibility */
+  .text-gray-300 {
+    color: rgb(209, 213, 219);
+    /* WCAG AA compliant */
+  }
 
-.text-gray-400 {
-  color: rgb(156, 163, 175);
-  /* WCAG AA compliant */
-}
+  .text-gray-400 {
+    color: rgb(156, 163, 175);
+    /* WCAG AA compliant */
+  }
 
-/* Ensure sufficient contrast for interactive elements */
-.btn-modern,
-a[class*='btn'] {
-  color: white;
-  font-weight: 600;
-}
+  /* Ensure sufficient contrast for interactive elements */
+  .btn-modern,
+  a[class*='btn'] {
+    color: white;
+    font-weight: 600;
+  }
 
-/* Links are white by default - no purple color unless explicitly requested */
-/* Use .link-purple class for links that should have the purple color */
-a:not([class*='btn']):not(header a):not(nav a):not(.admin-button-link):not(button):not(
-    [role='button']
-  ):not(.link-purple) {
-  color: inherit;
+  /* Links are white by default - no purple color unless explicitly requested */
+  /* Use .link-purple class for links that should have the purple color */
+  a:not([class*='btn']):not(header a):not(nav a):not(.admin-button-link):not(button):not(
+      [role='button']
+    ):not(.link-purple) {
+    color: inherit;
+  }
 }
 
 /* Purple link class for links that should have the purple color (e.g., in content, descriptions, etc.) */
@@ -1143,44 +1149,47 @@ a.admin-button-link span {
   color: rgb(255, 255, 255) !important;
 }
 
-/* Ensure buttons and button-like elements don't inherit link colors */
-button,
-[role='button'],
-[class*='Button'],
-[class*='button'] {
-  color: inherit;
-}
+/* Couleurs héritées des boutons et liens de nav : réservé à l'UI legacy. En v2, ces règles hors couche ne doivent plus écraser les utilitaires Tailwind. */
+:where(html:not([data-ui='v2'])) {
+  /* Ensure buttons and button-like elements don't inherit link colors */
+  button,
+  [role='button'],
+  [class*='Button'],
+  [class*='button'] {
+    color: inherit;
+  }
 
-button a,
-[role='button'] a,
-[class*='Button'] a,
-[class*='button'] a {
-  color: inherit;
-}
+  button a,
+  [role='button'] a,
+  [class*='Button'] a,
+  [class*='button'] a {
+    color: inherit;
+  }
 
-/* Ensure button text doesn't get purple color - more specific rules */
-button span,
-button p,
-button div,
-button *,
-[role='button'] span,
-[role='button'] p,
-[role='button'] div,
-[role='button'] * {
-  color: inherit;
-}
+  /* Ensure button text doesn't get purple color - more specific rules */
+  button span,
+  button p,
+  button div,
+  button *,
+  [role='button'] span,
+  [role='button'] p,
+  [role='button'] div,
+  [role='button'] * {
+    color: inherit;
+  }
 
-/* Header navigation links should be white for better visibility - increased specificity instead of !important */
-header nav a,
-nav a,
-header > nav > a {
-  color: rgb(255, 255, 255);
-}
+  /* Header navigation links should be white for better visibility - increased specificity instead of !important */
+  header nav a,
+  nav a,
+  header > nav > a {
+    color: rgb(255, 255, 255);
+  }
 
-header nav a:hover,
-nav a:hover,
-header > nav > a:hover {
-  color: rgb(255, 255, 255);
+  header nav a:hover,
+  nav a:hover,
+  header > nav > a:hover {
+    color: rgb(255, 255, 255);
+  }
 }
 
 /* Navigation dropdown overrides:
@@ -1402,4 +1411,101 @@ header nav button.navMenuItem.navMenuItemWarning:hover {
       0 4px 6px -4px rgba(0, 0, 0, 0.2),
       0 0 0 1px rgba(139, 92, 246, 0.2);
   }
+}
+
+/* ==========================================================================
+   UI v2 « Liquid Night » : tokens, typographie et surfaces de verre.
+   Tout est scopé sous [data-ui='v2'] ; l'UI legacy n'est pas affectée.
+   ========================================================================== */
+
+:root {
+  /* Accent unique (canaux RGB pour l'opacité Tailwind : bg-brand/20) */
+  --brand: 139 92 246; /* #8b5cf6 */
+  --brand-indigo: 99 102 241; /* #6366f1 */
+  --brand-magenta: 217 70 239; /* #d946ef */
+}
+
+[data-ui='v2'] {
+  color-scheme: dark;
+  --bg: 9 9 11; /* #09090b */
+  --surface-border: rgb(255 255 255 / 0.08);
+  --surface-highlight: rgb(255 255 255 / 0.07);
+  --shadow-elevated: 0 12px 40px -12px rgb(0 0 0 / 0.65);
+  --shadow-overlay: 0 24px 80px -16px rgb(0 0 0 / 0.8);
+
+  /* Motion (miroir de src/lib/motion.ts) */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 150ms;
+  --dur-base: 250ms;
+  --dur-slow: 400ms;
+  --dur-slower: 700ms;
+}
+
+[data-ui='v2'] body {
+  font-family: var(--font-montserrat), system-ui, sans-serif;
+  background-color: rgb(var(--bg));
+}
+
+/* Les classes font-audiowide / font-montserrat n'ont jamais généré de règle :
+   on ne les active qu'en v2 pour garder l'UI legacy identique.
+   À la bascule (phase 6), déplacer ces polices dans theme.fontFamily de tailwind.config.ts. */
+[data-ui='v2'] .font-audiowide {
+  font-family: var(--font-audiowide), system-ui, sans-serif;
+}
+
+[data-ui='v2'] .font-montserrat {
+  font-family: var(--font-montserrat), system-ui, sans-serif;
+}
+
+[data-ui='v2'] ::selection {
+  background-color: rgb(var(--brand) / 0.35);
+}
+
+/* Surfaces de verre : 3 niveaux, pas plus.
+   1 = cartes, 2 = header/menus/popovers, 3 = modales/sheets. */
+@utility surface-1 {
+  background-color: rgb(255 255 255 / 0.03);
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  border: 1px solid var(--surface-border, rgb(255 255 255 / 0.08));
+  box-shadow: inset 0 1px 0 0 var(--surface-highlight, rgb(255 255 255 / 0.07));
+
+  @supports not (backdrop-filter: blur(1px)) {
+    background-color: rgb(24 24 27 / 0.92);
+  }
+}
+
+@utility surface-2 {
+  background-color: rgb(255 255 255 / 0.06);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid var(--surface-border, rgb(255 255 255 / 0.08));
+  box-shadow:
+    inset 0 1px 0 0 var(--surface-highlight, rgb(255 255 255 / 0.07)),
+    var(--shadow-elevated, 0 12px 40px -12px rgb(0 0 0 / 0.65));
+
+  @supports not (backdrop-filter: blur(1px)) {
+    background-color: rgb(24 24 27 / 0.96);
+  }
+}
+
+@utility surface-3 {
+  background-color: rgb(9 9 11 / 0.72);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  border: 1px solid var(--surface-border, rgb(255 255 255 / 0.08));
+  box-shadow:
+    inset 0 1px 0 0 var(--surface-highlight, rgb(255 255 255 / 0.07)),
+    var(--shadow-overlay, 0 24px 80px -16px rgb(0 0 0 / 0.8));
+
+  @supports not (backdrop-filter: blur(1px)) {
+    background-color: rgb(9 9 11 / 0.98);
+  }
+}
+
+/* Titres display : Audiowide, réservé au logo, h1 et titres de section */
+@utility text-display {
+  font-family: var(--font-audiowide), system-ui, sans-serif;
+  letter-spacing: 0.02em;
+  line-height: 1.1;
 }
