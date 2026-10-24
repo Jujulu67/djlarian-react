@@ -18,7 +18,6 @@ jest.mock('../../query-parser/filters');
 jest.mock('../../query-parser/updates');
 jest.mock('../../query-parser/creates');
 jest.mock('../../conversational/groq-responder');
-jest.mock('@/components/assistant/utils/filterProjects');
 
 import { routeProjectCommand } from '../router';
 import { ProjectCommandType } from '../types';

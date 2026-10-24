@@ -1,3 +1,6 @@
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+
 export const formatDuration = (seconds: number): string => {
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = Math.floor(seconds % 60);
@@ -10,6 +13,14 @@ export const formatDate = (date: string): string => {
     month: 'long',
     day: 'numeric',
   });
+};
+
+/**
+ * Date + heure en français via date-fns, ex. « 05 mars 2025 à 14:30 ».
+ * (Différent de formatDate : jour sur 2 chiffres et heure incluse.)
+ */
+export const formatDateTimeFr = (date: string | Date): string => {
+  return format(new Date(date), 'dd MMMM yyyy à HH:mm', { locale: fr });
 };
 
 export const formatTime = (date: string): string => {

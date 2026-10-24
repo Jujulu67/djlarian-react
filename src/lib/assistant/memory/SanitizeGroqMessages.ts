@@ -22,7 +22,7 @@ export interface ValidGroqMessage {
 /**
  * Résultat de la sanitization
  */
-export interface SanitizeResult {
+interface SanitizeResult {
   messages: ValidGroqMessage[];
   sanitized: boolean;
   issues: SanitizeIssue[];
@@ -31,7 +31,7 @@ export interface SanitizeResult {
 /**
  * Problème détecté lors de la sanitization
  */
-export interface SanitizeIssue {
+interface SanitizeIssue {
   index: number;
   field: 'role' | 'content' | 'structure';
   original: unknown;
@@ -42,7 +42,7 @@ export interface SanitizeIssue {
 /**
  * Options de sanitization
  */
-export interface SanitizeOptions {
+interface SanitizeOptions {
   /** Rejeter les messages invalides (true) ou tenter de les corriger (false) */
   strict?: boolean;
   /** Logger les issues en debug */

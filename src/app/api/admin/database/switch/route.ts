@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { auth } from '@/auth';
 import {
   getActiveDatabaseTarget,
   getBlobTokenForTarget,
@@ -8,6 +7,7 @@ import {
 } from '@/lib/database-target';
 import { getPrismaClient, updateDefaultPrismaClient } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
+import { requireAdmin } from '@/lib/api/requireAuth';
 
 /**
  * Route pour basculer entre base locale et production (HOT SWAP)
@@ -18,10 +18,8 @@ import { logger } from '@/lib/logger';
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     // Vérifier l'authentification
-    const session = await auth();
-    if (!session?.user || session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
-    }
+    const { session, error: authError } = await requireAdmin({ nonAdminStatus: 401 });
+    if (authError) return authError;
 
     const { useProduction } = await req.json();
 
@@ -151,10 +149,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 export async function GET(_req: NextRequest): Promise<NextResponse> {
   try {
     // Vérifier l'authentification
-    const session = await auth();
-    if (!session?.user || session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
-    }
+    const { session, error: authError } = await requireAdmin({ nonAdminStatus: 401 });
+    if (authError) return authError;
 
     // Vérifier que nous sommes en développement
     if (process.env.NODE_ENV === 'production') {

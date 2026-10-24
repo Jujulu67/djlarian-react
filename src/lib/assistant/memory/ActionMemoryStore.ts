@@ -307,17 +307,3 @@ export function getActionMemoryStore(
 
   return storeMap.get(sessionId)!;
 }
-
-/**
- * Supprime un store de session.
- */
-export function clearActionMemoryStore(sessionId: string): void {
-  storeMap.delete(sessionId);
-}
-
-/**
- * Retourne le nombre de stores actifs.
- */
-export function getActiveStoreCount(): number {
-  return storeMap.size;
-}

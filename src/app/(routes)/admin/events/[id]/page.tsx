@@ -1,7 +1,5 @@
 'use client';
 
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
 import {
   Calendar,
   ChevronLeft,
@@ -30,6 +28,7 @@ import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 
 import { logger } from '@/lib/logger';
+import { formatDateTimeFr } from '@/lib/utils/format';
 import { getImageUrl } from '@/lib/utils/getImageUrl';
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
 
@@ -204,7 +203,7 @@ export default function EventDetailsPage() {
   // Formater la date
   const formatDate = (dateString?: string) => {
     if (!dateString) return '';
-    return format(new Date(dateString), 'dd MMMM yyyy à HH:mm', { locale: fr });
+    return formatDateTimeFr(dateString);
   };
 
   // Obtenir le libellé du statut
@@ -630,9 +629,7 @@ export default function EventDetailsPage() {
                             ) : (
                               <Clock className="w-3.5 h-3.5 mr-1" />
                             )}
-                            {format(new Date(event.publishAt), 'dd MMMM yyyy à HH:mm', {
-                              locale: fr,
-                            })}
+                            {formatDateTimeFr(event.publishAt)}
                           </span>
                         </div>
                       )}

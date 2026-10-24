@@ -3,12 +3,12 @@ import path from 'path';
 
 import { NextRequest, NextResponse } from 'next/server';
 
-import { auth } from '@/auth';
 import { uploadToBlobWithCheck, getBlobPublicUrl } from '@/lib/blob';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import { convertToWebP, canConvertToWebP } from '@/lib/utils/convertToWebP';
 import { shouldUseBlobStorage } from '@/lib/utils/getStorageConfig';
+import { requireAdmin } from '@/lib/api/requireAuth';
 
 // Upload endpoint - Support local (public/uploads/) et production (Vercel Blob)
 
@@ -21,12 +21,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const session = await auth();
-
-    // Vérifier l'authentification et les autorisations
-    if (!session?.user || session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
-    }
+    const { session, error: authError } = await requireAdmin({ nonAdminStatus: 401 });
+    if (authError) return authError;
 
     const formData = await request.formData();
     const imageId = formData.get('imageId') as string | null;

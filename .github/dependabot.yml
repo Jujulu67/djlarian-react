@@ -1,7 +1,6 @@
 version: 2
 updates:
-  # Dépendances npm/pnpm : les mises à jour de sécurité arrivent dès qu'une faille est publiée
-  # (indépendamment du planning), les autres sont regroupées une fois par semaine.
+  # Dépendances npm/pnpm : uniquement les mises à jour de sécurité, dès qu'une faille est publiée.
   - package-ecosystem: 'npm'
     directory: '/'
     schedule:
@@ -9,14 +8,12 @@ updates:
       day: 'monday'
       time: '06:00'
       timezone: 'Europe/Paris'
-    open-pull-requests-limit: 10
+    # 0 = aucune PR de mise à jour « de confort » ; les correctifs de sécurité
+    # ne sont pas concernés par cette limite et restent tous proposés.
+    open-pull-requests-limit: 0
     groups:
       security:
         applies-to: security-updates
-        patterns: ['*']
-        update-types: ['minor', 'patch']
-      minor-and-patch:
-        applies-to: version-updates
         patterns: ['*']
         update-types: ['minor', 'patch']
     labels: ['dependencies']

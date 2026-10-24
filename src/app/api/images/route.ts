@@ -4,6 +4,7 @@ import path from 'path';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { deleteFromBlob } from '@/lib/blob';
+import { requireAdmin } from '@/lib/api/requireAuth';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import { shouldUseBlobStorage } from '@/lib/utils/getStorageConfig';
@@ -166,6 +167,9 @@ export async function GET() {
 
 // DELETE - Supprimer une image spécifique
 export async function DELETE(request: NextRequest) {
+  const { error: authError } = await requireAdmin();
+  if (authError) return authError;
+
   try {
     const blobConfigured = !!process.env.BLOB_READ_WRITE_TOKEN;
     if (!blobConfigured) {

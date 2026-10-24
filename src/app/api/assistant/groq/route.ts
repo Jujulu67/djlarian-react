@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isInternalRequest, requireAuth } from '@/lib/api/requireAuth';
 import { getConversationalResponse } from '@/lib/assistant/conversational/groq-responder';
 import type { ConversationMessage } from '@/lib/assistant/conversational/memory-manager';
 import { sanitizeForLogs, sanitizeObjectForLogs } from '@/lib/assistant/utils/sanitize-logs';
@@ -51,6 +52,12 @@ function filterConversationHistory(history: any[] | undefined): ConversationMess
  * - 500: { error: string } (erreur serveur)
  */
 export async function POST(request: NextRequest) {
+  // Réservé aux utilisateurs connectés ou aux appels internes du serveur (quota Groq)
+  if (!isInternalRequest(request)) {
+    const { error: authError } = await requireAuth();
+    if (authError) return authError;
+  }
+
   const requestId = `groq-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
   try {

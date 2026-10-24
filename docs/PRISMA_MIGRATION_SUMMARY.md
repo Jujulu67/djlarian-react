@@ -101,7 +101,7 @@ Script idempotent pour bootstrap PostgreSQL local (création DB, migrations, gé
 docker-compose up -d
 
 # 2. Configurer .env.local
-echo 'DATABASE_URL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable"' >> .env.local
+echo 'DATABASE_URL="postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable"' >> .env.local
 
 # 3. Bootstrap la base de données
 pnpm run db:bootstrap
@@ -115,11 +115,11 @@ brew install postgresql@16
 brew services start postgresql@16
 
 # 2. Créer la base de données
-psql postgres -c "CREATE USER djlarian WITH PASSWORD 'djlarian_dev_password';"
+psql postgres -c "CREATE USER djlarian WITH PASSWORD '<DEV_DB_PASSWORD>';"
 psql postgres -c "CREATE DATABASE djlarian_dev OWNER djlarian;"
 
 # 3. Configurer .env.local
-echo 'DATABASE_URL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable"' >> .env.local
+echo 'DATABASE_URL="postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable"' >> .env.local
 
 # 4. Bootstrap la base de données
 pnpm run db:bootstrap

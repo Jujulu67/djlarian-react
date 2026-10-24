@@ -17,6 +17,12 @@ jest.mock('ai', () => ({
 }));
 
 // Import parseQuery après les mocks
+jest.mock('@/lib/api/requireAuth', () => ({
+  requireAuth: jest.fn(async () => ({ session: { user: { id: 'u1', role: 'ADMIN' } }, error: null })),
+  requireAdmin: jest.fn(async () => ({ session: { user: { id: 'u1', role: 'ADMIN' } }, error: null })),
+  isInternalRequest: jest.fn(() => false),
+}));
+
 import { parseQuery } from '../route';
 
 describe('parseQuery - Tests unitaires des patterns', () => {

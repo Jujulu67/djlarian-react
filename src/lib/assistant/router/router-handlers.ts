@@ -17,10 +17,6 @@
 
 // Re-export tous les handlers depuis le nouveau module
 export {
-  // Types
-  type ScopeResult,
-  type DetailIntentResult,
-  DETAILED_FIELDS_TO_SHOW,
   // Handlers
   isCapabilitiesQuestion,
   getCapabilitiesResponse,

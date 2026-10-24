@@ -161,17 +161,6 @@ function updateStoreMetadata(
 }
 
 /**
- * Retourne les métadonnées d'un store.
- */
-export function getStoreMetadata(
-  sessionId: string,
-  type: 'conversation' | 'action'
-): StoreMetadata | null {
-  const key = `${type}:${sessionId}`;
-  return storeMetadataCache.get(key) ?? null;
-}
-
-/**
  * Retourne un résumé de tous les stores actifs.
  * Utile pour le monitoring et le debug.
  */
@@ -191,24 +180,6 @@ export function getStoreStats(): {
     actionStoreCount: actionCount,
     redisUrl: REDIS_URL ? '[REDACTED]' : undefined,
   };
-}
-
-/**
- * Nettoie les métadonnées expirées.
- * Appelé périodiquement pour éviter les fuites de mémoire.
- */
-export function cleanupStoreMetadata(maxAgeMs: number = 3600000): number {
-  const now = Date.now();
-  let cleaned = 0;
-
-  for (const [key, metadata] of storeMetadataCache.entries()) {
-    if (now - metadata.lastAccessedAt > maxAgeMs) {
-      storeMetadataCache.delete(key);
-      cleaned++;
-    }
-  }
-
-  return cleaned;
 }
 
 /**

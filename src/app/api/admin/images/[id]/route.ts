@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import { requireAdmin } from '@/lib/api/requireAuth';
 // Référence à la liste partagée avec le endpoint parent
 import { logger } from '@/lib/logger';
 
@@ -7,6 +8,9 @@ import { removeImage } from '../../images/shared';
 
 // DELETE /api/admin/images/[id] - Supprime une image par ID
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { error: authError } = await requireAdmin();
+  if (authError) return authError;
+
   try {
     const resolvedParams = await params;
     const id = resolvedParams.id;

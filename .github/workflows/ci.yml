@@ -45,6 +45,9 @@ jobs:
       - name: Type-check
         run: pnpm type-check
 
+      - name: Lint
+        run: pnpm lint
+
       - name: Tests
         run: pnpm run test:ci
 

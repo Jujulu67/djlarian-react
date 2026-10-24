@@ -114,7 +114,7 @@ const USER_INJECTION_PATTERNS = [
 // Legacy export pour compatibilité - NE PAS UTILISER DIRECTEMENT
 const POLLUTION_PATTERNS = ACTION_OUTPUT_PATTERNS;
 
-export interface GroqPayloadBuilderOptions {
+interface GroqPayloadBuilderOptions {
   model?: string;
   maxTokens?: number;
   temperature?: number;

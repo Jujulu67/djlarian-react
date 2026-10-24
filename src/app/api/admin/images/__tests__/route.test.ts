@@ -2,6 +2,12 @@
  * Tests for /api/admin/images route
  * @jest-environment node
  */
+jest.mock('@/lib/api/requireAuth', () => ({
+  requireAuth: jest.fn(async () => ({ session: { user: { id: 'u1', role: 'ADMIN' } }, error: null })),
+  requireAdmin: jest.fn(async () => ({ session: { user: { id: 'u1', role: 'ADMIN' } }, error: null })),
+  isInternalRequest: jest.fn(() => false),
+}));
+
 import { GET } from '../route';
 
 // Mock dependencies
@@ -12,6 +18,21 @@ jest.mock('../shared', () => ({
 describe('/api/admin/images', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  it('should reject non-admin users', async () => {
+    const { requireAdmin } = await import('@/lib/api/requireAuth');
+    const { NextResponse } = await import('next/server');
+    const { getAllImages } = await import('../shared');
+    (requireAdmin as jest.Mock).mockResolvedValueOnce({
+      session: null,
+      error: NextResponse.json({ error: 'Non autorisé' }, { status: 403 }),
+    });
+
+    const response = await GET();
+
+    expect(response.status).toBe(403);
+    expect(getAllImages).not.toHaveBeenCalled();
   });
 
   it('should return all images', async () => {

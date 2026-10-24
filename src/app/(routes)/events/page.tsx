@@ -27,6 +27,7 @@ import { useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 
 import { logger } from '@/lib/logger';
+import { formatDateTimeFr } from '@/lib/utils/format';
 import { getImageUrl } from '@/lib/utils/getImageUrl';
 
 // Types
@@ -321,11 +322,6 @@ function EventsContent() {
   // Gérer le changement de filtre de statut
   const handleStatusChange = (status: string) => {
     setSelectedStatus(status);
-  };
-
-  // Formater la date
-  const formatDate = (dateString: string) => {
-    return format(new Date(dateString), 'dd MMMM yyyy à HH:mm', { locale: fr });
   };
 
   // Vérifier si un événement est passé
@@ -660,7 +656,7 @@ function EventsContent() {
 
                     <div className="flex items-center text-gray-400 mb-3 text-sm">
                       <CalendarIcon className="w-4 h-4 mr-2 flex-shrink-0" />
-                      <span>{formatDate(event.startDate)}</span>
+                      <span>{formatDateTimeFr(event.startDate)}</span>
                     </div>
 
                     <div className="flex items-start text-gray-400 mb-4 text-sm">

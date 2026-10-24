@@ -1,17 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { auth } from '@/auth';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
+import { requireAdmin } from '@/lib/api/requireAuth';
 
 // Récupère l'historique des modifications
 export async function GET(req: NextRequest) {
   try {
     // Vérifier que l'utilisateur est admin
-    const session = await auth();
-    if (!session?.user?.role || session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
-    }
+    const { session, error: authError } = await requireAdmin({ nonAdminStatus: 401 });
+    if (authError) return authError;
 
     // Récupérer les paramètres
     const { searchParams } = new URL(req.url);
@@ -51,10 +49,8 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     // Vérifier que l'utilisateur est admin
-    const session = await auth();
-    if (!session?.user?.role || session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
-    }
+    const { session, error: authError } = await requireAdmin({ nonAdminStatus: 401 });
+    if (authError) return authError;
 
     const data = await req.json();
     const { action, id } = data;
