@@ -2,7 +2,8 @@
  * Tests for ImportStreamsDialog Component
  * @jest-environment jsdom
  */
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react';
+import { StrictMode } from 'react';
 import userEvent from '@testing-library/user-event';
 import { ImportStreamsDialog } from '../ImportStreamsDialog';
 import { Project } from '../types';
@@ -219,6 +220,111 @@ describe('ImportStreamsDialog', () => {
 
     await waitFor(() => {
       expect(screen.getByText("Erreur lors de l'import")).toBeInTheDocument();
+    });
+  });
+});
+
+describe('ImportStreamsDialog - navigation entre fichiers', () => {
+  const lowCandidates = () => [
+    { project: mockProjects[0], score: 50, reason: 'Low match' },
+    { project: mockProjects[1], score: 50, reason: 'Low match' },
+  ];
+
+  // Rend le dialogue, importe 3 CSV (aucun auto-sélectionné) et attend le premier fichier.
+  const renderWithThreeFiles = async (strict: boolean) => {
+    (findProjectCandidates as jest.Mock).mockReturnValue(lowCandidates());
+    const ui = <ImportStreamsDialog {...defaultProps} />;
+    render(strict ? <StrictMode>{ui}</StrictMode> : ui);
+
+    const files = ['a.csv', 'b.csv', 'c.csv'].map(
+      (name) => new File(['date,streams\n2023-01-01,100'], name, { type: 'text/csv' })
+    );
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    await userEvent.setup().upload(fileInput, files);
+    await screen.findByText('Fichier 1 sur 3');
+    // Les timers factices ne sont activés qu'ici : findByText/waitFor en ont besoin de réels.
+    jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate', 'queueMicrotask'] });
+  };
+
+  // Les transitions utilisent des setTimeout : on avance les timers factices sous act().
+  const flushTimers = (ms: number) => {
+    act(() => {
+      jest.advanceTimersByTime(ms);
+    });
+  };
+
+  describe.each([
+    ['mode normal', false],
+    ['sous React.StrictMode', true],
+  ])('%s', (_label, strict) => {
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('passe au fichier suivant puis bloque sur le dernier', async () => {
+      await renderWithThreeFiles(strict);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Fichier suivant' }));
+      flushTimers(150);
+      expect(screen.getByText('Fichier 2 sur 3')).toBeInTheDocument();
+      expect(screen.getByText('b.csv')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Fichier suivant' }));
+      flushTimers(150);
+      expect(screen.getByText('Fichier 3 sur 3')).toBeInTheDocument();
+      expect(screen.getByText('c.csv')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Fichier suivant' })).toBeDisabled();
+    });
+
+    it('revient au fichier précédent', async () => {
+      await renderWithThreeFiles(strict);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Fichier suivant' }));
+      flushTimers(150);
+      fireEvent.click(screen.getByRole('button', { name: 'Fichier suivant' }));
+      flushTimers(150);
+      expect(screen.getByText('Fichier 3 sur 3')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Fichier précédent' }));
+      flushTimers(150);
+      expect(screen.getByText('Fichier 2 sur 3')).toBeInTheDocument();
+      expect(screen.getByText('b.csv')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Fichier précédent' }));
+      flushTimers(150);
+      expect(screen.getByText('Fichier 1 sur 3')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Fichier précédent' })).toBeDisabled();
+    });
+
+    it('va directement au fichier N depuis la queue', async () => {
+      await renderWithThreeFiles(strict);
+
+      fireEvent.click(screen.getByTitle('c.csv'));
+      flushTimers(150);
+      expect(screen.getByText('Fichier 3 sur 3')).toBeInTheDocument();
+      expect(screen.getByText('c.csv')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByTitle('a.csv'));
+      flushTimers(150);
+      expect(screen.getByText('Fichier 1 sur 3')).toBeInTheDocument();
+      expect(screen.getByText('a.csv')).toBeInTheDocument();
+    });
+
+    it('sélectionne un projet, valide le fichier puis avance automatiquement', async () => {
+      await renderWithThreeFiles(strict);
+
+      fireEvent.click(screen.getAllByRole('radio')[0]);
+      // Le fichier courant est validé immédiatement (queue mise à jour)...
+      expect(screen.getByText("Queue d'import (1/3 validés)")).toBeInTheDocument();
+      expect(within(screen.getByTitle('a.csv')).getByText('CheckIcon')).toBeInTheDocument();
+      expect(screen.getByText('Fichier 1 sur 3')).toBeInTheDocument();
+
+      // ...puis auto-avance : délai de 300 ms, puis transition de 150 ms.
+      flushTimers(300);
+      flushTimers(150);
+      expect(screen.getByText('Fichier 2 sur 3')).toBeInTheDocument();
+      expect(screen.getByText('b.csv')).toBeInTheDocument();
+      expect(screen.getByText("Queue d'import (1/3 validés)")).toBeInTheDocument();
     });
   });
 });

@@ -163,129 +163,113 @@ export const ImportStreamsDialog = ({
     setFilesData((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
+  // Les updaters passés à setState restent purs : pas de setTimeout ni de setState imbriqué
+  // dedans (StrictMode peut les appeler deux fois). Les effets de bord sont lancés ici.
   const handleNext = useCallback(() => {
-    setFilesData((prev) => {
-      if (currentFileIndex < prev.length - 1) {
-        setIsTransitioning(true);
-        setTimeout(() => {
-          setCurrentFileIndex((prevIndex) => {
-            const newIndex = Math.min(prevIndex + 1, prev.length - 1);
-            setIsTransitioning(false);
-            return newIndex;
-          });
-        }, 150);
-      }
-      return prev;
-    });
-  }, [currentFileIndex]);
+    if (currentFileIndex < filesData.length - 1) {
+      const lastIndex = filesData.length - 1;
+      setIsTransitioning(true);
+      setTimeout(() => {
+        setCurrentFileIndex((prevIndex) => Math.min(prevIndex + 1, lastIndex));
+        setIsTransitioning(false);
+      }, 150);
+    }
+  }, [currentFileIndex, filesData.length]);
 
   const handlePrevious = useCallback(() => {
     if (currentFileIndex > 0) {
       setIsTransitioning(true);
       setTimeout(() => {
-        setCurrentFileIndex((prev) => {
-          const newIndex = Math.max(prev - 1, 0);
-          setIsTransitioning(false);
-          return newIndex;
-        });
+        setCurrentFileIndex((prev) => Math.max(prev - 1, 0));
+        setIsTransitioning(false);
       }, 150);
     }
   }, [currentFileIndex]);
 
-  const handleGoToFile = useCallback((index: number) => {
-    setFilesData((prev) => {
-      if (index >= 0 && index < prev.length) {
+  const handleGoToFile = useCallback(
+    (index: number) => {
+      if (index >= 0 && index < filesData.length) {
         setIsTransitioning(true);
         setTimeout(() => {
           setCurrentFileIndex(index);
           setIsTransitioning(false);
         }, 150);
       }
-      return prev;
-    });
-  }, []);
+    },
+    [filesData.length]
+  );
 
   const handleSelectProject = useCallback(
     (fileIndex: number, projectId: string, shouldAutoAdvance = true) => {
-      setFilesData((prev) => {
-        const updated = [...prev];
-        const fileData = updated[fileIndex];
-        const project = projects.find((p) => p.id === projectId);
+      const project = projects.find((p) => p.id === projectId);
 
-        if (!project) return prev;
+      if (!project) return;
 
-        let milestones: ReturnType<typeof calculateStreamsMilestones> | null = null;
-        let error: string | undefined;
+      const fileData = filesData[fileIndex];
+      let milestones: ReturnType<typeof calculateStreamsMilestones> | null = null;
+      let error: string | undefined;
 
-        if (project.releaseDate) {
-          // Convertir la date ISO en format YYYY-MM-DD
-          milestones = calculateStreamsMilestones(
-            toIsoDateOnly(project.releaseDate),
-            fileData.csvData.streams
-          );
-        } else {
-          error = NO_RELEASE_DATE_ERROR;
-        }
+      if (project.releaseDate) {
+        // Convertir la date ISO en format YYYY-MM-DD
+        milestones = calculateStreamsMilestones(
+          toIsoDateOnly(project.releaseDate),
+          fileData.csvData.streams
+        );
+      } else {
+        error = NO_RELEASE_DATE_ERROR;
+      }
 
-        updated[fileIndex] = {
-          ...fileData,
-          selectedProjectId: projectId,
-          milestones,
-          error,
-          isValidated: !error && milestones !== null,
-        };
+      const updated = [...filesData];
+      updated[fileIndex] = {
+        ...fileData,
+        selectedProjectId: projectId,
+        milestones,
+        error,
+        isValidated: !error && milestones !== null,
+      };
+      setFilesData(updated);
 
-        // Auto-advance si activé et que le fichier est valide
-        if (shouldAutoAdvance && !error && milestones !== null && fileIndex === currentFileIndex) {
-          setTimeout(() => {
-            if (fileIndex < updated.length - 1) {
-              setIsTransitioning(true);
-              setTimeout(() => {
-                setCurrentFileIndex((prev) => Math.min(prev + 1, updated.length - 1));
-                setIsTransitioning(false);
-              }, 150);
-            }
-          }, 300); // Petit délai pour l'animation
-        }
-
-        return updated;
-      });
+      // Auto-advance si activé et que le fichier est valide
+      if (shouldAutoAdvance && !error && milestones !== null && fileIndex === currentFileIndex) {
+        setTimeout(() => {
+          if (fileIndex < updated.length - 1) {
+            setIsTransitioning(true);
+            setTimeout(() => {
+              setCurrentFileIndex((prev) => Math.min(prev + 1, updated.length - 1));
+              setIsTransitioning(false);
+            }, 150);
+          }
+        }, 300); // Petit délai pour l'animation
+      }
     },
-    [projects, currentFileIndex]
+    [projects, filesData, currentFileIndex]
   );
 
   const handleValidateAndContinue = useCallback(() => {
-    setFilesData((prev) => {
-      const currentFile = prev[currentFileIndex];
-      if (
-        currentFile &&
-        currentFile.selectedProjectId &&
-        currentFile.milestones &&
-        !currentFile.error
-      ) {
-        const updated = [...prev];
-        updated[currentFileIndex] = {
-          ...updated[currentFileIndex],
-          isValidated: true,
-        };
+    const currentFile = filesData[currentFileIndex];
+    if (
+      currentFile &&
+      currentFile.selectedProjectId &&
+      currentFile.milestones &&
+      !currentFile.error
+    ) {
+      const updated = [...filesData];
+      updated[currentFileIndex] = {
+        ...updated[currentFileIndex],
+        isValidated: true,
+      };
+      setFilesData(updated);
 
-        // Avancer au suivant si possible
-        if (currentFileIndex < updated.length - 1) {
-          setIsTransitioning(true);
-          setTimeout(() => {
-            setCurrentFileIndex((prevIndex) => {
-              const newIndex = Math.min(prevIndex + 1, updated.length - 1);
-              setIsTransitioning(false);
-              return newIndex;
-            });
-          }, 300);
-        }
-
-        return updated;
+      // Avancer au suivant si possible
+      if (currentFileIndex < updated.length - 1) {
+        setIsTransitioning(true);
+        setTimeout(() => {
+          setCurrentFileIndex((prevIndex) => Math.min(prevIndex + 1, updated.length - 1));
+          setIsTransitioning(false);
+        }, 300);
       }
-      return prev;
-    });
-  }, [currentFileIndex]);
+    }
+  }, [filesData, currentFileIndex]);
 
   const validatedFiles = useMemo(() => getValidatedFiles(filesData), [filesData]);
 
