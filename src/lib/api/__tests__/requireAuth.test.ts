@@ -43,6 +43,23 @@ describe('requireAuth / requireAdmin', () => {
     expect(error?.status).toBe(403);
   });
 
+  it('lets callers keep 401 for non-admin users', async () => {
+    mockAuth.mockResolvedValue({ user: { id: 'u1', role: 'USER' } });
+
+    const { error } = await requireAdmin({ nonAdminStatus: 401 });
+
+    expect(error?.status).toBe(401);
+  });
+
+  it('lets callers keep their own status codes and message', async () => {
+    mockAuth.mockResolvedValue(null);
+
+    const { error } = await requireAdmin({ anonymousStatus: 403, message: 'Accès refusé' });
+
+    expect(error?.status).toBe(403);
+    await expect(error?.json()).resolves.toEqual({ error: 'Accès refusé' });
+  });
+
   it('rejects anonymous users with 401 for requireAdmin', async () => {
     mockAuth.mockResolvedValue(null);
 
