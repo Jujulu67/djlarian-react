@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { SymbolType } from '@/types/slot-machine';
 import type { SpinResult } from '@/types/slot-machine';
 import { getWinTier, isNearMiss } from './slotMachineUtils';
@@ -36,6 +36,24 @@ export function useSlotWinEffects({
 
   const lastProcessedResult = useRef<string | null>(null);
 
+  // Timers des effets : suivis pour être annulés au démontage du composant
+  const effectTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+  const scheduleEffectTimeout = useCallback((fn: () => void, ms: number) => {
+    const id = setTimeout(() => {
+      effectTimersRef.current.delete(id);
+      fn();
+    }, ms);
+    effectTimersRef.current.add(id);
+    return id;
+  }, []);
+  useEffect(() => {
+    const timers = effectTimersRef.current;
+    return () => {
+      timers.forEach((id) => clearTimeout(id));
+      timers.clear();
+    };
+  }, []);
+
   useEffect(() => {
     // Create a unique ID for this result to avoid processing twice
     const resultId = lastResult ? `${lastResult.message}-${lastResult.rewardAmount}` : null;
@@ -54,7 +72,7 @@ export function useSlotWinEffects({
       if (lastResult.isWin) {
         // Screen flash on any win
         setShowScreenFlash(true);
-        setTimeout(() => setShowScreenFlash(false), 300);
+        scheduleEffectTimeout(() => setShowScreenFlash(false), 300);
 
         // Update streak using functional update to avoid dependency
         setWinStreak((prev) => {
@@ -64,7 +82,7 @@ export function useSlotWinEffects({
           // Detect hot streak START
           if (nowHotStreak && !wasHotStreak) {
             setShowLuckyIntro(true);
-            setTimeout(() => setShowLuckyIntro(false), 1500);
+            scheduleEffectTimeout(() => setShowLuckyIntro(false), 1500);
           }
           setWasHotStreak(nowHotStreak);
           setIsHotStreak(nowHotStreak);
@@ -79,7 +97,7 @@ export function useSlotWinEffects({
         if (lastResult.rewardAmount > 0 && lastResult.rewardType === 'TOKENS') {
           setMultiplierAmount(lastResult.rewardAmount);
           setShowMultiplier(true);
-          setTimeout(() => setShowMultiplier(false), 2000);
+          scheduleEffectTimeout(() => setShowMultiplier(false), 2000);
         }
 
         // Sound effects
@@ -96,7 +114,7 @@ export function useSlotWinEffects({
           lastResult.symbols[1] === SymbolType.CHERRY &&
           lastResult.symbols[2] === SymbolType.CHERRY
         ) {
-          setTimeout(() => setShowBonusGame(true), 1000);
+          scheduleEffectTimeout(() => setShowBonusGame(true), 1000);
         }
 
         // Visual effects based on intensity
@@ -104,7 +122,7 @@ export function useSlotWinEffects({
           setShowConfetti(true);
           setShowCoinsRain(true);
           setShowWinAnimation(true);
-          setTimeout(() => {
+          scheduleEffectTimeout(() => {
             setShowConfetti(false);
             setShowCoinsRain(false);
             setShowWinAnimation(false);
@@ -112,19 +130,19 @@ export function useSlotWinEffects({
         } else if (isBigWin) {
           setShowConfetti(true);
           setShowWinAnimation(true);
-          setTimeout(() => {
+          scheduleEffectTimeout(() => {
             setShowConfetti(false);
             setShowWinAnimation(false);
           }, 3000);
         } else if (isMediumWin) {
           setShowCoinsRain(true);
-          setTimeout(() => setShowCoinsRain(false), 2000);
+          scheduleEffectTimeout(() => setShowCoinsRain(false), 2000);
         }
       } else {
         // Loss - check for near-miss
         if (lastResult.symbols && isNearMiss(lastResult.symbols)) {
           setShowNearMiss(true);
-          setTimeout(() => setShowNearMiss(false), 600);
+          scheduleEffectTimeout(() => setShowNearMiss(false), 600);
         }
 
         // Reset streak
@@ -134,7 +152,7 @@ export function useSlotWinEffects({
         setWinIntensity('low');
       }
     }
-  }, [lastResult, isSpinning, playWinSound, playJackpotSound]);
+  }, [lastResult, isSpinning, playWinSound, playJackpotSound, scheduleEffectTimeout]);
 
   return {
     showWinAnimation,
@@ -154,5 +172,6 @@ export function useSlotWinEffects({
     setShowConfetti,
     setShowMultiplier,
     setMultiplierAmount,
+    scheduleEffectTimeout,
   };
 }
