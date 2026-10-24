@@ -4,6 +4,7 @@ type PrismaUser = Prisma.UserGetPayload<{}>;
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
+import { auth } from '@/auth';
 import { hash as bcryptHash } from '@/lib/bcrypt-edge';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
@@ -29,10 +30,16 @@ export async function PUT(request: Request, { params }: { params: Promise<{ user
     return NextResponse.json({ error: 'ID utilisateur manquant.' }, { status: 400 });
   }
 
+  // Admin : peut tout modifier. Utilisateur : uniquement son propre compte.
+  const session = await auth();
+  const isAdmin = session?.user?.role === 'ADMIN';
+  if (!session?.user || (!isAdmin && session.user.id !== userId)) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+  }
+
   let body;
   try {
     body = await request.json();
-    logger.debug(`PUT /api/users/${userId} - Corps reçu:`, body);
   } catch (error) {
     logger.error(`PUT /api/users/${userId} - Erreur parsing JSON:`, error);
     return NextResponse.json({ error: 'Requête invalide (JSON mal formé).' }, { status: 400 });
@@ -47,8 +54,12 @@ export async function PUT(request: Request, { params }: { params: Promise<{ user
     );
   }
 
-  logger.debug(`PUT /api/users/${userId} - Validation réussie:`, validation.data);
   const { email, name, password, role, isVip } = validation.data;
+
+  // Seul un admin peut changer un rôle ou le statut VIP
+  if (!isAdmin && (role !== undefined || isVip !== undefined)) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
+  }
 
   const dataToUpdate: Partial<PrismaUser> = {};
   if (email !== undefined) dataToUpdate.email = email;
@@ -85,17 +96,14 @@ export async function PUT(request: Request, { params }: { params: Promise<{ user
       return NextResponse.json({ error: 'Utilisateur non trouvé.' }, { status: 404 });
     }
 
-    logger.debug(`PUT /api/users/${userId} - Mise à jour avec données:`, dataToUpdate);
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: dataToUpdate,
     });
 
-    logger.debug(
-      `PUT /api/users/${userId} - Mise à jour réussie (objet complet retourné):`,
-      updatedUser
-    );
-    return NextResponse.json(updatedUser);
+    // Ne jamais renvoyer le hash du mot de passe au client
+    const { hashedPassword: _hashedPassword, ...safeUser } = updatedUser;
+    return NextResponse.json(safeUser);
   } catch (error: unknown) {
     logger.error(`PUT /api/users/${userId} - Erreur Prisma update:`, error);
     const prismaError = error as { code?: string; meta?: { target?: string[] } };
@@ -124,6 +132,12 @@ export async function DELETE(
   if (!userId) {
     logger.error('DELETE /api/users - userId manquant dans les params');
     return NextResponse.json({ error: 'ID utilisateur manquant.' }, { status: 400 });
+  }
+
+  // Admin : peut supprimer n'importe quel compte. Utilisateur : uniquement le sien.
+  const session = await auth();
+  if (!session?.user || (session.user.role !== 'ADMIN' && session.user.id !== userId)) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
   }
 
   try {

@@ -30,9 +30,95 @@ jest.mock('@/lib/logger', () => ({
   },
 }));
 
+jest.mock('@/auth', () => ({
+  auth: jest.fn(),
+}));
+
 describe('/api/users/[userId]', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
+    const { auth } = await import('@/auth');
+    (auth as jest.Mock).mockResolvedValue({ user: { id: 'admin1', role: 'ADMIN' } });
+  });
+
+  describe('authorization', () => {
+    const putRequest = (body: object) =>
+      new Request('http://localhost/api/users/user1', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+    it('should reject PUT without session', async () => {
+      const { auth } = await import('@/auth');
+      const { default: prisma } = await import('@/lib/prisma');
+      (auth as jest.Mock).mockResolvedValue(null);
+
+      const response = await PUT(putRequest({ role: 'ADMIN' }), {
+        params: Promise.resolve({ userId: 'user1' }),
+      });
+
+      expect(response.status).toBe(401);
+      expect(prisma.user.update).not.toHaveBeenCalled();
+    });
+
+    it("should reject PUT on another user's account for non-admin", async () => {
+      const { auth } = await import('@/auth');
+      const { default: prisma } = await import('@/lib/prisma');
+      (auth as jest.Mock).mockResolvedValue({ user: { id: 'user2', role: 'USER' } });
+
+      const response = await PUT(putRequest({ name: 'Hacked' }), {
+        params: Promise.resolve({ userId: 'user1' }),
+      });
+
+      expect(response.status).toBe(401);
+      expect(prisma.user.update).not.toHaveBeenCalled();
+    });
+
+    it('should forbid a user from changing their own role or VIP status', async () => {
+      const { auth } = await import('@/auth');
+      const { default: prisma } = await import('@/lib/prisma');
+      (auth as jest.Mock).mockResolvedValue({ user: { id: 'user1', role: 'USER' } });
+
+      const response = await PUT(putRequest({ role: 'ADMIN', isVip: true }), {
+        params: Promise.resolve({ userId: 'user1' }),
+      });
+
+      expect(response.status).toBe(403);
+      expect(prisma.user.update).not.toHaveBeenCalled();
+    });
+
+    it('should let a user update their own name without exposing the password hash', async () => {
+      const { auth } = await import('@/auth');
+      const { default: prisma } = await import('@/lib/prisma');
+      (auth as jest.Mock).mockResolvedValue({ user: { id: 'user1', role: 'USER' } });
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({ id: 'user1' });
+      (prisma.user.update as jest.Mock).mockResolvedValue({
+        id: 'user1',
+        name: 'New',
+        hashedPassword: 'secret-hash',
+      });
+
+      const response = await PUT(putRequest({ name: 'New' }), {
+        params: Promise.resolve({ userId: 'user1' }),
+      });
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data).toEqual({ id: 'user1', name: 'New' });
+    });
+
+    it("should reject DELETE of another user's account for non-admin", async () => {
+      const { auth } = await import('@/auth');
+      const { default: prisma } = await import('@/lib/prisma');
+      (auth as jest.Mock).mockResolvedValue({ user: { id: 'user2', role: 'USER' } });
+
+      const request = new Request('http://localhost/api/users/user1', { method: 'DELETE' });
+      const response = await DELETE(request, { params: Promise.resolve({ userId: 'user1' }) });
+
+      expect(response.status).toBe(401);
+      expect(prisma.user.delete).not.toHaveBeenCalled();
+    });
   });
 
   describe('PUT', () => {
