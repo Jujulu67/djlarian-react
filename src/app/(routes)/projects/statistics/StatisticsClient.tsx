@@ -13,7 +13,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useState, useEffect, useMemo, Fragment } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -32,74 +32,26 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Project, PROJECT_STATUSES } from '@/components/projects/types';
 
-// Types pour les composants Recharts
-interface TooltipProps {
-  active?: boolean;
-  payload?: Array<{
-    payload?: Record<string, unknown>;
-    value?: number;
-    dataKey?: string;
-  }>;
-  label?: string | number;
-}
-
-interface SegmentLabelProps {
-  x?: string | number;
-  y?: string | number;
-  width?: string | number;
-  height?: string | number;
-  payload?: Record<string, unknown>;
-  value?: number;
-}
-
-interface StatisticsClientProps {
-  initialProjects: Project[];
-}
-
-interface StatisticsData {
-  totalProjects: number;
-  statusBreakdown: {
-    TERMINE: number;
-    EN_COURS: number;
-    ANNULE: number;
-    A_REWORK: number;
-    GHOST_PRODUCTION: number;
-  };
-  projectsByYear: Array<{
-    year: string;
-    TERMINE: number;
-    GHOST_PRODUCTION: number;
-    total: number;
-  }>;
-  projectsByYearDetails: Record<string, Array<{ id: string; name: string; releaseDate: string }>>;
-  streamsEvolution: Array<{
-    projectId: string;
-    projectName: string;
-    style: string | null;
-    releaseDate: string | null;
-    streams: Array<{ day: number; value: number }>;
-  }>;
-  globalStreamsEvolution: Array<{ day: number; value: number }>;
-  metrics: {
-    averageStreams: {
-      J7: number;
-      J14: number;
-      J21: number;
-      J28: number;
-      J56: number;
-      J84: number;
-      J180?: number;
-      J365?: number;
-    };
-    totalStreams: number;
-    maxStreams: number;
-    projectsWithStreams: number;
-  };
-}
-
-// Constante pour les jalons de jours
-const MILESTONE_DAYS = [7, 14, 21, 28, 56, 84, 180, 365] as const;
-const MILESTONE_LABELS = ['J7', 'J14', 'J21', 'J28', 'J56', 'J84', 'J180', 'J365'] as const;
+import {
+  buildComparisonChartData,
+  buildComparisonProjectMapping,
+  buildYearlyProgressionData,
+  filterProjectsForComparison,
+  type ProjectMapping,
+} from './chartData';
+import {
+  createSegmentLabelRenderer,
+  createTotalLabelRenderer,
+  ProjectsByYearTooltip,
+} from './chartLabels';
+import { computeYearStatistics } from './computeYearStatistics';
+import { getColorForIndex, getStatusBarColors, getStatusColor } from './statusColors';
+import {
+  MILESTONE_DAYS,
+  MILESTONE_LABELS,
+  type StatisticsClientProps,
+  type StatisticsData,
+} from './types';
 
 export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => {
   const [statistics, setStatistics] = useState<StatisticsData | null>(null);
@@ -151,225 +103,7 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
       return statistics;
     }
 
-    // Filtrer par année (projets créés dans l'année sélectionnée, même sans date de sortie)
-    const yearStr = selectedYear.toString();
-    const filteredProjects = initialProjects.filter((p) => {
-      // Utiliser createdAt pour déterminer l'année de création
-      if (!p.createdAt) return false;
-      const projectYear = new Date(p.createdAt).getFullYear().toString();
-      return projectYear === yearStr;
-    });
-
-    // Recalculer les statistiques pour l'année sélectionnée
-    const totalProjects = filteredProjects.length;
-
-    const statusBreakdown = {
-      TERMINE: filteredProjects.filter((p) => p.status === 'TERMINE').length,
-      EN_COURS: filteredProjects.filter((p) => p.status === 'EN_COURS').length,
-      ANNULE: filteredProjects.filter((p) => p.status === 'ANNULE').length,
-      A_REWORK: filteredProjects.filter((p) => p.status === 'A_REWORK').length,
-      GHOST_PRODUCTION: filteredProjects.filter((p) => p.status === 'GHOST_PRODUCTION').length,
-    };
-
-    // Projets avec streams pour l'année
-    const projectsWithStreams = filteredProjects.filter(
-      (p) =>
-        p.streamsJ7 ||
-        p.streamsJ14 ||
-        p.streamsJ21 ||
-        p.streamsJ28 ||
-        p.streamsJ56 ||
-        p.streamsJ84 ||
-        p.streamsJ180 ||
-        p.streamsJ365
-    );
-
-    // Calculer les moyennes pour tous les jalons
-    const calculateAverage = (day: number) => {
-      const fieldMap: Record<
-        number,
-        | 'streamsJ7'
-        | 'streamsJ14'
-        | 'streamsJ21'
-        | 'streamsJ28'
-        | 'streamsJ56'
-        | 'streamsJ84'
-        | 'streamsJ180'
-        | 'streamsJ365'
-      > = {
-        7: 'streamsJ7',
-        14: 'streamsJ14',
-        21: 'streamsJ21',
-        28: 'streamsJ28',
-        56: 'streamsJ56',
-        84: 'streamsJ84',
-        180: 'streamsJ180',
-        365: 'streamsJ365',
-      };
-      const field = fieldMap[day];
-      const values = projectsWithStreams.map((p) => p[field] || 0).filter((s) => s > 0);
-      return values.length > 0 ? Math.round(values.reduce((a, b) => a + b, 0) / values.length) : 0;
-    };
-
-    const averageStreams = {
-      J7: calculateAverage(7),
-      J14: calculateAverage(14),
-      J21: calculateAverage(21),
-      J28: calculateAverage(28),
-      J56: calculateAverage(56),
-      J84: calculateAverage(84),
-      J180: calculateAverage(180),
-      J365: calculateAverage(365),
-    };
-
-    const totalStreams = projectsWithStreams.reduce((sum, p) => {
-      return (
-        sum +
-        (p.streamsJ365 ||
-          p.streamsJ180 ||
-          p.streamsJ84 ||
-          p.streamsJ56 ||
-          p.streamsJ28 ||
-          p.streamsJ21 ||
-          p.streamsJ14 ||
-          p.streamsJ7 ||
-          0)
-      );
-    }, 0);
-
-    // Évolution des streams par projet pour l'année
-    const streamsEvolution = filteredProjects
-      .filter(
-        (p) =>
-          p.status === 'TERMINE' &&
-          (p.streamsJ7 ||
-            p.streamsJ14 ||
-            p.streamsJ21 ||
-            p.streamsJ28 ||
-            p.streamsJ56 ||
-            p.streamsJ84 ||
-            p.streamsJ180 ||
-            p.streamsJ365)
-      )
-      .map((p) => ({
-        projectId: p.id,
-        projectName: p.name,
-        releaseDate: p.releaseDate ? new Date(p.releaseDate).toISOString() : null,
-        style: p.style,
-        streams: [
-          {
-            day: 7,
-            value:
-              p.streamsJ7 != null && Number.isFinite(p.streamsJ7) && p.streamsJ7 >= 0
-                ? p.streamsJ7
-                : 0,
-          },
-          {
-            day: 14,
-            value:
-              p.streamsJ14 != null && Number.isFinite(p.streamsJ14) && p.streamsJ14 >= 0
-                ? p.streamsJ14
-                : 0,
-          },
-          {
-            day: 21,
-            value:
-              p.streamsJ21 != null && Number.isFinite(p.streamsJ21) && p.streamsJ21 >= 0
-                ? p.streamsJ21
-                : 0,
-          },
-          {
-            day: 28,
-            value:
-              p.streamsJ28 != null && Number.isFinite(p.streamsJ28) && p.streamsJ28 >= 0
-                ? p.streamsJ28
-                : 0,
-          },
-          {
-            day: 56,
-            value:
-              p.streamsJ56 != null && Number.isFinite(p.streamsJ56) && p.streamsJ56 >= 0
-                ? p.streamsJ56
-                : 0,
-          },
-          {
-            day: 84,
-            value:
-              p.streamsJ84 != null && Number.isFinite(p.streamsJ84) && p.streamsJ84 >= 0
-                ? p.streamsJ84
-                : 0,
-          },
-          {
-            day: 180,
-            value:
-              p.streamsJ180 != null && Number.isFinite(p.streamsJ180) && p.streamsJ180 >= 0
-                ? p.streamsJ180
-                : 0,
-          },
-          {
-            day: 365,
-            value:
-              p.streamsJ365 != null && Number.isFinite(p.streamsJ365) && p.streamsJ365 >= 0
-                ? p.streamsJ365
-                : 0,
-          },
-        ],
-      }));
-
-    // Streams totaux par jalon pour l'année
-    const globalStreamsEvolution = MILESTONE_DAYS.map((day) => {
-      const fieldMap: Record<
-        number,
-        | 'streamsJ7'
-        | 'streamsJ14'
-        | 'streamsJ21'
-        | 'streamsJ28'
-        | 'streamsJ56'
-        | 'streamsJ84'
-        | 'streamsJ180'
-        | 'streamsJ365'
-      > = {
-        7: 'streamsJ7',
-        14: 'streamsJ14',
-        21: 'streamsJ21',
-        28: 'streamsJ28',
-        56: 'streamsJ56',
-        84: 'streamsJ84',
-        180: 'streamsJ180',
-        365: 'streamsJ365',
-      };
-      const field = fieldMap[day];
-      const total = projectsWithStreams.reduce((sum, p) => sum + (p[field] || 0), 0);
-      return { day, value: total };
-    });
-
-    // Projets terminés par année (pour l'année sélectionnée, seulement TERMINE et GHOST_PRODUCTION)
-    const terminatedProjects = filteredProjects.filter(
-      (p) => p.status === 'TERMINE' || p.status === 'GHOST_PRODUCTION'
-    );
-    const projectsByYear = [
-      {
-        year: yearStr,
-        TERMINE: terminatedProjects.filter((p) => p.status === 'TERMINE').length,
-        GHOST_PRODUCTION: terminatedProjects.filter((p) => p.status === 'GHOST_PRODUCTION').length,
-        total: terminatedProjects.length,
-      },
-    ];
-
-    return {
-      ...statistics,
-      totalProjects,
-      statusBreakdown,
-      projectsByYear,
-      streamsEvolution,
-      globalStreamsEvolution,
-      metrics: {
-        ...statistics.metrics,
-        averageStreams,
-        totalStreams,
-        projectsWithStreams: projectsWithStreams.length,
-      },
-    };
+    return computeYearStatistics(statistics, initialProjects, selectedYear);
   }, [statistics, yearViewMode, selectedYear, initialProjects]);
 
   // Obtenir les années disponibles
@@ -413,75 +147,17 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
   // Fonction pour filtrer les projets selon l'année
   const getFilteredProjectsForComparison = useMemo(() => {
     if (!displayStats) return [];
-    let projects: Array<{
-      projectId: string;
-      projectName: string;
-      style: string | null;
-      releaseDate: string | null;
-      streams: Array<{ day: number; value: number }>;
-    }> = displayStats.streamsEvolution;
-
-    // Filtrer par année si une année est sélectionnée
-    if (comparisonYearFilter !== null) {
-      projects = projects.filter((project) => {
-        if (!project.releaseDate) return false;
-        const projectYear = new Date(project.releaseDate).getFullYear();
-        return projectYear === comparisonYearFilter;
-      });
-    }
-
-    return projects;
+    return filterProjectsForComparison(displayStats.streamsEvolution, comparisonYearFilter);
   }, [displayStats, comparisonYearFilter]);
-
-  // Type pour le mapping des projets en mode comparaison
-  type ProjectMapping = {
-    index: number;
-    projectId: string;
-    projectName: string;
-    style?: string | null;
-    dataKey: string;
-  };
 
   // Créer le mapping des projets pour le mode comparaison (AVANT les données)
   const comparisonProjectMapping = useMemo<ProjectMapping[]>(() => {
     if (!displayStats || viewMode !== 'comparison') return [];
-    const filteredProjects = getFilteredProjectsForComparison;
-
-    if (comparisonMode === 'all') {
-      return filteredProjects.map((project, index) => ({
-        index,
-        projectId: project.projectId,
-        projectName: project.projectName,
-        style: project.style,
-        dataKey: `project${index}`,
-      }));
-    } else {
-      if (selectedProjectsForComparison.length < 2) return [];
-      const project1 = filteredProjects.find(
-        (p) => p.projectId === selectedProjectsForComparison[0]
-      );
-      const project2 = filteredProjects.find(
-        (p) => p.projectId === selectedProjectsForComparison[1]
-      );
-      if (!project1 || !project2) return [];
-
-      return [
-        {
-          index: 0,
-          projectId: project1.projectId,
-          projectName: project1.projectName,
-          style: project1.style,
-          dataKey: 'project0',
-        },
-        {
-          index: 1,
-          projectId: project2.projectId,
-          projectName: project2.projectName,
-          style: project2.style,
-          dataKey: 'project1',
-        },
-      ];
-    }
+    return buildComparisonProjectMapping(
+      getFilteredProjectsForComparison,
+      comparisonMode,
+      selectedProjectsForComparison
+    );
   }, [
     displayStats,
     viewMode,
@@ -493,67 +169,11 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
   // Fonction pour transformer les données en mode comparaison
   const getComparisonChartData = useMemo(() => {
     if (!displayStats || viewMode !== 'comparison') return [];
-    const filteredProjects = getFilteredProjectsForComparison;
-
-    if (comparisonMode === 'all') {
-      // Tous les projets (filtrés par année si nécessaire)
-      if (filteredProjects.length === 0) return [];
-
-      // Créer un objet avec tous les jalons et les valeurs de chaque projet
-      // Utiliser des noms de propriétés fixes (project0, project1, etc.) au lieu des UUIDs
-      const days = [...MILESTONE_DAYS];
-      const chartData = days
-        .map((day) => {
-          const dataPoint: Record<string, string | number | null> = { day: `J${day}` };
-          let hasData = false;
-          filteredProjects.forEach((project, index) => {
-            const streamValue = project.streams.find((s) => s.day === day);
-            const value = streamValue?.value;
-            if (value != null && Number.isFinite(value) && value > 0) {
-              hasData = true;
-              dataPoint[`project${index}`] = value;
-            } else {
-              dataPoint[`project${index}`] = null;
-            }
-          });
-          // Ne retourner que les jalons qui ont au moins une donnée
-          return hasData ? dataPoint : null;
-        })
-        .filter((point) => point !== null);
-
-      return chartData;
-    } else {
-      // 2 projets sélectionnés (filtrés par année si nécessaire)
-      if (selectedProjectsForComparison.length < 2) return [];
-      const project1 = filteredProjects.find(
-        (p) => p.projectId === selectedProjectsForComparison[0]
-      );
-      const project2 = filteredProjects.find(
-        (p) => p.projectId === selectedProjectsForComparison[1]
-      );
-      if (!project1 || !project2) return [];
-
-      const days = [...MILESTONE_DAYS];
-      return days
-        .map((day) => {
-          const stream1 = project1.streams.find((s) => s.day === day);
-          const stream2 = project2.streams.find((s) => s.day === day);
-          const value1 = stream1?.value;
-          const value2 = stream2?.value;
-          const hasValue1 = value1 != null && Number.isFinite(value1) && value1 > 0;
-          const hasValue2 = value2 != null && Number.isFinite(value2) && value2 > 0;
-
-          // Ne retourner que les jalons qui ont au moins une donnée
-          if (!hasValue1 && !hasValue2) return null;
-
-          return {
-            day: `J${day}`,
-            project0: hasValue1 ? value1 : null,
-            project1: hasValue2 ? value2 : null,
-          };
-        })
-        .filter((point) => point !== null);
-    }
+    return buildComparisonChartData(
+      getFilteredProjectsForComparison,
+      comparisonMode,
+      selectedProjectsForComparison
+    );
   }, [
     displayStats,
     viewMode,
@@ -589,100 +209,10 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
       }));
   }, [selectedProject, viewMode, displayStats, getComparisonChartData]);
 
-  // Fonction pour générer des couleurs distinctes (jusqu'à 25+ projets)
-  const getColorForIndex = (index: number, total: number): string => {
-    // Palette de base avec 8 couleurs distinctes
-    const baseColors = [
-      '#a855f7', // purple
-      '#3b82f6', // blue
-      '#10b981', // green
-      '#f59e0b', // orange
-      '#ef4444', // red
-      '#8b5cf6', // violet
-      '#06b6d4', // cyan
-      '#f97316', // orange-500
-    ];
-
-    // Si on a moins de 8 projets, utiliser la palette de base
-    if (total <= baseColors.length) {
-      return baseColors[index % baseColors.length];
-    }
-
-    // Pour plus de 8 projets, générer des couleurs HSL équitablement réparties
-    // Utiliser un angle de base pour chaque couleur
-    const hue = (index * 360) / Math.max(total, 8);
-    // Varier la saturation et la luminosité pour plus de distinction
-    const saturation = 65 + (index % 3) * 10; // Entre 65% et 85%
-    const lightness = 50 + (Math.floor(index / 3) % 3) * 5; // Entre 50% et 60%
-
-    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-  };
-
   // Calculer l'évolution annuelle des performances
   const yearlyProgressionData = useMemo(() => {
     if (!displayStats || !statistics) return [];
-    const projectsByYearMap: Record<
-      string,
-      {
-        year: number;
-        totalStreams: number;
-        averageStreams: number;
-        projectCount: number;
-      }
-    > = {};
-
-    // Grouper les projets par année de sortie
-    displayStats.streamsEvolution.forEach((project) => {
-      if (!project.releaseDate) return;
-      const year = new Date(project.releaseDate).getFullYear();
-      const yearKey = year.toString();
-
-      if (!projectsByYearMap[yearKey]) {
-        projectsByYearMap[yearKey] = {
-          year,
-          totalStreams: 0,
-          averageStreams: 0,
-          projectCount: 0,
-        };
-      }
-
-      // Utiliser J84 comme référence (ou le dernier jalon disponible)
-      const streamValues = project.streams
-        .map((s) => s.value)
-        .filter((v) => typeof v === 'number' && !isNaN(v) && v >= 0);
-
-      if (streamValues.length === 0) return; // Ignorer les projets sans données valides
-
-      const maxStreams = Math.max(...streamValues, 0);
-      if (isNaN(maxStreams) || maxStreams < 0) return; // Ignorer les valeurs invalides
-
-      projectsByYearMap[yearKey].totalStreams += maxStreams;
-      projectsByYearMap[yearKey].projectCount += 1;
-    });
-
-    // Calculer les moyennes
-    Object.values(projectsByYearMap).forEach((data) => {
-      if (data.projectCount > 0 && !isNaN(data.totalStreams)) {
-        data.averageStreams = Math.round(data.totalStreams / data.projectCount);
-      } else {
-        data.averageStreams = 0;
-      }
-      // S'assurer que les valeurs ne sont pas NaN
-      if (isNaN(data.totalStreams)) data.totalStreams = 0;
-      if (isNaN(data.averageStreams)) data.averageStreams = 0;
-      if (isNaN(data.projectCount)) data.projectCount = 0;
-    });
-
-    // Convertir en tableau et trier par année, filtrer les valeurs invalides
-    return Object.values(projectsByYearMap)
-      .filter((data) => !isNaN(data.year) && data.projectCount > 0)
-      .sort((a, b) => a.year - b.year)
-      .map((data) => ({
-        year: data.year.toString(),
-        totalStreams: Number.isFinite(data.totalStreams) ? data.totalStreams : 0,
-        averageStreams: Number.isFinite(data.averageStreams) ? data.averageStreams : 0,
-        projectCount: Number.isFinite(data.projectCount) ? data.projectCount : 0,
-      }));
+    return buildYearlyProgressionData(displayStats.streamsEvolution);
   }, [displayStats, statistics]);
 
   if (loading) {
@@ -701,251 +231,7 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
     );
   }
 
-  const getStatusColor = (status: string) => {
-    const statusConfig = PROJECT_STATUSES.find((s) => s.value === status);
-    if (!statusConfig) return 'gray';
-
-    const colorMap: Record<string, string> = {
-      blue: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-      green: 'bg-green-500/20 text-green-400 border-green-500/30',
-      red: 'bg-red-500/20 text-red-400 border-red-500/30',
-      orange: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-      purple: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-    };
-
-    return colorMap[statusConfig.color] || 'bg-gray-500/20 text-gray-400 border-gray-500/30';
-  };
-
-  // Obtenir les couleurs pour les barres (même style que les cartes)
-  const getStatusBarColors = (status: string) => {
-    const statusConfig = PROJECT_STATUSES.find((s) => s.value === status);
-    if (!statusConfig) {
-      return {
-        fill: 'rgba(107, 114, 128, 0.2)',
-        stroke: 'rgba(107, 114, 128, 0.3)',
-        text: '#9ca3af', // gray-400
-      };
-    }
-
-    // Couleurs correspondant exactement aux cartes : bg-{color}-500/20, border-{color}-500/30, text-{color}-400
-    // Opacité augmentée pour le contour (0.6) pour une meilleure visibilité
-    const colorMap: Record<string, { fill: string; stroke: string; text: string }> = {
-      blue: {
-        fill: 'rgba(59, 130, 246, 0.2)', // bg-blue-500/20
-        stroke: 'rgba(59, 130, 246, 0.6)', // border-blue-500/60 (augmenté pour plus de visibilité)
-        text: '#60a5fa', // text-blue-400
-      },
-      green: {
-        fill: 'rgba(34, 197, 94, 0.2)', // bg-green-500/20
-        stroke: 'rgba(34, 197, 94, 0.6)', // border-green-500/60 (augmenté pour plus de visibilité)
-        text: '#4ade80', // text-green-400
-      },
-      red: {
-        fill: 'rgba(239, 68, 68, 0.2)', // bg-red-500/20
-        stroke: 'rgba(239, 68, 68, 0.6)', // border-red-500/60 (augmenté pour plus de visibilité)
-        text: '#f87171', // text-red-400
-      },
-      orange: {
-        fill: 'rgba(249, 115, 22, 0.2)', // bg-orange-500/20
-        stroke: 'rgba(249, 115, 22, 0.6)', // border-orange-500/60 (augmenté pour plus de visibilité)
-        text: '#fb923c', // text-orange-400
-      },
-      purple: {
-        fill: 'rgba(168, 85, 247, 0.2)', // bg-purple-500/20
-        stroke: 'rgba(168, 85, 247, 0.6)', // border-purple-500/60 (augmenté pour plus de visibilité)
-        text: '#c084fc', // text-purple-400
-      },
-    };
-
-    return colorMap[statusConfig.color] || colorMap.blue;
-  };
-
-  // Tooltip personnalisé pour afficher les détails des projets
-  const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
-    if (!active || !payload || !payload.length) return null;
-
-    const year = String(label || '');
-    const yearData = payload[0]?.payload;
-    if (!yearData || !year || !statistics?.projectsByYearDetails[year]) return null;
-
-    // projectsByYearDetails contient déjà seulement TERMINE et GHOST_PRODUCTION
-    const allProjects = statistics.projectsByYearDetails[year];
-    const termines = allProjects.filter((p: { id: string }) => {
-      const project = initialProjects.find((proj) => proj.id === p.id);
-      return project?.status === 'TERMINE';
-    });
-    const ghostProds = allProjects.filter((p: { id: string }) => {
-      const project = initialProjects.find((proj) => proj.id === p.id);
-      return project?.status === 'GHOST_PRODUCTION';
-    });
-
-    const total = typeof yearData.total === 'number' ? yearData.total : 0;
-
-    return (
-      <div className="bg-gray-900/95 border border-gray-700 rounded-lg p-4 shadow-xl min-w-[250px] max-w-[400px]">
-        <div className="text-white font-semibold mb-3 text-center border-b border-gray-700 pb-2">
-          {year} - Total: {total}
-        </div>
-
-        {termines.length > 0 &&
-          (() => {
-            const colors = getStatusBarColors('TERMINE');
-            return (
-              <div className="mb-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-3 h-3 rounded" style={{ backgroundColor: colors.text }} />
-                  <span className="text-sm font-medium" style={{ color: colors.text }}>
-                    Terminé ({termines.length} projet{termines.length > 1 ? 's' : ''})
-                  </span>
-                </div>
-                <div className="pl-5 space-y-1 max-h-[150px] overflow-y-auto">
-                  {termines.map((p: { id: string; name: string; releaseDate?: string }) => (
-                    <div
-                      key={p.id}
-                      className="text-xs flex items-center justify-between gap-2"
-                      style={{ color: colors.text }}
-                    >
-                      <span className="flex-1">{p.name}</span>
-                      {p.releaseDate ? (
-                        <span className="text-xs opacity-70">
-                          {format(new Date(p.releaseDate), 'dd/MM/yyyy', { locale: fr })}
-                        </span>
-                      ) : (
-                        <span className="text-xs opacity-50 italic">Sans date</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })()}
-
-        {ghostProds.length > 0 &&
-          (() => {
-            const colors = getStatusBarColors('GHOST_PRODUCTION');
-            return (
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-3 h-3 rounded" style={{ backgroundColor: colors.text }} />
-                  <span className="text-sm font-medium" style={{ color: colors.text }}>
-                    Ghost Prod ({ghostProds.length} projet{ghostProds.length > 1 ? 's' : ''})
-                  </span>
-                </div>
-                <div className="pl-5 space-y-1 max-h-[150px] overflow-y-auto">
-                  {ghostProds.map((p: { id: string; name: string; releaseDate?: string }) => (
-                    <div
-                      key={p.id}
-                      className="text-xs flex items-center justify-between gap-2"
-                      style={{ color: colors.text }}
-                    >
-                      <span className="flex-1">{p.name}</span>
-                      {p.releaseDate ? (
-                        <span className="text-xs opacity-70">
-                          {format(new Date(p.releaseDate), 'dd/MM/yyyy', { locale: fr })}
-                        </span>
-                      ) : (
-                        <span className="text-xs opacity-50 italic">Sans date</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })()}
-      </div>
-    );
-  };
-
-  // Composant pour afficher le total au-dessus de la barre (seulement les barres visibles)
-  const renderTotalLabel = (props: SegmentLabelProps) => {
-    const { x, y, width, payload } = props;
-    if (!payload) return null;
-
-    // Calculer le total des barres visibles pour cette année spécifique
-    let visibleTotal = 0;
-    if (!hiddenStatuses.has('TERMINE')) {
-      const termineValue = payload?.TERMINE;
-      visibleTotal += typeof termineValue === 'number' ? termineValue : 0;
-    }
-    if (!hiddenStatuses.has('GHOST_PRODUCTION')) {
-      const ghostValue = payload?.GHOST_PRODUCTION;
-      visibleTotal += typeof ghostValue === 'number' ? ghostValue : 0;
-    }
-
-    if (visibleTotal === 0) return null;
-
-    // Utiliser le total calculé, pas payload.total qui pourrait être incorrect
-    const xNum = typeof x === 'number' ? x : 0;
-    const yNum = typeof y === 'number' ? y : 0;
-    const widthNum = typeof width === 'number' ? width : 0;
-    return (
-      <text
-        x={xNum + widthNum / 2}
-        y={yNum - 5}
-        fill="#fff"
-        textAnchor="middle"
-        fontSize={12}
-        fontWeight="bold"
-      >
-        {visibleTotal}
-      </text>
-    );
-  };
-
-  // Composant pour afficher la valeur de l'année pour chaque segment
-  const createSegmentLabelRenderer = (status: 'TERMINE' | 'GHOST_PRODUCTION') => {
-    const SegmentLabel = (props: SegmentLabelProps) => {
-      const { x, y, width, height, payload, value } = props;
-      // Pour les barres empilées, payload devrait contenir toutes les données de la ligne
-      // Mais si payload n'est pas disponible, value contient la valeur du segment pour cette barre spécifique
-      let segmentValue = 0;
-
-      // Essayer d'abord payload[status]
-      if (payload && typeof payload[status] === 'number') {
-        segmentValue = payload[status] as number;
-      }
-      // Sinon, pour Ghost Prod, value est le total cumulé, on doit soustraire Terminé
-      else if (status === 'GHOST_PRODUCTION' && payload && typeof payload.TERMINE === 'number') {
-        segmentValue = (value || 0) - (payload.TERMINE as number);
-      }
-      // Pour Terminé ou si on n'a que value, utiliser value directement
-      else if (typeof value === 'number') {
-        segmentValue = value;
-      }
-
-      const heightNum = typeof height === 'number' ? height : 0;
-      if (!segmentValue || segmentValue === 0 || !heightNum || heightNum < 15) return null;
-
-      // Obtenir la couleur de texte (même que le contour des cartes) avec opacité augmentée
-      const colors = getStatusBarColors(status);
-
-      // Position au centre du segment
-      const widthNum = typeof width === 'number' ? width : 0;
-      const segmentY = (typeof y === 'number' ? y : 0) + heightNum / 2;
-      const segmentX = (typeof x === 'number' ? x : 0) + widthNum / 2;
-
-      return (
-        <text
-          x={segmentX}
-          y={segmentY}
-          fill={colors.text}
-          textAnchor="middle"
-          fontSize={12}
-          fontWeight="bold"
-          style={{
-            textShadow: '0 0 4px rgba(0,0,0,0.9)',
-            opacity: 1,
-            fillOpacity: 1,
-          }}
-        >
-          {segmentValue}
-        </text>
-      );
-    };
-    SegmentLabel.displayName = `SegmentLabel-${status}`;
-    return SegmentLabel;
-  };
-
+  const renderTotalLabel = createTotalLabelRenderer(hiddenStatuses);
   const renderTermineLabel = createSegmentLabelRenderer('TERMINE');
   const renderGhostProdLabel = createSegmentLabelRenderer('GHOST_PRODUCTION');
 
@@ -1104,7 +390,12 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
                     tick={{ fill: 'rgba(255, 255, 255, 0.7)' }}
                   />
                   <Tooltip
-                    content={<CustomTooltip />}
+                    content={
+                      <ProjectsByYearTooltip
+                        projectsByYearDetails={statistics.projectsByYearDetails}
+                        projects={initialProjects}
+                      />
+                    }
                     cursor={{ fill: 'transparent' }}
                     wrapperStyle={{ outline: 'none' }}
                   />
