@@ -48,13 +48,13 @@ export const DEFAULT_MODEL_LIMITS = {
  * Configuration de la réserve pour réponse par modèle
  * Bornes min/max pour reserveForResponse
  */
-export interface ResponseReserveConfig {
+interface ResponseReserveConfig {
   min: number;
   max: number;
   default: number;
 }
 
-export const ModelResponseReserve: Record<string, ResponseReserveConfig> = {
+const ModelResponseReserve: Record<string, ResponseReserveConfig> = {
   'llama-3.1-8b-instant': {
     min: 256, // Réponse courte minimum
     max: 8192, // Réponse longue maximum (bien en dessous du max output)
@@ -67,7 +67,7 @@ export const ModelResponseReserve: Record<string, ResponseReserveConfig> = {
   },
 };
 
-export const DEFAULT_RESPONSE_RESERVE: ResponseReserveConfig = {
+const DEFAULT_RESPONSE_RESERVE: ResponseReserveConfig = {
   min: 256,
   max: 2048,
   default: 1024,

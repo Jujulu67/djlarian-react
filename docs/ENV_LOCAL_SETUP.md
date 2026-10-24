@@ -6,10 +6,10 @@ Créez un fichier `.env.local` à la racine du projet avec le contenu suivant:
 
 ```bash
 # Base de données locale (PostgreSQL via Docker Compose)
-DATABASE_URL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable"
+DATABASE_URL="postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable"
 
 # Base de données locale (alias pour clarté)
-DATABASE_URL_LOCAL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable"
+DATABASE_URL_LOCAL="postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable"
 
 # Base de données de production (optionnel, pour switch DB)
 # ⚠️  PROTECTION: Ne pas utiliser sans ALLOW_PROD_DB=1
@@ -38,13 +38,13 @@ DATABASE_URL_LOCAL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/d
 Point vers PostgreSQL local (Docker Compose):
 
 ```bash
-DATABASE_URL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable"
+DATABASE_URL="postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable"
 ```
 
 **Configuration Docker Compose:**
 
 - User: `djlarian`
-- Password: `djlarian_dev_password`
+- Password: `<DEV_DB_PASSWORD>`
 - Database: `djlarian_dev`
 - Port: `5433` (exposé depuis 5432 dans le conteneur pour éviter conflit avec PostgreSQL natif)
 

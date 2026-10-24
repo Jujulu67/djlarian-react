@@ -363,7 +363,7 @@ docker-compose up -d
 
 # 2. Configurer .env.local
 cat >> .env.local << 'EOF'
-DATABASE_URL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable"
+DATABASE_URL="postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable"
 EOF
 
 # 3. Bootstrap

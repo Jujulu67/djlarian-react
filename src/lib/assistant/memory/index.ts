@@ -17,33 +17,6 @@ export * from './ActionMemoryStore';
 export * from './MessageClassifier';
 export * from './GroqPayloadBuilder';
 export * from './ActionParser';
-export {
-  handleUserInput,
-  type HandleUserInputOptions,
-  type HandleUserInputResult,
-} from './HandleUserInput';
-
-// O6: Limites modèle officielles
-export {
-  ModelContextTokens,
-  ModelMaxOutputTokens,
-  getModelContextLimit,
-  getModelMaxOutput,
-  capMaxCompletionTokens,
-  getBoundedResponseReserve,
-  validateModelLimits,
-} from './ModelLimits';
-
-// O8: Sanitization des messages Groq
-export {
-  sanitizeGroqMessages,
-  validateGroqMessages,
-  createValidGroqMessage,
-  type ValidGroqMessage,
-  type SanitizeResult,
-  type SanitizeIssue,
-  type SanitizeOptions,
-} from './SanitizeGroqMessages';
 
 // O5: Lock de concurrence par session
 export {
@@ -56,17 +29,10 @@ export {
 
 // Adaptateur pour intégration avec le code existant
 export {
-  getSessionStores,
-  clearSessionStores,
-  classifyUserMessage, // ⚠️ À utiliser uniquement pour décision mémoire, PAS pour routing (I2)
   trackChatMessage,
   trackActionContext,
-  setPendingConfirmation,
   getFilteredConversationHistory,
   getConversationMemorySize,
-  getActionContext,
-  validateMemoryInvariants,
   resetSession,
   debugMemoryState,
-  type MessageClassification,
 } from './MemoryAdapter';

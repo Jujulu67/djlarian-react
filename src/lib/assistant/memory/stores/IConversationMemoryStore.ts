@@ -64,18 +64,6 @@ export interface IConversationMemoryStore {
 }
 
 /**
- * Configuration pour les stores Redis.
- */
-export interface RedisStoreConfig {
-  /** URL de connexion Redis (ex: redis://localhost:6379) */
-  redisUrl: string;
-  /** Préfixe des clés (ex: 'larian:conv:') */
-  keyPrefix?: string;
-  /** TTL en millisecondes (défaut: 1h pour conversation) */
-  ttlMs?: number;
-}
-
-/**
  * États possibles du store.
  */
 export type StoreBackend = 'redis' | 'memory';

@@ -308,10 +308,3 @@ export function getConversationMemoryStore(
 
   return storeMap.get(key)!;
 }
-
-/**
- * Supprime un store de session.
- */
-export function clearConversationMemoryStore(sessionId: string): void {
-  storeMap.delete(sessionId);
-}

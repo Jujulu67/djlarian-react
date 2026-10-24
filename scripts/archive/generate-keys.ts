@@ -1,4 +1,4 @@
-import { generateKeyPair, ensureSodium } from '../src/lib/license/crypto';
+import { generateKeyPair, ensureSodium } from '../../src/lib/license/crypto';
 
 async function main() {
   await ensureSodium();

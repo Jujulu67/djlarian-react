@@ -6,13 +6,13 @@
 import { ActionType, ActionResult, ActionContext } from './Types';
 import { ActionMemoryStore } from './ActionMemoryStore';
 
-export interface ParsedAction {
+interface ParsedAction {
   type: ActionType;
   params: Record<string, unknown>;
   rawCommand: string;
 }
 
-export type ActionHandler = (action: ParsedAction, context: ActionContext) => Promise<ActionResult>;
+type ActionHandler = (action: ParsedAction, context: ActionContext) => Promise<ActionResult>;
 
 export class ActionParser {
   private handlers: Map<ActionType, ActionHandler> = new Map();
@@ -152,7 +152,7 @@ export class ActionParser {
 // Default Handlers
 // ==========================================================================
 
-export function createDefaultHandlers(): Map<ActionType, ActionHandler> {
+function createDefaultHandlers(): Map<ActionType, ActionHandler> {
   const handlers = new Map<ActionType, ActionHandler>();
 
   handlers.set('LIST', async (action, context) => {

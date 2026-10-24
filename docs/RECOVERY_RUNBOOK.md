@@ -10,7 +10,7 @@ Ce runbook décrit comment restaurer les données de la base PostgreSQL locale a
 
 ```bash
 # Compter les enregistrements dans les tables clés
-psql "postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable" \
+psql "postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable" \
   -c "SELECT 'User' as table_name, COUNT(*) as count FROM \"User\" \
       UNION ALL SELECT 'Project', COUNT(*) FROM \"Project\" \
       UNION ALL SELECT 'Track', COUNT(*) FROM \"Track\" \
@@ -88,7 +88,7 @@ node scripts/migrate-sqlite-to-postgres.mjs
 ### Vérifier les compteurs
 
 ```bash
-psql "postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable" \
+psql "postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable" \
   -c "SELECT 'User' as table_name, COUNT(*) as count FROM \"User\" \
       UNION ALL SELECT 'Project', COUNT(*) FROM \"Project\" \
       UNION ALL SELECT 'Track', COUNT(*) FROM \"Track\" \
@@ -102,11 +102,11 @@ psql "postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?ss
 
 ```bash
 # Vérifier quelques projets
-psql "postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable" \
+psql "postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable" \
   -c "SELECT id, name, status FROM \"Project\" LIMIT 5;"
 
 # Vérifier quelques utilisateurs
-psql "postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable" \
+psql "postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable" \
   -c "SELECT id, email, name FROM \"User\" LIMIT 5;"
 ```
 
@@ -206,7 +206,7 @@ node scripts/test-db-safety-guards.mjs
 
 3. **Vérifier la connexion**:
    ```bash
-   psql "postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable" -c "SELECT 1;"
+   psql "postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable" -c "SELECT 1;"
    ```
 
 ## 📝 Checklist de Restauration

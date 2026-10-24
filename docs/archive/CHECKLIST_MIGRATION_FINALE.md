@@ -18,7 +18,7 @@ docker compose ps  # Vérifier: Up (healthy)
 
 # 2. Configurer .env.local
 # Voir docs/ENV_LOCAL_SETUP.md
-DATABASE_URL="postgresql://djlarian:djlarian_dev_password@localhost:5432/djlarian_dev?sslmode=disable"
+DATABASE_URL="postgresql://djlarian:<DEV_DB_PASSWORD>@localhost:5432/djlarian_dev?sslmode=disable"
 
 # 3. Vérifier connexion
 psql "$DATABASE_URL" -c "\dt"

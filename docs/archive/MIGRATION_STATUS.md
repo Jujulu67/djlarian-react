@@ -36,7 +36,7 @@ docker compose up -d
 bash scripts/wait-for-postgres.sh
 
 # 2. Appliquer les migrations
-export DATABASE_URL="postgresql://djlarian:djlarian_dev_password@localhost:5432/djlarian_dev?sslmode=disable"
+export DATABASE_URL="postgresql://djlarian:<DEV_DB_PASSWORD>@localhost:5432/djlarian_dev?sslmode=disable"
 pnpm prisma migrate deploy
 
 # 3. Vérifier le statut

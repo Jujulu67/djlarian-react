@@ -16,7 +16,7 @@ docker compose ps  # Vérifier: Up (healthy)
 Voir `docs/ENV_LOCAL_SETUP.md` pour la configuration complète.
 
 ```bash
-DATABASE_URL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable"
+DATABASE_URL="postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable"
 ```
 
 ### 3. Bootstrap Schéma
@@ -58,7 +58,7 @@ pnpm run db:reset:local
 docker compose down -v
 docker compose up -d
 sleep 3
-export DATABASE_URL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable"
+export DATABASE_URL="postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable"
 pnpm prisma migrate deploy
 ```
 

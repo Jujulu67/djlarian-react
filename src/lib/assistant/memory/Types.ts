@@ -12,13 +12,13 @@
 // ============================================================================
 
 /** Discriminant strict pour le type de message */
-export type MessageKind = 'chat' | 'action' | 'system';
+type MessageKind = 'chat' | 'action' | 'system';
 
 /** Rôle dans la conversation (compatible Groq) */
 export type MessageRole = 'user' | 'assistant' | 'system';
 
 /** Message de base avec kind discriminant */
-export interface BaseMessage {
+interface BaseMessage {
   id: string;
   timestamp: number;
   sessionId: string;
@@ -193,26 +193,6 @@ export interface ActionMemoryOptions {
 }
 
 // ============================================================================
-// Debug Types
-// ============================================================================
-
-/** Log structuré pour debug */
-export interface DebugLog {
-  requestId: string;
-  timestamp: number;
-  sessionId: string;
-  routeDecision: RouterDecision;
-  conversationMemorySize: number;
-  actionMemorySnapshot: Partial<ActionContext>;
-  groqPayloadPreview?: {
-    messageCount: number;
-    totalTokens: number;
-    lastMessages: Array<{ role: string; contentPreview: string }>;
-  };
-  violations: string[];
-}
-
-// ============================================================================
 // Utility Types
 // ============================================================================
 
@@ -224,11 +204,6 @@ export function isChatMessage(msg: Message): msg is ChatMessage {
 /** Type guard pour ActionMessage */
 export function isActionMessage(msg: Message): msg is ActionMessage {
   return msg.kind === 'action';
-}
-
-/** Type guard pour SystemMessage */
-export function isSystemMessage(msg: Message): msg is SystemMessage {
-  return msg.kind === 'system';
 }
 
 /** Génère un ID unique */

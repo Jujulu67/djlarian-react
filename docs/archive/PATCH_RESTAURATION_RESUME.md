@@ -100,7 +100,7 @@ echo "Backup: $LATEST_BACKUP"
 node scripts/restore-sqlite-backup-to-postgres.mjs "$LATEST_BACKUP"
 
 # 3. Vérifier
-psql "postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable" \
+psql "postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable" \
   -c "SELECT 'User' as table_name, COUNT(*) as count FROM \"User\" \
       UNION ALL SELECT 'Project', COUNT(*) FROM \"Project\" \
       UNION ALL SELECT 'Track', COUNT(*) FROM \"Track\";"

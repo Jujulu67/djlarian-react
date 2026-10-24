@@ -1,4 +1,4 @@
-import { SymbolType, RewardType } from '../src/types/slot-machine';
+import { SymbolType, RewardType } from '../../src/types/slot-machine';
 
 // Exact copy of logic from production route for verification
 

@@ -24,15 +24,15 @@
 
 - **Port**: 5433 (exposé depuis 5432 dans le conteneur)
 - **User**: djlarian
-- **Password**: djlarian_dev_password
+- **Password**: <DEV_DB_PASSWORD>
 - **Database**: djlarian_dev
-- **URL**: `postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable`
+- **URL**: `postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable`
 
 ### .env.local
 
 ```bash
-DATABASE_URL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable"
-DATABASE_URL_LOCAL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable"
+DATABASE_URL="postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable"
+DATABASE_URL_LOCAL="postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable"
 ```
 
 ### Démarrage Automatique
