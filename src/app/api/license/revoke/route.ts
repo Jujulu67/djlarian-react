@@ -1,5 +1,6 @@
 import { requireAdmin } from '@/lib/api/requireAuth';
 import prisma from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
@@ -34,7 +35,7 @@ export async function POST(req: Request) {
     if (error instanceof z.ZodError) {
       return new NextResponse(JSON.stringify(error.issues), { status: 400 });
     }
-    console.error('[LICENSE_REVOKE]', error);
+    logger.error('[LICENSE_REVOKE]', error);
     return new NextResponse('Internal Error', { status: 500 });
   }
 }

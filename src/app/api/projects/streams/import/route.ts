@@ -10,6 +10,7 @@ import {
 } from '@/lib/api/responseHelpers';
 import prisma from '@/lib/prisma';
 import { checkProjectMilestones } from '@/lib/utils/checkMilestoneNotifications';
+import { logger } from '@/lib/logger';
 
 // Fonction helper pour invalider le cache des projets d'un utilisateur
 function invalidateProjectsCache(userId: string) {
@@ -135,7 +136,7 @@ export async function POST(request: NextRequest) {
           await checkProjectMilestones(importData.projectId, session.user.id);
         } catch (notificationError) {
           // Ne pas faire échouer l'import si la vérification de notifications échoue
-          console.error('Erreur lors de la vérification des notifications:', notificationError);
+          logger.error('Erreur lors de la vérification des notifications:', notificationError);
         }
 
         // Vérifier et créer les notifications de releases en approche
@@ -144,7 +145,7 @@ export async function POST(request: NextRequest) {
           await checkProjectUpcomingRelease(importData.projectId, session.user.id);
         } catch (notificationError) {
           // Ne pas faire échouer l'import si la vérification de notifications échoue
-          console.error(
+          logger.error(
             'Erreur lors de la vérification des releases en approche:',
             notificationError
           );

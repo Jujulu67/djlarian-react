@@ -31,10 +31,15 @@ comme compromises.
 
 ## 🟡 Chantiers techniques en cours (pour un agent, avec accord de l'utilisateur)
 
-- [ ] Découper les gros composants client (`StatisticsClient.tsx`, `ImportProjectsDialog.tsx`,
-      `ProjectsClient.tsx`, `LiveSubmissionForm.tsx`…), un par un, en vérifiant chaque page
-      dans le navigateur (pas de tests d'interface).
-- [ ] Migrer les routes API restantes vers `requireAdmin` / `requireAuth`
-      (`src/lib/api/requireAuth.ts`), sans changer leurs réponses HTTP : celles qui
-      utilisent `createUnauthorizedResponse`, `new NextResponse('Unauthorized')`, ou qui
-      vérifient `session.user.id`.
+- [x] Découper les gros composants (24/10/2026 : statistiques, projets, import, live, table,
+      notifications, admin, événements, boutique, navigation, machine à sous, SoundCloud).
+- [ ] Routes API restantes non migrées vers `requireAuth` : celles qui testent `session.user.id`/`email`
+      ou mélangent admin et propriétaire (~50).
+- [ ] Bugs repérés pendant le refactor, laissés en l'état (à corriger dans une PR dédiée) :
+  - formulaire d'événement : `d&apos;` affiché tel quel (titre « Modifier l&apos;événement » et 2 toasts) ;
+  - historique de configuration : libellés jamais appliqués (`general.siteName` au lieu du nom lisible) ;
+  - navigation : `isNavLinkActive` fait un `startsWith` brut (`/musicx` active `/music`) ;
+  - `ImportStreamsDialog` : effets de bord (setTimeout/setState) dans des updaters d'état ;
+  - `formatDateFrench('pas une date')` renvoie `NaN/NaN/NaN` ;
+  - dates de récurrence : arithmétique locale + `toISOString()` (décalage possible hors UTC) ;
+  - machine à sous : timers non annulés au démontage.

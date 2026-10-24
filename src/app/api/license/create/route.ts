@@ -1,6 +1,7 @@
 import { requireAdmin } from '@/lib/api/requireAuth';
 import prisma from '@/lib/prisma';
 import { generateLicenseKey } from '@/lib/license/keyGenerator';
+import { logger } from '@/lib/logger';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
@@ -88,7 +89,7 @@ export async function POST(req: Request) {
     if (error instanceof z.ZodError) {
       return new NextResponse(JSON.stringify(error.issues), { status: 400 });
     }
-    console.error('[LICENSE_CREATE]', error);
+    logger.error('[LICENSE_CREATE]', error);
     return new NextResponse('Internal Error', { status: 500 });
   }
 }

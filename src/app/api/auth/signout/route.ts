@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 /**
  * Fonction utilitaire pour nettoyer tous les cookies d'authentification
@@ -80,7 +81,7 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error: unknown) {
-    console.error('[API] /api/auth/signout - Erreur:', error);
+    logger.error('[API] /api/auth/signout - Erreur:', error);
     const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la déconnexion';
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }

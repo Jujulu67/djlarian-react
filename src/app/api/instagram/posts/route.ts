@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { getInstagramPosts } from '@/lib/services/instagram';
+import { logger } from '@/lib/logger';
 
 /**
  * Endpoint pour récupérer les posts Instagram
@@ -34,7 +35,7 @@ export async function GET(): Promise<NextResponse> {
       }
     );
   } catch (error) {
-    console.error('Error fetching Instagram posts:', error);
+    logger.error('Error fetching Instagram posts:', error);
     return NextResponse.json(
       {
         posts: [],

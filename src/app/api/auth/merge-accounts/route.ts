@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import prisma from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 import { hkdf } from '@panva/hkdf';
 import { jwtDecrypt } from 'jose';
 
@@ -128,7 +129,7 @@ export async function POST(request: NextRequest) {
       userId: existingUser.id, // Retourner l'ID utilisateur pour référence
     });
   } catch (error) {
-    console.error('[API] Erreur merge accounts:', error);
+    logger.error('[API] Erreur merge accounts:', error);
     return NextResponse.json({ error: 'Erreur lors de la fusion des comptes' }, { status: 500 });
   }
 }

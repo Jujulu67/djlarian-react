@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 /**
  * POST /api/profile/accounts/unlink
@@ -85,7 +86,7 @@ export async function POST(request: NextRequest) {
       provider: account.provider,
     });
   } catch (error) {
-    console.error('[Profile] Erreur désassociation compte OAuth:', error);
+    logger.error('[Profile] Erreur désassociation compte OAuth:', error);
     return NextResponse.json(
       { error: 'Erreur lors de la désassociation du compte OAuth' },
       { status: 500 }

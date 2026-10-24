@@ -1,37 +1,30 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Menu,
-  User,
-  LogOut,
-  Music,
-  Calendar,
-  ImageIcon,
-  Mail,
-  Settings,
-  Home,
-  FolderKanban,
-  Bell,
-  History,
-  Radio,
-  Gamepad2,
-  KeyRound,
-  ShoppingBag,
-} from 'lucide-react';
-import Image from 'next/image';
+import { Menu, User, Bell } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { useState, useEffect } from 'react';
-import React from 'react';
-
-import { logger } from '@/lib/logger';
-import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
+import { useState } from 'react';
 
 import AuthModal from '../auth/AuthModal';
 import { MilestoneInbox } from '@/components/projects/MilestoneInbox';
 import { useNotifications } from '@/hooks/useNotifications';
+import { getNavLinks } from './navigation/navigationConfig';
+import { isNavLinkActive } from './navigation/navigationUtils';
+import { DesktopNavLink } from './navigation/DesktopNavLink';
+import { DesktopUserMenuToggle } from './navigation/DesktopUserMenuToggle';
+import { DesktopUserDropdown } from './navigation/DesktopUserDropdown';
+import { MobileUserMenuToggle } from './navigation/MobileUserMenuToggle';
+import { MobileUserDropdown } from './navigation/MobileUserDropdown';
+import { MobileNavDropdown } from './navigation/MobileNavDropdown';
+import {
+  useNotificationCheck,
+  useRouteErrorLogging,
+  useHeaderScroll,
+  useShopEnabled,
+  useClickOutsideMenus,
+} from './navigation/useNavigationEffects';
 
 const Navigation = () => {
   const { data: session, status } = useSession();
@@ -43,9 +36,7 @@ const Navigation = () => {
   const [isMobileUserMenuOpen, setIsMobileUserMenuOpen] = useState(false);
   const [isInboxOpen, setIsInboxOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
-  const [shopEnabled, setShopEnabled] = useState(true);
 
   // Fonction de déconnexion simplifiée et fiable
   const handleSignOut = async () => {
@@ -79,52 +70,22 @@ const Navigation = () => {
   });
   const unreadCount = status === 'authenticated' ? notificationsHook.unreadCount : 0;
 
-  // Vérifier les notifications au chargement si l'utilisateur est connecté
-  useEffect(() => {
-    if (status === 'authenticated' && session?.user?.id) {
-      // Vérifier les notifications en arrière-plan (optimisé)
-      // Utiliser un timeout pour éviter de bloquer le rendu initial
-      const timeoutId = setTimeout(() => {
-        fetchWithAuth('/api/notifications/check-all').catch((error) => {
-          // Ignorer les erreurs silencieusement (peuvent être causées par des extensions)
-          if (error.name !== 'AbortError') {
-            // Erreur silencieuse - pas besoin de logger
-          }
-        });
-      }, 1000); // Attendre 1 seconde après le chargement
+  useNotificationCheck(status, session?.user?.id);
 
-      return () => clearTimeout(timeoutId);
-    }
-  }, [status, session?.user?.id]);
+  useRouteErrorLogging(pathname);
 
-  // Error boundary pour capturer les erreurs
-  useEffect(() => {
-    const errorHandler = (event: ErrorEvent) => {
-      logger.error('Navigation error caught:', {
-        message: event.message,
-        error: event.error,
-        filename: event.filename,
-        lineno: event.lineno,
-        colno: event.colno,
-        pathname: pathname,
-      });
-    };
+  const isScrolled = useHeaderScroll(setMounted);
 
-    const unhandledRejectionHandler = (event: PromiseRejectionEvent) => {
-      logger.error('Navigation unhandled promise rejection:', {
-        reason: event.reason,
-        pathname: pathname,
-      });
-    };
+  const shopEnabled = useShopEnabled();
 
-    window.addEventListener('error', errorHandler);
-    window.addEventListener('unhandledrejection', unhandledRejectionHandler);
-
-    return () => {
-      window.removeEventListener('error', errorHandler);
-      window.removeEventListener('unhandledrejection', unhandledRejectionHandler);
-    };
-  }, [pathname]);
+  useClickOutsideMenus({
+    isUserMenuOpen,
+    isMobileMenuOpen,
+    isMobileUserMenuOpen,
+    setIsUserMenuOpen,
+    setIsMobileMenuOpen,
+    setIsMobileUserMenuOpen,
+  });
 
   // Debug: Afficher les informations de session (désactivé pour réduire les logs)
   // useEffect(() => {
@@ -134,93 +95,9 @@ const Navigation = () => {
   //   }
   // }, [session]);
 
-  useEffect(() => {
-    try {
-      setMounted(true);
-      let timeout: NodeJS.Timeout | null = null;
-      const handleScroll = () => {
-        try {
-          if (timeout) clearTimeout(timeout);
-          timeout = setTimeout(() => {
-            setIsScrolled(window.scrollY > 10);
-          }, 30);
-        } catch (error) {
-          logger.error('Error in scroll handler:', error);
-        }
-      };
-      if (typeof window !== 'undefined') {
-        window.addEventListener('scroll', handleScroll, { passive: true });
-      }
-      return () => {
-        if (timeout) clearTimeout(timeout);
-        if (typeof window !== 'undefined') {
-          window.removeEventListener('scroll', handleScroll);
-        }
-      };
-    } catch (error) {
-      logger.error('Error in Navigation mount effect:', error);
-    }
-  }, []);
-
-  // Fetch shop enabled setting
-  useEffect(() => {
-    fetch('/api/shop/settings')
-      .then((res) => res.json())
-      .then((data) => {
-        setShopEnabled(data.shopEnabled !== false);
-      })
-      .catch(() => {
-        // Keep default (enabled)
-      });
-  }, []);
-
   const isAdmin = session?.user?.role === 'ADMIN';
 
-  const links = [
-    { href: '/', label: 'Home', icon: Home },
-    { href: '/music', label: 'Music', icon: Music },
-    { href: '/events', label: 'Events', icon: Calendar },
-    { href: '/live', label: 'Live', icon: Radio },
-    { href: '/gallery', label: 'Gallery', icon: ImageIcon },
-    // Only show Shop if enabled OR user is admin
-    ...(shopEnabled || isAdmin ? [{ href: '/shop', label: 'Shop', icon: ShoppingBag }] : []),
-    { href: '/contact', label: 'Contact', icon: Mail },
-  ];
-
-  // Fermer les menus quand on clique en dehors
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      try {
-        const target = event.target as HTMLElement;
-        if (!target) return;
-
-        if (isUserMenuOpen && !target.closest('.user-menu')) {
-          setIsUserMenuOpen(false);
-        }
-        if (
-          isMobileMenuOpen &&
-          !target.closest('.mobile-menu') &&
-          !target.closest('.mobile-menu-button')
-        ) {
-          setIsMobileMenuOpen(false);
-        }
-        if (
-          isMobileUserMenuOpen &&
-          !target.closest('.mobile-user-menu') &&
-          !target.closest('.mobile-user-button')
-        ) {
-          setIsMobileUserMenuOpen(false);
-        }
-      } catch (error) {
-        logger.error('Error in click outside handler:', error);
-      }
-    };
-
-    if (typeof document !== 'undefined') {
-      document.addEventListener('click', handleClickOutside);
-      return () => document.removeEventListener('click', handleClickOutside);
-    }
-  }, [isUserMenuOpen, isMobileMenuOpen, isMobileUserMenuOpen]);
+  const links = getNavLinks(shopEnabled, isAdmin);
 
   // Safe render check with fallback UI to prevent errors
   if (!mounted || typeof window === 'undefined') {
@@ -276,81 +153,13 @@ const Navigation = () => {
 
           {/* Version desktop - visible from lg breakpoint to avoid overlaps */}
           <div className="hidden lg:flex items-center space-x-6 xl:space-x-8">
-            {links.map((link) => {
-              // Safe pathname check to avoid errors
-              const isActive = pathname
-                ? pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href))
-                : false;
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="text-white/90 hover:text-white transition-all duration-300 flex items-center gap-1.5 xl:gap-2 hover:scale-105 group relative px-2 xl:px-3 py-1.5 xl:py-2 rounded-lg focus:outline-none text-sm xl:text-base"
-                >
-                  {/* Glassmorphism overlay on focus/active - iOS style with improved texture */}
-                  <span
-                    className={`absolute inset-0 rounded-lg transition-opacity duration-200 pointer-events-none overflow-hidden ${
-                      isActive
-                        ? 'opacity-100'
-                        : 'opacity-0 group-focus-within:opacity-100 focus-within:opacity-100'
-                    }`}
-                    style={{
-                      backdropFilter: 'blur(12px) saturate(180%)',
-                      WebkitBackdropFilter: 'blur(12px) saturate(180%)',
-                      backgroundColor: isActive
-                        ? 'rgba(255, 255, 255, 0.1)'
-                        : 'rgba(255, 255, 255, 0.1)',
-                      backgroundImage: isActive
-                        ? 'linear-gradient(135deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.08) 25%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.08) 75%, rgba(255, 255, 255, 0.18) 100%)'
-                        : 'none',
-                      backgroundSize: isActive ? '300% 300%' : 'auto',
-                      backgroundRepeat: 'no-repeat',
-                      backgroundPosition: 'center',
-                      boxShadow: isActive
-                        ? 'inset 0 0 0 1px rgba(255, 255, 255, 0.2), inset 0 1px 2px rgba(255, 255, 255, 0.1)'
-                        : 'none',
-                      animation: isActive ? 'veil-shift 6s ease-in-out infinite' : 'none',
-                    }}
-                  >
-                    {/* Animated texture overlay for visible movement */}
-                    <span
-                      className={`absolute inset-0 transition-opacity duration-200 ${
-                        isActive ? 'opacity-40' : 'opacity-0'
-                      }`}
-                      style={{
-                        backgroundImage: `
-                          radial-gradient(circle at 30% 40%, rgba(255, 255, 255, 0.15) 0%, transparent 40%),
-                          radial-gradient(circle at 70% 60%, rgba(255, 255, 255, 0.12) 0%, transparent 40%),
-                          linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%)
-                        `,
-                        backgroundSize: '150% 150%, 150% 150%, 250% 250%',
-                        mixBlendMode: 'overlay',
-                        animation: isActive ? 'veil-shift 8s ease-in-out infinite reverse' : 'none',
-                      }}
-                    />
-                  </span>
-
-                  {link.icon && (
-                    <link.icon
-                      size={18}
-                      className={`relative z-10 transition-all duration-300 ${
-                        isActive
-                          ? 'text-purple-400 drop-shadow-[0_0_8px_rgba(139,92,246,0.6)]'
-                          : 'group-hover:text-purple-400 group-hover:drop-shadow-[0_0_8px_rgba(139,92,246,0.6)]'
-                      }`}
-                    />
-                  )}
-                  <span className="relative z-10">
-                    {link.label}
-                    <span
-                      className={`absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-purple-400 to-blue-400 transition-all duration-300 ${
-                        isActive ? 'w-full' : 'w-0 group-hover:w-full'
-                      }`}
-                    />
-                  </span>
-                </Link>
-              );
-            })}
+            {links.map((link) => (
+              <DesktopNavLink
+                key={link.href}
+                link={link}
+                isActive={isNavLinkActive(pathname, link.href)}
+              />
+            ))}
 
             {/* Logique d'affichage conditionnel basée sur le statut de la session */}
             <AnimatePresence mode="wait">
@@ -410,150 +219,17 @@ const Navigation = () => {
                     }}
                     className="relative user-menu"
                   >
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsUserMenuOpen(!isUserMenuOpen);
-                      }}
-                      className={`flex items-center text-white/90 hover:text-white transition-all duration-300
-                      bg-gradient-to-r from-purple-500/10 to-blue-500/10 hover:from-purple-500/20 hover:to-blue-500/20
-                      rounded-full border border-purple-500/20 hover:border-purple-500/40 hover:scale-105
-                      ${session.user?.image ? 'space-x-2 px-2 py-1' : 'space-x-3 px-4 py-2'}`}
-                    >
-                      {session.user?.image ? (
-                        <div className="relative w-11 h-11 rounded-full overflow-hidden">
-                          <Image
-                            src={
-                              session.user.image.startsWith('http://') ||
-                              session.user.image.startsWith('https://')
-                                ? session.user.image.includes('googleusercontent.com')
-                                  ? `/api/images/proxy?url=${encodeURIComponent(session.user.image)}`
-                                  : session.user.image
-                                : session.user.image
-                            }
-                            alt={session.user.name || 'Avatar'}
-                            fill
-                            className="object-cover"
-                            unoptimized
-                            key={session.user.image} // Force le re-render quand l'image change
-                          />
-                        </div>
-                      ) : (
-                        <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-purple-500/50">
-                          <User className="w-full h-full p-1.5" />
-                        </div>
-                      )}
-                      <span>{session.user?.name || 'Utilisateur'}</span>
-                    </button>
+                    <DesktopUserMenuToggle
+                      isUserMenuOpen={isUserMenuOpen}
+                      session={session}
+                      setIsUserMenuOpen={setIsUserMenuOpen}
+                    />
 
-                    <AnimatePresence>
-                      {isUserMenuOpen && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -5, scale: 0.98 }}
-                          animate={{
-                            opacity: 1,
-                            y: 0,
-                            scale: 1,
-                            transition: {
-                              type: 'spring',
-                              damping: 25,
-                              stiffness: 400,
-                              duration: 0.2,
-                            },
-                          }}
-                          exit={{
-                            opacity: 0,
-                            y: -5,
-                            scale: 0.98,
-                            transition: {
-                              duration: 0.15,
-                            },
-                          }}
-                          className="absolute right-0 mt-2 w-48 rounded-lg bg-black/95 backdrop-blur-lg border border-purple-500/20 shadow-lg shadow-purple-500/5"
-                          style={{ padding: '0.25rem' }}
-                        >
-                          <motion.div
-                            className="py-1"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ duration: 0.1 }}
-                          >
-                            {session.user?.role === 'ADMIN' && (
-                              <motion.div
-                                initial={{ x: -5, opacity: 0 }}
-                                animate={{ x: 0, opacity: 1 }}
-                                transition={{ delay: 0.05, duration: 0.1 }}
-                              >
-                                <Link href="/admin" className="navMenuItem navMenuItemDanger">
-                                  <Settings className="w-4 h-4 mr-2" />
-                                  Panel Admin
-                                </Link>
-                              </motion.div>
-                            )}
-                            <motion.div
-                              initial={{ x: -5, opacity: 0 }}
-                              animate={{ x: 0, opacity: 1 }}
-                              transition={{ delay: 0.1, duration: 0.1 }}
-                            >
-                              <Link href="/profile" className="navMenuItem">
-                                <User className="w-4 h-4 mr-2" />
-                                Profil
-                              </Link>
-                            </motion.div>
-                            <motion.div
-                              initial={{ x: -5, opacity: 0 }}
-                              animate={{ x: 0, opacity: 1 }}
-                              transition={{ delay: 0.12, duration: 0.1 }}
-                            >
-                              <Link href="/projects" className="navMenuItem navMenuItemAccent">
-                                <FolderKanban className="w-4 h-4 mr-2" />
-                                Mes Projets
-                              </Link>
-                            </motion.div>
-
-                            <motion.div
-                              initial={{ x: -5, opacity: 0 }}
-                              animate={{ x: 0, opacity: 1 }}
-                              transition={{ delay: 0.14, duration: 0.1 }}
-                            >
-                              <Link href="/licenses" className="navMenuItem navMenuItemSuccess">
-                                <KeyRound className="w-4 h-4 mr-2" />
-                                Mes Licences
-                              </Link>
-                            </motion.div>
-
-                            {/* Jeu / Arcade Link - Conditional */}
-                            {(session.user?.gameHighScore || 0) > 0 ||
-                            session.user?.hasDiscoveredCasino ? (
-                              <motion.div
-                                initial={{ x: -5, opacity: 0 }}
-                                animate={{ x: 0, opacity: 1 }}
-                                transition={{ delay: 0.15, duration: 0.1 }}
-                              >
-                                <Link href="/games" className="navMenuItem navMenuItemWarning">
-                                  <Gamepad2 className="w-4 h-4 mr-2" />
-                                  Arcade
-                                </Link>
-                              </motion.div>
-                            ) : null}
-
-                            <motion.div
-                              initial={{ x: -5, opacity: 0 }}
-                              animate={{ x: 0, opacity: 1 }}
-                              transition={{ delay: 0.17, duration: 0.1 }}
-                            >
-                              <button
-                                onClick={handleSignOut}
-                                className="navMenuItem navMenuItemDanger w-full"
-                              >
-                                <LogOut className="w-4 h-4 mr-2" />
-                                Déconnexion
-                              </button>
-                            </motion.div>
-                          </motion.div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                    <DesktopUserDropdown
+                      handleSignOut={handleSignOut}
+                      isUserMenuOpen={isUserMenuOpen}
+                      session={session}
+                    />
                   </motion.div>
                 </>
               ) : (
@@ -634,140 +310,19 @@ const Navigation = () => {
                   transition={{ duration: 0.3, ease: 'easeOut' }}
                   className="relative mobile-user-menu"
                 >
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsMobileUserMenuOpen(!isMobileUserMenuOpen);
-                    }}
-                    className="mobile-user-button flex items-center justify-center text-white/90 hover:text-white 
-                      bg-gradient-to-r from-purple-500/10 to-blue-500/10 hover:from-purple-500/20 hover:to-blue-500/20
-                      w-10 h-10 rounded-full border border-purple-500/20 hover:border-purple-500/40"
-                    aria-label="Menu utilisateur"
-                  >
-                    {session.user?.image ? (
-                      <div className="relative w-10 h-10 rounded-full overflow-hidden">
-                        <Image
-                          src={session.user.image}
-                          alt={session.user.name || 'Avatar'}
-                          fill
-                          className="object-cover"
-                          unoptimized
-                          key={session.user.image} // Force le re-render quand l'image change
-                        />
-                      </div>
-                    ) : (
-                      <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-purple-500/50">
-                        <User className="w-full h-full p-1.5" />
-                      </div>
-                    )}
-                  </button>
+                  <MobileUserMenuToggle
+                    isMobileUserMenuOpen={isMobileUserMenuOpen}
+                    session={session}
+                    setIsMobileUserMenuOpen={setIsMobileUserMenuOpen}
+                  />
 
-                  <AnimatePresence>
-                    {isMobileUserMenuOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -5, scale: 0.98 }}
-                        animate={{
-                          opacity: 1,
-                          y: 0,
-                          scale: 1,
-                          transition: {
-                            type: 'spring',
-                            damping: 25,
-                            stiffness: 400,
-                            duration: 0.2,
-                          },
-                        }}
-                        exit={{
-                          opacity: 0,
-                          y: -5,
-                          scale: 0.98,
-                          transition: {
-                            duration: 0.15,
-                          },
-                        }}
-                        className="absolute right-0 mt-2 w-48 rounded-lg bg-black/95 backdrop-blur-lg border border-purple-500/20 shadow-lg shadow-purple-500/5"
-                        style={{ padding: '0.25rem' }}
-                      >
-                        <div className="py-1">
-                          <div className="px-4 py-2 text-sm text-white border-b border-purple-500/20 mb-1">
-                            {session.user?.name || 'Utilisateur'}
-                          </div>
-                          {session.user?.role === 'ADMIN' && (
-                            <Link
-                              href="/admin"
-                              className="navMenuItem navMenuItemDanger"
-                              onClick={() => {
-                                setIsMobileUserMenuOpen(false);
-                                // Fermer aussi le menu burger si ouvert
-                                setIsMobileMenuOpen(false);
-                              }}
-                            >
-                              <Settings className="w-4 h-4 mr-2" />
-                              Panel Admin
-                            </Link>
-                          )}
-                          <Link
-                            href="/profile"
-                            className="navMenuItem"
-                            onClick={() => setIsMobileUserMenuOpen(false)}
-                          >
-                            <User className="w-4 h-4 mr-2" />
-                            Profil
-                          </Link>
-                          <Link
-                            href="/projects"
-                            className="navMenuItem navMenuItemAccent"
-                            onClick={() => {
-                              setIsMobileUserMenuOpen(false);
-                              setIsMobileMenuOpen(false);
-                            }}
-                          >
-                            <FolderKanban className="w-4 h-4 mr-2" />
-                            Mes Projets
-                          </Link>
-
-                          <Link
-                            href="/licenses"
-                            className="navMenuItem navMenuItemSuccess"
-                            onClick={() => {
-                              setIsMobileUserMenuOpen(false);
-                              setIsMobileMenuOpen(false);
-                            }}
-                          >
-                            <KeyRound className="w-4 h-4 mr-2" />
-                            Mes Licences
-                          </Link>
-
-                          {/* Jeu / Arcade Link - Conditional Mobile */}
-                          {(session.user?.gameHighScore || 0) > 0 ||
-                          session.user?.hasDiscoveredCasino ? (
-                            <Link
-                              href="/games"
-                              className="navMenuItem navMenuItemWarning"
-                              onClick={() => {
-                                setIsMobileUserMenuOpen(false);
-                                setIsMobileMenuOpen(false);
-                              }}
-                            >
-                              <Gamepad2 className="w-4 h-4 mr-2" />
-                              Arcade
-                            </Link>
-                          ) : null}
-
-                          <button
-                            onClick={async () => {
-                              await handleSignOut();
-                              setIsMobileUserMenuOpen(false);
-                            }}
-                            className="navMenuItem navMenuItemDanger w-full"
-                          >
-                            <LogOut className="w-4 h-4 mr-2" />
-                            Déconnexion
-                          </button>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                  <MobileUserDropdown
+                    handleSignOut={handleSignOut}
+                    isMobileUserMenuOpen={isMobileUserMenuOpen}
+                    session={session}
+                    setIsMobileMenuOpen={setIsMobileMenuOpen}
+                    setIsMobileUserMenuOpen={setIsMobileUserMenuOpen}
+                  />
                 </motion.div>
               ) : (
                 <motion.div
@@ -807,54 +362,11 @@ const Navigation = () => {
         </nav>
 
         {/* Menu mobile dropdown - contient uniquement la navigation */}
-        <AnimatePresence>
-          {isMobileMenuOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{
-                opacity: 1,
-                height: 'auto',
-                transition: {
-                  height: { duration: 0.3 },
-                  opacity: { duration: 0.2 },
-                },
-              }}
-              exit={{
-                opacity: 0,
-                height: 0,
-                transition: {
-                  height: { duration: 0.3 },
-                  opacity: { duration: 0.1 },
-                },
-              }}
-              className="lg:hidden mobile-menu bg-black/95 backdrop-blur-md border-b border-purple-500/20 overflow-hidden rounded-b-2xl"
-              style={{ borderTopLeftRadius: 0, borderTopRightRadius: 0 }}
-            >
-              <div
-                className="container mx-auto px-4 py-4 flex flex-col space-y-3"
-                style={{ paddingLeft: '1.5rem', paddingRight: '1.5rem' }}
-              >
-                {links.map((link, index) => (
-                  <motion.div
-                    key={link.href}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.05, duration: 0.15 }}
-                  >
-                    <Link
-                      href={link.href}
-                      className="text-white/90 hover:text-white py-2 transition-colors flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-inset rounded"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      {link.icon && <link.icon size={18} className="text-purple-400" />}
-                      {link.label}
-                    </Link>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <MobileNavDropdown
+          isMobileMenuOpen={isMobileMenuOpen}
+          links={links}
+          setIsMobileMenuOpen={setIsMobileMenuOpen}
+        />
       </header>
 
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />

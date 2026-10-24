@@ -6,6 +6,7 @@ import {
   hasMergeToken,
   peekAnyMergeToken,
 } from '@/lib/merge-token-cache';
+import { logger } from '@/lib/logger';
 
 /**
  * Route pour vérifier s'il y a un token de fusion en attente
@@ -68,7 +69,7 @@ export async function GET(request: NextRequest) {
       hasToken: false,
     });
   } catch (error) {
-    console.error('[API] Erreur check merge token:', error);
+    logger.error('[API] Erreur check merge token:', error);
     return NextResponse.json({ hasToken: false }, { status: 500 });
   }
 }

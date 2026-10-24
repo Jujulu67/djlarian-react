@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
@@ -52,7 +53,7 @@ export async function GET(): Promise<NextResponse> {
     });
 
     if (!tokenResponse.ok) {
-      console.error('Failed to get Twitch token:', tokenResponse.statusText);
+      logger.error('Failed to get Twitch token:', tokenResponse.statusText);
       return NextResponse.json({
         isLive: false,
         error: 'Failed to authenticate with Twitch',
@@ -75,7 +76,7 @@ export async function GET(): Promise<NextResponse> {
     );
 
     if (!streamResponse.ok) {
-      console.error('Failed to get stream status:', streamResponse.statusText);
+      logger.error('Failed to get stream status:', streamResponse.statusText);
       return NextResponse.json({
         isLive: false,
         error: 'Failed to fetch stream status',
@@ -90,7 +91,7 @@ export async function GET(): Promise<NextResponse> {
       stream: isLive ? streamData.data[0] : null,
     });
   } catch (error) {
-    console.error('Error checking Twitch status:', error);
+    logger.error('Error checking Twitch status:', error);
     return NextResponse.json({
       isLive: false,
       error: 'Internal server error',
