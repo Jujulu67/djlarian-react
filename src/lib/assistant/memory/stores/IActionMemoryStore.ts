@@ -94,15 +94,3 @@ export interface IActionMemoryStore {
    */
   validateInvariants(): { valid: boolean; violations: string[] };
 }
-
-/**
- * Configuration pour les stores Redis d'actions.
- */
-export interface RedisActionStoreConfig {
-  /** URL de connexion Redis */
-  redisUrl: string;
-  /** Préfixe des clés (ex: 'larian:action:') */
-  keyPrefix?: string;
-  /** TTL en millisecondes (défaut: 5 min pour actions) */
-  ttlMs?: number;
-}

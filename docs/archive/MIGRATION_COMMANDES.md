@@ -53,19 +53,19 @@ docker compose logs postgres
 
 # 4. Ajouter DATABASE_URL_LOCAL dans .env.local
 if ! grep -q "^DATABASE_URL_LOCAL" .env.local 2>/dev/null; then
-  echo 'DATABASE_URL_LOCAL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable"' >> .env.local
+  echo 'DATABASE_URL_LOCAL="postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable"' >> .env.local
   echo "✅ DATABASE_URL_LOCAL ajouté"
 fi
 
 # 5. Tester la connexion
-psql "postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable" -c "\dt"
+psql "postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable" -c "\dt"
 ```
 
 **Si psql n'est pas installé:**
 
 ```bash
 # Tester avec Node.js
-node -e "const {Pool}=require('pg');const p=new Pool({connectionString:'postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable'});p.query('SELECT 1').then(()=>{console.log('✅ Connexion OK');p.end()}).catch(e=>{console.error('❌',e.message);p.end()})"
+node -e "const {Pool}=require('pg');const p=new Pool({connectionString:'postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable'});p.query('SELECT 1').then(()=>{console.log('✅ Connexion OK');p.end()}).catch(e=>{console.error('❌',e.message);p.end()})"
 ```
 
 ---
@@ -109,7 +109,7 @@ The schema at prisma/schema.prisma is valid ✅
 
 ```bash
 # 1. Utiliser DATABASE_URL_LOCAL temporairement
-export DATABASE_URL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable"
+export DATABASE_URL="postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable"
 
 # 2. Appliquer les migrations
 pnpm prisma migrate deploy
@@ -177,16 +177,16 @@ sqlite3 prisma/dev.db "SELECT COUNT(*) FROM User;"
 ```bash
 # Changer DATABASE_URL pour pointer vers PostgreSQL local
 # Option 1: Utiliser sed (macOS)
-sed -i '' 's|^DATABASE_URL=file:.*|DATABASE_URL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable"|' .env.local
+sed -i '' 's|^DATABASE_URL=file:.*|DATABASE_URL="postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable"|' .env.local
 
 # Option 2: Utiliser sed (Linux)
-sed -i 's|^DATABASE_URL=file:.*|DATABASE_URL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable"|' .env.local
+sed -i 's|^DATABASE_URL=file:.*|DATABASE_URL="postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable"|' .env.local
 
 # Option 3: Éditer manuellement .env.local
 # Remplacer:
 # DATABASE_URL=file:./prisma/dev.db
 # Par:
-# DATABASE_URL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable"
+# DATABASE_URL="postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable"
 
 # Vérifier
 grep "^DATABASE_URL" .env.local
@@ -243,7 +243,7 @@ docker compose up -d
 sleep 5
 
 # 4. Réappliquer les migrations
-export DATABASE_URL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable"
+export DATABASE_URL="postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable"
 pnpm prisma migrate deploy
 
 # 5. Re-migrer les données depuis SQLite
@@ -280,7 +280,7 @@ docker compose up -d
 
 ```bash
 # Les migrations ne sont pas appliquées
-export DATABASE_URL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable"
+export DATABASE_URL="postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable"
 pnpm prisma migrate deploy
 ```
 

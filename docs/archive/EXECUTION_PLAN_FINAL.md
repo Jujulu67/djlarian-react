@@ -38,7 +38,7 @@ docker compose ps  # Vérifier: Up (healthy)
 
 ```bash
 # Créer .env.local avec:
-DATABASE_URL="postgresql://djlarian:djlarian_dev_password@localhost:5432/djlarian_dev?sslmode=disable"
+DATABASE_URL="postgresql://djlarian:<DEV_DB_PASSWORD>@localhost:5432/djlarian_dev?sslmode=disable"
 ```
 
 Voir `docs/ENV_LOCAL_SETUP.md` pour la configuration complète.

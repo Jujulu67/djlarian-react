@@ -24,7 +24,7 @@ services:
     container_name: djlarian-postgres-local
     environment:
       POSTGRES_USER: djlarian
-      POSTGRES_PASSWORD: djlarian_dev_password
+      POSTGRES_PASSWORD: <DEV_DB_PASSWORD>
       POSTGRES_DB: djlarian_dev
     ports:
       - '5432:5432'
@@ -56,7 +56,7 @@ docker-compose ps
 4. **Configurer `.env.local`**:
 
 ```bash
-DATABASE_URL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable"
+DATABASE_URL="postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable"
 ```
 
 5. **Bootstrap la base de données**:
@@ -115,7 +115,7 @@ brew services start postgresql@16
 psql postgres
 
 # Dans psql, exécuter:
-CREATE USER djlarian WITH PASSWORD 'djlarian_dev_password';
+CREATE USER djlarian WITH PASSWORD '<DEV_DB_PASSWORD>';
 CREATE DATABASE djlarian_dev OWNER djlarian;
 GRANT ALL PRIVILEGES ON DATABASE djlarian_dev TO djlarian;
 \q
@@ -124,7 +124,7 @@ GRANT ALL PRIVILEGES ON DATABASE djlarian_dev TO djlarian;
 3. **Configurer `.env.local`**:
 
 ```bash
-DATABASE_URL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable"
+DATABASE_URL="postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable"
 ```
 
 4. **Bootstrap la base de données**:
@@ -309,7 +309,7 @@ pnpm run dev
 
 ```bash
 # PostgreSQL Local
-DATABASE_URL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable"
+DATABASE_URL="postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable"
 
 # Production (pour switch DB, optionnel)
 DATABASE_URL_PRODUCTION="postgresql://user:pass@prod-host/db?sslmode=require"

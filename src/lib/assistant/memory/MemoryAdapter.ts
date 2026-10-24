@@ -15,7 +15,6 @@ import {
   ConversationMemoryStore,
   ActionMemoryStore,
   Router as MessageClassifier, // Renommé pour clarifier (I2)
-  RouterResult,
   ChatMessage,
   isChatMessage,
   ActionType,
@@ -36,7 +35,7 @@ const sessionStores = new Map<string, SessionStores>();
 /**
  * Récupère ou crée les stores pour une session
  */
-export function getSessionStores(sessionId: string): SessionStores {
+function getSessionStores(sessionId: string): SessionStores {
   if (!sessionStores.has(sessionId)) {
     sessionStores.set(sessionId, {
       conversation: new ConversationMemoryStore({
@@ -52,58 +51,6 @@ export function getSessionStores(sessionId: string): SessionStores {
     });
   }
   return sessionStores.get(sessionId)!;
-}
-
-/**
- * Nettoie les stores d'une session
- */
-export function clearSessionStores(sessionId: string): void {
-  sessionStores.delete(sessionId);
-}
-
-// =============================================================================
-// Message Classification - Pour la décision mémoire (PAS pour le routing - I2)
-// =============================================================================
-
-export type MessageClassification = 'chat' | 'action' | 'ambiguous';
-
-/**
- * Classifie un message utilisateur pour décider dans quelle mémoire il va.
- *
- * ⚠️ DÉPRÉCIÉ pour le routing - utiliser router/router.ts à la place.
- *
- * Cette fonction ne doit être utilisée QUE pour:
- * - Décider si un message va dans ConversationMemory
- * - Debug/logs
- *
- * Le vrai routing (LIST, UPDATE, CREATE, GENERAL) est fait par router/router.ts.
- *
- * @deprecated Pour le routing, utiliser routeProjectCommand de router/router.ts
- */
-export function classifyUserMessage(
-  sessionId: string,
-  input: string
-): RouterResult & { classification: MessageClassification } {
-  // 🔒 Assertion anti-double-routing
-  if (process.env.ASSISTANT_DEBUG === 'true') {
-    console.warn(
-      '[MemoryAdapter] ⚠️ classifyUserMessage appelé - ceci est pour classification mémoire UNIQUEMENT, pas pour routing.'
-    );
-  }
-
-  const { classifier, action } = getSessionStores(sessionId);
-  const pendingConfirmation = action.getPendingConfirmation();
-
-  const result = classifier.route(input, !!pendingConfirmation);
-
-  const classification: MessageClassification =
-    result.decision === 'GENERAL_CHAT'
-      ? 'chat'
-      : result.decision === 'ACTION_COMMAND'
-        ? 'action'
-        : 'ambiguous';
-
-  return { ...result, classification };
 }
 
 // =============================================================================
@@ -138,25 +85,6 @@ export function trackActionContext(
   }
 }
 
-/**
- * Met à jour la confirmation en attente
- */
-export function setPendingConfirmation(
-  sessionId: string,
-  confirmation: { actionType: string; targetIds: string[]; description: string } | null
-): void {
-  const { action } = getSessionStores(sessionId);
-  if (confirmation) {
-    action.setPendingConfirmation({
-      actionType: confirmation.actionType as ActionType,
-      targetIds: confirmation.targetIds,
-      description: confirmation.description,
-    });
-  } else {
-    action.setPendingConfirmation(null);
-  }
-}
-
 // =============================================================================
 // Groq Integration - Historique filtré
 // =============================================================================
@@ -182,39 +110,6 @@ export function getFilteredConversationHistory(
 export function getConversationMemorySize(sessionId: string): number {
   const { conversation } = getSessionStores(sessionId);
   return conversation.size;
-}
-
-/**
- * Retourne le contexte action actuel
- */
-export function getActionContext(sessionId: string) {
-  const { action } = getSessionStores(sessionId);
-  return action.getContext();
-}
-
-// =============================================================================
-// Validation - Pour debug
-// =============================================================================
-
-/**
- * Valide les invariants des deux mémoires
- * Throw en mode debug si violation
- */
-export function validateMemoryInvariants(sessionId: string): {
-  conversationValid: boolean;
-  actionValid: boolean;
-  violations: string[];
-} {
-  const { conversation, action } = getSessionStores(sessionId);
-
-  const convResult = conversation.validateInvariants();
-  const actionResult = action.validateInvariants();
-
-  return {
-    conversationValid: convResult.valid,
-    actionValid: actionResult.valid,
-    violations: [...convResult.violations, ...actionResult.violations],
-  };
 }
 
 /**

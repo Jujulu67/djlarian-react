@@ -4,7 +4,7 @@
 
 ```bash
 # 1. Vérifier que la base est vide
-psql "postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable" \
+psql "postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable" \
   -c "SELECT 'User' as table_name, COUNT(*) as count FROM \"User\" \
       UNION ALL SELECT 'Project', COUNT(*) FROM \"Project\" \
       UNION ALL SELECT 'Track', COUNT(*) FROM \"Track\" \
@@ -47,7 +47,7 @@ node scripts/restore-sqlite-backup-to-postgres.mjs prisma/dev.db.backup.2025-12-
 
 ```bash
 # Vérifier les compteurs après restauration
-psql "postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable" \
+psql "postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable" \
   -c "SELECT 'User' as table_name, COUNT(*) as count FROM \"User\" \
       UNION ALL SELECT 'Project', COUNT(*) FROM \"Project\" \
       UNION ALL SELECT 'Track', COUNT(*) FROM \"Track\" \
@@ -55,11 +55,11 @@ psql "postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?ss
       UNION ALL SELECT 'Notification', COUNT(*) FROM \"Notification\";"
 
 # Vérifier quelques projets
-psql "postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable" \
+psql "postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable" \
   -c "SELECT id, name, status FROM \"Project\" LIMIT 5;"
 
 # Vérifier quelques utilisateurs
-psql "postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable" \
+psql "postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable" \
   -c "SELECT id, email, name FROM \"User\" LIMIT 5;"
 ```
 
@@ -98,7 +98,7 @@ docker compose logs postgres | tail -20
 pnpm prisma migrate status
 
 # Tester la connexion
-psql "postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable" -c "SELECT 1;"
+psql "postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable" -c "SELECT 1;"
 ```
 
 ## 🚨 En Cas d'Erreur

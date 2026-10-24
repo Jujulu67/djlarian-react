@@ -42,13 +42,13 @@ docker compose ps  # Vérifier: Up (healthy)
 ### 3. Configurer .env.local
 
 ```bash
-echo 'DATABASE_URL_LOCAL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable"' >> .env.local
+echo 'DATABASE_URL_LOCAL="postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable"' >> .env.local
 ```
 
 ### 4. Appliquer Migrations
 
 ```bash
-export DATABASE_URL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable"
+export DATABASE_URL="postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable"
 pnpm prisma migrate deploy
 ```
 
@@ -65,7 +65,7 @@ node scripts/migrate-sqlite-to-postgres.mjs
 ### 6. Mettre à jour DATABASE_URL
 
 ```bash
-sed -i '' 's|^DATABASE_URL=file:.*|DATABASE_URL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable"|' .env.local
+sed -i '' 's|^DATABASE_URL=file:.*|DATABASE_URL="postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable"|' .env.local
 ```
 
 ### 7. Valider

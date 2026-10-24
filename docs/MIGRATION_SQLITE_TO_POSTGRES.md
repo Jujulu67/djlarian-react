@@ -46,7 +46,7 @@ pnpm prisma migrate status
 Le fichier `docker-compose.yml` est déjà configuré avec:
 
 - User: `djlarian`
-- Password: `djlarian_dev_password`
+- Password: `<DEV_DB_PASSWORD>`
 - Database: `djlarian_dev`
 - Port: `5432`
 - Volume persistant: `postgres_data`
@@ -77,7 +77,7 @@ djlarian-postgres-local postgres:16-alpine  Up (healthy)
 
 ```bash
 # Ajouter dans .env.local (ou remplacer si existe déjà)
-DATABASE_URL_LOCAL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable"
+DATABASE_URL_LOCAL="postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable"
 
 # Si DATABASE_URL pointe encore vers SQLite, la garder pour l'instant
 # On la changera après la migration
@@ -88,7 +88,7 @@ DATABASE_URL_LOCAL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/d
 ```bash
 # Si DATABASE_URL_LOCAL n'existe pas, l'ajouter
 if ! grep -q "^DATABASE_URL_LOCAL" .env.local 2>/dev/null; then
-  echo 'DATABASE_URL_LOCAL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable"' >> .env.local
+  echo 'DATABASE_URL_LOCAL="postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable"' >> .env.local
   echo "✅ DATABASE_URL_LOCAL ajouté dans .env.local"
 else
   echo "ℹ️  DATABASE_URL_LOCAL existe déjà"
@@ -99,10 +99,10 @@ fi
 
 ```bash
 # Tester avec psql (si installé)
-psql "postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable" -c "\dt"
+psql "postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable" -c "\dt"
 
 # Ou avec Node.js
-node -e "const {Pool}=require('pg');const p=new Pool({connectionString:'postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable'});p.query('SELECT 1').then(()=>{console.log('✅ Connexion OK');p.end()}).catch(e=>{console.error('❌',e.message);p.end()})"
+node -e "const {Pool}=require('pg');const p=new Pool({connectionString:'postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable'});p.query('SELECT 1').then(()=>{console.log('✅ Connexion OK');p.end()}).catch(e=>{console.error('❌',e.message);p.end()})"
 ```
 
 ---
@@ -145,7 +145,7 @@ pnpm prisma validate
 
 ```bash
 # Temporairement, utiliser DATABASE_URL_LOCAL
-export DATABASE_URL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable"
+export DATABASE_URL="postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable"
 
 # Ou modifier .env.local temporairement (on la remettra après)
 ```
@@ -282,7 +282,7 @@ pnpm prisma validate
 # Remplacer dans .env.local:
 # DATABASE_URL=file:./prisma/dev.db
 # Par:
-DATABASE_URL="postgresql://djlarian:djlarian_dev_password@127.0.0.1:5433/djlarian_dev?sslmode=disable"
+DATABASE_URL="postgresql://djlarian:<DEV_DB_PASSWORD>@127.0.0.1:5433/djlarian_dev?sslmode=disable"
 
 # Ou utiliser DATABASE_URL_LOCAL et laisser le switch DB gérer
 ```

@@ -66,7 +66,7 @@ Dans `.env.local` (ou variables d'environnement):
 
 ```bash
 # URLs de base de données
-DATABASE_URL_LOCAL=postgresql://djlarian:djlarian_dev_password@localhost:5433/djlarian_dev?sslmode=disable
+DATABASE_URL_LOCAL=postgresql://djlarian:<DEV_DB_PASSWORD>@localhost:5433/djlarian_dev?sslmode=disable
 DATABASE_URL_PRODUCTION=postgresql://neondb_owner:****@ep-xxx.neon.tech/neondb
 
 # Tokens Blob (optionnel)
