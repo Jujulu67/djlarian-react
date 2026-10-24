@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
-import { auth } from '@/auth';
+import { requireAdmin } from '@/lib/api/requireAuth';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import {
@@ -33,11 +33,11 @@ const updateSubmissionSchema = z
  */
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const session = await auth();
-
-    if (!session?.user || session.user.role !== 'ADMIN') {
-      return createUnauthorizedResponse('Non autorisé');
-    }
+    const { error: authError } = await requireAdmin({
+      onAnonymous: () => createUnauthorizedResponse('Non autorisé'),
+      onNonAdmin: () => createUnauthorizedResponse('Non autorisé'),
+    });
+    if (authError) return authError;
 
     const { id } = await params;
 

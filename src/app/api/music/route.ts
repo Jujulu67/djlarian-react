@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 
-import { auth } from '@/auth';
+import { requireAuth } from '@/lib/api/requireAuth';
 import { handleApiError } from '@/lib/api/errorHandler';
 import { formatTrackData } from '@/lib/api/musicService';
 import {
@@ -157,12 +157,11 @@ export async function POST(request: Request): Promise<Response> {
     return rateLimitResponse;
   }
 
-  const session = await auth();
-
   // Vérifier l'authentification
-  if (!session?.user) {
-    return createForbiddenResponse('Unauthorized');
-  }
+  const { session, error: authError } = await requireAuth({
+    onAnonymous: () => createForbiddenResponse('Unauthorized'),
+  });
+  if (authError) return authError;
 
   // Vérifier le rôle d'admin
   if (session.user.role !== 'ADMIN') {

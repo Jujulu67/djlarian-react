@@ -60,6 +60,25 @@ describe('requireAuth / requireAdmin', () => {
     await expect(error?.json()).resolves.toEqual({ error: 'Accès refusé' });
   });
 
+  it('returns custom responses for anonymous and non-admin users', async () => {
+    const { NextResponse } = await import('next/server');
+    const onAnonymous = () => new NextResponse('Unauthorized', { status: 401 });
+    const onNonAdmin = () =>
+      NextResponse.json({ error: 'Admin only', code: 'FORBIDDEN' }, { status: 403 });
+
+    mockAuth.mockResolvedValue(null);
+    const anonymous = await requireAdmin({ onAnonymous, onNonAdmin });
+    await expect(anonymous.error?.text()).resolves.toBe('Unauthorized');
+
+    mockAuth.mockResolvedValue({ user: { id: 'u1', role: 'USER' } });
+    const nonAdmin = await requireAdmin({ onAnonymous, onNonAdmin });
+    expect(nonAdmin.error?.status).toBe(403);
+    await expect(nonAdmin.error?.json()).resolves.toEqual({
+      error: 'Admin only',
+      code: 'FORBIDDEN',
+    });
+  });
+
   it('rejects anonymous users with 401 for requireAdmin', async () => {
     mockAuth.mockResolvedValue(null);
 

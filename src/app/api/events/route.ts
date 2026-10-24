@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { RecurrenceConfig } from '@/app/components/EventForm';
 import { auth } from '@/auth';
+import { requireAdmin } from '@/lib/api/requireAuth';
 import { handleApiError } from '@/lib/api/errorHandler';
 import { createSuccessResponse, createForbiddenResponse } from '@/lib/api/responseHelpers';
 import { logger } from '@/lib/logger';
@@ -209,12 +210,12 @@ export async function POST(request: Request): Promise<Response> {
     return rateLimitResponse;
   }
 
-  const session = await auth();
-
   // Vérifier l'authentification et les autorisations
-  if (!session?.user || session.user.role !== 'ADMIN') {
-    return createForbiddenResponse('Non autorisé');
-  }
+  const { session, error: authError } = await requireAdmin({
+    onAnonymous: () => createForbiddenResponse('Non autorisé'),
+    onNonAdmin: () => createForbiddenResponse('Non autorisé'),
+  });
+  if (authError) return authError;
 
   try {
     const body = await request.json();

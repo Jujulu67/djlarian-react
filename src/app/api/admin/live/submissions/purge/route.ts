@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { requireAuth } from '@/lib/api/requireAuth';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import {
@@ -17,11 +17,10 @@ export const maxDuration = 300; // 5 minutes max pour le nettoyage
  */
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session?.user) {
-      return createUnauthorizedResponse('Non authentifié');
-    }
+    const { session, error: authError } = await requireAuth({
+      onAnonymous: () => createUnauthorizedResponse('Non authentifié'),
+    });
+    if (authError) return authError;
 
     if (session.user.role !== 'ADMIN') {
       return createForbiddenResponse('Non autorisé');

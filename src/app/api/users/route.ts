@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { z } from 'zod';
 
 import { auth } from '@/auth';
+import { requireAdmin } from '@/lib/api/requireAuth';
 import { handleApiError } from '@/lib/api/errorHandler';
 import {
   createCreatedResponse,
@@ -72,12 +73,12 @@ export async function POST(request: Request) {
     return rateLimitResponse;
   }
 
-  const session = await auth();
-
   // 1. Verify user is admin
-  if (!session?.user?.role || session.user.role !== 'ADMIN') {
-    return createForbiddenResponse('Non autorisé');
-  }
+  const { session, error: authError } = await requireAdmin({
+    onAnonymous: () => createForbiddenResponse('Non autorisé'),
+    onNonAdmin: () => createForbiddenResponse('Non autorisé'),
+  });
+  if (authError) return authError;
 
   try {
     // 2. Parse and validate request body

@@ -14,6 +14,8 @@ type AuthErrorOptions = {
   anonymousStatus?: 401 | 403;
   /** Message d'erreur renvoyé au client ('Non autorisé' par défaut). */
   message?: string;
+  /** Réponse complète à renvoyer à un visiteur non connecté (remplace anonymousStatus/message). */
+  onAnonymous?: () => NextResponse;
 };
 
 function authError(message: string, status: number): AuthResult {
@@ -27,9 +29,14 @@ function authError(message: string, status: number): AuthResult {
 export async function requireAuth({
   anonymousStatus = 401,
   message = 'Non autorisé',
+  onAnonymous,
 }: AuthErrorOptions = {}): Promise<AuthResult> {
   const session = await auth();
-  if (!session?.user) return authError(message, anonymousStatus);
+  if (!session?.user) {
+    return onAnonymous
+      ? { session: null, error: onAnonymous() }
+      : authError(message, anonymousStatus);
+  }
   return { session, error: null };
 }
 
@@ -40,14 +47,18 @@ export async function requireAuth({
  */
 export async function requireAdmin({
   nonAdminStatus = 403,
+  onNonAdmin,
   ...options
 }: AuthErrorOptions & {
   /** Code renvoyé à un utilisateur connecté non admin (403 par défaut). */
   nonAdminStatus?: 401 | 403;
+  /** Réponse complète à renvoyer à un utilisateur non admin (remplace nonAdminStatus/message). */
+  onNonAdmin?: () => NextResponse;
 } = {}): Promise<AuthResult> {
   const result = await requireAuth(options);
   if (result.error) return result;
   if (result.session.user.role !== 'ADMIN') {
+    if (onNonAdmin) return { session: null, error: onNonAdmin() };
     return authError(options.message ?? 'Non autorisé', nonAdminStatus);
   }
   return result;

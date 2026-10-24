@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 
-import { auth } from '@/auth';
+import { requireAdmin } from '@/lib/api/requireAuth';
 import { handleApiError } from '@/lib/api/errorHandler';
 import { UpdateTrackInput, formatTrackData } from '@/lib/api/musicService';
 import {
@@ -68,10 +68,11 @@ export async function PUT(
     if (!id) {
       return handleApiError(new Error('Track ID is required'), 'PUT /api/music/[id]');
     }
-    const session = await auth();
-    if (!session?.user || session.user.role !== 'ADMIN') {
-      return createUnauthorizedResponse('Unauthorized');
-    }
+    const { error: authError } = await requireAdmin({
+      onAnonymous: () => createUnauthorizedResponse('Unauthorized'),
+      onNonAdmin: () => createUnauthorizedResponse('Unauthorized'),
+    });
+    if (authError) return authError;
 
     const data: Omit<UpdateTrackInput, 'id'> = await request.json();
     // Séparer genreNames et platforms du reste des données du formulaire (trackData)
@@ -234,10 +235,11 @@ export async function DELETE(
     if (!id) {
       return handleApiError(new Error('Track ID is required'), 'DELETE /api/music/[id]');
     }
-    const session = await auth();
-    if (!session?.user || session.user.role !== 'ADMIN') {
-      return createUnauthorizedResponse('Unauthorized');
-    }
+    const { error: authError } = await requireAdmin({
+      onAnonymous: () => createUnauthorizedResponse('Unauthorized'),
+      onNonAdmin: () => createUnauthorizedResponse('Unauthorized'),
+    });
+    if (authError) return authError;
 
     // Vérifier que la piste existe avant de tenter de supprimer
     const existingTrack = await prisma.track.findUnique({
@@ -287,10 +289,11 @@ export async function PATCH(
     if (!id) {
       return handleApiError(new Error('Track ID is required'), 'PATCH /api/music/[id]');
     }
-    const session = await auth();
-    if (!session?.user || session.user.role !== 'ADMIN') {
-      return createUnauthorizedResponse('Unauthorized');
-    }
+    const { error: authError } = await requireAdmin({
+      onAnonymous: () => createUnauthorizedResponse('Unauthorized'),
+      onNonAdmin: () => createUnauthorizedResponse('Unauthorized'),
+    });
+    if (authError) return authError;
 
     const data = await request.json();
     const { imageId } = data;

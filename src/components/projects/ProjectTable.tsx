@@ -1,35 +1,26 @@
 'use client';
 
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import {
-  Trash2,
-  GripVertical,
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
-  RefreshCw,
-  Upload,
-  Download,
-  ExternalLink,
-  Pencil,
-  ChevronDown,
-  Calendar,
-  Music2,
-  BarChart3,
-  FileText,
-} from 'lucide-react';
+import { GripVertical, Music2 } from 'lucide-react';
 import { useState, useCallback, useEffect, useRef } from 'react';
 
 import { useIsMobile } from '@/hooks/useIsMobile';
 
-import { AddProjectRow } from './AddProjectRow';
-import { EditableCell } from './EditableCell';
-import { ProjectStatusBadge } from './ProjectStatusBadge';
-import { ProjectNoteEditor } from './ProjectNoteEditor';
-import { Project, ProjectStatus, CellType, PROJECT_STATUSES } from './types';
-
-type SortField = keyof Project | null;
-type SortDirection = 'asc' | 'desc';
+import { LinkEditModal } from './project-table/LinkEditModal';
+import { NoteEditModal } from './project-table/NoteEditModal';
+import { ProjectMobileCard } from './project-table/ProjectMobileCard';
+import { ProjectRowActions } from './project-table/ProjectRowActions';
+import { ProjectRowCells } from './project-table/ProjectRowCells';
+import { ProjectTableHead } from './project-table/ProjectTableHead';
+import { ProjectTableToolbar } from './project-table/ProjectTableToolbar';
+import { Project, ProjectStatus } from './types';
+import {
+  ColumnConfig,
+  SortDirection,
+  SortField,
+  columnsCompact,
+  columnsNormal,
+} from './project-table/utils';
 
 interface ProjectTableProps {
   projects: Project[];
@@ -54,58 +45,6 @@ interface ProjectTableProps {
   showStats?: boolean; // Afficher/masquer les colonnes de stats
   defaultStatus?: ProjectStatus | 'ALL';
 }
-
-interface ColumnConfig {
-  key: string;
-  label: string;
-  type: CellType;
-  width?: string;
-  minWidth?: string;
-  hideOnMobile?: boolean;
-}
-
-// Configuration des colonnes en mode normal (large écran >= 1280px)
-// Largeurs fixes pour éviter les débordements
-const columnsNormal: ColumnConfig[] = [
-  { key: 'name', label: 'Nom Projet', type: 'text', width: '150px', minWidth: '120px' },
-  { key: 'style', label: 'Style', type: 'text', width: '85px', minWidth: '80px' },
-  { key: 'status', label: 'Statut', type: 'select', width: '95px', minWidth: '100px' },
-  { key: 'progress', label: '% Avancement', type: 'progress', width: '85px', minWidth: '90px' },
-  { key: 'collab', label: 'Collab', type: 'text', width: '100px', minWidth: '80px' },
-  { key: 'label', label: 'Label', type: 'select', width: '85px', minWidth: '80px' },
-  { key: 'labelFinal', label: 'Label Final', type: 'text', width: '90px', minWidth: '80px' },
-  { key: 'deadline', label: 'Deadline', type: 'date', width: '95px', minWidth: '100px' },
-  { key: 'releaseDate', label: 'Date Sortie', type: 'date', width: '95px', minWidth: '100px' },
-  { key: 'streamsJ7', label: 'J7', type: 'number', width: '55px', minWidth: '55px' },
-  { key: 'streamsJ14', label: 'J14', type: 'number', width: '55px', minWidth: '55px' },
-  { key: 'streamsJ21', label: 'J21', type: 'number', width: '55px', minWidth: '55px' },
-  { key: 'streamsJ28', label: 'J28', type: 'number', width: '55px', minWidth: '55px' },
-  { key: 'streamsJ56', label: 'J56', type: 'number', width: '55px', minWidth: '55px' },
-  { key: 'streamsJ84', label: 'J84', type: 'number', width: '55px', minWidth: '55px' },
-  { key: 'streamsJ180', label: 'J180', type: 'number', width: '60px', minWidth: '60px' },
-  { key: 'streamsJ365', label: 'J365', type: 'number', width: '60px', minWidth: '60px' },
-];
-
-// Configuration des colonnes en mode compact (écran moyen)
-const columnsCompact: ColumnConfig[] = [
-  { key: 'name', label: 'Nom', type: 'text', minWidth: '60px', width: '80px' },
-  { key: 'style', label: 'Style', type: 'text', minWidth: '45px', width: '55px' },
-  { key: 'status', label: 'Statut', type: 'select', minWidth: '60px', width: '70px' },
-  { key: 'progress', label: '%', type: 'progress', minWidth: '45px', width: '55px' },
-  { key: 'collab', label: 'Collab', type: 'text', minWidth: '50px', width: '60px' },
-  { key: 'label', label: 'Label', type: 'select', minWidth: '45px', width: '55px' },
-  { key: 'labelFinal', label: 'Label F', type: 'text', minWidth: '45px', width: '55px' },
-  { key: 'deadline', label: 'Deadline', type: 'date', minWidth: '55px', width: '65px' },
-  { key: 'releaseDate', label: 'Date', type: 'date', minWidth: '55px', width: '65px' },
-  { key: 'streamsJ7', label: 'J7', type: 'number', width: '40px', minWidth: '40px' },
-  { key: 'streamsJ14', label: 'J14', type: 'number', width: '42px', minWidth: '42px' },
-  { key: 'streamsJ21', label: 'J21', type: 'number', width: '42px', minWidth: '42px' },
-  { key: 'streamsJ28', label: 'J28', type: 'number', width: '42px', minWidth: '42px' },
-  { key: 'streamsJ56', label: 'J56', type: 'number', width: '42px', minWidth: '42px' },
-  { key: 'streamsJ84', label: 'J84', type: 'number', width: '42px', minWidth: '42px' },
-  { key: 'streamsJ180', label: 'J180', type: 'number', width: '45px', minWidth: '45px' },
-  { key: 'streamsJ365', label: 'J365', type: 'number', width: '45px', minWidth: '45px' },
-];
 
 export const ProjectTable = ({
   projects,
@@ -168,33 +107,6 @@ export const ProjectTable = ({
       }
       return newSet;
     });
-  };
-
-  // Helper pour obtenir la couleur de bordure selon le statut
-  const getStatusBorderColor = (status: ProjectStatus): string => {
-    const statusConfig = PROJECT_STATUSES.find((s) => s.value === status);
-    const colorMap: Record<string, string> = {
-      blue: 'border-l-blue-500',
-      green: 'border-l-emerald-500',
-      red: 'border-l-red-500',
-      orange: 'border-l-amber-500',
-      purple: 'border-l-purple-500',
-    };
-    return colorMap[statusConfig?.color || 'blue'] || 'border-l-blue-500';
-  };
-
-  // Helper pour obtenir le total des streams
-  const getTotalStreams = (project: Project): number => {
-    return (
-      (project.streamsJ7 || 0) +
-      (project.streamsJ14 || 0) +
-      (project.streamsJ21 || 0) +
-      (project.streamsJ28 || 0) +
-      (project.streamsJ56 || 0) +
-      (project.streamsJ84 || 0) +
-      (project.streamsJ180 || 0) +
-      (project.streamsJ365 || 0)
-    );
   };
 
   // Filtrer les colonnes selon showStats
@@ -272,108 +184,23 @@ export const ProjectTable = ({
     }
   };
 
-  const getCellValue = (project: Project, key: string): string | number | null => {
-    return project[key as keyof Project] as string | number | null;
-  };
-
   return (
     <div className="space-y-4">
       {/* Ligne d'ajout et boutons d'action */}
-      <div className="flex items-center gap-3 flex-wrap justify-between">
-        <AddProjectRow
-          onAdd={onCreate}
-          isAdding={isAdding}
-          setIsAdding={setIsAdding}
-          defaultStatus={defaultStatus}
-        />
-        <div className="flex items-center gap-2">
-          {onRefresh && (
-            <button
-              onClick={onRefresh}
-              disabled={isLoading}
-              className="px-3 py-2 h-[38px] text-gray-400 hover:text-white hover:bg-white/10 rounded-lg border border-gray-700/70 hover:border-gray-500/70 transition-all disabled:opacity-50 flex items-center justify-center"
-              title="Rafraîchir"
-              aria-label="Rafraîchir la liste des projets"
-            >
-              <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} aria-hidden="true" />
-            </button>
-          )}
-          {onStatistics && (
-            <button
-              onClick={onStatistics}
-              className="px-3 py-2 h-[38px] glass-modern glass-modern-hover rounded-lg transition-all flex items-center gap-2 text-sm font-medium text-white border border-violet-500/30 hover:border-violet-400/50 hover:shadow-[0_8px_32px_0_rgba(139,92,246,0.35)] backdrop-blur-xl"
-              style={{
-                background: 'rgba(139, 92, 246, 0.28)',
-              }}
-              title="Voir les statistiques"
-              aria-label="Voir les statistiques des projets"
-            >
-              <BarChart3 size={16} aria-hidden="true" />
-              <span className="hidden sm:inline">Statistiques</span>
-            </button>
-          )}
-          {onImport && (
-            <button
-              onClick={onImport}
-              className="px-3 py-2 h-[38px] glass-modern glass-modern-hover rounded-lg transition-all flex items-center gap-2 text-sm font-medium text-white border border-fuchsia-500/30 hover:border-fuchsia-400/50 hover:shadow-[0_8px_32px_0_rgba(217,70,239,0.35)] backdrop-blur-xl"
-              style={{
-                background: 'rgba(217, 70, 239, 0.28)',
-              }}
-              title="Importer depuis Excel ou CSV"
-              aria-label="Importer des projets depuis Excel ou CSV"
-            >
-              <Upload size={16} aria-hidden="true" />
-              <span className="hidden sm:inline">Importer Excel/CSV</span>
-            </button>
-          )}
-          {onImportStreams && (
-            <button
-              onClick={onImportStreams}
-              className="px-3 py-2 h-[38px] glass-modern glass-modern-hover rounded-lg transition-all flex items-center gap-2 text-sm font-medium text-white border border-cyan-500/30 hover:border-cyan-400/50 hover:shadow-[0_8px_32px_0_rgba(6,182,212,0.35)] backdrop-blur-xl"
-              style={{
-                background: 'rgba(6, 182, 212, 0.28)',
-              }}
-              title="Importer des streams depuis CSV"
-              aria-label="Importer des streams depuis CSV"
-            >
-              <Upload size={16} aria-hidden="true" />
-              <span className="hidden sm:inline">Importer Streams CSV</span>
-            </button>
-          )}
-          {onExport && (
-            <button
-              onClick={onExport}
-              className="px-3 py-2 h-[38px] glass-modern glass-modern-hover rounded-lg transition-all flex items-center gap-2 text-sm font-medium text-white border border-teal-500/30 hover:border-teal-400/50 hover:shadow-[0_8px_32px_0_rgba(20,184,166,0.35)] backdrop-blur-xl"
-              style={{
-                background: 'rgba(20, 184, 166, 0.28)',
-              }}
-              title="Exporter vers Excel"
-              aria-label="Exporter les projets vers Excel"
-            >
-              <Download size={16} aria-hidden="true" />
-              <span className="hidden sm:inline">Exporter Excel</span>
-            </button>
-          )}
-          {onPurge && (
-            <button
-              onClick={onPurge}
-              disabled={isLoading || projectsCount === 0}
-              className="px-4 py-2 h-[38px] glass-modern glass-modern-hover rounded-lg transition-all flex items-center gap-2 text-sm font-medium text-white border border-red-500/30 hover:border-red-400/50 hover:shadow-[0_8px_32px_0_rgba(239,68,68,0.35)] backdrop-blur-xl disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:border-red-500/30"
-              style={{
-                background:
-                  isLoading || projectsCount === 0
-                    ? 'rgba(75, 85, 99, 0.25)'
-                    : 'rgba(239, 68, 68, 0.28)',
-              }}
-              title="Supprimer tous les projets"
-              aria-label="Purger tous les projets"
-            >
-              <Trash2 size={18} />
-              <span className="hidden sm:inline">Purger</span>
-            </button>
-          )}
-        </div>
-      </div>
+      <ProjectTableToolbar
+        defaultStatus={defaultStatus}
+        isAdding={isAdding}
+        isLoading={isLoading}
+        onCreate={onCreate}
+        onExport={onExport}
+        onImport={onImport}
+        onImportStreams={onImportStreams}
+        onPurge={onPurge}
+        onRefresh={onRefresh}
+        onStatistics={onStatistics}
+        projectsCount={projectsCount}
+        setIsAdding={setIsAdding}
+      />
 
       {/* Mode mobile : Cartes redesignées */}
       {isMobile ? (
@@ -390,365 +217,24 @@ export const ProjectTable = ({
             </div>
           ) : (
             projects.map((project) => {
-              const isHighlighted = highlightedProjectId === project.id;
-              const isPersistentGold = isHighlighted && persistentHighlight;
-              const isStreamsExpanded = expandedStreams.has(project.id);
-              const totalStreams = getTotalStreams(project);
-              const hasStreams = totalStreams > 0;
-
               return (
-                <div
+                <ProjectMobileCard
                   key={project.id}
-                  id={`project-${project.id}`}
-                  className={`
-                    relative overflow-hidden rounded-2xl
-                    bg-gradient-to-br from-gray-900/90 via-gray-900/70 to-gray-800/50
-                    border border-white/10 
-                    border-l-4 ${getStatusBorderColor(project.status)}
-                    shadow-lg shadow-black/20
-                    transition-all duration-300
-                    ${
-                      isPersistentGold
-                        ? 'animate-highlight-gold'
-                        : isHighlighted
-                          ? 'animate-highlight-purple ring-2 ring-purple-500/50'
-                          : ''
-                    }
-                  `}
-                >
-                  {/* Header avec nom et actions */}
-                  <div className="p-4 pb-3">
-                    <div className="flex items-start justify-between gap-3">
-                      {/* Nom du projet - proéminent */}
-                      <div className="flex-1 min-w-0">
-                        <div className="text-lg font-semibold text-white truncate">
-                          <EditableCell
-                            value={project.name}
-                            field="name"
-                            type="text"
-                            onSave={(field, value) => handleUpdate(project.id, field, value)}
-                            placeholder="Nom du projet"
-                            className="!text-lg !font-semibold"
-                          />
-                        </div>
-                        {/* Badge statut sous le nom */}
-                        <div className="mt-2">
-                          <EditableCell
-                            value={project.status}
-                            field="status"
-                            type="select"
-                            onSave={(field, value) => handleUpdate(project.id, field, value)}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Actions groupées */}
-                      <div className="flex items-center gap-1 shrink-0">
-                        <div className="relative group/link">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (project.externalLink) {
-                                window.open(project.externalLink, '_blank', 'noopener,noreferrer');
-                              } else {
-                                setEditingLinkId(project.id);
-                                setLinkValue('');
-                              }
-                            }}
-                            className={`p-2.5 rounded-xl transition-all active:scale-95 ${
-                              project.externalLink
-                                ? 'text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20'
-                                : 'text-gray-400 bg-gray-500/10 hover:bg-gray-500/20'
-                            }`}
-                            title={
-                              project.externalLink
-                                ? `Ouvrir: ${project.externalLink}`
-                                : 'Ajouter un lien'
-                            }
-                            aria-label={
-                              project.externalLink ? 'Ouvrir le lien externe' : 'Ajouter un lien'
-                            }
-                          >
-                            <ExternalLink size={18} aria-hidden="true" />
-                          </button>
-                          {project.externalLink && (
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                setEditingLinkId(project.id);
-                                setLinkValue(project.externalLink || '');
-                              }}
-                              className="absolute -top-1 -right-1 p-1 bg-purple-600 hover:bg-purple-500 text-white rounded-full shadow-lg z-10 transition-colors"
-                              title="Modifier le lien"
-                              aria-label="Modifier le lien"
-                            >
-                              <Pencil size={10} aria-hidden="true" />
-                            </button>
-                          )}
-                        </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingNoteId(project.id);
-                            setNoteValue(project.note || '');
-                          }}
-                          className={`p-2.5 rounded-xl transition-all active:scale-95 ${
-                            project.note
-                              ? 'text-blue-400 bg-blue-500/10 hover:bg-blue-500/20'
-                              : 'text-gray-400 bg-gray-500/10 hover:bg-gray-500/20'
-                          }`}
-                          title={
-                            project.note
-                              ? `Note: ${project.note.substring(0, 50)}${project.note.length > 50 ? '...' : ''}`
-                              : 'Ajouter une note'
-                          }
-                          aria-label={project.note ? 'Voir/modifier la note' : 'Ajouter une note'}
-                        >
-                          <FileText size={18} aria-hidden="true" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(project.id)}
-                          disabled={deletingId === project.id}
-                          className="p-2.5 text-gray-400 bg-gray-500/10 hover:bg-red-500/20 hover:text-red-400 rounded-xl transition-all active:scale-95 disabled:opacity-50"
-                          title="Supprimer le projet"
-                          aria-label="Supprimer le projet"
-                        >
-                          <Trash2 size={18} aria-hidden="true" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Informations principales */}
-                  {!showStats && (
-                    <div className="px-4 pb-3">
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                        {/* Style */}
-                        <div className="space-y-1">
-                          <label className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">
-                            Style
-                          </label>
-                          <div className="text-sm text-gray-200">
-                            <EditableCell
-                              value={project.style}
-                              field="style"
-                              type="text"
-                              onSave={(field, value) => handleUpdate(project.id, field, value)}
-                              placeholder="-"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Collab */}
-                        <div className="space-y-1">
-                          <label className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">
-                            Collab
-                          </label>
-                          <div className="text-sm text-gray-200">
-                            <EditableCell
-                              value={project.collab}
-                              field="collab"
-                              type="text"
-                              onSave={(field, value) => handleUpdate(project.id, field, value)}
-                              placeholder="-"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Label */}
-                        <div className="space-y-1">
-                          <label className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">
-                            Label
-                          </label>
-                          <div className="text-sm text-gray-200">
-                            <EditableCell
-                              value={project.label}
-                              field="label"
-                              type="select"
-                              onSave={(field, value) => handleUpdate(project.id, field, value)}
-                              placeholder="-"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Label Final */}
-                        <div className="space-y-1">
-                          <label className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">
-                            Label Final
-                          </label>
-                          <div className="text-sm text-gray-200">
-                            <EditableCell
-                              value={project.labelFinal}
-                              field="labelFinal"
-                              type="text"
-                              onSave={(field, value) => handleUpdate(project.id, field, value)}
-                              placeholder="-"
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Date de sortie - mise en avant */}
-                      {project.releaseDate && (
-                        <div className="mt-3 flex items-center gap-2 text-sm">
-                          <Calendar size={14} className="text-purple-400" />
-                          <span className="text-gray-400">Sortie:</span>
-                          <EditableCell
-                            value={project.releaseDate}
-                            field="releaseDate"
-                            type="date"
-                            onSave={(field, value) => handleUpdate(project.id, field, value)}
-                            placeholder="-"
-                            className="!text-purple-300 !font-medium"
-                          />
-                        </div>
-                      )}
-                      {!project.releaseDate && (
-                        <div className="mt-3 flex items-center gap-2 text-sm">
-                          <Calendar size={14} className="text-gray-500" />
-                          <span className="text-gray-500">Date:</span>
-                          <EditableCell
-                            value={project.releaseDate}
-                            field="releaseDate"
-                            type="date"
-                            onSave={(field, value) => handleUpdate(project.id, field, value)}
-                            placeholder="Non définie"
-                          />
-                        </div>
-                      )}
-                      {/* Deadline */}
-                      {project.deadline && (
-                        <div className="mt-3 flex items-center gap-2 text-sm">
-                          <Calendar size={14} className="text-orange-400" />
-                          <span className="text-gray-400">Deadline:</span>
-                          <EditableCell
-                            value={project.deadline}
-                            field="deadline"
-                            type="date"
-                            onSave={(field, value) => handleUpdate(project.id, field, value)}
-                            placeholder="-"
-                            className="!text-orange-300 !font-medium"
-                          />
-                        </div>
-                      )}
-                      {!project.deadline && (
-                        <div className="mt-3 flex items-center gap-2 text-sm">
-                          <Calendar size={14} className="text-gray-500" />
-                          <span className="text-gray-500">Deadline:</span>
-                          <EditableCell
-                            value={project.deadline}
-                            field="deadline"
-                            type="date"
-                            onSave={(field, value) => handleUpdate(project.id, field, value)}
-                            placeholder="-"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Section Streams - Collapsible */}
-                  {showStats && (
-                    <div
-                      className={isStreamsExpanded ? '' : 'border-t border-white/5'}
-                      style={isStreamsExpanded ? { borderTop: 'none' } : {}}
-                    >
-                      <button
-                        onClick={() => toggleStreams(project.id)}
-                        className="w-full px-4 py-3 flex items-center justify-between text-sm hover:bg-white/5 transition-colors focus:outline-none"
-                        aria-expanded={isStreamsExpanded}
-                        aria-controls={`streams-${project.id}`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="text-gray-400 font-medium">Streams</span>
-                          {hasStreams && (
-                            <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-purple-500/20 text-purple-300">
-                              {totalStreams.toLocaleString('fr-FR')}
-                            </span>
-                          )}
-                        </div>
-                        <ChevronDown
-                          size={18}
-                          className={`text-gray-400 transition-transform duration-200 ${isStreamsExpanded ? 'rotate-180' : ''}`}
-                        />
-                      </button>
-
-                      {/* Contenu streams */}
-                      {showStats && (
-                        <div
-                          id={`streams-${project.id}`}
-                          className={`
-                          grid grid-cols-3 gap-3 px-4 overflow-hidden transition-all duration-300 ease-out
-                          ${isStreamsExpanded ? 'pb-4 pt-0.5 max-h-96 opacity-100' : 'max-h-0 opacity-0'}
-                        `}
-                        >
-                          {/* Jalons court terme */}
-                          <div className="col-span-3">
-                            <p className="text-[10px] uppercase tracking-wider text-gray-500 mb-2">
-                              Court terme
-                            </p>
-                            <div className="grid grid-cols-3 gap-2">
-                              {[
-                                { key: 'streamsJ7', label: 'J7' },
-                                { key: 'streamsJ14', label: 'J14' },
-                                { key: 'streamsJ21', label: 'J21' },
-                                { key: 'streamsJ28', label: 'J28' },
-                                { key: 'streamsJ56', label: 'J56' },
-                                { key: 'streamsJ84', label: 'J84' },
-                              ].map(({ key, label }) => (
-                                <div key={key} className="bg-white/5 rounded-lg p-2 text-center">
-                                  <label className="text-[10px] uppercase tracking-wider text-gray-500 block mb-1">
-                                    {label}
-                                  </label>
-                                  <div className="text-sm font-medium text-gray-200">
-                                    <EditableCell
-                                      value={project[key as keyof Project] as number | null}
-                                      field={key}
-                                      type="number"
-                                      onSave={(field, value) => onUpdate(project.id, field, value)}
-                                      placeholder="0"
-                                      className="text-center"
-                                    />
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Jalons long terme */}
-                          <div className="col-span-3 mt-2">
-                            <p className="text-[10px] uppercase tracking-wider text-gray-500 mb-2">
-                              Long terme
-                            </p>
-                            <div className="grid grid-cols-2 gap-2">
-                              {[
-                                { key: 'streamsJ180', label: 'J180 (6 mois)' },
-                                { key: 'streamsJ365', label: 'J365 (1 an)' },
-                              ].map(({ key, label }) => (
-                                <div key={key} className="bg-white/5 rounded-lg p-2 text-center">
-                                  <label className="text-[10px] uppercase tracking-wider text-gray-500 block mb-1">
-                                    {label}
-                                  </label>
-                                  <div className="text-sm font-medium text-gray-200">
-                                    <EditableCell
-                                      value={project[key as keyof Project] as number | null}
-                                      field={key}
-                                      type="number"
-                                      onSave={(field, value) => onUpdate(project.id, field, value)}
-                                      placeholder="0"
-                                      className="text-center"
-                                    />
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
+                  deletingId={deletingId}
+                  handleDelete={handleDelete}
+                  handleUpdate={handleUpdate}
+                  onUpdate={onUpdate}
+                  project={project}
+                  setEditingLinkId={setEditingLinkId}
+                  setEditingNoteId={setEditingNoteId}
+                  setLinkValue={setLinkValue}
+                  setNoteValue={setNoteValue}
+                  showStats={showStats}
+                  toggleStreams={toggleStreams}
+                  highlightedProjectId={highlightedProjectId}
+                  persistentHighlight={persistentHighlight}
+                  expandedStreams={expandedStreams}
+                />
               );
             })
           )}
@@ -762,66 +248,14 @@ export const ProjectTable = ({
               role="table"
               aria-label="Tableau des projets musicaux"
             >
-              <thead>
-                <tr className="border-b border-white/10">
-                  <th className={`${isCompact ? 'w-6 px-0.5' : 'w-10 px-2'} py-2 text-left`}>
-                    <span className="sr-only">Actions</span>
-                  </th>
-                  {isAdmin && (
-                    <th
-                      className={`${isCompact ? 'px-0.5 text-[9px]' : 'px-3 text-xs'} py-2 text-left font-semibold text-purple-300 uppercase tracking-wider`}
-                      style={isCompact ? { minWidth: '50px', width: '55px' } : {}}
-                    >
-                      {isCompact ? 'User' : 'Utilisateur'}
-                    </th>
-                  )}
-                  {columns.map((col) => {
-                    const isSorted = sortField === col.key;
-                    return (
-                      <th
-                        key={col.key}
-                        className={`${isCompact ? 'px-0.5 py-0.5 text-[9px]' : 'px-3 py-2 text-xs'} text-left font-semibold text-purple-300 uppercase tracking-wider whitespace-nowrap ${
-                          onSort ? 'cursor-pointer hover:bg-white/5 transition-colors' : ''
-                        }`}
-                        style={{
-                          width: col.width,
-                          minWidth: col.minWidth,
-                          maxWidth: col.width,
-                        }}
-                        onClick={() => onSort?.(col.key as SortField)}
-                        title={onSort ? `Trier par ${col.label}` : undefined}
-                      >
-                        <div className={`flex items-center gap-1 ${isCompact ? 'px-1' : 'px-2'}`}>
-                          <span>{col.label}</span>
-                          {onSort && (
-                            <span className="text-purple-400 flex-shrink-0">
-                              {isSorted ? (
-                                sortDirection === 'asc' ? (
-                                  <ArrowUp size={isCompact ? 9 : 14} />
-                                ) : (
-                                  <ArrowDown size={isCompact ? 9 : 14} />
-                                )
-                              ) : (
-                                <ArrowUpDown size={isCompact ? 9 : 14} className="opacity-50" />
-                              )}
-                            </span>
-                          )}
-                        </div>
-                      </th>
-                    );
-                  })}
-                  <th
-                    className={`${isCompact ? 'px-0.5 py-0.5 text-[9px]' : 'px-3 py-2 text-xs'} text-left font-semibold text-purple-300 uppercase tracking-wider whitespace-nowrap border-l-2 border-gray-700/50`}
-                    style={{
-                      minWidth: isCompact ? '50px' : '70px',
-                      width: isCompact ? '55px' : '80px',
-                      maxWidth: isCompact ? '55px' : '80px',
-                    }}
-                  >
-                    <span>Action</span>
-                  </th>
-                </tr>
-              </thead>
+              <ProjectTableHead
+                columns={columns}
+                isAdmin={isAdmin}
+                isCompact={isCompact}
+                onSort={onSort}
+                sortDirection={sortDirection}
+                sortField={sortField}
+              />
               <DragDropContext onDragEnd={handleDragEnd}>
                 <Droppable droppableId="projects-table">
                   {(provided) => (
@@ -898,167 +332,24 @@ export const ProjectTable = ({
                                   )}
 
                                   {/* Colonnes éditables */}
-                                  {columns.map((col) => {
-                                    // Permettre le wrap pour les colonnes texte (sauf dates et nombres)
-                                    // Le wrap se fait uniquement entre les mots, pas au milieu d'un mot
-                                    const textColumns = [
-                                      'name',
-                                      'collab',
-                                      'label',
-                                      'labelFinal',
-                                      'style',
-                                    ];
-                                    const allowWrap = textColumns.includes(col.key);
-                                    return (
-                                      <td
-                                        key={col.key}
-                                        className={`${isCompact ? 'px-0.5 py-0.5' : 'px-3 py-2'}`}
-                                        style={{
-                                          width: col.width,
-                                          minWidth: col.minWidth,
-                                          maxWidth: col.width,
-                                        }}
-                                      >
-                                        {col.key === 'status' ? (
-                                          <EditableCell
-                                            value={project.status}
-                                            field="status"
-                                            type="select"
-                                            onSave={(field, value) =>
-                                              handleUpdate(project.id, field, value)
-                                            }
-                                            isCompact={isCompact}
-                                          />
-                                        ) : col.key === 'progress' &&
-                                          project.status === 'TERMINE' ? (
-                                          <EditableCell
-                                            value={100}
-                                            field="progress"
-                                            type="progress"
-                                            onSave={(field, value) =>
-                                              handleUpdate(project.id, field, value)
-                                            }
-                                            placeholder="-"
-                                            allowWrap={allowWrap}
-                                            isCompact={isCompact}
-                                            disabled={true}
-                                          />
-                                        ) : (
-                                          <EditableCell
-                                            value={getCellValue(project, col.key)}
-                                            field={col.key}
-                                            type={col.type}
-                                            onSave={(field, value) =>
-                                              handleUpdate(project.id, field, value)
-                                            }
-                                            placeholder="-"
-                                            allowWrap={allowWrap}
-                                            isCompact={isCompact}
-                                          />
-                                        )}
-                                      </td>
-                                    );
-                                  })}
+                                  <ProjectRowCells
+                                    columns={columns}
+                                    handleUpdate={handleUpdate}
+                                    isCompact={isCompact}
+                                    project={project}
+                                  />
 
                                   {/* Colonne Action */}
-                                  <td
-                                    className={`${isCompact ? 'px-0.5 py-0.5' : 'px-3 py-2'} border-l-2 border-gray-700/50`}
-                                    style={{
-                                      minWidth: isCompact ? '50px' : '70px',
-                                      width: isCompact ? '55px' : '80px',
-                                      maxWidth: isCompact ? '55px' : '80px',
-                                    }}
-                                  >
-                                    <div className="flex items-center gap-2">
-                                      <div className="relative group/link">
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            if (project.externalLink) {
-                                              // Si lien présent, ouvrir directement
-                                              window.open(
-                                                project.externalLink,
-                                                '_blank',
-                                                'noopener,noreferrer'
-                                              );
-                                            } else {
-                                              // Sinon, ouvrir la modale pour ajouter un lien
-                                              setEditingLinkId(project.id);
-                                              setLinkValue('');
-                                            }
-                                          }}
-                                          className={`${isCompact ? 'p-0.5' : 'p-1.5'} rounded transition-all ${
-                                            project.externalLink
-                                              ? 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10'
-                                              : 'text-gray-400 hover:text-gray-300 hover:bg-gray-500/10'
-                                          }`}
-                                          title={
-                                            project.externalLink
-                                              ? `Clic: Ouvrir le lien\n${project.externalLink}`
-                                              : 'Ajouter un lien'
-                                          }
-                                          aria-label={
-                                            project.externalLink
-                                              ? `Ouvrir le lien externe pour ${project.name}`
-                                              : `Ajouter un lien pour ${project.name}`
-                                          }
-                                        >
-                                          <ExternalLink
-                                            size={isCompact ? 10 : 16}
-                                            aria-hidden="true"
-                                          />
-                                        </button>
-                                        {project.externalLink && (
-                                          <button
-                                            onClick={(e) => {
-                                              e.preventDefault();
-                                              e.stopPropagation();
-                                              setEditingLinkId(project.id);
-                                              setLinkValue(project.externalLink || '');
-                                            }}
-                                            className="absolute -top-1 -right-1 p-0.5 bg-purple-600 hover:bg-purple-700 text-white rounded-full opacity-0 group-hover/link:opacity-100 transition-opacity shadow-lg z-10"
-                                            title="Modifier le lien"
-                                            aria-label={`Modifier le lien pour ${project.name}`}
-                                          >
-                                            <Pencil size={isCompact ? 7 : 10} aria-hidden="true" />
-                                          </button>
-                                        )}
-                                      </div>
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setEditingNoteId(project.id);
-                                          setNoteValue(project.note || '');
-                                        }}
-                                        className={`${isCompact ? 'p-0.5' : 'p-1.5'} rounded transition-all ${
-                                          project.note
-                                            ? 'text-blue-400 hover:text-blue-300 hover:bg-blue-500/10'
-                                            : 'text-gray-400 hover:text-gray-300 hover:bg-gray-500/10'
-                                        }`}
-                                        title={
-                                          project.note
-                                            ? `Note: ${project.note.substring(0, 50)}${project.note.length > 50 ? '...' : ''}`
-                                            : 'Ajouter une note'
-                                        }
-                                        aria-label={
-                                          project.note
-                                            ? `Voir/modifier la note pour ${project.name}`
-                                            : `Ajouter une note pour ${project.name}`
-                                        }
-                                      >
-                                        <FileText size={isCompact ? 10 : 16} aria-hidden="true" />
-                                      </button>
-                                      <button
-                                        onClick={() => handleDelete(project.id)}
-                                        disabled={deletingId === project.id}
-                                        className={`${isCompact ? 'p-0.5' : 'p-1.5'} text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded transition-all disabled:opacity-50`}
-                                        title="Supprimer le projet"
-                                        aria-label={`Supprimer le projet ${project.name}`}
-                                      >
-                                        <Trash2 size={isCompact ? 10 : 16} aria-hidden="true" />
-                                      </button>
-                                    </div>
-                                  </td>
+                                  <ProjectRowActions
+                                    deletingId={deletingId}
+                                    handleDelete={handleDelete}
+                                    isCompact={isCompact}
+                                    project={project}
+                                    setEditingLinkId={setEditingLinkId}
+                                    setEditingNoteId={setEditingNoteId}
+                                    setLinkValue={setLinkValue}
+                                    setNoteValue={setNoteValue}
+                                  />
                                 </tr>
                               )}
                             </Draggable>
@@ -1077,76 +368,24 @@ export const ProjectTable = ({
 
       {/* Modale pour éditer le lien */}
       {editingLinkId && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setEditingLinkId(null);
-              setLinkValue('');
-            }
-          }}
-        >
-          <div className="bg-gradient-to-br from-[#1a0f2a] via-[#0c0117] to-[#1a0f2a] border border-purple-500/30 rounded-xl p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold text-white mb-4">Modifier le lien</h3>
-            <input
-              type="url"
-              value={linkValue}
-              onChange={(e) => setLinkValue(e.target.value)}
-              placeholder="https://..."
-              className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 mb-4"
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleSaveLink();
-                } else if (e.key === 'Escape') {
-                  setEditingLinkId(null);
-                  setLinkValue('');
-                }
-              }}
-            />
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => {
-                  setEditingLinkId(null);
-                  setLinkValue('');
-                }}
-                className="px-4 py-2 bg-gray-700/50 hover:bg-gray-700 text-white rounded-lg transition-colors"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleSaveLink}
-                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
-              >
-                Enregistrer
-              </button>
-            </div>
-          </div>
-        </div>
+        <LinkEditModal
+          handleSaveLink={handleSaveLink}
+          linkValue={linkValue}
+          setEditingLinkId={setEditingLinkId}
+          setLinkValue={setLinkValue}
+        />
       )}
 
       {/* Modale pour éditer la note */}
       {editingNoteId && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setEditingNoteId(null);
-              setNoteValue('');
-            }
-          }}
-        >
-          <ProjectNoteEditor
-            value={noteValue}
-            onChange={setNoteValue}
-            onSave={handleSaveNote}
-            onCancel={() => {
-              setEditingNoteId(null);
-              setNoteValue('');
-            }}
-            projectName={projects.find((p) => p.id === editingNoteId)?.name}
-          />
-        </div>
+        <NoteEditModal
+          editingNoteId={editingNoteId}
+          handleSaveNote={handleSaveNote}
+          noteValue={noteValue}
+          projects={projects}
+          setEditingNoteId={setEditingNoteId}
+          setNoteValue={setNoteValue}
+        />
       )}
     </div>
   );
