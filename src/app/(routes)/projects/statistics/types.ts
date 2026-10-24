@@ -1,5 +1,7 @@
 import type { Project } from '@/components/projects/types';
 
+import type { buildComparisonChartData } from './chartData';
+
 // Types pour les composants Recharts
 export interface TooltipProps {
   active?: boolean;
@@ -68,3 +70,11 @@ export interface StatisticsData {
 // Constante pour les jalons de jours
 export const MILESTONE_DAYS = [7, 14, 21, 28, 56, 84, 180, 365] as const;
 export const MILESTONE_LABELS = ['J7', 'J14', 'J21', 'J28', 'J56', 'J84', 'J180', 'J365'] as const;
+
+export type ViewMode = 'project' | 'global' | 'comparison';
+export type YearViewMode = 'global' | 'year';
+
+/** Données du graphique d'évolution des streams (comparaison, ou une courbe unique) */
+export type StreamsChartData =
+  | ReturnType<typeof buildComparisonChartData>
+  | Array<{ day: string; streams: number }>;
