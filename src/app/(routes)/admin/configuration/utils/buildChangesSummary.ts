@@ -3,7 +3,7 @@ import isEqual from 'lodash/isEqual';
 import { isNotEmpty } from '@/lib/utils/arrayHelpers';
 import type { AllConfigs } from '@/types/config';
 
-// Libellés lisibles des clés de configuration (section.clé)
+// Libellés lisibles des clés de configuration (clé seule, sans préfixe de section)
 export const CONFIG_LABEL_MAPPINGS: Record<string, string> = {
   // Général
   siteName: 'Nom du site',
@@ -102,7 +102,7 @@ export function buildChangesSummary(current: AllConfigs, previous: AllConfigs | 
 
       // Utiliser isEqual pour comparer les valeurs
       if (!isEqual(currentValue, previousValue)) {
-        const label = CONFIG_LABEL_MAPPINGS[`${section}.${key}`] || `${section}.${key}`;
+        const label = CONFIG_LABEL_MAPPINGS[key] || `${section}.${key}`;
         sectionChanges.push(
           `    ${label}\n        <span class="text-gray-500">${formatChangeValue(previousValue)}</span> <span class="text-cyan-300">→</span> <span class="text-white font-semibold">${formatChangeValue(currentValue)}</span>`
         );

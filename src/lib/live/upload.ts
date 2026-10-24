@@ -12,7 +12,7 @@ import { shouldUseBlobStorage } from '@/lib/utils/getStorageConfig';
 export async function uploadAudioFile(
   file: File,
   fileId: string,
-  userId: string
+  _userId: string
 ): Promise<{ url: string; size: number }> {
   const useBlobStorage = await shouldUseBlobStorage();
 

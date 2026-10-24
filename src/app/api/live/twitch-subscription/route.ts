@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { auth } from '@/auth';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import { checkTwitchSubscription } from '@/lib/twitch/client';
@@ -8,6 +7,7 @@ import { createSuccessResponse, createUnauthorizedResponse } from '@/lib/api/res
 import { handleApiError } from '@/lib/api/errorHandler';
 import { LiveItemType } from '@/types/live';
 import type { TwitchSubscriptionStatus } from '@/types/live';
+import { requireAuth } from '@/lib/api/requireAuth';
 
 /**
  * GET /api/live/twitch-subscription
@@ -15,11 +15,11 @@ import type { TwitchSubscriptionStatus } from '@/types/live';
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return createUnauthorizedResponse('Non authentifié');
-    }
+    const { session, error } = await requireAuth({
+      requireUserId: true,
+      onAnonymous: () => createUnauthorizedResponse('Non authentifié'),
+    });
+    if (error) return error;
 
     // Vérifier la subscription Twitch
     const subscriptionStatus: TwitchSubscriptionStatus = await checkTwitchSubscription(

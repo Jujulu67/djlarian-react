@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server';
 import { revalidateTag } from 'next/cache';
 
-import { auth } from '@/auth';
 import { handleApiError } from '@/lib/api/errorHandler';
 import {
   createSuccessResponse,
@@ -12,6 +11,7 @@ import {
 } from '@/lib/api/responseHelpers';
 import prisma from '@/lib/prisma';
 import { serializeProject } from '@/lib/utils/serializeProject';
+import { requireAuth } from '@/lib/api/requireAuth';
 
 // Fonction helper pour invalider le cache des projets d'un utilisateur
 function invalidateProjectsCache(userId: string) {
@@ -30,11 +30,11 @@ type RouteContext = {
 // GET /api/projects/[id] - Récupère un projet spécifique
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return createUnauthorizedResponse('Non autorisé');
-    }
+    const { session, error } = await requireAuth({
+      requireUserId: true,
+      onAnonymous: () => createUnauthorizedResponse('Non autorisé'),
+    });
+    if (error) return error;
 
     const { id } = await context.params;
 
@@ -70,11 +70,11 @@ export async function GET(request: NextRequest, context: RouteContext) {
 // PATCH /api/projects/[id] - Met à jour un projet
 export async function PATCH(request: NextRequest, context: RouteContext) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return createUnauthorizedResponse('Non autorisé');
-    }
+    const { session, error } = await requireAuth({
+      requireUserId: true,
+      onAnonymous: () => createUnauthorizedResponse('Non autorisé'),
+    });
+    if (error) return error;
 
     const { id } = await context.params;
 
@@ -246,11 +246,11 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 // DELETE /api/projects/[id] - Supprime un projet
 export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return createUnauthorizedResponse('Non autorisé');
-    }
+    const { session, error } = await requireAuth({
+      requireUserId: true,
+      onAnonymous: () => createUnauthorizedResponse('Non autorisé'),
+    });
+    if (error) return error;
 
     const { id } = await context.params;
 

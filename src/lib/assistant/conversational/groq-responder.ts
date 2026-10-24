@@ -13,8 +13,6 @@
  * O8: Utilise SanitizeGroqMessages pour validation stricte des messages
  */
 import 'server-only';
-import { generateText } from 'ai';
-import { createOpenAI } from '@ai-sdk/openai';
 import type { ConversationMessage } from './memory-manager';
 import { prepareConversationContext } from './memory-manager';
 import {
@@ -26,8 +24,8 @@ import { SYSTEM_DISCIPLINE_PROMPT } from '../prompts/system-discipline-prompt';
 import { InferModeFromQuery } from './mode-inference';
 import { sanitizeForLogs } from '../utils/sanitize-logs';
 import { formatConversationContextForPrompt } from './memory-manager';
-import { capMaxCompletionTokens, getModelMaxOutput } from '../memory/ModelLimits';
-import { sanitizeGroqMessages, ValidGroqMessage } from '../memory/SanitizeGroqMessages';
+import { capMaxCompletionTokens } from '../memory/ModelLimits';
+import { sanitizeGroqMessages } from '../memory/SanitizeGroqMessages';
 
 /**
  * O7: Feature flag pour envoyer max_tokens (déprécié)
@@ -56,12 +54,6 @@ export async function getConversationalResponse(
     error.name = 'AI_LoadAPIKeyError';
     throw error;
   }
-
-  // Créer le client Groq avec la clé API explicite
-  const groq = createOpenAI({
-    apiKey: groqApiKey,
-    baseURL: 'https://api.groq.com/openai/v1',
-  });
 
   try {
     // Combiner les prompts système: discipline + identité

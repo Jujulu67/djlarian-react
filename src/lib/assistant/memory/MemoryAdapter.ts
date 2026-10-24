@@ -16,7 +16,6 @@ import {
   ActionMemoryStore,
   Router as MessageClassifier, // Renommé pour clarifier (I2)
   ChatMessage,
-  isChatMessage,
   ActionType,
 } from './index';
 

@@ -1,5 +1,3 @@
-import type { FrequencyBand } from '@/types/game';
-
 // Constantes de score
 export const SCORE_INCREMENT = 25;
 export const GOLDEN_SCORE = 50;

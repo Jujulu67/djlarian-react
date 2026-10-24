@@ -11,9 +11,6 @@
 // Message Types
 // ============================================================================
 
-/** Discriminant strict pour le type de message */
-type MessageKind = 'chat' | 'action' | 'system';
-
 /** Rôle dans la conversation (compatible Groq) */
 export type MessageRole = 'user' | 'assistant' | 'system';
 

@@ -126,7 +126,7 @@ function EventsContent() {
             <h2 className="text-2xl font-bold text-white mb-3">Aucun événement trouvé</h2>
             <p className="text-gray-400 mb-6 max-w-md mx-auto">
               {searchTerm
-                ? `Aucun résultat ne correspond à &quot;${searchTerm}&quot;`
+                ? `Aucun résultat ne correspond à "${searchTerm}"`
                 : selectedStatus === 'all'
                   ? 'Aucun événement disponible pour le moment'
                   : `Aucun événement ${selectedStatus === 'UPCOMING' ? 'à venir' : selectedStatus === 'COMPLETED' ? 'passé' : 'annulé'}`}

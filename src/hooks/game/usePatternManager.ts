@@ -17,7 +17,6 @@ interface UsePatternManagerProps {
 }
 
 export function usePatternManager({
-  patterns,
   setPatterns,
   setGameState,
   isActive,

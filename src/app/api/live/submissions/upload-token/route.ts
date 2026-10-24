@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { auth } from '@/auth';
 import { createUnauthorizedResponse } from '@/lib/api/responseHelpers';
 import { handleApiError } from '@/lib/api/errorHandler';
+import { requireAuth } from '@/lib/api/requireAuth';
 
 /**
  * GET /api/live/submissions/upload-token
@@ -16,11 +16,11 @@ import { handleApiError } from '@/lib/api/errorHandler';
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return createUnauthorizedResponse('Non authentifié');
-    }
+    const { error } = await requireAuth({
+      requireUserId: true,
+      onAnonymous: () => createUnauthorizedResponse('Non authentifié'),
+    });
+    if (error) return error;
 
     // ⚠️ IMPORTANT: Récupérer le token selon la cible DB active (hot swap)
     // Le token est mis à jour dans process.env.BLOB_READ_WRITE_TOKEN lors du switch

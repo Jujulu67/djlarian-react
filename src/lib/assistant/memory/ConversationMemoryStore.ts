@@ -254,14 +254,14 @@ export class ConversationMemoryStore {
 
   private enforceTokenBudget(): void {
     while (this.totalTokens > this.options.maxTokens && this.messages.length > 1) {
-      const removed = this.messages.shift();
+      this.messages.shift();
       this.debugLog(`TRIMMED: old message removed (token budget)`);
     }
   }
 
   private enforceMessageLimit(): void {
     while (this.messages.length > this.options.maxMessages) {
-      const removed = this.messages.shift();
+      this.messages.shift();
       this.debugLog(`TRIMMED: old message removed (message limit)`);
     }
   }

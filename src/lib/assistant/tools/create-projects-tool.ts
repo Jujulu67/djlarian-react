@@ -11,7 +11,6 @@ interface CreateProjectsToolParams {
 
 export const createCreateProjectsTool = ({
   getTargetUserId,
-  normalizedInput,
   isTestMode = false,
 }: CreateProjectsToolParams) => {
   // Définir le schéma directement dans la fonction (comme les autres outils)

@@ -2,7 +2,7 @@
 
 import { AlertCircle, Check, FileText } from 'lucide-react';
 
-import { formatDateFrench } from './streamsUtils';
+import { formatDateFrench } from '@/lib/utils/format';
 import { MilestonesPanel } from './MilestonesPanel';
 import { type FileImportData } from './types';
 

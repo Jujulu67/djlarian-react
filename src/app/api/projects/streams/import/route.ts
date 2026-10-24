@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server';
 import { revalidateTag } from 'next/cache';
 
-import { auth } from '@/auth';
 import { handleApiError } from '@/lib/api/errorHandler';
 import {
   createSuccessResponse,
@@ -10,6 +9,7 @@ import {
 } from '@/lib/api/responseHelpers';
 import prisma from '@/lib/prisma';
 import { checkProjectMilestones } from '@/lib/utils/checkMilestoneNotifications';
+import { requireAuth } from '@/lib/api/requireAuth';
 import { logger } from '@/lib/logger';
 
 // Fonction helper pour invalider le cache des projets d'un utilisateur
@@ -48,11 +48,11 @@ interface ImportResult {
 // POST /api/projects/streams/import - Importe les streams pour plusieurs projets
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return createUnauthorizedResponse('Non autorisé');
-    }
+    const { session, error } = await requireAuth({
+      requireUserId: true,
+      onAnonymous: () => createUnauthorizedResponse('Non autorisé'),
+    });
+    if (error) return error;
 
     // Vérifier que l'utilisateur existe bien dans la base de données
     const userExists = await prisma.user.findUnique({

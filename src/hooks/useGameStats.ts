@@ -1,17 +1,12 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
-
-interface GameStats {
-  gameHighScore: number;
-  hasDiscoveredCasino: boolean;
-}
 
 /**
  * Hook pour synchroniser les stats de jeu avec l'API
  * Gère le highscore persistant et les découvertes (casino)
  */
 export function useGameStats() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const isAuthenticated = status === 'authenticated';
   const hasFetched = useRef(false);
 

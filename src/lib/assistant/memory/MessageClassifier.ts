@@ -17,7 +17,7 @@
  * Heuristiques déterministes, sans appel IA.
  */
 
-import { ActionType, RouterDecision, RouterResult } from './Types';
+import { ActionType, RouterResult } from './Types';
 
 // ==========================================================================
 // Patterns et configurations

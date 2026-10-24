@@ -16,6 +16,8 @@ type AuthErrorOptions = {
   message?: string;
   /** Réponse complète à renvoyer à un visiteur non connecté (remplace anonymousStatus/message). */
   onAnonymous?: () => NextResponse;
+  /** Si vrai, une session sans `user.id` est traitée comme anonyme (garantit `session.user.id`). */
+  requireUserId?: boolean;
 };
 
 function authError(message: string, status: number): AuthResult {
@@ -30,9 +32,10 @@ export async function requireAuth({
   anonymousStatus = 401,
   message = 'Non autorisé',
   onAnonymous,
+  requireUserId = false,
 }: AuthErrorOptions = {}): Promise<AuthResult> {
   const session = await auth();
-  if (!session?.user) {
+  if (!session?.user || (requireUserId && !session.user.id)) {
     return onAnonymous
       ? { session: null, error: onAnonymous() }
       : authError(message, anonymousStatus);

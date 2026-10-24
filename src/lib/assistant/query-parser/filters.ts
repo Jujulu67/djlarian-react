@@ -2,12 +2,7 @@
  * Détection de filtres depuis les requêtes utilisateur
  */
 import { findStyleFromString } from '../parsers/style-matcher';
-import {
-  BuildAlternationRegexPart,
-  UpdateVerbs,
-  FieldAliases,
-  StatusSynonyms,
-} from './nlp-dictionary';
+import { BuildAlternationRegexPart, UpdateVerbs, StatusSynonyms } from './nlp-dictionary';
 
 /**
  * Helper pour les logs de debug (patterns matching)

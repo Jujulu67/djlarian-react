@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { auth } from '@/auth';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import {
@@ -12,6 +11,7 @@ import { createSuccessResponse, createUnauthorizedResponse } from '@/lib/api/res
 import { handleApiError } from '@/lib/api/errorHandler';
 import type { LiveChances, UserTicket, UserLiveItem } from '@/types/live';
 import { TicketSource, LiveItemType } from '@/types/live';
+import { requireAuth } from '@/lib/api/requireAuth';
 
 /**
  * GET /api/live/chances
@@ -19,11 +19,11 @@ import { TicketSource, LiveItemType } from '@/types/live';
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return createUnauthorizedResponse('Non authentifié');
-    }
+    const { session, error } = await requireAuth({
+      requireUserId: true,
+      onAnonymous: () => createUnauthorizedResponse('Non authentifié'),
+    });
+    if (error) return error;
 
     // Récupérer les tickets actifs
     const tickets = await prisma.userTicket.findMany({

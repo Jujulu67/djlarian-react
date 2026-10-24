@@ -4,7 +4,7 @@
 
 import { logger } from '@/lib/logger';
 
-import type { LastFmTrackInfoResponse, LastFmTrack } from './types';
+import type { LastFmTrackInfoResponse } from './types';
 
 const LASTFM_API_BASE = 'https://ws.audioscrobbler.com/2.0/';
 

@@ -1,6 +1,5 @@
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
-import { defaultConfigs } from '@/config/defaults';
 import { sanitizeObjectForLogs, sanitizeForLogs } from '@/lib/assistant/utils/sanitize-logs';
 
 /**

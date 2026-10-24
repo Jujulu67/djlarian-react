@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
 import { createSuccessResponse, createUnauthorizedResponse } from '@/lib/api/responseHelpers';
 import { handleApiError } from '@/lib/api/errorHandler';
 import prisma from '@/lib/prisma';
 import type { SpinResult } from '@/types/slot-machine';
 import { SymbolType, RewardType } from '@/types/slot-machine';
 import { COST_PER_SPIN, getRandomSymbol, determineReward } from '@/lib/slot-machine-logic';
+import { requireAuth } from '@/lib/api/requireAuth';
 
 const DAILY_TOKENS = 100;
 
@@ -32,11 +32,11 @@ function shouldResetDaily(lastResetDate: Date): boolean {
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return createUnauthorizedResponse('Non authentifié');
-    }
+    const { session, error } = await requireAuth({
+      requireUserId: true,
+      onAnonymous: () => createUnauthorizedResponse('Non authentifié'),
+    });
+    if (error) return error;
 
     // Récupérer ou créer l'entrée pour l'utilisateur
     let userTokens = await prisma.userSlotMachineTokens.findUnique({
