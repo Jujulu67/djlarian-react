@@ -1,10 +1,10 @@
 import { Prisma } from '@prisma/client';
-import { addDays, addMonths } from 'date-fns';
 
 import { auth } from '@/auth';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import { Event } from '@/types';
+import { addDaysInTimeZone, addMonthsInTimeZone } from '@/lib/utils/timezone';
 
 /**
  * Récupère les événements publiés pour la page d'accueil
@@ -136,9 +136,9 @@ function generateOccurrences(
   // Avancer jusqu'à la prochaine occurrence
   const step = () => {
     if (config.frequency === 'weekly') {
-      current = addDays(current, 7);
+      current = addDaysInTimeZone(current, 7);
     } else {
-      current = addMonths(current, 1);
+      current = addMonthsInTimeZone(current, 1);
     }
   };
 

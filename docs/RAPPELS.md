@@ -35,9 +35,10 @@ comme compromises.
       notifications, admin, événements, boutique, navigation, machine à sous, SoundCloud).
 - [ ] Routes API restantes non migrées vers `requireAuth` : celles qui testent `session.user.id`/`email`
       ou mélangent admin et propriétaire (~50).
-- [ ] Récurrence d'événements : la clé de date `YYYY-MM-DD` (exclusions `excludedDates`) vient de
-      `toISOString()` (UTC) → une occurrence entre 00:00 et 01:59 heure de Paris a la clé de la
-      veille. La corriger demande une migration des exclusions déjà stockées.
+- [x] Récurrence d'événements (25/10/2026) : les occurrences étaient calculées en UTC côté serveur,
+      donc décalées d'une heure après un changement d'heure. Tout est maintenant calculé en heure de
+      Paris (`src/lib/utils/timezone.ts`), ce qui aligne aussi les clés d'exclusion du serveur sur
+      celles enregistrées depuis le navigateur : aucune migration nécessaire.
 - [x] Bugs repérés pendant le refactor, corrigés le 24/10/2026 (PR fix/bugs-round-3) :
   - formulaire d'événement : `d&apos;` affiché tel quel (titre « Modifier l&apos;événement » et 2 toasts) ;
   - historique de configuration : libellés jamais appliqués (`general.siteName` au lieu du nom lisible) ;

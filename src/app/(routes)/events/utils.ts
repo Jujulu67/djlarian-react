@@ -1,4 +1,4 @@
-import { addDays, addMonths } from 'date-fns';
+import { addDaysInTimeZone, addMonthsInTimeZone } from '@/lib/utils/timezone';
 
 import { logger } from '@/lib/logger';
 
@@ -155,9 +155,9 @@ export function generateRecurringDatesForEvent(
 
   // Passer à la prochaine occurrence
   if (recurrence.frequency === 'weekly') {
-    currentDate = addDays(currentDate, 7);
+    currentDate = addDaysInTimeZone(currentDate, 7);
   } else if (recurrence.frequency === 'monthly') {
-    currentDate = addMonths(currentDate, 1);
+    currentDate = addMonthsInTimeZone(currentDate, 1);
   }
 
   // Calculer la date limite maximum selon la fréquence:
@@ -180,9 +180,9 @@ export function generateRecurringDatesForEvent(
 
     // Passer à la prochaine date selon la fréquence
     if (recurrence.frequency === 'weekly') {
-      currentDate = addDays(currentDate, 7);
+      currentDate = addDaysInTimeZone(currentDate, 7);
     } else if (recurrence.frequency === 'monthly') {
-      currentDate = addMonths(currentDate, 1);
+      currentDate = addMonthsInTimeZone(currentDate, 1);
     }
   }
 

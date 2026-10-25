@@ -122,6 +122,25 @@ describe('dates', () => {
     expect(dates.every((d) => d.getTime() > new Date(event.startDate).getTime())).toBe(true);
   });
 
+  it("garde l'heure de Paris après un changement d'heure (hebdomadaire)", () => {
+    // 20:00 heure de Paris, une semaine avant le passage à l'heure d'hiver du 25/10/2026
+    jest.setSystemTime(new Date('2026-10-20T12:00:00.000Z'));
+    const event = makeEvent({ startDate: '2026-10-21T18:00:00.000Z' });
+    const dates = generateRecurringDatesForEvent(event, {
+      frequency: 'weekly',
+      endDate: '2026-11-20',
+    });
+    const parisTime = (d: Date) =>
+      new Intl.DateTimeFormat('fr-FR', {
+        timeZone: 'Europe/Paris',
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(d);
+
+    expect(dates.length).toBeGreaterThan(0);
+    expect(dates.map(parisTime).every((t) => t === '20:00')).toBe(true);
+  });
+
   it('respecte la date de fin de récurrence', () => {
     const event = makeEvent({ startDate: '2026-05-15T10:00:00.000Z' });
     const dates = generateRecurringDatesForEvent(event, {
