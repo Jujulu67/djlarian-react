@@ -97,6 +97,59 @@ describe('requireAuth / requireAdmin', () => {
   });
 });
 
+describe('requireUserId option', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('keeps accepting a session without user.id by default', async () => {
+    mockAuth.mockResolvedValue({ user: { role: 'USER' } });
+
+    const { session, error } = await requireAuth();
+
+    expect(error).toBeNull();
+    expect(session?.user.id).toBeUndefined();
+  });
+
+  it('treats a session without user.id as anonymous when requireUserId is set', async () => {
+    mockAuth.mockResolvedValue({ user: { role: 'USER' } });
+
+    const { session, error } = await requireAuth({ requireUserId: true });
+
+    expect(session).toBeNull();
+    expect(error?.status).toBe(401);
+    await expect(error?.json()).resolves.toEqual({ error: 'Non autorisé' });
+  });
+
+  it('uses onAnonymous for a session without user.id when requireUserId is set', async () => {
+    const { NextResponse } = await import('next/server');
+    const onAnonymous = () => new NextResponse('Unauthorized', { status: 401 });
+    mockAuth.mockResolvedValue({ user: { role: 'USER' } });
+
+    const { error } = await requireAuth({ requireUserId: true, onAnonymous });
+
+    await expect(error?.text()).resolves.toBe('Unauthorized');
+  });
+
+  it('accepts a session with user.id when requireUserId is set', async () => {
+    mockAuth.mockResolvedValue({ user: { id: 'u1', role: 'USER' } });
+
+    const { session, error } = await requireAuth({ requireUserId: true });
+
+    expect(error).toBeNull();
+    expect(session?.user.id).toBe('u1');
+  });
+
+  it('applies requireUserId to requireAdmin as well', async () => {
+    mockAuth.mockResolvedValue({ user: { role: 'ADMIN' } });
+
+    const { session, error } = await requireAdmin({ requireUserId: true });
+
+    expect(session).toBeNull();
+    expect(error?.status).toBe(401);
+  });
+});
+
 describe('internal requests', () => {
   const originalSecret = process.env.NEXTAUTH_SECRET;
 

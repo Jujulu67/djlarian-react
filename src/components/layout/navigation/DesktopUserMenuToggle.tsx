@@ -1,6 +1,6 @@
 'use client';
 
-import { getDesktopAvatarSrc } from './navigationUtils';
+import { getAvatarSrc } from './navigationUtils';
 
 import type { Session } from 'next-auth';
 import { User } from 'lucide-react';
@@ -33,7 +33,7 @@ export function DesktopUserMenuToggle({
       {session.user?.image ? (
         <div className="relative w-11 h-11 rounded-full overflow-hidden v2:ring-1 v2:ring-white/15">
           <Image
-            src={getDesktopAvatarSrc(session.user.image)}
+            src={getAvatarSrc(session.user.image)}
             alt={session.user.name || 'Avatar'}
             fill
             className="object-cover"

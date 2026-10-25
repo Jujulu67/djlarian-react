@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     const { email, name, password } = body;
 
     if (!email || !name || !password) {
-      console.warn('[API] /api/auth/register - Champs manquants');
+      logger.warn('[API] /api/auth/register - Champs manquants');
       return NextResponse.json({ error: 'Tous les champs sont requis' }, { status: 400 });
     }
 
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     });
 
     if (existingUser) {
-      console.warn('[API] /api/auth/register - Email déjà utilisé');
+      logger.warn('[API] /api/auth/register - Email déjà utilisé');
       return NextResponse.json({ error: 'Cet email est déjà utilisé' }, { status: 400 });
     }
 
@@ -40,7 +40,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ message: 'Utilisateur créé avec succès' }, { status: 201 });
   } catch (error) {
-    console.error('[API] /api/auth/register - Erreur:', error);
     logger.error("Erreur lors de l'inscription:", error);
     return NextResponse.json(
       { error: "Une erreur est survenue lors de l'inscription" },

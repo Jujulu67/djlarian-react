@@ -140,7 +140,7 @@ export default function EventDetailPage() {
           if (response.status === 404) {
             throw new Error('Événement non trouvé');
           } else if (response.status === 403) {
-            throw new Error('Vous n&apos;avez pas accès à cet événement');
+            throw new Error("Vous n'avez pas accès à cet événement");
           } else {
             throw new Error('Une erreur est survenue lors de la récupération des données');
           }
@@ -338,7 +338,7 @@ export default function EventDetailPage() {
       const notFound = error === 'Événement non trouvé';
       return renderV2State(
         notFound ? 'Événement introuvable' : 'Une erreur est survenue',
-        notFound ? "Cet événement n'existe pas ou a été supprimé." : error.replace('&apos;', "'"),
+        notFound ? "Cet événement n'existe pas ou a été supprimé." : error,
         notFound ? 'neutral' : 'error'
       );
     }
@@ -355,7 +355,7 @@ export default function EventDetailPage() {
               </h2>
               <p className="text-gray-300 mb-6">
                 {error === 'Événement non trouvé'
-                  ? 'L&apos;événement que vous recherchez n&apos;existe pas ou a été supprimé.'
+                  ? "L'événement que vous recherchez n'existe pas ou a été supprimé."
                   : error}
               </p>
               <Link

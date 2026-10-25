@@ -156,10 +156,10 @@ export function MusicEmptyState({ searchTerm, typeLabel, onClearSearch }: MusicE
       <h2 className="text-2xl font-bold text-white mb-3">Aucun morceau trouvé</h2>
       <p className="text-gray-400 mb-6 max-w-md mx-auto">
         {searchTerm
-          ? `Aucun résultat ne correspond à &quot;${searchTerm}&quot;`
+          ? `Aucun résultat ne correspond à "${searchTerm}"`
           : !typeLabel
             ? 'Aucun morceau disponible pour le moment'
-            : `Aucun morceau de type &quot;${typeLabel}&quot;`}
+            : `Aucun morceau de type "${typeLabel}"`}
       </p>
       {searchTerm && (
         <button

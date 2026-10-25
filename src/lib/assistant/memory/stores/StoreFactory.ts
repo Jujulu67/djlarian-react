@@ -14,11 +14,8 @@
 
 import { IConversationMemoryStore, StoreBackend, StoreMetadata } from './IConversationMemoryStore';
 import { IActionMemoryStore } from './IActionMemoryStore';
-import {
-  ConversationMemoryStore,
-  getConversationMemoryStore as getMapConversationStore,
-} from '../ConversationMemoryStore';
-import { ActionMemoryStore, getActionMemoryStore as getMapActionStore } from '../ActionMemoryStore';
+import { getConversationMemoryStore as getMapConversationStore } from '../ConversationMemoryStore';
+import { getActionMemoryStore as getMapActionStore } from '../ActionMemoryStore';
 import { ConversationMemoryOptions, ActionMemoryOptions } from '../Types';
 
 // ============================================================================

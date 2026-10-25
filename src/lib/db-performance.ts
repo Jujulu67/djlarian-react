@@ -146,7 +146,6 @@ class DbPerformanceLogger {
 
       return { result, metrics };
     } catch (error) {
-      const tError = Date.now();
       const queryTime = t1 && t2 ? t2 - t1 : undefined;
       this.end(t0, {
         queryTime,

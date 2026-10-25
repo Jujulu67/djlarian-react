@@ -1,6 +1,22 @@
-import { formatDuration, formatDate, formatTime, formatNumber } from '../format';
+import { formatDuration, formatDate, formatTime, formatNumber, formatDateFrench } from '../format';
 
 describe('format utilities', () => {
+  describe('formatDateFrench', () => {
+    it('should format a valid ISO date as DD/MM/YYYY', () => {
+      expect(formatDateFrench('2025-03-05T12:00:00')).toBe('05/03/2025');
+    });
+
+    it('should return an empty string when the date is missing', () => {
+      expect(formatDateFrench(null)).toBe('');
+      expect(formatDateFrench('')).toBe('');
+    });
+
+    it('should return the original value when the date is invalid', () => {
+      expect(formatDateFrench('pas une date')).toBe('pas une date');
+      expect(formatDateFrench('2025-13-45')).toBe('2025-13-45');
+    });
+  });
+
   describe('formatDuration', () => {
     it('should format seconds to MM:SS', () => {
       expect(formatDuration(0)).toBe('0:00');

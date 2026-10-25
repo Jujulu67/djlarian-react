@@ -56,12 +56,6 @@ export interface Notification {
   } | null;
 }
 
-interface NotificationsResponse {
-  notifications: Notification[];
-  unreadCount: number;
-  total: number;
-}
-
 interface UseNotificationsReturn {
   notifications: Notification[];
   unreadCount: number;

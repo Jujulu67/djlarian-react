@@ -14,16 +14,9 @@
  * O7: Feature flag GROQ_SEND_DEPRECATED_MAX_TOKENS pour max_tokens déprécié
  */
 
-import { ChatMessage, GroqMessage, GroqPayload, isChatMessage } from './Types';
+import { GroqMessage, GroqPayload, isChatMessage } from './Types';
 import { ConversationMemoryStore } from './ConversationMemoryStore';
-import {
-  capMaxCompletionTokens,
-  getModelContextLimit,
-  getModelMaxOutput,
-  getBoundedResponseReserve,
-  ModelContextTokens,
-  ModelMaxOutputTokens,
-} from './ModelLimits';
+import { capMaxCompletionTokens, getModelMaxOutput, ModelContextTokens } from './ModelLimits';
 
 const DEFAULT_MODEL = 'llama-3.1-8b-instant';
 
@@ -110,9 +103,6 @@ const USER_INJECTION_PATTERNS = [
   // Blocs code JSON purs (pas discussions sur JSON)
   /^```json\s*\[[\s\S]*\]```$/im,
 ];
-
-// Legacy export pour compatibilité - NE PAS UTILISER DIRECTEMENT
-const POLLUTION_PATTERNS = ACTION_OUTPUT_PATTERNS;
 
 interface GroqPayloadBuilderOptions {
   model?: string;

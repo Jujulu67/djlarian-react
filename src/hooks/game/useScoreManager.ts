@@ -20,7 +20,6 @@ export function useScoreManager({
   setPatterns,
   isActive,
   animationFrame,
-  endGame,
 }: UseScoreManagerProps) {
   const calculateHitAccuracy = useCallback(
     (

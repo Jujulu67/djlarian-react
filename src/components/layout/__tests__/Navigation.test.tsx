@@ -18,10 +18,11 @@ jest.mock('next/navigation', () => ({
 }));
 
 // Mock next-auth/react
+let mockSession: unknown = null;
 jest.mock('next-auth/react', () => ({
   useSession: () => ({
-    data: null,
-    status: 'unauthenticated',
+    data: mockSession,
+    status: mockSession ? 'authenticated' : 'unauthenticated',
   }),
 }));
 
@@ -53,5 +54,29 @@ describe('Navigation', () => {
     render(<Navigation />);
     const homeLink = screen.getByText(/home/i);
     expect(homeLink).toBeInTheDocument();
+  });
+
+  describe('avatar of a Google user', () => {
+    const googleImage = 'https://lh3.googleusercontent.com/a/abc=s96-c';
+
+    beforeEach(() => {
+      mockSession = {
+        user: { name: 'DJ Test', image: googleImage, role: 'USER' },
+        expires: '2999-01-01T00:00:00.000Z',
+      };
+    });
+
+    afterEach(() => {
+      mockSession = null;
+    });
+
+    it('uses the image proxy in both desktop and mobile menus', () => {
+      render(<Navigation />);
+      const avatars = screen.getAllByAltText('DJ Test');
+      expect(avatars.length).toBeGreaterThanOrEqual(2);
+      avatars.forEach((avatar) => {
+        expect(avatar.getAttribute('src')).toContain('/api/images/proxy?url=');
+      });
+    });
   });
 });

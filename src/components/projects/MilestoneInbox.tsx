@@ -24,6 +24,8 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+import { formatDateFrench } from '@/lib/utils/format';
+
 import {
   useNotifications,
   Notification,
@@ -34,23 +36,6 @@ import {
 interface MilestoneInboxProps {
   isOpen: boolean;
   onClose: () => void;
-}
-
-/**
- * Formate une date ISO en format français (DD/MM/YYYY)
- */
-function formatDateFrench(dateString: string | null): string {
-  if (!dateString) return '';
-
-  try {
-    const date = new Date(dateString);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
-  } catch {
-    return dateString;
-  }
 }
 
 /**

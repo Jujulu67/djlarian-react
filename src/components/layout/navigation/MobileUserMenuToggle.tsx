@@ -5,6 +5,8 @@ import { User } from 'lucide-react';
 import Image from 'next/image';
 import type { Dispatch, SetStateAction } from 'react';
 
+import { getAvatarSrc } from './navigationUtils';
+
 interface MobileUserMenuToggleProps {
   isMobileUserMenuOpen: boolean;
   session: Session;
@@ -31,7 +33,7 @@ export function MobileUserMenuToggle({
       {session.user?.image ? (
         <div className="relative w-10 h-10 rounded-full overflow-hidden v2:ring-1 v2:ring-white/15">
           <Image
-            src={session.user.image}
+            src={getAvatarSrc(session.user.image)}
             alt={session.user.name || 'Avatar'}
             fill
             className="object-cover"

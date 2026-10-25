@@ -3,9 +3,9 @@
 import { Archive, Check, ChevronDown, ChevronUp, MessageSquare, TrendingUp } from 'lucide-react';
 
 import type { Notification, NotificationType } from '@/hooks/useNotifications';
+import { formatDateFrench } from '@/lib/utils/format';
 
 import {
-  formatDateFrench,
   formatDateTimeFrench,
   getNotificationStyle,
   getNotificationVisuals,

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { auth } from '@/auth';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import { createSuccessResponse, createUnauthorizedResponse } from '@/lib/api/responseHelpers';
 import { handleApiError } from '@/lib/api/errorHandler';
+import { requireAuth } from '@/lib/api/requireAuth';
 
 /**
  * GET /api/live/items
@@ -12,11 +12,11 @@ import { handleApiError } from '@/lib/api/errorHandler';
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return createUnauthorizedResponse('Non authentifié');
-    }
+    const { error } = await requireAuth({
+      requireUserId: true,
+      onAnonymous: () => createUnauthorizedResponse('Non authentifié'),
+    });
+    if (error) return error;
 
     const items = await prisma.liveItem.findMany({
       where: {

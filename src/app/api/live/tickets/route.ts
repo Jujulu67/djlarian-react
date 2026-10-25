@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
-import { auth } from '@/auth';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import { createSuccessResponse, createUnauthorizedResponse } from '@/lib/api/responseHelpers';
 import { handleApiError } from '@/lib/api/errorHandler';
 import { TicketSource } from '@/types/live';
+import { requireAuth } from '@/lib/api/requireAuth';
 
 const createTicketSchema = z.object({
   quantity: z.number().int().positive(),
@@ -20,11 +20,11 @@ const createTicketSchema = z.object({
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return createUnauthorizedResponse('Non authentifié');
-    }
+    const { session, error } = await requireAuth({
+      requireUserId: true,
+      onAnonymous: () => createUnauthorizedResponse('Non authentifié'),
+    });
+    if (error) return error;
 
     const tickets = await prisma.userTicket.findMany({
       where: {
@@ -48,11 +48,11 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return createUnauthorizedResponse('Non authentifié');
-    }
+    const { session, error } = await requireAuth({
+      requireUserId: true,
+      onAnonymous: () => createUnauthorizedResponse('Non authentifié'),
+    });
+    if (error) return error;
 
     // Seuls les admins peuvent créer des tickets manuellement
     const user = await prisma.user.findUnique({

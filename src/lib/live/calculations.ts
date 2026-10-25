@@ -1,5 +1,5 @@
 import type { LiveChances, UserLiveItem, UserTicket } from '@/types/live';
-import { LiveItemType, TicketSource } from '@/types/live';
+import { LiveItemType } from '@/types/live';
 import { getItemDefinition } from './items';
 
 /**
@@ -106,17 +106,12 @@ export function calculateTicketsFromItems(activatedItems: UserLiveItem[]): numbe
  * @returns Poids final (baseWeight * multiplier si multiplier fourni)
  */
 export function calculateTicketWeight(
-  activeTickets: UserTicket[],
+  // Conservé pour la compatibilité des appels : le poids ne dépend que des items activés
+  _activeTickets: UserTicket[],
   activatedItems: UserLiveItem[],
   multiplier?: number
 ): number {
   let weight = 1; // Base
-
-  // Filtrer les tickets actifs (non expirés)
-  const now = new Date();
-  const validTickets = activeTickets.filter(
-    (ticket) => !ticket.expiresAt || ticket.expiresAt > now
-  );
 
   // Eternal tickets: +1 par ticket (activatedQuantity de l'item ETERNAL_TICKET activé)
   // Les tickets éternels sont stockés dans la activatedQuantity de l'item UserLiveItem, pas dans UserTicket

@@ -61,13 +61,13 @@ export function determineReward(symbols: [SymbolType, SymbolType, SymbolType]): 
   isWin: boolean;
   message: string;
 } {
-  const [s1, s2, s3] = symbols;
+  const [s1] = symbols;
   const counts: Record<string, number> = {};
   symbols.forEach((s) => (counts[s] = (counts[s] || 0) + 1));
 
   let maxCount = 0;
 
-  for (const [s, count] of Object.entries(counts)) {
+  for (const [, count] of Object.entries(counts)) {
     if (count > maxCount) {
       maxCount = count;
     }

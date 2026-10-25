@@ -25,7 +25,6 @@ export const useAudioFrequencyCapture = ({
   const [frequencyData, setFrequencyData] = useState<Uint8Array | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
 
-  const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);

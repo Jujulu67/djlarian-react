@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server';
 import { revalidateTag } from 'next/cache';
 
-import { auth } from '@/auth';
 import { handleApiError } from '@/lib/api/errorHandler';
 import {
   createSuccessResponse,
@@ -12,6 +11,7 @@ import prisma from '@/lib/prisma';
 import { serializeProjects, serializeProject } from '@/lib/utils/serializeProject';
 import { Project } from '@/components/projects/types';
 import { ProjectStatus } from '@/components/projects/types';
+import { requireAuth } from '@/lib/api/requireAuth';
 
 // Fonction helper pour invalider le cache des projets d'un utilisateur
 function invalidateProjectsCache(userId: string) {
@@ -54,11 +54,11 @@ interface BatchCreateResult {
 // POST /api/projects/batch - Crée plusieurs projets en batch
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return createUnauthorizedResponse('Non autorisé');
-    }
+    const { session, error } = await requireAuth({
+      requireUserId: true,
+      onAnonymous: () => createUnauthorizedResponse('Non autorisé'),
+    });
+    if (error) return error;
 
     // Vérifier que l'utilisateur existe bien dans la base de données
     const userExists = await prisma.user.findUnique({

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
 import { createSuccessResponse, createUnauthorizedResponse } from '@/lib/api/responseHelpers';
 import { handleApiError } from '@/lib/api/errorHandler';
 import prisma from '@/lib/prisma';
 import { RewardType } from '@/types/slot-machine';
+import { requireAuth } from '@/lib/api/requireAuth';
 
 // Configuration du RTP (Return To Player) ~ 0.7
 const GAME_COST = 10; // Coût par partie
@@ -106,10 +106,11 @@ function determineOutcome(gameType: 'roulette' | 'scratch' | 'mystery'): GameOut
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return createUnauthorizedResponse('Non authentifié');
-    }
+    const { session, error } = await requireAuth({
+      requireUserId: true,
+      onAnonymous: () => createUnauthorizedResponse('Non authentifié'),
+    });
+    if (error) return error;
 
     const body = await request.json();
     const { gameType } = body;
