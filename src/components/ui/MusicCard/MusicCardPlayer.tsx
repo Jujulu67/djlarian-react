@@ -83,7 +83,7 @@ export const MusicCardPlayer: React.FC<MusicCardPlayerProps> = ({
       <div className="absolute top-0 right-0" style={{ zIndex: 1000 }}>
         <button
           onClick={onClose}
-          className={`flex items-center justify-center ${bgColor} text-white/90 rounded-bl-lg p-1.5 transition-colors shadow-lg`}
+          className={`flex items-center justify-center ${bgColor} text-white/90 rounded-bl-lg p-1.5 transition-colors shadow-lg v2:bg-black/60 v2:backdrop-blur-md v2:hover:bg-black/80 v2:rounded-bl-xl v2:shadow-none`}
           aria-label="Fermer le lecteur"
           style={{ width: '28px', height: '28px' }}
         >

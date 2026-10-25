@@ -3,7 +3,7 @@
 import { RefreshCw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import 'react-image-crop/dist/ReactCrop.css';
 
 import ImageCropModal from '@/components/ui/ImageCropModal';

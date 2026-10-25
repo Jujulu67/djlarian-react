@@ -5,7 +5,7 @@ import { Menu, User, Bell } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import AuthModal from '../auth/AuthModal';
 import { MilestoneInbox } from '@/components/projects/MilestoneInbox';
@@ -95,6 +95,16 @@ const Navigation = () => {
   //   }
   // }, [session]);
 
+  // Escape ferme le menu mobile
+  useEffect(() => {
+    if (!isMobileMenuOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsMobileMenuOpen(false);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isMobileMenuOpen]);
+
   const isAdmin = session?.user?.role === 'ADMIN';
 
   const links = getNavLinks(shopEnabled, isAdmin);
@@ -117,12 +127,17 @@ const Navigation = () => {
           isScrolled
             ? 'bg-black/90 backdrop-blur-xl border-b border-purple-500/20 border-opacity-100 shadow-2xl shadow-purple-500/10'
             : 'bg-gradient-to-b from-black/70 via-black/50 to-transparent border-b border-purple-500/10 border-opacity-0 shadow-none'
-        }`}
+        } ${
+          /* v2 : « pilule » de verre flottante, qui se densifie au scroll */
+          isScrolled
+            ? 'v2:top-2 v2:bg-[rgb(9_9_11/0.72)] v2:shadow-[inset_0_1px_0_rgb(255_255_255/0.07),0_16px_48px_-16px_rgb(0_0_0/0.8)]'
+            : 'v2:top-3 v2:bg-white/[0.04] v2:shadow-[inset_0_1px_0_rgb(255_255_255/0.07)]'
+        } v2:left-1/2 v2:right-auto v2:w-[min(1180px,calc(100%-1.5rem))] v2:-translate-x-1/2 v2:rounded-[1.75rem] v2:border v2:border-white/10 v2:bg-none v2:backdrop-blur-xl v2:backdrop-saturate-150 v2:duration-300`}
       >
         {/* Animated gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-transparent to-blue-500/10 opacity-50" />
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-transparent to-blue-500/10 opacity-50 v2:hidden" />
         <div
-          className={`absolute inset-0 transition-opacity duration-500 ${
+          className={`absolute inset-0 transition-opacity duration-500 v2:hidden ${
             isScrolled ? 'opacity-100' : 'opacity-0'
           }`}
           style={{
@@ -137,10 +152,10 @@ const Navigation = () => {
 
         {/* Glow effect on scroll */}
         {isScrolled && (
-          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-500/50 to-transparent animate-glow-pulse" />
+          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-500/50 to-transparent animate-glow-pulse v2:hidden" />
         )}
 
-        <nav className="container mx-auto px-3 sm:px-4 h-16 flex items-center justify-between relative z-10 gap-2 sm:gap-4">
+        <nav className="container mx-auto px-3 sm:px-4 h-16 flex items-center justify-between relative z-10 gap-2 sm:gap-4 v2:h-14 v2:max-w-none v2:pl-5 v2:pr-2">
           <Link
             href="/"
             className="text-xl sm:text-2xl font-audiowide text-white lg:hover:text-transparent lg:hover:bg-clip-text lg:hover:bg-gradient-to-r lg:hover:from-purple-400 lg:hover:via-blue-400 lg:hover:to-purple-400 active:text-white transition-all duration-300 relative group shrink-0"
@@ -152,7 +167,7 @@ const Navigation = () => {
           </Link>
 
           {/* Version desktop - visible from lg breakpoint to avoid overlaps */}
-          <div className="hidden lg:flex items-center space-x-6 xl:space-x-8">
+          <div className="hidden lg:flex items-center space-x-6 xl:space-x-8 v2:space-x-0 v2:gap-1">
             {links.map((link) => (
               <DesktopNavLink
                 key={link.href}
@@ -355,6 +370,8 @@ const Navigation = () => {
               style={{ borderRadius: '9999px' }}
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               aria-label="Menu navigation"
+              aria-expanded={isMobileMenuOpen}
+              aria-controls="mobile-nav"
             >
               <Menu className="w-5 h-5" />
             </button>

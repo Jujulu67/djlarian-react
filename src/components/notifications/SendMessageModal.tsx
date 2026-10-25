@@ -203,7 +203,7 @@ export function SendMessageModal({
     <>
       {/* Overlay */}
       <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[10000]"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[10000] v2:bg-black/55 v2:backdrop-blur-md"
         onClick={handleClose}
         aria-hidden="true"
       />
@@ -211,14 +211,14 @@ export function SendMessageModal({
       {/* Modal */}
       <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
         <div
-          className="w-full max-w-md bg-gradient-to-br from-gray-900/95 via-gray-800/95 to-gray-900/95 backdrop-blur-xl border border-purple-500/30 rounded-xl shadow-2xl max-h-[90vh] overflow-y-auto"
+          className="w-full max-w-md bg-gradient-to-br from-gray-900/95 via-gray-800/95 to-gray-900/95 backdrop-blur-xl border border-purple-500/30 rounded-xl shadow-2xl max-h-[90vh] overflow-y-auto v2:bg-none v2:surface-3 v2:rounded-3xl"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-700/50">
+          <div className="flex items-center justify-between p-4 border-b border-gray-700/50 v2:border-white/10">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-500/20 rounded-lg">
-                <Send className="w-5 h-5 text-blue-400" />
+              <div className="p-2 bg-blue-500/20 rounded-lg v2:bg-white/[0.06] v2:rounded-xl">
+                <Send className="w-5 h-5 text-blue-400 v2:text-white/70" />
               </div>
               <h2 className="text-lg font-semibold text-white">
                 {replyTo ? 'Répondre au message' : 'Envoyer un message'}
@@ -227,7 +227,7 @@ export function SendMessageModal({
             <button
               onClick={handleClose}
               disabled={isSending}
-              className="p-2 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-lg transition-colors disabled:opacity-50"
+              className="p-2 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-lg transition-colors disabled:opacity-50 v2:rounded-xl v2:hover:bg-white/[0.06]"
               aria-label="Fermer"
             >
               <X className="w-4 h-4" />
@@ -238,19 +238,22 @@ export function SendMessageModal({
           <form onSubmit={handleSubmit} className="p-4 space-y-4">
             {/* Erreur */}
             {error && (
-              <div className="p-3 bg-red-500/20 border border-red-500/30 rounded-lg text-red-400 text-sm">
+              <div className="p-3 bg-red-500/20 border border-red-500/30 rounded-lg text-red-400 text-sm v2:rounded-xl">
                 {error}
               </div>
             )}
 
             {/* Sélecteur de destinataire */}
             <div className="space-y-2">
-              <label htmlFor="recipient-select" className="text-sm font-medium text-gray-300">
+              <label
+                htmlFor="recipient-select"
+                className="text-sm font-medium text-gray-300 v2:text-white/70"
+              >
                 Destinataire
               </label>
               {isLoadingUsers ? (
                 <div className="flex items-center justify-center py-4">
-                  <Loader2 className="w-5 h-5 animate-spin text-purple-500" />
+                  <Loader2 className="w-5 h-5 animate-spin text-purple-500 v2:text-white/50" />
                 </div>
               ) : (
                 <>
@@ -262,7 +265,7 @@ export function SendMessageModal({
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Rechercher un utilisateur..."
-                      className="w-full pl-10 pr-4 py-2 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                      className="w-full pl-10 pr-4 py-2 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 v2:rounded-xl v2:border-white/10 v2:bg-white/[0.03] v2:focus:border-brand/70 v2:focus:ring-4 v2:focus:ring-brand/15"
                     />
                   </div>
 
@@ -275,7 +278,7 @@ export function SendMessageModal({
                         setSearchQuery(''); // Réinitialiser la recherche si on sélectionne "TOUS"
                       }
                     }}
-                    className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                    className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 v2:rounded-xl v2:border-white/10 v2:bg-white/[0.03] v2:focus:border-brand/70 v2:focus:ring-4 v2:focus:ring-brand/15"
                     disabled={!!replyTo}
                   >
                     {isAdmin && !replyTo && <option value="ALL">Tous les utilisateurs</option>}
@@ -293,7 +296,7 @@ export function SendMessageModal({
 
                   {/* Message si aucun ami disponible pour les non-admins */}
                   {!isAdmin && !replyTo && users.length === 0 && !isLoadingUsers && (
-                    <div className="p-3 bg-yellow-500/20 border border-yellow-500/30 rounded-lg text-yellow-400 text-sm">
+                    <div className="p-3 bg-yellow-500/20 border border-yellow-500/30 rounded-lg text-yellow-400 text-sm v2:rounded-xl">
                       <p>Vous n'avez pas encore d'amis.</p>
                       <p className="text-xs mt-1">
                         Allez dans l'onglet "Amis" pour ajouter des amis et pouvoir leur envoyer des
@@ -307,7 +310,7 @@ export function SendMessageModal({
 
             {/* Titre */}
             <div className="space-y-2">
-              <label htmlFor="title" className="text-sm font-medium text-gray-300">
+              <label htmlFor="title" className="text-sm font-medium text-gray-300 v2:text-white/70">
                 Titre <span className="text-red-400">*</span>
               </label>
               <input
@@ -315,7 +318,7 @@ export function SendMessageModal({
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 v2:rounded-xl v2:border-white/10 v2:bg-white/[0.03] v2:focus:border-brand/70 v2:focus:ring-4 v2:focus:ring-brand/15"
                 placeholder="Titre de la notification"
                 required
                 disabled={isSending}
@@ -324,7 +327,10 @@ export function SendMessageModal({
 
             {/* Message */}
             <div className="space-y-2">
-              <label htmlFor="message" className="text-sm font-medium text-gray-300">
+              <label
+                htmlFor="message"
+                className="text-sm font-medium text-gray-300 v2:text-white/70"
+              >
                 Message
               </label>
               <textarea
@@ -332,7 +338,7 @@ export function SendMessageModal({
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 rows={4}
-                className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 resize-none"
+                className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 resize-none v2:rounded-xl v2:border-white/10 v2:bg-white/[0.03] v2:focus:border-brand/70 v2:focus:ring-4 v2:focus:ring-brand/15"
                 placeholder="Message de la notification (optionnel)"
                 disabled={isSending}
               />
@@ -344,7 +350,7 @@ export function SendMessageModal({
                 type="button"
                 onClick={handleClose}
                 disabled={isSending}
-                className="flex-1 px-4 py-2 bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700/50 rounded-lg text-gray-300 text-sm font-medium transition-colors disabled:opacity-50"
+                className="flex-1 px-4 py-2 bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700/50 rounded-lg text-gray-300 text-sm font-medium transition-colors disabled:opacity-50 v2:rounded-xl v2:border-transparent v2:bg-white/[0.04] v2:ring-1 v2:ring-inset v2:ring-white/10 v2:text-white/80 v2:hover:bg-white/[0.08] v2:active:scale-[0.98]"
               >
                 Annuler
               </button>
@@ -357,7 +363,7 @@ export function SendMessageModal({
                   selectedUserId === '' ||
                   !title.trim()
                 }
-                className="flex-1 px-4 py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded-lg text-purple-300 text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded-lg text-purple-300 text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2 v2:rounded-xl v2:border-transparent v2:bg-gradient-to-b v2:from-brand v2:to-purple-600 v2:text-white v2:shadow-[inset_0_1px_0_rgb(255_255_255/0.22)] v2:hover:brightness-110 v2:active:scale-[0.98]"
               >
                 {isSending ? (
                   <>

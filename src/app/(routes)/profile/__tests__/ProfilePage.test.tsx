@@ -15,8 +15,8 @@ jest.mock('next/navigation', () => ({
   useSearchParams: jest.fn(),
 }));
 
-// Mock react-hot-toast
-jest.mock('react-hot-toast', () => ({
+// Mock sonner
+jest.mock('sonner', () => ({
   toast: {
     success: jest.fn(),
     error: jest.fn(),

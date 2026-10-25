@@ -1,12 +1,15 @@
 'use client';
 
 import { hasArcadeAccess } from './navigationUtils';
+import { USER_MENU_PANEL_V2, userMenuItemClass } from './userMenuStyles';
 
 import type { Session } from 'next-auth';
 import { AnimatePresence, motion } from 'framer-motion';
 import { FolderKanban, Gamepad2, KeyRound, LogOut, Settings, User } from 'lucide-react';
 import Link from 'next/link';
 import type { Dispatch, SetStateAction } from 'react';
+
+import { useUiVersion } from '@/hooks/useUiVersion';
 
 interface MobileUserDropdownProps {
   handleSignOut: () => void;
@@ -23,6 +26,7 @@ export function MobileUserDropdown({
   setIsMobileMenuOpen,
   setIsMobileUserMenuOpen,
 }: MobileUserDropdownProps) {
+  const isV2 = useUiVersion() === 'v2';
   return (
     <AnimatePresence>
       {isMobileUserMenuOpen && (
@@ -47,56 +51,56 @@ export function MobileUserDropdown({
               duration: 0.15,
             },
           }}
-          className="absolute right-0 mt-2 w-48 rounded-lg bg-black/95 backdrop-blur-lg border border-purple-500/20 shadow-lg shadow-purple-500/5"
+          className={`absolute right-0 mt-2 w-48 rounded-lg bg-black/95 backdrop-blur-lg border border-purple-500/20 shadow-lg shadow-purple-500/5 ${USER_MENU_PANEL_V2}`}
           style={{ padding: '0.25rem' }}
         >
           <div className="py-1">
-            <div className="px-4 py-2 text-sm text-white border-b border-purple-500/20 mb-1">
+            <div className="px-4 py-2 text-sm text-white border-b border-purple-500/20 mb-1 v2:mb-1.5 v2:px-3 v2:border-white/10 v2:font-medium">
               {session.user?.name || 'Utilisateur'}
             </div>
             {session.user?.role === 'ADMIN' && (
               <Link
                 href="/admin"
-                className="navMenuItem navMenuItemDanger"
+                className={userMenuItemClass(isV2, 'navMenuItem navMenuItemDanger', 'danger')}
                 onClick={() => {
                   setIsMobileUserMenuOpen(false);
                   // Fermer aussi le menu burger si ouvert
                   setIsMobileMenuOpen(false);
                 }}
               >
-                <Settings className="w-4 h-4 mr-2" />
+                <Settings className="w-4 h-4 mr-2 v2:mr-0 v2:text-brand" />
                 Panel Admin
               </Link>
             )}
             <Link
               href="/profile"
-              className="navMenuItem"
+              className={userMenuItemClass(isV2, 'navMenuItem')}
               onClick={() => setIsMobileUserMenuOpen(false)}
             >
-              <User className="w-4 h-4 mr-2" />
+              <User className="w-4 h-4 mr-2 v2:mr-0" />
               Profil
             </Link>
             <Link
               href="/projects"
-              className="navMenuItem navMenuItemAccent"
+              className={userMenuItemClass(isV2, 'navMenuItem navMenuItemAccent')}
               onClick={() => {
                 setIsMobileUserMenuOpen(false);
                 setIsMobileMenuOpen(false);
               }}
             >
-              <FolderKanban className="w-4 h-4 mr-2" />
+              <FolderKanban className="w-4 h-4 mr-2 v2:mr-0" />
               Mes Projets
             </Link>
 
             <Link
               href="/licenses"
-              className="navMenuItem navMenuItemSuccess"
+              className={userMenuItemClass(isV2, 'navMenuItem navMenuItemSuccess')}
               onClick={() => {
                 setIsMobileUserMenuOpen(false);
                 setIsMobileMenuOpen(false);
               }}
             >
-              <KeyRound className="w-4 h-4 mr-2" />
+              <KeyRound className="w-4 h-4 mr-2 v2:mr-0" />
               Mes Licences
             </Link>
 
@@ -104,13 +108,13 @@ export function MobileUserDropdown({
             {hasArcadeAccess(session.user) ? (
               <Link
                 href="/games"
-                className="navMenuItem navMenuItemWarning"
+                className={userMenuItemClass(isV2, 'navMenuItem navMenuItemWarning')}
                 onClick={() => {
                   setIsMobileUserMenuOpen(false);
                   setIsMobileMenuOpen(false);
                 }}
               >
-                <Gamepad2 className="w-4 h-4 mr-2" />
+                <Gamepad2 className="w-4 h-4 mr-2 v2:mr-0" />
                 Arcade
               </Link>
             ) : null}
@@ -120,9 +124,9 @@ export function MobileUserDropdown({
                 await handleSignOut();
                 setIsMobileUserMenuOpen(false);
               }}
-              className="navMenuItem navMenuItemDanger w-full"
+              className={userMenuItemClass(isV2, 'navMenuItem navMenuItemDanger w-full', 'danger')}
             >
-              <LogOut className="w-4 h-4 mr-2" />
+              <LogOut className="w-4 h-4 mr-2 v2:mr-0" />
               Déconnexion
             </button>
           </div>

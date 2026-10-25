@@ -3,7 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, X, Download, LayoutDashboard } from 'lucide-react';
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useLiveSubmissions } from '../hooks/useLiveSubmissions';
@@ -19,6 +19,7 @@ import {
 import { analyzeAudioFile, type AudioAnalysisResult } from '@/lib/live/audio-analysis';
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
 import type { LiveSubmission } from '@/types/live';
+import { useUiVersion } from '@/hooks/useUiVersion';
 
 export function LiveSubmissionForm() {
   const { data: session } = useSession();
@@ -51,6 +52,7 @@ export function LiveSubmissionForm() {
   const [activeSubmission, setActiveSubmission] = useState<LiveSubmission | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const isAdmin = session?.user?.role === 'ADMIN';
+  const isV2 = useUiVersion() === 'v2';
 
   // Charger le mode de stockage (Blob vs local) et l'état des soumissions
   useEffect(() => {
@@ -804,32 +806,46 @@ export function LiveSubmissionForm() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
-      className="glass-modern glass-modern-hover rounded-2xl p-4 sm:p-6 lg:p-5 h-full flex flex-col"
+      className={
+        isV2
+          ? 'surface-1 flex h-full flex-col rounded-2xl p-5 sm:p-6'
+          : 'glass-modern glass-modern-hover rounded-2xl p-4 sm:p-6 lg:p-5 h-full flex flex-col'
+      }
     >
       {!trackSubmissionsEnabled ? (
         <div className="flex-1 flex items-center justify-center">
-          <div className="glass-modern rounded-xl p-8 sm:p-12 text-center max-w-md w-full border border-red-500/30">
-            <div className="mb-4">
-              <X className="w-16 h-16 mx-auto text-red-400" />
+          <div
+            className={
+              isV2
+                ? 'w-full max-w-md px-6 py-10 text-center'
+                : 'glass-modern rounded-xl p-8 sm:p-12 text-center max-w-md w-full border border-red-500/30'
+            }
+          >
+            <div className="mb-4 v2:mx-auto v2:mb-5 v2:flex v2:h-14 v2:w-14 v2:items-center v2:justify-center v2:rounded-full v2:bg-white/[0.04]">
+              <X className="w-16 h-16 mx-auto text-red-400 v2:h-6 v2:w-6 v2:text-white/70" />
             </div>
-            <h3 className="text-xl sm:text-2xl font-audiowide text-white mb-3">
+            <h3 className="text-xl sm:text-2xl font-audiowide text-white mb-3 v2:mb-2 v2:font-sans v2:text-lg v2:font-semibold">
               Soumissions indisponibles
             </h3>
-            <p className="text-gray-300 text-sm sm:text-base">
+            <p className="text-gray-300 text-sm sm:text-base v2:text-sm v2:text-white/60">
               Les soumissions sont temporairement indisponibles pour le moment.
             </p>
-            <p className="text-gray-400 text-xs sm:text-sm mt-2">Veuillez réessayer plus tard.</p>
+            <p className="text-gray-400 text-xs sm:text-sm mt-2 v2:text-white/45">
+              Veuillez réessayer plus tard.
+            </p>
           </div>
         </div>
       ) : (
         <>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg sm:text-xl lg:text-lg font-audiowide text-white">SUBMISSION</h2>
-            <div className="flex items-center gap-2">
+            <h2 className="text-lg sm:text-xl lg:text-lg font-audiowide text-white v2:font-sans v2:text-base v2:font-semibold">
+              SUBMISSION
+            </h2>
+            <div className="flex flex-wrap items-center justify-end gap-2">
               {isAdmin && (
                 <Link
                   href="/admin/live"
-                  className="bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg font-medium text-sm flex items-center gap-2 transition-colors"
+                  className="bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg font-medium text-sm flex items-center gap-2 transition-colors v2:rounded-xl v2:bg-white/[0.04] v2:text-white/80 v2:ring-1 v2:ring-inset v2:ring-white/10 v2:hover:bg-white/[0.08] v2:hover:text-white"
                 >
                   <LayoutDashboard className="w-4 h-4" />
                   Dashboard
@@ -837,7 +853,7 @@ export function LiveSubmissionForm() {
               )}
               <button
                 disabled
-                className="bg-gray-700/50 text-gray-400 py-2 px-4 rounded-lg font-medium cursor-not-allowed text-sm flex items-center gap-2"
+                className="bg-gray-700/50 text-gray-400 py-2 px-4 rounded-lg font-medium cursor-not-allowed text-sm flex items-center gap-2 v2:rounded-xl v2:bg-white/[0.02] v2:text-white/35 v2:ring-1 v2:ring-inset v2:ring-white/[0.06]"
               >
                 <Download className="w-4 h-4" />
                 Download Sample
@@ -870,23 +886,25 @@ export function LiveSubmissionForm() {
             {/* Inputs - Désactivés si soumis et pas en mode édition */}
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Title</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1 v2:mb-2 v2:text-white/80">
+                  Title
+                </label>
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Track Title"
                   disabled={!!(activeSubmission && !isEditing)}
-                  className={`w-full bg-gray-800/50 border rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all ${
+                  className={`w-full bg-gray-800/50 border rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all v2:rounded-xl v2:bg-white/[0.03] v2:py-3 v2:placeholder-white/30 v2:focus:border-brand/70 v2:focus:ring-4 v2:focus:ring-brand/15 ${
                     activeSubmission && !isEditing
                       ? 'border-transparent cursor-default'
-                      : 'border-gray-600'
+                      : 'border-gray-600 v2:border-white/10'
                   }`}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-gray-300 mb-1 v2:mb-2 v2:text-white/80">
                   Description <span className="text-gray-500 text-xs">(Optional)</span>
                 </label>
                 <textarea
@@ -895,10 +913,10 @@ export function LiveSubmissionForm() {
                   placeholder="Tell us about your track..."
                   rows={3}
                   disabled={!!(activeSubmission && !isEditing)}
-                  className={`w-full bg-gray-800/50 border rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all resize-none ${
+                  className={`w-full bg-gray-800/50 border rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all resize-none v2:rounded-xl v2:bg-white/[0.03] v2:py-3 v2:placeholder-white/30 v2:focus:border-brand/70 v2:focus:ring-4 v2:focus:ring-brand/15 ${
                     activeSubmission && !isEditing
                       ? 'border-transparent cursor-default'
-                      : 'border-gray-600'
+                      : 'border-gray-600 v2:border-white/10'
                   }`}
                 />
               </div>

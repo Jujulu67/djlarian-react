@@ -50,15 +50,15 @@ export function ArchivedNotificationsSection({
             e.stopPropagation();
             setShowArchived(!showArchived);
           }}
-          className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700/50 rounded-lg text-gray-300 text-xs sm:text-sm font-medium transition-colors touch-manipulation flex-shrink-0"
+          className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700/50 rounded-lg text-gray-300 text-xs sm:text-sm font-medium transition-colors touch-manipulation flex-shrink-0 v2:rounded-full v2:border-transparent v2:bg-white/[0.04] v2:ring-1 v2:ring-inset v2:ring-white/10 v2:text-white/70 v2:hover:bg-white/[0.04] v2:hover:text-white"
         >
           {showArchived ? 'Masquer' : 'Afficher'}
         </button>
       </div>
 
       {showArchived && (
-        <div className="bg-gradient-to-br from-gray-900/95 via-gray-800/95 to-gray-900/95 backdrop-blur-xl border border-gray-700/50 rounded-lg sm:rounded-xl shadow-2xl overflow-hidden">
-          <div className="divide-y divide-gray-700/50 max-h-[calc(100vh-24rem)] sm:max-h-[calc(100vh-30rem)] overflow-y-auto">
+        <div className="bg-gradient-to-br from-gray-900/95 via-gray-800/95 to-gray-900/95 backdrop-blur-xl border border-gray-700/50 rounded-lg sm:rounded-xl shadow-2xl overflow-hidden v2:bg-none v2:surface-1 v2:rounded-2xl">
+          <div className="divide-y divide-gray-700/50 v2:divide-white/[0.06] max-h-[calc(100vh-24rem)] sm:max-h-[calc(100vh-30rem)] overflow-y-auto">
             {notifications.map((notification) => {
               const style = getNotificationStyle(notification.type);
               const Icon = style.icon;
@@ -73,7 +73,7 @@ export function ArchivedNotificationsSection({
                   <div className="flex items-start gap-2 sm:gap-3 md:gap-4">
                     {/* Badge de type */}
                     <div
-                      className={`flex-shrink-0 p-2 sm:p-2.5 md:p-3 rounded-lg ${style.bgColor} border ${style.borderColor}`}
+                      className={`flex-shrink-0 p-2 sm:p-2.5 md:p-3 rounded-lg v2:rounded-xl ${style.bgColor} border ${style.borderColor}`}
                     >
                       <Icon className={`w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 ${style.iconColor}`} />
                     </div>
@@ -138,7 +138,7 @@ export function ArchivedNotificationsSection({
                           e.stopPropagation();
                           await onUnarchive(notification.id);
                         }}
-                        className="p-2 text-gray-500 hover:text-green-400 hover:bg-green-500/10 rounded-lg transition-colors touch-manipulation"
+                        className="p-2 text-gray-500 hover:text-green-400 hover:bg-green-500/10 rounded-lg transition-colors touch-manipulation v2:rounded-xl v2:hover:bg-white/[0.06] v2:hover:text-white"
                         title="Désarchiver"
                         aria-label="Désarchiver la notification"
                       >
@@ -150,7 +150,7 @@ export function ArchivedNotificationsSection({
                           e.stopPropagation();
                           await onDelete(notification.id);
                         }}
-                        className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors touch-manipulation"
+                        className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors touch-manipulation v2:rounded-xl"
                         title="Supprimer définitivement"
                         aria-label="Supprimer définitivement"
                       >

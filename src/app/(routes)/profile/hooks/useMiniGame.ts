@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { RewardType } from '@/types/slot-machine';
 
 export interface GameResult {

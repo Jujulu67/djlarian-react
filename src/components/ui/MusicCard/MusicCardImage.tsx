@@ -28,8 +28,8 @@ export const MusicCardImage: React.FC<MusicCardImageProps> = ({
 
     if (!imageSrc) {
       return (
-        <div className="w-full h-full bg-gradient-to-r from-purple-900/30 to-blue-900/30 flex items-center justify-center group-hover:scale-105 transition-transform duration-500">
-          <Music className="w-16 h-16 text-gray-600" />
+        <div className="w-full h-full bg-gradient-to-r from-purple-900/30 to-blue-900/30 flex items-center justify-center group-hover:scale-105 transition-transform duration-500 v2:bg-none v2:bg-white/[0.03] v2:duration-700 v2:ease-[cubic-bezier(0.16,1,0.3,1)] v2:group-hover:scale-[1.03]">
+          <Music className="w-16 h-16 text-gray-600 v2:h-12 v2:w-12 v2:text-white/20" />
         </div>
       );
     }
@@ -40,7 +40,7 @@ export const MusicCardImage: React.FC<MusicCardImageProps> = ({
         alt={`Pochette de ${track.title} par ${track.artist}`}
         width={400}
         height={400}
-        className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+        className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 v2:duration-700 v2:ease-[cubic-bezier(0.16,1,0.3,1)] v2:group-hover:scale-[1.03]"
         onError={onImageError}
         priority={priority}
         unoptimized
@@ -49,8 +49,8 @@ export const MusicCardImage: React.FC<MusicCardImageProps> = ({
   }
 
   return (
-    <div className="w-full h-full bg-gradient-to-r from-purple-900/30 to-blue-900/30 flex items-center justify-center group-hover:scale-105 transition-transform duration-500">
-      <Music className="w-16 h-16 text-gray-600" />
+    <div className="w-full h-full bg-gradient-to-r from-purple-900/30 to-blue-900/30 flex items-center justify-center group-hover:scale-105 transition-transform duration-500 v2:bg-none v2:bg-white/[0.03] v2:duration-700 v2:ease-[cubic-bezier(0.16,1,0.3,1)] v2:group-hover:scale-[1.03]">
+      <Music className="w-16 h-16 text-gray-600 v2:h-12 v2:w-12 v2:text-white/20" />
     </div>
   );
 };

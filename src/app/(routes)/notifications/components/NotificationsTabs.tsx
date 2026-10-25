@@ -24,10 +24,10 @@ export function NotificationsTabs({
     <div className="flex items-center gap-2 mb-4 sm:mb-6 flex-wrap">
       <button
         onClick={() => onSelectView('notifications')}
-        className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg border transition-colors touch-manipulation ${
+        className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg border transition-colors touch-manipulation v2:rounded-full v2:active:scale-[0.98] ${
           activeView === 'notifications'
-            ? 'bg-purple-500/20 border-purple-500/50 text-purple-300'
-            : 'bg-gray-800/50 border-gray-700/50 text-gray-300 hover:bg-gray-700/50'
+            ? 'bg-purple-500/20 border-purple-500/50 text-purple-300 v2:bg-white v2:text-zinc-950 v2:border-transparent'
+            : 'bg-gray-800/50 border-gray-700/50 text-gray-300 hover:bg-gray-700/50 v2:bg-white/[0.04] v2:text-white/70 v2:border-transparent v2:ring-1 v2:ring-inset v2:ring-white/10 v2:hover:bg-white/[0.04] v2:hover:text-white'
         }`}
       >
         <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -37,10 +37,10 @@ export function NotificationsTabs({
       </button>
       <button
         onClick={() => onSelectView('messages')}
-        className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg border transition-colors touch-manipulation ${
+        className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg border transition-colors touch-manipulation v2:rounded-full v2:active:scale-[0.98] ${
           activeView === 'messages'
-            ? 'bg-blue-500/20 border-blue-500/50 text-blue-300'
-            : 'bg-gray-800/50 border-gray-700/50 text-gray-300 hover:bg-gray-700/50'
+            ? 'bg-blue-500/20 border-blue-500/50 text-blue-300 v2:bg-white v2:text-zinc-950 v2:border-transparent'
+            : 'bg-gray-800/50 border-gray-700/50 text-gray-300 hover:bg-gray-700/50 v2:bg-white/[0.04] v2:text-white/70 v2:border-transparent v2:ring-1 v2:ring-inset v2:ring-white/10 v2:hover:bg-white/[0.04] v2:hover:text-white'
         }`}
       >
         <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -50,10 +50,10 @@ export function NotificationsTabs({
       </button>
       <button
         onClick={() => onSelectView('friends')}
-        className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg border transition-colors touch-manipulation ${
+        className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg border transition-colors touch-manipulation v2:rounded-full v2:active:scale-[0.98] ${
           activeView === 'friends'
-            ? 'bg-green-500/20 border-green-500/50 text-green-300'
-            : 'bg-gray-800/50 border-gray-700/50 text-gray-300 hover:bg-gray-700/50'
+            ? 'bg-green-500/20 border-green-500/50 text-green-300 v2:bg-white v2:text-zinc-950 v2:border-transparent'
+            : 'bg-gray-800/50 border-gray-700/50 text-gray-300 hover:bg-gray-700/50 v2:bg-white/[0.04] v2:text-white/70 v2:border-transparent v2:ring-1 v2:ring-inset v2:ring-white/10 v2:hover:bg-white/[0.04] v2:hover:text-white'
         }`}
       >
         <UserPlus className="w-4 h-4 sm:w-5 sm:h-5" />

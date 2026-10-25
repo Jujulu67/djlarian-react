@@ -1,7 +1,14 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { Bell } from 'lucide-react';
 import { useState, useEffect } from 'react';
+
+import { Button } from '@/components/ui/Button';
+import { SectionHeading } from '@/components/ui/PageHeader';
+import { RevealGroup, RevealItem } from '@/components/ui/Reveal';
+import { useSpotlight } from '@/hooks/useSpotlight';
+import { useUiVersion } from '@/hooks/useUiVersion';
 
 interface StreamStatus {
   isLive: boolean;
@@ -14,7 +21,168 @@ interface StreamStatus {
   error?: string;
 }
 
+const TWITCH_URL = 'https://twitch.tv/larianmusic';
+const TWITCH_PATH =
+  'M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z';
+
+function TwitchIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d={TWITCH_PATH} />
+    </svg>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* UI v2                                                                      */
+/* -------------------------------------------------------------------------- */
+
+const STATS = [
+  { value: '24K+', label: 'Followers' },
+  { value: '150+', label: 'Hours Streamed' },
+  { value: '500+', label: 'Tracks Played' },
+];
+
+function StatCardV2({ value, label }: { value: string; label: string }) {
+  const spotlight = useSpotlight<HTMLDivElement>();
+  return (
+    <div
+      {...spotlight}
+      role="article"
+      aria-label={`Statistics: ${value} ${label}`}
+      className="surface-1 spotlight h-full rounded-2xl p-6 text-center transition-[transform,border-color] duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-white/15"
+    >
+      <div className="text-display text-3xl text-white tabular-nums md:text-4xl">{value}</div>
+      <div className="mt-2 text-sm font-medium text-white/60">{label}</div>
+    </div>
+  );
+}
+
+function TwitchStreamV2({
+  isLoading,
+  streamStatus,
+}: {
+  isLoading: boolean;
+  streamStatus: StreamStatus | null;
+}) {
+  const introSpotlight = useSpotlight<HTMLDivElement>();
+
+  return (
+    <section className="relative py-16 md:py-24">
+      <div className="mx-auto max-w-[1180px] px-4">
+        <SectionHeading eyebrow="Live" title="Live Stream" />
+
+        <RevealGroup className="grid items-stretch gap-5 md:grid-cols-2 md:gap-6">
+          <RevealItem className="h-full">
+            <div
+              {...introSpotlight}
+              className="surface-1 spotlight flex h-full flex-col justify-center rounded-2xl p-6 md:p-8"
+            >
+              <h3 className="text-xl font-semibold text-white md:text-2xl">
+                Join the Live Experience
+              </h3>
+              <p className="mt-3 text-sm leading-relaxed text-white/60 md:text-base">
+                Tune in to my live streams where I share my creative process, perform exclusive
+                sets, and interact with the community in real-time.
+              </p>
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                <Button asChild className="h-11 px-5">
+                  <a href={TWITCH_URL} target="_blank" rel="noopener noreferrer">
+                    <TwitchIcon className="h-4 w-4" />
+                    Follow on Twitch
+                  </a>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-11 px-5"
+                  aria-label="Get notified for streams"
+                >
+                  <Bell className="h-4 w-4" aria-hidden="true" />
+                  Get Notified
+                </Button>
+              </div>
+            </div>
+          </RevealItem>
+
+          <RevealItem className="h-full">
+            <div className="surface-1 relative aspect-video min-h-[200px] overflow-hidden rounded-2xl md:min-h-0">
+              {isLoading ? (
+                <div className="h-full w-full animate-pulse bg-white/[0.04]">
+                  <span className="sr-only">Checking status...</span>
+                </div>
+              ) : streamStatus?.isLive ? (
+                <div className="relative h-full w-full">
+                  <div className="absolute left-4 top-4 z-20 flex items-center gap-2">
+                    <span className="flex items-center gap-2 rounded-full bg-red-600 px-3 py-1.5 text-xs font-bold text-white">
+                      <span className="h-1.5 w-1.5 rounded-full bg-white" aria-hidden="true" />
+                      LIVE
+                    </span>
+                    {streamStatus.stream?.viewer_count && (
+                      <span className="rounded-full bg-black/50 px-3 py-1.5 text-xs font-medium text-white ring-1 ring-inset ring-white/15 backdrop-blur-md">
+                        {streamStatus.stream.viewer_count.toLocaleString()} viewers
+                      </span>
+                    )}
+                  </div>
+                  <iframe
+                    src={`https://player.twitch.tv/?channel=larianmusic&parent=${
+                      typeof window !== 'undefined' ? window.location.hostname : 'localhost'
+                    }&muted=true`}
+                    allowFullScreen
+                    scrolling="no"
+                    className="h-full w-full border-0"
+                    title="LarianMusic Twitch Stream"
+                    allow="autoplay; fullscreen"
+                  />
+                </div>
+              ) : (
+                <div className="flex h-full w-full flex-col items-center justify-center px-6 py-8 text-center">
+                  <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white/[0.04] ring-1 ring-inset ring-white/10">
+                    <TwitchIcon className="h-6 w-6 text-white/70" />
+                  </span>
+                  <h3 className="mt-4 text-lg font-semibold text-white md:text-xl">
+                    Stream Offline
+                  </h3>
+                  <p className="mt-2 max-w-sm text-sm leading-relaxed text-white/60">
+                    LarianMusic is not live at the moment. Check back soon for exclusive sets and
+                    live interactions!
+                  </p>
+                  <Button asChild variant="outline" size="sm" className="mt-5 h-10 px-4">
+                    <a
+                      href={TWITCH_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="Visit LarianMusic Twitch channel"
+                    >
+                      <TwitchIcon className="h-4 w-4" />
+                      Visit Channel
+                    </a>
+                  </Button>
+                </div>
+              )}
+            </div>
+          </RevealItem>
+        </RevealGroup>
+
+        <RevealGroup className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3 md:mt-6 md:gap-6">
+          {STATS.map((stat) => (
+            <RevealItem key={stat.label} className="h-full">
+              <StatCardV2 {...stat} />
+            </RevealItem>
+          ))}
+        </RevealGroup>
+      </div>
+    </section>
+  );
+}
+
 const TwitchStream = () => {
+  const isV2 = useUiVersion() === 'v2';
   const [streamStatus, setStreamStatus] = useState<StreamStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
@@ -49,6 +217,8 @@ const TwitchStream = () => {
     const interval = setInterval(checkStreamStatus, 60000);
     return () => clearInterval(interval);
   }, []);
+
+  if (isV2) return <TwitchStreamV2 isLoading={isLoading} streamStatus={streamStatus} />;
 
   return (
     <section className="py-20 relative overflow-hidden">

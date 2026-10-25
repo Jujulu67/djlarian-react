@@ -1,8 +1,14 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
+import { Play, Square } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState } from 'react';
+
+import { Button } from '@/components/ui/Button';
+import { SectionHeading } from '@/components/ui/PageHeader';
+import { useUiVersion } from '@/hooks/useUiVersion';
+import { durations, easeOutExpo } from '@/lib/motion';
 
 // Lazy loading des composants lourds
 const ParticleVisualizer = dynamic(() => import('@/components/3d/ParticleVisualizer'), {
@@ -32,6 +38,7 @@ export default function VisualizerSection({
   title,
   waveformAnimationReady,
 }: VisualizerSectionProps) {
+  const isV2 = useUiVersion() === 'v2';
   const [isSoundActive, setIsSoundActive] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const visualizerSectionRef = useRef<HTMLElement | null>(null);
@@ -129,44 +136,77 @@ export default function VisualizerSection({
     <section
       id="visualizer"
       ref={visualizerSectionRef}
-      className={`${isMobile && !isSoundActive ? 'py-10' : isMobile ? 'py-0' : 'py-20'} relative ${isMobile ? 'overflow-visible' : 'overflow-hidden'}`}
+      className={`${isMobile && !isSoundActive ? 'py-10' : isMobile ? 'py-0' : isV2 ? 'py-16 md:py-24' : 'py-20'} relative ${isMobile ? 'overflow-visible' : 'overflow-hidden'}`}
     >
       {/* Animated Gradient Background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black via-purple-900/10 to-black">
+      <div className="absolute inset-0 bg-gradient-to-b from-black via-purple-900/10 to-black v2:hidden">
         <div
           className={`absolute inset-0 bg-gradient-to-r from-purple-900/15 via-blue-900/10 to-purple-900/15 ${isMobile ? '' : 'animate-gradient-pulse'}`}
         />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 relative z-10">
-        <div className="relative group">
-          <motion.h2
-            initial={isMobile ? { opacity: 0 } : { opacity: 0, y: 20 }}
-            whileInView={isMobile ? { opacity: 1 } : { opacity: 1, y: 0 }}
-            transition={isMobile ? { duration: 0.3, ease: 'easeOut' } : { duration: 0.6 }}
-            viewport={{ once: true, margin: '-50px' }}
-            className="text-4xl md:text-5xl font-audiowide mb-12 text-center flex items-center justify-center gap-4"
-          >
-            <motion.button
+      <div className="max-w-7xl mx-auto px-4 relative z-10 v2:max-w-[1180px]">
+        {isV2 ? (
+          <SectionHeading eyebrow="Visualizer" title={title}>
+            <Button
+              variant="outline"
               onClick={handleExperienceClick}
-              className="cursor-pointer transition-all duration-300 glass-easter-egg px-8 py-3 rounded-2xl md:rounded-full focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-offset-2 focus:ring-offset-black font-audiowide text-3xl md:text-4xl lg:text-5xl"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              className="h-11 shrink-0 rounded-full px-5"
               aria-label={isSoundActive ? `Arrêter ${title}` : `Démarrer ${title}`}
+              aria-pressed={isSoundActive}
             >
-              <span className="glass-easter-egg-content text-gradient-animated flex items-center justify-center py-1">
-                {isSoundActive ? `Stop ${title}` : title}
-              </span>
-            </motion.button>
-          </motion.h2>
-        </div>
+              {isSoundActive ? (
+                <Square className="h-4 w-4" aria-hidden="true" />
+              ) : (
+                <Play className="h-4 w-4" aria-hidden="true" />
+              )}
+              {isSoundActive ? 'Stop' : 'Play'}
+            </Button>
+          </SectionHeading>
+        ) : (
+          <div className="relative group">
+            <motion.h2
+              initial={isMobile ? { opacity: 0 } : { opacity: 0, y: 20 }}
+              whileInView={isMobile ? { opacity: 1 } : { opacity: 1, y: 0 }}
+              transition={isMobile ? { duration: 0.3, ease: 'easeOut' } : { duration: 0.6 }}
+              viewport={{ once: true, margin: '-50px' }}
+              className="text-4xl md:text-5xl font-audiowide mb-12 text-center flex items-center justify-center gap-4"
+            >
+              <motion.button
+                onClick={handleExperienceClick}
+                className="cursor-pointer transition-all duration-300 glass-easter-egg px-8 py-3 rounded-2xl md:rounded-full focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-offset-2 focus:ring-offset-black font-audiowide text-3xl md:text-4xl lg:text-5xl"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                aria-label={isSoundActive ? `Arrêter ${title}` : `Démarrer ${title}`}
+              >
+                <span className="glass-easter-egg-content text-gradient-animated flex items-center justify-center py-1">
+                  {isSoundActive ? `Stop ${title}` : title}
+                </span>
+              </motion.button>
+            </motion.h2>
+          </div>
+        )}
 
         <motion.div
-          initial={isMobile ? { opacity: 0, scale: 1 } : { opacity: 0, scale: 0.95 }}
-          whileInView={isMobile ? { opacity: 1, scale: 1 } : { opacity: 1, scale: 1 }}
+          {...(isV2
+            ? {
+                initial: { opacity: 0, y: 12 },
+                whileInView: { opacity: 1, y: 0 },
+                transition: { duration: durations.slower, ease: easeOutExpo },
+              }
+            : {
+                initial: isMobile ? { opacity: 0, scale: 1 } : { opacity: 0, scale: 0.95 },
+                whileInView: isMobile ? { opacity: 1, scale: 1 } : { opacity: 1, scale: 1 },
+                transition: isMobile ? { duration: 0.3, ease: 'easeOut' } : { duration: 0.8 },
+              })}
           viewport={{ once: true, margin: '-50px' }}
-          transition={isMobile ? { duration: 0.3, ease: 'easeOut' } : { duration: 0.8 }}
-          className={`relative w-full ${isMobile ? 'min-h-[30vh]' : 'aspect-[2/1]'} ${isMobile ? 'overflow-visible' : 'overflow-hidden'} rounded-2xl glass-premium-container glow-border-premium shadow-2xl ${isSoundActive && isMobile ? 'fixed top-0 left-0 right-0 z-[100] h-screen rounded-none border-0 transition-none' : ''}`}
+          className={`relative w-full ${isMobile ? 'min-h-[30vh]' : 'aspect-[2/1]'} ${isMobile ? 'overflow-visible' : 'overflow-hidden'} ${
+            isV2
+              ? isSoundActive && isMobile
+                ? 'bg-[rgb(var(--bg))]'
+                : 'surface-1 rounded-2xl'
+              : 'rounded-2xl glass-premium-container glow-border-premium shadow-2xl'
+          } ${isSoundActive && isMobile ? 'fixed top-0 left-0 right-0 z-[100] h-screen rounded-none border-0 transition-none' : ''}`}
           id="game-container"
           style={
             isMobile && !isSoundActive
@@ -175,7 +215,7 @@ export default function VisualizerSection({
           }
         >
           {/* Animated glass background layer */}
-          <div className="glass-premium-inner" />
+          {!isV2 && <div className="glass-premium-inner" />}
 
           <AnimatePresence mode="wait">
             <motion.div

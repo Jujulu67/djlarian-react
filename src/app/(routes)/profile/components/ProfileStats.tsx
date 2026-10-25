@@ -2,6 +2,8 @@
 
 import { motion } from 'framer-motion';
 import { FolderKanban, TrendingUp, Award, User } from 'lucide-react';
+import { useUiVersion } from '@/hooks/useUiVersion';
+import { useSpotlight } from '@/hooks/useSpotlight';
 import type { UserStats } from '../hooks/useProfileStats';
 
 interface ProfileStatsProps {
@@ -10,6 +12,8 @@ interface ProfileStatsProps {
 }
 
 export function ProfileStats({ stats, isLoading }: ProfileStatsProps) {
+  const isV2 = useUiVersion() === 'v2';
+  const spotlight = useSpotlight();
   const userStats = [
     {
       label: 'Projets',
@@ -55,16 +59,28 @@ export function ProfileStats({ stats, isLoading }: ProfileStatsProps) {
           }}
           className="h-full"
         >
-          <div className="glass-modern glass-modern-hover rounded-xl p-3 sm:p-4 lg:p-3 text-center lift-3d h-full flex flex-col justify-center items-center">
+          <div
+            className={`p-3 sm:p-4 lg:p-3 text-center h-full flex flex-col justify-center items-center ${
+              isV2
+                ? 'surface-1 spotlight rounded-2xl transition-[transform,border-color] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-white/15'
+                : 'glass-modern glass-modern-hover rounded-xl lift-3d'
+            }`}
+            {...spotlight}
+          >
             <div
-              className={`inline-flex p-1.5 sm:p-2 lg:p-1.5 rounded-lg bg-gradient-to-r ${stat.color} mb-1.5 sm:mb-2 lg:mb-1.5`}
+              className={`inline-flex p-1.5 sm:p-2 lg:p-1.5 rounded-lg bg-gradient-to-r ${stat.color} mb-1.5 sm:mb-2 lg:mb-1.5 v2:bg-none v2:bg-white/[0.06] v2:rounded-xl`}
             >
-              <stat.icon size={18} className="sm:w-5 sm:h-5 lg:w-4 lg:h-4 text-white" />
+              <stat.icon
+                size={18}
+                className="sm:w-5 sm:h-5 lg:w-4 lg:h-4 text-white v2:text-brand"
+              />
             </div>
-            <div className="text-xl sm:text-2xl lg:text-xl font-bold text-white mb-0.5">
+            <div className="text-xl sm:text-2xl lg:text-xl font-bold text-white mb-0.5 v2:text-display v2:font-normal">
               {stat.value}
             </div>
-            <div className="text-xs sm:text-sm lg:text-xs text-gray-400">{stat.label}</div>
+            <div className="text-xs sm:text-sm lg:text-xs text-gray-400 v2:text-white/60">
+              {stat.label}
+            </div>
           </div>
         </motion.div>
       ))}

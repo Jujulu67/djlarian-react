@@ -30,8 +30,19 @@ import {
   FaCopy,
 } from 'react-icons/fa';
 
+import { Button } from '@/components/ui/Button';
+import { useUiVersion } from '@/hooks/useUiVersion';
 import { logger } from '@/lib/logger';
 import { getImageUrl } from '@/lib/utils/getImageUrl';
+
+import { StatePanel } from '../components/StatePanel';
+
+import {
+  BackToEventsLink,
+  EVENT_DETAIL_CONTAINER_CLASS,
+  EVENT_DETAIL_PAGE_CLASS,
+  EventDetailV2,
+} from './components/EventDetailV2';
 
 // Types
 type Event = {
@@ -73,6 +84,7 @@ export default function EventDetailPage() {
   const params = useParams();
   const router = useRouter();
   const eventId = params.id as string;
+  const isV2 = useUiVersion() === 'v2';
 
   // Récupérer le paramètre de date depuis l'URL
   const [searchParams, setSearchParams] = useState<URLSearchParams | null>(null);
@@ -262,24 +274,74 @@ export default function EventDetailPage() {
     }
   };
 
+  const renderV2State = (title: string, description: string, tone: 'neutral' | 'error') => (
+    <div className={EVENT_DETAIL_PAGE_CLASS}>
+      <div className={EVENT_DETAIL_CONTAINER_CLASS}>
+        <div className="mb-10">
+          <BackToEventsLink />
+        </div>
+        <StatePanel
+          icon={AlertCircle}
+          tone={tone}
+          title={title}
+          description={description}
+          action={
+            <Button asChild variant="outline">
+              <Link href="/events">
+                <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                Retour aux événements
+              </Link>
+            </Button>
+          }
+        />
+      </div>
+    </div>
+  );
+
   // Afficher un état de chargement
   if (loading) {
+    // Rendu à l'hydratation : les deux versions sont dans le DOM, le CSS (`v2:`) choisit
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-8 pt-32">
-        <div className="container mx-auto">
-          <div className="flex justify-center items-center min-h-[40vh]">
-            <div className="animate-pulse flex flex-col items-center">
-              <Loader2 className="w-12 h-12 text-purple-500 mb-4 animate-spin" />
-              <h2 className="text-2xl font-semibold text-white">Chargement de l'événement...</h2>
+      <>
+        <div
+          className={`hidden v2:block ${EVENT_DETAIL_PAGE_CLASS}`}
+          role="status"
+          aria-label="Chargement de l'événement"
+        >
+          <div className={EVENT_DETAIL_CONTAINER_CLASS} aria-hidden="true">
+            <div className="mb-6 h-4 w-40 animate-pulse rounded-full bg-white/[0.04]" />
+            <div className="aspect-[4/3] animate-pulse rounded-[2rem] bg-white/[0.04] sm:aspect-[16/9] lg:aspect-[21/9]" />
+            <div className="mt-8 h-10 w-2/3 animate-pulse rounded-full bg-white/[0.04] md:mt-12" />
+            <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
+              <div className="h-56 animate-pulse rounded-2xl bg-white/[0.04] lg:col-span-2" />
+              <div className="h-56 animate-pulse rounded-2xl bg-white/[0.04]" />
             </div>
           </div>
         </div>
-      </div>
+        <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-8 pt-32 v2:hidden">
+          <div className="container mx-auto">
+            <div className="flex justify-center items-center min-h-[40vh]">
+              <div className="animate-pulse flex flex-col items-center">
+                <Loader2 className="w-12 h-12 text-purple-500 mb-4 animate-spin" />
+                <h2 className="text-2xl font-semibold text-white">Chargement de l'événement...</h2>
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
     );
   }
 
   // Afficher un message d'erreur
   if (error) {
+    if (isV2) {
+      const notFound = error === 'Événement non trouvé';
+      return renderV2State(
+        notFound ? 'Événement introuvable' : 'Une erreur est survenue',
+        notFound ? "Cet événement n'existe pas ou a été supprimé." : error,
+        notFound ? 'neutral' : 'error'
+      );
+    }
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-8 pt-32">
         <div className="container mx-auto">
@@ -312,6 +374,13 @@ export default function EventDetailPage() {
 
   // Si l'événement n'est pas trouvé
   if (!event) {
+    if (isV2) {
+      return renderV2State(
+        'Événement indisponible',
+        "Cet événement n'est pas disponible pour le moment.",
+        'neutral'
+      );
+    }
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-8 pt-32">
         <div className="container mx-auto">
@@ -346,6 +415,13 @@ export default function EventDetailPage() {
       virtualStartDate: event.virtualStartDate,
       isVirtualOccurrence: event.isVirtualOccurrence,
     });
+    if (isV2) {
+      return renderV2State(
+        'Erreur de données',
+        "Cet événement n'a pas de date valide. Veuillez contacter l'administrateur.",
+        'error'
+      );
+    }
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-8 pt-32">
         <div className="container mx-auto">
@@ -371,6 +447,21 @@ export default function EventDetailPage() {
   }
 
   const isEventPast = isPast(parseISO(eventDate));
+
+  if (isV2) {
+    return (
+      <EventDetailV2
+        event={event}
+        dateLabel={formatEventDate(event)}
+        endDateLabel={event.endDate ? formatDate(event.endDate) : undefined}
+        isPast={isEventPast}
+        showShareOptions={showShareOptions}
+        onToggleShare={() => setShowShareOptions(!showShareOptions)}
+        onShare={handleShare}
+        copySuccess={copySuccess}
+      />
+    );
+  }
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-b from-gray-900 to-black p-4 md:p-8 pt-32">
