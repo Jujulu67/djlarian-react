@@ -1,6 +1,8 @@
 import { type Crop as CropType, centerCrop, makeAspectCrop } from 'react-image-crop';
-import { addMonths, addWeeks, format, isBefore } from 'date-fns';
+import { format, isBefore } from 'date-fns';
 import { fr } from 'date-fns/locale';
+
+import { addDaysInTimeZone, addMonthsInTimeZone } from '@/lib/utils/timezone';
 
 import type { RecurrenceConfig } from '../EventForm/types';
 
@@ -55,9 +57,9 @@ export function getRecurrenceOccurrences(
   for (let i = 0; i < maxOccurrences; i++) {
     // Calculer la prochaine occurrence
     if (recurrenceFrequency === 'weekly') {
-      currentDate = addWeeks(currentDate, 1);
+      currentDate = addDaysInTimeZone(currentDate, 7);
     } else {
-      currentDate = addMonths(currentDate, 1);
+      currentDate = addMonthsInTimeZone(currentDate, 1);
     }
 
     // Arrêter si on dépasse la date de fin
