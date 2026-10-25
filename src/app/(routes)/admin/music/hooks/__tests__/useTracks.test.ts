@@ -13,7 +13,7 @@ import { useSession } from 'next-auth/react';
 
 import { useTracks } from '../useTracks';
 
-jest.mock('react-hot-toast', () => ({
+jest.mock('sonner', () => ({
   toast: {
     success: jest.fn(),
     error: jest.fn(),

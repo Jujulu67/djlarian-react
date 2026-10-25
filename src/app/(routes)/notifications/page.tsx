@@ -20,7 +20,11 @@ export default async function NotificationsPage() {
 
   return (
     <Suspense
-      fallback={<div className="min-h-screen flex items-center justify-center">Chargement...</div>}
+      fallback={
+        <div className="min-h-screen flex items-center justify-center v2:text-white/60">
+          Chargement...
+        </div>
+      }
     >
       <NotificationsClient />
     </Suspense>

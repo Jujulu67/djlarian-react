@@ -2,7 +2,7 @@
 
 import { FileAudio, Info, Loader2, Pause, Play, Upload, X } from 'lucide-react';
 import type { Dispatch, SetStateAction, RefObject, DragEvent, ChangeEvent } from 'react';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 
 import { type AudioAnalysisResult, formatDuration } from '@/lib/live/audio-analysis';
 import { type LiveSubmission } from '@/types/live';
@@ -74,7 +74,8 @@ export function SubmissionDropZone({
         className={`
       relative border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200
       ${audioAnalysis || activeSubmission ? 'cursor-default' : 'cursor-pointer'}
-      ${isDragging && !activeSubmission ? 'border-purple-500 bg-purple-500/10' : 'border-gray-600 hover:border-purple-500/50'}
+      ${isDragging && !activeSubmission ? 'border-purple-500 bg-purple-500/10' : 'border-gray-600 hover:border-purple-500/50 v2:border-white/15 v2:bg-white/[0.02] v2:hover:border-brand/50'}
+      v2:rounded-2xl v2:border-[1.5px] v2:duration-300
       ${activeSubmission ? 'border-purple-500/50 bg-purple-500/5' : ''}
     `}
       >
@@ -217,9 +218,9 @@ export function SubmissionDropZone({
           </div>
         ) : (
           <>
-            <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-            <p className="text-white mb-2">Choose a file or drag and drop</p>
-            <p className="text-sm text-gray-400">MP3/WAV (128MB)</p>
+            <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400 v2:h-6 v2:w-6 v2:box-content v2:rounded-full v2:bg-white/[0.04] v2:p-4 v2:text-white/70" />
+            <p className="text-white mb-2 v2:font-medium">Choose a file or drag and drop</p>
+            <p className="text-sm text-gray-400 v2:text-white/50">MP3/WAV (128MB)</p>
           </>
         )}
       </div>

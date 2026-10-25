@@ -9,12 +9,10 @@ describe('isNavLinkActive', () => {
 
   it('matches exact paths and sub-routes for other links', () => {
     expect(isNavLinkActive('/music', '/music')).toBe(true);
+    expect(isNavLinkActive('/music/123', '/music')).toBe(true);
+    expect(isNavLinkActive('/musicx', '/music')).toBe(false);
     expect(isNavLinkActive('/music/track-1', '/music')).toBe(true);
     expect(isNavLinkActive('/events', '/music')).toBe(false);
-  });
-
-  it('uses a plain prefix check (current behavior: /musicx matches /music)', () => {
-    expect(isNavLinkActive('/musicx', '/music')).toBe(true);
   });
 
   it('is false when there is no pathname', () => {

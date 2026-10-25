@@ -2,12 +2,12 @@ import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 export default function AdminLoading() {
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-black via-[#0c0117] to-black">
-      <div className="container mx-auto px-4 py-12">
-        <div className="mb-12 text-center">
+    <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-black via-[#0c0117] to-black v2:bg-none v2:bg-transparent">
+      <div className="container mx-auto px-4 py-12 v2:max-w-[1180px] v2:py-10 md:v2:py-14">
+        <div className="mb-12 text-center v2:mb-10 v2:text-left">
           <div className="animate-pulse">
-            <div className="h-12 bg-purple-500/20 w-64 mx-auto rounded-lg mb-4"></div>
-            <div className="bg-purple-500/10 h-1 w-32 mx-auto rounded-full"></div>
+            <div className="h-12 bg-purple-500/20 w-64 mx-auto rounded-lg mb-4 v2:mx-0 v2:bg-white/[0.04] v2:rounded-xl"></div>
+            <div className="bg-purple-500/10 h-1 w-32 mx-auto rounded-full v2:hidden"></div>
           </div>
         </div>
 
@@ -15,20 +15,20 @@ export default function AdminLoading() {
           {[...Array(6)].map((_, i) => (
             <div
               key={i}
-              className="glass rounded-xl backdrop-blur-md overflow-hidden relative border border-purple-500/20 animate-pulse"
+              className="glass rounded-xl backdrop-blur-md overflow-hidden relative border border-purple-500/20 animate-pulse v2:rounded-2xl v2:surface-1"
             >
               <div className="p-6">
-                <div className="bg-purple-500/20 w-12 h-12 rounded-lg mb-4"></div>
-                <div className="h-6 bg-purple-500/20 rounded-lg w-3/4 mb-2"></div>
-                <div className="h-4 bg-purple-500/10 rounded-lg w-full mb-2"></div>
-                <div className="h-4 bg-purple-500/10 rounded-lg w-5/6 mb-8"></div>
+                <div className="bg-purple-500/20 w-12 h-12 rounded-lg mb-4 v2:bg-white/[0.04]"></div>
+                <div className="h-6 bg-purple-500/20 rounded-lg w-3/4 mb-2 v2:bg-white/[0.04]"></div>
+                <div className="h-4 bg-purple-500/10 rounded-lg w-full mb-2 v2:bg-white/[0.04]"></div>
+                <div className="h-4 bg-purple-500/10 rounded-lg w-5/6 mb-8 v2:bg-white/[0.04]"></div>
                 <div className="flex space-x-2 mb-6">
-                  <div className="h-6 bg-purple-500/10 rounded-full w-16"></div>
-                  <div className="h-6 bg-purple-500/10 rounded-full w-16"></div>
+                  <div className="h-6 bg-purple-500/10 rounded-full w-16 v2:bg-white/[0.04]"></div>
+                  <div className="h-6 bg-purple-500/10 rounded-full w-16 v2:bg-white/[0.04]"></div>
                 </div>
                 <div className="flex justify-between items-center">
-                  <div className="h-10 bg-purple-500/20 rounded-lg w-24"></div>
-                  <div className="h-4 bg-purple-500/10 rounded-lg w-20"></div>
+                  <div className="h-10 bg-purple-500/20 rounded-lg w-24 v2:bg-white/[0.04]"></div>
+                  <div className="h-4 bg-purple-500/10 rounded-lg w-20 v2:bg-white/[0.04]"></div>
                 </div>
               </div>
             </div>
@@ -36,23 +36,26 @@ export default function AdminLoading() {
         </div>
 
         <div className="mt-12">
-          <div className="glass rounded-xl backdrop-blur-md overflow-hidden relative border border-purple-500/20 p-6">
+          <div className="glass rounded-xl backdrop-blur-md overflow-hidden relative border border-purple-500/20 p-6 v2:rounded-2xl v2:surface-1">
             <div className="flex justify-between items-center mb-4">
-              <div className="h-6 bg-purple-500/20 rounded-lg w-48"></div>
-              <div className="h-4 bg-purple-500/10 rounded-lg w-24"></div>
+              <div className="h-6 bg-purple-500/20 rounded-lg w-48 v2:bg-white/[0.04]"></div>
+              <div className="h-4 bg-purple-500/10 rounded-lg w-24 v2:bg-white/[0.04]"></div>
             </div>
             <div className="space-y-3">
               {[...Array(3)].map((_, i) => (
-                <div key={i} className="bg-black/30 p-3 rounded-lg animate-pulse">
+                <div
+                  key={i}
+                  className="bg-black/30 p-3 rounded-lg animate-pulse v2:rounded-xl v2:bg-white/[0.03]"
+                >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                      <div className="bg-purple-500/20 w-10 h-10 rounded-lg"></div>
+                      <div className="bg-purple-500/20 w-10 h-10 rounded-lg v2:bg-white/[0.04]"></div>
                       <div className="space-y-2">
-                        <div className="h-4 bg-purple-500/20 rounded-lg w-32"></div>
-                        <div className="h-3 bg-purple-500/10 rounded-lg w-48"></div>
+                        <div className="h-4 bg-purple-500/20 rounded-lg w-32 v2:bg-white/[0.04]"></div>
+                        <div className="h-3 bg-purple-500/10 rounded-lg w-48 v2:bg-white/[0.04]"></div>
                       </div>
                     </div>
-                    <div className="h-3 bg-purple-500/10 rounded-lg w-20"></div>
+                    <div className="h-3 bg-purple-500/10 rounded-lg w-20 v2:bg-white/[0.04]"></div>
                   </div>
                 </div>
               ))}

@@ -1,9 +1,15 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { Images, Instagram, Layers, Play, X } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
+import type { KeyboardEvent } from 'react';
 
+import { PageHeader } from '@/components/ui/PageHeader';
+import { RevealGroup, RevealItem } from '@/components/ui/Reveal';
+import { useUiVersion } from '@/hooks/useUiVersion';
+import { cn } from '@/lib/utils/cn';
 import { GalleryItem, InstagramPost } from '@/lib/utils/types';
 
 const galleryItems: GalleryItem[] = [
@@ -42,10 +48,328 @@ const galleryItems: GalleryItem[] = [
 ];
 
 type TabType = 'gallery' | 'instagram';
+type FilterType = 'all' | 'images' | 'videos';
+
+/** Accessibilité clavier des cartes cliquables (Entrée / Espace) */
+function onActivateKey(action: () => void) {
+  return (event: KeyboardEvent<HTMLElement>) => {
+    if (event.target !== event.currentTarget) return;
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      action();
+    }
+  };
+}
+
+const formatInstagramDate = (timestamp: string) => {
+  const date = new Date(timestamp);
+  return date.toLocaleDateString('fr-FR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+};
+
+const truncateCaption = (caption: string | undefined, maxLength = 100) => {
+  if (!caption) return '';
+  if (caption.length <= maxLength) return caption;
+  return caption.substring(0, maxLength) + '...';
+};
+
+// ============================================================================
+// UI V2
+// ============================================================================
+
+function chipClass(active: boolean) {
+  return cn(
+    'rounded-full px-4 py-2 text-sm font-medium transition-[color,background-color,transform] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98]',
+    active
+      ? 'bg-white text-zinc-950'
+      : 'bg-white/[0.04] text-white/70 ring-1 ring-inset ring-white/10 hover:text-white'
+  );
+}
+
+/** Tuile média : image arrondie, zoom doux au survol et voile dégradé en bas */
+const TILE_CLASS =
+  'group relative block aspect-square w-full overflow-hidden rounded-xl bg-white/[0.03] text-left transition-transform duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98] after:pointer-events-none after:absolute after:inset-0 after:rounded-xl after:ring-1 after:ring-inset after:ring-white/[0.08]';
+const TILE_IMAGE_CLASS =
+  'h-full w-full object-cover transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.03]';
+const TILE_VEIL = (
+  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent opacity-80 transition-opacity duration-500 group-hover:opacity-100" />
+);
+const PLAY_BADGE = (
+  <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+    <span className="flex h-14 w-14 items-center justify-center rounded-full bg-black/40 text-white ring-1 ring-inset ring-white/20 backdrop-blur-md">
+      <Play className="ml-0.5 h-6 w-6 fill-current" aria-hidden="true" />
+    </span>
+  </div>
+);
+
+function EmptyStateV2({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="surface-1 mx-auto flex max-w-md flex-col items-center rounded-2xl px-6 py-12 text-center">
+      <span className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-white/[0.04]">
+        <Instagram className="h-6 w-6 text-white/70" aria-hidden="true" />
+      </span>
+      <p className="mb-1 font-medium text-white">{title}</p>
+      <p className="text-sm text-white/60">{description}</p>
+    </div>
+  );
+}
+
+function LightboxV2({ item, onClose }: { item: GalleryItem; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (event: globalThis.KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={item.title}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+        className="surface-3 relative w-full max-w-4xl rounded-2xl p-3 md:p-4"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Fermer"
+          autoFocus
+          className="absolute right-5 top-5 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/50 text-white/80 ring-1 ring-inset ring-white/15 backdrop-blur-md transition-colors hover:text-white md:right-6 md:top-6"
+        >
+          <X className="h-4 w-4" />
+        </button>
+        <div className="relative aspect-video overflow-hidden rounded-xl bg-black/40">
+          {item.type === 'video' ? (
+            <video src={item.imageUrl} controls className="h-full w-full object-cover" />
+          ) : (
+            <Image
+              src={item.imageUrl}
+              alt={item.title}
+              width={1200}
+              height={675}
+              className="h-full w-full object-cover"
+            />
+          )}
+        </div>
+        <div className="px-2 pb-2 pt-4 text-center md:pt-5">
+          <h2 className="text-display mb-2 text-xl text-white md:text-2xl">{item.title}</h2>
+          <p className="text-white/60">{item.description}</p>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+interface GalleryV2Props {
+  activeTab: TabType;
+  setActiveTab: (tab: TabType) => void;
+  filter: FilterType;
+  setFilter: (filter: FilterType) => void;
+  filteredItems: GalleryItem[];
+  instagramPosts: InstagramPost[];
+  isLoadingInstagram: boolean;
+  selectedItem: GalleryItem | InstagramPost | null;
+  setSelectedItem: (item: GalleryItem | null) => void;
+}
+
+function GalleryV2({
+  activeTab,
+  setActiveTab,
+  filter,
+  setFilter,
+  filteredItems,
+  instagramPosts,
+  isLoadingInstagram,
+  selectedItem,
+  setSelectedItem,
+}: GalleryV2Props) {
+  const tabs: { id: TabType; label: string }[] = [
+    { id: 'gallery', label: 'Galerie' },
+    { id: 'instagram', label: 'Instagram' },
+  ];
+  const filters: { id: FilterType; label: string }[] = [
+    { id: 'all', label: 'Tout' },
+    { id: 'images', label: 'Photos' },
+    { id: 'videos', label: 'Vidéos' },
+  ];
+
+  return (
+    <div className="min-h-[calc(100vh-4rem)] px-4 py-16 md:py-24">
+      <div className="mx-auto max-w-[1180px]">
+        <PageHeader
+          eyebrow="Galerie"
+          title="Galerie"
+          description="Découvrez les moments forts de mes performances et sessions en studio."
+        />
+
+        <div className="mb-8 flex flex-wrap items-center gap-x-6 gap-y-3 md:mb-10">
+          <div className="flex flex-wrap gap-2" role="tablist" aria-label="Source">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={chipClass(activeTab === tab.id)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {activeTab === 'gallery' && (
+            <>
+              <span className="hidden h-5 w-px bg-white/10 sm:block" aria-hidden="true" />
+              <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrer par type">
+                {filters.map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    aria-pressed={filter === option.id}
+                    onClick={() => setFilter(option.id)}
+                    className={chipClass(filter === option.id)}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        {activeTab === 'gallery' &&
+          (filteredItems.length === 0 ? (
+            <div className="surface-1 mx-auto flex max-w-md flex-col items-center rounded-2xl px-6 py-12 text-center">
+              <span className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-white/[0.04]">
+                <Images className="h-6 w-6 text-white/70" aria-hidden="true" />
+              </span>
+              <p className="text-white/60">Aucun média dans cette catégorie.</p>
+            </div>
+          ) : (
+            <RevealGroup
+              key={filter}
+              className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6 lg:grid-cols-3"
+            >
+              {filteredItems.map((item) => (
+                <RevealItem key={item.id}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedItem(item)}
+                    aria-label={`${item.title} : ouvrir l'aperçu`}
+                    className={TILE_CLASS}
+                  >
+                    <Image
+                      src={item.imageUrl}
+                      alt={item.title}
+                      width={800}
+                      height={800}
+                      className={TILE_IMAGE_CLASS}
+                    />
+                    {TILE_VEIL}
+                    {item.type === 'video' && PLAY_BADGE}
+                    <div className="absolute inset-x-0 bottom-0 p-4 md:p-5">
+                      <h3 className="mb-1 text-lg font-semibold text-white">{item.title}</h3>
+                      <p className="text-sm text-white/70">{item.description}</p>
+                    </div>
+                  </button>
+                </RevealItem>
+              ))}
+            </RevealGroup>
+          ))}
+
+        {activeTab === 'instagram' &&
+          (isLoadingInstagram ? (
+            <div
+              className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6 lg:grid-cols-3"
+              aria-busy="true"
+              aria-label="Chargement des posts Instagram"
+            >
+              {Array.from({ length: 6 }).map((_, idx) => (
+                <div key={idx} className="aspect-square animate-pulse rounded-xl bg-white/[0.04]" />
+              ))}
+            </div>
+          ) : instagramPosts.length === 0 ? (
+            <EmptyStateV2
+              title="Aucun post Instagram disponible"
+              description="Les posts Instagram seront affichés ici une fois configurés."
+            />
+          ) : (
+            <RevealGroup className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6 lg:grid-cols-3">
+              {instagramPosts.map((post) => (
+                <RevealItem key={post.id}>
+                  <a
+                    href={post.permalink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Voir le post Instagram du ${formatInstagramDate(post.timestamp)}`}
+                    className={TILE_CLASS}
+                  >
+                    <Image
+                      src={
+                        post.mediaType === 'VIDEO'
+                          ? post.thumbnailUrl || post.mediaUrl
+                          : post.mediaUrl
+                      }
+                      alt={post.caption || 'Post Instagram'}
+                      width={800}
+                      height={800}
+                      className={TILE_IMAGE_CLASS}
+                    />
+                    {TILE_VEIL}
+                    {post.mediaType === 'VIDEO' && PLAY_BADGE}
+                    <div className="pointer-events-none absolute left-3 right-3 top-3 flex items-center justify-between">
+                      {post.mediaType === 'CAROUSEL_ALBUM' ? (
+                        <span className="flex items-center gap-1 rounded-full bg-black/50 px-2.5 py-1 text-xs text-white/90 backdrop-blur-md">
+                          <Layers className="h-3.5 w-3.5" aria-hidden="true" />
+                          Carousel
+                        </span>
+                      ) : (
+                        <span />
+                      )}
+                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white/90 backdrop-blur-md">
+                        <Instagram className="h-3.5 w-3.5" aria-hidden="true" />
+                      </span>
+                    </div>
+                    <div className="absolute inset-x-0 bottom-0 p-4 md:p-5">
+                      {post.caption && (
+                        <p className="mb-2 line-clamp-2 text-sm text-white/85">
+                          {truncateCaption(post.caption)}
+                        </p>
+                      )}
+                      <p className="text-xs text-white/50">{formatInstagramDate(post.timestamp)}</p>
+                    </div>
+                  </a>
+                </RevealItem>
+              ))}
+            </RevealGroup>
+          ))}
+
+        {selectedItem && 'title' in selectedItem && (
+          <LightboxV2 item={selectedItem} onClose={() => setSelectedItem(null)} />
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function GalleryPage() {
   const [selectedItem, setSelectedItem] = useState<GalleryItem | InstagramPost | null>(null);
-  const [filter, setFilter] = useState<'all' | 'images' | 'videos'>('all');
+  const [filter, setFilter] = useState<FilterType>('all');
   const [activeTab, setActiveTab] = useState<TabType>('gallery');
   const [instagramPosts, setInstagramPosts] = useState<InstagramPost[]>([]);
   const [isLoadingInstagram, setIsLoadingInstagram] = useState(false);
@@ -77,20 +401,22 @@ export default function GalleryPage() {
     return true;
   });
 
-  const formatInstagramDate = (timestamp: string) => {
-    const date = new Date(timestamp);
-    return date.toLocaleDateString('fr-FR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
-
-  const truncateCaption = (caption: string | undefined, maxLength = 100) => {
-    if (!caption) return '';
-    if (caption.length <= maxLength) return caption;
-    return caption.substring(0, maxLength) + '...';
-  };
+  const isV2 = useUiVersion() === 'v2';
+  if (isV2) {
+    return (
+      <GalleryV2
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        filter={filter}
+        setFilter={setFilter}
+        filteredItems={filteredItems}
+        instagramPosts={instagramPosts}
+        isLoadingInstagram={isLoadingInstagram}
+        selectedItem={selectedItem}
+        setSelectedItem={setSelectedItem}
+      />
+    );
+  }
 
   return (
     <div className="min-h-[calc(100vh-4rem)] py-24 px-4">
@@ -188,6 +514,10 @@ export default function GalleryPage() {
                 transition={{ duration: 0.6, delay: index * 0.1 }}
                 className="group relative cursor-pointer"
                 onClick={() => setSelectedItem(item)}
+                onKeyDown={onActivateKey(() => setSelectedItem(item))}
+                role="button"
+                tabIndex={0}
+                aria-label={item.title}
               >
                 <div className="aspect-square overflow-hidden rounded-lg glass-modern">
                   <motion.div
@@ -259,6 +589,9 @@ export default function GalleryPage() {
                     transition={{ duration: 0.6, delay: index * 0.1 }}
                     className="group relative cursor-pointer"
                     onClick={() => window.open(post.permalink, '_blank')}
+                    onKeyDown={onActivateKey(() => window.open(post.permalink, '_blank'))}
+                    role="link"
+                    tabIndex={0}
                   >
                     <div className="aspect-square overflow-hidden rounded-lg glass-modern">
                       <motion.div

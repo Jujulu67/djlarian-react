@@ -1413,6 +1413,21 @@ header nav button.navMenuItem.navMenuItemWarning:hover {
   }
 }
 
+:root {
+  /* Palette violette (cf. tailwind.config.ts) : valeurs legacy */
+  --purple-50: #faf5ff;
+  --purple-100: #f3e8ff;
+  --purple-200: #e9d5ff;
+  --purple-300: #d8b4fe;
+  --purple-400: #c084fc;
+  --purple-500: #a855f7;
+  --purple-600: #9333ea;
+  --purple-700: #7e22ce;
+  --purple-800: #6b21a8;
+  --purple-900: #581c87;
+  --purple-950: #3b0764;
+}
+
 /* ==========================================================================
    UI v2 « Liquid Night » : tokens, typographie et surfaces de verre.
    Tout est scopé sous [data-ui='v2'] ; l'UI legacy n'est pas affectée.
@@ -1509,3 +1524,227 @@ header nav button.navMenuItem.navMenuItemWarning:hover {
   letter-spacing: 0.02em;
   line-height: 1.1;
 }
+
+/* --------------------------------------------------------------------------
+   Remaps globaux v2 : toute l'app adopte la palette et le verre v2
+   sans toucher aux composants (les classes legacy restent valides).
+   -------------------------------------------------------------------------- */
+[data-ui='v2'] {
+  /* purple-* -> échelle violet : un seul accent, centré sur --brand (#8b5cf6) */
+  --purple-50: #f5f3ff;
+  --purple-100: #ede9fe;
+  --purple-200: #ddd6fe;
+  --purple-300: #c4b5fd;
+  --purple-400: #a78bfa;
+  --purple-500: #8b5cf6;
+  --purple-600: #7c3aed;
+  --purple-700: #6d28d9;
+  --purple-800: #5b21b6;
+  --purple-900: #4c1d95;
+  --purple-950: #2e1065;
+
+  /* gray-* (teinté bleu) -> zinc neutre, accordé au fond #09090b */
+  --color-gray-50: #fafafa;
+  --color-gray-100: #f4f4f5;
+  --color-gray-200: #e4e4e7;
+  --color-gray-300: #d4d4d8;
+  --color-gray-400: #a1a1aa;
+  --color-gray-500: #71717a;
+  --color-gray-600: #52525b;
+  --color-gray-700: #3f3f46;
+  --color-gray-800: #27272a;
+  --color-gray-900: #18181b;
+  --color-gray-950: #09090b;
+
+  /* Tokens shadcn alignés sur l'accent */
+  --ring: 258 90% 66%;
+}
+
+/* Anciennes recettes de verre -> surfaces v2 */
+[data-ui='v2'] .glass,
+[data-ui='v2'] .glass-modern,
+[data-ui='v2'] .glass-premium-container {
+  background: rgb(255 255 255 / 0.03);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border: 1px solid var(--surface-border);
+  box-shadow:
+    inset 0 1px 0 0 var(--surface-highlight),
+    0 12px 40px -16px rgb(0 0 0 / 0.6);
+}
+
+[data-ui='v2'] .glass-modern-hover:hover {
+  background: rgb(255 255 255 / 0.05);
+  border-color: rgb(var(--brand) / 0.35);
+  box-shadow:
+    inset 0 1px 0 0 rgb(255 255 255 / 0.1),
+    0 16px 48px -16px rgb(var(--brand) / 0.25);
+  transform: translateY(-2px);
+  transition:
+    transform var(--dur-slow) var(--ease-out-expo),
+    border-color var(--dur-slow) var(--ease-out-expo),
+    box-shadow var(--dur-slow) var(--ease-out-expo);
+}
+
+/* Focus visible : anneau brand net, sans halo diffus */
+[data-ui='v2'] :is(button, a, input, textarea, select, [tabindex]):focus-visible {
+  outline: 2px solid rgb(var(--brand) / 0.9);
+  outline-offset: 2px;
+}
+
+/* Barres de défilement discrètes */
+[data-ui='v2'] {
+  scrollbar-color: rgb(255 255 255 / 0.15) transparent;
+}
+
+/* Projecteur qui suit le curseur (piloté par useSpotlight : --spot-x, --spot-y, --spot-opacity) */
+@utility spotlight {
+  position: relative;
+  isolation: isolate;
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: var(--spot-opacity, 0);
+    transition: opacity var(--dur-slow, 400ms) var(--ease-out-expo, ease);
+  }
+
+  /* Halo de fond */
+  &::before {
+    inset: 0;
+    z-index: -1;
+    background: radial-gradient(
+      420px circle at var(--spot-x, 50%) var(--spot-y, 50%),
+      rgb(var(--brand) / 0.12),
+      transparent 60%
+    );
+  }
+
+  /* Liseré lumineux sur la bordure */
+  &::after {
+    inset: -1px;
+    padding: 1px;
+    background: radial-gradient(
+      260px circle at var(--spot-x, 50%) var(--spot-y, 50%),
+      rgb(var(--brand) / 0.6),
+      transparent 65%
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+  }
+}
+
+/* Keyframes v2 (modales, overlays) */
+@keyframes v2-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes v2-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Toasts (sonner) en verre */
+[data-ui='v2'] {
+  --toast-bg: rgb(9 9 11 / 0.72);
+  --toast-border: 1px solid rgb(255 255 255 / 0.1);
+  --toast-radius: 1rem;
+}
+
+[data-ui='v2'] [data-sonner-toast] {
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  box-shadow:
+    inset 0 1px 0 0 rgb(255 255 255 / 0.07),
+    0 16px 48px -12px rgb(0 0 0 / 0.7);
+}
+
+/* Fond ambiant v2 (AmbientBackground.tsx) : dégradés radiaux, pas de filter: blur */
+.ambient {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background: rgb(9 9 11);
+}
+
+.ambient__orb {
+  position: absolute;
+  width: 70vmax;
+  height: 70vmax;
+  border-radius: 9999px;
+  will-change: transform;
+  animation: ambient-drift 56s var(--ease-out-expo, ease-in-out) infinite alternate;
+}
+
+.ambient__orb--brand {
+  top: -30vmax;
+  left: -15vmax;
+  background: radial-gradient(circle, rgb(var(--brand) / 0.22), transparent 62%);
+}
+
+.ambient__orb--indigo {
+  top: 10vmax;
+  right: -30vmax;
+  background: radial-gradient(circle, rgb(var(--brand-indigo) / 0.16), transparent 62%);
+  animation-duration: 64s;
+  animation-direction: alternate-reverse;
+}
+
+.ambient__orb--magenta {
+  bottom: -40vmax;
+  left: 20vmax;
+  background: radial-gradient(circle, rgb(var(--brand-magenta) / 0.1), transparent 62%);
+  animation-duration: 72s;
+}
+
+.ambient__grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@keyframes ambient-drift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(6vmax, 4vmax, 0) scale(1.08);
+  }
+  100% {
+    transform: translate3d(-4vmax, 8vmax, 0) scale(0.95);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient__orb {
+    animation: none;
+  }
+}
+
+/* En v2, le fond vient de .ambient : on neutralise les fonds opaques plein écran de page */
+[data-ui='v2'] main > div.min-h-screen.bg-black,
+[data-ui='v2'] main > div.min-h-screen.bg-gray-950 {
+  background-color: transparent;
+}
+

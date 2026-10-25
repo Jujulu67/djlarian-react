@@ -1,12 +1,16 @@
 'use client';
 
 import { MotionConfig } from 'framer-motion';
-import { Toaster } from 'react-hot-toast';
+import { usePathname } from 'next/navigation';
 import { Session } from 'next-auth';
+import { Toaster } from 'sonner';
 
+import AmbientBackground from '@/components/layout/AmbientBackground';
+import Footer from '@/components/layout/Footer';
 import Navigation from '@/components/layout/Navigation';
 import CustomCursor from '@/components/ui/CustomCursor';
 import UiVersionToggle from '@/components/ui/UiVersionToggle';
+import { useUiVersion } from '@/hooks/useUiVersion';
 import AuthProvider from '@/providers/AuthProvider';
 // import { SessionProvider } from 'next-auth/react';
 
@@ -16,38 +20,32 @@ interface ClientLayoutProps {
 }
 
 const ClientLayout = ({ children, session }: ClientLayoutProps) => {
+  const isV2 = useUiVersion() === 'v2';
+  const pathname = usePathname();
+  // Pas de footer sur les espaces de travail (admin, projets)
+  const showFooter = isV2 && !/^\/(admin|projects)(\/|$)/.test(pathname ?? '');
+
   return (
     <AuthProvider session={session}>
       {/* Respecte prefers-reduced-motion pour toutes les animations framer-motion */}
       <MotionConfig reducedMotion="user">
+        {isV2 && <AmbientBackground />}
         <CustomCursor />
         <Navigation />
-        <main className="pt-16">{children}</main>
+        <main className="pt-16 v2:pt-20">{children}</main>
+        {showFooter && <Footer />}
+        {/* Même rendu que l'ancien toaster en legacy ; habillage verre en v2 (globals.css) */}
         <Toaster
           position="bottom-center"
-          containerStyle={{
-            zIndex: 10000,
-          }}
+          theme="dark"
+          duration={5000}
+          style={{ zIndex: 10000 }}
           toastOptions={{
-            duration: 5000,
             style: {
-              background: '#1a1a1a',
+              background: 'var(--toast-bg, #1a1a1a)',
               color: '#fff',
-              borderRadius: '0.5rem',
-              border: '1px solid rgba(139, 92, 246, 0.2)',
-              zIndex: 10000,
-            },
-            success: {
-              iconTheme: {
-                primary: '#10B981',
-                secondary: '#fff',
-              },
-            },
-            error: {
-              iconTheme: {
-                primary: '#EF4444',
-                secondary: '#fff',
-              },
+              border: 'var(--toast-border, 1px solid rgba(139, 92, 246, 0.2))',
+              borderRadius: 'var(--toast-radius, 0.5rem)',
             },
           }}
         />

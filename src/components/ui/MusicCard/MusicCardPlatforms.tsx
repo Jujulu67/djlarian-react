@@ -2,6 +2,7 @@ import React from 'react';
 import { FaSpotify, FaYoutube, FaSoundcloud, FaApple } from 'react-icons/fa';
 
 import { DeezerIcon } from '@/components/icons/DeezerIcon';
+import { useUiVersion } from '@/hooks/useUiVersion';
 import { Track, MusicPlatform } from '@/lib/utils/types';
 
 const platformIcons: Record<MusicPlatform, React.ReactNode> = {
@@ -40,6 +41,8 @@ export const MusicCardPlatforms: React.FC<MusicCardPlatformsProps> = ({
   track,
   isPlayerVisible,
 }) => {
+  const isV2 = useUiVersion() === 'v2';
+
   if (isPlayerVisible) {
     return null;
   }
@@ -64,6 +67,28 @@ export const MusicCardPlatforms: React.FC<MusicCardPlatformsProps> = ({
 
   if (platforms.length === 0) {
     return null;
+  }
+
+  // v2 : rangée discrète, icônes monochromes (placée dans le pied de carte par MusicCard)
+  if (isV2) {
+    return (
+      <div className="flex shrink-0 items-center gap-1">
+        {platforms.map(({ platform, url }) => (
+          <a
+            key={platform}
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="rounded-full p-1.5 text-white/50 transition-colors duration-200 hover:text-white"
+            title={platformTitles[platform]}
+            aria-label={platformTitles[platform]}
+          >
+            {platformIcons[platform]}
+          </a>
+        ))}
+      </div>
+    );
   }
 
   return (

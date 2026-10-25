@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { type Crop as CropType } from 'react-image-crop';
 
 import { logger } from '@/lib/logger';

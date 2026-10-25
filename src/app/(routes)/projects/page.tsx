@@ -40,7 +40,7 @@ async function ProjectsContent() {
   const serializedProjects = serializeProjects(projects);
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] pt-8 pb-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-[calc(100vh-4rem)] pt-8 pb-12 px-4 sm:px-6 lg:px-8 v2:pt-6">
       <div className="max-w-[1600px] mx-auto">
         <ProjectsClient initialProjects={serializedProjects} />
       </div>
@@ -55,7 +55,9 @@ export default function ProjectsPage() {
     <Suspense
       fallback={
         <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-8">
-          <div className="text-white font-audiowide animate-pulse">Chargement des projets...</div>
+          <div className="text-white font-audiowide animate-pulse v2:font-normal v2:text-white/60">
+            Chargement des projets...
+          </div>
         </div>
       }
     >

@@ -18,6 +18,7 @@ import { exportProjectsToExcel } from '@/lib/utils/exportProjectsToExcel';
 import { fetchWithAuth, isAuthError, getErrorMessage } from '@/lib/api/fetchWithAuth';
 import { StreamsMilestones } from '@/lib/utils/calculateStreamsMilestones';
 import { ProjectAssistant } from '@/components/ProjectAssistant';
+import { useUiVersion } from '@/hooks/useUiVersion';
 
 import {
   filterAndSortProjects,
@@ -31,11 +32,25 @@ import { useAssistantProjectSync } from './hooks/useAssistantProjectSync';
 import { useNotificationHighlight } from './hooks/useNotificationHighlight';
 import { useScrollToNewProject } from './hooks/useScrollToNewProject';
 
+/** En-tête compact de l'espace Projets (UI v2) : surtitre, titre display, description */
+function ProjectsHeader({ description }: { description: string }) {
+  return (
+    <header className="mb-4 px-1 pt-2 pb-4 md:mb-6">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-[0.25em] text-brand">
+        Espace de travail
+      </p>
+      <h1 className="text-display text-3xl text-white md:text-4xl">Mes projets</h1>
+      <p className="mt-3 text-sm text-white/60 md:text-base">{description}</p>
+    </header>
+  );
+}
+
 interface ProjectsClientProps {
   initialProjects: Project[];
 }
 
 export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
+  const isV2 = useUiVersion() === 'v2';
   const router = useRouter();
   const { data: session, status: sessionStatus } = useSession();
   const [allProjects, setAllProjects] = useState<Project[]>(initialProjects);
@@ -663,12 +678,16 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
   if (sessionStatus === 'loading') {
     return (
       <div className="space-y-2">
-        <div className="glass-modern rounded-xl p-4 sm:p-6">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Mes Projets</h1>
-            <p className="text-gray-400 text-sm">Vérification de la session...</p>
+        {isV2 ? (
+          <ProjectsHeader description="Vérification de la session..." />
+        ) : (
+          <div className="glass-modern rounded-xl p-4 sm:p-6">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Mes Projets</h1>
+              <p className="text-gray-400 text-sm">Vérification de la session...</p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     );
   }
@@ -676,16 +695,22 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
   return (
     <div className="space-y-2">
       {/* Header */}
-      <div className="glass-modern rounded-xl p-4 sm:p-6">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Mes Projets</h1>
-          <p className="text-gray-400 text-sm">Gère tes projets musicaux et suis leur évolution</p>
+      {isV2 ? (
+        <ProjectsHeader description="Gère tes projets musicaux et suis leur évolution" />
+      ) : (
+        <div className="glass-modern rounded-xl p-4 sm:p-6">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Mes Projets</h1>
+            <p className="text-gray-400 text-sm">
+              Gère tes projets musicaux et suis leur évolution
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Message d'erreur d'authentification */}
       {authError && (
-        <div className="bg-red-500/20 border border-red-500/50 rounded-xl p-4 text-red-300">
+        <div className="bg-red-500/20 border border-red-500/50 rounded-xl p-4 text-red-300 v2:rounded-2xl v2:bg-red-500/10 v2:border-red-500/30">
           <p className="font-medium">{authError}</p>
           <p className="text-sm text-red-400 mt-1">Redirection en cours...</p>
         </div>
@@ -746,8 +771,9 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
       />
 
       {/* Info aide */}
-      <div className="text-center text-gray-500 text-xs py-4">
-        💡 Clique sur une cellule pour la modifier • Entrée pour valider • Échap pour annuler
+      <div className="text-center text-gray-500 text-xs py-4 v2:text-white/40">
+        {isV2 ? null : '💡 '}
+        Clique sur une cellule pour la modifier • Entrée pour valider • Échap pour annuler
       </div>
 
       {/* Dialog d'import */}

@@ -1,6 +1,7 @@
 /** Lien actif : correspondance exacte, ou préfixe de route (sauf la racine '/'). */
 export function isNavLinkActive(pathname: string | null | undefined, href: string): boolean {
-  return pathname ? pathname === href || (href !== '/' && pathname.startsWith(href)) : false;
+  // Préfixe suivi d'un « / » : /musicx ne doit pas activer /music
+  return pathname ? pathname === href || (href !== '/' && pathname.startsWith(`${href}/`)) : false;
 }
 
 /** Affiche l'entrée Arcade si l'utilisateur a un high score ou a découvert le casino. */

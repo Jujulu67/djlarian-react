@@ -1,13 +1,18 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Loader } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Loader } from 'lucide-react';
 import { Music } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { FaSpotify, FaApple, FaSoundcloud } from 'react-icons/fa';
 
+import { SectionHeading } from '@/components/ui/PageHeader';
+import { RevealGroup, RevealItem } from '@/components/ui/Reveal';
+import { useSpotlight } from '@/hooks/useSpotlight';
+import { useUiVersion } from '@/hooks/useUiVersion';
 import { logger } from '@/lib/logger';
 import { getImageUrl } from '@/lib/utils/getImageUrl';
 import { Track } from '@/lib/utils/types';
@@ -42,6 +47,200 @@ const glowAnimation = `
   }
 `;
 
+const BLUR_DATA_URL =
+  'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q==';
+
+/* -------------------------------------------------------------------------- */
+/* UI v2                                                                      */
+/* -------------------------------------------------------------------------- */
+
+const V2_SECTION = 'relative py-16 md:py-24';
+const V2_CONTAINER = 'mx-auto max-w-[1180px] px-4';
+const V2_GRID = 'grid grid-cols-1 gap-5 sm:grid-cols-2 md:gap-6 lg:grid-cols-3';
+
+function ReleasesHeadingV2({ title }: { title: string }) {
+  return (
+    <SectionHeading eyebrow="Dernières sorties" title={title}>
+      <Link
+        href="/music"
+        className="group/link hidden shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-white/60 transition-colors duration-300 hover:text-white sm:inline-flex"
+      >
+        View all
+        <ArrowRight
+          className="h-4 w-4 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover/link:translate-x-0.5"
+          aria-hidden="true"
+        />
+      </Link>
+    </SectionHeading>
+  );
+}
+
+const V2_PLATFORM_LINK =
+  'rounded-md p-1 text-xl text-white/50 transition-colors duration-300 hover:text-white';
+
+function ReleaseCardV2({
+  release,
+  index,
+  hasLongTitle,
+  imageFailed,
+  onOpen,
+  onImageError,
+  onImageLoad,
+}: {
+  release: Track;
+  index: number;
+  hasLongTitle: boolean;
+  imageFailed: boolean;
+  onOpen: () => void;
+  onImageError: () => void;
+  onImageLoad: () => void;
+}) {
+  const spotlight = useSpotlight<HTMLDivElement>();
+
+  return (
+    <div
+      {...spotlight}
+      role="button"
+      tabIndex={0}
+      aria-label={`View details for ${release.title} by ${release.artist}`}
+      onClick={onOpen}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onOpen();
+        }
+      }}
+      className="surface-1 spotlight group flex h-full cursor-pointer flex-col rounded-2xl p-3 transition-[transform,border-color] duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-white/15 active:scale-[0.98]"
+    >
+      <div className="relative aspect-square overflow-hidden rounded-xl bg-white/[0.04]">
+        {release.imageId && !imageFailed ? (
+          <Image
+            src={getImageUrl(release.imageId) || ''}
+            alt={`Cover for ${release.title} by ${release.artist}`}
+            fill
+            sizes="(min-width: 1024px) 380px, (min-width: 640px) 50vw, 100vw"
+            className="object-cover object-center transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.03]"
+            priority={index < 3}
+            loading={index < 3 ? 'eager' : 'lazy'}
+            placeholder="blur"
+            blurDataURL={BLUR_DATA_URL}
+            onError={onImageError}
+            onLoad={onImageLoad}
+            unoptimized
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center">
+            <Music className="h-12 w-12 text-white/20" aria-hidden="true" />
+          </div>
+        )}
+
+        <span className="absolute left-3 top-3 rounded-full bg-black/45 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-white/90 ring-1 ring-inset ring-white/15 backdrop-blur-md">
+          {release.type}
+        </span>
+      </div>
+
+      <div className="flex flex-1 flex-col px-2 pb-1 pt-4">
+        <h3
+          className={`line-clamp-2 text-lg font-semibold leading-snug text-white ${
+            hasLongTitle ? 'min-h-[3.1rem]' : ''
+          }`}
+        >
+          {release.title}
+        </h3>
+        <p className="mt-1 text-sm text-white/60">
+          {release.artist}
+          <span className="mx-1.5 text-white/30" aria-hidden="true">
+            •
+          </span>
+          {new Date(release.releaseDate).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+          })}
+        </p>
+
+        <div className="mt-auto flex min-h-[2.5rem] items-center gap-2 pt-3">
+          {release.platforms.spotify?.url && (
+            <a
+              href={release.platforms.spotify.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={V2_PLATFORM_LINK}
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+              aria-label={`Listen to ${release.title} on Spotify`}
+            >
+              <FaSpotify />
+            </a>
+          )}
+          {release.platforms.apple?.url && (
+            <a
+              href={release.platforms.apple.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={V2_PLATFORM_LINK}
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+              aria-label={`Listen to ${release.title} on Apple Music`}
+            >
+              <FaApple />
+            </a>
+          )}
+          {release.platforms.soundcloud?.url && (
+            <a
+              href={release.platforms.soundcloud.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={V2_PLATFORM_LINK}
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+              aria-label={`Listen to ${release.title} on SoundCloud`}
+            >
+              <FaSoundcloud />
+            </a>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReleasesSkeletonV2({ title }: { title: string }) {
+  return (
+    <section className={V2_SECTION}>
+      <div className={V2_CONTAINER}>
+        <ReleasesHeadingV2 title={title} />
+        <div className={V2_GRID} aria-hidden="true">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="surface-1 rounded-2xl p-3">
+              <div className="aspect-square animate-pulse rounded-xl bg-white/[0.04]" />
+              <div className="space-y-3 px-2 pb-2 pt-4">
+                <div className="h-5 w-3/4 animate-pulse rounded-md bg-white/[0.04]" />
+                <div className="h-4 w-1/2 animate-pulse rounded-md bg-white/[0.04]" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ReleasesMessageV2({ title, message }: { title: string; message: string }) {
+  return (
+    <section className={V2_SECTION}>
+      <div className={V2_CONTAINER}>
+        <ReleasesHeadingV2 title={title} />
+        <div className="surface-1 mx-auto flex max-w-md flex-col items-center gap-4 rounded-2xl px-6 py-10 text-center">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/[0.04]">
+            <AlertTriangle className="h-5 w-5 text-white/60" aria-hidden="true" />
+          </span>
+          <p className="text-sm text-white/70">{message}</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // Props pour le composant LatestReleases
 export interface LatestReleasesProps {
   title?: string;
@@ -61,6 +260,7 @@ export default function LatestReleases({
   const [error, setError] = useState<string | null>(null);
   const [imageErrors, setImageErrors] = useState<ImageErrorState>({}); // Initialiser l'état des erreurs d'image
   const router = useRouter();
+  const isV2 = useUiVersion() === 'v2';
 
   // Charger les morceaux depuis l'API seulement si initialReleases n'est pas fourni
   useEffect(() => {
@@ -136,6 +336,7 @@ export default function LatestReleases({
   };
 
   // Si en chargement, afficher un loader
+  if (isLoading && isV2) return <ReleasesSkeletonV2 title={title} />;
   if (isLoading) {
     return (
       <section className="py-20 relative overflow-hidden">
@@ -174,6 +375,7 @@ export default function LatestReleases({
   }
 
   // Si erreur, afficher un message
+  if (error && isV2) return <ReleasesMessageV2 title={title} message={error} />;
   if (error) {
     return (
       <section className="py-20 relative overflow-hidden">
@@ -198,6 +400,44 @@ export default function LatestReleases({
   // Calculer dynamiquement si on a besoin de l'espace pour 2 lignes
   // En se basant sur une longueur moyenne de titre > 32 caractères
   const hasLongTitle = releases.some((r) => r.title.length > 32);
+
+  if (isV2) {
+    if (releases.length === 0) {
+      return <ReleasesMessageV2 title={title} message="No releases yet. Check back soon." />;
+    }
+
+    return (
+      <section className={V2_SECTION}>
+        <div className={V2_CONTAINER}>
+          <ReleasesHeadingV2 title={title} />
+          <RevealGroup className={V2_GRID}>
+            {releases.map((release, index) => (
+              <RevealItem key={release.id} className="h-full">
+                <ReleaseCardV2
+                  release={release}
+                  index={index}
+                  hasLongTitle={hasLongTitle}
+                  imageFailed={Boolean(imageErrors[release.id])}
+                  onOpen={() => handleCardClick(release.id)}
+                  onImageError={() => handleImageError(release.id)}
+                  onImageLoad={() => setImageErrors((prev) => ({ ...prev, [release.id]: false }))}
+                />
+              </RevealItem>
+            ))}
+          </RevealGroup>
+          <div className="mt-8 flex justify-center sm:hidden">
+            <Link
+              href="/music"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-white/60 transition-colors hover:text-white"
+            >
+              View all
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <>

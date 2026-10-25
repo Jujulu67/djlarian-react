@@ -18,6 +18,13 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+import { Button, buttonVariants } from '@/components/ui/Button';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Reveal, RevealGroup, RevealItem } from '@/components/ui/Reveal';
+import { useSpotlight } from '@/hooks/useSpotlight';
+import { useUiVersion } from '@/hooks/useUiVersion';
+import { cn } from '@/lib/utils/cn';
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -146,6 +153,12 @@ function ProductCard({ product }: { product: Product }) {
   const isDisabled = !product.ctaHref || product.ctaHref === '#';
   const router = useRouter();
 
+  const openDetails = () => {
+    if (!isDisabled && product.ctaHref) {
+      router.push(product.ctaHref);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
@@ -160,12 +173,17 @@ function ProductCard({ product }: { product: Product }) {
         hover:scale-[1.02] hover:shadow-2xl
         ${isPro ? 'hover:shadow-purple-500/20 hover:border-purple-400/50' : 'hover:border-white/20'}
       `}
-      onClick={() => {
-        if (!isDisabled && product.ctaHref) {
-          router.push(product.ctaHref);
+      onClick={openDetails}
+      onKeyDown={(event) => {
+        // Accessibilité clavier : la carte se comporte comme un bouton (Entrée / Espace)
+        if (event.target !== event.currentTarget) return;
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          openDetails();
         }
       }}
       role="button"
+      tabIndex={0}
       aria-label={`Open details for ${product.name}`}
     >
       {/* Pro glow effect */}
@@ -322,10 +340,192 @@ function FeatureComparison() {
 }
 
 // ============================================================================
+// UI V2
+// ============================================================================
+
+/** Carte produit v2 : toute la carte est un lien (clavier inclus), CTA purement visuel */
+function ProductCardV2({ product }: { product: Product }) {
+  const isPro = product.badge === 'PRO';
+  const spotlight = useSpotlight<HTMLAnchorElement>();
+
+  return (
+    <Link
+      href={product.ctaHref}
+      aria-label={`${product.name} : ${product.tagline}`}
+      className="group spotlight surface-1 relative flex h-full flex-col rounded-2xl p-6 transition-[transform,border-color] duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-white/15 active:scale-[0.99] md:p-8"
+      {...spotlight}
+    >
+      <div className="mb-5 flex items-center justify-between">
+        <span
+          className={cn(
+            'inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider ring-1 ring-inset',
+            isPro
+              ? 'bg-brand/15 text-purple-200 ring-brand/30'
+              : 'bg-white/[0.04] text-white/70 ring-white/10'
+          )}
+        >
+          {isPro && <Crown className="h-3 w-3" aria-hidden="true" />}
+          {product.badge}
+        </span>
+      </div>
+
+      <h2 className="text-display mb-2 text-2xl text-white md:text-3xl">{product.name}</h2>
+      <p className="mb-4 text-sm text-white/50">{product.tagline}</p>
+      <p className="mb-6 leading-relaxed text-white/70">{product.description}</p>
+
+      <ul className="mb-8 space-y-3">
+        {product.features.map((feature) => (
+          <li key={feature.title} className="flex items-start gap-3">
+            <span className="shrink-0 rounded-lg bg-white/[0.04] p-2 text-purple-300 ring-1 ring-inset ring-white/10">
+              {feature.icon}
+            </span>
+            <span>
+              <span className="block text-sm font-medium text-white">{feature.title}</span>
+              <span className="block text-xs text-white/50">{feature.description}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      <div className="mt-auto space-y-4">
+        <div>
+          <span className="text-4xl font-semibold text-white">{product.price}</span>
+          {product.priceSubtext && (
+            <span className="ml-2 text-sm text-white/50">{product.priceSubtext}</span>
+          )}
+        </div>
+        <span
+          aria-hidden="true"
+          className={cn(
+            buttonVariants({ variant: isPro ? 'default' : 'outline', size: 'lg' }),
+            'w-full'
+          )}
+        >
+          <Download className="h-5 w-5" />
+          {product.ctaText}
+        </span>
+      </div>
+    </Link>
+  );
+}
+
+function ComparisonCell({ value, isPro }: { value: boolean | string; isPro: boolean }) {
+  if (value === true) {
+    return (
+      <Check
+        className={cn('mx-auto h-5 w-5', isPro ? 'text-brand' : 'text-white/70')}
+        aria-label="Inclus"
+      />
+    );
+  }
+  if (value === false) {
+    return <X className="mx-auto h-5 w-5 text-white/20" aria-label="Non inclus" />;
+  }
+  return (
+    <span className={cn('text-sm', isPro ? 'font-medium text-purple-300' : 'text-white/60')}>
+      {value}
+    </span>
+  );
+}
+
+function FeatureComparisonV2() {
+  return (
+    <div className="surface-1 overflow-hidden rounded-2xl">
+      <div className="border-b border-white/[0.06] p-6 md:p-8">
+        <h2 className="text-display text-2xl text-white md:text-3xl">Compare Features</h2>
+        <p className="mt-2 text-white/60">See what&apos;s included in each version</p>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-white/[0.06]">
+              <th className="p-3 text-left text-xs font-medium uppercase tracking-wider text-white/50 md:p-4">
+                Feature
+              </th>
+              <th className="w-28 p-3 text-center text-xs font-medium uppercase tracking-wider text-white/50 md:w-36 md:p-4">
+                OPENCRUSHER
+              </th>
+              <th className="w-28 p-3 text-center text-xs font-medium uppercase tracking-wider text-white md:w-36 md:p-4">
+                LarianCrusher
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {COMPARISON_FEATURES.map((feature) => (
+              <tr
+                key={feature.name}
+                className="border-b border-white/[0.06] transition-colors last:border-0 hover:bg-white/[0.02]"
+              >
+                <td className="p-3 text-sm text-white/70 md:p-4 md:text-base">{feature.name}</td>
+                <td className="p-3 text-center md:p-4">
+                  <ComparisonCell value={feature.free} isPro={false} />
+                </td>
+                <td className="p-3 text-center md:p-4">
+                  <ComparisonCell value={feature.pro} isPro />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function ShopPageV2() {
+  return (
+    <div className="min-h-screen">
+      <section className="mx-auto max-w-[1180px] px-4 pb-16 pt-16 md:pb-24 md:pt-24">
+        <PageHeader
+          eyebrow="Boutique"
+          title="Audio Plugins"
+          description="Professional distortion and sound design tools for music producers"
+        />
+
+        <RevealGroup className="grid gap-6 md:grid-cols-2">
+          {PRODUCTS.map((product) => (
+            <RevealItem key={product.id} className="h-full">
+              <ProductCardV2 product={product} />
+            </RevealItem>
+          ))}
+        </RevealGroup>
+      </section>
+
+      <section className="mx-auto max-w-[1180px] px-4 pb-16 md:pb-24">
+        <Reveal>
+          <FeatureComparisonV2 />
+        </Reveal>
+      </section>
+
+      <section className="mx-auto max-w-[1180px] px-4 pb-16 md:pb-24">
+        <Reveal className="surface-1 mx-auto max-w-3xl rounded-2xl p-8 text-center md:p-12">
+          <h2 className="text-display mb-4 text-2xl text-white md:text-4xl">
+            Ready to crush some sounds?
+          </h2>
+          <p className="mb-8 text-white/60">
+            Get LarianCrusher today and unlock the full potential of your productions.
+          </p>
+          <Button asChild size="lg">
+            <Link href="/shop/lariancrusher">
+              <Crown className="h-5 w-5" />
+              Get LarianCrusher Pro
+            </Link>
+          </Button>
+        </Reveal>
+      </section>
+    </div>
+  );
+}
+
+// ============================================================================
 // MAIN PAGE
 // ============================================================================
 
 export default function ShopPage() {
+  const isV2 = useUiVersion() === 'v2';
+  if (isV2) return <ShopPageV2 />;
+
   return (
     <div className="min-h-screen">
       {/* Hero Section */}

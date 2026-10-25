@@ -9,7 +9,7 @@ import EventForm, { EventFormData } from '../EventForm';
 import { RecurrenceConfig } from '../EventForm/types';
 
 // Mock dependencies
-jest.mock('react-hot-toast', () => ({
+jest.mock('sonner', () => ({
   toast: {
     error: jest.fn(),
     success: jest.fn(),

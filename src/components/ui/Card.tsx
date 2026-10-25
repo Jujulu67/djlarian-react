@@ -23,11 +23,12 @@ export const Card = ({
   isInteractive = false,
 }: CardProps): React.JSX.Element => {
   const baseStyles =
-    'overflow-hidden rounded-lg bg-white shadow dark:bg-dark-800 transition-all duration-200';
+    'overflow-hidden rounded-lg bg-white shadow dark:bg-dark-800 transition-all duration-200 v2:rounded-2xl v2:surface-1 v2:dark:bg-white/[0.03]';
 
   const classes = clsx(
     baseStyles,
-    isHoverable && 'hover:shadow-lg hover:-translate-y-1',
+    isHoverable &&
+      'hover:shadow-lg hover:-translate-y-1 v2:hover:border-white/15 v2:hover:shadow-[0_16px_48px_-16px_rgb(var(--brand)/0.35)]',
     isInteractive && 'cursor-pointer',
     className
   );
@@ -65,7 +66,10 @@ const CardComponent = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn('rounded-lg border bg-card text-card-foreground shadow-sm', className)}
+    className={cn(
+      'rounded-lg border bg-card text-card-foreground shadow-sm v2:rounded-2xl v2:surface-1',
+      className
+    )}
     {...props}
   />
 ));

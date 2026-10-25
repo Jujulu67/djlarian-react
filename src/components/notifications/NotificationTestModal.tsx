@@ -71,24 +71,26 @@ export function NotificationTestModal({ isOpen, onClose, onSuccess }: Notificati
       onClick={onClose}
     >
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity v2:bg-black/55 v2:backdrop-blur-md"
         aria-hidden="true"
       />
       <div
-        className="relative transform overflow-hidden rounded-xl glass-modern backdrop-blur-xl w-full max-w-2xl text-left shadow-2xl transition-all sm:my-8 animate-fadeIn"
+        className="relative transform overflow-hidden rounded-xl glass-modern backdrop-blur-xl w-full max-w-2xl text-left shadow-2xl transition-all sm:my-8 animate-fadeIn v2:surface-3 v2:rounded-3xl"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 p-2 text-gray-400 hover:text-white bg-black/20 hover:bg-black/40 rounded-full transition-colors z-10"
+          className="absolute top-3 right-3 p-2 text-gray-400 hover:text-white bg-black/20 hover:bg-black/40 rounded-full transition-colors z-10 v2:bg-white/[0.06] v2:hover:bg-white/[0.12]"
           aria-label="Fermer la modale"
         >
           <X className="w-5 h-5" />
         </button>
         <div className="p-6 md:p-8 max-h-[80vh] overflow-y-auto">
           <div className="flex items-center gap-2 mb-4">
-            <TestTube className="w-6 h-6 text-yellow-400" />
-            <h2 className="text-2xl font-bold text-white">Tests de notifications</h2>
+            <TestTube className="w-6 h-6 text-yellow-400 v2:text-white/70" />
+            <h2 className="text-2xl font-bold text-white v2:text-display v2:font-normal">
+              Tests de notifications
+            </h2>
           </div>
           <p className="text-sm text-gray-400 mb-6">
             Envoyer des notifications de test pour vérifier leur affichage
@@ -98,7 +100,7 @@ export function NotificationTestModal({ isOpen, onClose, onSuccess }: Notificati
             {/* Notifications de Release */}
             <div>
               <h3 className="text-base font-semibold text-white mb-3 flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-purple-400" />
+                <Calendar className="w-5 h-5 text-purple-400 v2:text-white/70" />
                 Releases
               </h3>
               <div className="flex flex-wrap gap-2">
@@ -108,7 +110,7 @@ export function NotificationTestModal({ isOpen, onClose, onSuccess }: Notificati
                       key={type}
                       onClick={() => handleSendTestNotification(type)}
                       disabled={isSendingTest === type}
-                      className="px-4 py-2 text-sm bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/50 text-purple-300 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      className="px-4 py-2 text-sm bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/50 text-purple-300 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 v2:rounded-xl v2:border-transparent v2:bg-white/[0.04] v2:ring-1 v2:ring-inset v2:ring-white/10 v2:text-white/80 v2:hover:bg-white/[0.08] v2:hover:text-white v2:active:scale-[0.98]"
                     >
                       {isSendingTest === type ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -125,7 +127,7 @@ export function NotificationTestModal({ isOpen, onClose, onSuccess }: Notificati
             {/* Notifications de Deadline */}
             <div>
               <h3 className="text-base font-semibold text-white mb-3 flex items-center gap-2">
-                <AlertCircle className="w-5 h-5 text-orange-400" />
+                <AlertCircle className="w-5 h-5 text-orange-400 v2:text-white/70" />
                 Deadlines
               </h3>
               <div className="flex flex-wrap gap-2">
@@ -135,7 +137,7 @@ export function NotificationTestModal({ isOpen, onClose, onSuccess }: Notificati
                       key={type}
                       onClick={() => handleSendTestNotification(type)}
                       disabled={isSendingTest === type}
-                      className="px-4 py-2 text-sm bg-orange-500/20 hover:bg-orange-500/30 border border-orange-500/50 text-orange-300 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      className="px-4 py-2 text-sm bg-orange-500/20 hover:bg-orange-500/30 border border-orange-500/50 text-orange-300 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 v2:rounded-xl v2:border-transparent v2:bg-white/[0.04] v2:ring-1 v2:ring-inset v2:ring-white/10 v2:text-white/80 v2:hover:bg-white/[0.08] v2:hover:text-white v2:active:scale-[0.98]"
                     >
                       {isSendingTest === type ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -152,7 +154,7 @@ export function NotificationTestModal({ isOpen, onClose, onSuccess }: Notificati
             {/* Notifications de Jalons */}
             <div>
               <h3 className="text-base font-semibold text-white mb-3 flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-blue-400" />
+                <TrendingUp className="w-5 h-5 text-blue-400 v2:text-white/70" />
                 Jalons
               </h3>
               <div className="flex flex-wrap gap-2">
@@ -161,7 +163,7 @@ export function NotificationTestModal({ isOpen, onClose, onSuccess }: Notificati
                     key={type}
                     onClick={() => handleSendTestNotification(type)}
                     disabled={isSendingTest === type}
-                    className="px-4 py-2 text-sm bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/50 text-blue-300 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    className="px-4 py-2 text-sm bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/50 text-blue-300 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 v2:rounded-xl v2:border-transparent v2:bg-white/[0.04] v2:ring-1 v2:ring-inset v2:ring-white/10 v2:text-white/80 v2:hover:bg-white/[0.08] v2:hover:text-white v2:active:scale-[0.98]"
                   >
                     {isSendingTest === type ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
