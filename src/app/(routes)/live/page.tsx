@@ -23,7 +23,7 @@ function LivePageContent() {
   const router = useRouter();
   const { loadInventory } = useLiveInventoryContext();
   const { loadRewards } = useLiveRewards();
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
 
   // Charger les données au montage
   useEffect(() => {

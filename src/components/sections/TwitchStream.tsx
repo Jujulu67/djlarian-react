@@ -182,7 +182,7 @@ function TwitchStreamV2({
 }
 
 const TwitchStream = () => {
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
   const [streamStatus, setStreamStatus] = useState<StreamStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);

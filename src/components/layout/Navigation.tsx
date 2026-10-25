@@ -132,7 +132,12 @@ const Navigation = () => {
           isScrolled
             ? 'v2:top-2 v2:bg-[rgb(9_9_11/0.72)] v2:shadow-[inset_0_1px_0_rgb(255_255_255/0.07),0_16px_48px_-16px_rgb(0_0_0/0.8)]'
             : 'v2:top-3 v2:bg-white/[0.04] v2:shadow-[inset_0_1px_0_rgb(255_255_255/0.07)]'
-        } v2:left-1/2 v2:right-auto v2:w-[min(1180px,calc(100%-1.5rem))] v2:-translate-x-1/2 v2:rounded-[1.75rem] v2:border v2:border-white/10 v2:bg-none v2:backdrop-blur-xl v2:backdrop-saturate-150 v2:duration-300`}
+        } v2:left-1/2 v2:right-auto v2:w-[min(1180px,calc(100%-1.5rem))] v2:-translate-x-1/2 v2:rounded-[1.75rem] v2:border v2:border-white/10 v2:bg-none v2:backdrop-blur-xl v2:backdrop-saturate-150 v2:duration-300 ${
+          /* v3 : barre pleine largeur, transparente en haut de page, filet et voile au scroll */
+          isScrolled
+            ? 'v3:border-b-[rgb(237_235_230/0.12)] v3:bg-[rgb(5_5_6/0.78)] v3:backdrop-blur-md'
+            : 'v3:border-b-transparent v3:bg-transparent v3:backdrop-blur-none'
+        } v3:top-0 v3:left-0 v3:right-0 v3:w-full v3:translate-x-0 v3:rounded-none v3:border-x-0 v3:border-t-0 v3:shadow-none v3:backdrop-saturate-100`}
       >
         {/* Animated gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-transparent to-blue-500/10 opacity-50 v2:hidden" />
@@ -155,10 +160,10 @@ const Navigation = () => {
           <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-500/50 to-transparent animate-glow-pulse v2:hidden" />
         )}
 
-        <nav className="container mx-auto px-3 sm:px-4 h-16 flex items-center justify-between relative z-10 gap-2 sm:gap-4 v2:h-14 v2:max-w-none v2:pl-5 v2:pr-2">
+        <nav className="container mx-auto px-3 sm:px-4 h-16 flex items-center justify-between relative z-10 gap-2 sm:gap-4 v2:h-14 v2:max-w-none v2:pl-5 v2:pr-2 v3:h-16 v3:max-w-[1440px] v3:px-4 md:v3:px-8">
           <Link
             href="/"
-            className="text-xl sm:text-2xl font-audiowide text-white lg:hover:text-transparent lg:hover:bg-clip-text lg:hover:bg-gradient-to-r lg:hover:from-purple-400 lg:hover:via-blue-400 lg:hover:to-purple-400 active:text-white transition-all duration-300 relative group shrink-0"
+            className="text-xl sm:text-2xl font-audiowide text-white lg:hover:text-transparent lg:hover:bg-clip-text lg:hover:bg-gradient-to-r lg:hover:from-purple-400 lg:hover:via-blue-400 lg:hover:to-purple-400 active:text-white transition-all duration-300 relative group shrink-0 v3:font-poster v3:text-xl v3:tracking-[-0.03em]"
           >
             <span className="relative z-10">LARIAN</span>
             {isScrolled && (
@@ -261,7 +266,8 @@ const Navigation = () => {
                     }}
                     className="text-white/90 hover:text-white transition-all duration-300
                       bg-gradient-to-r from-purple-500/10 to-blue-500/10 hover:from-purple-500/20 hover:to-blue-500/20
-                      px-4 py-2 rounded-full border border-purple-500/20 hover:border-purple-500/40 hover:scale-105"
+                      px-4 py-2 rounded-full border border-purple-500/20 hover:border-purple-500/40 hover:scale-105
+                      v3:rounded-none v3:border-white/25 v3:bg-none v3:font-mono-signal v3:text-[12px] v3:uppercase v3:hover:scale-100 v3:hover:border-[rgb(var(--signal))]"
                   >
                     Connexion
                   </button>

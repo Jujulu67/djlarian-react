@@ -64,7 +64,7 @@ function SectionIntro({
 
 export default function LarianCrusherPage() {
   const shopSettings = useShopSettings();
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
 
   return (
     <div className="min-h-screen">

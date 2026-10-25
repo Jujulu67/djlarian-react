@@ -95,7 +95,7 @@ function EventsContent() {
             />
 
             {/* En v2, chaque carte (motion) apparaît en cascade ; en legacy, simple <div> */}
-            <RevealGroup className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+            <RevealGroup className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 v3:grid-cols-1 v3:gap-0 v3:rule-t md:v3:grid-cols-1 lg:v3:grid-cols-1 sm:v3:gap-0 lg:v3:gap-0">
               {currentEvents.map((event) => (
                 <EventCard key={event.id} event={event} />
               ))}

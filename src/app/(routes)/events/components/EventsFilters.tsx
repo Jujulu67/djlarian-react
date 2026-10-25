@@ -13,8 +13,8 @@ const STATUS_FILTERS = [
 ];
 
 const V2_CHIP =
-  'inline-flex h-9 items-center whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors duration-200 active:scale-[0.98]';
-const V2_CHIP_ACTIVE = 'bg-white text-zinc-950';
+  'inline-flex h-9 items-center whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors duration-200 active:scale-[0.98] v3:h-10 v3:rounded-none v3:font-mono-signal v3:text-[12px] v3:font-normal v3:uppercase';
+const V2_CHIP_ACTIVE = 'bg-white text-zinc-950 v3:bg-[rgb(var(--signal))] v3:text-[rgb(5_5_6)]';
 const V2_CHIP_IDLE =
   'bg-white/[0.04] text-white/70 ring-1 ring-inset ring-white/10 hover:text-white';
 
@@ -35,7 +35,7 @@ export function EventsFilters({
   showFilters,
   setShowFilters,
 }: EventsFiltersProps) {
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
 
   // v2 : recherche + chips de statut. Les « filtres additionnels » legacy (lieu, date, prix)
   // ne sont branchés à rien : ils ne sont pas repris en v2.
@@ -51,7 +51,7 @@ export function EventsFilters({
             type="search"
             aria-label="Rechercher un événement"
             placeholder="Rechercher un événement..."
-            className="h-12 w-full rounded-xl border border-white/10 bg-white/[0.03] pl-11 pr-4 text-sm text-white backdrop-blur-md transition-[border-color,box-shadow] duration-200 placeholder:text-white/40 focus:border-brand/70 focus:outline-none focus:ring-4 focus:ring-brand/15"
+            className="h-12 w-full rounded-xl border border-white/10 bg-white/[0.03] pl-11 pr-4 text-sm text-white backdrop-blur-md transition-[border-color,box-shadow] duration-200 placeholder:text-white/40 focus:border-brand/70 focus:outline-none focus:ring-4 focus:ring-brand/15 v3:rounded-none v3:border-white/15 v3:bg-transparent v3:font-mono-signal v3:text-[13px] v3:focus:border-[rgb(var(--signal))] v3:focus:ring-0"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />

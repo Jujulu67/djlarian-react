@@ -2,7 +2,9 @@
 @config "../../tailwind.config.ts";
 
 /* Variant `v2:` : styles de l'UI v2 « Liquid Night », actifs sous <html data-ui="v2"> */
-@custom-variant v2 (&:where([data-ui='v2'], [data-ui='v2'] *));
+@custom-variant v2 (&:where([data-ui='v2'], [data-ui='v3'], [data-ui='v2'] *, [data-ui='v3'] *));
+/* Variant `v3:` : direction « Signal » (V3), qui hérite de toute l'UI v2 et la surcharge */
+@custom-variant v3 (&:where([data-ui='v3'], [data-ui='v3'] *));
 
 @layer base {
   /* Désactiver le défilement automatique pour éviter les avertissements */
@@ -1103,7 +1105,7 @@ section {
 }
 
 /* Contrastes et couleurs de liens : réservé à l'UI legacy. En v2, ces règles hors couche ne doivent plus écraser les utilitaires Tailwind. */
-:where(html:not([data-ui='v2'])) {
+:where(html:not([data-ui='v2'], [data-ui='v3'])) {
   /* Improved color contrasts for accessibility */
   .text-gray-300 {
     color: rgb(209, 213, 219);
@@ -1150,7 +1152,7 @@ a.admin-button-link span {
 }
 
 /* Couleurs héritées des boutons et liens de nav : réservé à l'UI legacy. En v2, ces règles hors couche ne doivent plus écraser les utilitaires Tailwind. */
-:where(html:not([data-ui='v2'])) {
+:where(html:not([data-ui='v2'], [data-ui='v3'])) {
   /* Ensure buttons and button-like elements don't inherit link colors */
   button,
   [role='button'],
@@ -1440,7 +1442,7 @@ header nav button.navMenuItem.navMenuItemWarning:hover {
   --brand-magenta: 217 70 239; /* #d946ef */
 }
 
-[data-ui='v2'] {
+:is([data-ui='v2'], [data-ui='v3']) {
   color-scheme: dark;
   --bg: 9 9 11; /* #09090b */
   --surface-border: rgb(255 255 255 / 0.08);
@@ -1456,7 +1458,7 @@ header nav button.navMenuItem.navMenuItemWarning:hover {
   --dur-slower: 700ms;
 }
 
-[data-ui='v2'] body {
+:is([data-ui='v2'], [data-ui='v3']) body {
   font-family: var(--font-montserrat), system-ui, sans-serif;
   background-color: rgb(var(--bg));
 }
@@ -1464,15 +1466,15 @@ header nav button.navMenuItem.navMenuItemWarning:hover {
 /* Les classes font-audiowide / font-montserrat n'ont jamais généré de règle :
    on ne les active qu'en v2 pour garder l'UI legacy identique.
    À la bascule (phase 6), déplacer ces polices dans theme.fontFamily de tailwind.config.ts. */
-[data-ui='v2'] .font-audiowide {
+:is([data-ui='v2'], [data-ui='v3']) .font-audiowide {
   font-family: var(--font-audiowide), system-ui, sans-serif;
 }
 
-[data-ui='v2'] .font-montserrat {
+:is([data-ui='v2'], [data-ui='v3']) .font-montserrat {
   font-family: var(--font-montserrat), system-ui, sans-serif;
 }
 
-[data-ui='v2'] ::selection {
+:is([data-ui='v2'], [data-ui='v3']) ::selection {
   background-color: rgb(var(--brand) / 0.35);
 }
 
@@ -1520,16 +1522,16 @@ header nav button.navMenuItem.navMenuItemWarning:hover {
 
 /* Titres display : Audiowide, réservé au logo, h1 et titres de section */
 @utility text-display {
-  font-family: var(--font-audiowide), system-ui, sans-serif;
-  letter-spacing: 0.02em;
-  line-height: 1.1;
+  font-family: var(--display-font, var(--font-audiowide), system-ui, sans-serif);
+  letter-spacing: var(--display-tracking, 0.02em);
+  line-height: var(--display-leading, 1.1);
 }
 
 /* --------------------------------------------------------------------------
    Remaps globaux v2 : toute l'app adopte la palette et le verre v2
    sans toucher aux composants (les classes legacy restent valides).
    -------------------------------------------------------------------------- */
-[data-ui='v2'] {
+:is([data-ui='v2'], [data-ui='v3']) {
   /* purple-* -> échelle violet : un seul accent, centré sur --brand (#8b5cf6) */
   --purple-50: #f5f3ff;
   --purple-100: #ede9fe;
@@ -1561,9 +1563,9 @@ header nav button.navMenuItem.navMenuItemWarning:hover {
 }
 
 /* Anciennes recettes de verre -> surfaces v2 */
-[data-ui='v2'] .glass,
-[data-ui='v2'] .glass-modern,
-[data-ui='v2'] .glass-premium-container {
+:is([data-ui='v2'], [data-ui='v3']) .glass,
+:is([data-ui='v2'], [data-ui='v3']) .glass-modern,
+:is([data-ui='v2'], [data-ui='v3']) .glass-premium-container {
   background: rgb(255 255 255 / 0.03);
   backdrop-filter: blur(16px) saturate(140%);
   -webkit-backdrop-filter: blur(16px) saturate(140%);
@@ -1573,7 +1575,7 @@ header nav button.navMenuItem.navMenuItemWarning:hover {
     0 12px 40px -16px rgb(0 0 0 / 0.6);
 }
 
-[data-ui='v2'] .glass-modern-hover:hover {
+:is([data-ui='v2'], [data-ui='v3']) .glass-modern-hover:hover {
   background: rgb(255 255 255 / 0.05);
   border-color: rgb(var(--brand) / 0.35);
   box-shadow:
@@ -1587,13 +1589,14 @@ header nav button.navMenuItem.navMenuItemWarning:hover {
 }
 
 /* Focus visible : anneau brand net, sans halo diffus */
-[data-ui='v2'] :is(button, a, input, textarea, select, [tabindex]):focus-visible {
+:is([data-ui='v2'], [data-ui='v3'])
+  :is(button, a, input, textarea, select, [tabindex]):focus-visible {
   outline: 2px solid rgb(var(--brand) / 0.9);
   outline-offset: 2px;
 }
 
 /* Barres de défilement discrètes */
-[data-ui='v2'] {
+:is([data-ui='v2'], [data-ui='v3']) {
   scrollbar-color: rgb(255 255 255 / 0.15) transparent;
 }
 
@@ -1662,13 +1665,13 @@ header nav button.navMenuItem.navMenuItemWarning:hover {
 }
 
 /* Toasts (sonner) en verre */
-[data-ui='v2'] {
+:is([data-ui='v2'], [data-ui='v3']) {
   --toast-bg: rgb(9 9 11 / 0.72);
   --toast-border: 1px solid rgb(255 255 255 / 0.1);
   --toast-radius: 1rem;
 }
 
-[data-ui='v2'] [data-sonner-toast] {
+:is([data-ui='v2'], [data-ui='v3']) [data-sonner-toast] {
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
   box-shadow:
@@ -1743,8 +1746,240 @@ header nav button.navMenuItem.navMenuItemWarning:hover {
 }
 
 /* En v2, le fond vient de .ambient : on neutralise les fonds opaques plein écran de page */
-[data-ui='v2'] main > div.min-h-screen.bg-black,
-[data-ui='v2'] main > div.min-h-screen.bg-gray-950 {
+:is([data-ui='v2'], [data-ui='v3']) main > div.min-h-screen.bg-black,
+:is([data-ui='v2'], [data-ui='v3']) main > div.min-h-screen.bg-gray-950 {
   background-color: transparent;
 }
 
+/* ==========================================================================
+   UI v3 « Signal » : du studio à la scène.
+   Hérite de tout le v2 (variant v2: et sélecteurs ci-dessus), puis pose une
+   direction plus radicale : noir d'encre, texte os, typographie Archivo très
+   large et très grasse, métadonnées en mono façon DAW, grain, et un second
+   accent « signal » (vert acide) réservé à ce qui joue, ce qui est live, ce qui est actif.
+   ========================================================================== */
+[data-ui='v3'] {
+  --bg: 5 5 6; /* #050506 */
+  --ink: 237 235 230; /* #edebe6, blanc os */
+  --brand: 157 107 255; /* #9d6bff, violet UV plus lumineux, lisible sur noir */
+  --signal: 212 255 58; /* #d4ff3a */
+  --rule: rgb(237 235 230 / 0.12);
+  --surface-border: rgb(237 235 230 / 0.1);
+  --surface-highlight: transparent;
+  --toast-radius: 0.375rem;
+}
+
+[data-ui='v3'] body {
+  font-family: var(--font-archivo), system-ui, sans-serif;
+  color: rgb(var(--ink));
+  background-color: rgb(var(--bg));
+}
+
+/* Display : Archivo étendu et noir, en capitales serrées (remplace Audiowide partout).
+   Passe par les variables de text-display pour rester surchargeable par les utilitaires. */
+[data-ui='v3'] {
+  --display-font: var(--font-archivo), system-ui, sans-serif;
+  --display-tracking: -0.035em;
+  --display-leading: 0.88;
+  /* Blanc os à la place du blanc pur, rayons plus francs (utilitaires Tailwind basés sur ces variables) */
+  --color-white: #edebe6;
+  --radius-2xl: 0.625rem;
+  --radius-3xl: 0.75rem;
+}
+
+[data-ui='v3'] .font-audiowide {
+  font-family: var(--font-archivo), system-ui, sans-serif;
+  font-stretch: 125%;
+  font-variation-settings: 'wdth' 125;
+}
+
+[data-ui='v3'] .font-montserrat {
+  font-family: var(--font-archivo), system-ui, sans-serif;
+}
+
+[data-ui='v3'] ::selection {
+  background-color: rgb(var(--signal));
+  color: #050506;
+}
+
+[data-ui='v3'] :is(button, a, input, textarea, select, [tabindex]):focus-visible {
+  outline: 2px solid rgb(var(--signal));
+  outline-offset: 3px;
+}
+
+/* Dans la couche utilities, à spécificité d'une classe : hover:, focus: et v3: gardent la main */
+@layer utilities {
+  :where([data-ui='v3']) :is(.text-display, .v2\:text-display) {
+    font-family: var(--font-archivo), system-ui, sans-serif;
+    letter-spacing: -0.035em;
+    line-height: 0.88;
+    font-weight: 800;
+    font-stretch: 125%;
+    font-variation-settings: 'wdth' 125;
+    text-transform: uppercase;
+  }
+
+  /* Contraste : les gris translucides du v2 étaient trop faibles sur noir */
+  :where([data-ui='v3']) .text-white\/40 {
+    color: rgb(var(--ink) / 0.6);
+  }
+  :where([data-ui='v3']) .text-white\/50 {
+    color: rgb(var(--ink) / 0.68);
+  }
+  :where([data-ui='v3']) .text-white\/60 {
+    color: rgb(var(--ink) / 0.76);
+  }
+  :where([data-ui='v3']) .text-white\/70 {
+    color: rgb(var(--ink) / 0.84);
+  }
+
+  /* Conteneurs de page v2 (1180 px) élargis pour s'aligner sur la grille v3 (1440 px moins les marges) */
+  :where([data-ui='v3']) :is(.max-w-\[1180px\], .v2\:max-w-\[1180px\]) {
+    max-width: 1376px;
+  }
+
+  /* Matière : surfaces mates façon hardware (moins de verre, des arêtes plus franches) */
+  :where([data-ui='v3'])
+    :is(.surface-1, .surface-2, .glass, .glass-modern, .glass-premium-container) {
+    background-color: rgb(237 235 230 / 0.025);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: none;
+  }
+}
+
+/* Métadonnées techniques (BPM, tonalité, dates, index) */
+@utility font-mono-signal {
+  font-family: var(--font-mono-v3), ui-monospace, monospace;
+  font-feature-settings: 'zero' 1;
+  letter-spacing: 0.02em;
+}
+
+/* Grand titre « affiche » : Archivo à la largeur maximale */
+@utility font-poster {
+  font-family: var(--font-archivo), system-ui, sans-serif;
+  font-weight: 900;
+  font-stretch: 125%;
+  font-variation-settings: 'wdth' 125;
+  text-transform: uppercase;
+  letter-spacing: -0.045em;
+  line-height: 0.8;
+}
+
+/* Filet horizontal du système (grille façon vue d'arrangement de DAW) */
+@utility rule-t {
+  border-top: 1px solid var(--rule, rgb(237 235 230 / 0.12));
+}
+@utility rule-b {
+  border-bottom: 1px solid var(--rule, rgb(237 235 230 / 0.12));
+}
+
+/* Fond v3 : noir, une lueur UV en haut, grille de colonnes très fine, grain animé */
+.signal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(90vmax 60vmax at 50% -20%, rgb(var(--brand) / 0.16), transparent 60%),
+    rgb(var(--bg));
+}
+.signal-backdrop__grid {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(to right, rgb(237 235 230 / 0.035) 1px, transparent 1px);
+  background-size: calc((100% - 2rem) / 12) 100%;
+  background-position: 1rem 0;
+  mask-image: linear-gradient(to bottom, black, transparent 85%);
+}
+.signal-backdrop__grain {
+  position: absolute;
+  inset: -50%;
+  opacity: 0.09;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: signal-grain 0.9s steps(6) infinite;
+}
+
+@keyframes signal-grain {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  20% {
+    transform: translate3d(-4%, 3%, 0);
+  }
+  40% {
+    transform: translate3d(3%, -5%, 0);
+  }
+  60% {
+    transform: translate3d(-6%, -2%, 0);
+  }
+  80% {
+    transform: translate3d(5%, 4%, 0);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* Bandeau défilant (infos, dates) */
+.signal-marquee {
+  display: flex;
+  width: max-content;
+  animation: signal-marquee var(--marquee-duration, 40s) linear infinite;
+}
+@keyframes signal-marquee {
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+/* Pastille « en cours » : pulse au tempo (--beat en ms) */
+.signal-pulse {
+  animation: signal-pulse var(--beat, 484ms) cubic-bezier(0.2, 0, 0, 1) infinite;
+}
+@keyframes signal-pulse {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0.35;
+    transform: scale(0.7);
+  }
+}
+
+/* Le nom respire au tempo : chaque lettre se contracte puis s'étire sur l'axe de largeur,
+   en vague (délai par lettre). Une mesure = 4 temps = --bar en ms. */
+.signal-breathe {
+  display: inline-block;
+  font-variation-settings: 'wdth' 125;
+  animation: signal-breathe var(--bar, 1935ms) cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  animation-delay: calc(var(--i, 0) * var(--bar, 1935ms) / -12);
+}
+@keyframes signal-breathe {
+  0%,
+  100% {
+    font-variation-settings: 'wdth' 125;
+  }
+  50% {
+    font-variation-settings: 'wdth' 82;
+  }
+}
+
+/* Photo du hero traitée en bichromie UV : noir et blanc contrasté, teinte violette par fusion */
+.signal-duotone {
+  filter: grayscale(1) contrast(1.25) brightness(0.8);
+}
+.signal-duotone-tint {
+  background: linear-gradient(180deg, rgb(var(--brand) / 0.55), rgb(5 5 6 / 0.2));
+  mix-blend-mode: color;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signal-breathe,
+  .signal-backdrop__grain,
+  .signal-marquee,
+  .signal-pulse {
+    animation: none;
+  }
+}

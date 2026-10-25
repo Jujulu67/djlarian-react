@@ -523,7 +523,7 @@ function ShopPageV2() {
 // ============================================================================
 
 export default function ShopPage() {
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
   if (isV2) return <ShopPageV2 />;
 
   return (

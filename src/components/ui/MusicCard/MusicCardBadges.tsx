@@ -37,7 +37,7 @@ const getTypeLabel = (type: string): string => {
  * Component to display track type and featured badges
  */
 export const MusicCardBadges: React.FC<MusicCardBadgesProps> = ({ track, isPlayerVisible }) => {
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
 
   if (isPlayerVisible) {
     return null;

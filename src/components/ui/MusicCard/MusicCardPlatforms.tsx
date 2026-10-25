@@ -41,7 +41,7 @@ export const MusicCardPlatforms: React.FC<MusicCardPlatformsProps> = ({
   track,
   isPlayerVisible,
 }) => {
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
 
   if (isPlayerVisible) {
     return null;

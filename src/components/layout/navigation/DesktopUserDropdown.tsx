@@ -21,7 +21,7 @@ export function DesktopUserDropdown({
   isUserMenuOpen,
   session,
 }: DesktopUserDropdownProps) {
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
   return (
     <AnimatePresence>
       {isUserMenuOpen && (

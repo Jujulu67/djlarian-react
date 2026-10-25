@@ -23,7 +23,7 @@ interface AvailableProviders {
 
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const router = useRouter();
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

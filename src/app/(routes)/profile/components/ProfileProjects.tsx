@@ -21,7 +21,7 @@ export function ProfileProjects({
   isLoading,
   userName,
 }: ProfileProjectsProps) {
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
   const cardClass = isV2
     ? 'surface-1 rounded-2xl'
     : 'glass-modern glass-modern-hover rounded-2xl lift-3d';

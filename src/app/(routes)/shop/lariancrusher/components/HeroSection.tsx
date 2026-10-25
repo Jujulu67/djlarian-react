@@ -17,7 +17,7 @@ interface HeroSectionProps {
 }
 
 export function HeroSection({ shopSettings }: HeroSectionProps) {
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
 
   return (
     <section className="relative py-20 md:py-32 overflow-hidden v2:pb-16 v2:pt-12 md:v2:pb-24 md:v2:pt-16">

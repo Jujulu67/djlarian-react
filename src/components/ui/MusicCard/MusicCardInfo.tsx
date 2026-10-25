@@ -41,7 +41,7 @@ const getTypeLabel = (type: string): string => {
  * Component to display track information (title, date, badges)
  */
 export const MusicCardInfo: React.FC<MusicCardInfoProps> = ({ track, isPlayerVisible, footer }) => {
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
 
   if (isPlayerVisible) {
     return null;
@@ -56,12 +56,18 @@ export const MusicCardInfo: React.FC<MusicCardInfoProps> = ({ track, isPlayerVis
 
     return (
       <div className="flex flex-1 flex-col px-1.5 pb-1 pt-4">
-        <h3 className="line-clamp-1 text-base font-semibold text-white">{track.title}</h3>
+        <h3 className="line-clamp-1 text-base font-semibold text-white v3:text-display v3:text-2xl">
+          {track.title}
+        </h3>
         {track.artist && (
-          <p className="mt-0.5 line-clamp-1 text-sm text-white/60">{track.artist}</p>
+          <p className="mt-0.5 line-clamp-1 text-sm text-white/60 v3:mt-2 v3:font-mono-signal v3:text-[11px] v3:uppercase">
+            {track.artist}
+          </p>
         )}
 
-        <p className="mt-2 text-xs text-white/50">{meta.join(' · ')}</p>
+        <p className="mt-2 text-xs text-white/50 v3:font-mono-signal v3:text-[11px] v3:uppercase">
+          {meta.join(' · ')}
+        </p>
 
         {(track.genre.length > 0 || footer) && (
           <div className="mt-auto flex items-center justify-between gap-3 pt-4">
@@ -69,7 +75,7 @@ export const MusicCardInfo: React.FC<MusicCardInfoProps> = ({ track, isPlayerVis
               {track.genre.slice(0, 2).map((genre) => (
                 <span
                   key={genre}
-                  className="truncate rounded-full bg-white/[0.04] px-2 py-0.5 text-[11px] text-white/60 ring-1 ring-inset ring-white/10"
+                  className="truncate rounded-full bg-white/[0.04] px-2 py-0.5 text-[11px] text-white/60 ring-1 ring-inset ring-white/10 v3:rounded-none v3:font-mono-signal v3:uppercase"
                 >
                   {genre}
                 </span>

@@ -38,7 +38,9 @@ export default function VisualizerSection({
   title,
   waveformAnimationReady,
 }: VisualizerSectionProps) {
-  const isV2 = useUiVersion() === 'v2';
+  const uiVersion = useUiVersion();
+  const isV2 = uiVersion !== 'legacy';
+  const isV3 = uiVersion === 'v3';
   const [isSoundActive, setIsSoundActive] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const visualizerSectionRef = useRef<HTMLElement | null>(null);
@@ -145,8 +147,36 @@ export default function VisualizerSection({
         />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 relative z-10 v2:max-w-[1180px]">
-        {isV2 ? (
+      <div className="max-w-7xl mx-auto px-4 relative z-10 v2:max-w-[1180px] v3:max-w-[1440px] md:v3:px-8">
+        {isV3 ? (
+          /* v3 : le jeu de rythme devient une section à part entière, « Jouer » */
+          <div className="mb-10 flex flex-wrap items-end justify-between gap-6">
+            <div>
+              <h2 className="flex items-start gap-4 text-display text-[clamp(3rem,9vw,8.5rem)] text-white">
+                <span className="mt-[0.35em] font-mono-signal text-xs font-normal normal-case tracking-normal text-[rgb(var(--signal))]">
+                  [Live]
+                </span>
+                Jouer
+              </h2>
+              <p className="mt-4 max-w-md text-white/70">
+                Attrape les notes au tempo. Un mini-jeu de rythme, directement dans le navigateur.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleExperienceClick}
+              aria-pressed={isSoundActive}
+              className="mb-2 inline-flex h-12 items-center gap-3 bg-[rgb(var(--ink))] px-6 font-mono-signal text-xs font-semibold uppercase text-[rgb(5_5_6)] transition-colors hover:bg-[rgb(var(--signal))]"
+            >
+              {isSoundActive ? (
+                <Square className="h-4 w-4" aria-hidden="true" />
+              ) : (
+                <Play className="h-4 w-4" aria-hidden="true" />
+              )}
+              {isSoundActive ? 'Arrêter' : 'Lancer le jeu'}
+            </button>
+          </div>
+        ) : isV2 ? (
           <SectionHeading eyebrow="Visualizer" title={title}>
             <Button
               variant="outline"
@@ -204,7 +234,7 @@ export default function VisualizerSection({
             isV2
               ? isSoundActive && isMobile
                 ? 'bg-[rgb(var(--bg))]'
-                : 'surface-1 rounded-2xl'
+                : 'surface-1 rounded-2xl v3:aspect-[21/9]'
               : 'rounded-2xl glass-premium-container glow-border-premium shadow-2xl'
           } ${isSoundActive && isMobile ? 'fixed top-0 left-0 right-0 z-[100] h-screen rounded-none border-0 transition-none' : ''}`}
           id="game-container"

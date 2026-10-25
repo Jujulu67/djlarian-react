@@ -24,7 +24,7 @@ export const MusicCardControls: React.FC<MusicCardControlsProps> = ({
   onPlayClick,
   trackTitle,
 }) => {
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
 
   if (isPlayerVisible) {
     return null;

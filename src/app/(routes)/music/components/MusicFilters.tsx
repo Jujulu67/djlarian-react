@@ -10,11 +10,11 @@ import { MUSIC_TYPES } from '../constants';
 import type { MusicFiltersState } from '../hooks/useMusicCatalog';
 
 const V2_FIELD =
-  'w-full rounded-xl border border-white/10 bg-white/[0.03] text-sm text-white backdrop-blur-md transition-[border-color,box-shadow] duration-200 placeholder:text-white/40 focus:border-brand/70 focus:outline-none focus:ring-4 focus:ring-brand/15';
+  'w-full rounded-xl border border-white/10 bg-white/[0.03] text-sm text-white backdrop-blur-md transition-[border-color,box-shadow] duration-200 placeholder:text-white/40 focus:border-brand/70 focus:outline-none focus:ring-4 focus:ring-brand/15 v3:rounded-none v3:border-white/15 v3:bg-transparent v3:font-mono-signal v3:text-[13px] v3:focus:border-[rgb(var(--signal))] v3:focus:ring-0';
 
 const V2_CHIP =
-  'inline-flex h-9 items-center whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors duration-200 active:scale-[0.98]';
-const V2_CHIP_ACTIVE = 'bg-white text-zinc-950';
+  'inline-flex h-9 items-center whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors duration-200 active:scale-[0.98] v3:h-10 v3:rounded-none v3:font-mono-signal v3:text-[12px] v3:font-normal v3:uppercase';
+const V2_CHIP_ACTIVE = 'bg-white text-zinc-950 v3:bg-[rgb(var(--signal))] v3:text-[rgb(5_5_6)]';
 const V2_CHIP_IDLE =
   'bg-white/[0.04] text-white/70 ring-1 ring-inset ring-white/10 hover:text-white';
 
@@ -34,7 +34,7 @@ export function MusicFilters({
   setSortBy,
   resetAdditionalFilters,
 }: MusicFiltersState) {
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
   const [showFilters, setShowFilters] = useState(false);
   const hasAdditionalFilters = !!platformFilter || !!featuredFilter || sortBy !== 'recent';
 

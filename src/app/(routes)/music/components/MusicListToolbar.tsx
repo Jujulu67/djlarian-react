@@ -20,7 +20,7 @@ export function MusicListToolbar({
   itemsPerPage,
   onItemsPerPageChange,
 }: MusicListToolbarProps) {
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
 
   if (isV2) {
     return (

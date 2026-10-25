@@ -41,7 +41,7 @@ export function ProfileOAuth({
   onUnlinkAccount,
   onOpenPasswordModal,
 }: ProfileOAuthProps) {
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}

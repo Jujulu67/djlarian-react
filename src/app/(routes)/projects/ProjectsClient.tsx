@@ -50,7 +50,7 @@ interface ProjectsClientProps {
 }
 
 export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
   const router = useRouter();
   const { data: session, status: sessionStatus } = useSession();
   const [allProjects, setAllProjects] = useState<Project[]>(initialProjects);

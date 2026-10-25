@@ -149,7 +149,7 @@ export default function UpcomingEvents({
 }: UpcomingEventsProps) {
   // Filtrer les événements en fonction du nombre demandé
   const filteredEvents = events.slice(0, count);
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
 
   if (isV2) return <UpcomingEventsV2 title={title} events={filteredEvents} />;
 
