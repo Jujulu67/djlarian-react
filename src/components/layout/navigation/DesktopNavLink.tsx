@@ -96,14 +96,14 @@ function DesktopNavLinkV2({ link, isActive }: DesktopNavLinkProps) {
     <Link
       href={link.href}
       aria-current={isActive ? 'page' : undefined}
-      className={`relative flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-medium transition-colors duration-200 v3:rounded-none v3:px-3 v3:font-mono-signal v3:text-[12px] v3:font-normal v3:uppercase ${
+      className={`relative flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-medium transition-colors duration-200 v3:rounded-none v3:px-3 v3:font-normal ${
         isActive ? 'text-white' : 'text-white/60 hover:text-white'
       }`}
     >
       {/* v3 : un carré « signal » marque la page courante, à la place de la pastille */}
       <span
         aria-hidden="true"
-        className={`hidden h-1.5 w-1.5 bg-[rgb(var(--signal))] v3:inline-block ${isActive ? 'v3:opacity-100' : 'v3:opacity-0'}`}
+        className={`hidden h-1.5 w-1.5 bg-white v3:inline-block ${isActive ? 'v3:opacity-100' : 'v3:opacity-0'}`}
       />
       {isActive && (
         <motion.span

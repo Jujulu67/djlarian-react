@@ -82,9 +82,9 @@ const truncateCaption = (caption: string | undefined, maxLength = 100) => {
 
 function chipClass(active: boolean) {
   return cn(
-    'rounded-full px-4 py-2 text-sm font-medium transition-[color,background-color,transform] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98] v3:rounded-none v3:font-mono-signal v3:text-[12px] v3:font-normal v3:uppercase',
+    'rounded-full px-4 py-2 text-sm font-medium transition-[color,background-color,transform] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98] v3:rounded-md',
     active
-      ? 'bg-white text-zinc-950 v3:bg-[rgb(var(--signal))] v3:text-[rgb(5_5_6)]'
+      ? 'bg-white text-zinc-950 v3:bg-white'
       : 'bg-white/[0.04] text-white/70 ring-1 ring-inset ring-white/10 hover:text-white'
   );
 }

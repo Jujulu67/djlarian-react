@@ -32,7 +32,7 @@ export default function TourSection({ events, index = '02' }: { events: Event[];
           </p>
           <a
             href="mailto:booking@larian.com"
-            className="inline-flex h-12 items-center gap-3 bg-[rgb(var(--ink))] px-6 font-mono-signal text-xs font-semibold uppercase text-[rgb(5_5_6)] transition-colors hover:bg-[rgb(var(--signal))]"
+            className="inline-flex h-12 items-center gap-3 bg-[rgb(var(--ink))] px-6 text-sm font-medium text-[rgb(5_5_6)] transition-colors hover:bg-white"
           >
             Booker Larian →
           </a>
@@ -53,7 +53,7 @@ export default function TourSection({ events, index = '02' }: { events: Event[];
                     </span>
                   </div>
                   <Link href={`/events/${event.id}`} className="min-w-0">
-                    <span className="block truncate text-display text-2xl text-white transition-colors group-hover:text-[rgb(var(--signal))] md:text-4xl">
+                    <span className="block truncate text-display text-2xl text-white md:text-4xl">
                       {event.title}
                     </span>
                     <span className="mt-2 block font-mono-signal text-[11px] uppercase text-white/60">
@@ -66,14 +66,14 @@ export default function TourSection({ events, index = '02' }: { events: Event[];
                         href={event.ticketUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex h-11 items-center gap-2 border border-white/25 px-5 font-mono-signal text-xs uppercase text-white transition-colors hover:border-[rgb(var(--signal))] hover:bg-[rgb(var(--signal))] hover:text-[rgb(5_5_6)]"
+                        className="inline-flex h-11 items-center gap-2 border border-white/25 px-5 text-sm font-medium text-white transition-colors hover:border-white hover:bg-white hover:text-[rgb(5_5_6)]"
                       >
                         Billets ↗
                       </a>
                     ) : (
                       <Link
                         href={`/events/${event.id}`}
-                        className="inline-flex h-11 items-center gap-2 border border-white/15 px-5 font-mono-signal text-xs uppercase text-white/70 transition-colors hover:border-white hover:text-white"
+                        className="inline-flex h-11 items-center gap-2 border border-white/15 px-5 text-sm text-white/70 transition-colors hover:border-white hover:text-white"
                       >
                         Détails →
                       </Link>

@@ -57,12 +57,12 @@ export function MobileNavDropdown({
               >
                 <Link
                   href={link.href}
-                  className="text-white/90 hover:text-white py-2 transition-colors flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-inset rounded v2:gap-3 v2:rounded-2xl v2:px-3 v2:py-3 v2:text-lg v2:font-medium v2:hover:bg-white/[0.06] v3:items-baseline v3:gap-4 v3:rounded-none v3:px-0 v3:py-2 v3:text-display v3:text-[2.75rem] v3:rule-b v3:hover:bg-transparent v3:hover:text-[rgb(var(--signal))]"
+                  className="text-white/90 hover:text-white py-2 transition-colors flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-inset rounded v2:gap-3 v2:rounded-2xl v2:px-3 v2:py-3 v2:text-lg v2:font-medium v2:hover:bg-white/[0.06] v3:items-baseline v3:gap-4 v3:rounded-none v3:px-0 v3:py-2 v3:text-display v3:text-[2.25rem] v3:rule-b v3:hover:bg-transparent v3:hover:text-white/70"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   {link.icon && <link.icon size={18} className="text-purple-400 v3:hidden" />}
                   {/* v3 : numéro de piste devant chaque lien */}
-                  <span className="hidden font-mono-signal text-xs font-normal tracking-normal text-[rgb(var(--signal))] v3:inline">
+                  <span className="hidden font-mono-signal text-xs font-normal tracking-normal text-white/40 v3:inline">
                     {String(index + 1).padStart(2, '0')}
                   </span>
                   {isV3 ? (link.labelFr ?? link.label) : link.label}

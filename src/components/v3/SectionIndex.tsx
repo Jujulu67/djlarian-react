@@ -11,8 +11,8 @@ interface SectionIndexProps {
 export default function SectionIndex({ index, label, href, linkLabel }: SectionIndexProps) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-6">
-      <h2 className="flex items-start gap-4 text-display text-[clamp(3rem,9vw,8.5rem)] text-white">
-        <span className="mt-[0.35em] font-mono-signal text-xs font-normal normal-case tracking-normal text-[rgb(var(--signal))]">
+      <h2 className="flex items-start gap-4 text-display text-[clamp(2.5rem,6vw,5.5rem)] text-white">
+        <span className="mt-[0.35em] font-mono-signal text-xs font-normal normal-case tracking-normal text-white/50">
           [{index}]
         </span>
         {label}
@@ -20,7 +20,7 @@ export default function SectionIndex({ index, label, href, linkLabel }: SectionI
       {href && linkLabel && (
         <Link
           href={href}
-          className="group mb-3 inline-flex items-center gap-2 font-mono-signal text-xs uppercase text-white/70 transition-colors hover:text-white"
+          className="group mb-3 inline-flex items-center gap-2 text-sm text-white/70 transition-colors hover:text-white"
         >
           {linkLabel}
           <span aria-hidden="true" className="transition-transform group-hover:translate-x-1">

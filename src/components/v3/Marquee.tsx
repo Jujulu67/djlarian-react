@@ -16,7 +16,7 @@ interface MarqueeProps {
  */
 export default function Marquee({ items, duration = 40, className, separator }: MarqueeProps) {
   const sep = separator ?? (
-    <span aria-hidden="true" className="mx-6 inline-block h-1.5 w-1.5 bg-[rgb(var(--signal))]" />
+    <span aria-hidden="true" className="mx-6 inline-block h-1.5 w-1.5 bg-white/30" />
   );
   const row = (hidden: boolean) => (
     <div aria-hidden={hidden || undefined} className="flex shrink-0 items-center">

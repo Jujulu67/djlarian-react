@@ -67,7 +67,7 @@ export default function TracklistSection({
               onBlur={() => setHovered(null)}
               className="group grid grid-cols-[2.5rem_1fr_auto] items-center gap-4 py-5 transition-colors md:grid-cols-[4rem_1fr_8rem_6rem_6rem_4rem] md:py-7"
             >
-              <span className="font-mono-signal text-xs text-white/50 transition-colors group-hover:text-[rgb(var(--signal))]">
+              <span className="font-mono-signal text-xs text-white/50 transition-colors group-hover:text-white">
                 {String(position + 1).padStart(2, '0')}
               </span>
               <span className="min-w-0">

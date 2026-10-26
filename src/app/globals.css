@@ -1895,7 +1895,7 @@ header nav button.navMenuItem.navMenuItemWarning:hover {
 .signal-backdrop__grain {
   position: absolute;
   inset: -50%;
-  opacity: 0.09;
+  opacity: 0.05;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   animation: signal-grain 0.9s steps(6) infinite;
 }
@@ -1953,7 +1953,7 @@ header nav button.navMenuItem.navMenuItemWarning:hover {
 .signal-breathe {
   display: inline-block;
   font-variation-settings: 'wdth' 125;
-  animation: signal-breathe var(--bar, 1935ms) cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  animation: signal-breathe calc(var(--bar, 1935ms) * 2) cubic-bezier(0.65, 0, 0.35, 1) infinite;
   animation-delay: calc(var(--i, 0) * var(--bar, 1935ms) / -12);
 }
 @keyframes signal-breathe {
@@ -1962,7 +1962,7 @@ header nav button.navMenuItem.navMenuItemWarning:hover {
     font-variation-settings: 'wdth' 125;
   }
   50% {
-    font-variation-settings: 'wdth' 82;
+    font-variation-settings: 'wdth' 110;
   }
 }
 

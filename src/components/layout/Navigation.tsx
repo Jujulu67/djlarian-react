@@ -267,7 +267,7 @@ const Navigation = () => {
                     className="text-white/90 hover:text-white transition-all duration-300
                       bg-gradient-to-r from-purple-500/10 to-blue-500/10 hover:from-purple-500/20 hover:to-blue-500/20
                       px-4 py-2 rounded-full border border-purple-500/20 hover:border-purple-500/40 hover:scale-105
-                      v3:rounded-none v3:border-white/25 v3:bg-none v3:font-mono-signal v3:text-[12px] v3:uppercase v3:hover:scale-100 v3:hover:border-[rgb(var(--signal))]"
+                      v3:rounded-none v3:border-white/25 v3:bg-none v3:text-sm v3:hover:scale-100 v3:hover:border-white"
                   >
                     Connexion
                   </button>

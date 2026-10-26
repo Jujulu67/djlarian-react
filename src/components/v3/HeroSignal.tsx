@@ -129,7 +129,7 @@ export default function HeroSignal({ config, latest, nextEvent }: HeroSignalProp
         style={{ y: reduceMotion ? 0 : nameY, opacity: fade }}
         className="relative px-2 md:px-4"
       >
-        <h1 className="font-poster select-none text-center text-[clamp(4.5rem,21vw,22rem)] text-white">
+        <h1 className="font-poster select-none text-center text-[clamp(4rem,18.5vw,20rem)] text-white">
           <span className="sr-only">{config.heroTitle || 'Larian'}</span>
           <span aria-hidden="true" className="inline-flex">
             {title.split('').map((letter, index) => (
@@ -164,7 +164,7 @@ export default function HeroSignal({ config, latest, nextEvent }: HeroSignalProp
           <div className="mt-5 flex flex-wrap gap-3">
             <Link
               href={config.heroExploreButtonUrl || '/music'}
-              className="group inline-flex h-12 items-center gap-3 bg-[rgb(var(--ink))] px-6 font-mono-signal text-xs font-semibold uppercase text-[rgb(5_5_6)] transition-colors hover:bg-[rgb(var(--signal))]"
+              className="group inline-flex h-12 items-center gap-3 bg-[rgb(var(--ink))] px-6 text-sm font-medium text-[rgb(5_5_6)] transition-colors hover:bg-white"
             >
               Écouter
               <span aria-hidden="true" className="transition-transform group-hover:translate-x-1">
@@ -173,7 +173,7 @@ export default function HeroSignal({ config, latest, nextEvent }: HeroSignalProp
             </Link>
             <Link
               href={config.heroEventsButtonUrl || '/events'}
-              className="inline-flex h-12 items-center border border-white/25 px-6 font-mono-signal text-xs uppercase text-white transition-colors hover:border-white"
+              className="inline-flex h-12 items-center border border-white/25 px-6 text-sm font-medium text-white transition-colors hover:border-white"
             >
               Les dates
             </Link>

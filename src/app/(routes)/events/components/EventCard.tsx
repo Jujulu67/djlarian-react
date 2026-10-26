@@ -354,7 +354,7 @@ function EventRowV3({ event }: EventCardProps) {
 
         <div className="min-w-0">
           <div className="mb-2 flex flex-wrap gap-2 font-mono-signal text-[11px] uppercase">
-            {event.featured && <span className="text-[rgb(var(--signal))]">● À la une</span>}
+            {event.featured && <span className="text-white/80">★ À la une</span>}
             {isRecurring && (
               <span className="text-white/60">
                 {event.recurrenceConfig?.frequency === 'weekly' ? 'Hebdo' : 'Mensuel'}
@@ -363,7 +363,7 @@ function EventRowV3({ event }: EventCardProps) {
             {event.status === 'COMPLETED' && <span className="text-white/60">Terminé</span>}
             {event.status === 'CANCELLED' && <span className="text-red-300">Annulé</span>}
           </div>
-          <h3 className="truncate text-display text-2xl text-white transition-[font-variation-settings,color] duration-500 [font-variation-settings:'wdth'_100] group-hover:text-[rgb(var(--signal))] group-hover:[font-variation-settings:'wdth'_125] md:text-5xl">
+          <h3 className="truncate text-display text-2xl text-white transition-[font-variation-settings,color] duration-500 [font-variation-settings:'wdth'_100] group-hover:[font-variation-settings:'wdth'_125] md:text-4xl">
             <Link
               href={getEventHref(event)}
               className="after:absolute after:inset-0 after:z-0 after:content-[''] focus-visible:outline-none"
@@ -402,12 +402,12 @@ function EventRowV3({ event }: EventCardProps) {
               href={event.tickets.buyUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex h-11 items-center gap-2 border border-white/25 px-5 font-mono-signal text-xs uppercase text-white transition-colors hover:border-[rgb(var(--signal))] hover:bg-[rgb(var(--signal))] hover:text-[rgb(5_5_6)]"
+              className="inline-flex h-11 items-center gap-2 border border-white/25 px-5 text-sm font-medium text-white transition-colors hover:border-white hover:bg-white hover:text-[rgb(5_5_6)]"
             >
               Billets ↗
             </a>
           ) : (
-            <span className="inline-flex h-11 items-center px-1 font-mono-signal text-xs uppercase text-white/60 transition-colors group-hover:text-white">
+            <span className="inline-flex h-11 items-center px-1 text-sm text-white/60 transition-colors group-hover:text-white">
               Détails →
             </span>
           )}

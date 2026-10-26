@@ -26,7 +26,7 @@ export default function FooterSignal() {
             un set
             <span
               aria-hidden="true"
-              className="ml-3 inline-block text-[rgb(var(--signal))] transition-transform duration-300 group-hover:translate-x-2"
+              className="ml-3 inline-block text-white/50 transition-transform duration-300 group-hover:translate-x-2"
             >
               →
             </span>

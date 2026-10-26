@@ -54,7 +54,7 @@ export default function ScrollToTop() {
             ease: [0.4, 0, 0.2, 1],
           }}
           onClick={scrollToTop}
-          className="fixed bottom-8 right-8 z-[100] p-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20 glow-purple focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-black overflow-hidden v3:rounded-none v3:border-white/25 v3:bg-none v3:bg-[rgb(5_5_6/0.8)] v3:p-3 v3:shadow-none v3:backdrop-blur-md v3:hover:border-[rgb(var(--signal))] v3:hover:text-[rgb(var(--signal))]"
+          className="fixed bottom-8 right-8 z-[100] p-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20 glow-purple focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-black overflow-hidden v3:rounded-none v3:border-white/25 v3:bg-none v3:bg-[rgb(5_5_6/0.8)] v3:p-3 v3:shadow-none v3:backdrop-blur-md v3:hover:border-white"
           style={{ borderRadius: '9999px' }}
           aria-label="Retour en haut de la page"
         >

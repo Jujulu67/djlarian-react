@@ -152,8 +152,8 @@ export default function VisualizerSection({
           /* v3 : le jeu de rythme devient une section à part entière, « Jouer » */
           <div className="mb-10 flex flex-wrap items-end justify-between gap-6">
             <div>
-              <h2 className="flex items-start gap-4 text-display text-[clamp(3rem,9vw,8.5rem)] text-white">
-                <span className="mt-[0.35em] font-mono-signal text-xs font-normal normal-case tracking-normal text-[rgb(var(--signal))]">
+              <h2 className="flex items-start gap-4 text-display text-[clamp(2.5rem,6vw,5.5rem)] text-white">
+                <span className="mt-[0.35em] font-mono-signal text-xs font-normal normal-case tracking-normal text-white/50">
                   [Live]
                 </span>
                 Jouer
@@ -166,7 +166,7 @@ export default function VisualizerSection({
               type="button"
               onClick={handleExperienceClick}
               aria-pressed={isSoundActive}
-              className="mb-2 inline-flex h-12 items-center gap-3 bg-[rgb(var(--ink))] px-6 font-mono-signal text-xs font-semibold uppercase text-[rgb(5_5_6)] transition-colors hover:bg-[rgb(var(--signal))]"
+              className="mb-2 inline-flex h-12 items-center gap-3 bg-[rgb(var(--ink))] px-6 text-sm font-medium text-[rgb(5_5_6)] transition-colors hover:bg-white"
             >
               {isSoundActive ? (
                 <Square className="h-4 w-4" aria-hidden="true" />

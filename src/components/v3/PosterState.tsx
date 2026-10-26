@@ -12,7 +12,7 @@ interface PosterStateProps {
 }
 
 const ACTION_CLASS =
-  'inline-flex h-12 items-center gap-3 bg-[rgb(var(--ink))] px-6 font-mono-signal text-xs font-semibold uppercase text-[rgb(5_5_6)] transition-colors hover:bg-[rgb(var(--signal))]';
+  'inline-flex h-12 items-center gap-3 bg-[rgb(var(--ink))] px-6 text-sm font-medium text-[rgb(5_5_6)] transition-colors hover:bg-white';
 
 /**
  * État vide de l'UI v3 en format affiche : un mot géant en filigrane qui occupe l'écran,
@@ -28,7 +28,7 @@ export default function PosterState({ code, word, title, description, action }: 
         {word}
       </p>
       <div className="relative mx-auto w-full max-w-[1376px]">
-        <p className="font-mono-signal text-xs uppercase text-[rgb(var(--signal))]">[ {code} ]</p>
+        <p className="font-mono-signal text-xs uppercase text-white/50">[ {code} ]</p>
         <h1 className="mt-4 max-w-4xl text-display text-5xl text-white md:text-8xl">{title}</h1>
         <p className="mt-6 max-w-xl text-lg text-white/70">{description}</p>
         {action &&
