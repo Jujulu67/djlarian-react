@@ -71,7 +71,7 @@ export default function TracklistSection({
                 {String(position + 1).padStart(2, '0')}
               </span>
               <span className="min-w-0">
-                <span className="block truncate text-display text-3xl text-white transition-[font-variation-settings,letter-spacing] duration-500 [font-variation-settings:'wdth'_100] group-hover:[font-variation-settings:'wdth'_125] md:text-6xl">
+                <span className="block truncate text-display text-3xl text-white transition-[font-variation-settings,letter-spacing] duration-500 [font-variation-settings:'wdth'_100] group-hover:[font-variation-settings:'wdth'_125] md:text-4xl lg:text-6xl">
                   {track.title}
                 </span>
                 <span className="mt-1 block font-mono-signal text-[11px] uppercase text-white/50 md:hidden">

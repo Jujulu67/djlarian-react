@@ -49,7 +49,7 @@ export default function FooterSignal() {
                     {String(index + 1).padStart(2, '0')}
                   </span>
                   <span className="transition-transform duration-300 group-hover:translate-x-1">
-                    {link.label}
+                    {link.labelFr ?? link.label}
                   </span>
                 </Link>
               </li>

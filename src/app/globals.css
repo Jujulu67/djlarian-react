@@ -1809,7 +1809,7 @@ header nav button.navMenuItem.navMenuItemWarning:hover {
 
 /* Dans la couche utilities, à spécificité d'une classe : hover:, focus: et v3: gardent la main */
 @layer utilities {
-  :where([data-ui='v3']) :is(.text-display, .v2\:text-display) {
+  :where([data-ui='v3']) :is(.text-display, .v2\:text-display, .v3\:text-display) {
     font-family: var(--font-archivo), system-ui, sans-serif;
     letter-spacing: -0.035em;
     line-height: 0.88;

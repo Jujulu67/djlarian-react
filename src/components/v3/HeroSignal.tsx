@@ -155,9 +155,9 @@ export default function HeroSignal({ config, latest, nextEvent }: HeroSignalProp
       {/* Pied du hero : accroche, dernière sortie, actions */}
       <motion.div
         {...enter(0.6)}
-        className="mx-auto grid w-full max-w-[1440px] grid-cols-1 gap-6 px-4 pb-6 md:grid-cols-12 md:items-end md:px-8 [&>*]:min-w-0"
+        className="mx-auto grid w-full max-w-[1440px] grid-cols-1 gap-6 px-4 pb-6 md:grid-cols-2 md:items-end md:px-8 lg:grid-cols-12 [&>*]:min-w-0"
       >
-        <div className="md:col-span-5">
+        <div className="lg:col-span-5">
           <p className="max-w-md text-lg leading-snug text-white/80 md:text-xl">
             {config.heroSubtitle}
           </p>
@@ -183,7 +183,7 @@ export default function HeroSignal({ config, latest, nextEvent }: HeroSignalProp
         {latest && (
           <Link
             href={`/music?play=${latest.id}`}
-            className="group flex items-center gap-4 border border-white/15 bg-[rgb(5_5_6/0.55)] p-3 pr-5 backdrop-blur-md transition-colors hover:border-[rgb(var(--signal))] md:col-span-4 md:col-start-9"
+            className="group flex items-center gap-4 border border-white/15 bg-[rgb(5_5_6/0.55)] p-3 pr-5 backdrop-blur-md transition-colors hover:border-[rgb(var(--signal))] lg:col-span-4 lg:col-start-9"
           >
             <span className="relative block h-20 w-20 shrink-0 overflow-hidden bg-white/5">
               {cover && (

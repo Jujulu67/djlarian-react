@@ -5,8 +5,11 @@ import { ShoppingBag, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
+import PosterState from '@/components/v3/PosterState';
+import { useUiVersion } from '@/hooks/useUiVersion';
 
 export default function ShopLayout({ children }: { children: React.ReactNode }) {
+  const uiVersion = useUiVersion();
   const { data: session } = useSession();
   const [shopEnabled, setShopEnabled] = useState<boolean | null>(null);
   const isAdmin = session?.user?.role === 'ADMIN';
@@ -30,6 +33,18 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
   }
 
   // Show disabled message for non-admins
+  if (!shopEnabled && !isAdmin && uiVersion === 'v3') {
+    return (
+      <PosterState
+        code="Bientôt"
+        word="SHOP"
+        title="La boutique se prépare"
+        description="Plugins, sample packs et merch arrivent. En attendant, la musique est déjà là."
+        action={{ label: 'Écouter les sorties', href: '/music' }}
+      />
+    );
+  }
+
   if (!shopEnabled && !isAdmin) {
     return (
       <div className="min-h-[calc(100vh-64px)] flex items-center justify-center">

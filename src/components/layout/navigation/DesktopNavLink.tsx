@@ -15,6 +15,10 @@ interface DesktopNavLinkProps {
 
 export function DesktopNavLink({ link, isActive }: DesktopNavLinkProps) {
   const uiVersion = useUiVersion();
+  if (uiVersion === 'v3')
+    return (
+      <DesktopNavLinkV2 link={{ ...link, label: link.labelFr ?? link.label }} isActive={isActive} />
+    );
   if (uiVersion !== 'legacy') return <DesktopNavLinkV2 link={link} isActive={isActive} />;
 
   return (

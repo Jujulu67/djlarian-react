@@ -39,7 +39,7 @@ export default function ScrollProgress() {
 
   return (
     <motion.div
-      className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 origin-left z-50"
+      className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 origin-left z-50 v3:h-[2px] v3:bg-none v3:bg-[rgb(var(--signal))]"
       style={{
         scaleX,
         position: 'fixed', // Explicitly set position to avoid warnings

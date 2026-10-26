@@ -17,13 +17,15 @@ import { LiveItemShop } from './components/LiveItemShop';
 import { LiveRewards } from './components/LiveRewards';
 import { LiveInventoryProvider, useLiveInventoryContext } from './context/LiveInventoryContext';
 import { useLiveRewards } from './hooks/useLiveRewards';
+import PosterState from '@/components/v3/PosterState';
 
 function LivePageContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const { loadInventory } = useLiveInventoryContext();
   const { loadRewards } = useLiveRewards();
-  const isV2 = useUiVersion() !== 'legacy';
+  const uiVersion = useUiVersion();
+  const isV2 = uiVersion !== 'legacy';
 
   // Charger les données au montage
   useEffect(() => {
@@ -51,6 +53,17 @@ function LivePageContent() {
   }
 
   if (!session) {
+    if (uiVersion === 'v3') {
+      return (
+        <PosterState
+          code="Membres"
+          word="LIVE"
+          title="Le live, côté coulisses"
+          description="Soumets tes morceaux, gagne des tickets et suis les sets en direct. Connecte-toi pour entrer."
+          action={{ label: 'Se connecter', onClick: () => router.push('/api/auth/signin') }}
+        />
+      );
+    }
     if (isV2) {
       // État vide : accès réservé aux membres connectés
       return (
