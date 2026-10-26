@@ -10,6 +10,7 @@ import Footer from '@/components/layout/Footer';
 import Navigation from '@/components/layout/Navigation';
 import CustomCursor from '@/components/ui/CustomCursor';
 import UiVersionToggle from '@/components/ui/UiVersionToggle';
+import FooterSignal from '@/components/v3/FooterSignal';
 import { useUiVersion } from '@/hooks/useUiVersion';
 import AuthProvider from '@/providers/AuthProvider';
 // import { SessionProvider } from 'next-auth/react';
@@ -20,7 +21,9 @@ interface ClientLayoutProps {
 }
 
 const ClientLayout = ({ children, session }: ClientLayoutProps) => {
-  const isV2 = useUiVersion() === 'v2';
+  const uiVersion = useUiVersion();
+  const isV2 = uiVersion !== 'legacy';
+  const isV3 = uiVersion === 'v3';
   const pathname = usePathname();
   // Pas de footer sur les espaces de travail (admin, projets)
   const showFooter = isV2 && !/^\/(admin|projects)(\/|$)/.test(pathname ?? '');
@@ -33,7 +36,7 @@ const ClientLayout = ({ children, session }: ClientLayoutProps) => {
         <CustomCursor />
         <Navigation />
         <main className="pt-16 v2:pt-20">{children}</main>
-        {showFooter && <Footer />}
+        {showFooter && (isV3 ? <FooterSignal /> : <Footer />)}
         {/* Même rendu que l'ancien toaster en legacy ; habillage verre en v2 (globals.css) */}
         <Toaster
           position="bottom-center"

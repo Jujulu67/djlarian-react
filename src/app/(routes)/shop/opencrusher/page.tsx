@@ -267,7 +267,7 @@ function TechSection() {
 // ============================================================================
 
 export default function OpenCrusherPage() {
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
 
   return (
     <div className="min-h-screen">

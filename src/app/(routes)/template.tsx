@@ -9,7 +9,7 @@ import { easeOutExpo } from '@/lib/motion';
 /** Transition d'entrée de page (UI v2) : fondu et légère montée */
 export default function RoutesTemplate({ children }: { children: ReactNode }) {
   const uiVersion = useUiVersion();
-  if (uiVersion !== 'v2') return children;
+  if (uiVersion === 'legacy') return children;
 
   return (
     <motion.div

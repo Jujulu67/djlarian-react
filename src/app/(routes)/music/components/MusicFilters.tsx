@@ -34,7 +34,7 @@ export function MusicFilters({
   setSortBy,
   resetAdditionalFilters,
 }: MusicFiltersState) {
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
   const [showFilters, setShowFilters] = useState(false);
   const hasAdditionalFilters = !!platformFilter || !!featuredFilter || sortBy !== 'recent';
 

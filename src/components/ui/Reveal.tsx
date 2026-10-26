@@ -20,7 +20,7 @@ const VIEWPORT = { once: true, margin: '0px 0px -10% 0px' } as const;
  * en legacy, rend un simple <div> pour garder l'interface identique.
  */
 export function Reveal({ children, className, delay = 0 }: RevealProps) {
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
   if (!isV2) return <div className={className}>{children}</div>;
 
   return (
@@ -39,7 +39,7 @@ export function Reveal({ children, className, delay = 0 }: RevealProps) {
 
 /** Conteneur d'une grille ou d'une liste dont les <RevealItem> apparaissent en cascade */
 export function RevealGroup({ children, className, delay = 0 }: RevealProps) {
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
   if (!isV2) return <div className={className}>{children}</div>;
 
   return (
@@ -56,7 +56,7 @@ export function RevealGroup({ children, className, delay = 0 }: RevealProps) {
 }
 
 export function RevealItem({ children, className }: Omit<RevealProps, 'delay'>) {
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
   if (!isV2) return <div className={className}>{children}</div>;
 
   return (

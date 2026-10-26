@@ -84,7 +84,7 @@ export default function EventDetailPage() {
   const params = useParams();
   const router = useRouter();
   const eventId = params.id as string;
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
 
   // Récupérer le paramètre de date depuis l'URL
   const [searchParams, setSearchParams] = useState<URLSearchParams | null>(null);

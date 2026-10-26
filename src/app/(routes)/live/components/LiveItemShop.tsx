@@ -6,7 +6,7 @@ import { Clock, ExternalLink, Sparkles } from 'lucide-react';
 import { useUiVersion } from '@/hooks/useUiVersion';
 
 export function LiveItemShop() {
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
 
   return (
     <motion.div

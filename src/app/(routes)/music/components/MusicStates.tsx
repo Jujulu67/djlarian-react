@@ -74,7 +74,7 @@ export function MusicLoadingState() {
 }
 
 export function MusicErrorState({ error }: { error: string }) {
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
 
   if (isV2) {
     return (
@@ -123,7 +123,7 @@ interface MusicEmptyStateProps {
 }
 
 export function MusicEmptyState({ searchTerm, typeLabel, onClearSearch }: MusicEmptyStateProps) {
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
 
   if (isV2) {
     return (

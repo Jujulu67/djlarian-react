@@ -41,7 +41,7 @@ const getTypeLabel = (type: string): string => {
  * Component to display track information (title, date, badges)
  */
 export const MusicCardInfo: React.FC<MusicCardInfoProps> = ({ track, isPlayerVisible, footer }) => {
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
 
   if (isPlayerVisible) {
     return null;

@@ -38,7 +38,9 @@ export default function VisualizerSection({
   title,
   waveformAnimationReady,
 }: VisualizerSectionProps) {
-  const isV2 = useUiVersion() === 'v2';
+  const uiVersion = useUiVersion();
+  const isV2 = uiVersion !== 'legacy';
+  const isV3 = uiVersion === 'v3';
   const [isSoundActive, setIsSoundActive] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const visualizerSectionRef = useRef<HTMLElement | null>(null);
@@ -145,8 +147,34 @@ export default function VisualizerSection({
         />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 relative z-10 v2:max-w-[1180px]">
-        {isV2 ? (
+      <div className="max-w-7xl mx-auto px-4 relative z-10 v2:max-w-[1180px] v3:max-w-[1440px] md:v3:px-8">
+        {isV3 ? (
+          /* v3 : le jeu de rythme mis en avant comme section « Jouer » */
+          <div className="mb-9 flex flex-wrap items-end justify-between gap-6">
+            <div>
+              <p className="mb-2.5 text-[13px] font-semibold uppercase tracking-[0.2em] text-[rgb(var(--ice))]">
+                Mini-jeu
+              </p>
+              <h2 className="chrome-text text-display text-4xl md:text-5xl">Jouer</h2>
+              <p className="mt-4 max-w-md text-white/70">
+                Attrape les notes au tempo, directement dans le navigateur.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleExperienceClick}
+              aria-pressed={isSoundActive}
+              className="chrome-pill inline-flex h-12 items-center gap-2 rounded-full px-7 text-[15px] font-bold transition-transform hover:-translate-y-0.5"
+            >
+              {isSoundActive ? (
+                <Square className="h-4 w-4" aria-hidden="true" />
+              ) : (
+                <Play className="h-4 w-4" aria-hidden="true" />
+              )}
+              {isSoundActive ? 'Arrêter' : 'Lancer le jeu'}
+            </button>
+          </div>
+        ) : isV2 ? (
           <SectionHeading eyebrow="Visualizer" title={title}>
             <Button
               variant="outline"

@@ -51,7 +51,7 @@ const MusicCardComponent: React.FC<MusicCardProps> = ({
   const [localIsPlaying, setLocalIsPlaying] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
   const spotlight = useSpotlight<HTMLDivElement>();
 
   // Determine which platform to use based on priority (YouTube > SoundCloud) - memoized

@@ -1,6 +1,13 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
-import { Audiowide, Montserrat } from 'next/font/google';
+import {
+  Archivo,
+  Audiowide,
+  JetBrains_Mono,
+  Manrope,
+  Montserrat,
+  Unbounded,
+} from 'next/font/google';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 
@@ -23,6 +30,29 @@ const audiowide = Audiowide({
 const montserrat = Montserrat({
   subsets: ['latin'],
   variable: '--font-montserrat',
+});
+
+// Polices de l'UI v3 : Unbounded (titres), Manrope (texte), Archivo variable pour le nom du hero
+// (axe de largeur, animé au tempo) et une mono pour les métadonnées
+const unbounded = Unbounded({
+  subsets: ['latin'],
+  variable: '--font-unbounded',
+});
+
+const manrope = Manrope({
+  subsets: ['latin'],
+  variable: '--font-manrope',
+});
+
+const archivo = Archivo({
+  subsets: ['latin'],
+  axes: ['wdth'],
+  variable: '--font-archivo',
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-mono-v3',
 });
 
 export const metadata: Metadata = {
@@ -86,14 +116,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     }
   }
 
-  // Version de l'UI (legacy ou v2) posée côté serveur pour éviter tout flash au chargement
+  // Version de l'UI (legacy, v2 ou v3) posée côté serveur pour éviter tout flash au chargement
   const uiVersion = resolveUiVersion((await cookies()).get(UI_VERSION_COOKIE)?.value);
 
   return (
     <html
       lang="fr"
       data-ui={uiVersion}
-      className={`${audiowide.variable} ${montserrat.variable}`}
+      className={`${audiowide.variable} ${montserrat.variable} ${archivo.variable} ${jetbrainsMono.variable} ${unbounded.variable} ${manrope.variable}`}
       suppressHydrationWarning
     >
       <head>

@@ -42,7 +42,7 @@ const V2_BADGE =
   'inline-flex items-center gap-1 rounded-full bg-black/40 px-2.5 py-1 text-[11px] font-medium text-white/85 ring-1 ring-inset ring-white/10 backdrop-blur-md';
 
 export function EventCard({ event }: EventCardProps) {
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
   if (isV2) return <EventCardV2 event={event} />;
 
   return (
