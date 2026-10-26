@@ -30,9 +30,6 @@ export default async function HomePage() {
   // Précharger la configuration côté serveur
   const config = await getHomepageConfig();
   const isV3 = resolveUiVersion((await cookies()).get(UI_VERSION_COOKIE)?.value) === 'v3';
-  // Numérotation des sections v3 dans l'ordre d'affichage (façon tracklist : [01], [02]...)
-  let v3Index = 0;
-  const nextIndex = () => String(++v3Index).padStart(2, '0');
 
   // Définir l'ordre des sections
   const sectionOrder = config.sectionsOrder
@@ -53,7 +50,7 @@ export default async function HomePage() {
         if (isV3) {
           return config.releasesEnabled ? (
             <Suspense key="releases" fallback={null}>
-              <ReleasesV3 count={config.releasesCount} index={nextIndex()} />
+              <ReleasesV3 count={config.releasesCount} />
             </Suspense>
           ) : null;
         }
@@ -88,7 +85,7 @@ export default async function HomePage() {
         if (isV3) {
           return config.eventsEnabled ? (
             <Suspense key="events" fallback={null}>
-              <EventsV3 count={config.eventsCount} index={nextIndex()} />
+              <EventsV3 count={config.eventsCount} />
             </Suspense>
           ) : null;
         }

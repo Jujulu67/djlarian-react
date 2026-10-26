@@ -15,6 +15,7 @@ interface DesktopNavLinkProps {
 
 export function DesktopNavLink({ link, isActive }: DesktopNavLinkProps) {
   const uiVersion = useUiVersion();
+  // v3 : libellés en français
   if (uiVersion === 'v3')
     return (
       <DesktopNavLinkV2 link={{ ...link, label: link.labelFr ?? link.label }} isActive={isActive} />
@@ -96,20 +97,15 @@ function DesktopNavLinkV2({ link, isActive }: DesktopNavLinkProps) {
     <Link
       href={link.href}
       aria-current={isActive ? 'page' : undefined}
-      className={`relative flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-medium transition-colors duration-200 v3:rounded-none v3:px-3 v3:font-normal ${
-        isActive ? 'text-white' : 'text-white/60 hover:text-white'
+      className={`relative flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-medium transition-colors duration-200 ${
+        isActive ? 'text-white v3:text-[rgb(7_7_13)]' : 'text-white/60 hover:text-white'
       }`}
     >
-      {/* v3 : un carré « signal » marque la page courante, à la place de la pastille */}
-      <span
-        aria-hidden="true"
-        className={`hidden h-1.5 w-1.5 bg-white v3:inline-block ${isActive ? 'v3:opacity-100' : 'v3:opacity-0'}`}
-      />
       {isActive && (
         <motion.span
           layoutId="nav-active-pill"
           transition={springs.snappy}
-          className="absolute inset-0 rounded-full bg-white/[0.08] shadow-[inset_0_1px_0_rgb(255_255_255/0.1)] ring-1 ring-inset ring-white/10 v3:hidden"
+          className="absolute inset-0 rounded-full bg-white/[0.08] shadow-[inset_0_1px_0_rgb(255_255_255/0.1)] ring-1 ring-inset ring-white/10 v3:bg-[rgb(var(--ink))] v3:ring-0"
         />
       )}
       {link.icon && (

@@ -8,17 +8,13 @@ import { useRef } from 'react';
 import { easeOutExpo } from '@/lib/motion';
 import { getImageUrl } from '@/lib/utils/getImageUrl';
 import type { Track } from '@/lib/utils/types';
-import type { Event } from '@/types';
 import type { HomepageConfig } from '@/types/config';
 
-import Marquee from './Marquee';
 import ParisClock from './ParisClock';
 import SignalWave from './SignalWave';
 
 /** Tempo par défaut quand la dernière sortie n'a pas de BPM renseigné */
 const DEFAULT_BPM = 124;
-
-const ROLES = ['DJ', 'Producteur', 'Live act hybride', 'Sound design'];
 
 const TYPE_LABELS: Record<string, string> = {
   single: 'Single',
@@ -30,31 +26,24 @@ const TYPE_LABELS: Record<string, string> = {
   video: 'Vidéo',
 };
 
-const dateFormatter = new Intl.DateTimeFormat('fr-FR', {
-  day: '2-digit',
-  month: 'short',
-  timeZone: 'Europe/Paris',
-});
-
 interface HeroSignalProps {
   config: HomepageConfig;
   latest: Track | null;
-  nextEvent: Event | null;
 }
 
 /**
- * Hero de l'UI v3 : la photo plein cadre en bichromie UV, le nom à la largeur de l'écran
+ * Hero de l'UI v3 : la photo plein cadre teintée violet, le nom à la largeur de l'écran
  * qui respire au tempo de la dernière sortie, un oscilloscope qui réagit au pointeur,
- * et la dernière sortie jouable immédiatement.
+ * et la dernière sortie jouable dans une carte en verre.
  */
-export default function HeroSignal({ config, latest, nextEvent }: HeroSignalProps) {
+export default function HeroSignal({ config, latest }: HeroSignalProps) {
   const ref = useRef<HTMLElement>(null);
   const reduceMotion = useReducedMotion() ?? false;
   const bpm = latest?.bpm && latest.bpm > 40 && latest.bpm < 220 ? latest.bpm : DEFAULT_BPM;
   const beatMs = Math.round(60000 / bpm);
 
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] });
-  const imageScale = useTransform(scrollYProgress, [0, 1], [1.08, 1.25]);
+  const imageScale = useTransform(scrollYProgress, [0, 1], [1.05, 1.2]);
   const nameY = useTransform(scrollYProgress, [0, 1], ['0%', '35%']);
   const fade = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
 
@@ -70,30 +59,17 @@ export default function HeroSignal({ config, latest, nextEvent }: HeroSignalProp
           transition: { duration: 0.9, ease: easeOutExpo, delay },
         };
 
-  const marqueeItems = [
-    ...ROLES.map((role) => <span key={role}>{role}</span>),
-    nextEvent ? (
-      <span key="next">
-        Prochaine date : {nextEvent.title}, {nextEvent.location} ·{' '}
-        {dateFormatter.format(new Date(nextEvent.date))}
-      </span>
-    ) : (
-      <span key="booking">Booking ouvert 2026</span>
-    ),
-    latest ? <span key="latest">Nouveau : {latest.title}</span> : null,
-  ].filter(Boolean);
-
   return (
     <section
       ref={ref}
       aria-label="Larian"
-      className="relative isolate -mt-16 flex min-h-svh flex-col overflow-hidden"
+      className="relative isolate -mt-20 flex min-h-svh flex-col overflow-hidden"
       style={{ '--bar': `${beatMs * 4}ms`, '--beat': `${beatMs}ms` } as React.CSSProperties}
     >
-      {/* Photo plein cadre, bichromie UV, zoom lent au scroll */}
+      {/* Photo plein cadre teintée violet, zoom lent au scroll */}
       <motion.div
         className="absolute inset-0 -z-10"
-        style={{ scale: reduceMotion ? 1.08 : imageScale }}
+        style={{ scale: reduceMotion ? 1.05 : imageScale }}
       >
         <Image
           src="/images/spotify/spotify_banner.png"
@@ -102,20 +78,19 @@ export default function HeroSignal({ config, latest, nextEvent }: HeroSignalProp
           priority
           sizes="100vw"
           quality={80}
-          className="signal-duotone object-cover object-[50%_30%]"
+          className="object-cover object-[50%_30%]"
         />
         <div className="signal-duotone-tint absolute inset-0" />
-        <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_50%_10%,transparent_30%,rgb(5_5_6/0.85)_75%)]" />
-        <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-[rgb(5_5_6)] via-[rgb(5_5_6/0.7)] to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[rgb(var(--bg))] via-[rgb(7_7_13/0.55)] to-[rgb(7_7_13/0.15)]" />
       </motion.div>
 
-      {/* Bandeau d'infos façon écran de régie */}
+      {/* Bandeau d'infos */}
       <motion.div
         {...enter(0.1)}
-        className="mx-auto mt-24 flex w-full max-w-[1440px] items-center justify-between gap-4 px-4 font-mono-signal text-[11px] uppercase text-white/70 md:px-8"
+        className="mx-auto mt-28 flex w-full max-w-[1440px] items-center justify-between gap-4 px-4 font-mono-signal text-[11px] uppercase text-white/70 md:px-8"
       >
         <span className="flex items-center gap-2">
-          <span className="signal-pulse inline-block h-2 w-2 bg-[rgb(var(--signal))]" />
+          <span className="signal-pulse inline-block h-1.5 w-1.5 rounded-full bg-[rgb(var(--signal))]" />
           {bpm} BPM{latest?.musicalKey ? ` · ${latest.musicalKey}` : ''}
         </span>
         <span className="hidden sm:inline">Musique électronique · Paris</span>
@@ -129,7 +104,7 @@ export default function HeroSignal({ config, latest, nextEvent }: HeroSignalProp
         style={{ y: reduceMotion ? 0 : nameY, opacity: fade }}
         className="relative px-2 md:px-4"
       >
-        <h1 className="font-poster select-none text-center text-[clamp(4rem,18.5vw,20rem)] text-white">
+        <h1 className="font-poster select-none text-center text-[clamp(4rem,18vw,19rem)] text-white">
           <span className="sr-only">{config.heroTitle || 'Larian'}</span>
           <span aria-hidden="true" className="inline-flex">
             {title.split('').map((letter, index) => (
@@ -150,30 +125,28 @@ export default function HeroSignal({ config, latest, nextEvent }: HeroSignalProp
       </motion.div>
 
       {/* Oscilloscope */}
-      <SignalWave bpm={bpm} className="pointer-events-none -mt-[4vw] h-[16vh] min-h-24 w-full" />
+      <SignalWave bpm={bpm} className="pointer-events-none -mt-[4vw] h-[14vh] min-h-20 w-full" />
 
-      {/* Pied du hero : accroche, dernière sortie, actions */}
+      {/* Pied du hero : accroche, actions, dernière sortie */}
       <motion.div
         {...enter(0.6)}
-        className="mx-auto grid w-full max-w-[1440px] grid-cols-1 gap-6 px-4 pb-6 md:grid-cols-2 md:items-end md:px-8 lg:grid-cols-12 [&>*]:min-w-0"
+        className="mx-auto grid w-full max-w-[1440px] grid-cols-1 gap-6 px-4 pb-10 md:grid-cols-2 md:items-end md:px-8 lg:grid-cols-12 [&>*]:min-w-0"
       >
-        <div className="lg:col-span-5">
-          <p className="max-w-md text-lg leading-snug text-white/80 md:text-xl">
+        <div className="lg:col-span-6">
+          <p className="max-w-md text-lg leading-snug text-white/85 md:text-xl">
             {config.heroSubtitle}
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
             <Link
               href={config.heroExploreButtonUrl || '/music'}
-              className="group inline-flex h-12 items-center gap-3 bg-[rgb(var(--ink))] px-6 text-sm font-medium text-[rgb(5_5_6)] transition-colors hover:bg-white"
+              className="chrome-pill inline-flex h-12 items-center gap-2 rounded-full px-7 text-[15px] font-bold transition-transform hover:-translate-y-0.5"
             >
+              <PlayGlyph />
               Écouter
-              <span aria-hidden="true" className="transition-transform group-hover:translate-x-1">
-                →
-              </span>
             </Link>
             <Link
               href={config.heroEventsButtonUrl || '/events'}
-              className="inline-flex h-12 items-center border border-white/25 px-6 text-sm font-medium text-white transition-colors hover:border-white"
+              className="surface-1 inline-flex h-12 items-center rounded-full px-7 text-[15px] font-bold text-white transition-colors hover:bg-white/10"
             >
               Les dates
             </Link>
@@ -183,49 +156,41 @@ export default function HeroSignal({ config, latest, nextEvent }: HeroSignalProp
         {latest && (
           <Link
             href={`/music?play=${latest.id}`}
-            className="group flex items-center gap-4 border border-white/15 bg-[rgb(5_5_6/0.55)] p-3 pr-5 backdrop-blur-md transition-colors hover:border-[rgb(var(--signal))] lg:col-span-4 lg:col-start-9"
+            className="surface-2 group flex items-center gap-4 rounded-3xl p-3 pr-4 transition-transform hover:-translate-y-0.5 lg:col-span-5 lg:col-start-8"
           >
-            <span className="relative block h-20 w-20 shrink-0 overflow-hidden bg-white/5">
+            <span className="relative block h-[76px] w-[76px] shrink-0 overflow-hidden rounded-2xl bg-white/5">
               {cover && (
                 <Image
                   src={cover}
                   alt=""
                   fill
-                  sizes="80px"
+                  sizes="76px"
                   className="object-cover transition-transform duration-500 group-hover:scale-110"
                 />
               )}
-              <span className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
-                <PlayGlyph />
-              </span>
             </span>
             <span className="min-w-0 flex-1">
-              <span className="flex items-center gap-2 font-mono-signal text-[11px] uppercase text-[rgb(var(--signal))]">
-                <span className="signal-pulse inline-block h-1.5 w-1.5 bg-current" />
-                Dernière sortie · {TYPE_LABELS[latest.type] ?? latest.type}
+              <span className="flex items-center gap-1.5 text-xs font-bold text-[rgb(var(--signal))]">
+                <span className="signal-pulse inline-block h-1.5 w-1.5 rounded-full bg-current" />
+                Dernière sortie
               </span>
-              <span className="mt-1 block truncate text-display text-2xl text-white">
+              <span className="mt-1 block truncate text-display text-xl text-white">
                 {latest.title}
               </span>
-              <span className="mt-1 block font-mono-signal text-[11px] uppercase text-white/60">
-                {latest.artist} · {new Date(latest.releaseDate).getFullYear()}
+              <span className="mt-0.5 block truncate text-[13px] text-white/70">
+                {latest.artist} · {TYPE_LABELS[latest.type] ?? latest.type} ·{' '}
+                {new Date(latest.releaseDate).getFullYear()}
               </span>
             </span>
             <span
               aria-hidden="true"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[rgb(var(--ink))] text-[rgb(5_5_6)] transition-colors group-hover:bg-[rgb(var(--signal))]"
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[rgb(var(--ink))] text-[rgb(7_7_13)] transition-transform group-hover:scale-105"
             >
               <PlayGlyph />
             </span>
           </Link>
         )}
       </motion.div>
-
-      <Marquee
-        items={marqueeItems}
-        duration={36}
-        className="rule-t rule-b bg-[rgb(5_5_6/0.6)] py-3 font-mono-signal text-xs uppercase text-white/80"
-      />
     </section>
   );
 }

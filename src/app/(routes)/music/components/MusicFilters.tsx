@@ -10,11 +10,11 @@ import { MUSIC_TYPES } from '../constants';
 import type { MusicFiltersState } from '../hooks/useMusicCatalog';
 
 const V2_FIELD =
-  'w-full rounded-xl border border-white/10 bg-white/[0.03] text-sm text-white backdrop-blur-md transition-[border-color,box-shadow] duration-200 placeholder:text-white/40 focus:border-brand/70 focus:outline-none focus:ring-4 focus:ring-brand/15 v3:rounded-md v3:border-white/15 v3:bg-transparent v3:focus:border-white/50 v3:focus:ring-0';
+  'w-full rounded-xl border border-white/10 bg-white/[0.03] text-sm text-white backdrop-blur-md transition-[border-color,box-shadow] duration-200 placeholder:text-white/40 focus:border-brand/70 focus:outline-none focus:ring-4 focus:ring-brand/15';
 
 const V2_CHIP =
-  'inline-flex h-9 items-center whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors duration-200 active:scale-[0.98] v3:rounded-md';
-const V2_CHIP_ACTIVE = 'bg-white text-zinc-950 v3:bg-white';
+  'inline-flex h-9 items-center whitespace-nowrap rounded-full px-4 text-sm font-medium transition-colors duration-200 active:scale-[0.98]';
+const V2_CHIP_ACTIVE = 'bg-white text-zinc-950';
 const V2_CHIP_IDLE =
   'bg-white/[0.04] text-white/70 ring-1 ring-inset ring-white/10 hover:text-white';
 

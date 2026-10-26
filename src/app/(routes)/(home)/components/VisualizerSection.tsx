@@ -149,24 +149,22 @@ export default function VisualizerSection({
 
       <div className="max-w-7xl mx-auto px-4 relative z-10 v2:max-w-[1180px] v3:max-w-[1440px] md:v3:px-8">
         {isV3 ? (
-          /* v3 : le jeu de rythme devient une section à part entière, « Jouer » */
-          <div className="mb-10 flex flex-wrap items-end justify-between gap-6">
+          /* v3 : le jeu de rythme mis en avant comme section « Jouer » */
+          <div className="mb-9 flex flex-wrap items-end justify-between gap-6">
             <div>
-              <h2 className="flex items-start gap-4 text-display text-[clamp(2.5rem,6vw,5.5rem)] text-white">
-                <span className="mt-[0.35em] font-mono-signal text-xs font-normal normal-case tracking-normal text-white/50">
-                  [Live]
-                </span>
-                Jouer
-              </h2>
+              <p className="mb-2.5 text-[13px] font-semibold uppercase tracking-[0.2em] text-[rgb(var(--ice))]">
+                Mini-jeu
+              </p>
+              <h2 className="chrome-text text-display text-4xl md:text-5xl">Jouer</h2>
               <p className="mt-4 max-w-md text-white/70">
-                Attrape les notes au tempo. Un mini-jeu de rythme, directement dans le navigateur.
+                Attrape les notes au tempo, directement dans le navigateur.
               </p>
             </div>
             <button
               type="button"
               onClick={handleExperienceClick}
               aria-pressed={isSoundActive}
-              className="mb-2 inline-flex h-12 items-center gap-3 bg-[rgb(var(--ink))] px-6 text-sm font-medium text-[rgb(5_5_6)] transition-colors hover:bg-white"
+              className="chrome-pill inline-flex h-12 items-center gap-2 rounded-full px-7 text-[15px] font-bold transition-transform hover:-translate-y-0.5"
             >
               {isSoundActive ? (
                 <Square className="h-4 w-4" aria-hidden="true" />
@@ -234,7 +232,7 @@ export default function VisualizerSection({
             isV2
               ? isSoundActive && isMobile
                 ? 'bg-[rgb(var(--bg))]'
-                : 'surface-1 rounded-2xl v3:aspect-[21/9]'
+                : 'surface-1 rounded-2xl'
               : 'rounded-2xl glass-premium-container glow-border-premium shadow-2xl'
           } ${isSoundActive && isMobile ? 'fixed top-0 left-0 right-0 z-[100] h-screen rounded-none border-0 transition-none' : ''}`}
           id="game-container"

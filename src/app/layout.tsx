@@ -1,6 +1,13 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
-import { Archivo, Audiowide, JetBrains_Mono, Montserrat } from 'next/font/google';
+import {
+  Archivo,
+  Audiowide,
+  JetBrains_Mono,
+  Manrope,
+  Montserrat,
+  Unbounded,
+} from 'next/font/google';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 
@@ -25,7 +32,18 @@ const montserrat = Montserrat({
   variable: '--font-montserrat',
 });
 
-// Polices de la V3 « Signal » : Archivo variable (axe de largeur, animé au tempo) et une mono façon DAW
+// Polices de l'UI v3 : Unbounded (titres), Manrope (texte), Archivo variable pour le nom du hero
+// (axe de largeur, animé au tempo) et une mono pour les métadonnées
+const unbounded = Unbounded({
+  subsets: ['latin'],
+  variable: '--font-unbounded',
+});
+
+const manrope = Manrope({
+  subsets: ['latin'],
+  variable: '--font-manrope',
+});
+
 const archivo = Archivo({
   subsets: ['latin'],
   axes: ['wdth'],
@@ -105,7 +123,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html
       lang="fr"
       data-ui={uiVersion}
-      className={`${audiowide.variable} ${montserrat.variable} ${archivo.variable} ${jetbrainsMono.variable}`}
+      className={`${audiowide.variable} ${montserrat.variable} ${archivo.variable} ${jetbrainsMono.variable} ${unbounded.variable} ${manrope.variable}`}
       suppressHydrationWarning
     >
       <head>

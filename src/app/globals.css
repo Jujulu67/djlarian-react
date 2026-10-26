@@ -1752,110 +1752,81 @@ header nav button.navMenuItem.navMenuItemWarning:hover {
 }
 
 /* ==========================================================================
-   UI v3 « Signal » : du studio à la scène.
-   Hérite de tout le v2 (variant v2: et sélecteurs ci-dessus), puis pose une
-   direction plus radicale : noir d'encre, texte os, typographie Archivo très
-   large et très grasse, métadonnées en mono façon DAW, grain, et un second
-   accent « signal » (vert acide) réservé à ce qui joue, ce qui est live, ce qui est actif.
+   UI v3 « G » : la v2 (verre, pilules) + le hero plein cadre de la V3 + une couche chrome.
+   Hérite de tout le v2 (variant v2: et sélecteurs ci-dessus) et ne surcharge que
+   la typo, quelques tokens et des utilitaires dédiés.
    ========================================================================== */
 [data-ui='v3'] {
-  --bg: 5 5 6; /* #050506 */
-  --ink: 237 235 230; /* #edebe6, blanc os */
-  --brand: 157 107 255; /* #9d6bff, violet UV plus lumineux, lisible sur noir */
-  --signal: 212 255 58; /* #d4ff3a */
-  --rule: rgb(237 235 230 / 0.12);
-  --surface-border: rgb(237 235 230 / 0.1);
-  --surface-highlight: transparent;
-  --toast-radius: 0.375rem;
+  --bg: 7 7 13; /* #07070d */
+  --ink: 233 236 245; /* #e9ecf5, blanc froid */
+  --brand: 159 139 255; /* #9f8bff */
+  --signal: 212 255 58; /* #d4ff3a : uniquement « en lecture », « live », « nouveau » */
+  --ice: 159 179 255; /* #9fb3ff : surtitres */
+  --display-font: var(--font-unbounded), system-ui, sans-serif;
+  --display-tracking: -0.02em;
+  --display-leading: 1.05;
 }
 
 [data-ui='v3'] body {
-  font-family: var(--font-archivo), system-ui, sans-serif;
-  color: rgb(var(--ink));
+  font-family: var(--font-manrope), system-ui, sans-serif;
   background-color: rgb(var(--bg));
 }
 
-/* Display : Archivo étendu et noir, en capitales serrées (remplace Audiowide partout).
-   Passe par les variables de text-display pour rester surchargeable par les utilitaires. */
-[data-ui='v3'] {
-  --display-font: var(--font-archivo), system-ui, sans-serif;
-  --display-tracking: -0.035em;
-  --display-leading: 0.88;
-  /* Blanc os à la place du blanc pur, rayons plus francs (utilitaires Tailwind basés sur ces variables) */
-  --color-white: #edebe6;
-  --radius-2xl: 0.625rem;
-  --radius-3xl: 0.75rem;
+/* Halo violet hérité de la v1 (bouton « remonter ») : neutralisé en v3 */
+[data-ui='v3'] .glow-purple {
+  box-shadow: none;
 }
 
-[data-ui='v3'] .font-audiowide {
-  font-family: var(--font-archivo), system-ui, sans-serif;
-  font-stretch: 125%;
-  font-variation-settings: 'wdth' 125;
+[data-ui='v3'] :is(.font-audiowide, .font-montserrat) {
+  font-family: var(--font-unbounded), system-ui, sans-serif;
 }
 
-[data-ui='v3'] .font-montserrat {
-  font-family: var(--font-archivo), system-ui, sans-serif;
-}
-
-[data-ui='v3'] ::selection {
-  background-color: rgb(var(--signal));
-  color: #050506;
-}
-
-[data-ui='v3'] :is(button, a, input, textarea, select, [tabindex]):focus-visible {
-  outline: 2px solid rgb(var(--signal));
-  outline-offset: 3px;
-}
-
-/* Dans la couche utilities, à spécificité d'une classe : hover:, focus: et v3: gardent la main */
+/* Contraste : les gris translucides du v2 étaient un peu faibles sur noir */
 @layer utilities {
-  :where([data-ui='v3']) :is(.text-display, .v2\:text-display, .v3\:text-display) {
-    font-family: var(--font-archivo), system-ui, sans-serif;
-    letter-spacing: -0.035em;
-    line-height: 0.88;
-    font-weight: 800;
-    font-stretch: 125%;
-    font-variation-settings: 'wdth' 125;
-    text-transform: uppercase;
-  }
-
-  /* Contraste : les gris translucides du v2 étaient trop faibles sur noir */
   :where([data-ui='v3']) .text-white\/40 {
     color: rgb(var(--ink) / 0.6);
   }
   :where([data-ui='v3']) .text-white\/50 {
-    color: rgb(var(--ink) / 0.68);
+    color: rgb(var(--ink) / 0.66);
   }
   :where([data-ui='v3']) .text-white\/60 {
-    color: rgb(var(--ink) / 0.76);
-  }
-  :where([data-ui='v3']) .text-white\/70 {
-    color: rgb(var(--ink) / 0.84);
-  }
-
-  /* Conteneurs de page v2 (1180 px) élargis pour s'aligner sur la grille v3 (1440 px moins les marges) */
-  :where([data-ui='v3']) :is(.max-w-\[1180px\], .v2\:max-w-\[1180px\]) {
-    max-width: 1376px;
-  }
-
-  /* Matière : surfaces mates façon hardware (moins de verre, des arêtes plus franches) */
-  :where([data-ui='v3'])
-    :is(.surface-1, .surface-2, .glass, .glass-modern, .glass-premium-container) {
-    background-color: rgb(237 235 230 / 0.025);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    box-shadow: none;
+    color: rgb(var(--ink) / 0.74);
   }
 }
 
-/* Métadonnées techniques (BPM, tonalité, dates, index) */
+/* Texte chromé : titres de section, logo, booking */
+@utility chrome-text {
+  background: linear-gradient(
+    180deg,
+    #ffffff 0%,
+    #c9d2e3 30%,
+    #6b7388 48%,
+    #f4f7ff 56%,
+    #a2adc4 74%,
+    #e6ecff 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Bouton principal chromé (pilule) */
+@utility chrome-pill {
+  background: linear-gradient(180deg, #ffffff, #bcc6de);
+  color: #07070d;
+  box-shadow:
+    inset 0 -2px 0 rgb(0 0 0 / 0.18),
+    0 12px 40px -12px rgb(var(--ice, 159 179 255) / 0.8);
+}
+
+/* Métadonnées (BPM, tonalité, dates) */
 @utility font-mono-signal {
   font-family: var(--font-mono-v3), ui-monospace, monospace;
   font-feature-settings: 'zero' 1;
   letter-spacing: 0.02em;
 }
 
-/* Grand titre « affiche » : Archivo à la largeur maximale */
+/* Le nom du hero : Archivo à la largeur maximale */
 @utility font-poster {
   font-family: var(--font-archivo), system-ui, sans-serif;
   font-weight: 900;
@@ -1866,71 +1837,27 @@ header nav button.navMenuItem.navMenuItemWarning:hover {
   line-height: 0.8;
 }
 
-/* Filet horizontal du système (grille façon vue d'arrangement de DAW) */
-@utility rule-t {
-  border-top: 1px solid var(--rule, rgb(237 235 230 / 0.12));
+/* Le nom respire au tempo, en vague (délai par lettre). Une mesure = 4 temps = --bar en ms. */
+.signal-breathe {
+  display: inline-block;
+  font-variation-settings: 'wdth' 125;
+  animation: signal-breathe calc(var(--bar, 1935ms) * 2) cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  animation-delay: calc(var(--i, 0) * var(--bar, 1935ms) / -12);
 }
-@utility rule-b {
-  border-bottom: 1px solid var(--rule, rgb(237 235 230 / 0.12));
-}
-
-/* Fond v3 : noir, une lueur UV en haut, grille de colonnes très fine, grain animé */
-.signal-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    radial-gradient(90vmax 60vmax at 50% -20%, rgb(var(--brand) / 0.16), transparent 60%),
-    rgb(var(--bg));
-}
-.signal-backdrop__grid {
-  position: absolute;
-  inset: 0;
-  background-image: linear-gradient(to right, rgb(237 235 230 / 0.035) 1px, transparent 1px);
-  background-size: calc((100% - 2rem) / 12) 100%;
-  background-position: 1rem 0;
-  mask-image: linear-gradient(to bottom, black, transparent 85%);
-}
-.signal-backdrop__grain {
-  position: absolute;
-  inset: -50%;
-  opacity: 0.05;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  animation: signal-grain 0.9s steps(6) infinite;
-}
-
-@keyframes signal-grain {
-  0% {
-    transform: translate3d(0, 0, 0);
-  }
-  20% {
-    transform: translate3d(-4%, 3%, 0);
-  }
-  40% {
-    transform: translate3d(3%, -5%, 0);
-  }
-  60% {
-    transform: translate3d(-6%, -2%, 0);
-  }
-  80% {
-    transform: translate3d(5%, 4%, 0);
-  }
+@keyframes signal-breathe {
+  0%,
   100% {
-    transform: translate3d(0, 0, 0);
+    font-variation-settings: 'wdth' 125;
+  }
+  50% {
+    font-variation-settings: 'wdth' 110;
   }
 }
 
-/* Bandeau défilant (infos, dates) */
-.signal-marquee {
-  display: flex;
-  width: max-content;
-  animation: signal-marquee var(--marquee-duration, 40s) linear infinite;
-}
-@keyframes signal-marquee {
-  to {
-    transform: translate3d(-50%, 0, 0);
-  }
+/* Photo du hero teintée violet */
+.signal-duotone-tint {
+  background: linear-gradient(180deg, rgb(130 100 255 / 0.45), rgb(7 7 13 / 0.05));
+  mix-blend-mode: color;
 }
 
 /* Pastille « en cours » : pulse au tempo (--beat en ms) */
@@ -1948,37 +1875,8 @@ header nav button.navMenuItem.navMenuItemWarning:hover {
   }
 }
 
-/* Le nom respire au tempo : chaque lettre se contracte puis s'étire sur l'axe de largeur,
-   en vague (délai par lettre). Une mesure = 4 temps = --bar en ms. */
-.signal-breathe {
-  display: inline-block;
-  font-variation-settings: 'wdth' 125;
-  animation: signal-breathe calc(var(--bar, 1935ms) * 2) cubic-bezier(0.65, 0, 0.35, 1) infinite;
-  animation-delay: calc(var(--i, 0) * var(--bar, 1935ms) / -12);
-}
-@keyframes signal-breathe {
-  0%,
-  100% {
-    font-variation-settings: 'wdth' 125;
-  }
-  50% {
-    font-variation-settings: 'wdth' 110;
-  }
-}
-
-/* Photo du hero traitée en bichromie UV : noir et blanc contrasté, teinte violette par fusion */
-.signal-duotone {
-  filter: grayscale(1) contrast(1.25) brightness(0.8);
-}
-.signal-duotone-tint {
-  background: linear-gradient(180deg, rgb(var(--brand) / 0.55), rgb(5 5 6 / 0.2));
-  mix-blend-mode: color;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .signal-breathe,
-  .signal-backdrop__grain,
-  .signal-marquee,
   .signal-pulse {
     animation: none;
   }

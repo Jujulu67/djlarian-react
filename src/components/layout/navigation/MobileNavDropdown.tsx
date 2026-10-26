@@ -41,11 +41,11 @@ export function MobileNavDropdown({
             },
           }}
           id="mobile-nav"
-          className="lg:hidden mobile-menu bg-black/95 backdrop-blur-md border-b border-purple-500/20 overflow-hidden rounded-b-2xl v2:border-b-0 v2:border-t v2:border-white/10 v2:bg-transparent v2:backdrop-blur-none v3:rounded-none v3:bg-[rgb(5_5_6/0.97)]"
+          className="lg:hidden mobile-menu bg-black/95 backdrop-blur-md border-b border-purple-500/20 overflow-hidden rounded-b-2xl v2:border-b-0 v2:border-t v2:border-white/10 v2:bg-transparent v2:backdrop-blur-none"
           style={{ borderTopLeftRadius: 0, borderTopRightRadius: 0 }}
         >
           <div
-            className="container mx-auto px-4 py-4 flex flex-col space-y-3 v2:space-y-1 v2:py-3 v3:min-h-[calc(100svh-4rem)] v3:space-y-0 v3:pt-8"
+            className="container mx-auto px-4 py-4 flex flex-col space-y-3 v2:space-y-1 v2:py-3"
             style={{ paddingLeft: '1.5rem', paddingRight: '1.5rem' }}
           >
             {links.map((link, index) => (
@@ -57,14 +57,10 @@ export function MobileNavDropdown({
               >
                 <Link
                   href={link.href}
-                  className="text-white/90 hover:text-white py-2 transition-colors flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-inset rounded v2:gap-3 v2:rounded-2xl v2:px-3 v2:py-3 v2:text-lg v2:font-medium v2:hover:bg-white/[0.06] v3:items-baseline v3:gap-4 v3:rounded-none v3:px-0 v3:py-2 v3:text-display v3:text-[2.25rem] v3:rule-b v3:hover:bg-transparent v3:hover:text-white/70"
+                  className="text-white/90 hover:text-white py-2 transition-colors flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-inset rounded v2:gap-3 v2:rounded-2xl v2:px-3 v2:py-3 v2:text-lg v2:font-medium v2:hover:bg-white/[0.06]"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  {link.icon && <link.icon size={18} className="text-purple-400 v3:hidden" />}
-                  {/* v3 : numéro de piste devant chaque lien */}
-                  <span className="hidden font-mono-signal text-xs font-normal tracking-normal text-white/40 v3:inline">
-                    {String(index + 1).padStart(2, '0')}
-                  </span>
+                  {link.icon && <link.icon size={18} className="text-purple-400" />}
                   {isV3 ? (link.labelFr ?? link.label) : link.label}
                 </Link>
               </motion.div>

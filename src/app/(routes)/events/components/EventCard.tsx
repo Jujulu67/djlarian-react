@@ -42,9 +42,8 @@ const V2_BADGE =
   'inline-flex items-center gap-1 rounded-full bg-black/40 px-2.5 py-1 text-[11px] font-medium text-white/85 ring-1 ring-inset ring-white/10 backdrop-blur-md';
 
 export function EventCard({ event }: EventCardProps) {
-  const uiVersion = useUiVersion();
-  if (uiVersion === 'v3') return <EventRowV3 event={event} />;
-  if (uiVersion !== 'legacy') return <EventCardV2 event={event} />;
+  const isV2 = useUiVersion() !== 'legacy';
+  if (isV2) return <EventCardV2 event={event} />;
 
   return (
     <div className="group relative glass-modern glass-modern-hover rounded-xl overflow-hidden transition-all transform hover:-translate-y-1 duration-300">
@@ -318,98 +317,6 @@ function EventCardV2({ event }: EventCardProps) {
               Billets
               <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
             </a>
-          )}
-        </div>
-      </div>
-    </motion.article>
-  );
-}
-
-// ============================================================================
-// UI V3 : une ligne de tournée (date géante, titre, lieu, billet)
-// ============================================================================
-
-function EventRowV3({ event }: EventCardProps) {
-  const date = new Date(event.startDate);
-  const validDate = !Number.isNaN(date.getTime());
-  const past = isPastEvent(event.startDate);
-  const isRecurring = event.isVirtualOccurrence || event.isRecurringMaster;
-  const cover = getImageUrl(event.imageId);
-
-  return (
-    <motion.article variants={fadeUp} className={cn('group relative rule-b', past && 'opacity-60')}>
-      <div className="grid grid-cols-[auto_1fr] items-center gap-x-5 gap-y-3 py-6 md:grid-cols-[9rem_1fr_9rem_auto] md:gap-x-8 md:py-8">
-        {validDate ? (
-          <div className="font-mono-signal uppercase leading-none">
-            <span className="block text-5xl text-white md:text-6xl">
-              {format(date, 'dd', { locale: fr })}
-            </span>
-            <span className="mt-2 block text-xs text-white/60">
-              {format(date, 'MMM yyyy', { locale: fr }).replace('.', '')}
-            </span>
-          </div>
-        ) : (
-          <span className="font-mono-signal text-xs text-white/50">— —</span>
-        )}
-
-        <div className="min-w-0">
-          <div className="mb-2 flex flex-wrap gap-2 font-mono-signal text-[11px] uppercase">
-            {event.featured && <span className="text-white/80">★ À la une</span>}
-            {isRecurring && (
-              <span className="text-white/60">
-                {event.recurrenceConfig?.frequency === 'weekly' ? 'Hebdo' : 'Mensuel'}
-              </span>
-            )}
-            {event.status === 'COMPLETED' && <span className="text-white/60">Terminé</span>}
-            {event.status === 'CANCELLED' && <span className="text-red-300">Annulé</span>}
-          </div>
-          <h3 className="truncate text-display text-2xl text-white transition-[font-variation-settings,color] duration-500 [font-variation-settings:'wdth'_100] group-hover:[font-variation-settings:'wdth'_125] md:text-4xl">
-            <Link
-              href={getEventHref(event)}
-              className="after:absolute after:inset-0 after:z-0 after:content-[''] focus-visible:outline-none"
-            >
-              {event.title}
-            </Link>
-          </h3>
-          <p className="mt-2 truncate font-mono-signal text-[11px] uppercase text-white/60">
-            {event.location}
-            {validDate && <> · {format(date, "EEEE HH'h'mm", { locale: fr })}</>}
-          </p>
-        </div>
-
-        {/* Vignette qui se dévoile au survol (desktop) */}
-        <div className="relative hidden aspect-square w-36 overflow-hidden bg-white/[0.03] md:block">
-          {cover && (
-            <Image
-              src={cover}
-              alt=""
-              fill
-              sizes="144px"
-              unoptimized
-              className="object-cover grayscale transition-[filter,transform] duration-700 group-hover:scale-105 group-hover:grayscale-0"
-            />
-          )}
-        </div>
-
-        <div className="relative z-10 col-span-2 flex items-center gap-4 md:col-span-1">
-          {event.tickets?.price ? (
-            <span className="font-mono-signal text-xs text-white/70">
-              {event.tickets.price} {event.tickets.currency}
-            </span>
-          ) : null}
-          {event.tickets?.buyUrl && !past ? (
-            <a
-              href={event.tickets.buyUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex h-11 items-center gap-2 border border-white/25 px-5 text-sm font-medium text-white transition-colors hover:border-white hover:bg-white hover:text-[rgb(5_5_6)]"
-            >
-              Billets ↗
-            </a>
-          ) : (
-            <span className="inline-flex h-11 items-center px-1 text-sm text-white/60 transition-colors group-hover:text-white">
-              Détails →
-            </span>
           )}
         </div>
       </div>

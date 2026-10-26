@@ -29,8 +29,8 @@ jest.mock('next/headers', () => ({
 // Sections de l'accueil v3
 jest.mock('../components/HomeV3', () => ({
   HeroV3: () => <div data-testid="hero-v3" />,
-  ReleasesV3: ({ index }: { index: string }) => <div data-testid="releases-v3">{index}</div>,
-  EventsV3: ({ index }: { index: string }) => <div data-testid="events-v3">{index}</div>,
+  ReleasesV3: () => <div data-testid="releases-v3" />,
+  EventsV3: () => <div data-testid="events-v3" />,
 }));
 
 // Mock child components
@@ -136,14 +136,14 @@ describe('HomePage (Server Component)', () => {
     (getLatestReleases as jest.Mock).mockResolvedValue([]);
   });
 
-  it('renders the v3 hero and numbered v3 sections when the ui cookie is v3', async () => {
+  it('renders the v3 hero and v3 sections when the ui cookie is v3', async () => {
     mockUiCookie.mockReturnValueOnce({ value: 'v3' });
     render(await HomePage());
 
     expect(screen.getByTestId('hero-v3')).toBeInTheDocument();
     expect(screen.queryByTestId('hero-section')).not.toBeInTheDocument();
-    expect(screen.getByTestId('releases-v3')).toHaveTextContent('01');
-    expect(screen.getByTestId('events-v3')).toHaveTextContent('02');
+    expect(screen.getByTestId('releases-v3')).toBeInTheDocument();
+    expect(screen.getByTestId('events-v3')).toBeInTheDocument();
   });
 
   it('should render hero section correctly', async () => {

@@ -7,7 +7,6 @@ import { Toaster } from 'sonner';
 
 import AmbientBackground from '@/components/layout/AmbientBackground';
 import Footer from '@/components/layout/Footer';
-import SignalBackdrop from '@/components/layout/SignalBackdrop';
 import Navigation from '@/components/layout/Navigation';
 import CustomCursor from '@/components/ui/CustomCursor';
 import UiVersionToggle from '@/components/ui/UiVersionToggle';
@@ -33,10 +32,10 @@ const ClientLayout = ({ children, session }: ClientLayoutProps) => {
     <AuthProvider session={session}>
       {/* Respecte prefers-reduced-motion pour toutes les animations framer-motion */}
       <MotionConfig reducedMotion="user">
-        {isV3 ? <SignalBackdrop /> : isV2 && <AmbientBackground />}
+        {isV2 && <AmbientBackground />}
         <CustomCursor />
         <Navigation />
-        <main className="pt-16 v2:pt-20 v3:pt-16">{children}</main>
+        <main className="pt-16 v2:pt-20">{children}</main>
         {showFooter && (isV3 ? <FooterSignal /> : <Footer />)}
         {/* Même rendu que l'ancien toaster en legacy ; habillage verre en v2 (globals.css) */}
         <Toaster
