@@ -19,17 +19,33 @@ comme compromises.
       puis mettre à jour `GOOGLE_CLIENT_SECRET` sur Vercel. Cela invalide les tokens fuités.
 - [ ] **Régénérer le secret client Twitch** (dev.twitch.tv → Applications), puis mettre à
       jour la variable correspondante sur Vercel.
+- [ ] **Régénérer la clé `YOUTUBE_API_KEY`** (Google Cloud Console → Identifiants) : GitHub
+      l'a détectée le 18/11/2025 dans des fichiers de build `.open-next/` commités à l'époque
+      (alerte secret scanning n° 2), et c'est **celle que le site utilise encore** (vérifié le
+      04/11/2026). Restreindre la nouvelle clé à l'API YouTube Data et au domaine du site, puis la
+      mettre à jour sur Vercel et dans `.env.local`. Une 2ᵉ clé Google (alerte n° 1) n'est plus
+      utilisée : la supprimer dans la console si elle existe encore, puis fermer les deux alertes
+      (GitHub → Security → Secret scanning).
 - [ ] **Demander au support GitHub de purger les anciens commits** : l'historique a été
       réécrit le 24/10/2026, mais les PR #1 à #4 et #16 gardent des références en lecture
       seule vers l'ancien historique, et les commits restent accessibles par leur SHA.
       Formulaire : https://support.github.com/contact → « Remove sensitive data », en
       précisant le dépôt `Jujulu67/djlarian-react` et les fichiers
       `prisma/dev.db.backup.20251214_140955`, `prisma/dev.db.before-restore.*`,
-      `prisma/prisma/dev.db`.
+      `prisma/prisma/dev.db`, ainsi que les commits `a431d85e` et `1f735b1b` (dossier `.open-next/`,
+      clés Google).
 - [ ] **Débrancher Cloudflare Pages** du repo GitHub s'il n'est plus utilisé : il échoue
       sur chaque PR.
 
 ## 🟡 Chantiers techniques en cours (pour un agent, avec accord de l'utilisateur)
+
+- [x] Audit des dépendances (04/11/2026) : faille haute `follow-redirects` corrigée (override),
+      Next 16.4.5, React 19.3.1 (n'est plus en `latest`), Prisma 7.10.1. Restent 7 alertes
+      basses/modérées non exploitables ici : `deepmerge` (Jest, dev seulement), `minimatch`/`glob`
+      via `archiver`/`exceljs` (motifs fixes, aucune entrée utilisateur) ; à reprendre quand les
+      paquets parents publient un correctif.
+- [ ] Ajouter une Content-Security-Policy (les autres en-têtes de sécurité sont en place dans
+      `next.config.ts`) : à tester en mode `Report-Only` avant de l'imposer.
 
 - [x] Découper les gros composants (24/10/2026 : statistiques, projets, import, live, table,
       notifications, admin, événements, boutique, navigation, machine à sous, SoundCloud).
