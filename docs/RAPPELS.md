@@ -19,6 +19,19 @@ comme compromises.
       puis mettre à jour `GOOGLE_CLIENT_SECRET` sur Vercel. Cela invalide les tokens fuités.
 - [ ] **Régénérer le secret client Twitch** (dev.twitch.tv → Applications), puis mettre à
       jour la variable correspondante sur Vercel.
+- [ ] 🔴 **URGENT : changer le mot de passe de la base Neon de production.** Les builds
+      `.open-next/` commités le 18/11/2025 (commits `a431d85e`, `1f735b1b`, toujours lisibles sur
+      GitHub par leur SHA) contiennent la `DATABASE_URL` de prod complète, mot de passe compris, et
+      c'est **encore la même** (vérifié le 04/11/2026). N'importe qui a pu lire ou modifier la base.
+      Neon → projet → Roles → « Reset password », puis mettre à jour `DATABASE_URL` sur Vercel et
+      `DATABASE_URL_PRODUCTION` dans `.env.local`, redéployer. Ensuite, vérifier qu'il n'y a pas de
+      comptes admin inconnus dans la table des utilisateurs.
+- [ ] 🔴 **Changer `NEXTAUTH_SECRET`** sur Vercel (`openssl rand -base64 32`) : la valeur de
+      novembre 2025 est dans ces mêmes builds ; avec elle, on peut forger une session admin. Effet :
+      tout le monde est déconnecté une fois.
+- [ ] **Révoquer les clés Cloudflare R2** (`R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY`, même fuite) :
+      Cloudflare → R2 → « Manage API tokens ». Elles ne sont plus sur Vercel, donc la révocation ne
+      casse rien côté site.
 - [x] **Clé `YOUTUBE_API_KEY` régénérée** (04/11/2026) : les deux clés Google fuitées dans les
       builds `.open-next/` (projets « projet 2 » et « My First Project ») sont révoquées, projets
       arrêtés, alertes GitHub fermées. Nouvelle clé dans « DJLarian Search », restreinte à
