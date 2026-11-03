@@ -72,7 +72,7 @@
     "check:all": "pnpm run type-check && pnpm run lint && pnpm run test:no-skips && pnpm run check:boundaries"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^3.0.112",
+    "@ai-sdk/openai": "^4.0.108",
     "@auth/prisma-adapter": "^2.11.3",
     "@hello-pangea/dnd": "^18.0.1",
     "@neondatabase/serverless": "^1.1.0",
@@ -90,7 +90,7 @@
     "@vercel/analytics": "^2.0.1",
     "@vercel/blob": "^2.8.2",
     "@vercel/speed-insights": "^2.0.0",
-    "ai": "^6.0.283",
+    "ai": "^7.0.162",
     "archiver": "^8.0.0",
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.11.1",
