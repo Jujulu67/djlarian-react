@@ -21,7 +21,6 @@ jest.mock('@sentry/nextjs', () => ({
   init: jest.fn(),
   captureException: jest.fn(),
   captureMessage: jest.fn(),
-  withSentryConfig: jest.fn((config) => config),
   setUser: jest.fn(),
   setTag: jest.fn(),
   setExtra: jest.fn(),
