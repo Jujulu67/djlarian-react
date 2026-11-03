@@ -19,15 +19,11 @@ comme compromises.
       puis mettre à jour `GOOGLE_CLIENT_SECRET` sur Vercel. Cela invalide les tokens fuités.
 - [ ] **Régénérer le secret client Twitch** (dev.twitch.tv → Applications), puis mettre à
       jour la variable correspondante sur Vercel.
-- [ ] **Régénérer la clé `YOUTUBE_API_KEY`** (Google Cloud Console → Identifiants) : GitHub
-      l'a détectée le 18/11/2025 dans des fichiers de build `.open-next/` commités à l'époque
-      (alerte secret scanning n° 2), et c'est **celle que le site utilise encore** (vérifié le
-      04/11/2026). La clé n'est utilisée que côté serveur (`/api/youtube`,
-      `platform-search`) : la restreindre à « YouTube Data API v3 » seulement (pas de restriction
-      par site web, qui bloquerait les appels serveur), puis la mettre à jour sur Vercel et dans
-      `.env.local`. Une 2ᵉ clé Google (alerte n° 1) n'est plus
-      utilisée : la supprimer dans la console si elle existe encore, puis fermer les deux alertes
-      (GitHub → Security → Secret scanning).
+- [x] **Clé `YOUTUBE_API_KEY` régénérée** (04/11/2026) : les deux clés Google fuitées dans les
+      builds `.open-next/` (projets « projet 2 » et « My First Project ») sont révoquées, projets
+      arrêtés, alertes GitHub fermées. Nouvelle clé dans « DJLarian Search », restreinte à
+      YouTube Data API v3. Reste à **redéployer la prod sur Vercel** : le dernier déploiement
+      (25/10) utilise encore l'ancienne clé, donc les vidéos YouTube ne marchent plus en prod.
 - [ ] **Demander au support GitHub de purger les anciens commits** : l'historique a été
       réécrit le 24/10/2026, mais les PR #1 à #4 et #16 gardent des références en lecture
       seule vers l'ancien historique, et les commits restent accessibles par leur SHA.
