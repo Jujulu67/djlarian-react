@@ -22,8 +22,10 @@ comme compromises.
 - [ ] **Régénérer la clé `YOUTUBE_API_KEY`** (Google Cloud Console → Identifiants) : GitHub
       l'a détectée le 18/11/2025 dans des fichiers de build `.open-next/` commités à l'époque
       (alerte secret scanning n° 2), et c'est **celle que le site utilise encore** (vérifié le
-      04/11/2026). Restreindre la nouvelle clé à l'API YouTube Data et au domaine du site, puis la
-      mettre à jour sur Vercel et dans `.env.local`. Une 2ᵉ clé Google (alerte n° 1) n'est plus
+      04/11/2026). La clé n'est utilisée que côté serveur (`/api/youtube`,
+      `platform-search`) : la restreindre à « YouTube Data API v3 » seulement (pas de restriction
+      par site web, qui bloquerait les appels serveur), puis la mettre à jour sur Vercel et dans
+      `.env.local`. Une 2ᵉ clé Google (alerte n° 1) n'est plus
       utilisée : la supprimer dans la console si elle existe encore, puis fermer les deux alertes
       (GitHub → Security → Secret scanning).
 - [ ] **Demander au support GitHub de purger les anciens commits** : l'historique a été
