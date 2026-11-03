@@ -16,6 +16,10 @@ const compat = new FlatCompat({
 // next/core-web-vitals inclut déjà: react, react-hooks, import, jsx-a11y, @typescript-eslint
 const nextConfig = require('eslint-config-next/core-web-vitals');
 
+// Version de React explicite : eslint-plugin-react 7.x utilise `context.getFilename()`
+// (retiré dans ESLint 10) pour la détection automatique `version: 'detect'`.
+const reactVersion = require('react/package.json').version;
+
 const eslintConfig = [
   {
     ignores: [
@@ -146,7 +150,7 @@ const eslintConfig = [
     },
     settings: {
       react: {
-        version: 'detect',
+        version: reactVersion,
       },
       'import/resolver': {
         typescript: {},
