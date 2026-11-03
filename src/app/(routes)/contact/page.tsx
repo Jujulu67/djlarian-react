@@ -181,7 +181,7 @@ export default function ContactPage() {
             {/* Réseaux + contacts pro */}
             <RevealGroup className="flex flex-col gap-6">
               <RevealItem className="surface-1 rounded-2xl p-6 md:p-8">
-                <h2 className="mb-4 text-lg font-semibold text-white">Réseaux Sociaux</h2>
+                <h2 className="mb-4 text-lg font-semibold text-white">Réseaux sociaux</h2>
                 <ul className="grid grid-cols-2 gap-2">
                   {socialLinks.map((link) => (
                     <li key={link.name}>
@@ -326,7 +326,7 @@ export default function ContactPage() {
             className="space-y-8"
           >
             <div>
-              <h2 className="text-2xl font-audiowide mb-4">Réseaux Sociaux</h2>
+              <h2 className="text-2xl font-audiowide mb-4">Réseaux sociaux</h2>
               <div className="flex gap-4">
                 {socialLinks.map((link) => (
                   <a

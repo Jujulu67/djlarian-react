@@ -138,7 +138,7 @@ export default function VisualizerSection({
     <section
       id="visualizer"
       ref={visualizerSectionRef}
-      className={`${isMobile && !isSoundActive ? 'py-10' : isMobile ? 'py-0' : isV2 ? 'py-16 md:py-24' : 'py-20'} relative ${isMobile ? 'overflow-visible' : 'overflow-hidden'}`}
+      className={`${isMobile && !isSoundActive ? 'py-10' : isMobile ? 'py-0' : isV3 ? 'py-12 md:py-16' : isV2 ? 'py-16 md:py-24' : 'py-20'} relative ${isMobile ? 'overflow-visible' : 'overflow-hidden'}`}
     >
       {/* Animated Gradient Background */}
       <div className="absolute inset-0 bg-gradient-to-b from-black via-purple-900/10 to-black v2:hidden">
@@ -147,7 +147,7 @@ export default function VisualizerSection({
         />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 relative z-10 v2:max-w-[1180px] v3:max-w-[1440px] md:v3:px-8">
+      <div className="max-w-7xl mx-auto px-4 relative z-10 v2:max-w-[1180px]">
         {isV3 ? (
           /* v3 : le jeu de rythme mis en avant comme section « Jouer » */
           <div className="mb-9 flex flex-wrap items-end justify-between gap-6">
@@ -228,7 +228,7 @@ export default function VisualizerSection({
                 transition: isMobile ? { duration: 0.3, ease: 'easeOut' } : { duration: 0.8 },
               })}
           viewport={{ once: true, margin: '-50px' }}
-          className={`relative w-full ${isMobile ? 'min-h-[30vh]' : 'aspect-[2/1]'} ${isMobile ? 'overflow-visible' : 'overflow-hidden'} ${
+          className={`relative w-full ${isMobile ? 'min-h-[30vh]' : isV3 && !isSoundActive ? 'aspect-[3/1]' : 'aspect-[2/1]'} ${isMobile ? 'overflow-visible' : 'overflow-hidden'} ${
             isV2
               ? isSoundActive && isMobile
                 ? 'bg-[rgb(var(--bg))]'
@@ -273,6 +273,23 @@ export default function VisualizerSection({
                 ))}
             </motion.div>
           </AnimatePresence>
+
+          {/* v3 : au repos, le cadre invite à jouer plutôt que de rester un fond vide */}
+          {isV3 && !isSoundActive && (
+            <button
+              type="button"
+              onClick={handleExperienceClick}
+              aria-label="Lancer le jeu"
+              className="group absolute inset-0 z-10 flex flex-col items-center justify-center gap-4"
+            >
+              <span className="chrome-pill flex h-16 w-16 items-center justify-center rounded-full transition-transform duration-300 group-hover:scale-105 md:h-20 md:w-20">
+                <Play className="h-6 w-6 translate-x-[2px] md:h-7 md:w-7" aria-hidden="true" />
+              </span>
+              <span className="font-mono-signal text-[11px] uppercase tracking-[0.18em] text-white/70">
+                Clique pour jouer
+              </span>
+            </button>
+          )}
         </motion.div>
       </div>
     </section>

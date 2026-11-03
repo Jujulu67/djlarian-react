@@ -4,19 +4,24 @@ import type { Event } from '@/types';
 
 import SectionIndex from './SectionIndex';
 
-const dateFormatter = new Intl.DateTimeFormat('fr-FR', {
-  day: '2-digit',
-  month: '2-digit',
-  timeZone: 'Europe/Paris',
+const PARIS = { timeZone: 'Europe/Paris' } as const;
+const dayFormatter = new Intl.DateTimeFormat('fr-FR', { ...PARIS, day: '2-digit' });
+const monthFormatter = new Intl.DateTimeFormat('fr-FR', { ...PARIS, month: 'short' });
+const whenFormatter = new Intl.DateTimeFormat('fr-FR', {
+  ...PARIS,
+  weekday: 'long',
+  hour: '2-digit',
+  minute: '2-digit',
 });
 
 /**
- * Dates de l'accueil v3 : une pilule de verre par date (date, lieu, billet).
+ * Dates de l'accueil v3 : une ligne de verre par date (bloc jour/mois, titre, jour et
+ * heure, lieu). Toute la ligne mène à l'événement ; le bouton « Billets » reste à part.
  * Sans date à venir, la section devient un appel au booking plutôt qu'un état vide.
  */
 export default function DatesSection({ events }: { events: Event[] }) {
   return (
-    <section className="relative mx-auto max-w-[1440px] px-4 py-20 md:px-8 md:py-28">
+    <section className="relative mx-auto max-w-[1180px] px-4 py-12 md:py-16">
       <SectionIndex eyebrow="Agenda" label="Dates" href="/events" linkLabel="Tout l'agenda" />
 
       {events.length === 0 ? (
@@ -33,36 +38,55 @@ export default function DatesSection({ events }: { events: Event[] }) {
         </div>
       ) : (
         <ul className="mt-9 grid gap-3">
-          {events.map((event) => (
-            <li key={event.id}>
-              <div className="surface-1 group flex flex-wrap items-center gap-x-8 gap-y-3 rounded-[2rem] py-3 pl-6 pr-3 md:rounded-full">
-                <span className="min-w-[5.5rem] font-mono-signal text-base text-white">
-                  {dateFormatter.format(new Date(event.date))}
-                </span>
-                <Link href={`/events/${event.id}`} className="min-w-0 flex-[1_1_240px]">
-                  <span className="text-[19px] font-bold text-white">{event.title}</span>
-                  <span className="text-white/70"> · {event.location}</span>
-                </Link>
-                {event.ticketUrl ? (
-                  <a
-                    href={event.ticketUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex h-11 items-center rounded-full bg-[rgb(var(--ink))] px-6 text-sm font-bold text-[rgb(7_7_13)] transition-transform hover:-translate-y-0.5"
-                  >
-                    Billets
-                  </a>
-                ) : (
-                  <Link
-                    href={`/events/${event.id}`}
-                    className="inline-flex h-11 items-center rounded-full border border-white/20 px-6 text-sm font-bold text-white transition-colors hover:border-white/40"
-                  >
-                    Détails
-                  </Link>
-                )}
-              </div>
-            </li>
-          ))}
+          {events.map((event) => {
+            const date = new Date(event.date);
+            return (
+              <li key={event.id}>
+                <div className="surface-1 group relative flex items-center gap-4 rounded-[1.4rem] p-3 pr-4 transition-colors hover:border-white/20 hover:bg-white/[0.06] md:gap-6 md:pr-3">
+                  <span className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-[1rem] bg-white/[0.05] ring-1 ring-inset ring-white/10">
+                    <span className="text-display text-2xl leading-none text-white">
+                      {dayFormatter.format(date)}
+                    </span>
+                    <span className="mt-1 font-mono-signal text-[11px] uppercase text-[rgb(var(--ice))]">
+                      {monthFormatter.format(date).replace('.', '')}
+                    </span>
+                  </span>
+
+                  <span className="min-w-0 flex-1">
+                    <Link
+                      href={`/events/${event.id}`}
+                      className="block truncate text-lg font-bold text-white after:absolute after:inset-0 after:rounded-[1.4rem] md:text-[19px]"
+                    >
+                      {event.title}
+                    </Link>
+                    <span className="mt-1 block truncate text-sm text-white/65">
+                      <span className="capitalize">{whenFormatter.format(date)}</span>
+                      {event.location && <> · {event.location}</>}
+                    </span>
+                  </span>
+
+                  {event.ticketUrl ? (
+                    <a
+                      href={event.ticketUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="relative z-10 inline-flex h-11 shrink-0 items-center rounded-full bg-[rgb(var(--ink))] px-5 text-sm font-bold text-[rgb(7_7_13)] transition-transform hover:-translate-y-0.5 md:px-6"
+                    >
+                      Billets
+                    </a>
+                  ) : (
+                    <span
+                      aria-hidden="true"
+                      className="inline-flex h-11 shrink-0 items-center gap-2 rounded-full text-sm font-bold text-white/80 transition-colors group-hover:text-white md:border md:border-white/20 md:px-6 md:group-hover:border-white/40"
+                    >
+                      <span className="hidden md:inline">Détails</span>
+                      <span className="transition-transform group-hover:translate-x-1">→</span>
+                    </span>
+                  )}
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>

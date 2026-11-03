@@ -87,7 +87,7 @@ export default function HeroSignal({ config, latest }: HeroSignalProps) {
       {/* Bandeau d'infos */}
       <motion.div
         {...enter(0.1)}
-        className="mx-auto mt-28 flex w-full max-w-[1440px] items-center justify-between gap-4 px-4 font-mono-signal text-[11px] uppercase text-white/70 md:px-8"
+        className="mx-auto mt-28 flex w-full max-w-[1180px] items-center justify-between gap-4 px-4 font-mono-signal text-[11px] uppercase text-white/70"
       >
         <span className="flex items-center gap-2">
           <span className="signal-pulse inline-block h-1.5 w-1.5 rounded-full bg-[rgb(var(--signal))]" />
@@ -130,7 +130,7 @@ export default function HeroSignal({ config, latest }: HeroSignalProps) {
       {/* Pied du hero : accroche, actions, dernière sortie */}
       <motion.div
         {...enter(0.6)}
-        className="mx-auto grid w-full max-w-[1440px] grid-cols-1 gap-6 px-4 pb-10 md:grid-cols-2 md:items-end md:px-8 lg:grid-cols-12 [&>*]:min-w-0"
+        className="mx-auto grid w-full max-w-[1180px] grid-cols-1 gap-6 px-4 pb-10 md:grid-cols-2 md:items-end lg:grid-cols-12 [&>*]:min-w-0"
       >
         <div className="lg:col-span-6">
           <p className="max-w-md text-lg leading-snug text-white/85 md:text-xl">

@@ -13,7 +13,7 @@ export default function FooterSignal() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="relative mx-auto mt-24 max-w-[1440px] px-4 pb-8 md:px-8">
+    <footer className="relative mx-auto mt-16 max-w-[1180px] px-4 pb-8">
       <div className="surface-1 rounded-[2rem] p-8 md:p-12">
         <div className="flex flex-col gap-10 lg:flex-row lg:items-end lg:justify-between">
           <div>
@@ -22,7 +22,7 @@ export default function FooterSignal() {
             </p>
             <a
               href="mailto:booking@larian.com"
-              className="chrome-text mt-3 block break-all text-display text-3xl md:text-5xl"
+              className="chrome-text mt-3 block break-all text-display text-3xl sm:break-normal md:text-[2.75rem]"
             >
               booking@larian.com
             </a>
@@ -31,7 +31,10 @@ export default function FooterSignal() {
             </p>
           </div>
 
-          <ul className="flex flex-wrap gap-2.5" aria-label="Réseaux">
+          <ul
+            className="flex flex-wrap gap-2.5 lg:max-w-[21rem] lg:justify-end"
+            aria-label="Réseaux"
+          >
             {socialLinks.map((social) => (
               <li key={social.name}>
                 <a

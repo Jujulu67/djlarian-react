@@ -15,7 +15,7 @@ export default function ReleasesSection({ tracks }: { tracks: Track[] }) {
   if (tracks.length === 0) return null;
 
   return (
-    <section className="relative mx-auto max-w-[1440px] px-4 py-20 md:px-8 md:py-28">
+    <section className="relative mx-auto max-w-[1180px] px-4 py-12 md:py-16">
       <SectionIndex
         eyebrow="Discographie"
         label="Sorties"
@@ -23,7 +23,8 @@ export default function ReleasesSection({ tracks }: { tracks: Track[] }) {
         linkLabel="Toute la discographie"
       />
 
-      <ul className="mt-9 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Mobile : carrousel horizontal ; à partir de sm : grille */}
+      <ul className="-mx-4 mt-9 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-px-4 px-4 pb-2 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-5 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4 [&::-webkit-scrollbar]:hidden">
         {tracks.map((track) => {
           const cover = getImageUrl(track.imageId);
           const meta = [
@@ -33,7 +34,7 @@ export default function ReleasesSection({ tracks }: { tracks: Track[] }) {
           ].filter(Boolean);
 
           return (
-            <li key={track.id}>
+            <li key={track.id} className="w-[78%] shrink-0 snap-start sm:w-auto">
               <Link
                 href={`/music?play=${track.id}`}
                 className="surface-1 group block rounded-[1.6rem] p-3 transition-[translate,border-color] duration-300 hover:-translate-y-1 hover:border-white/20"
@@ -44,7 +45,7 @@ export default function ReleasesSection({ tracks }: { tracks: Track[] }) {
                       src={cover}
                       alt=""
                       fill
-                      sizes="(min-width: 1024px) 320px, (min-width: 640px) 50vw, 100vw"
+                      sizes="(min-width: 1024px) 280px, (min-width: 640px) 50vw, 78vw"
                       className="object-cover transition-transform duration-700 group-hover:scale-[1.04]"
                     />
                   ) : (
