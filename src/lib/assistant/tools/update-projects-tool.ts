@@ -57,8 +57,7 @@ export function createUpdateProjectsTool({
   return tool({
     description:
       "Met à jour des projets selon des critères (progression, statut, deadline). Peut aussi ajouter une note à un projet spécifique en utilisant projectName et newNote. Les projets sont automatiquement filtrés pour l'utilisateur connecté.",
-    parameters,
-    // @ts-expect-error - SDK AI v5 type inference issue
+    inputSchema: parameters,
     execute: async (params: {
       minProgress?: number;
       maxProgress?: number;
