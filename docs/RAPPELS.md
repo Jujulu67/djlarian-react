@@ -43,7 +43,7 @@ comme compromises.
       (seules les autres adresses `*.vercel.app` sont derrière la protection Vercel). Si un domaine est
       acheté : l'ajouter au projet sur Vercel, régler le DNS, puis mettre à jour `NEXTAUTH_URL` et les
       URL de redirection OAuth Google et Twitch.
-- [ ] **Supprimer les variables Umami sur Vercel** (Settings → Environment Variables) : Umami est
+- [x] **Variables Umami supprimées sur Vercel** (04/11/2026) : Umami est
       retiré du code le 04/11/2026 (statistiques = Vercel Web Analytics, sans cookie, 31 jours
       d'historique en offre gratuite). Les 6 variables `UMAMI_*` / `NEXT_PUBLIC_UMAMI_*` ne servent plus ;
       `NEXT_PUBLIC_UMAMI_USERNAME`/`PASSWORD` étaient lisibles dans le JavaScript public (identifiants par
