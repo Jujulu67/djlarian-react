@@ -14,7 +14,7 @@ Mesuré le 04/11/2026. Relancer les mesures avec `pnpm debt` (ou une commande à
 | Exports jamais utilisés (knip)      | 22 exports, 9 types          | Petit nettoyage                         |
 | Avertissements ESLint + SonarJS     | 1 483 (0 erreur)             | Voir le détail ci-dessous               |
 | Fonctions trop complexes            | 151 au-dessus du seuil de 15 | Le vrai chantier                        |
-| Tests                               | 4 450 jest, 14 Playwright    | Jest gonflé par des tests de couverture |
+| Tests                               | 4 456 jest, 14 Playwright    | Jest gonflé par des tests de couverture |
 
 Note estimée : **6/10** (5,5 avant les nettoyages du 04/11/2026). Base saine (types, sécurité,
 routes API, pas de cycles, peu de duplication), mais des fichiers géants et très complexes, et

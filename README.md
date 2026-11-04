@@ -88,6 +88,12 @@ pnpm run test:ci
 
 # Vérifier les seuils de coverage
 pnpm run test:coverage:check
+
+# Tests E2E Playwright (base PostgreSQL locale, voir e2e/README.md)
+pnpm test:e2e
+
+# Mesures de dette technique (voir docs/DETTE-TECHNIQUE.md)
+pnpm debt
 ```
 
 ### Seuils de Coverage
