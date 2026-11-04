@@ -25,11 +25,13 @@ function formatTitleCase(text: string): string {
     .join(' ');
 }
 
+type CellValue = string | number | null;
+
 interface EditableCellProps {
-  value: string | number | null;
+  value: CellValue;
   field: string;
   type: CellType;
-  onSave: (field: string, value: string | number | null) => Promise<void>;
+  onSave: (field: string, value: CellValue) => Promise<void>;
   placeholder?: string;
   className?: string;
   allowWrap?: boolean;

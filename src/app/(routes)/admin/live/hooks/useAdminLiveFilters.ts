@@ -8,7 +8,6 @@ export function useAdminLiveFilters(submissions: SubmissionWithUser[]) {
   const searchUsername = searchParams.get('search') || '';
   const statusFilter = searchParams.get('status') || '';
   const showRolled = searchParams.get('showRolled') !== 'false'; // Par défaut true
-  const onlyActive = searchParams.get('onlyActive') === 'true'; // Par défaut false
 
   const filteredSubmissions = useMemo(() => {
     let filtered = submissions;
@@ -34,18 +33,12 @@ export function useAdminLiveFilters(submissions: SubmissionWithUser[]) {
       filtered = filtered.filter((s) => !s.isRolled);
     }
 
-    // TODO: Implémenter "Only Active"
-    if (onlyActive) {
-      // Pour l'instant, on garde tous les utilisateurs
-    }
-
     return filtered;
-  }, [submissions, searchUsername, statusFilter, showRolled, onlyActive]);
+  }, [submissions, searchUsername, statusFilter, showRolled]);
 
   return {
     searchUsername,
     showRolled,
-    onlyActive,
     filteredSubmissions,
   };
 }

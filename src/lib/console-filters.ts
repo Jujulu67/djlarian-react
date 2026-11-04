@@ -244,7 +244,6 @@ export function setupConsoleFilters() {
         reasonMessage.includes('reading'))
     ) {
       event.preventDefault(); // Supprimer l'erreur
-      return;
     }
   };
 

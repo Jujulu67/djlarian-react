@@ -190,7 +190,6 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         } else {
           // Si pas de date, considérer comme non planifié
           releaseDateObj = now;
-          isScheduled = false;
         }
       } catch (error) {
         logger.warn(

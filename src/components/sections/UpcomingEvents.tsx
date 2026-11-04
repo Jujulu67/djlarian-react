@@ -238,7 +238,7 @@ export default function UpcomingEvents({
           transition={{ duration: 0.6, delay: 0.4 }}
           className="mt-12 text-center"
         >
-          <a
+          <Link
             href="/events"
             className="inline-flex items-center gap-2 text-white hover:text-gray-300 transition-all duration-300 group text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-black rounded px-2"
             aria-label="View all events"
@@ -252,7 +252,7 @@ export default function UpcomingEvents({
             >
               →
             </motion.span>
-          </a>
+          </Link>
         </motion.div>
       </div>
     </section>

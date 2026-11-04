@@ -95,8 +95,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
           if (response.status === 429) {
             errorMessage = 'Trop de tentatives, réessayez dans une minute';
-          } else if (data.error === 'CredentialsSignin') {
-            errorMessage = 'Email ou mot de passe incorrect';
           } else if (data.error === 'Configuration error') {
             errorMessage = 'Erreur de configuration serveur';
           } else if (data.error) {

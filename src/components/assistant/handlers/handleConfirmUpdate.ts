@@ -187,7 +187,15 @@ export async function handleConfirmUpdate({
       });
 
       // Message clair pour l'utilisateur
-      const conflictMessage = `Certains projets ont été modifiés entre temps. Reliste les projets et recommence.${isAssistantDebugEnabled() && conflictCount > 0 ? `\n\n[DEBUG] ${conflictCount} projet(s) en conflit${conflictProjectIds.length > 0 ? ` (ex: ${conflictProjectIds.slice(0, 3).join(', ')})` : ''}` : ''}`;
+      const examples =
+        conflictProjectIds.length > 0 ? ` (ex: ${conflictProjectIds.slice(0, 3).join(', ')})` : '';
+      const debugDetails =
+        isAssistantDebugEnabled() && conflictCount > 0
+          ? `\n\n[DEBUG] ${conflictCount} projet(s) en conflit` + examples
+          : '';
+      const conflictMessage =
+        'Certains projets ont été modifiés entre temps. Reliste les projets et recommence.' +
+        debugDetails;
 
       setMessages((prev) =>
         prev.map((m, i) =>

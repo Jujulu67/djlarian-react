@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 
 import { logger } from '@/lib/logger';
 
@@ -29,6 +29,20 @@ export const useAudioFrequencyCapture = ({
   const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+
+  // Lit le spectre à chaque image tant que le lecteur joue et reste visible
+  const startFrequencyLoop = useCallback(
+    (analyser: AnalyserNode, dataArray: Uint8Array<ArrayBuffer>) => {
+      const tick = () => {
+        if (!isPlaying || !isVisible) return;
+        analyser.getByteFrequencyData(dataArray);
+        setFrequencyData(new Uint8Array(dataArray));
+        animationFrameRef.current = requestAnimationFrame(tick);
+      };
+      tick();
+    },
+    [isPlaying, isVisible]
+  );
 
   useEffect(() => {
     if (!isVisible || !isPlaying || !iframeRef.current) {
@@ -129,19 +143,7 @@ export const useAudioFrequencyCapture = ({
 
               setIsCapturing(true);
 
-              // Update frequency data continuously
-              const updateFrequencyData = () => {
-                if (!isPlaying || !isVisible) {
-                  return;
-                }
-
-                analyser.getByteFrequencyData(dataArray);
-                setFrequencyData(new Uint8Array(dataArray));
-
-                animationFrameRef.current = requestAnimationFrame(updateFrequencyData);
-              };
-
-              updateFrequencyData();
+              startFrequencyLoop(analyser, dataArray);
               return; // Success - exit early
             }
           }
@@ -231,19 +233,7 @@ export const useAudioFrequencyCapture = ({
 
           setIsCapturing(true);
 
-          // Update frequency data continuously
-          const updateFrequencyData = () => {
-            if (!isPlaying || !isVisible) {
-              return;
-            }
-
-            analyser.getByteFrequencyData(dataArray);
-            setFrequencyData(new Uint8Array(dataArray));
-
-            animationFrameRef.current = requestAnimationFrame(updateFrequencyData);
-          };
-
-          updateFrequencyData();
+          startFrequencyLoop(analyser, dataArray);
         } catch (error) {
           // Fallback: If we can't capture real audio, we'll use enhanced simulation
           //
@@ -290,7 +280,7 @@ export const useAudioFrequencyCapture = ({
         streamRef.current = null;
       }
     };
-  }, [iframeRef, isPlaying, isVisible]);
+  }, [iframeRef, isPlaying, isVisible, startFrequencyLoop]);
 
   return {
     frequencyData,

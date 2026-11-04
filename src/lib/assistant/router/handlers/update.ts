@@ -437,33 +437,17 @@ export function handleUpdateCommand(
     if (project.updatedAt) {
       // updatedAt est toujours une string dans le type Project
       // S'assurer que c'est au format ISO et valide
-      let updatedAt: string;
-      if (typeof project.updatedAt === 'string') {
-        // Vérifier que c'est un format ISO valide
-        const date = new Date(project.updatedAt);
-        if (isNaN(date.getTime())) {
-          // Date invalide, logger et ignorer
-          debugLog('router', '⚠️ updatedAt invalide ignoré', {
-            projectId: project.id,
-            projectName: project.name,
-            updatedAt: project.updatedAt,
-          });
-          continue;
-        }
-        updatedAt = date.toISOString();
-      } else {
-        // Si c'est un objet Date, le convertir
-        const date = new Date(project.updatedAt);
-        if (isNaN(date.getTime())) {
-          debugLog('router', '⚠️ updatedAt invalide ignoré', {
-            projectId: project.id,
-            projectName: project.name,
-            updatedAt: project.updatedAt,
-          });
-          continue;
-        }
-        updatedAt = date.toISOString();
+      // string ISO ou objet Date : dans les deux cas, on normalise via Date
+      const date = new Date(project.updatedAt);
+      if (isNaN(date.getTime())) {
+        debugLog('router', '⚠️ updatedAt invalide ignoré', {
+          projectId: project.id,
+          projectName: project.name,
+          updatedAt: project.updatedAt,
+        });
+        continue;
       }
+      const updatedAt = date.toISOString();
       expectedUpdatedAtById[project.id] = updatedAt;
     }
     // Si updatedAt est null/undefined, on ne l'inclut pas (sera considéré comme conflit côté serveur)

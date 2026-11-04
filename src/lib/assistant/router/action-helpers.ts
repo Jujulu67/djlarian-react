@@ -31,7 +31,8 @@ export function generateProjectPreviewDiff(
   if (mutation.newProgress !== undefined) {
     const before = project.progress ?? null;
     const after = mutation.newProgress;
-    changes.push(`progress ${before !== null ? `${before}%` : '-'} → ${after}%`);
+    const beforeLabel = before === null ? '-' : `${before}%`;
+    changes.push(`progress ${beforeLabel} → ${after}%`);
   }
 
   // Status

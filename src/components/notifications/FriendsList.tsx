@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import {
   UserPlus,
   UserMinus,
@@ -280,11 +281,14 @@ export function FriendsList({ onSendMessage }: FriendsListProps) {
                 className="flex items-center justify-between p-4 bg-gray-800/50 border border-gray-700/50 rounded-lg v2:bg-white/[0.03] v2:border-white/[0.08] v2:rounded-2xl"
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="h-10 w-10 rounded-full bg-blue-900/30 flex items-center justify-center border border-blue-500/20 flex-shrink-0 v2:bg-none v2:bg-white/[0.06] v2:border-white/10">
+                  <div className="relative overflow-hidden h-10 w-10 rounded-full bg-blue-900/30 flex items-center justify-center border border-blue-500/20 flex-shrink-0 v2:bg-none v2:bg-white/[0.06] v2:border-white/10">
                     {request.user.image ? (
-                      <img
+                      <Image
                         src={request.user.image}
                         alt={request.user.name || ''}
+                        fill
+                        sizes="40px"
+                        unoptimized
                         className="h-full w-full object-cover rounded-full"
                       />
                     ) : (
@@ -358,11 +362,14 @@ export function FriendsList({ onSendMessage }: FriendsListProps) {
                 className="flex items-center justify-between p-4 bg-gray-800/50 border border-gray-700/50 rounded-lg v2:bg-white/[0.03] v2:border-white/[0.08] v2:rounded-2xl"
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="h-10 w-10 rounded-full bg-yellow-900/30 flex items-center justify-center border border-yellow-500/20 flex-shrink-0 v2:bg-none v2:bg-white/[0.06] v2:border-white/10">
+                  <div className="relative overflow-hidden h-10 w-10 rounded-full bg-yellow-900/30 flex items-center justify-center border border-yellow-500/20 flex-shrink-0 v2:bg-none v2:bg-white/[0.06] v2:border-white/10">
                     {request.user.image ? (
-                      <img
+                      <Image
                         src={request.user.image}
                         alt={request.user.name || ''}
+                        fill
+                        sizes="40px"
+                        unoptimized
                         className="h-full w-full object-cover rounded-full"
                       />
                     ) : (
@@ -407,11 +414,14 @@ export function FriendsList({ onSendMessage }: FriendsListProps) {
                 className="flex items-center justify-between p-4 bg-gray-800/50 border border-gray-700/50 rounded-lg hover:bg-gray-800/70 transition-colors v2:bg-white/[0.03] v2:border-white/[0.08] v2:rounded-2xl"
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="h-10 w-10 rounded-full bg-purple-900/30 flex items-center justify-center border border-purple-500/20 flex-shrink-0 v2:bg-none v2:bg-white/[0.06] v2:border-white/10">
+                  <div className="relative overflow-hidden h-10 w-10 rounded-full bg-purple-900/30 flex items-center justify-center border border-purple-500/20 flex-shrink-0 v2:bg-none v2:bg-white/[0.06] v2:border-white/10">
                     {friend.user.image ? (
-                      <img
+                      <Image
                         src={friend.user.image}
                         alt={friend.user.name || ''}
+                        fill
+                        sizes="40px"
+                        unoptimized
                         className="h-full w-full object-cover rounded-full"
                       />
                     ) : (

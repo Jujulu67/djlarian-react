@@ -115,9 +115,11 @@ export const useSoundCloudPlayer = ({
       // Send play after a short delay
       // Note: with auto_play=true in the URL, this might be redundant but acts as a fallback
       const playTimer = setTimeout(() => {
-        if (soundcloudIframeRef.current && isPlaying && isActive) {
+        const iframe = soundcloudIframeRef.current;
+        // isPlaying et isActive sont déjà vérifiés avant de lancer le minuteur
+        if (iframe) {
           logger.remote(`[SC] Executing Play command (fallback) for ${track.id}`);
-          sendPlayerCommand(soundcloudIframeRef.current, 'soundcloud', 'play');
+          sendPlayerCommand(iframe, 'soundcloud', 'play');
         }
         setPlayWhenReady(false);
       }, 200);

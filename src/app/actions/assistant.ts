@@ -45,6 +45,7 @@ import { extractUpdateData } from '@/lib/assistant/query-parser/updates';
 
 import { SYSTEM_PROMPT_8B } from '@/lib/assistant/prompts/system-prompt-8b';
 import { logger } from '@/lib/logger';
+import prisma from '@/lib/prisma';
 
 export async function processProjectCommand(userInput: string) {
   // Vérifier l'authentification
@@ -323,8 +324,23 @@ export async function processProjectCommand(userInput: string) {
 
       // Utiliser le parseur pour extraire les données de création
       const { parseQuery } = await import('@/lib/assistant/query-parser');
-      const availableCollabs: string[] = []; // TODO: récupérer depuis la DB si nécessaire
-      const availableStyles = ['Techno', 'House', 'DNB', 'Dubstep', 'Trance'];
+      // Collabs et styles déjà utilisés par l'utilisateur : le parseur les reconnaît mieux
+      const known = await prisma.project.findMany({
+        where: { userId: currentUserId },
+        select: { collab: true, style: true },
+      });
+      const distinct = (values: (string | null)[]) => [
+        ...new Set(values.filter((v): v is string => Boolean(v))),
+      ];
+      const availableCollabs = distinct(known.map((p) => p.collab));
+      const availableStyles = distinct([
+        'Techno',
+        'House',
+        'DNB',
+        'Dubstep',
+        'Trance',
+        ...known.map((p) => p.style),
+      ]);
 
       const parseResult = parseQuery(normalizedInput, availableCollabs, availableStyles);
 
@@ -423,7 +439,7 @@ export async function processProjectCommand(userInput: string) {
 - ❌ JAMAIS de format XML comme <function=createProjects>...</function>
 - ✅ Utilisez directement l'outil avec les paramètres JSON fournis par le système
 
-Date: ${today}\nUtilisateur: ${currentUserName || 'Inconnu'}\n${isAdmin ? 'Rôle: ADMIN' : ''}\n\n${contextResolutionMessage ? `CONTEXTE: ${contextResolutionMessage}\n\n` : ''}User Query: ${normalizedInput}`,
+Date: ${today}\nUtilisateur: ${currentUserName || 'Inconnu'}\n${isAdmin ? 'Rôle: ADMIN' : ''}\n\n${contextResolutionMessage ? 'CONTEXTE: ' + contextResolutionMessage + '\n\n' : ''}User Query: ${normalizedInput}`,
       // @ts-expect-error - SDK AI v5 type inference issue with tool types
       tools: Object.keys(availableTools).length > 0 ? availableTools : undefined,
     }).catch(async (error: unknown) => {

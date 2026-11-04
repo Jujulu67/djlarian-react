@@ -227,7 +227,6 @@ export const ProjectNoteEditor = ({
     if ((e.ctrlKey || e.metaKey) && e.key === 'i') {
       e.preventDefault();
       handleItalic();
-      return;
     }
   };
 

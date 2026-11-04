@@ -216,8 +216,13 @@ export function AdminLiveSubmissionsTable() {
                   <td className="px-4 py-3">
                     <input
                       type="checkbox"
-                      className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
-                      // TODO: Implémenter la vérification du statut subscription Twitch
+                      readOnly
+                      tabIndex={-1}
+                      checked={(submission.User?.UserLiveItem ?? []).some(
+                        (item) => item.LiveItem?.type === 'SUBSCRIBER_BONUS'
+                      )}
+                      aria-label="Abonné Twitch"
+                      className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500 pointer-events-none"
                     />
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-300">

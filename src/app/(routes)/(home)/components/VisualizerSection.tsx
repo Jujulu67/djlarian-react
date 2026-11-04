@@ -128,7 +128,7 @@ export default function VisualizerSection({
         document.body.style.width = '';
         document.body.style.overflow = '';
         if (bodyTop) {
-          window.scrollTo(0, parseInt(bodyTop || '0') * -1);
+          window.scrollTo(0, parseInt(bodyTop, 10) * -1);
         }
       };
     }

@@ -185,7 +185,9 @@ function TwitchStreamV3({
             {isLoading
               ? 'Statut…'
               : isLive
-                ? `En direct${viewers ? ` · ${viewers.toLocaleString('fr-FR')} spectateurs` : ''}`
+                ? viewers
+                  ? `En direct · ${viewers.toLocaleString('fr-FR')} spectateurs`
+                  : 'En direct'
                 : 'Hors ligne'}
           </span>
 

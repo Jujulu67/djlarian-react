@@ -233,7 +233,7 @@ export default function EventDetailPage() {
         break;
       case 'twitter':
         window.open(
-          `https://twitter.com/intent/tweet?url=${encodeURIComponent(eventUrl)}&text=${encodeURIComponent(`Découvrez cet événement : ${eventTitle}`)}`,
+          `https://twitter.com/intent/tweet?url=${encodeURIComponent(eventUrl)}&text=${encodeURIComponent('Découvrez cet événement : ' + eventTitle)}`,
           '_blank'
         );
         break;

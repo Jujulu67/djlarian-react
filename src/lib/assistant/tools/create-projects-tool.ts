@@ -131,7 +131,9 @@ export const createCreateProjectsTool = ({
         revalidatePath('/projects');
 
         return {
-          message: `C'est fait ! Le projet "${newProject.name}" a été créé.${finalStyle ? ` Style: ${finalStyle}.` : ''}`,
+          message:
+            `C'est fait ! Le projet "${newProject.name}" a été créé.` +
+            (finalStyle ? ` Style: ${finalStyle}.` : ''),
           project: newProject,
         };
       } catch (error) {

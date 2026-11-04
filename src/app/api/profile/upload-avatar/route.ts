@@ -78,7 +78,6 @@ export async function POST(request: NextRequest) {
       // Type non supporté pour conversion WebP (ex: SVG, HEIC, etc.)
       logger.warn(`Type d'image non supporté pour conversion WebP: ${imageFile.type}`);
       // On garde l'original avec son type d'origine
-      isWebP = false;
       contentType = imageFile.type;
     }
 

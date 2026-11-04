@@ -22,6 +22,32 @@ import type { LiveSubmission } from '@/types/live';
 import { useUiVersion } from '@/hooks/useUiVersion';
 import { logger } from '@/lib/logger';
 
+/** Attend que l'élément audio puisse jouer (ou échoue au chargement). */
+function waitForAudioReady(audio: HTMLAudioElement | null): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    if (!audio) {
+      reject(new Error('Audio ref not available'));
+      return;
+    }
+    const cleanup = () => {
+      audio.removeEventListener('canplay', onCanPlay);
+      audio.removeEventListener('error', onError);
+    };
+    const onCanPlay = () => {
+      cleanup();
+      resolve();
+    };
+    const onError = () => {
+      cleanup();
+      reject(new Error('Erreur lors du chargement audio'));
+    };
+    audio.addEventListener('canplay', onCanPlay);
+    audio.addEventListener('error', onError);
+    // HAVE_FUTURE_DATA : déjà prêt
+    if (audio.readyState >= 3) onCanPlay();
+  });
+}
+
 export function LiveSubmissionForm() {
   const { data: session } = useSession();
   const [title, setTitle] = useState('');
@@ -482,33 +508,7 @@ export function LiveSubmissionForm() {
           audioRef.current.load();
 
           // Attendre que l'audio soit prêt avant de jouer
-          await new Promise<void>((resolve, reject) => {
-            if (!audioRef.current) {
-              reject(new Error('Audio ref not available'));
-              return;
-            }
-
-            const onCanPlay = () => {
-              audioRef.current?.removeEventListener('canplay', onCanPlay);
-              audioRef.current?.removeEventListener('error', onError);
-              resolve();
-            };
-
-            const onError = () => {
-              audioRef.current?.removeEventListener('canplay', onCanPlay);
-              audioRef.current?.removeEventListener('error', onError);
-              reject(new Error('Erreur lors du chargement audio'));
-            };
-
-            audioRef.current.addEventListener('canplay', onCanPlay);
-            audioRef.current.addEventListener('error', onError);
-
-            // Si déjà prêt, résoudre immédiatement
-            if (audioRef.current.readyState >= 3) {
-              // HAVE_FUTURE_DATA
-              onCanPlay();
-            }
-          });
+          await waitForAudioReady(audioRef.current);
         }
 
         try {
@@ -556,33 +556,7 @@ export function LiveSubmissionForm() {
           audioRef.current.load();
 
           // Attendre que l'audio soit prêt
-          await new Promise<void>((resolve, reject) => {
-            if (!audioRef.current) {
-              reject(new Error('Audio ref not available'));
-              return;
-            }
-
-            const onCanPlay = () => {
-              audioRef.current?.removeEventListener('canplay', onCanPlay);
-              audioRef.current?.removeEventListener('error', onError);
-              resolve();
-            };
-
-            const onError = () => {
-              audioRef.current?.removeEventListener('canplay', onCanPlay);
-              audioRef.current?.removeEventListener('error', onError);
-              reject(new Error('Erreur lors du chargement audio'));
-            };
-
-            audioRef.current.addEventListener('canplay', onCanPlay);
-            audioRef.current.addEventListener('error', onError);
-
-            // Si déjà prêt, résoudre immédiatement
-            if (audioRef.current.readyState >= 3) {
-              // HAVE_FUTURE_DATA
-              onCanPlay();
-            }
-          });
+          await waitForAudioReady(audioRef.current);
         }
 
         // Mettre à jour la position

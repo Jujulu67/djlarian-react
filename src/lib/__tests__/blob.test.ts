@@ -27,7 +27,7 @@ jest.mock('../logger', () => ({
   },
 }));
 
-import { getIsBlobConfigured, getBlobPublicUrl } from '../blob';
+import { getIsBlobConfigured } from '../blob';
 import { put, del } from '@vercel/blob';
 import { logger } from '../logger';
 
@@ -248,23 +248,6 @@ describe('blob', () => {
       await expect(deleteBlob('https://blob.vercel-storage.com/test.jpg')).rejects.toThrow(
         'Delete failed'
       );
-    });
-  });
-
-  describe('getBlobPublicUrl', () => {
-    it('should return http URL as is', () => {
-      const url = 'http://example.com/image.jpg';
-      expect(getBlobPublicUrl(url)).toBe(url);
-    });
-
-    it('should return https URL as is', () => {
-      const url = 'https://example.com/image.jpg';
-      expect(getBlobPublicUrl(url)).toBe(url);
-    });
-
-    it('should return non-http URL as is', () => {
-      const url = '/path/to/image.jpg';
-      expect(getBlobPublicUrl(url)).toBe(url);
     });
   });
 });

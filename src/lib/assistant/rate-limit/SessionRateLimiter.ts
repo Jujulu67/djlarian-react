@@ -150,7 +150,7 @@ export class SessionRateLimiter {
     const key = this.buildKey(sessionId, userId);
 
     if (this.useRedis) {
-      // TODO: Redis DEL
+      // Pas encore de compteur Redis : seule la mémoire du processus est remise à zéro
       logger.warn('[SessionRateLimiter] Redis reset not implemented');
     }
 
@@ -229,7 +229,7 @@ export class SessionRateLimiter {
   }
 
   private async checkRedis(key: string): Promise<RateLimitResult> {
-    // TODO: Implémenter avec Redis INCR + EXPIRE
+    // Pas encore de compteur Redis (INCR + EXPIRE) : repli sur la mémoire du processus
     // Pour l'instant, fallback sur memory avec warning
     if (process.env.NODE_ENV === 'development') {
       logger.warn('[SessionRateLimiter] Redis not yet implemented, using memory fallback');

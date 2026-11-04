@@ -90,9 +90,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         ]);
 
         // Cleanup after 1s
-        setTimeout(() => {
-          setHitEffects((prev) => prev.filter((e) => e.id !== id));
-        }, 1000);
+        setTimeout(() => setHitEffects(withoutId(id)), 1000);
       };
     }
     return () => {
@@ -557,5 +555,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     </div>
   );
 };
+
+/** Retire d'une liste l'élément d'identifiant `id`. */
+const withoutId =
+  (id: string | number) =>
+  <T extends { id: string | number }>(list: T[]): T[] =>
+    list.filter((e) => e.id !== id);
 
 export default GameCanvas;

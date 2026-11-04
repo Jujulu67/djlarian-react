@@ -136,6 +136,7 @@ const ImageCropModal: React.FC<ImageCropModalProps> = ({
                 aspect={aspect}
                 className={`max-w-full max-h-[60vh] ${circular ? '[&_.ReactCrop__crop-selection]:rounded-full' : ''}`}
               >
+                {/* eslint-disable-next-line @next/next/no-img-element -- react-image-crop a besoin de l'élément natif */}
                 <img
                   ref={imageRef}
                   src={imageToEdit}
@@ -161,6 +162,7 @@ const ImageCropModal: React.FC<ImageCropModalProps> = ({
             </div>
           ) : (
             <div className="flex items-center justify-center h-40 text-gray-400">
+              {/* eslint-disable-next-line @next/next/no-img-element -- dimensions naturelles lues au chargement */}
               <img
                 ref={imageRef}
                 src={imageToEdit}

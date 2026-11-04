@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Award, Sparkles } from 'lucide-react';
@@ -114,9 +115,11 @@ export function ProfileBadges({
                         className="w-full h-full flex items-center justify-center"
                         {...bobbing(delay)}
                       >
-                        <img
+                        <Image
                           src={badge.image}
                           alt={badge.name}
+                          width={96}
+                          height={96}
                           className="w-full h-full object-contain drop-shadow-md group-hover:drop-shadow-[0_0_12px_rgba(255,255,255,0.6)] transition-all duration-300 relative z-10 v2:drop-shadow-none v2:group-hover:drop-shadow-none"
                         />
                       </motion.div>
@@ -215,9 +218,11 @@ export function ProfileBadges({
                         className="w-full h-full flex items-center justify-center"
                         {...bobbing(delay)}
                       >
-                        <img
+                        <Image
                           src={badge.image}
                           alt={badge.name}
+                          width={96}
+                          height={96}
                           className="w-full h-full object-contain drop-shadow-md group-hover:drop-shadow-[0_0_12px_rgba(255,215,0,0.6)] transition-all duration-300 relative z-10 v2:drop-shadow-none v2:group-hover:drop-shadow-none"
                         />
                       </motion.div>
@@ -253,9 +258,11 @@ export function ProfileBadges({
                     key={badge.id}
                     className="relative group aspect-square rounded-xl bg-white/5 border border-white/10 flex flex-col items-center justify-center p-1.5 sm:p-2 lg:p-1.5 v2:bg-white/[0.03] opacity-60 hover:opacity-80 transition-opacity cursor-help"
                   >
-                    <img
+                    <Image
                       src={badge.image}
                       alt={badge.name}
+                      width={96}
+                      height={96}
                       className="w-full h-full object-contain grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-300"
                     />
                     {/* Tooltip pour badge verrouillé */}

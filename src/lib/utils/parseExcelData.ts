@@ -402,7 +402,7 @@ export function parseExcelData(
               row.releaseDate = parseDate(value, dateFormat) || undefined;
               break;
             case 'externalLink':
-              row.externalLink = value || undefined;
+              row.externalLink = value;
               break;
             case 'streamsJ7':
               row.streamsJ7 = parseNumber(value) ?? undefined;

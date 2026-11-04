@@ -218,8 +218,9 @@ export function MysteryGameDialog({ isOpen, onClose, onTokenUpdate }: MysteryGam
     }
 
     // Clear explosions after animation
+    const explodedIds = new Set(newExplosions.map((ne) => ne.id));
     setTimeout(() => {
-      setExplosions((prev) => prev.filter((e) => !newExplosions.find((ne) => ne.id === e.id)));
+      setExplosions((prev) => prev.filter((e) => !explodedIds.has(e.id)));
     }, 600);
 
     // Clear score popups

@@ -74,7 +74,7 @@ export function getConversationStore(
   const backend = getStoreBackend();
 
   if (backend === 'redis') {
-    // TODO: Implémenter RedisConversationMemoryStore
+    // Pas encore de store Redis : repli sur la mémoire du processus
     // Pour l'instant, fallback sur Map avec warning
     if (process.env.NODE_ENV === 'development') {
       logger.warn(
@@ -114,7 +114,7 @@ export function getActionStore(
   const backend = getStoreBackend();
 
   if (backend === 'redis') {
-    // TODO: Implémenter RedisActionMemoryStore
+    // Pas encore de store Redis : repli sur la mémoire du processus
     // Pour l'instant, fallback sur Map avec warning
     if (process.env.NODE_ENV === 'development') {
       logger.warn(

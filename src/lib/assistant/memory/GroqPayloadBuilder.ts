@@ -300,13 +300,7 @@ export class GroqPayloadBuilder {
    * @param role Le rôle de l'auteur du message (assistant = strict, user = léger)
    */
   looksLikeActionOutput(text: string, role: 'user' | 'assistant' = 'assistant'): boolean {
-    // O3: Filtrage contextuel
-    if (role === 'user') {
-      // Pour les messages user, on ne filtre que les injections évidentes
-      return USER_INJECTION_PATTERNS.some((pattern) => pattern.test(text));
-    }
-    // Pour les messages assistant, filtrage strict des outputs d'actions
-    return ACTION_OUTPUT_PATTERNS.some((pattern) => pattern.test(text));
+    return looksLikeActionOutput(text, role);
   }
 
   /**

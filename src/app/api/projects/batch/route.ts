@@ -345,7 +345,8 @@ export async function POST(request: NextRequest) {
     return createSuccessResponse(
       result,
       200,
-      `Import terminé : ${result.created} projet(s) créé(s)${result.failed > 0 ? `, ${result.failed} échec(s)` : ''}`
+      `Import terminé : ${result.created} projet(s) créé(s)` +
+        (result.failed > 0 ? `, ${result.failed} échec(s)` : '')
     );
   } catch (error) {
     return handleApiError(error, 'POST /api/projects/batch');

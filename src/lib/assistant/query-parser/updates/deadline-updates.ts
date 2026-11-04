@@ -169,12 +169,7 @@ function extractPushDeadline(
         // Nombre explicite (ex: "de 2 semaines")
         amount = parseInt(numberMatch, 10);
       } else {
-        // Article "un", "une", "d'un", "d'une" → 1
-        const hasArticle = /(?:d[\u2019']?une?|de\s+une?|d'1|de\s+1|une|un)/i.test(match[0]);
-        if (hasArticle) {
-          amount = 1;
-        }
-        // Si aucun nombre ni article, on garde 1 par défaut
+        // Article (« un », « une ») ou rien : on garde 1 par défaut
       }
 
       if (isNegative) amount = -amount;
