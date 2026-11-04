@@ -144,9 +144,7 @@ export async function getConversationalResponse(
     }
 
     const isIdentityQuery =
-      /qui\s+es\s*[-]?tu|who\s+are\s+you|quel\s+est\s+ton\s+nom|what\s+is\s+your\s+name/i.test(
-        query
-      );
+      /qui\s+es\s*-?tu|who\s+are\s+you|quel\s+est\s+ton\s+nom|what\s+is\s+your\s+name/i.test(query);
 
     // ⚠️ WORKAROUND: Pour les questions d'identité, retourner une réponse hardcodée
     // Le modèle 8B ignore souvent les instructions d'identité dans le system prompt

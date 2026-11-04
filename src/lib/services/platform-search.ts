@@ -74,7 +74,7 @@ export async function searchYouTube(
 function extractArtists(artistString: string): string[] {
   // Séparer par ", " et " & " pour obtenir tous les artistes
   return artistString
-    .split(/,\s*|\s+&\s+/)
+    .split(/,\s*|(?<!\s)\s+&\s+/)
     .map((a) => a.trim())
     .filter((a) => a.length > 0);
 }

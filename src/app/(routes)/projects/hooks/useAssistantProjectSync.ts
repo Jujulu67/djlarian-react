@@ -23,12 +23,9 @@ interface UseAssistantProjectSyncParams {
 
 export function useAssistantProjectSync({
   setHighlightedFromNotification,
-  lastCreatedProjectId,
   setLastCreatedProjectId,
   fetchCounts,
   fetchProjects,
-  handleCreate,
-  projects,
   setAllProjects,
   setProjects,
   setLastUpdatedProjectId,

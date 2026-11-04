@@ -18,13 +18,13 @@ export function buildTrackRequestBody(
   platformsArray: ReturnType<typeof buildPlatformsArray>
 ) {
   const {
-    id: _id, // Garder id séparément si nécessaire
-    user: _user,
-    collection: _collection,
-    createdAt: _createdAt,
-    updatedAt: _updatedAt,
-    genre: _genre, // Exclure genre car on utilise genreNames
-    platforms: _platforms, // Exclure platforms car on utilise platformsArray
+    id, // Garder id séparément si nécessaire
+    user,
+    collection,
+    createdAt,
+    updatedAt,
+    genre, // Exclure genre car on utilise genreNames
+    platforms, // Exclure platforms car on utilise platformsArray
     ...cleanFormData
   } = currentForm;
 

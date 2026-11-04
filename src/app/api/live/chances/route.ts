@@ -1,6 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server';
-
-import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import {
   calculateMultiplier,
@@ -17,7 +14,7 @@ import { requireAuth } from '@/lib/api/requireAuth';
  * GET /api/live/chances
  * Calcule les chances de soumission de l'utilisateur
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const { session, error } = await requireAuth({
       requireUserId: true,

@@ -145,7 +145,6 @@ export function useAdminLiveSubmissions() {
           body: JSON.stringify({ isPinned }),
         });
         if (response.ok) {
-          const result = await response.json();
           // Rafraîchir la liste pour avoir le bon ordre
           await fetchSubmissions();
           return true;

@@ -1,5 +1,3 @@
-import { NextRequest } from 'next/server';
-
 import { handleApiError } from '@/lib/api/errorHandler';
 import { createSuccessResponse, createUnauthorizedResponse } from '@/lib/api/responseHelpers';
 import prisma from '@/lib/prisma';
@@ -9,7 +7,7 @@ import { requireAuth } from '@/lib/api/requireAuth';
  * POST /api/notifications/read-all
  * Marque toutes les notifications de l'utilisateur comme lues
  */
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     const { session, error } = await requireAuth({
       requireUserId: true,

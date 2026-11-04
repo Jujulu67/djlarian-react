@@ -58,7 +58,7 @@ export function detectProgressFromQuery(query: string): {
     // "moins de X%", "au plus X%", "maximum X%"
     /(?:moins\s*de|au\s*plus|maximum|max)\s*(\d+)\s*%/i,
     // "X%", "X pourcent"
-    /(\d+)\s*(?:%|pourcent)/i,
+    /(?<!\d)(\d+)\s*(?:%|pourcent)/i,
   ];
 
   for (const pattern of percentagePatterns) {

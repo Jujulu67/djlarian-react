@@ -9,12 +9,13 @@
 
 import type { Project } from '@/lib/domain/projects';
 import { ProjectCommandType, type ProjectMutation, type ProjectPreviewDiff } from './types';
+import { randomToken } from '@/lib/utils/random';
 
 /**
  * Génère un ID unique pour une action en attente
  */
 export function generateActionId(): string {
-  return `action_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  return `action_${Date.now()}_${randomToken(9)}`;
 }
 
 /**

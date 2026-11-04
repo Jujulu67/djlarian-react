@@ -8,7 +8,7 @@ import {
   createUnauthorizedResponse,
 } from '@/lib/api/responseHelpers';
 import prisma from '@/lib/prisma';
-import { serializeProjects, serializeProject } from '@/lib/utils/serializeProject';
+import { serializeProject } from '@/lib/utils/serializeProject';
 import { Project } from '@/components/projects/types';
 import { ProjectStatus } from '@/components/projects/types';
 import { requireAuth } from '@/lib/api/requireAuth';

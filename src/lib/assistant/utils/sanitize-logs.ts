@@ -37,10 +37,7 @@ export function sanitizeForLogs(text: string, maxLength: number = 200): string {
   );
 
   // Masquer les API keys communes (patterns comme "sk-", "pk_", "Bearer ", etc.)
-  sanitized = sanitized.replace(
-    /\b(sk-|pk_|Bearer\s+)[A-Za-z0-9_-]{20,}\b/gi,
-    '[api-key-redacted]'
-  );
+  sanitized = sanitized.replace(/\b(sk-|pk_|Bearer\s+)[a-z0-9_-]{20,}\b/gi, '[api-key-redacted]');
 
   // Masquer les URLs avec credentials (http://user:pass@host)
   sanitized = sanitized.replace(

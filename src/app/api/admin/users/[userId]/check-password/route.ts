@@ -13,7 +13,7 @@ export async function GET(
   { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
-    const { session, error: authError } = await requireAdmin({ nonAdminStatus: 401 });
+    const { error: authError } = await requireAdmin({ nonAdminStatus: 401 });
     if (authError) return authError;
 
     const resolvedParams = await params;

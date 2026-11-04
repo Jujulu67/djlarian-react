@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 
 import { logger } from '@/lib/logger';
-import type { Track, MusicPlatform } from '@/lib/utils/types';
+import type { Track } from '@/lib/utils/types';
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
 
 export function useTracks() {

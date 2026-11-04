@@ -1,4 +1,3 @@
-import { NextRequest } from 'next/server';
 import { z } from 'zod';
 
 import { requireAdmin, requireAuth } from '@/lib/api/requireAuth';
@@ -13,6 +12,7 @@ import {
 import { hash as bcryptHash } from '@/lib/bcrypt-edge';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
+import { NextRequest } from 'next/server';
 
 /**
  * Zod schema for user creation
@@ -33,7 +33,7 @@ type CreateUserInput = z.infer<typeof createUserSchema>;
  * GET /api/users
  * Récupère la liste des utilisateurs (tous les utilisateurs authentifiés)
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const { session, error } = await requireAuth({
       requireUserId: true,
@@ -61,10 +61,10 @@ export async function GET(request: NextRequest) {
  * POST /api/users
  * Create a new user (admin only)
  */
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   // Rate limiting (10 users/min)
   const { rateLimit } = await import('@/lib/api/rateLimiter');
-  const rateLimitResponse = await rateLimit(request as any, 10);
+  const rateLimitResponse = await rateLimit(request, 10);
   if (rateLimitResponse) {
     return rateLimitResponse;
   }

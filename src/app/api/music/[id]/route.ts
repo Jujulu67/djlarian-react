@@ -1,4 +1,3 @@
-import { Prisma } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 
 import { auth } from '@/auth';
@@ -7,7 +6,6 @@ import { handleApiError } from '@/lib/api/errorHandler';
 import { UpdateTrackInput, formatTrackData } from '@/lib/api/musicService';
 import {
   createSuccessResponse,
-  createForbiddenResponse,
   createUnauthorizedResponse,
   createNotFoundResponse,
   createBadRequestResponse,

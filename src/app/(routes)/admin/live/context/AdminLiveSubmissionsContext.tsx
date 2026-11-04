@@ -2,7 +2,6 @@
 
 import { createContext, useContext, ReactNode } from 'react';
 import { useAdminLiveSubmissions } from '../hooks/useAdminLiveSubmissions';
-import type { SubmissionWithUser } from '../hooks/useAdminLiveSubmissions';
 
 type AdminLiveSubmissionsContextType = ReturnType<typeof useAdminLiveSubmissions>;
 

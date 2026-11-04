@@ -76,7 +76,7 @@ export async function POST(req: Request) {
       data: {
         licenseKey: key,
         userId: targetUserId,
-        licenseType: dbType as any,
+        licenseType: dbType,
         revoked: false,
         expirationDate: validatedData.expirationDate
           ? new Date(validatedData.expirationDate)

@@ -1,5 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server';
-
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import { checkTwitchSubscription } from '@/lib/twitch/client';
@@ -13,7 +11,7 @@ import { requireAuth } from '@/lib/api/requireAuth';
  * GET /api/live/twitch-subscription
  * Vérifie le statut de subscription Twitch et met à jour le Subscriber Bonus
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const { session, error } = await requireAuth({
       requireUserId: true,

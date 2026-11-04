@@ -113,7 +113,7 @@ export function extractNewProgress(
   }
 
   // Chercher pourcentages
-  const allPercentMatches = Array.from(cleanedQuery.matchAll(/(\d+)\s*%/gi));
+  const allPercentMatches = Array.from(cleanedQuery.matchAll(/(?<!\d)(\d+)\s*%/gi));
   if (allPercentMatches.length > 0) {
     const lastPercentMatch = allPercentMatches[allPercentMatches.length - 1];
     const lastPercentValue = parseInt(lastPercentMatch[1], 10);
@@ -122,11 +122,11 @@ export function extractNewProgress(
       .substring(lastPercentIndex + lastPercentMatch[0].length)
       .toLowerCase();
 
-    const isFollowedByProgressKeyword = /d['']?avancement|de\s+progress|de\s+progression/i.test(
+    const isFollowedByProgressKeyword = /d['’]?avancement|de\s+progress|de\s+progression/i.test(
       textAfterLastPercent
     );
     const isFollowedByDate =
-      /\b(?:au|à\s+le|pour|pour\s+le)\s+(?:le\s+)?(?:mois\s+prochain|semaine\s+pro|semaine\s+prochaine|next\s+month|next\s+week|demain|tomorrow|aujourd['']hui|today)/i.test(
+      /\b(?:au|à\s+le|pour|pour\s+le)\s+(?:le\s+)?(?:mois\s+prochain|semaine\s+pro|semaine\s+prochaine|next\s+month|next\s+week|demain|tomorrow|aujourd['’]hui|today)/i.test(
         textAfterLastPercent
       );
 
@@ -183,7 +183,7 @@ export function extractNewProgress(
   // Détecter "sans avancement" comme 0%
   if (
     updateData.newProgress === undefined &&
-    /(?:passe|mets?|met|change|changer|modifie|modifier)\s+(?:les?\s+)?(?:projets?\s+)?(?:sans\s*avancement|sans\s*progression|pas\s*d['']?avancement|no\s*progress|null)/i.test(
+    /(?:passe|mets?|met|change|changer|modifie|modifier)\s+(?:les?\s+)?(?:projets?\s+)?(?:sans\s*avancement|sans\s*progression|pas\s*d['’]?avancement|no\s*progress|null)/i.test(
       lowerQuery
     )
   ) {

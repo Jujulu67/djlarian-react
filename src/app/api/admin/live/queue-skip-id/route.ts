@@ -1,15 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/api/requireAuth';
 import { createUnauthorizedResponse, createSuccessResponse } from '@/lib/api/responseHelpers';
 import { handleApiError } from '@/lib/api/errorHandler';
 import prisma from '@/lib/prisma';
-import { LiveItemType } from '@/types/live';
 
 /**
  * GET /api/admin/live/queue-skip-id
  * Récupère l'ID de l'item Queue Skip depuis la base de données
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const { error: authError } = await requireAdmin({
       onAnonymous: () => createUnauthorizedResponse('Non autorisé'),

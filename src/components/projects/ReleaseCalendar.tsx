@@ -9,7 +9,7 @@ import {
   Pencil,
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
-import { startOfYear, format, addWeeks, startOfWeek, isWithinInterval, addDays } from 'date-fns';
+import { format, addWeeks, startOfWeek, isWithinInterval, addDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 import { Project } from './types';

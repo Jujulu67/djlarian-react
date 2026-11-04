@@ -3,7 +3,7 @@
 import { ExternalLink } from 'lucide-react';
 import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent } from 'react';
 
-import { PROJECT_STATUSES, ProjectStatus, LABEL_OPTIONS, LabelStatus, CellType } from './types';
+import { PROJECT_STATUSES, ProjectStatus, LABEL_OPTIONS, CellType } from './types';
 import { GlassSelect } from './GlassSelect';
 import { logger } from '@/lib/logger';
 

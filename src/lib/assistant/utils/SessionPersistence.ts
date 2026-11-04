@@ -1,3 +1,5 @@
+import { randomToken } from '@/lib/utils/random';
+
 /**
  * SessionPersistence.ts - Gestion de la persistance de session côté client
  *
@@ -23,7 +25,7 @@ const TAB_ID_KEY = 'assistant_tab_id';
  * Génère un ID unique
  */
 function generateId(): string {
-  return `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+  return `${Date.now()}-${randomToken(9)}`;
 }
 
 /**

@@ -11,6 +11,7 @@ import {
 import prisma from '@/lib/prisma';
 import { requireAuth } from '@/lib/api/requireAuth';
 import { logger } from '@/lib/logger';
+import { Prisma } from '@prisma/client';
 
 // Fonction helper pour invalider le cache des projets d'un utilisateur
 function invalidateProjectsCache(userId: string) {
@@ -336,7 +337,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Construire la clause WHERE pour filtrer les projets
-    const whereClause: any = {
+    const whereClause: Prisma.ProjectWhereInput = {
       userId: session.user.id,
     };
 
@@ -440,7 +441,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Construire les données de mise à jour
-    const updateData: any = {};
+    const updateData: Prisma.ProjectUpdateManyMutationInput = {};
 
     if (newProgress !== undefined) {
       updateData.progress = newProgress;
@@ -668,9 +669,9 @@ export async function POST(request: NextRequest) {
       requestId,
       where: projectIds
         ? `id in [${projectIds.length} IDs]`
-        : Object.keys(whereClause)
-            .filter((k) => k !== 'userId')
-            .map((k) => `${k}: ${JSON.stringify(whereClause[k])}`)
+        : Object.entries(whereClause)
+            .filter(([k]) => k !== 'userId')
+            .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
             .join(', ') || 'userId only',
       dataKeys: Object.keys(updateData),
     });

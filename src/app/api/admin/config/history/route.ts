@@ -8,7 +8,7 @@ import { requireAdmin } from '@/lib/api/requireAuth';
 export async function GET(req: NextRequest) {
   try {
     // Vérifier que l'utilisateur est admin
-    const { session, error: authError } = await requireAdmin({ nonAdminStatus: 401 });
+    const { error: authError } = await requireAdmin({ nonAdminStatus: 401 });
     if (authError) return authError;
 
     // Récupérer les paramètres

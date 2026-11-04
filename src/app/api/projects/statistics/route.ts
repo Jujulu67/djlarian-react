@@ -1,4 +1,3 @@
-import { NextRequest } from 'next/server';
 import { unstable_cache } from 'next/cache';
 
 import { handleApiError } from '@/lib/api/errorHandler';
@@ -7,7 +6,7 @@ import prisma from '@/lib/prisma';
 import { requireAuth } from '@/lib/api/requireAuth';
 
 // GET /api/projects/statistics - Récupère les statistiques des projets de l'utilisateur
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const { session, error } = await requireAuth({
       requireUserId: true,

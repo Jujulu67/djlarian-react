@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
 import { requireAuth } from '@/lib/api/requireAuth';
 import { logger } from '@/lib/logger';
@@ -10,7 +10,7 @@ import { shouldUseBlobStorage } from '@/lib/utils/getStorageConfig';
 import { deleteFromBlob } from '@/lib/blob';
 
 // Suppression de photo de profil - Accessible aux utilisateurs connectés
-export async function DELETE(request: NextRequest) {
+export async function DELETE() {
   try {
     // Vérifier l'authentification
     const { session, error } = await requireAuth({

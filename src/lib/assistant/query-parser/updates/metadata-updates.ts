@@ -32,10 +32,10 @@ function extractCollabUpdate(
 ): void {
   // Pattern "collab avec X à Y" (filtre X, nouvelle valeur Y)
   const collabPatterns = [
-    /(?:en\s+)?(?:collab|collaborateur)\s+avec\s+([A-Za-z0-9_\s]+?)\s+à\s+([A-Za-z0-9_\s]+?)(?:\s|$)/i,
-    /(?:collab|collaborateur)\s+avec\s+([A-Za-z0-9_\s]+?)\s+à\s+([A-Za-z0-9_\s]+?)(?:\s|$)/i,
-    /en\s+collab\s+avec\s+([A-Za-z0-9_\s]+?)\s+à\s+([A-Za-z0-9_\s]+?)(?:\s|$)/i,
-    /avec\s+(?:le\s+)?(?:collab|collaborateur)\s+([A-Za-z0-9_\s]+?)\s+à\s+([A-Za-z0-9_\s]+?)(?:\s|$)/i,
+    /(?:en\s+)?(?:collab|collaborateur)\s+avec\s+([a-z0-9_\s]+?)\s+à\s+([a-z0-9_\s]+?)(?:\s|$)/i,
+    /(?:collab|collaborateur)\s+avec\s+([a-z0-9_\s]+?)\s+à\s+([a-z0-9_\s]+?)(?:\s|$)/i,
+    /en\s+collab\s+avec\s+([a-z0-9_\s]+?)\s+à\s+([a-z0-9_\s]+?)(?:\s|$)/i,
+    /avec\s+(?:le\s+)?(?:collab|collaborateur)\s+([a-z0-9_\s]+?)\s+à\s+([a-z0-9_\s]+?)(?:\s|$)/i,
   ];
 
   for (const pattern of collabPatterns) {
@@ -74,12 +74,12 @@ function extractCollabUpdate(
   // Patterns simples "en collaborateur X"
   const simplePatterns = [
     // "passe les collaborateurs/collabs à X", "met les collabs à X", "passe les collabs de ces tracks à X"
-    /(?:passe|met|mets|change|modifie|cahnge|chnage|chang|pase|pass|modifi|mets?)\s+(?:(?:les?|la|le|l'|leurs?|son|sa|ses|mes|mon|ma|nos|notre|vos|votre)\s+)?(?:collaborateurs?|collabs?)(?:\s+de\s+.+?)?\s+(?:à|a|par|pour|en|avec)\s+([A-Za-z0-9_\s]+?)(?:\s|$)/i,
+    /(?:passe|met|mets|change|modifie|cahnge|chnage|chang|pase|pass|modifi|mets?)\s+(?:(?:les?|la|le|l'|leurs?|son|sa|ses|mes|mon|ma|nos|notre|vos|votre)\s+)?(?:collaborateurs?|collabs?)(?:\s+de\s+.+?)?\s+(?:à|a|par|pour|en|avec)\s+([a-z0-9_\s]+?)(?:\s|$)/i,
     // "collaborateurs/collabs à X" (direct)
-    /(?:(?:les?|la|le|l'|leurs?|son|sa|ses|mes|mon|ma|nos|notre|vos|votre)\s+)?(?:collaborateurs?|collabs?)\s+(?:à|a|par|pour|en|avec)\s+([A-Za-z0-9_\s]+?)(?:\s|$)/i,
-    /(?:en\s+)?mettant\s+(?:en\s+)?(?:collaborateur|collab)\s+([A-Za-z0-9_\s]+)/i,
-    /(?:en|avec)\s+(?:collaborateur|collab)\s+([A-Za-z0-9_\s]+)/i,
-    /(?:mets?|met|change|changer|modifie|modifier|passe|passer|cahnge|chnage|chang|pase|pass|modifi|mets?)\s+(?:(?:les?|la|le|l'|leurs?|son|sa|ses|mes|mon|ma|nos|notre|vos|votre)\s+)?(?:projets?\s+)?(?:en|à|avec|par|pour)\s+(?:collaborateur|collab)\s+(?:avec\s+)?([A-Za-z0-9_\s]+?)(?:\s|$)/i,
+    /(?:(?:les?|la|le|l'|leurs?|son|sa|ses|mes|mon|ma|nos|notre|vos|votre)\s+)?(?:collaborateurs?|collabs?)\s+(?:à|a|par|pour|en|avec)\s+([a-z0-9_\s]+?)(?:\s|$)/i,
+    /(?:en\s+)?mettant\s+(?:en\s+)?(?:collaborateur|collab)\s+([a-z0-9_\s]+)/i,
+    /(?:en|avec)\s+(?:collaborateur|collab)\s+([a-z0-9_\s]+)/i,
+    /(?:mets?|met|change|changer|modifie|modifier|passe|passer|cahnge|chnage|chang|pase|pass|modifi|mets?)\s+(?:(?:les?|la|le|l'|leurs?|son|sa|ses|mes|mon|ma|nos|notre|vos|votre)\s+)?(?:projets?\s+)?(?:en|à|avec|par|pour)\s+(?:collaborateur|collab)\s+(?:avec\s+)?([a-z0-9_\s]+?)(?:\s|$)/i,
   ];
 
   for (const pattern of simplePatterns) {
@@ -127,7 +127,7 @@ function extractStyleUpdate(
   }
 
   // Pattern "de style X à Y"
-  const filterToNewPattern = /(?:de|depuis)\s+style\s+([A-Za-z0-9_\s]+)\s+à\s+([A-Za-z0-9_\s]+)/i;
+  const filterToNewPattern = /(?:de|depuis)\s+style\s+([a-z0-9_\s]+)\s+à\s+([a-z0-9_\s]+)/i;
   const filterMatch = cleanedQuery.match(filterToNewPattern);
 
   if (filterMatch) {
@@ -145,11 +145,11 @@ function extractStyleUpdate(
 
   // Patterns simples
   const newStylePatterns = [
-    /(?:change|changer|modifie|modifier|passe|passer|mets?|met)\s+(?:les?\s+)?(?:projets?\s+)?(?:le\s+)?style\s+([A-Za-z0-9_\s]+)(?:\s|$)/i,
-    /(?:change|changer|modifie|modifier|passe|passer|mets?|met)\s+(?:les?\s+)?(?:projets?\s+)?(?:le\s+)?style\s+(?:à|en|pour|par)\s+([A-Za-z0-9_\s]+)/i,
-    /(?:en|à)\s+style\s+([A-Za-z0-9_\s]+)/i,
-    /style\s+(?:à|en|pour|par)\s+([A-Za-z0-9_\s]+)/i,
-    /(?:mets?|met|change|changer|modifie|modifier|passe|passer)\s+(?:les?\s+)?(?:projets?\s+)?en\s+([A-Za-z0-9_\s]+)(?:\s|$)/i,
+    /(?:change|changer|modifie|modifier|passe|passer|mets?|met)\s+(?:les?\s+)?(?:projets?\s+)?(?:le\s+)?style\s+([a-z0-9_\s]+)(?:\s|$)/i,
+    /(?:change|changer|modifie|modifier|passe|passer|mets?|met)\s+(?:les?\s+)?(?:projets?\s+)?(?:le\s+)?style\s+(?:à|en|pour|par)\s+([a-z0-9_\s]+)/i,
+    /(?:en|à)\s+style\s+([a-z0-9_\s]+)/i,
+    /style\s+(?:à|en|pour|par)\s+([a-z0-9_\s]+)/i,
+    /(?:mets?|met|change|changer|modifie|modifier|passe|passer)\s+(?:les?\s+)?(?:projets?\s+)?en\s+([a-z0-9_\s]+)(?:\s|$)/i,
   ];
 
   const ignoredWords = [
@@ -251,9 +251,9 @@ function extractStyleUpdate(
  */
 function extractLabelUpdate(query: string, updateData: UpdateData): void {
   const patterns = [
-    /(?:label|label\s+cibl[ée])\s+(?:à|en|pour)\s+([A-Za-z0-9_\s]+)/i,
-    /(?:change|changer|modifie|modifier|passe|passer|mets?|met)\s+(?:le\s+)?label\s+(?:à|en|pour)\s+([A-Za-z0-9_\s]+)/i,
-    /(?:change|changer|modifie|modifier|passe|passer|mets?|met)\s+(?:le\s+)?label\s+cibl[ée]\s+(?:à|en|pour)?\s*([A-Za-z0-9_\s]+)/i,
+    /(?:label|label\s+cibl[ée])\s+(?:à|en|pour)\s+([a-z0-9_\s]+)/i,
+    /(?:change|changer|modifie|modifier|passe|passer|mets?|met)\s+(?:le\s+)?label\s+(?:à|en|pour)\s+([a-z0-9_\s]+)/i,
+    /(?:change|changer|modifie|modifier|passe|passer|mets?|met)\s+(?:le\s+)?label\s+cibl[ée]\s+(?:à|en|pour)?\s*([a-z0-9_\s]+)/i,
   ];
 
   const ignoredWords = [
@@ -288,9 +288,9 @@ function extractLabelUpdate(query: string, updateData: UpdateData): void {
  */
 function extractLabelFinalUpdate(query: string, updateData: UpdateData): void {
   const patterns = [
-    /(?:label\s+final|sign[ée])\s+(?:à|en|chez|pour)\s+([A-Za-z0-9_\s]+)/i,
-    /(?:change|changer|modifie|modifier|passe|passer|mets?|met)\s+(?:le\s+)?label\s+final\s+(?:à|en|pour)\s+([A-Za-z0-9_\s]+)/i,
-    /sign[ée]\s+chez\s+([A-Za-z0-9_\s]+)/i,
+    /(?:label\s+final|sign[ée])\s+(?:à|en|chez|pour)\s+([a-z0-9_\s]+)/i,
+    /(?:change|changer|modifie|modifier|passe|passer|mets?|met)\s+(?:le\s+)?label\s+final\s+(?:à|en|pour)\s+([a-z0-9_\s]+)/i,
+    /sign[ée]\s+chez\s+([a-z0-9_\s]+)/i,
   ];
 
   const ignoredWords = ['projets', 'projet', 'les', 'mes', 'de', 'en', 'le', 'la', 'des', 'final'];

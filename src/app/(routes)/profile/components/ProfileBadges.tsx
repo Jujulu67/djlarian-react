@@ -74,7 +74,6 @@ export function ProfileBadges({
           <div>
             <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-2 sm:gap-3 lg:gap-2">
               {unlockedBadges.map((badge, index) => {
-                const Icon = badge.icon;
                 const delay = badgeDelays[index] ?? 0;
                 return (
                   <motion.div
@@ -194,7 +193,6 @@ export function ProfileBadges({
             </div>
             <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-2 sm:gap-3 lg:gap-2">
               {unlockedSecretBadges.map((badge, index) => {
-                const Icon = badge.icon;
                 const delay = secretBadgeDelays[index] ?? 0;
                 return (
                   <motion.div
@@ -250,7 +248,6 @@ export function ProfileBadges({
             <p className="text-xs sm:text-sm lg:text-xs text-gray-500 mb-2 lg:mb-2">À débloquer</p>
             <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-2 sm:gap-3 lg:gap-2">
               {lockedBadges.slice(0, 8).map((badge) => {
-                const Icon = badge.icon;
                 return (
                   <div
                     key={badge.id}

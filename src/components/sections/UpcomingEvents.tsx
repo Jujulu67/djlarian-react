@@ -2,7 +2,6 @@
 
 import { motion } from 'framer-motion';
 import { ArrowRight, Calendar, CalendarX, Clock, MapPin } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
 
 import { Button } from '@/components/ui/Button';
@@ -16,18 +15,6 @@ export interface UpcomingEventsProps {
   title?: string;
   count?: number;
   events: Event[];
-}
-
-// Interface ajustée pour correspondre aux données réelles (type Event de types.ts)
-interface DisplayEvent {
-  id: string;
-  title: string;
-  date: string; // Renommé de startDate
-  location: string;
-  description: string;
-  imageId?: string | null;
-  ticketUrl?: string; // Renommé de tickets.buyUrl
-  isFeatured?: boolean;
 }
 
 /* -------------------------------------------------------------------------- */

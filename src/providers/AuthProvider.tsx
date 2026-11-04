@@ -17,7 +17,6 @@ let sessionRequestCache: {
 
 const CACHE_DURATION = 5000; // 5 secondes de cache pour dédupliquer les requêtes simultanées
 const DEDUP_WINDOW = 500; // Fenêtre de 500ms pour considérer les requêtes comme simultanées (augmenté pour mieux dédupliquer)
-const _ENABLE_LOGS = false; // Désactiver les logs en production
 
 // Intercepter fetch AVANT que les composants ne se montent
 if (typeof window !== 'undefined') {
@@ -102,7 +101,7 @@ if (typeof window !== 'undefined') {
           }
           return response;
         })
-        .catch((error) => {
+        .catch(() => {
           if (sessionRequestCache) {
             sessionRequestCache.pendingRequests = Math.max(
               0,
@@ -181,7 +180,7 @@ if (typeof window !== 'undefined') {
           // Mais on ne veut pas que le navigateur l'affiche dans la console
           return response;
         })
-        .catch((error) => {
+        .catch(() => {
           // Si c'est une erreur réseau, créer une réponse 404 factice
           // Le code appelant vérifie res.ok, donc ça fonctionnera
           return new Response(null, { status: 404, statusText: 'Not Found' });

@@ -2,18 +2,17 @@ import { NextResponse } from 'next/server';
 
 import { defaultConfigs } from '@/config/defaults';
 import { logger } from '@/lib/logger';
-import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/api/requireAuth';
 
 // Endpoint pour récupérer les configurations par défaut
 export async function GET() {
   try {
     // Vérifier que l'utilisateur est admin
-    const { session, error: authError } = await requireAdmin({ nonAdminStatus: 401 });
+    const { error: authError } = await requireAdmin({ nonAdminStatus: 401 });
     if (authError) return authError;
 
     // Transformer les valeurs pour qu'elles soient au bon format (booléens, nombres, etc.)
-    const processedConfig: Record<string, Record<string, any>> = {};
+    const processedConfig: Record<string, Record<string, unknown>> = {};
 
     // Traiter chaque section
     Object.keys(defaultConfigs).forEach((section) => {

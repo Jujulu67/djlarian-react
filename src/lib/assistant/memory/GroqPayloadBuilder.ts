@@ -18,6 +18,7 @@ import { GroqMessage, GroqPayload, isChatMessage } from './Types';
 import { ConversationMemoryStore } from './ConversationMemoryStore';
 import { capMaxCompletionTokens, getModelMaxOutput, ModelContextTokens } from './ModelLimits';
 import { logger } from '@/lib/logger';
+import { inOrder, jsonArrayWithId, type TextPattern } from './linear-patterns';
 
 const DEFAULT_MODEL = 'llama-3.1-8b-instant';
 
@@ -79,12 +80,12 @@ const DEFAULT_TOKEN_BUDGET: TokenBudgetConfig = {
  */
 
 /** Patterns STRICTS pour les outputs d'actions (messages assistant principalement) */
-const ACTION_OUTPUT_PATTERNS = [
+const ACTION_OUTPUT_PATTERNS: TextPattern[] = [
   // JSON arrays/objects avec structure de données projet
-  /\[[\s\S]*\{[\s\S]*"id"[\s\S]*\}[\s\S]*\]/,
-  /```json[\s\S]*"(id|name|status)"[\s\S]*```/i,
+  inOrder(['[', '{', '"id"', '}', ']']),
+  inOrder([/```json/i, /"(id|name|status)"/i, '```']),
   // Résultats d'actions avec comptage
-  /\d+ projets? (mis à jour|supprimé|créé|listé|trouvé)/i,
+  /(?<!\d)\d+ projets? (mis à jour|supprimé|créé|listé|trouvé)/i,
   /J'ai (trouvé|mis|supprimé|créé) \d+ projet/i,
   /Ok\.\s*J'ai mis \d+ projet/i,
   // Champs techniques d'output d'actions
@@ -93,14 +94,14 @@ const ACTION_OUTPUT_PATTERNS = [
   /"pendingAction"\s*:/i,
   /"success"\s*:\s*(true|false),?\s*"(message|data|affectedCount)"/i,
   // Tableaux ASCII de listings
-  /\|[-=]+\|[\s\S]*\|[-=]+\|/,
-  /^\s*\|\s*ID\s*\|\s*Nom\s*\|/im,
+  inOrder([/\|[-=]+\|/, /\|[-=]+\|/]),
+  /^[ \t]*\|[ \t]*ID[ \t]*\|[ \t]*Nom[ \t]*\|/im,
 ];
 
 /** Patterns LÉGERS pour messages user (éviter injection, mais pas filtrer tech légitimes) */
-const USER_INJECTION_PATTERNS = [
+const USER_INJECTION_PATTERNS: TextPattern[] = [
   // Tentatives d'injection de résultats JSON
-  /^\s*\[\s*\{[\s\S]*"id"[\s\S]*\}\s*\]\s*$/,
+  jsonArrayWithId,
   // Blocs code JSON purs (pas discussions sur JSON)
   /^```json\s*\[[\s\S]*\]```$/im,
 ];

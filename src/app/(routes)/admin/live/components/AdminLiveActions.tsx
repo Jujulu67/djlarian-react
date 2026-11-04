@@ -9,7 +9,6 @@ import {
   FileText,
   Eye,
   RotateCcw,
-  RefreshCw,
   Trash2,
   Clock,
   RotateCw,
@@ -25,7 +24,6 @@ export function AdminLiveActions() {
     useAdminLiveSubmissionsContext();
 
   // Filtrer les soumissions non rollées pour la roue
-  const nonRolledSubmissions = submissions.filter((s) => !s.isRolled);
 
   const {
     actions,

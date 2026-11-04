@@ -2,7 +2,7 @@
 
 import { X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
 
 interface ModalProps {
@@ -32,7 +32,6 @@ export default function Modal({
 }: ModalProps) {
   const router = useRouter();
   const modalRef = useRef<HTMLDivElement>(null);
-  const [isMouseDownOutside, setIsMouseDownOutside] = useState(false);
 
   const handleClose = () => {
     if (onClose) onClose();
@@ -105,24 +104,6 @@ export default function Modal({
       previouslyFocused?.focus?.({ preventScroll: true });
     };
   }, []);
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    // Vérifie si le clic a commencé en dehors du contenu de la modale
-    if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
-      setIsMouseDownOutside(true);
-    } else {
-      setIsMouseDownOutside(false);
-    }
-  };
-
-  const handleMouseUp = (e: React.MouseEvent) => {
-    // Ferme la modale seulement si le mousedown et le mouseup sont tous deux en dehors
-    if (isMouseDownOutside && modalRef.current && !modalRef.current.contains(e.target as Node)) {
-      handleClose();
-    }
-    // Réinitialise l'état pour le prochain clic
-    setIsMouseDownOutside(false);
-  };
 
   const modalContent = (
     <div

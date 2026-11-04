@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import Image from 'next/image';
 import { useMiniGame, GameResult } from '../hooks/useMiniGame';
-import { FloatingScore, ComboIndicator, CelebrationOverlay, ScreenShake } from './MiniGameEffects';
+import { FloatingScore, CelebrationOverlay, ScreenShake } from './MiniGameEffects';
 import { ConfettiExplosion, CoinsRain } from './SlotMachineEffects';
 
 interface MysteryGameDialogProps {
@@ -18,7 +18,6 @@ interface MysteryGameDialogProps {
 // Simple grid game: Click groups of colors to destroy them
 const GRID_SIZE = 8;
 const COLORS = ['#ef4444', '#3b82f6', '#22c55e', '#eab308', '#a855f7']; // Tailwind colors
-const COLOR_NAMES = ['red', 'blue', 'green', 'yellow', 'purple'];
 
 interface Explosion {
   id: number;

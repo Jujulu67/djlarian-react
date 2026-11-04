@@ -1,5 +1,6 @@
 'use client';
 
+import { toast } from 'sonner';
 import { useSession } from 'next-auth/react';
 import {
   UserLicenseCard,
@@ -16,14 +17,7 @@ import { useUiVersion } from '@/hooks/useUiVersion';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
-import { Prisma } from '@prisma/client';
 import { logger } from '@/lib/logger';
-
-type UserLicenseWithDetails = Prisma.LicenseGetPayload<{
-  include: {
-    activations: true;
-  };
-}>;
 
 interface RawActivation extends Omit<LicenseActivation, 'lastValidated'> {
   lastValidated: string;
@@ -144,7 +138,6 @@ export default function LicensesPage() {
   const { data: session, status } = useSession();
   const [licenses, setLicenses] = useState<UserLicense[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadLicenses() {
@@ -164,11 +157,11 @@ export default function LicensesPage() {
           }));
           setLicenses(formattedLicenses);
         } else {
-          setError('Erreur lors du chargement des licences');
+          toast.error('Erreur lors du chargement des licences');
         }
       } catch (err) {
         logger.error('Failed to fetch licenses:', err);
-        setError('Erreur de connexion');
+        toast.error('Erreur de connexion');
       } finally {
         setIsLoading(false);
       }

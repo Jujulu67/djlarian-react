@@ -16,7 +16,7 @@ import {
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
-import { useFriends, Friend, PendingRequest } from '@/hooks/useFriends';
+import { useFriends } from '@/hooks/useFriends';
 import { SendMessageModal } from './SendMessageModal';
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
 import {

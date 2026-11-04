@@ -1,8 +1,7 @@
 'use client';
 
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import ReactDOM from 'react-dom';
 
 import { logger } from '@/lib/logger';
 import { useGameStats } from '@/hooks/useGameStats';
@@ -22,7 +21,7 @@ import {
 } from './gameEngine';
 import ScorePanel from './ScorePanel';
 import styles from './styles.module.css';
-import { Play, Pause, RefreshCw, Menu, Heart } from 'lucide-react';
+import { Play, Pause, RefreshCw, Menu } from 'lucide-react';
 
 interface RhythmCatcherProps {
   audioSrc?: string;
@@ -299,7 +298,7 @@ const RhythmCatcher: React.FC<RhythmCatcherProps> = ({ audioSrc, onClose }) => {
     type?: PowerUpType;
   } | null>(null);
 
-  const handleCollision = useCallback((position: Point, time: number, actualPosition?: Point) => {
+  const handleCollision = useCallback((position: Point, time: number) => {
     if (processingRef.current) return;
     processingRef.current = true; // Simple debounce per frame/call
 

@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
 import { logger } from '@/lib/logger';
 import { requireAdmin } from '@/lib/api/requireAuth';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Vérifier l'authentification et les permissions administrateur
-    const { session, error: authError } = await requireAdmin({ nonAdminStatus: 401 });
+    const { error: authError } = await requireAdmin({ nonAdminStatus: 401 });
     if (authError) return authError;
 
     // Récupérer les statuts des intégrations

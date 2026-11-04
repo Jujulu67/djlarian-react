@@ -1,5 +1,3 @@
-import { NextRequest } from 'next/server';
-
 import { handleApiError } from '@/lib/api/errorHandler';
 import { createSuccessResponse, createUnauthorizedResponse } from '@/lib/api/responseHelpers';
 import { checkAllUserMilestones } from '@/lib/utils/checkMilestoneNotifications';
@@ -12,7 +10,7 @@ import { requireAuth } from '@/lib/api/requireAuth';
  * Vérifie et crée toutes les notifications (jalons + releases + deadlines) de manière optimisée
  * Charge uniquement les dates nécessaires
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const { session, error } = await requireAuth({
       requireUserId: true,

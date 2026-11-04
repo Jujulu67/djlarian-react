@@ -33,13 +33,10 @@ import { createCreateProjectsTool } from '@/lib/assistant/tools/create-projects-
 // ... (rest of logic)
 
 // ========================================
-import { detectProgressFromQuery } from '@/lib/assistant/parsers/progress-detector';
-import { detectDeadlineFromQuery } from '@/lib/assistant/parsers/deadline-detector';
 import { classifyQuery } from '@/lib/assistant/query-parser/classifier';
 import { debugLog, truncate } from '@/lib/assistant/utils/debug-logger';
 import { detectFilters } from '@/lib/assistant/query-parser/filters';
 import {
-  getConversationContext,
   updateConversationContext,
   detectContextReference,
   resolveContextReference,
@@ -100,12 +97,7 @@ export async function processProjectCommand(userInput: string) {
 
   // Détecter le type de requête (question vs commande) avant l'appel à l'IA
   const lowerQuery = normalizedInput.toLowerCase();
-  let { filters, fieldsToShow: detectedFieldsToShow } = detectFilters(
-    normalizedInput,
-    lowerQuery,
-    [],
-    []
-  ); // Pas de collabs/styles nécessaires ici
+  let { filters } = detectFilters(normalizedInput, lowerQuery, [], []); // Pas de collabs/styles nécessaires ici
 
   // ========================================
   // MÉMOIRE CONVERSATIONNELLE

@@ -4,11 +4,9 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-  ArrowLeft,
   Calendar,
   Music,
   Tag,
-  User,
   Info,
   ExternalLink,
   CheckCircle,
@@ -19,7 +17,6 @@ import {
   Maximize2,
 } from 'lucide-react';
 import Image from 'next/image';
-import Link from 'next/link';
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { FaSpotify, FaYoutube, FaSoundcloud, FaApple } from 'react-icons/fa';

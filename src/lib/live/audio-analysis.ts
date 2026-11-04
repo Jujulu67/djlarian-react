@@ -42,7 +42,7 @@ export async function analyzeAudioFile(file: File): Promise<AudioAnalysisResult>
           fileName: file.name,
         });
       } catch (error) {
-        reject(new Error("Erreur lors de l'analyse du fichier audio"));
+        reject(new Error("Erreur lors de l'analyse du fichier audio", { cause: error }));
       } finally {
         audioContext.close();
       }

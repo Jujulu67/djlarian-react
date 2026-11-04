@@ -3,12 +3,13 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { Copy, Monitor, Calendar, Download, CheckCircle, Trash2, Sparkles } from 'lucide-react';
+import { Copy, Monitor, Calendar, Trash2 } from 'lucide-react';
 import { FaApple, FaWindows } from 'react-icons/fa';
 import { toast } from 'sonner';
 import { formatDistanceToNow, format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
+import { logger } from '@/lib/logger';
 
 export interface LicenseActivation {
   id: string;
@@ -69,6 +70,7 @@ export function UserLicenseCard({ license, userEmail }: UserLicenseCardProps) {
         toast.error('Erreur lors de la désactivation');
       }
     } catch (error) {
+      logger.warn('Erreur de connexion', error);
       toast.error('Erreur de connexion');
     } finally {
       setIsDeactivating(null);

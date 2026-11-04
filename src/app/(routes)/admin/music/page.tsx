@@ -2,7 +2,7 @@
 
 import { RefreshCw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
+import { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { toast } from 'sonner';
 import 'react-image-crop/dist/ReactCrop.css';
 
@@ -22,7 +22,6 @@ import { useScrollToSuccessTrack } from './hooks/useScrollToSuccessTrack';
 import { useSuccessNotification } from './hooks/useSuccessNotification';
 import { useTrackForm } from './hooks/useTrackForm';
 import { useTracks } from './hooks/useTracks';
-import { centerAspectCrop } from './utils/centerAspectCrop';
 import { addGenreToList, removeGenreFromList } from './utils/genreList';
 import { updatePlatformUrl } from './utils/platformUpdate';
 import { buildPlatformsArray, buildTrackRequestBody } from './utils/trackPayload';
@@ -140,12 +139,6 @@ export default function AdminMusicPage() {
 
   const resetFileInput = () =>
     imageUpload.fileInputRef.current && (imageUpload.fileInputRef.current.value = '');
-
-  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    const { naturalWidth, naturalHeight } = e.currentTarget;
-    if (naturalWidth && naturalHeight)
-      imageUpload.setCrop(centerAspectCrop(naturalWidth, naturalHeight, 1));
-  };
 
   const handleCropValidated = (file: File, preview: string) => {
     imageUpload.setCroppedImageBlob(file);

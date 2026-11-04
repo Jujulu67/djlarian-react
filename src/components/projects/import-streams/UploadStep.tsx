@@ -1,7 +1,6 @@
 'use client';
 
 import { Upload } from 'lucide-react';
-import type { RefObject, DragEvent, ChangeEvent } from 'react';
 
 interface UploadStepProps {
   dropZoneRef: React.RefObject<HTMLDivElement | null>;

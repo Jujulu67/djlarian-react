@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, X, Download, LayoutDashboard } from 'lucide-react';
+import { X, Download, LayoutDashboard } from 'lucide-react';
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useSession } from 'next-auth/react';
@@ -362,7 +362,6 @@ export function LiveSubmissionForm() {
           });
 
           if (response.ok) {
-            const data = await response.json();
             toast.success('Soumission envoyée avec succès !');
             // Recharger les soumissions pour passer en mode "Submitted"
             await loadSubmissions();

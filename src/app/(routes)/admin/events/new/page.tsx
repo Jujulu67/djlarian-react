@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useState, useEffect, useRef, Suspense } from 'react';
-import type { Crop as CropType } from 'react-image-crop';
 
 import 'react-image-crop/dist/ReactCrop.css';
 
@@ -89,7 +88,6 @@ function EventFormContent() {
   const [formData, setFormData] = useState<EventFormData>(initialFormData);
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [previewMode, _setPreviewMode] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
   const [originalImageFile, setOriginalImageFile] = useState<File | null>(null);
   const [croppedImageFile, setCroppedImageFile] = useState<File | null>(null);
@@ -168,6 +166,7 @@ function EventFormContent() {
           setImagePreview(getImageUrl(event.imageId, { cacheBust: Date.now() }) || '');
         }
       } catch (error) {
+        logger.warn('Erreur lors du chargement des données', error);
         setErrors({ submit: 'Erreur lors du chargement des données' });
       } finally {
         setLoading(false);
@@ -249,50 +248,8 @@ function EventFormContent() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Fonction utilitaire pour générer un crop 16/9 centré
-  const _centerAspectCrop = (mediaWidth: number, mediaHeight: number, aspect: number) => {
-    const width = mediaWidth;
-    const height = width / aspect;
-    const x = 0;
-    const y = (mediaHeight - height) / 2;
-    return {
-      unit: 'px',
-      x,
-      y: Math.max(0, y),
-      width,
-      height: Math.min(height, mediaHeight),
-    };
-  };
-
-  // Fonction pour générer le blob recadré (16/9)
-  const _getCroppedBlob = async (
-    image: HTMLImageElement,
-    crop: CropType,
-    fileName: string,
-    imageFileSource: File | null
-  ): Promise<{ croppedBlob: Blob | null; originalFileToSend: File | null }> => {
-    const originalFileToSend = imageFileSource;
-    const _imageWidth = image.naturalWidth || image.width;
-    const _imageHeight = image.naturalHeight || image.height;
-    const canvas = document.createElement('canvas');
-    canvas.width = crop.width;
-    canvas.height = crop.height;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('No 2d context');
-    ctx.drawImage(image, crop.x, crop.y, crop.width, crop.height, 0, 0, crop.width, crop.height);
-    return new Promise((resolve) => {
-      canvas.toBlob(
-        (blob) => {
-          resolve({ croppedBlob: blob, originalFileToSend });
-        },
-        'image/jpeg',
-        0.9
-      );
-    });
-  };
-
   // Nouvelle fonction pour gérer la sélection/recadrage d'image depuis EventForm
-  const handleImageSelected = (file: File) => {
+  const handleImageSelected = () => {
     // Générer un nouvel imageId à chaque nouvelle sélection
     const newImageId = generateImageId();
     setFormData((prev) => ({
@@ -456,6 +413,7 @@ function EventFormContent() {
       }
       router.push('/admin/events');
     } catch (error) {
+      logger.warn('Erreur lors de la sauvegarde', error);
       setErrors({ submit: 'Erreur lors de la sauvegarde' });
     } finally {
       setLoading(false);
@@ -497,52 +455,46 @@ function EventFormContent() {
           </div>
         )}
 
-        {!previewMode ? (
-          <div className="flex flex-col lg:flex-row gap-8">
-            <div className="flex-1 lg:max-w-[calc(100%-450px)]">
-              <EventForm
-                formData={formData}
-                errors={errors}
-                handleSubmit={handleSubmit}
-                handleChange={handleChange}
-                handleCheckboxChange={handleCheckboxChange}
-                handleRemoveImage={handleRemoveImage}
-                onImageSelected={handleImageSelected}
-                isEditMode={isEditMode}
-                setFormData={setFormData}
-                onImageFilesChange={(original, crop) => {
-                  setOriginalImageFile(original);
-                  setCroppedImageFile(crop);
-                  if (crop) {
-                    const reader = new FileReader();
-                    reader.onloadend = () => {
-                      setImagePreview(reader.result as string);
-                    };
-                    reader.readAsDataURL(crop);
-                  } else if (formData.imageId) {
-                    setImagePreview(getImageUrl(formData.imageId, { cacheBust: Date.now() }) || '');
-                  } else {
-                    setImagePreview(null);
-                  }
-                }}
-                imagePreview={imagePreview ?? undefined}
-              />
-            </div>
-            {/* Conteneur d'espace réservé pour l'aperçu */}
-            <div id="preview-placeholder" className="lg:w-[400px] flex-shrink-0">
-              <div ref={previewRef} className="w-full">
-                <div className="bg-gray-800/30 backdrop-blur-sm border border-gray-700/50 rounded-xl overflow-hidden shadow-lg">
-                  <h3 className="text-lg font-bold p-4">Aperçu</h3>
-                  <EventPreview event={{ ...formData, currentImage: imagePreview ?? undefined }} />
-                </div>
+        <div className="flex flex-col lg:flex-row gap-8">
+          <div className="flex-1 lg:max-w-[calc(100%-450px)]">
+            <EventForm
+              formData={formData}
+              errors={errors}
+              handleSubmit={handleSubmit}
+              handleChange={handleChange}
+              handleCheckboxChange={handleCheckboxChange}
+              handleRemoveImage={handleRemoveImage}
+              onImageSelected={handleImageSelected}
+              isEditMode={isEditMode}
+              setFormData={setFormData}
+              onImageFilesChange={(original, crop) => {
+                setOriginalImageFile(original);
+                setCroppedImageFile(crop);
+                if (crop) {
+                  const reader = new FileReader();
+                  reader.onloadend = () => {
+                    setImagePreview(reader.result as string);
+                  };
+                  reader.readAsDataURL(crop);
+                } else if (formData.imageId) {
+                  setImagePreview(getImageUrl(formData.imageId, { cacheBust: Date.now() }) || '');
+                } else {
+                  setImagePreview(null);
+                }
+              }}
+              imagePreview={imagePreview ?? undefined}
+            />
+          </div>
+          {/* Conteneur d'espace réservé pour l'aperçu */}
+          <div id="preview-placeholder" className="lg:w-[400px] flex-shrink-0">
+            <div ref={previewRef} className="w-full">
+              <div className="bg-gray-800/30 backdrop-blur-sm border border-gray-700/50 rounded-xl overflow-hidden shadow-lg">
+                <h3 className="text-lg font-bold p-4">Aperçu</h3>
+                <EventPreview event={{ ...formData, currentImage: imagePreview ?? undefined }} />
               </div>
             </div>
           </div>
-        ) : (
-          <div className="max-w-[800px] mx-auto">
-            <EventPreview event={{ ...formData, currentImage: imagePreview ?? undefined }} />
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );

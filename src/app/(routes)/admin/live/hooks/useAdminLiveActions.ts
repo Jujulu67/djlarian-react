@@ -5,6 +5,7 @@ import { calculateTicketWeight, calculateMultiplier } from '@/lib/live/calculati
 import type { UserTicket, UserLiveItem } from '@/types/live';
 import { TicketSource, LiveItemType } from '@/types/live';
 import { logger } from '@/lib/logger';
+import { secureRandom } from '@/lib/utils/random';
 
 export type AdminLiveActionsState = {
   downloadsEnabled: boolean;
@@ -413,7 +414,7 @@ export function useAdminLiveActions(
       }
 
       // Sélection aléatoire pondérée parmi les éligibles
-      let randomValue = Math.random() * totalWeight;
+      let randomValue = secureRandom() * totalWeight;
       let selectedSubmission = eligibleSubmissions[0];
 
       for (const item of eligibleWeightedSubmissions) {
@@ -503,6 +504,7 @@ export function useAdminLiveActions(
                       errorMessage =
                         errorData.error || errorData.message || JSON.stringify(errorData);
                     } catch (parseError) {
+                      logger.warn("Réponse d'erreur illisible", parseError);
                       errorMessage = `Erreur ${consumeResponse.status}: ${consumeResponse.statusText}`;
                     }
                     logger.error('Erreur lors de la consommation du Queue Skip:', {

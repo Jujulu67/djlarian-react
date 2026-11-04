@@ -1,6 +1,6 @@
 import { ExternalLink, RefreshCw, Save, Sparkles, X } from 'lucide-react';
 import Image from 'next/image';
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 import { DateTimeField } from '@/components/ui/DateTimeField';
 import Modal from '@/components/ui/Modal';

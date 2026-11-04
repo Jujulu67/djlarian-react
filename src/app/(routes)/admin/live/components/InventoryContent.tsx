@@ -7,9 +7,9 @@ import { Loader2, Trash2, Zap, ZapOff, Package, RefreshCw } from 'lucide-react';
 import Image from 'next/image';
 import { getInventory, getAllItems } from '@/actions/inventory';
 import { toast } from 'sonner';
-import type { UserLiveItem, LiveItem } from '@/types/live';
 import type { Prisma } from '@prisma/client';
 import { useBatchedInventoryActions } from '../hooks/useBatchedInventoryActions';
+import { logger } from '@/lib/logger';
 
 type LiveItemWithRelations = Prisma.LiveItemGetPayload<Record<string, never>>;
 type UserLiveItemWithRelations = Prisma.UserLiveItemGetPayload<{
@@ -25,7 +25,7 @@ export function InventoryContent({ userId, userName }: InventoryContentProps) {
   const [inventory, setInventory] = useState<UserLiveItemWithRelations[]>([]);
   const [allItems, setAllItems] = useState<LiveItemWithRelations[]>([]);
   const [loading, setLoading] = useState(false);
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const actionLoading: string | null = null;
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   const [refreshing, setRefreshing] = useState(false);
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -41,6 +41,7 @@ export function InventoryContent({ userId, userName }: InventoryContentProps) {
         if (invRes.success && invRes.data) setInventory(invRes.data);
         if (itemsRes.success && itemsRes.data) setAllItems(itemsRes.data);
       } catch (error) {
+        logger.warn('Failed to load inventory data', error);
         toast.error('Failed to load inventory data');
       } finally {
         if (!silent) setLoading(false);
@@ -322,6 +323,7 @@ export function InventoryContent({ userId, userName }: InventoryContentProps) {
       await loadData(false); // Show loading indicator
       toast.success('Inventory refreshed');
     } catch (error) {
+      logger.warn('Failed to refresh inventory', error);
       toast.error('Failed to refresh inventory');
     } finally {
       setRefreshing(false);

@@ -91,7 +91,7 @@ export function prepareConversationContext(
         const answer = truncateMessage(oldMessages[i + 1].content, 60);
 
         // Extraire les faits (nombres, dates, contraintes)
-        const numberPattern = /\d+/g;
+        const numberPattern = /\d/;
         const hasNumbers = numberPattern.test(answer);
         const constraintPattern =
           /(?:contrainte|constraint|limite|limit|budget|salaire|€|\$|ans|années|years)/i;
@@ -112,9 +112,9 @@ export function prepareConversationContext(
         // Extraire les préférences importantes avec plusieurs patterns
         // Patterns pour capturer : "je préfère X", "j'aime X", "mon choix est X", "je dirais X", "X est mon préféré"
         const preferencePatterns = [
-          /(?:je\s+pr[ée]f[èe]re|j['']?aime|mon\s+choix|je\s+dirais|je\s+choisirais)\s+([^.!?]+)/i,
-          /([^.!?]+)\s+(?:est\s+mon\s+pr[ée]f[èe]r[ée]|est\s+ma\s+pr[ée]f[èe]r[ée]e)/i,
-          /(?:pr[ée]f[èe]re|choisirais)\s+(?:l['']?|le\s+|la\s+)?([^.!?]+)/i,
+          /(?:je\s+pr[ée]f[èe]re|j['’]?aime|mon\s+choix|je\s+dirais|je\s+choisirais)\s+([^.!?]+)/i,
+          /(?<![^.!?])([^.!?]+)\s+(?:est\s+mon\s+pr[ée]f[èe]r[ée]|est\s+ma\s+pr[ée]f[èe]r[ée]e)/i,
+          /(?:pr[ée]f[èe]re|choisirais)\s+(?:l['’]?|le\s+|la\s+)?([^.!?]+)/i,
         ];
 
         let preferenceFound = false;
@@ -124,7 +124,10 @@ export function prepareConversationContext(
             const preference = match[1].trim();
             // Nettoyer la préférence (enlever les mots de liaison en fin)
             const cleanedPreference = preference
-              .replace(/\s+(car|parce\s+que|car|mais|donc|alors|ensuite|après|avant).*$/i, '')
+              .replace(
+                /(?<!\s)\s+(car|parce\s+que|car|mais|donc|alors|ensuite|après|avant).*$/i,
+                ''
+              )
               .trim();
             if (cleanedPreference.length > 2 && cleanedPreference.length < 50) {
               interpretativeItems.push(`${question} → ${cleanedPreference}`);

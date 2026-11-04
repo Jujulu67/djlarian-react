@@ -1,4 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { createSuccessResponse } from '@/lib/api/responseHelpers';
 import { handleApiError } from '@/lib/api/errorHandler';
@@ -7,7 +6,7 @@ import { handleApiError } from '@/lib/api/errorHandler';
  * GET /api/live/submissions/status
  * Vérifie si les soumissions sont activées (route publique)
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const trackSubmissionsSetting = await prisma.adminSettings.findUnique({
       where: { key: 'trackSubmissions' },

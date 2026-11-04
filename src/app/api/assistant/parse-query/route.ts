@@ -13,7 +13,7 @@ import { logger } from '@/lib/logger';
  * Filtre et valide l'historique conversationnel
  * Ne garde que les messages valides (user/assistant avec contenu)
  */
-function filterConversationHistory(history: any[] | undefined): ConversationMessage[] {
+function filterConversationHistory(history: unknown): ConversationMessage[] {
   if (!history || !Array.isArray(history)) {
     return [];
   }
@@ -104,8 +104,8 @@ export async function POST(request: NextRequest) {
       result.updateData &&
       'projectName' in result.updateData &&
       'newNote' in result.updateData &&
-      (result.updateData as any).projectName &&
-      (result.updateData as any).newNote;
+      Boolean((result.updateData as { projectName?: unknown }).projectName) &&
+      Boolean((result.updateData as { newNote?: unknown }).newNote);
     if (result.understood && !/projet|project/i.test(query.toLowerCase()) && !hasNoteUpdate) {
       logger.warn(
         '[Parse Query API] ⚠️ Question non liée aux projets mais understood=true:',

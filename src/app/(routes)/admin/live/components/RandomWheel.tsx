@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, useMotionValue, animate, useTransform } from 'framer-motion';
+import { motion, useMotionValue, animate } from 'framer-motion';
 import { useEffect, useRef, useMemo } from 'react';
 import type { SubmissionWithUser } from '../hooks/useAdminLiveSubmissions';
 
@@ -17,11 +17,6 @@ const goldPulseStyle = `
     }
   }
 `;
-
-interface WeightedSubmission {
-  submission: SubmissionWithUser;
-  weight: number;
-}
 
 interface RandomWheelProps {
   submissions: SubmissionWithUser[];
@@ -72,32 +67,6 @@ export function RandomWheel({
   // Calculer l'angle de rotation final pour que la sélection soit en haut
   // On veut que le segment sélectionné soit aligné avec le pointeur (en haut)
   // Avec une variation aléatoire pour que ça ne tombe pas toujours exactement au centre
-  const calculateFinalRotation = () => {
-    if (selectedIndex === null || numSegments === 0 || segmentAngles.length === 0) return 0;
-
-    // L'angle du début du segment sélectionné
-    const segmentStartAngle = cumulativeAngles[selectedIndex];
-    // L'angle du segment
-    const segmentAngle = segmentAngles[selectedIndex];
-    // L'angle du centre du segment sélectionné
-    const selectedSegmentCenterAngle = segmentStartAngle + segmentAngle / 2;
-
-    // Ajouter une variation aléatoire maximale pour créer un effet dramatique
-    // Parfois très proche du bord (jusqu'à 1% du segment suivant), parfois moins proche
-    // Utiliser une distribution qui peut donner des valeurs extrêmes pour l'effet "presque sélectionné"
-    const randomValue = Math.random();
-    // Utiliser une courbe pour favoriser parfois des valeurs extrêmes (effet dramatique)
-    const normalizedValue = Math.pow(randomValue, 0.7); // Courbe qui favorise les valeurs extrêmes
-    const randomVariation = (normalizedValue - 0.5) * segmentAngle * 0.98; // -49% à +49% (presque jusqu'au bord)
-    const adjustedAngle = selectedSegmentCenterAngle + randomVariation;
-
-    // Pour que le segment soit en haut, on doit tourner de (360 - angle du segment)
-    // Plus quelques tours complets pour l'effet de rotation
-    const baseRotation = 360 - adjustedAngle;
-    const fullRotations = 4 * 360; // 4 tours complets
-
-    return baseRotation + fullRotations;
-  };
 
   // Réinitialiser quand le spin se termine
   useEffect(() => {
@@ -266,7 +235,6 @@ export function RandomWheel({
                 {/* Texte du participant - horizontal, aligné avec le rayon (du centre vers l'extérieur) */}
                 {(() => {
                   const username = submission.User.name || 'Unknown';
-                  const weight = weights[index] || 0;
                   const segmentStartAngle = cumulativeAngles[index];
                   const segmentAngle = segmentAngles[index];
                   const segmentCenterAngle =

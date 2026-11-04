@@ -1,7 +1,6 @@
 'use client';
 
 import { FileAudio, Info, Loader2, Pause, Play, Upload, X } from 'lucide-react';
-import type { Dispatch, SetStateAction, RefObject, DragEvent, ChangeEvent } from 'react';
 import { toast } from 'sonner';
 
 import { type AudioAnalysisResult, formatDuration } from '@/lib/live/audio-analysis';

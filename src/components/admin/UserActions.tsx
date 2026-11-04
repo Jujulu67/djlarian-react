@@ -12,7 +12,7 @@ interface UserActionsProps {
   userName?: string | null; // Pour la confirmation
 }
 
-export default function UserActions({ userId, userName }: UserActionsProps) {
+export default function UserActions({ userId }: UserActionsProps) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);

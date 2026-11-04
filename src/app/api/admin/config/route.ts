@@ -84,7 +84,7 @@ const defaultConfigs: AllConfigs = {
 export async function GET(req: NextRequest) {
   try {
     // Vérifier que l'utilisateur est admin
-    const { session, error: authError } = await requireAdmin({ nonAdminStatus: 401 });
+    const { error: authError } = await requireAdmin({ nonAdminStatus: 401 });
     if (authError) return authError;
 
     // Récupérer le paramètre de section s'il existe

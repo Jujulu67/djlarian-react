@@ -143,13 +143,13 @@ export const AdminProjectsClient = ({ initialProjects, users }: AdminProjectsCli
     };
   }, [fetchCounts]);
 
-  const handleUpdate = async (id: string, field: string, value: string | number | null) => {
+  const handleUpdate = async () => {
     // Admin ne peut pas modifier les projets des autres (géré côté API)
     // Mais on peut afficher une notification
     logger.debug('Admin view - modification non autorisée');
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async () => {
     // Admin ne peut pas supprimer les projets des autres
     logger.debug('Admin view - suppression non autorisée');
   };

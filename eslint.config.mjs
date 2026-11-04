@@ -30,9 +30,17 @@ const toWarn = (value) => {
 };
 const sonarjsWarn = {
   ...sonarjs.configs.recommended,
-  rules: Object.fromEntries(
-    Object.entries(sonarjs.configs.recommended.rules).map(([name, value]) => [name, toWarn(value)])
-  ),
+  rules: {
+    ...Object.fromEntries(
+      Object.entries(sonarjs.configs.recommended.rules).map(([name, value]) => [
+        name,
+        toWarn(value),
+      ])
+    ),
+    // Doublons de @typescript-eslint/no-unused-vars, qui gère en plus les rest siblings
+    'sonarjs/no-unused-vars': 'off',
+    'sonarjs/unused-import': 'off',
+  },
 };
 
 const eslintConfig = [
@@ -202,6 +210,35 @@ const eslintConfig = [
     },
   },
   sonarjsWarn,
+  {
+    // Animations, effets visuels et données de test : Math.random() suffit. Les tirages qui
+    // donnent des gains et les identifiants passent par src/lib/utils/random.ts.
+    files: [
+      'src/app/(routes)/(home)/components/**',
+      'src/app/(routes)/profile/components/**',
+      'src/app/(routes)/admin/live/components/RandomWheel.tsx',
+      'src/components/3d/**',
+      'src/components/RhythmCatcher/**',
+      'src/components/sections/**',
+      'src/components/ui/MusicCard/**',
+      'src/lib/assistant/tools/**',
+      'src/lib/services/soundcloud/humanBehavior.ts',
+    ],
+    rules: { 'sonarjs/pseudo-random': 'off' },
+  },
+  {
+    // Parseur de l'assistant : messages limités à 2 000 caractères, et le test
+    // query-parser/__tests__/redos.test.ts vérifie qu'aucune entrée piégée de cette taille ne
+    // le ralentit (pire cas mesuré < 0,5 s). Les regex sont des listes de mots (fautes de
+    // frappe comprises) : leur lisibilité reste un chantier, voir docs/DETTE-TECHNIQUE.md.
+    files: ['src/lib/assistant/**', 'src/app/actions/assistant.ts', 'src/app/api/assistant/**'],
+    rules: { 'sonarjs/super-linear-regex': 'off', 'sonarjs/regex-complexity': 'off' },
+  },
+  {
+    // Titres et libellés SoundCloud : quelques dizaines de caractères.
+    files: ['src/lib/services/soundcloud/**'],
+    rules: { 'sonarjs/super-linear-regex': 'off' },
+  },
 ];
 
 export default eslintConfig;

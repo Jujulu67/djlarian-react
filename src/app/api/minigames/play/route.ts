@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma';
 import { applySpinOutcome, loadUserTokens } from '@/lib/slot-machine-rewards';
 import { RewardType } from '@/types/slot-machine';
 import { requireAuth } from '@/lib/api/requireAuth';
+import { secureRandom } from '@/lib/utils/random';
 
 // Configuration du RTP (Return To Player) ~ 0.7
 const GAME_COST = 10; // Coût par partie
@@ -22,7 +23,7 @@ interface GameOutcome {
 }
 
 function determineOutcome(gameType: 'roulette' | 'scratch' | 'mystery'): GameOutcome {
-  const rand = Math.random();
+  const rand = secureRandom();
 
   // 0.1% - Super Jackpot (Queue Skip)
   if (rand < 0.001) {
@@ -101,7 +102,7 @@ function determineOutcome(gameType: 'roulette' | 'scratch' | 'mystery'): GameOut
     rewardType: null,
     rewardAmount: 0,
     isWin: false,
-    message: messages[Math.floor(Math.random() * messages.length)],
+    message: messages[Math.floor(secureRandom() * messages.length)],
   };
 }
 

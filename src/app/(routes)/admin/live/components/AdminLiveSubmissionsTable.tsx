@@ -2,47 +2,22 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import {
-  RefreshCw,
-  Trash2,
-  ExternalLink,
-  ArrowUpDown,
-  Pin,
-  ArrowUp,
-  ArrowDown,
-} from 'lucide-react';
+import { RefreshCw, ExternalLink, ArrowUpDown, Pin, ArrowUp, ArrowDown } from 'lucide-react';
 import { useAdminLiveSubmissionsContext } from '../context/AdminLiveSubmissionsContext';
 import { useAdminLiveFilters } from '../hooks/useAdminLiveFilters';
 import { useAdminLivePlayerContext } from '../context/AdminLivePlayerContext';
-import { useAdminLiveActions } from '../hooks/useAdminLiveActions';
 import { calculateTicketWeight } from '@/lib/live/calculations';
 import type { UserTicket, UserLiveItem } from '@/types/live';
 import { TicketSource, LiveItemType } from '@/types/live';
-import Link from 'next/link';
 import { InventoryModal } from './InventoryModal';
 
 type SortField = 'weight' | 'username' | 'rolled' | null;
 type SortDirection = 'asc' | 'desc' | null;
 
 export function AdminLiveSubmissionsTable() {
-  const {
-    submissions,
-    loading,
-    error,
-    fetchSubmissions,
-    updateSubmissionRolled,
-    updateSubmissionPinned,
-  } = useAdminLiveSubmissionsContext();
+  const { submissions, loading, error, updateSubmissionRolled } = useAdminLiveSubmissionsContext();
 
-  const { searchUsername, showRolled, onlyActive, filteredSubmissions } =
-    useAdminLiveFilters(submissions);
-
-  const { purgeAllSubmissions } = useAdminLiveActions(
-    submissions,
-    updateSubmissionRolled,
-    updateSubmissionPinned,
-    fetchSubmissions
-  );
+  const { filteredSubmissions } = useAdminLiveFilters(submissions);
 
   const { setSelectedSubmission, restoreSelectedSubmission } = useAdminLivePlayerContext();
 

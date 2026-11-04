@@ -1,9 +1,6 @@
 'use client';
 
-import { motion } from 'framer-motion';
 import React, { useRef, useEffect, useState } from 'react';
-
-import { logger } from '@/lib/logger';
 
 import { GameState, Point, HitQuality, PowerUpType } from './gameEngine';
 import styles from './styles.module.css';
@@ -32,7 +29,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   gameState,
   onCollision,
   onCursorMove,
-  onHit,
   onHitRef,
   isAudioActive,
   onStart,

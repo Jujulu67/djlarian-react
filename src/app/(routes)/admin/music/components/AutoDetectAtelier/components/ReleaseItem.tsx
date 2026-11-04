@@ -1,6 +1,5 @@
 import { Check, ExternalLink, Plus } from 'lucide-react';
 import Image from 'next/image';
-import React from 'react';
 
 import { MUSIC_TYPES } from '@/lib/utils/music-helpers';
 import type { DetectedRelease } from '@/lib/services/types';

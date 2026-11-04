@@ -11,6 +11,7 @@ import {
 } from '@/lib/api/responseHelpers';
 import { handleApiError } from '@/lib/api/errorHandler';
 import { createDbPerformanceLogger } from '@/lib/db-performance';
+import { Prisma } from '@prisma/client';
 
 const batchActionSchema = z.discriminatedUnion('type', [
   z.object({
@@ -112,7 +113,7 @@ export async function POST(request: NextRequest) {
     const updates: Array<{
       type: 'activate' | 'deactivate' | 'addItem' | 'removeItem';
       id: string;
-      data: any;
+      data: Prisma.UserLiveItemUpdateInput & { delete?: boolean };
     }> = [];
     const creates: Array<{
       userId: string;
@@ -376,7 +377,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Créer les items regroupés et générer les résultats
-      for (const [key, grouped] of addItemMap.entries()) {
+      for (const [, grouped] of addItemMap.entries()) {
         creates.push({
           userId: grouped.userId,
           itemId: grouped.itemId,

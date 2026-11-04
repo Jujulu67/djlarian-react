@@ -10,19 +10,13 @@ import {
   Calendar,
   Plus,
   Search,
-  Filter,
   Edit,
   Trash2,
   Eye,
   EyeOff,
-  ArrowUpDown,
-  CheckCircle,
-  Clock,
   XCircle,
   Star,
-  Image as ImageIcon,
   MapPin,
-  Euro,
   RefreshCcw,
   AlertTriangle,
 } from 'lucide-react';
@@ -31,7 +25,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useState, useEffect, useMemo } from 'react';
-import { FaPlus, FaEdit, FaTrash, FaEye, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 
 import { logger } from '@/lib/logger';
 import { getImageUrl } from '@/lib/utils/getImageUrl';
@@ -59,14 +52,6 @@ export default function AdminEventsPage() {
   const [recurrenceFilter, setRecurrenceFilter] = useState('ALL');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [eventToDelete, setEventToDelete] = useState<string | null>(null);
-  const [showModal, setShowModal] = useState(false);
-  const [currentEvent, setCurrentEvent] = useState<EventWithRelations | null>(null);
-  const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
-  const [formMessage, setFormMessage] = useState<{
-    type: 'success' | 'error';
-    text: string;
-  } | null>(null);
-  const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(null);
 
   // Rediriger si l'utilisateur n'est pas un admin
   useEffect(() => {
@@ -244,13 +229,6 @@ export default function AdminEventsPage() {
     }
   };
 
-  // Gérer la création/modification d'un événement
-  const handleAddEditEvent = (event: EventWithRelations | null, mode: 'create' | 'edit') => {
-    setCurrentEvent(event);
-    setFormMode(mode);
-    setShowModal(true);
-  };
-
   // Formatter la date
   const formatEventDate = (dateString: string | Date | null) => {
     // Accepter Date ou null
@@ -259,7 +237,7 @@ export default function AdminEventsPage() {
       const date = typeof dateString === 'string' ? parseISO(dateString) : dateString;
       return format(date, 'dd MMMM yyyy à HH:mm', { locale: fr });
     } catch (error) {
-      logger.warn(`Date invalide: ${dateString}`);
+      logger.warn(`Date invalide: ${dateString}`, error);
       return 'Date invalide';
     }
   };
@@ -564,13 +542,13 @@ export default function AdminEventsPage() {
                                   }`}
                                 />
                               </button>
-                              <button
-                                onClick={() => handleAddEditEvent(event, 'edit')}
+                              <Link
+                                href={`/admin/events/${event.id}/edit`}
                                 className="p-2 rounded-lg transition-colors text-blue-400 hover:bg-blue-500/20"
                                 aria-label="Modifier l'événement"
                               >
                                 <Edit className="h-4 w-4" />
-                              </button>
+                              </Link>
                               <button
                                 onClick={() => {
                                   setEventToDelete(event.id);
@@ -631,20 +609,6 @@ export default function AdminEventsPage() {
             )}
           </div>
         </div>
-
-        {/* Message de confirmation/erreur */}
-        {formMessage && (
-          <div
-            className={`${
-              formMessage.type === 'success'
-                ? 'bg-green-100 text-green-700'
-                : 'bg-red-100 text-red-700'
-            } px-4 py-3 rounded mb-6`}
-            role="alert"
-          >
-            <span className="block sm:inline">{formMessage.text}</span>
-          </div>
-        )}
       </div>
     </div>
   );

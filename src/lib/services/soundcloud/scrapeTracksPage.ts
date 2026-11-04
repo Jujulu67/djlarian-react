@@ -108,6 +108,7 @@ export async function scrapeSoundCloudTracksPage(profileName: string): Promise<S
       );
       logger.debug(`[SOUNDCLOUD] Éléments de tracks détectés dans le DOM`);
     } catch (error) {
+      logger.warn('scrapeTracksPage.ts', error);
       logger.debug(
         `[SOUNDCLOUD] Timeout en attendant les éléments, mais on continue quand même...`
       );
@@ -327,7 +328,7 @@ export async function scrapeSoundCloudTracksPage(profileName: string): Promise<S
                 // Si pas de pattern, prendre tout après "Titre" ou tout le contenu
                 const simpleMatch = decoded.match(/Titre\s*[:\u00A0]\s*(.+)/i);
                 if (simpleMatch && simpleMatch[1]) {
-                  title = simpleMatch[1].split(/\s+par\s+/i)[0].trim();
+                  title = simpleMatch[1].split(/(?<!\s)\s+par\s+/i)[0].trim();
                 } else {
                   // Si aucun pattern ne fonctionne, utiliser tout le contenu décodé
                   title = decoded;
@@ -380,7 +381,7 @@ export async function scrapeSoundCloudTracksPage(profileName: string): Promise<S
             } else {
               const simpleMatch = decoded.match(/Titre\s*[:\u00A0]\s*(.+)/i);
               if (simpleMatch && simpleMatch[1]) {
-                title = simpleMatch[1].split(/\s+par\s+/i)[0].trim();
+                title = simpleMatch[1].split(/(?<!\s)\s+par\s+/i)[0].trim();
               } else {
                 title = decoded;
               }

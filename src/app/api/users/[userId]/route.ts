@@ -103,7 +103,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ user
     });
 
     // Ne jamais renvoyer le hash du mot de passe au client
-    const { hashedPassword: _hashedPassword, ...safeUser } = updatedUser;
+    const { hashedPassword, ...safeUser } = updatedUser;
     return NextResponse.json(safeUser);
   } catch (error: unknown) {
     logger.error(`PUT /api/users/${userId} - Erreur Prisma update:`, error);
@@ -198,12 +198,12 @@ async function handleUnsupportedMethod(request: Request) {
 }
 
 // Les exports pour GET, POST, PATCH
-export async function GET(request: Request, { params }: { params: Promise<{ userId: string }> }) {
+export async function GET(request: Request) {
   return handleUnsupportedMethod(request);
 }
-export async function POST(request: Request, { params }: { params: Promise<{ userId: string }> }) {
+export async function POST(request: Request) {
   return handleUnsupportedMethod(request);
 }
-export async function PATCH(request: Request, { params }: { params: Promise<{ userId: string }> }) {
+export async function PATCH(request: Request) {
   return handleUnsupportedMethod(request);
 }

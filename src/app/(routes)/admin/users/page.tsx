@@ -10,23 +10,6 @@ import { UserFiltersServer } from './components/UserFiltersServer';
 import { UserPagination } from './components/UserPagination';
 import { UserTable } from './components/UserTable';
 
-// Type pour les utilisateurs (mis à jour)
-type UserData = {
-  id: string;
-  name?: string | null;
-  email?: string | null;
-  role: string | null; // Accepter null pour le rôle
-  isVip?: boolean;
-  createdAt?: Date | null;
-  hashedPassword?: string | null; // Pour vérifier si l'utilisateur a un mot de passe
-  Account: Array<{
-    id: string;
-    provider: string;
-    providerAccountId: string;
-    type: string; // Pour vérifier si c'est OAuth
-  }>;
-};
-
 // Définir un type pour les paramètres
 type PageProps = {
   searchParams?: Promise<{

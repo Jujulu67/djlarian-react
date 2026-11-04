@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
 import prisma from '@/lib/prisma';
 import { requireAuth } from '@/lib/api/requireAuth';
@@ -8,7 +8,7 @@ import { logger } from '@/lib/logger';
  * GET /api/profile/accounts
  * Récupère les comptes OAuth liés à l'utilisateur connecté
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const { session, error } = await requireAuth({
       requireUserId: true,

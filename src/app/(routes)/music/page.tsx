@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useCallback } from 'react';
+import { useMemo, useCallback } from 'react';
 
 import SimpleMusicPlayer from '@/components/ui/SimpleMusicPlayer';
 import { MusicPlayerProvider } from '@/contexts/MusicPlayerContext';

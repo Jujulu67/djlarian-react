@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
@@ -77,10 +77,10 @@ const defaultConfigs = {
 };
 
 // Point d'entrée pour initialiser les configurations
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     // Vérifier que l'utilisateur est admin
-    const { session, error: authError } = await requireAdmin({ nonAdminStatus: 401 });
+    const { error: authError } = await requireAdmin({ nonAdminStatus: 401 });
     if (authError) return authError;
 
     const results = {

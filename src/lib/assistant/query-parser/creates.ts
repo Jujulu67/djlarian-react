@@ -46,9 +46,9 @@ const statusPatterns: { pattern: RegExp; status: string }[] = [
  * Patterns de collaborateurs
  */
 const collabPatterns = [
-  /collab(?:oration)?s?\s+(?:avec\s+)?([A-Za-z0-9_]+)/i, // "collab avec X" ou "collab X"
-  /(?:avec|feat\.?|ft\.?)\s+([A-Za-z0-9_]+)/i, // "avec X", "feat X"
-  /([A-Za-z0-9_]+)\s+collab/i, // "X collab"
+  /collab(?:oration)?s?\s+(?:avec\s+)?(\w+)/i, // "collab avec X" ou "collab X"
+  /(?:avec|feat\.?|ft\.?)\s+(\w+)/i, // "avec X", "feat X"
+  /\b(\w+)\s+collab/i, // "X collab"
 ];
 
 /**
@@ -65,13 +65,13 @@ export function extractCreateData(
   // Essayer différents patterns pour trouver le nom
   const namePatterns = [
     // Pattern le plus spécifique en premier : "ajoute le projet X" ou "créer le projet X"
-    /(?:ajoute|ajouter|créer|créé|add|create)\s+(?:le\s+)?(?:projet\s+)?([A-Za-z0-9_\s]+?)(?:\s+(?:en\s+collab|collab|avec|deadline|avancé|avance|progress|progression|il\s+est|c['']?est|it\s+is|it['']?s|status|statut)|$)/i,
+    /(?:ajoute|ajouter|créer|créé|add|create)\s+(?:le\s+)?(?:projet\s+)?([a-z0-9_\s]+?)(?:\s+(?:en\s+collab|collab|avec|deadline|avancé|avance|progress|progression|il\s+est|c['’]?est|it\s+is|it['’]?s|status|statut)|$)/i,
     // Pattern avec "projet" explicite
-    /(?:projet|project)\s+([A-Za-z0-9_\s]+?)(?:\s+(?:en\s+collab|collab|avec|deadline|avancé|avance|progress|progression|il\s+est|c['']?est|it\s+is|it['']?s|status|statut)|$)/i,
+    /(?:projet|project)\s+([a-z0-9_\s]+?)(?:\s+(?:en\s+collab|collab|avec|deadline|avancé|avance|progress|progression|il\s+est|c['’]?est|it\s+is|it['’]?s|status|statut)|$)/i,
     // Pattern "nouveau projet X"
-    /nouveau\s+projet\s+([A-Za-z0-9_\s]+?)(?:\s+(?:en\s+collab|collab|avec|deadline|avancé|avance|progress|progression|il\s+est|c['']?est|it\s+is|it['']?s|status|statut)|$)/i,
+    /nouveau\s+projet\s+([a-z0-9_\s]+?)(?:\s+(?:en\s+collab|collab|avec|deadline|avancé|avance|progress|progression|il\s+est|c['’]?est|it\s+is|it['’]?s|status|statut)|$)/i,
     // Pattern "new project X"
-    /new\s+project\s+([A-Za-z0-9_\s]+?)(?:\s+(?:en\s+collab|collab|avec|deadline|avancé|avance|progress|progression|il\s+est|c['']?est|it\s+is|it['']?s|status|statut)|$)/i,
+    /new\s+project\s+([a-z0-9_\s]+?)(?:\s+(?:en\s+collab|collab|avec|deadline|avancé|avance|progress|progression|il\s+est|c['’]?est|it\s+is|it['’]?s|status|statut)|$)/i,
   ];
 
   for (const pattern of namePatterns) {
@@ -96,7 +96,7 @@ export function extractCreateData(
   // Si pas de nom trouvé, essayer un pattern simple (un seul mot après "ajoute le projet")
   if (!createData.name) {
     const simplePattern =
-      /(?:ajoute|ajouter|créer|créé|add|create)\s+(?:le\s+)?(?:projet\s+)?([A-Za-z0-9_]+)(?:\s|$)/i;
+      /(?:ajoute|ajouter|créer|créé|add|create)\s+(?:le\s+)?(?:projet\s+)?(\w+)(?:\s|$)/i;
     const match = query.match(simplePattern);
     if (match && match[1]) {
       const potentialName = match[1].trim();
@@ -142,9 +142,9 @@ export function extractCreateData(
 
   // Extraire deadline
   const deadlinePatterns = [
-    /deadline\s+(?:pour\s+)?(?:le\s+)?(semaine\s+pro|semaine\s+prochaine|next\s+week|demain|tomorrow|aujourd['']hui|today|après[- ]?demain|day\s+after\s+tomorrow|dans\s+\d+\s+(?:jours?|semaines?|mois)|in\s+\d+\s+(?:days?|weeks?|months?)|\d{4}-\d{2}-\d{2})/i,
-    /(?:avec\s+)?deadline\s+(semaine\s+pro|semaine\s+prochaine|next\s+week|demain|tomorrow|aujourd['']hui|today|après[- ]?demain|day\s+after\s+tomorrow|dans\s+\d+\s+(?:jours?|semaines?|mois)|in\s+\d+\s+(?:days?|weeks?|months?)|\d{4}-\d{2}-\d{2})/i,
-    /(?:pour|à)\s+(?:le\s+)?(semaine\s+pro|semaine\s+prochaine|next\s+week|demain|tomorrow|aujourd['']hui|today|après[- ]?demain|day\s+after\s+tomorrow|dans\s+\d+\s+(?:jours?|semaines?|mois)|in\s+\d+\s+(?:days?|weeks?|months?)|\d{4}-\d{2}-\d{2})/i,
+    /deadline\s+(?:pour\s+)?(?:le\s+)?(semaine\s+pro|semaine\s+prochaine|next\s+week|demain|tomorrow|aujourd['’]hui|today|après[- ]?demain|day\s+after\s+tomorrow|dans\s+\d+\s+(?:jours?|semaines?|mois)|in\s+\d+\s+(?:days?|weeks?|months?)|\d{4}-\d{2}-\d{2})/i,
+    /(?:avec\s+)?deadline\s+(semaine\s+pro|semaine\s+prochaine|next\s+week|demain|tomorrow|aujourd['’]hui|today|après[- ]?demain|day\s+after\s+tomorrow|dans\s+\d+\s+(?:jours?|semaines?|mois)|in\s+\d+\s+(?:days?|weeks?|months?)|\d{4}-\d{2}-\d{2})/i,
+    /(?:pour|à)\s+(?:le\s+)?(semaine\s+pro|semaine\s+prochaine|next\s+week|demain|tomorrow|aujourd['’]hui|today|après[- ]?demain|day\s+after\s+tomorrow|dans\s+\d+\s+(?:jours?|semaines?|mois)|in\s+\d+\s+(?:days?|weeks?|months?)|\d{4}-\d{2}-\d{2})/i,
     // Pattern spécifique pour "met une deadline à dans X mois"
     /(?:met|mets?|définis?|définir)\s+(?:une\s+)?deadline\s+(?:à|pour|pour\s+le)?\s*(dans\s+\d+\s+(?:jours?|semaines?|mois)|in\s+\d+\s+(?:days?|weeks?|months?))/i,
   ];
@@ -164,8 +164,8 @@ export function extractCreateData(
   // Extraire progress (e.g., "70%", "avancé à 70%")
   const progressPatterns = [
     /(?:avancé|avance|progress|progression)\s*(?:à|de|à\s+)?(\d+)\s*%/i,
-    /(\d+)\s*%\s*(?:d['']?avancement|de\s+progress|de\s+progression)?/i,
-    /(?:à|à\s+)?(\d+)\s*%/i,
+    /(?<!\d)(\d+)\s*%\s*(?:d['’]?avancement|de\s+progress|de\s+progression)?/i,
+    /(?<!\d)(?:à|à\s+)?(\d+)\s*%/i,
   ];
 
   for (const pattern of progressPatterns) {

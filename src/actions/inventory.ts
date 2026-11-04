@@ -2,7 +2,6 @@
 
 import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
-import { revalidatePath } from 'next/cache';
 import { createDbPerformanceLogger } from '@/lib/db-performance';
 import { logger } from '@/lib/logger';
 

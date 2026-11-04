@@ -1,5 +1,3 @@
-import { NextRequest } from 'next/server';
-
 import { handleApiError } from '@/lib/api/errorHandler';
 import { createSuccessResponse, createUnauthorizedResponse } from '@/lib/api/responseHelpers';
 import prisma from '@/lib/prisma';
@@ -9,7 +7,7 @@ import { requireAuth } from '@/lib/api/requireAuth';
  * GET /api/friends
  * Récupère la liste des amis, demandes reçues et demandes envoyées de l'utilisateur
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const { session, error } = await requireAuth({
       requireUserId: true,

@@ -81,7 +81,7 @@ export function detectFilters(
   // Patterns: "projets à 7%", "à 7% d'avancement", "modifie les projets à 7% et mets les à 10"
   // Note: "a" (sans accent) est aussi accepté pour tolérer les fautes de frappe
   const exactProgressPatterns = [
-    /(?:projets?\s+)?(?:à|a|en)\s+(\d+)\s*%\s*(?:d['']?avancement|de\s+progress|de\s+progression)/i,
+    /(?:projets?\s+)?(?:à|a|en)\s+(\d+)\s*%\s*(?:d['’]?avancement|de\s+progress|de\s+progression)/i,
     // "projets à 7%" suivi de "et", "," (avec ou sans espace), ou fin de phrase
     // Accepte aussi "tous les projets a 15%," avec "tous les" avant
     /(?:tous\s+les?\s+)?(?:projets?\s+)?(?:à|a|en)\s+(\d+)\s*%(?:\s*(?:et|,)|$)/i,
@@ -107,7 +107,7 @@ export function detectFilters(
 
         // Vérifier si le match se termine par "et" (le pattern l'a inclus, c'est un filtre)
         const matchEndsWithEt =
-          /\s+(?:et|,)\s*$/i.test(matchedText) ||
+          /(?<!\s)\s+(?:et|,)\s*$/i.test(matchedText) ||
           matchedText.trim().endsWith('et') ||
           matchedText.trim().endsWith(',');
 
@@ -122,7 +122,7 @@ export function detectFilters(
         // Si c'est suivi d'une date/deadline (ex: "au mois prochain", "demain"), c'est un filtre
         // car "à 15% au mois prochain" signifie "les projets à 15%"
         const isFollowedByDate =
-          /\b(?:au|à\s+le|pour|pour\s+le)\s+(?:le\s+)?(?:mois\s+prochain|semaine\s+pro|semaine\s+prochaine|next\s+month|next\s+week|demain|tomorrow|aujourd['']hui|today)/i.test(
+          /\b(?:au|à\s+le|pour|pour\s+le)\s+(?:le\s+)?(?:mois\s+prochain|semaine\s+pro|semaine\s+prochaine|next\s+month|next\s+week|demain|tomorrow|aujourd['’]hui|today)/i.test(
             textAfter
           );
 
@@ -194,7 +194,7 @@ export function detectFilters(
   const maxPatterns = [
     /(?:sous\s*(?:les?)?|moins\s*de|inf[ée]rieur[es]?\s*[àa]|<)\s*(\d+)\s*(?:%|pourcent)?/i,
     /(?:under|below|less\s*than)\s*(\d+)\s*%?/i,
-    /(\d+)\s*(?:%|pourcent)\s*(?:max|maximum)/i,
+    /(?<!\d)(\d+)\s*(?:%|pourcent)\s*(?:max|maximum)/i,
   ];
   for (const pattern of maxPatterns) {
     const match = lowerQuery.match(pattern);
@@ -207,7 +207,7 @@ export function detectFilters(
   // Détecter progression min (plus de X%, supérieur à X%, > X%)
   const minPatternsCorrect = [
     /(?:plus\s*de|sup[ée]rieur[es]?\s*[àa]|>|au\s*dessus\s*de)\s*(\d+)\s*(?:%|pourcent)?/i,
-    /(\d+)\s*(?:%|pourcent)\s*(?:min|minimum)/i,
+    /(?<!\d)(\d+)\s*(?:%|pourcent)\s*(?:min|minimum)/i,
   ];
 
   for (const pattern of minPatternsCorrect) {
@@ -369,7 +369,7 @@ export function detectFilters(
           // Exemple: "passe les à en cours" -> "en cours" est après "à", donc c'est la nouvelle valeur
           // Exemple: "marques les projets en TERMINE" -> "TERMINE" est après "en", donc c'est la nouvelle valeur
           const endsWithAorEn = /(?:^|\s)(?:à|en|comme|as)\s*$/.test(textBeforeStatus);
-          const hasAEnPattern = /\s+à\s+(?:en|comme|as)\s*$/.test(textBeforeStatus);
+          const hasAEnPattern = /(?<!\s)\s+à\s+(?:en|comme|as)\s*$/.test(textBeforeStatus);
           // Vérifier aussi si le statut est directement après "en" (ex: "en TERMINE", "en cours")
           const hasEnBeforeStatus = /\ben\s+$/.test(textBeforeStatus);
 
@@ -411,10 +411,10 @@ export function detectFilters(
 
   // Détecter collaborateurs
   const collabPatterns = [
-    /collab(?:oration)?s?\s+(?:avec\s+)?([A-Za-z0-9_]+)/i, // "collab avec X" ou "collab X"
-    /(?:avec|feat\.?|ft\.?|with)\s+([A-Za-z0-9_]+)/i, // "avec X", "feat X", "with X"
-    /([A-Za-z0-9_]+)\s+collab/i, // "X collab"
-    /(?:en\s+)?collaborateur\s+(?:avec\s+)?([A-Za-z0-9_]+)/i, // "en collaborateur avec X" ou "collaborateur X"
+    /collab(?:oration)?s?\s+(?:avec\s+)?(\w+)/i, // "collab avec X" ou "collab X"
+    /(?:avec|feat\.?|ft\.?|with)\s+(\w+)/i, // "avec X", "feat X", "with X"
+    /\b(\w+)\s+collab/i, // "X collab"
+    /(?:en\s+)?collaborateur\s+(?:avec\s+)?(\w+)/i, // "en collaborateur avec X" ou "collaborateur X"
   ];
   for (const pattern of collabPatterns) {
     const match = query.match(pattern); // Garder la casse originale
@@ -576,8 +576,8 @@ export function detectFilters(
 
   // Détecter label (label ciblé)
   const labelPatterns = [
-    /(?:label|label\s+cibl[ée])\s+(?:à|en|pour|est|de)?\s*([A-Za-z0-9_\s]+)/i,
-    /(?:projets?\s+)?(?:avec\s+)?label\s+([A-Za-z0-9_\s]+)/i,
+    /(?:label|label\s+cibl[ée])\s+(?:à|en|pour|est|de)?\s*([a-z0-9_\s]+)/i,
+    /(?:projets?\s+)?(?:avec\s+)?label\s+([a-z0-9_\s]+)/i,
   ];
   for (const pattern of labelPatterns) {
     const match = query.match(pattern);
@@ -606,9 +606,9 @@ export function detectFilters(
 
   // Détecter label final (si signé)
   const labelFinalPatterns = [
-    /(?:label\s+final|sign[ée])\s+(?:à|en|chez|pour|est|de)?\s*([A-Za-z0-9_\s]+)/i,
-    /(?:projets?\s+)?(?:avec\s+)?label\s+final\s+([A-Za-z0-9_\s]+)/i,
-    /sign[ée]\s+chez\s+([A-Za-z0-9_\s]+)/i,
+    /(?:label\s+final|sign[ée])\s+(?:à|en|chez|pour|est|de)?\s*([a-z0-9_\s]+)/i,
+    /(?:projets?\s+)?(?:avec\s+)?label\s+final\s+([a-z0-9_\s]+)/i,
+    /sign[ée]\s+chez\s+([a-z0-9_\s]+)/i,
   ];
   for (const pattern of labelFinalPatterns) {
     const match = query.match(pattern);
@@ -640,8 +640,8 @@ export function detectFilters(
     /avec\s*deadline|deadline\s*pr[ée]vue|qui\s+ont\s+(?:une\s+)?deadline|ayant\s+une?\s+deadline/i,
   ];
   const hasNoDeadlinePatterns = [
-    /(?:pour|sur|des?)\s+(?:les?\s+)?(?:projets?\s+)?(?:sans|qui\s+n['']ont\s+pas\s+de|n['']ayant\s+pas\s+de)\s+deadline/i,
-    /sans\s*deadline|pas\s*de\s*deadline|qui\s+n['']ont\s+pas\s+de\s+deadline/i,
+    /(?:pour|sur|des?)\s+(?:les?\s+)?(?:projets?\s+)?(?:sans|qui\s+n['’]ont\s+pas\s+de|n['’]ayant\s+pas\s+de)\s+deadline/i,
+    /sans\s*deadline|pas\s*de\s*deadline|qui\s+n['’]ont\s+pas\s+de\s+deadline/i,
   ];
 
   let hasDeadlineDetected = false;

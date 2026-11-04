@@ -1,5 +1,4 @@
 import { Plus, RefreshCw } from 'lucide-react';
-import React from 'react';
 
 import type { DetectedRelease } from '@/lib/services/types';
 

@@ -121,7 +121,7 @@ export default function HeroSection({ config }: HeroSectionProps) {
   const [videoFailed, setVideoFailed] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [readyForOtherAnimations, setReadyForOtherAnimations] = useState(false);
-  const [criticalDataLoaded, setCriticalDataLoaded] = useState(true); // Déjà chargé côté serveur
+  const criticalDataLoaded = true; // Déjà chargé côté serveur
 
   // Détecter si on est sur mobile
   useEffect(() => {

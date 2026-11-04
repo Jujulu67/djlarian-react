@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { logger } from '@/lib/logger';
 
 interface SpeedInsightsStatus {
   enabled: boolean;
@@ -37,6 +38,7 @@ export default function VercelSpeedInsightsDashboard() {
         });
       }
     } catch (error) {
+      logger.warn('VercelSpeedInsightsDashboard.tsx', error);
       setStatus({
         enabled: true,
         loading: false,
@@ -47,8 +49,6 @@ export default function VercelSpeedInsightsDashboard() {
   useEffect(() => {
     fetchStatus();
   }, []);
-
-  const enabled = true; // Toujours actif si intégré
 
   return (
     <Card className="glass border-purple-500/20 bg-transparent">

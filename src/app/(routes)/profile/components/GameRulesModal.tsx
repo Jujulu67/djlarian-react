@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Info, Coins, Trophy, Zap, HelpCircle } from 'lucide-react';
+import { X, Info, Coins, Trophy, HelpCircle } from 'lucide-react';
 import ReactDOM from 'react-dom';
 import { useState } from 'react';
 

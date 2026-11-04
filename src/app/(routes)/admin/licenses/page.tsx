@@ -4,7 +4,7 @@ import { Prisma } from '@prisma/client';
 import { redirect } from 'next/navigation';
 import { LicenseTable } from '@/components/admin/LicenseTable';
 import { Button } from '@/components/ui/Button';
-import { Plus, Download } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { CreateLicenseButton } from '@/components/admin/CreateLicenseButton';
 import Link from 'next/link';
 import { logger } from '@/lib/logger';

@@ -224,8 +224,7 @@ export function detectStatusFromQuery(query: string): string | null {
       if (lowerQuery.includes(keywordLower) || keywordLower.includes(lowerQuery)) {
         const score = 1.0;
         if (!bestMatch || score > bestMatch.score) {
-          bestMatch = { status: status.value, score };
-          logger.warn(
+          logger.debug(
             `[Assistant] Statut détecté par match exact: "${status.value}" (keyword: "${keyword}", query: "${query}")`
           );
           return status.value;
@@ -275,8 +274,7 @@ export function detectStatusFromQuery(query: string): string | null {
             if (hasGhostBeforeProd) {
               const score = 0.8;
               if (!bestMatch || score > bestMatch.score) {
-                bestMatch = { status: status.value, score };
-                logger.warn(
+                logger.debug(
                   `[Assistant] Statut détecté par pattern flexible: "${status.value}" (query: "${query}")`
                 );
                 return status.value;
@@ -288,8 +286,7 @@ export function detectStatusFromQuery(query: string): string | null {
           if (/gaus?praud|gaus?prod|gaus?prau/i.test(lowerQuery)) {
             const score = 0.85;
             if (!bestMatch || score > bestMatch.score) {
-              bestMatch = { status: status.value, score };
-              logger.warn(
+              logger.debug(
                 `[Assistant] Statut détecté par pattern spécial: "${status.value}" (query: "${query}")`
               );
               return status.value;

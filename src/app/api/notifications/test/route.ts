@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       type: string;
       title: string;
       message: string;
-      metadata: Record<string, any>;
+      metadata: Record<string, unknown>;
       projectId?: string | null;
     };
 

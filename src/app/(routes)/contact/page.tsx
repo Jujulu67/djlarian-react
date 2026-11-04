@@ -18,6 +18,7 @@ import { Reveal, RevealGroup, RevealItem } from '@/components/ui/Reveal';
 import { socialLinks } from '@/config/socialLinks';
 import { useSpotlight } from '@/hooks/useSpotlight';
 import { useUiVersion } from '@/hooks/useUiVersion';
+import { logger } from '@/lib/logger';
 
 /** Champ de formulaire v2 */
 const FIELD_V2 =
@@ -79,6 +80,7 @@ export default function ContactPage() {
       setSubmitStatus('success');
       setFormData({ name: '', email: '', subject: '', message: '' });
     } catch (error) {
+      logger.warn('error', error);
       setSubmitStatus('error');
     } finally {
       setIsSubmitting(false);

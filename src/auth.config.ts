@@ -28,7 +28,7 @@ if (process.env.TWITCH_CLIENT_ID && process.env.TWITCH_CLIENT_SECRET) {
 export const authConfig = {
   providers,
   callbacks: {
-    async signIn({ user, account, profile }) {
+    async signIn({ user, account }) {
       // Si c'est une connexion OAuth et qu'un utilisateur existe avec le même email.
       // Les connexions par mot de passe (provider 'credentials') ne sont pas concernées :
       // authorize() a déjà vérifié le mot de passe, et elles n'ont pas de ligne Account.

@@ -3,7 +3,7 @@ import path from 'path';
 
 import { NextRequest, NextResponse } from 'next/server';
 
-import { uploadToBlobWithCheck, getBlobPublicUrl } from '@/lib/blob';
+import { uploadToBlobWithCheck } from '@/lib/blob';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import { convertToWebP, canConvertToWebP } from '@/lib/utils/convertToWebP';

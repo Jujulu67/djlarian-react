@@ -114,7 +114,7 @@ export async function getTrackInfo(
       result.description = data.track.wiki.summary
         .replace(/\[url[^\]]*\]/g, '')
         .replace(/\[\/url\]/g, '')
-        .replace(/<[^>]*>/g, '')
+        .replace(/<[^<>]*>/g, '')
         .trim();
     }
 

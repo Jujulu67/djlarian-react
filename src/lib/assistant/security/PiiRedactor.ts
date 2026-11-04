@@ -58,9 +58,9 @@ const PHONE_PATTERNS = [
  */
 const API_KEY_PATTERNS = [
   // OpenAI style: sk-... ou pk-...
-  /\b(sk|pk|api)[-_]?[A-Za-z0-9]{20,}\b/gi,
+  /\b(sk|pk|api)[-_]?[a-z0-9]{20,}\b/gi,
   // Bearer tokens longs
-  /\bBearer\s+[A-Za-z0-9_-]{20,}\b/gi,
+  /\bBearer\s+[a-z0-9_-]{20,}\b/gi,
   // Generic long hex/base64 tokens (40+ chars)
   /\b[A-Fa-f0-9]{40,}\b/g,
   // JWT patterns (xxx.yyy.zzz)

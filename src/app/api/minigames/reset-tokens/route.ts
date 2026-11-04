@@ -1,4 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server';
 import {
   createForbiddenResponse,
   createSuccessResponse,
@@ -8,7 +7,7 @@ import { handleApiError } from '@/lib/api/errorHandler';
 import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/api/requireAuth';
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     // Outil de test réservé aux admins (le bouton n'est affiché qu'à eux)
     const { session, error } = await requireAdmin({

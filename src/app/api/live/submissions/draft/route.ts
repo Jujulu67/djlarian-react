@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     // Le fichier est maintenant uploadé directement depuis le client vers Blob
     // On reçoit juste l'URL du fichier, le nom et la taille
     const body = await request.json();
-    const { fileUrl, fileName, fileSize, draftId } = body;
+    const { fileUrl, fileName, draftId } = body;
 
     // Valider les données
     if (!fileUrl || !fileName) {
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
  * GET /api/live/submissions/draft
  * Récupère le draft de l'utilisateur connecté
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const { session, error } = await requireAuth({
       requireUserId: true,

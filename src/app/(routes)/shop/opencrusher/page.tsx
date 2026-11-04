@@ -8,7 +8,6 @@ import {
   Palette,
   Settings2,
   Sparkles,
-  Waves,
   ChevronRight,
 } from 'lucide-react';
 // lucide-react v1 a retiré les icônes de marques : GitHub vient de react-icons

@@ -19,18 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/Select';
-import {
-  MoreHorizontal,
-  Eye,
-  ShieldAlert,
-  CheckCircle,
-  XCircle,
-  Copy,
-  Trash2,
-  Search,
-  Filter,
-  Box,
-} from 'lucide-react';
+import { Eye, Copy, Trash2, Search, Filter, Box } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';

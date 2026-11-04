@@ -19,6 +19,8 @@ import { convertToWebP, canConvertToWebP } from '@/lib/utils/convertToWebP';
 import { generateImageId } from '@/lib/utils/generateImageId';
 import { saveImage } from '@/lib/utils/saveImage';
 import type { MusicType, MusicPlatform } from '@/lib/utils/types';
+import { NextRequest } from 'next/server';
+import { isValidImageId } from '@/lib/utils/generateImageId';
 
 /**
  * Music API endpoint - Vercel (Node.js runtime natif)
@@ -65,11 +67,7 @@ const trackCreateSchema = z.object({
   releaseDate: z.string().refine((date) => !isNaN(new Date(date).getTime()), {
     message: 'Invalid date format for releaseDate',
   }),
-  imageId: z
-    .string()
-    .regex(/^[a-z0-9]+-[a-z0-9]+$|^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
-    .optional()
-    .nullable(), // Accepte le nouveau format court (timestamp-random) ou l'ancien UUID
+  imageId: z.string().refine(isValidImageId, 'Identifiant d’image invalide').optional().nullable(), // Accepte le nouveau format court (timestamp-random) ou l'ancien UUID
   bpm: z.number().int().positive().optional().nullable(),
   musicalKey: z.string().optional().nullable(),
   description: z.string().optional().nullable(),
@@ -158,10 +156,10 @@ export async function GET(): Promise<Response> {
 }
 
 // POST /api/music - Créer une nouvelle piste
-export async function POST(request: Request): Promise<Response> {
+export async function POST(request: NextRequest): Promise<Response> {
   // Rate limiting
   const { rateLimit } = await import('@/lib/api/rateLimiter');
-  const rateLimitResponse = await rateLimit(request as any, 30); // 30 req/min pour les créations
+  const rateLimitResponse = await rateLimit(request, 30); // 30 req/min pour les créations
   if (rateLimitResponse) {
     return rateLimitResponse;
   }

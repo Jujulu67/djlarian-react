@@ -3,7 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import React, { useEffect, useRef, useState } from 'react';
 
-import { Player, GameState, PowerUpType, GameMode } from './gameEngine';
+import { Player, GameState, GameMode } from './gameEngine';
 import styles from './styles.module.css';
 
 interface ScorePanelProps {

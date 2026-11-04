@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { ShieldAlert, Trash2, Calendar, Monitor, Cpu, RotateCw, Loader2, Copy } from 'lucide-react';
+import { ShieldAlert, Trash2, Monitor, Cpu, RotateCw, Loader2, Copy } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
@@ -51,7 +51,6 @@ interface LicenseDetailsModalProps {
 
 export function LicenseDetailsModal({ license, isOpen, onClose }: LicenseDetailsModalProps) {
   const router = useRouter();
-  const [isRevoking, setIsRevoking] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   if (!isOpen) return null;

@@ -87,7 +87,7 @@ export async function routeProjectCommand(
   });
 
   // Déterminer le chemin de décision
-  let decisionPath = 'UNKNOWN';
+  let decisionPath: string;
   if (classification.isConversationalQuestion && !classification.hasActionVerb) {
     decisionPath = 'GENERAL';
   } else if (classification.isList || classification.isCount) {
