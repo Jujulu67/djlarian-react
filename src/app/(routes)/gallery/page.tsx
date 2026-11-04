@@ -1,7 +1,8 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Images, Instagram, Layers, Play, X } from 'lucide-react';
+import { Images, Layers, Play, X } from 'lucide-react';
+import { FaInstagram } from 'react-icons/fa';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import type { KeyboardEvent } from 'react';
@@ -109,7 +110,7 @@ function EmptyStateV2({ title, description }: { title: string; description: stri
   return (
     <div className="surface-1 mx-auto flex max-w-md flex-col items-center rounded-2xl px-6 py-12 text-center">
       <span className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-white/[0.04]">
-        <Instagram className="h-6 w-6 text-white/70" aria-hidden="true" />
+        <FaInstagram className="h-6 w-6 text-white/70" aria-hidden="true" />
       </span>
       <p className="mb-1 font-medium text-white">{title}</p>
       <p className="text-sm text-white/60">{description}</p>
@@ -342,7 +343,7 @@ function GalleryV2({
                         <span />
                       )}
                       <span className="flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white/90 backdrop-blur-md">
-                        <Instagram className="h-3.5 w-3.5" aria-hidden="true" />
+                        <FaInstagram className="h-3.5 w-3.5" aria-hidden="true" />
                       </span>
                     </div>
                     <div className="absolute inset-x-0 bottom-0 p-4 md:p-5">

@@ -20,13 +20,13 @@ jest.mock('@/lib/prisma', () => ({
   },
 }));
 
-jest.mock('archiver', () => {
-  return jest.fn(() => ({
+jest.mock('archiver', () => ({
+  ZipArchive: jest.fn(() => ({
     on: jest.fn(),
     append: jest.fn(),
     finalize: jest.fn(),
-  }));
-});
+  })),
+}));
 
 // Mock fetch
 global.fetch = jest.fn();

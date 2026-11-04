@@ -442,19 +442,21 @@ Date: ${today}\nUtilisateur: ${currentUserName || 'Inconnu'}\n${isAdmin ? 'Rôle
     }
 
     if (toolResults && toolResults.length > 0) {
-      const firstResult = toolResults[0];
-      const typedResult = (
-        firstResult as {
-          result?: {
+      // Le SDK ai expose le retour de l'outil dans `output` (`result` dans les anciennes versions)
+      const firstResult = toolResults[0] as {
+        output?: unknown;
+        result?: unknown;
+        toolName?: string;
+      };
+      const typedResult = (firstResult.output ?? firstResult.result) as
+        | {
             message?: string;
             count?: number;
             project?: unknown;
             projects?: Array<{ id: string; name: string }>;
-          };
-          toolName?: string;
-        }
-      ).result;
-      const toolName = (firstResult as { result?: unknown; toolName?: string }).toolName;
+          }
+        | undefined;
+      const toolName = firstResult.toolName;
 
       let response = '';
       if (text) response += text + '\n\n';
