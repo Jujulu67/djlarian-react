@@ -25,7 +25,7 @@ comme compromises.
       arrêtés, alertes GitHub fermées. Nouvelle clé dans « DJLarian Search », restreinte à
       YouTube Data API v3. Reste à **redéployer la prod sur Vercel** : le dernier déploiement
       (25/10) utilise encore l'ancienne clé, donc les vidéos YouTube ne marchent plus en prod.
-- [ ] **Demander au support GitHub de purger les anciens commits** : l'historique a été
+- [ ] _(facultatif, décidé le 04/11/2026 : tous les secrets fuités sont révoqués ; seule raison restante, les données personnelles des dumps)_ **Demander au support GitHub de purger les anciens commits** : l'historique a été
       réécrit le 24/10/2026, mais les PR #1 à #4 et #16 gardent des références en lecture
       seule vers l'ancien historique, et les commits restent accessibles par leur SHA.
       Formulaire : https://support.github.com/contact → « Remove sensitive data », en
