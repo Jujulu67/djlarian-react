@@ -13,7 +13,7 @@ Twitch, dont un refresh token Twitch). Les fichiers ont été retirés et l'hist
 mais des forks, caches ou clones ont pu les récupérer avant : il faut considérer ces données
 comme compromises.
 
-- [ ] 🔴 **Régénérer le jeton du store Vercel Blob** (audit du 04/11/2026) : jusqu'à cette date,
+- [x] **Jeton du store Vercel Blob régénéré** (04/11/2026, prod redéployée) : jusqu'à cette date,
       `/api/live/submissions/upload-token` donnait `BLOB_READ_WRITE_TOKEN` (lecture, écriture et
       suppression de tous les fichiers du site) à tout compte connecté. Le code est corrigé, mais le
       jeton a pu être récupéré : Vercel → Storage → le store Blob → régénérer le jeton (la variable
