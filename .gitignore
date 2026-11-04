@@ -112,3 +112,7 @@ docker-compose.override.yml
 eslint-report.txt
 assistant-test-report.*
 *.pkg
+
+# Sorties de Playwright (générées à chaque lancement des tests e2e)
+/test-results/
+/playwright-report/
