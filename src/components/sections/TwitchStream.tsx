@@ -44,27 +44,6 @@ function TwitchIcon({ className }: { className?: string }) {
 /* UI v2                                                                      */
 /* -------------------------------------------------------------------------- */
 
-const STATS = [
-  { value: '24K+', label: 'Followers' },
-  { value: '150+', label: 'Hours Streamed' },
-  { value: '500+', label: 'Tracks Played' },
-];
-
-function StatCardV2({ value, label }: { value: string; label: string }) {
-  const spotlight = useSpotlight<HTMLDivElement>();
-  return (
-    <div
-      {...spotlight}
-      role="article"
-      aria-label={`Statistics: ${value} ${label}`}
-      className="surface-1 spotlight h-full rounded-2xl p-6 text-center transition-[transform,border-color] duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-white/15"
-    >
-      <div className="text-display text-3xl text-white tabular-nums md:text-4xl">{value}</div>
-      <div className="mt-2 text-sm font-medium text-white/60">{label}</div>
-    </div>
-  );
-}
-
 function TwitchStreamV2({
   isLoading,
   streamStatus,
@@ -169,14 +148,6 @@ function TwitchStreamV2({
             </div>
           </RevealItem>
         </RevealGroup>
-
-        <RevealGroup className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3 md:mt-6 md:gap-6">
-          {STATS.map((stat) => (
-            <RevealItem key={stat.label} className="h-full">
-              <StatCardV2 {...stat} />
-            </RevealItem>
-          ))}
-        </RevealGroup>
       </div>
     </section>
   );
@@ -186,13 +157,7 @@ function TwitchStreamV2({
 /* UI v3                                                                      */
 /* -------------------------------------------------------------------------- */
 
-const STATS_FR = [
-  { value: '24K+', label: 'Abonnés' },
-  { value: '150+', label: 'Heures de live' },
-  { value: '500+', label: 'Morceaux joués' },
-];
-
-/** Live de l'accueil v3 : un seul panneau de verre (statut, appel à suivre, chiffres) et le lecteur */
+/** Live de l'accueil v3 : un seul panneau de verre (statut, appel à suivre) et le lecteur */
 function TwitchStreamV3({
   isLoading,
   streamStatus,
@@ -240,21 +205,6 @@ function TwitchStreamV3({
             <TwitchIcon className="h-4 w-4" />
             Suivre sur Twitch
           </a>
-
-          <div aria-hidden="true" className="min-h-9 flex-1" />
-          <dl className="grid grid-cols-3 gap-4 border-t border-white/10 pt-6">
-            {STATS_FR.map((stat) => (
-              <div key={stat.label}>
-                <dt className="sr-only">{stat.label}</dt>
-                <dd className="text-display text-2xl text-white tabular-nums md:text-3xl">
-                  {stat.value}
-                </dd>
-                <dd aria-hidden="true" className="mt-1 text-[12px] text-white/60">
-                  {stat.label}
-                </dd>
-              </div>
-            ))}
-          </dl>
         </div>
 
         <div className="relative aspect-video border-t border-white/10 bg-black/30 md:aspect-auto md:min-h-[360px] md:border-l md:border-t-0">
@@ -550,48 +500,6 @@ const TwitchStream = () => {
             )}
           </motion.div>
         </div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-          className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6"
-        >
-          <motion.div
-            whileHover={{ scale: 1.05, y: -5 }}
-            className="glass-modern glass-modern-hover rounded-2xl p-6 text-center lift-3d"
-            role="article"
-            aria-label="Statistics: 24K+ Followers"
-          >
-            <div className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400 mb-2">
-              24K+
-            </div>
-            <div className="text-gray-300 font-medium">Followers</div>
-          </motion.div>
-          <motion.div
-            whileHover={{ scale: 1.05, y: -5 }}
-            className="glass-modern glass-modern-hover rounded-2xl p-6 text-center lift-3d"
-            role="article"
-            aria-label="Statistics: 150+ Hours Streamed"
-          >
-            <div className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 mb-2">
-              150+
-            </div>
-            <div className="text-gray-300 font-medium">Hours Streamed</div>
-          </motion.div>
-          <motion.div
-            whileHover={{ scale: 1.05, y: -5 }}
-            className="glass-modern glass-modern-hover rounded-2xl p-6 text-center lift-3d"
-            role="article"
-            aria-label="Statistics: 500+ Tracks Played"
-          >
-            <div className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-blue-400 to-purple-400 mb-2 animate-gradient-shift bg-[length:200%_100%]">
-              500+
-            </div>
-            <div className="text-gray-300 font-medium">Tracks Played</div>
-          </motion.div>
-        </motion.div>
       </div>
     </section>
   );
