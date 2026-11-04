@@ -260,7 +260,7 @@ export default function LatestReleases({
   const [error, setError] = useState<string | null>(null);
   const [imageErrors, setImageErrors] = useState<ImageErrorState>({}); // Initialiser l'état des erreurs d'image
   const router = useRouter();
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
 
   // Charger les morceaux depuis l'API seulement si initialReleases n'est pas fourni
   useEffect(() => {

@@ -25,7 +25,7 @@ export function LiveInventory() {
     }
   };
 
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
 
   /** Accessibilité clavier des cases d'item (rendu inchangé) */
   const tileA11y = (

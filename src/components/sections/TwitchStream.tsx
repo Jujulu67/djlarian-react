@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 
 import { Button } from '@/components/ui/Button';
 import { SectionHeading } from '@/components/ui/PageHeader';
+import SectionIndex from '@/components/v3/SectionIndex';
 import { RevealGroup, RevealItem } from '@/components/ui/Reveal';
 import { useSpotlight } from '@/hooks/useSpotlight';
 import { useUiVersion } from '@/hooks/useUiVersion';
@@ -181,8 +182,115 @@ function TwitchStreamV2({
   );
 }
 
+/* -------------------------------------------------------------------------- */
+/* UI v3                                                                      */
+/* -------------------------------------------------------------------------- */
+
+const STATS_FR = [
+  { value: '24K+', label: 'Abonnés' },
+  { value: '150+', label: 'Heures de live' },
+  { value: '500+', label: 'Morceaux joués' },
+];
+
+/** Live de l'accueil v3 : un seul panneau de verre (statut, appel à suivre, chiffres) et le lecteur */
+function TwitchStreamV3({
+  isLoading,
+  streamStatus,
+}: {
+  isLoading: boolean;
+  streamStatus: StreamStatus | null;
+}) {
+  const isLive = !!streamStatus?.isLive;
+  const viewers = streamStatus?.stream?.viewer_count;
+
+  return (
+    <section className="relative mx-auto max-w-[1180px] px-4 py-12 md:py-16">
+      <SectionIndex eyebrow="Live" label="En direct" />
+
+      <div className="surface-1 mt-9 grid overflow-hidden rounded-[1.6rem] md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+        <div className="flex flex-col p-6 md:p-9">
+          <span className="inline-flex items-center gap-2 self-start rounded-full bg-white/[0.05] px-3 py-1.5 font-mono-signal text-[11px] uppercase text-white/80 ring-1 ring-inset ring-white/10">
+            <span
+              aria-hidden="true"
+              className={`h-1.5 w-1.5 rounded-full ${
+                isLive ? 'animate-pulse bg-red-500' : isLoading ? 'bg-white/30' : 'bg-white/50'
+              }`}
+            />
+            {isLoading
+              ? 'Statut…'
+              : isLive
+                ? `En direct${viewers ? ` · ${viewers.toLocaleString('fr-FR')} spectateurs` : ''}`
+                : 'Hors ligne'}
+          </span>
+
+          <h3 className="mt-5 text-display text-2xl text-white md:text-3xl">
+            Sessions studio et sets en direct.
+          </h3>
+          <p className="mt-3 max-w-md leading-relaxed text-white/70">
+            Je montre comment les morceaux se construisent, je joue des sets exclusifs et je réponds
+            au chat. Abonne-toi pour être prévenu du prochain live.
+          </p>
+
+          <a
+            href={TWITCH_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="chrome-pill mt-7 inline-flex h-12 items-center gap-2 self-start rounded-full px-7 text-[15px] font-bold transition-transform hover:-translate-y-0.5"
+          >
+            <TwitchIcon className="h-4 w-4" />
+            Suivre sur Twitch
+          </a>
+
+          <div aria-hidden="true" className="min-h-9 flex-1" />
+          <dl className="grid grid-cols-3 gap-4 border-t border-white/10 pt-6">
+            {STATS_FR.map((stat) => (
+              <div key={stat.label}>
+                <dt className="sr-only">{stat.label}</dt>
+                <dd className="text-display text-2xl text-white tabular-nums md:text-3xl">
+                  {stat.value}
+                </dd>
+                <dd aria-hidden="true" className="mt-1 text-[12px] text-white/60">
+                  {stat.label}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+
+        <div className="relative aspect-video border-t border-white/10 bg-black/30 md:aspect-auto md:min-h-[360px] md:border-l md:border-t-0">
+          {isLive ? (
+            <iframe
+              src={`https://player.twitch.tv/?channel=larianmusic&parent=${
+                typeof window !== 'undefined' ? window.location.hostname : 'localhost'
+              }&muted=true`}
+              allowFullScreen
+              scrolling="no"
+              className="absolute inset-0 h-full w-full border-0"
+              title="Live Twitch de Larian"
+              allow="autoplay; fullscreen"
+            />
+          ) : (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-[radial-gradient(ellipse_at_center,rgba(139,92,246,0.2),transparent_65%)] px-6 text-center">
+              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white/[0.05] ring-1 ring-inset ring-white/10">
+                <TwitchIcon className="h-6 w-6 text-white/75" />
+              </span>
+              <p className="mt-4 font-semibold text-white">
+                {isLoading ? 'Vérification du live…' : 'Pas de live en ce moment'}
+              </p>
+              <p className="mt-1 font-mono-signal text-[11px] uppercase text-white/50">
+                twitch.tv/larianmusic
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 const TwitchStream = () => {
-  const isV2 = useUiVersion() === 'v2';
+  const uiVersion = useUiVersion();
+  const isV2 = uiVersion !== 'legacy';
   const [streamStatus, setStreamStatus] = useState<StreamStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
@@ -218,6 +326,8 @@ const TwitchStream = () => {
     return () => clearInterval(interval);
   }, []);
 
+  if (uiVersion === 'v3')
+    return <TwitchStreamV3 isLoading={isLoading} streamStatus={streamStatus} />;
   if (isV2) return <TwitchStreamV2 isLoading={isLoading} streamStatus={streamStatus} />;
 
   return (

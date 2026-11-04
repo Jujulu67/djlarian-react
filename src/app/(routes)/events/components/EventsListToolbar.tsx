@@ -20,7 +20,7 @@ export function EventsListToolbar({
   itemsPerPage,
   onItemsPerPageChange,
 }: EventsListToolbarProps) {
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
 
   if (isV2) {
     return (

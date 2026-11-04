@@ -111,7 +111,7 @@ function Magnetic({ children, disabled }: { children: ReactNode; disabled: boole
 }
 
 export default function HeroSection({ config }: HeroSectionProps) {
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
   const reduceMotion = useReducedMotion() ?? false;
   const containerRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);

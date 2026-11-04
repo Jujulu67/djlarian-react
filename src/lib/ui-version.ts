@@ -6,7 +6,7 @@
  * On bascule avec `?ui=v2` ou `?ui=legacy` dans n'importe quelle URL (voir src/proxy.ts).
  */
 
-export const UI_VERSIONS = ['legacy', 'v2'] as const;
+export const UI_VERSIONS = ['legacy', 'v2', 'v3'] as const;
 export type UiVersion = (typeof UI_VERSIONS)[number];
 
 export const UI_VERSION_COOKIE = 'ui';

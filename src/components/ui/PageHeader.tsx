@@ -37,11 +37,13 @@ export function PageHeader({
     >
       <div className={cn('max-w-2xl', centered && 'mx-auto')}>
         {eyebrow && (
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-brand">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-brand v3:text-[rgb(var(--ice))]">
             {eyebrow}
           </p>
         )}
-        <h1 className="text-display text-4xl text-white md:text-5xl lg:text-6xl">{title}</h1>
+        <h1 className="text-display text-4xl text-white md:text-5xl lg:text-6xl v3:chrome-text">
+          {title}
+        </h1>
         {description && (
           <p className="mt-4 text-base leading-relaxed text-white/60 md:text-lg">{description}</p>
         )}
@@ -67,11 +69,11 @@ export function SectionHeading({
     <div className={cn('mb-8 flex items-end justify-between gap-4 md:mb-10', className)}>
       <div>
         {eyebrow && (
-          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.25em] text-brand">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.25em] text-brand v3:text-[rgb(var(--ice))]">
             {eyebrow}
           </p>
         )}
-        <h2 className="text-display text-3xl text-white md:text-4xl">{title}</h2>
+        <h2 className="text-display text-3xl text-white md:text-4xl v3:chrome-text">{title}</h2>
       </div>
       {children}
     </div>

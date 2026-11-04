@@ -52,7 +52,7 @@ export function LiveSubmissionForm() {
   const [activeSubmission, setActiveSubmission] = useState<LiveSubmission | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const isAdmin = session?.user?.role === 'ADMIN';
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
 
   // Charger le mode de stockage (Blob vs local) et l'état des soumissions
   useEffect(() => {

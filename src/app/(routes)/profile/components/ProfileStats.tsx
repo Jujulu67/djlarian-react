@@ -12,7 +12,7 @@ interface ProfileStatsProps {
 }
 
 export function ProfileStats({ stats, isLoading }: ProfileStatsProps) {
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
   const spotlight = useSpotlight();
   const userStats = [
     {

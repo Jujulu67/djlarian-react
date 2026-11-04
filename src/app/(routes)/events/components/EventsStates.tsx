@@ -102,7 +102,7 @@ export function EventsSuspenseFallback() {
 }
 
 export function EventsErrorState({ error }: { error: string }) {
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
 
   if (isV2) {
     return (
@@ -161,7 +161,7 @@ export function EventsEmptyState({
   selectedStatus,
   onClearSearch,
 }: EventsEmptyStateProps) {
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
 
   if (isV2) {
     return (

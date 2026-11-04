@@ -1,8 +1,23 @@
+import { cookies } from 'next/headers';
 import Link from 'next/link';
 
 import { Button } from '@/components/ui/Button';
+import PosterState from '@/components/v3/PosterState';
+import { resolveUiVersion, UI_VERSION_COOKIE } from '@/lib/ui-version';
 
-export default function NotFound() {
+export default async function NotFound() {
+  if (resolveUiVersion((await cookies()).get(UI_VERSION_COOKIE)?.value) === 'v3') {
+    return (
+      <PosterState
+        code="404"
+        word="404"
+        title="Hors du mix"
+        description="Cette page n'existe pas ou a été déplacée. Le son, lui, continue ailleurs."
+        action={{ label: 'Retour au début', href: '/' }}
+      />
+    );
+  }
+
   return (
     <section className="flex min-h-[70vh] items-center justify-center px-4">
       <div className="max-w-md text-center">

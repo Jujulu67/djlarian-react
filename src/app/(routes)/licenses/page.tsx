@@ -180,7 +180,7 @@ export default function LicensesPage() {
     }
   }, [session, status]);
 
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
   if (isV2) {
     return (
       <LicensesPageV2

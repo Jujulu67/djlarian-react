@@ -15,7 +15,7 @@ comme compromises.
 
 - [ ] **Changer les mots de passe** des comptes présents dans le dump (les 3 comptes avec
       mot de passe, dont les admins).
-- [x] **Secret client OAuth Google** (04/11/2026) : le secret actuel (`…HvLo`, créé le 30/11/2025) n'a jamais fuité. Reste à supprimer le 2ᵉ secret inutilisé (`…7hqP`) dans DJLarian OAuth.
+- [x] **Secret client OAuth Google** (04/11/2026) : le secret actuel (`…HvLo`, créé le 30/11/2025) n'a jamais fuité. Le 2ᵉ secret inutilisé (`…7hqP`) est désactivé ; le supprimer après un test de connexion Google en prod.
 - [x] **Secret client Twitch** (04/11/2026) : n'a pas fuité (absent des builds), les tokens des dumps sont inutilisables sans lui. Rotation facultative.
 - [x] **Mot de passe de la base Neon de production changé** (04/11/2026, l'ancien est refusé ; branche `development` supprimée).
 - [x] **`NEXTAUTH_SECRET` changé** (04/11/2026).
@@ -25,7 +25,7 @@ comme compromises.
       arrêtés, alertes GitHub fermées. Nouvelle clé dans « DJLarian Search », restreinte à
       YouTube Data API v3. Reste à **redéployer la prod sur Vercel** : le dernier déploiement
       (25/10) utilise encore l'ancienne clé, donc les vidéos YouTube ne marchent plus en prod.
-- [ ] **Demander au support GitHub de purger les anciens commits** : l'historique a été
+- [ ] _(facultatif, décidé le 04/11/2026 : tous les secrets fuités sont révoqués ; seule raison restante, les données personnelles des dumps)_ **Demander au support GitHub de purger les anciens commits** : l'historique a été
       réécrit le 24/10/2026, mais les PR #1 à #4 et #16 gardent des références en lecture
       seule vers l'ancien historique, et les commits restent accessibles par leur SHA.
       Formulaire : https://support.github.com/contact → « Remove sensitive data », en
@@ -33,11 +33,7 @@ comme compromises.
       `prisma/dev.db.backup.20251214_140955`, `prisma/dev.db.before-restore.*`,
       `prisma/prisma/dev.db`, ainsi que les commits `a431d85e` et `1f735b1b` (dossier `.open-next/`,
       clés Google).
-- [ ] **Débrancher Cloudflare Pages** du repo GitHub s'il n'est plus utilisé : il échoue
-      sur chaque PR.
-
-## 🟡 Chantiers techniques en cours (pour un agent, avec accord de l'utilisateur)
-
+- [x] **Cloudflare Pages débranché** (04/11/2026) : application GitHub « Cloudflare Workers and Pages » désinstallée (elle n'avait accès qu'à ce dépôt ; chefsenligne se déploie avec `wrangler` et n'est pas concerné).
 - [x] Audit des dépendances (04/11/2026) : faille haute `follow-redirects` corrigée (override),
       Next 16.4.5, React 19.3.1 (n'est plus en `latest`), Prisma 7.10.1. Restent 7 alertes
       basses/modérées non exploitables ici : `deepmerge` (Jest, dev seulement), `minimatch`/`glob`

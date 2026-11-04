@@ -29,7 +29,7 @@ export default function NotificationsClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session } = useSession();
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
 
   // Déterminer la vue initiale depuis l'URL (par défaut: 'notifications')
   const [activeView, setActiveView] = useState<NotificationView>(

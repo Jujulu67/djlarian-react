@@ -13,7 +13,7 @@ interface PurchaseSectionProps {
 }
 
 export function PurchaseSection({ shopSettings }: PurchaseSectionProps) {
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
   const purchaseHref = shopSettings.stripePaymentLink || '/licenses';
 
   return (

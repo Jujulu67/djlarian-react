@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import dynamic from 'next/dynamic';
+import { cookies } from 'next/headers';
 
 import { getHomepageConfig } from '@/lib/data/homepage';
 import HeroSection from './components/HeroSection';
@@ -8,6 +9,8 @@ import EventsSectionWrapper from './components/EventsSectionWrapper';
 import HomePageClient from './components/HomePageClient';
 import VisualizerSectionWrapper from './components/VisualizerSectionWrapper';
 import ClientUIComponents from './components/ClientUIComponents';
+import { EventsV3, HeroV3, ReleasesV3 } from './components/HomeV3';
+import { resolveUiVersion, UI_VERSION_COOKIE } from '@/lib/ui-version';
 
 // Lazy load les composants non critiques
 const TwitchStream = dynamic(() => import('@/components/sections/TwitchStream'), {
@@ -26,6 +29,7 @@ const TwitchStream = dynamic(() => import('@/components/sections/TwitchStream'),
 export default async function HomePage() {
   // Précharger la configuration côté serveur
   const config = await getHomepageConfig();
+  const isV3 = resolveUiVersion((await cookies()).get(UI_VERSION_COOKIE)?.value) === 'v3';
 
   // Définir l'ordre des sections
   const sectionOrder = config.sectionsOrder
@@ -36,9 +40,20 @@ export default async function HomePage() {
   const renderSection = (sectionType: string, index: number) => {
     switch (sectionType) {
       case 'hero':
-        return <HeroSection key="hero" config={config} />;
+        return isV3 ? (
+          <HeroV3 key="hero" config={config} />
+        ) : (
+          <HeroSection key="hero" config={config} />
+        );
 
       case 'releases':
+        if (isV3) {
+          return config.releasesEnabled ? (
+            <Suspense key="releases" fallback={null}>
+              <ReleasesV3 count={config.releasesCount} />
+            </Suspense>
+          ) : null;
+        }
         return config.releasesEnabled ? (
           <Suspense
             key="releases"
@@ -67,6 +82,13 @@ export default async function HomePage() {
         ) : null;
 
       case 'events':
+        if (isV3) {
+          return config.eventsEnabled ? (
+            <Suspense key="events" fallback={null}>
+              <EventsV3 count={config.eventsCount} />
+            </Suspense>
+          ) : null;
+        }
         return config.eventsEnabled ? (
           <Suspense
             key="events"

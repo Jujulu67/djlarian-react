@@ -5,6 +5,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
 import type { Dispatch, SetStateAction } from 'react';
 
+import { useUiVersion } from '@/hooks/useUiVersion';
+
 interface MobileNavDropdownProps {
   isMobileMenuOpen: boolean;
   links: NavLink[];
@@ -16,6 +18,7 @@ export function MobileNavDropdown({
   links,
   setIsMobileMenuOpen,
 }: MobileNavDropdownProps) {
+  const isV3 = useUiVersion() === 'v3';
   return (
     <AnimatePresence>
       {isMobileMenuOpen && (
@@ -58,7 +61,7 @@ export function MobileNavDropdown({
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   {link.icon && <link.icon size={18} className="text-purple-400" />}
-                  {link.label}
+                  {isV3 ? (link.labelFr ?? link.label) : link.label}
                 </Link>
               </motion.div>
             ))}

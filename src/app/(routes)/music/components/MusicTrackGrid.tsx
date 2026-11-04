@@ -39,12 +39,12 @@ export function MusicTrackGrid({
       {featured ? (
         <div className="flex items-center gap-2 mb-4 v2:mb-6">
           <Zap className="w-5 h-5 text-yellow-500 v2:hidden" />
-          <h2 className="text-2xl font-bold text-white v2:text-display v2:text-xl v2:font-normal md:v2:text-2xl">
+          <h2 className="text-2xl font-bold text-white v2:text-display v2:text-xl v2:font-normal md:v2:text-2xl v3:chrome-text">
             {title}
           </h2>
         </div>
       ) : (
-        <h2 className="text-2xl font-bold text-white mb-6 v2:text-display v2:text-xl v2:font-normal md:v2:text-2xl">
+        <h2 className="text-2xl font-bold text-white mb-6 v2:text-display v2:text-xl v2:font-normal md:v2:text-2xl v3:chrome-text">
           {title}
         </h2>
       )}

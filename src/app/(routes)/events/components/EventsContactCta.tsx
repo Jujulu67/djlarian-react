@@ -9,7 +9,7 @@ import { useUiVersion } from '@/hooks/useUiVersion';
 
 /** Encart « Vous organisez un événement ? » en bas de la liste */
 export function EventsContactCta() {
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
 
   if (isV2) {
     return (

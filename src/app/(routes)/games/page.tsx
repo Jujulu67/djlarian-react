@@ -47,7 +47,7 @@ export default function GamesPage() {
   const [data, setData] = useState<LeaderboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'winners' | 'richest' | 'active'>('winners');
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
 
   useEffect(() => {
     if (status === 'unauthenticated') {

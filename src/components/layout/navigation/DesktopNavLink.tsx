@@ -15,7 +15,12 @@ interface DesktopNavLinkProps {
 
 export function DesktopNavLink({ link, isActive }: DesktopNavLinkProps) {
   const uiVersion = useUiVersion();
-  if (uiVersion === 'v2') return <DesktopNavLinkV2 link={link} isActive={isActive} />;
+  // v3 : libellés en français
+  if (uiVersion === 'v3')
+    return (
+      <DesktopNavLinkV2 link={{ ...link, label: link.labelFr ?? link.label }} isActive={isActive} />
+    );
+  if (uiVersion !== 'legacy') return <DesktopNavLinkV2 link={link} isActive={isActive} />;
 
   return (
     <Link
@@ -93,20 +98,20 @@ function DesktopNavLinkV2({ link, isActive }: DesktopNavLinkProps) {
       href={link.href}
       aria-current={isActive ? 'page' : undefined}
       className={`relative flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-medium transition-colors duration-200 ${
-        isActive ? 'text-white' : 'text-white/60 hover:text-white'
+        isActive ? 'text-white v3:text-[rgb(7_7_13)]' : 'text-white/60 hover:text-white'
       }`}
     >
       {isActive && (
         <motion.span
           layoutId="nav-active-pill"
           transition={springs.snappy}
-          className="absolute inset-0 rounded-full bg-white/[0.08] shadow-[inset_0_1px_0_rgb(255_255_255/0.1)] ring-1 ring-inset ring-white/10"
+          className="absolute inset-0 rounded-full bg-white/[0.08] shadow-[inset_0_1px_0_rgb(255_255_255/0.1)] ring-1 ring-inset ring-white/10 v3:bg-[rgb(var(--ink))] v3:ring-0"
         />
       )}
       {link.icon && (
         <link.icon
           size={16}
-          className={`relative transition-colors duration-200 ${isActive ? 'text-brand' : ''}`}
+          className={`relative transition-colors duration-200 v3:hidden ${isActive ? 'text-brand' : ''}`}
         />
       )}
       <span className="relative">{link.label}</span>

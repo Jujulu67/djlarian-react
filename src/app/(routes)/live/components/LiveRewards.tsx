@@ -16,7 +16,7 @@ const REWARD_BUTTON_V2 =
 export function LiveRewards() {
   const { rewards, isLoading } = useLiveRewards();
   const { updateItem, inventory } = useLiveInventoryContext();
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
   // Survol des cartes : légère montée seulement en v2
   const cardHover = isV2 ? { y: -2 } : { scale: 1.02, y: -2 };
 

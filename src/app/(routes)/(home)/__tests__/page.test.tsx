@@ -20,6 +20,19 @@ jest.mock('@/lib/data/music', () => ({
   getLatestReleases: jest.fn(),
 }));
 
+// Version d'UI lue dans le cookie `ui` (legacy par défaut)
+const mockUiCookie = jest.fn<{ value: string } | undefined, []>(() => undefined);
+jest.mock('next/headers', () => ({
+  cookies: jest.fn(async () => ({ get: () => mockUiCookie() })),
+}));
+
+// Sections de l'accueil v3
+jest.mock('../components/HomeV3', () => ({
+  HeroV3: () => <div data-testid="hero-v3" />,
+  ReleasesV3: () => <div data-testid="releases-v3" />,
+  EventsV3: () => <div data-testid="events-v3" />,
+}));
+
 // Mock child components
 jest.mock('../components/HeroSection', () => {
   return function HeroSection({ config }: { config: any }) {
@@ -121,6 +134,16 @@ describe('HomePage (Server Component)', () => {
     (getHomepageConfig as jest.Mock).mockResolvedValue(mockConfig);
     (getUpcomingEvents as jest.Mock).mockResolvedValue([]);
     (getLatestReleases as jest.Mock).mockResolvedValue([]);
+  });
+
+  it('renders the v3 hero and v3 sections when the ui cookie is v3', async () => {
+    mockUiCookie.mockReturnValueOnce({ value: 'v3' });
+    render(await HomePage());
+
+    expect(screen.getByTestId('hero-v3')).toBeInTheDocument();
+    expect(screen.queryByTestId('hero-section')).not.toBeInTheDocument();
+    expect(screen.getByTestId('releases-v3')).toBeInTheDocument();
+    expect(screen.getByTestId('events-v3')).toBeInTheDocument();
   });
 
   it('should render hero section correctly', async () => {

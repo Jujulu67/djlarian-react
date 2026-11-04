@@ -10,7 +10,7 @@ import { useLiveChances } from '../hooks/useLiveChances';
 
 export function LiveChances() {
   const { chances, isLoading, loadChances } = useLiveChances();
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
 
   // Écouter les événements de soumission pour recharger les chances immédiatement
   useEffect(() => {

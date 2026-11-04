@@ -9,7 +9,7 @@ import type { Feature } from './types';
 
 export function FeatureCard({ feature, index }: { feature: Feature; index: number }) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const isV2 = useUiVersion() === 'v2';
+  const isV2 = useUiVersion() !== 'legacy';
   const spotlight = useSpotlight<HTMLDivElement>();
 
   // v2 : l'apparition est gérée par le RevealGroup de la page, et la carte quitte
