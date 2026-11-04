@@ -33,6 +33,30 @@ jest.mock('@/lib/prisma', () => ({
   default: mockPrisma,
 }));
 
+// jose et @panva/hkdf sont des modules ESM : on simule la création du jeton de fusion
+jest.mock('@panva/hkdf', () => ({ hkdf: jest.fn(() => Promise.resolve(new Uint8Array(64))) }));
+jest.mock('jose', () => {
+  class EncryptJWT {
+    setProtectedHeader() {
+      return this;
+    }
+    setIssuedAt() {
+      return this;
+    }
+    setExpirationTime() {
+      return this;
+    }
+    encrypt() {
+      return Promise.resolve('merge-token');
+    }
+  }
+  return {
+    EncryptJWT,
+    base64url: { encode: jest.fn(() => 'k') },
+    calculateJwkThumbprint: jest.fn(() => Promise.resolve('thumb')),
+  };
+});
+
 import { authConfig } from '../auth.config';
 
 describe('auth.config', () => {
@@ -142,6 +166,72 @@ describe('auth.config', () => {
     } as any);
 
     expect(result).toBe(true);
+  });
+
+  describe('fusion automatique (REQUIRE_MERGE_CONFIRMATION=false)', () => {
+    const googleSignIn = () =>
+      authConfig.callbacks.signIn({
+        user: { email: 'victim@test.com', id: 'oauth-user', name: 'Victim' },
+        account: {
+          provider: 'google',
+          providerAccountId: 'google-123',
+          type: 'oauth',
+        },
+        profile: {},
+      } as any);
+
+    beforeEach(() => {
+      process.env.REQUIRE_MERGE_CONFIRMATION = 'false';
+      process.env.NEXTAUTH_SECRET = 'test-secret';
+      (mockPrisma.account.findUnique as jest.Mock).mockResolvedValue(null);
+    });
+
+    it('ne fusionne jamais automatiquement un compte protégé par mot de passe', async () => {
+      (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: 'user-1',
+        email: 'victim@test.com',
+        hashedPassword: '$2a$12$hash',
+        Account: [],
+      });
+
+      const result = await googleSignIn();
+
+      expect(typeof result).toBe('string');
+      expect(result).toMatch(/^\/auth\/merge-accounts\?token=/);
+      expect(mockPrisma.user.update).not.toHaveBeenCalled();
+    });
+
+    it('refuse la connexion si le jeton ne peut pas être créé (pas de secret)', async () => {
+      delete process.env.NEXTAUTH_SECRET;
+      delete process.env.AUTH_SECRET;
+      (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: 'user-1',
+        email: 'victim@test.com',
+        hashedPassword: '$2a$12$hash',
+        Account: [],
+      });
+
+      await expect(googleSignIn()).resolves.toBe(false);
+    });
+
+    it('garde la fusion automatique pour un compte sans mot de passe', async () => {
+      (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: 'user-1',
+        email: 'victim@test.com',
+        hashedPassword: null,
+        name: null,
+        image: null,
+        Account: [{ provider: 'twitch' }],
+      });
+
+      const result = await googleSignIn();
+
+      expect(result).toBe(true);
+      expect(mockPrisma.user.update).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
+        data: { name: 'Victim' },
+      });
+    });
   });
 });
 

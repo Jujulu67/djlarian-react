@@ -32,6 +32,8 @@ function MergeAccountsContent() {
   const [loading, setLoading] = useState(true);
   const [merging, setMerging] = useState(false);
   const [mergeData, setMergeData] = useState<AccountMergeData | null>(null);
+  const [password, setPassword] = useState('');
+  const [passwordError, setPasswordError] = useState<string | null>(null);
   const [mergeOptions, setMergeOptions] = useState({
     useOAuthName: false,
     useOAuthImage: true,
@@ -81,7 +83,13 @@ function MergeAccountsContent() {
   const handleMerge = async () => {
     if (!mergeData) return;
 
+    if (mergeData.existingAccount.hasPassword && !password) {
+      setPasswordError('Saisissez le mot de passe du compte existant');
+      return;
+    }
+
     setMerging(true);
+    setPasswordError(null);
     try {
       const token = searchParams.get('token');
       const response = await fetch('/api/auth/merge-accounts', {
@@ -92,11 +100,16 @@ function MergeAccountsContent() {
         body: JSON.stringify({
           token,
           options: mergeOptions,
+          ...(mergeData.existingAccount.hasPassword ? { password } : {}),
         }),
       });
 
       if (!response.ok) {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({}));
+        if (response.status === 403) {
+          setPasswordError(error.error || 'Mot de passe incorrect');
+          return;
+        }
         toast.error(error.error || 'Erreur lors de la fusion');
         return;
       }
@@ -371,6 +384,45 @@ function MergeAccountsContent() {
                 )}
               </div>
             </div>
+
+            {/* Preuve de propriété du compte existant */}
+            {mergeData.existingAccount.hasPassword && (
+              <div className="rounded-lg bg-gray-800/60 border border-gray-700/50 p-6 v2:rounded-xl v2:bg-white/[0.02] v2:border-white/[0.06]">
+                <label
+                  htmlFor="merge-password"
+                  className="block text-lg font-semibold text-white mb-1"
+                >
+                  Mot de passe du compte existant
+                </label>
+                <p className="text-gray-400 text-sm mb-3 v2:text-white/50">
+                  Pour fusionner, confirmez que ce compte vous appartient.
+                </p>
+                <input
+                  id="merge-password"
+                  type="password"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (passwordError) setPasswordError(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !merging) handleMerge();
+                  }}
+                  aria-invalid={passwordError ? true : undefined}
+                  aria-describedby={passwordError ? 'merge-password-error' : undefined}
+                  className="w-full rounded-lg bg-gray-900/60 border border-gray-700 px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 v2:rounded-xl v2:bg-white/[0.03] v2:border-white/10"
+                />
+                {passwordError && (
+                  <p id="merge-password-error" role="alert" className="mt-2 text-sm text-red-400">
+                    {passwordError}
+                  </p>
+                )}
+                <p className="mt-3 text-sm text-gray-400 v2:text-white/50">
+                  Vous n'avez pas créé ce compte ? Contactez l'administrateur.
+                </p>
+              </div>
+            )}
 
             {/* Actions */}
             <div className="flex justify-end gap-4 pt-4 border-t border-gray-700/50 v2:border-white/[0.06]">

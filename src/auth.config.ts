@@ -121,8 +121,13 @@ export const authConfig = {
           }
 
           // Si l'utilisateur existe mais n'a pas encore de compte OAuth pour ce provider
-          // Par défaut, demander confirmation avant fusion (peut être désactivé avec REQUIRE_MERGE_CONFIRMATION=false)
-          const requireMergeConfirmation = process.env.REQUIRE_MERGE_CONFIRMATION !== 'false';
+          // Par défaut, demander confirmation avant fusion (peut être désactivé avec REQUIRE_MERGE_CONFIRMATION=false).
+          // Un compte protégé par mot de passe n'est JAMAIS fusionné automatiquement : la page de
+          // confirmation exige ce mot de passe (sinon, quelqu'un qui aurait créé un compte avec
+          // l'email d'une victime garderait l'accès après sa connexion OAuth).
+          const hasPassword = Boolean(existingUser.hashedPassword);
+          const requireMergeConfirmation =
+            hasPassword || process.env.REQUIRE_MERGE_CONFIRMATION !== 'false';
 
           if (requireMergeConfirmation) {
             // Créer un token temporaire pour la fusion
@@ -177,6 +182,9 @@ export const authConfig = {
               // Le jeton (chiffré, valable 1 h) n'est jamais stocké ni consultable par un tiers.
               return `/auth/merge-accounts?token=${encodeURIComponent(mergeToken)}`;
             }
+
+            // Sans secret, impossible de créer le jeton : refuser plutôt que fusionner sans preuve
+            if (hasPassword) return false;
           }
 
           // Sinon, fusionner automatiquement (comportement par défaut)
