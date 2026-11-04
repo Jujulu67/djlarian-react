@@ -134,15 +134,16 @@ export const DateTimePicker = ({ value, onChange, className }: DateTimePickerPro
           mode="single"
           selected={selectedDate}
           onSelect={handleDateSelect}
-          initialFocus
+          autoFocus
           locale={fr}
           className="rounded-md border-none p-2 m-0 bg-transparent text-white"
           classNames={{
-            day_selected: 'bg-purple-600 text-white hover:bg-purple-700 focus:bg-purple-700',
-            day_today: 'bg-gray-700 rounded-md text-white',
-            day_outside: 'text-gray-500 opacity-50',
-            head_cell: 'text-gray-400',
-            nav_button: 'hover:bg-gray-700 rounded-md',
+            selected: 'bg-purple-600 text-white hover:bg-purple-700 focus:bg-purple-700',
+            today: 'bg-gray-700 rounded-md text-white',
+            outside: 'text-gray-500 opacity-50',
+            weekday: 'text-gray-400',
+            button_previous: 'absolute left-1 hover:bg-gray-700 rounded-md',
+            button_next: 'absolute right-1 hover:bg-gray-700 rounded-md',
             caption_label: 'text-white font-medium',
           }}
         />

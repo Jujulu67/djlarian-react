@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import {
   AlertTriangle,
   AudioWaveform,
-  Github,
   Layers,
   Palette,
   Settings2,
@@ -12,6 +11,8 @@ import {
   Waves,
   ChevronRight,
 } from 'lucide-react';
+// lucide-react v1 a retiré les icônes de marques : GitHub vient de react-icons
+import { FaGithub } from 'react-icons/fa';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -59,7 +60,7 @@ const OPENCRUSHER_FEATURES: Feature[] = [
     ],
   },
   {
-    icon: <Github className="w-7 h-7" />,
+    icon: <FaGithub className="w-7 h-7" />,
     title: 'Fully Open‑Source',
     description:
       'A community project built from observable behaviour – not from anyone’s private code.',
