@@ -375,7 +375,7 @@ sequenceDiagram
 ### Structure
 
 - Tests unitaires : `__tests__/` dans chaque module
-- Tests E2E : `cypress/e2e/`
+- Tests E2E : `e2e/` (Playwright, base PostgreSQL locale, voir `e2e/README.md`)
 - Tests composants : Jest + Testing Library
 
 ### Couverture

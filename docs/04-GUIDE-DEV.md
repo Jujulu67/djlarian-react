@@ -162,6 +162,19 @@ pnpm run test:coverage
 pnpm run test:ci
 ```
 
+### Tests E2E et dette technique
+
+```bash
+# Parcours réels dans le navigateur (base PostgreSQL locale, voir e2e/README.md)
+pnpm test:e2e
+
+# Mesures de dette : code mort, copier-coller, imports circulaires, SonarJS
+pnpm debt
+```
+
+L'état des lieux et les chantiers prioritaires sont dans [DETTE-TECHNIQUE.md](DETTE-TECHNIQUE.md).
+En CI, knip (fichiers et dépendances morts) et madge (imports circulaires) bloquent.
+
 ## Structure du Projet
 
 Voir [01-ARCHITECTURE.md](01-ARCHITECTURE.md) pour la structure détaillée.
@@ -506,18 +519,20 @@ describe('GET /api/projects', () => {
 });
 ```
 
-### Tests E2E (Cypress)
+### Tests E2E (Playwright)
 
 ```typescript
-// cypress/e2e/accessibility.cy.ts
-describe('Accessibility', () => {
-  it('should be accessible', () => {
-    cy.visit('/');
-    cy.injectAxe();
-    cy.checkA11y();
-  });
+// e2e/exemple.spec.ts
+import { expect, test } from '@playwright/test';
+
+test("l'accueil s'affiche", async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('nav')).toBeVisible();
 });
 ```
+
+Les comptes de test se créent avec `createTestUser()` de `e2e/helpers/db.ts` (base locale
+uniquement). Voir `e2e/README.md`.
 
 ## Bonnes Pratiques
 

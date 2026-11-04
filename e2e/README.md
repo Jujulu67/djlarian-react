@@ -1,116 +1,51 @@
-# Tests E2E avec Playwright
+# Tests E2E (Playwright)
 
-Ce dossier contient les tests end-to-end (E2E) pour l'application, utilisant [Playwright](https://playwright.dev/).
+Parcours réels dans Chromium, contre le serveur de dev et une base PostgreSQL **locale**.
 
-## Installation
+## Prérequis
 
-### 1. Installer Playwright et ses dépendances
+- Base locale : le conteneur Docker `djlarian-postgres-local` (port 5433), schéma à jour
+  (voir [docs/RUNBOOK_POSTGRES_LOCAL.md](../docs/RUNBOOK_POSTGRES_LOCAL.md)).
+- `.env.local` avec `DATABASE_URL` vers cette base et `NEXTAUTH_SECRET`.
+- Navigateur : `pnpm playwright install chromium` (une fois).
 
-```bash
-pnpm install -D @playwright/test
-pnpm playwright install
-```
+`e2e/helpers/db.ts` refuse de tourner si `DATABASE_URL` ne pointe pas vers `localhost` : les tests
+créent et suppriment des comptes, jamais sur la prod.
 
-### 2. Installer les types TypeScript (si nécessaire)
-
-Les types sont généralement inclus avec `@playwright/test`, mais si vous avez des erreurs de types :
-
-```bash
-pnpm install -D @types/node
-```
-
-## Configuration
-
-Le fichier `playwright.config.ts` à la racine du projet configure Playwright pour :
-
-- Utiliser `./e2e` comme répertoire de tests
-- Démarrer automatiquement le serveur de développement (`pnpm run dev`) avant les tests
-- Utiliser `http://localhost:3000` comme baseURL par défaut
-
-## Exécution des tests
-
-### Lancer tous les tests E2E
+## Lancer
 
 ```bash
-pnpm playwright test
-```
-
-### Lancer un test spécifique
-
-```bash
+pnpm test:e2e            # tous les tests
+pnpm test:e2e:ui         # mode interactif
+pnpm test:e2e:debug      # pas à pas
 pnpm playwright test e2e/auth.spec.ts
 ```
 
-### Lancer les tests en mode UI (interactif)
+Playwright démarre `pnpm run dev` s'il ne tourne pas déjà (ou réutilise celui sur le port 3000).
+Deux workers en local : le serveur de dev compile chaque page à la demande et sature au-delà.
+`test-results/` et `playwright-report/` sont générés à chaque lancement et ignorés par git.
 
-```bash
-pnpm playwright test --ui
-```
+## Ce qui est couvert (14 tests)
 
-### Lancer les tests en mode debug
+`auth.spec.ts`
 
-```bash
-pnpm playwright test --debug
-```
+- Visiteur : la croix ferme la modale de connexion sans changer de page ; « Se connecter » du
+  profil ouvre la modale du site ; un mauvais mot de passe est refusé.
+- Compte connecté (utilisateur créé puis supprimé par le test) : après connexion on reste sur la
+  page courante ; la déconnexion garde la préférence d'interface (cookie `ui`).
 
-### Lancer les tests sur un navigateur spécifique
+`navigation.spec.ts`
 
-```bash
-pnpm playwright test --project=chromium
-pnpm playwright test --project=firefox
-pnpm playwright test --project=webkit
-```
+- Chaque page publique s'affiche sans erreur JavaScript.
+- Échap ferme la carte du casino ; la fermer renvoie un visiteur à l'accueil.
 
-## Tests disponibles
-
-### `auth.spec.ts` - Smoke Test d'authentification
-
-Test E2E autonome pour le login qui :
-
-1. **Setup (beforeAll)** : Crée un utilisateur de test dans la DB avec mot de passe hashé
-2. **Tests** :
-   - Teste la connexion avec des credentials valides
-   - Teste le rejet d'un mot de passe invalide
-   - Teste le rejet d'un email inexistant
-3. **Teardown (afterAll)** : Supprime l'utilisateur de test pour laisser la base propre
-
-**Caractéristiques :**
-
-- ✅ Totalement autonome (pas besoin d'utilisateur manuel)
-- ✅ Utilise Prisma pour créer/supprimer l'utilisateur
-- ✅ Hash le mot de passe avec bcrypt (même méthode que l'app)
-- ✅ Nettoie automatiquement après les tests
-
-## Variables d'environnement
-
-Le test utilise les variables d'environnement suivantes (via `.env.local`) :
-
-- `DATABASE_URL` : URL de connexion à la base de données
-- `NEXTAUTH_SECRET` ou `AUTH_SECRET` : Secret pour l'authentification
-
-## Notes importantes
-
-1. **Base de données** : Le test nécessite une base de données accessible (SQLite local ou PostgreSQL selon votre configuration)
-   - **IMPORTANT** : Assurez-vous que le schéma de la base de données est à jour avant de lancer les tests :
-     ```bash
-     pnpm run db:setup:local  # Pour SQLite local
-     # ou
-     pnpm run db:setup:production  # Pour PostgreSQL
-     ```
-2. **Serveur de développement** : Playwright démarre automatiquement `pnpm run dev` avant les tests (ou réutilise un serveur existant)
-3. **Isolation** : Chaque test crée un utilisateur unique avec un timestamp pour éviter les conflits
-4. **Nettoyage** : Les utilisateurs de test sont automatiquement supprimés après les tests
+À ajouter : création de projet, admin musique, live, boutique. Ces tests ne tournent pas encore
+en CI (il faudrait un service PostgreSQL dans le workflow) : voir
+[docs/DETTE-TECHNIQUE.md](../docs/DETTE-TECHNIQUE.md).
 
 ## Dépannage
 
-### Erreur : "Cannot find module '@/lib/bcrypt-edge'"
-
-Assurez-vous que les alias TypeScript sont correctement configurés dans `tsconfig.json` et que le chemin de résolution fonctionne dans l'environnement de test.
-
-### Erreur : "PrismaClient is not initialized"
-
-Vérifiez que `DATABASE_URL` est correctement défini dans votre `.env.local`.
-
-### Les tests échouent avec "Connection refused"
-
-Assurez-vous que le serveur de développement peut démarrer correctement. Vous pouvez tester manuellement avec `pnpm run dev`.
+- « DATABASE_URL doit pointer vers une base PostgreSQL locale » : `.env.local` vise une base
+  distante ; le remplacer par l'URL du conteneur local.
+- Pages qui dépassent le délai au premier lancement : la compilation à froid est lente, relancer
+  une fois le serveur de dev chaud.
