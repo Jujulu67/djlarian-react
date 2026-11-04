@@ -7,7 +7,6 @@
 cd "$(dirname "$0")/.."
 
 PID_FILE=".dev-server.pid"
-UMAMI_PID_FILE=".umami-docker.pid"
 
 # Fonction pour vérifier et démarrer Docker si nécessaire
 check_and_start_docker() {
@@ -59,39 +58,6 @@ check_and_start_docker() {
     
     echo "   ⚠️  Docker n'est pas prêt après 60 secondes"
     return 1
-}
-
-# Fonction pour démarrer Umami
-start_umami() {
-    if ! check_and_start_docker; then
-        echo "⚠️  Docker n'est pas disponible. Umami ne sera pas démarré."
-        return
-    fi
-    
-    if ! command -v docker-compose > /dev/null 2>&1 && ! docker compose version > /dev/null 2>&1; then
-        echo "⚠️  Docker Compose n'est pas installé. Umami ne sera pas démarré."
-        return
-    fi
-    
-    echo "📊 Démarrage d'Umami Analytics..."
-    
-    if docker ps | grep -q "umami"; then
-        echo "   Umami est déjà en cours d'exécution"
-        return
-    fi
-    
-    if command -v docker-compose > /dev/null 2>&1; then
-        docker-compose --env-file .env.local up -d umami db > /dev/null 2>&1
-    else
-        docker compose --env-file .env.local up -d umami db > /dev/null 2>&1
-    fi
-    
-    if [ $? -eq 0 ]; then
-        echo "   ✅ Umami démarré (http://localhost:3001)"
-        echo $$ > "$UMAMI_PID_FILE"
-    else
-        echo "   ⚠️  Erreur lors du démarrage d'Umami"
-    fi
 }
 
 # Fonction pour démarrer PostgreSQL local
@@ -152,15 +118,6 @@ cleanup() {
         rm -f "$PID_FILE"
     fi
     
-    if [ -f "$UMAMI_PID_FILE" ]; then
-        if command -v docker-compose > /dev/null 2>&1; then
-            docker-compose --env-file .env.local stop umami db > /dev/null 2>&1 || true
-        else
-            docker compose --env-file .env.local stop umami db > /dev/null 2>&1 || true
-        fi
-        rm -f "$UMAMI_PID_FILE"
-    fi
-    
     exit 0
 }
 
@@ -168,9 +125,6 @@ trap cleanup SIGINT SIGTERM EXIT
 
 # Démarrer PostgreSQL
 start_postgres
-
-# Démarrer Umami
-start_umami
 
 # Fonction pour démarrer le serveur
 start_server() {

@@ -10,8 +10,6 @@ export async function GET(request: NextRequest) {
     if (authError) return authError;
 
     // Récupérer les statuts des intégrations
-    const umamiUrl = process.env.NEXT_PUBLIC_UMAMI_URL;
-    const umamiWebsiteId = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID;
     const sentryDsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
     const isVercel = !!process.env.VERCEL;
 
@@ -46,12 +44,6 @@ export async function GET(request: NextRequest) {
       sentry: {
         enabled: !!sentryDsn,
         dsn: sentryDsn ? 'configured' : 'not-configured',
-      },
-      umami: {
-        enabled: !!umamiUrl && !!umamiWebsiteId && umamiWebsiteId !== 'your-website-id-here',
-        isLocalhost: umamiUrl?.includes('localhost') || false,
-        url: umamiUrl,
-        websiteId: umamiWebsiteId,
       },
     });
   } catch (error) {

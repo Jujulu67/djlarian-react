@@ -45,26 +45,24 @@
 
 ### Tableau Complet
 
-| Variable                       | Obligatoire | Secret | Description                         | Exemple                       |
-| ------------------------------ | ----------- | ------ | ----------------------------------- | ----------------------------- |
-| `DATABASE_URL`                 | ✅ Oui      | ✅ Oui | Connection string PostgreSQL/SQLite | `postgresql://...`            |
-| `NEXTAUTH_URL`                 | ✅ Oui      | ❌ Non | URL de l'application                | `http://localhost:3000`       |
-| `NEXTAUTH_SECRET`              | ✅ Oui      | ✅ Oui | Secret pour NextAuth                | Généré avec `openssl`         |
-| `NODE_ENV`                     | ✅ Oui      | ❌ Non | Environnement                       | `production` ou `development` |
-| `GOOGLE_CLIENT_ID`             | ❌ Non      | ❌ Non | OAuth Google Client ID              | `123456-...`                  |
-| `GOOGLE_CLIENT_SECRET`         | ❌ Non      | ✅ Oui | OAuth Google Secret                 | `GOCSPX-...`                  |
-| `TWITCH_CLIENT_ID`             | ❌ Non      | ❌ Non | OAuth Twitch Client ID              | `abc123...`                   |
-| `TWITCH_CLIENT_SECRET`         | ❌ Non      | ✅ Oui | OAuth Twitch Secret                 | `xyz789...`                   |
-| `BLOB_READ_WRITE_TOKEN`        | ❌ Non      | ✅ Oui | Token Vercel Blob                   | `vercel_blob_...`             |
-| `SPOTIFY_CLIENT_ID`            | ❌ Non      | ❌ Non | Spotify API Client ID               | `abc123...`                   |
-| `SPOTIFY_CLIENT_SECRET`        | ❌ Non      | ✅ Oui | Spotify API Secret                  | `xyz789...`                   |
-| `SPOTIFY_ARTIST_ID`            | ❌ Non      | ❌ Non | ID Artiste Spotify                  | `6BzYsuiPSFBMJ7YnxLeKbz`      |
-| `YOUTUBE_API_KEY`              | ❌ Non      | ❌ Non | Clé API YouTube                     | `AIza...`                     |
-| `NEXT_PUBLIC_SENTRY_DSN`       | ❌ Non      | ❌ Non | DSN Sentry (public)                 | `https://...`                 |
-| `SENTRY_AUTH_TOKEN`            | ❌ Non      | ✅ Oui | Token Sentry (source maps)          | `sntrys_...`                  |
-| `NEXT_PUBLIC_UMAMI_URL`        | ❌ Non      | ❌ Non | URL Umami Analytics                 | `https://...`                 |
-| `NEXT_PUBLIC_UMAMI_WEBSITE_ID` | ❌ Non      | ❌ Non | Site ID Umami                       | `abc-123...`                  |
-| `REQUIRE_MERGE_CONFIRMATION`   | ❌ Non      | ❌ Non | Confirmation fusion OAuth           | `true` ou `false`             |
+| Variable                     | Obligatoire | Secret | Description                         | Exemple                       |
+| ---------------------------- | ----------- | ------ | ----------------------------------- | ----------------------------- |
+| `DATABASE_URL`               | ✅ Oui      | ✅ Oui | Connection string PostgreSQL/SQLite | `postgresql://...`            |
+| `NEXTAUTH_URL`               | ✅ Oui      | ❌ Non | URL de l'application                | `http://localhost:3000`       |
+| `NEXTAUTH_SECRET`            | ✅ Oui      | ✅ Oui | Secret pour NextAuth                | Généré avec `openssl`         |
+| `NODE_ENV`                   | ✅ Oui      | ❌ Non | Environnement                       | `production` ou `development` |
+| `GOOGLE_CLIENT_ID`           | ❌ Non      | ❌ Non | OAuth Google Client ID              | `123456-...`                  |
+| `GOOGLE_CLIENT_SECRET`       | ❌ Non      | ✅ Oui | OAuth Google Secret                 | `GOCSPX-...`                  |
+| `TWITCH_CLIENT_ID`           | ❌ Non      | ❌ Non | OAuth Twitch Client ID              | `abc123...`                   |
+| `TWITCH_CLIENT_SECRET`       | ❌ Non      | ✅ Oui | OAuth Twitch Secret                 | `xyz789...`                   |
+| `BLOB_READ_WRITE_TOKEN`      | ❌ Non      | ✅ Oui | Token Vercel Blob                   | `vercel_blob_...`             |
+| `SPOTIFY_CLIENT_ID`          | ❌ Non      | ❌ Non | Spotify API Client ID               | `abc123...`                   |
+| `SPOTIFY_CLIENT_SECRET`      | ❌ Non      | ✅ Oui | Spotify API Secret                  | `xyz789...`                   |
+| `SPOTIFY_ARTIST_ID`          | ❌ Non      | ❌ Non | ID Artiste Spotify                  | `6BzYsuiPSFBMJ7YnxLeKbz`      |
+| `YOUTUBE_API_KEY`            | ❌ Non      | ❌ Non | Clé API YouTube                     | `AIza...`                     |
+| `NEXT_PUBLIC_SENTRY_DSN`     | ❌ Non      | ❌ Non | DSN Sentry (public)                 | `https://...`                 |
+| `SENTRY_AUTH_TOKEN`          | ❌ Non      | ✅ Oui | Token Sentry (source maps)          | `sntrys_...`                  |
+| `REQUIRE_MERGE_CONFIRMATION` | ❌ Non      | ❌ Non | Confirmation fusion OAuth           | `true` ou `false`             |
 
 ### Configuration Locale
 
@@ -101,54 +99,6 @@ openssl rand -base64 32
 ```
 
 Copier le résultat dans `.env.local` et dans Vercel.
-
-## Configuration Docker
-
-### Docker Compose (Umami Analytics)
-
-Le projet inclut un `docker-compose.yml` pour Umami Analytics (optionnel) :
-
-```yaml
-version: '3'
-services:
-  umami:
-    image: ghcr.io/umami-software/umami:postgresql-latest
-    ports:
-      - '3001:3000'
-    environment:
-      DATABASE_URL: postgresql://umami:${POSTGRES_PASSWORD}@db:5432/umami
-      DATABASE_TYPE: postgresql
-      HASH_SALT: ${HASH_SALT}
-    depends_on:
-      - db
-
-  db:
-    image: postgres:14-alpine
-    environment:
-      POSTGRES_DB: umami
-      POSTGRES_USER: umami
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    volumes:
-      - umami-db-data:/var/lib/postgresql/data
-
-volumes:
-  umami-db-data:
-```
-
-### Utilisation
-
-```bash
-# Démarrer Umami
-docker-compose up -d
-
-# Arrêter Umami
-docker-compose down
-
-# Voir les logs
-docker-compose logs -f
-```
-
-**Note** : Umami est optionnel. L'application fonctionne sans.
 
 ## Déploiement Vercel
 
@@ -191,7 +141,6 @@ Dans **Settings → Environment Variables**, ajouter :
 - `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` (✅ Encrypt pour secret)
 - `YOUTUBE_API_KEY`
 - `NEXT_PUBLIC_SENTRY_DSN`
-- `NEXT_PUBLIC_UMAMI_URL` / `NEXT_PUBLIC_UMAMI_WEBSITE_ID`
 
 ### 4. Déploiement
 
@@ -425,24 +374,6 @@ L'application capture automatiquement :
 
 **Limites gratuites** : 5,000 erreurs/mois
 
-### Umami Analytics
-
-#### Configuration
-
-1. **Installer Umami** (optionnel) :
-
-   ```bash
-   docker-compose up -d
-   ```
-
-2. **Créer un site** dans Umami Dashboard
-
-3. **Configurer dans Vercel** :
-   - `NEXT_PUBLIC_UMAMI_URL` : URL de votre instance Umami
-   - `NEXT_PUBLIC_UMAMI_WEBSITE_ID` : ID du site créé
-
-**Note** : Umami est optionnel. L'application fonctionne sans.
-
 ### Vercel Analytics
 
 Automatiquement activé sur Vercel. Aucune configuration nécessaire.
@@ -548,7 +479,6 @@ pnpm run test:coverage
 - [ ] Secrets marqués comme "Encrypt"
 - [ ] OAuth configuré (optionnel)
 - [ ] Sentry configuré (optionnel)
-- [ ] Umami configuré (optionnel)
 
 ### Après le Déploiement
 

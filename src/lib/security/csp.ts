@@ -10,19 +10,8 @@
 export const CSP_HEADER_REPORT_ONLY = 'Content-Security-Policy-Report-Only';
 
 interface CspOptions {
-  /** URL du script Umami (NEXT_PUBLIC_UMAMI_URL) */
-  umamiUrl?: string;
   /** DSN public Sentry (NEXT_PUBLIC_SENTRY_DSN), sert à construire l'adresse des rapports */
   sentryDsn?: string;
-}
-
-function originOf(url: string | undefined): string | null {
-  if (!url) return null;
-  try {
-    return new URL(url).origin;
-  } catch {
-    return null;
-  }
 }
 
 /**
@@ -42,11 +31,7 @@ export function sentryCspReportUri(dsn: string | undefined): string | null {
   }
 }
 
-export function buildCsp({ umamiUrl, sentryDsn }: CspOptions = {}): string {
-  // Seule une origine HTTPS est autorisée : une valeur de dev (http://localhost) ne doit pas
-  // se retrouver dans la CSP de prod.
-  const umamiOrigin = originOf(umamiUrl);
-  const umami = umamiOrigin?.startsWith('https://') ? umamiOrigin : 'https://analytics.umami.is';
+export function buildCsp({ sentryDsn }: CspOptions = {}): string {
   const reportUri = sentryCspReportUri(sentryDsn);
 
   const directives: Record<string, string[]> = {
@@ -55,7 +40,6 @@ export function buildCsp({ umamiUrl, sentryDsn }: CspOptions = {}): string {
     'script-src': [
       "'self'",
       "'unsafe-inline'",
-      umami,
       'https://va.vercel-scripts.com',
       'https://www.youtube.com',
       'https://s.ytimg.com',
@@ -68,7 +52,6 @@ export function buildCsp({ umamiUrl, sentryDsn }: CspOptions = {}): string {
     'media-src': ["'self'", 'blob:', 'https:'],
     'connect-src': [
       "'self'",
-      umami,
       'https://*.ingest.sentry.io',
       'https://*.ingest.de.sentry.io',
       'https://*.ingest.us.sentry.io',

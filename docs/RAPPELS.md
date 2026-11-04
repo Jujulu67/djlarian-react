@@ -43,9 +43,11 @@ comme compromises.
       (seules les autres adresses `*.vercel.app` sont derrière la protection Vercel). Si un domaine est
       acheté : l'ajouter au projet sur Vercel, régler le DNS, puis mettre à jour `NEXTAUTH_URL` et les
       URL de redirection OAuth Google et Twitch.
-- [ ] **Umami en prod** : `NEXT_PUBLIC_UMAMI_URL` vaut `http://localhost:3001` sur Vercel, donc les
-      statistiques Umami ne fonctionnent pas en prod. Mettre l'URL réelle de l'instance (ou supprimer
-      la variable si Umami n'est pas utilisé).
+- [ ] **Supprimer les variables Umami sur Vercel** (Settings → Environment Variables) : Umami est
+      retiré du code le 04/11/2026 (statistiques = Vercel Web Analytics, sans cookie, 31 jours
+      d'historique en offre gratuite). Les 6 variables `UMAMI_*` / `NEXT_PUBLIC_UMAMI_*` ne servent plus ;
+      `NEXT_PUBLIC_UMAMI_USERNAME`/`PASSWORD` étaient lisibles dans le JavaScript public (identifiants par
+      défaut d'une instance locale) : ne pas les réutiliser ailleurs.
 - [ ] **Imposer la Content-Security-Policy** : elle est en place en mode `Report-Only` depuis le
       04/11/2026 (`src/lib/security/csp.ts`, rapports vers Sentry), et en prod depuis ce jour-là.
       Laisser tourner quelques jours, regarder les rapports CSP

@@ -42,7 +42,7 @@ Guide complet pour l'infrastructure et le déploiement :
 - Base de données (SQLite, PostgreSQL/Neon)
 - Stockage (Vercel Blob)
 - Configuration OAuth (Google, Twitch)
-- Monitoring (Sentry, Umami, Vercel Analytics)
+- Monitoring (Sentry, Vercel Analytics)
 - Dépannage
 
 **À lire si** : Vous voulez déployer l'application ou configurer l'infrastructure.
@@ -127,7 +127,6 @@ Guide complet pour les développeurs :
 - [Neon DB](https://neon.tech/docs)
 - [Vercel Blob](https://vercel.com/docs/storage/vercel-blob)
 - [Sentry](https://docs.sentry.io/platforms/javascript/guides/nextjs/)
-- [Umami Analytics](https://umami.is/docs)
 
 ## 📝 Notes Importantes
 

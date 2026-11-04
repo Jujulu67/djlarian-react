@@ -71,8 +71,6 @@ export const CONFIG_LABEL_MAPPINGS: Record<string, string> = {
   apiEnabled: 'API activée',
   rateLimit: 'Limite de requêtes',
   webhookUrl: 'URL de Webhook',
-  umamiEnabled: 'Umami Analytics activé',
-  umamiSiteId: 'ID du site Umami',
 };
 
 export function formatChangeValue(value: unknown): string {

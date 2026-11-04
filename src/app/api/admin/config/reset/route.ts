@@ -45,8 +45,6 @@ type ApiConfig = {
   apiEnabled: string;
   rateLimit: string;
   webhookUrl: string;
-  umamiEnabled: string;
-  umamiSiteId: string;
 };
 
 type HomepageConfig = {

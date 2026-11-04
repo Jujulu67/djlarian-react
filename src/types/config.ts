@@ -70,8 +70,6 @@ export interface ApiConfig {
   apiEnabled: boolean;
   rateLimit: number;
   webhookUrl: string;
-  umamiEnabled: boolean;
-  umamiSiteId: string;
 }
 
 // Type global pour toutes les configurations
@@ -167,8 +165,6 @@ export const initialApiConfig: ApiConfig = {
   apiEnabled: true,
   rateLimit: 100,
   webhookUrl: '', // À configurer dans /admin/configuration si nécessaire
-  umamiEnabled: true, // Activé par défaut pour le développement local
-  umamiSiteId: '484ec662-e403-4498-a654-ca04b9b504c3', // ID du site Umami (local development)
 };
 
 // Configuration initiale globale
