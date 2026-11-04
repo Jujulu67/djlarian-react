@@ -367,7 +367,7 @@ sequenceDiagram
 
 - Logger centralisé (`lib/logger.ts`)
 - Error tracking (Sentry)
-- Analytics (Umami, Vercel Analytics)
+- Analytics (Vercel Web Analytics, Speed Insights)
 - Speed Insights (Vercel)
 
 ## Tests

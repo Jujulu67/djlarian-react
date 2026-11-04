@@ -20,8 +20,6 @@ jest.mock('@/lib/logger', () => ({
 describe('/api/admin/integrations/status', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    delete process.env.NEXT_PUBLIC_UMAMI_URL;
-    delete process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID;
     delete process.env.NEXT_PUBLIC_SENTRY_DSN;
     delete process.env.VERCEL;
   });
@@ -39,7 +37,6 @@ describe('/api/admin/integrations/status', () => {
     expect(response.status).toBe(200);
     expect(data.vercel).toBeDefined();
     expect(data.sentry).toBeDefined();
-    expect(data.umami).toBeDefined();
   });
 
   it('should return 401 for non-admin user', async () => {

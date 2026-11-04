@@ -76,8 +76,6 @@ const defaultConfigs: AllConfigs = {
     apiEnabled: true,
     rateLimit: 100,
     webhookUrl: '',
-    umamiEnabled: true,
-    umamiSiteId: 'your-umami-site-id',
   },
 };
 */

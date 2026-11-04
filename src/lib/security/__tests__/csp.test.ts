@@ -34,10 +34,10 @@ describe('buildCsp', () => {
     );
   });
 
-  it('autorise l’origine Umami configurée', () => {
-    const csp = buildCsp({ umamiUrl: 'https://stats.example.org/script.js' });
-    expect(directive(csp, 'script-src')).toContain('https://stats.example.org');
-    expect(directive(csp, 'connect-src')).toContain('https://stats.example.org');
+  it('autorise Vercel Web Analytics et Speed Insights', () => {
+    const csp = buildCsp();
+    expect(directive(csp, 'script-src')).toContain('https://va.vercel-scripts.com');
+    expect(directive(csp, 'connect-src')).toContain('https://vitals.vercel-insights.com');
   });
 
   it('interdit plugins et changement de base', () => {
@@ -51,11 +51,5 @@ describe('buildCsp', () => {
     expect(buildCsp({ sentryDsn: 'https://k@o1.ingest.sentry.io/2' })).toContain(
       'report-uri https://o1.ingest.sentry.io/api/2/security/?sentry_key=k'
     );
-  });
-
-  it('ignores a non-HTTPS Umami URL', () => {
-    const csp = buildCsp({ umamiUrl: 'http://localhost:3001' });
-    expect(csp).not.toContain('localhost');
-    expect(csp).toContain('https://analytics.umami.is');
   });
 });

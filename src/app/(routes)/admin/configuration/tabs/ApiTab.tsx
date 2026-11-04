@@ -1,10 +1,9 @@
 'use client';
 
-import { BarChart3, Globe, AlertCircle } from 'lucide-react';
+import { BarChart3, Globe } from 'lucide-react';
 
 import NumberInput from '@/components/config/NumberInput';
 import SentryDashboard from '@/components/admin/SentryDashboard';
-import UmamiDashboard from '@/components/admin/UmamiDashboard';
 import VercelAnalyticsDashboard from '@/components/admin/VercelAnalyticsDashboard';
 import VercelSpeedInsightsDashboard from '@/components/admin/VercelSpeedInsightsDashboard';
 import ToggleRow from '@/components/config/ToggleRow';
@@ -32,7 +31,6 @@ export default function ApiTab() {
             <VercelAnalyticsDashboard />
             <VercelSpeedInsightsDashboard />
             <SentryDashboard />
-            <UmamiDashboard />
           </div>
         </div>
 
@@ -72,47 +70,6 @@ export default function ApiTab() {
                 className="input-style"
                 disabled={!api.apiEnabled}
               />
-            </div>
-          </div>
-        </div>
-
-        {/* Section Umami Configuration (si nécessaire) */}
-        <div className="pt-6 border-t border-purple-500/20">
-          <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
-            <BarChart3 className="h-5 w-5 mr-2 text-purple-400" />
-            Configuration Umami (Local)
-          </h3>
-          <div className="p-4 bg-purple-900/20 rounded-lg border border-purple-500/20">
-            <div className="flex items-start">
-              <AlertCircle className="h-5 w-5 text-purple-400 mr-3 mt-0.5 flex-shrink-0" />
-              <div>
-                <h4 className="text-purple-300 font-semibold mb-1">Umami en local uniquement</h4>
-                <p className="text-xs text-gray-400 mb-3">
-                  Umami est configuré pour fonctionner uniquement en développement local (Docker).
-                  En production, utilisez Vercel Web Analytics pour les stats de trafic.
-                </p>
-                <div className="space-y-3">
-                  <ToggleRow
-                    label="Umami Analytics (Local)"
-                    desc="Activer le suivi Umami en local"
-                    value={api.umamiEnabled}
-                    onChange={(checked: boolean) => update('api', 'umamiEnabled', checked)}
-                  />
-
-                  {api.umamiEnabled && (
-                    <div className="space-y-2">
-                      <Label htmlFor="umamiSiteId">ID du site Umami</Label>
-                      <Input
-                        id="umamiSiteId"
-                        value={api.umamiSiteId}
-                        onChange={(e) => update('api', 'umamiSiteId', e.target.value)}
-                        className="input-style"
-                        placeholder="484ec662-e403-4498-a654-ca04b9b504c3"
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
             </div>
           </div>
         </div>

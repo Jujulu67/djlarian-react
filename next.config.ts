@@ -165,7 +165,6 @@ const nextConfig: NextConfig = {
                 {
                   key: CSP_HEADER_REPORT_ONLY,
                   value: buildCsp({
-                    umamiUrl: process.env.NEXT_PUBLIC_UMAMI_URL,
                     sentryDsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
                   }),
                 },
