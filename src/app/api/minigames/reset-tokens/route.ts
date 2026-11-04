@@ -1,19 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSuccessResponse, createUnauthorizedResponse } from '@/lib/api/responseHelpers';
+import {
+  createForbiddenResponse,
+  createSuccessResponse,
+  createUnauthorizedResponse,
+} from '@/lib/api/responseHelpers';
 import { handleApiError } from '@/lib/api/errorHandler';
 import prisma from '@/lib/prisma';
-import { requireAuth } from '@/lib/api/requireAuth';
+import { requireAdmin } from '@/lib/api/requireAuth';
 
 export async function POST(request: NextRequest) {
   try {
-    const { session, error } = await requireAuth({
+    // Outil de test réservé aux admins (le bouton n'est affiché qu'à eux)
+    const { session, error } = await requireAdmin({
       requireUserId: true,
       onAnonymous: () => createUnauthorizedResponse('Non authentifié'),
+      onNonAdmin: () => createForbiddenResponse('Accès réservé aux administrateurs'),
     });
     if (error) return error;
-
-    // Optional: Check for admin role if your app has roles
-    // if (session.user.role !== 'ADMIN') { ... }
 
     // Reset tokens to daily amount
     const RESET_AMOUNT = 100;

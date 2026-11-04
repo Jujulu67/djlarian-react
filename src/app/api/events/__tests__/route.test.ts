@@ -83,6 +83,34 @@ describe('/api/events', () => {
       expect(prisma.event.findMany).toHaveBeenCalled();
     });
 
+    it('should ignore isPublished=false for a non-admin', async () => {
+      const { auth } = await import('@/auth');
+      const { default: prisma } = await import('@/lib/prisma');
+      (auth as jest.Mock).mockResolvedValue(null);
+      (prisma.event.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.event.count as jest.Mock).mockResolvedValue(0);
+
+      await GET(new NextRequest('http://localhost/api/events?isPublished=false'));
+
+      const { where } = (prisma.event.findMany as jest.Mock).mock.calls[0][0];
+      expect(where.isPublished).toBeUndefined();
+      expect(where.OR).toEqual([{ isPublished: true }, { publishAt: { lte: expect.any(Date) } }]);
+    });
+
+    it('should let an admin filter on isPublished=false', async () => {
+      const { auth } = await import('@/auth');
+      const { default: prisma } = await import('@/lib/prisma');
+      (auth as jest.Mock).mockResolvedValue({ user: { id: 'admin1', role: 'ADMIN' } });
+      (prisma.event.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.event.count as jest.Mock).mockResolvedValue(0);
+
+      await GET(new NextRequest('http://localhost/api/events?isPublished=false'));
+
+      const { where } = (prisma.event.findMany as jest.Mock).mock.calls[0][0];
+      expect(where.isPublished).toBe(false);
+      expect(where.OR).toBeUndefined();
+    });
+
     it('should filter by title', async () => {
       const { auth } = await import('@/auth');
       const { default: prisma } = await import('@/lib/prisma');

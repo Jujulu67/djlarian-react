@@ -62,20 +62,19 @@ export async function GET(
       return handleApiError(new Error('Événement non trouvé'), 'GET /api/events/[id]');
     }
 
-    // Si l'événement n'est pas publié et que l'utilisateur n'est pas admin
-    if (!event.isPublished && !isAdmin) {
-      return createForbiddenResponse('Accès non autorisé');
-    }
-
-    // Publication automatique si la date est passée
+    // Publication automatique si la date est passée (avant le contrôle d'accès,
+    // sinon un visiteur ne verrait l'événement qu'après sa première ouverture par un admin)
     if (event.publishAt && !event.isPublished && new Date(event.publishAt) <= new Date()) {
-      // Mettre à jour en base
       await prisma.event.update({
         where: { id: event.id },
         data: { isPublished: true },
       });
-      // Recharger l'événement à jour
       event.isPublished = true;
+    }
+
+    // Si l'événement n'est pas publié et que l'utilisateur n'est pas admin
+    if (!event.isPublished && !isAdmin) {
+      return createForbiddenResponse('Accès non autorisé');
     }
 
     // Si c'est un événement virtuel avec une date valide, modifier les dates

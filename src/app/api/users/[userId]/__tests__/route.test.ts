@@ -71,7 +71,7 @@ describe('/api/users/[userId]', () => {
         params: Promise.resolve({ userId: 'user1' }),
       });
 
-      expect(response.status).toBe(401);
+      expect(response.status).toBe(403);
       expect(prisma.user.update).not.toHaveBeenCalled();
     });
 
@@ -116,7 +116,7 @@ describe('/api/users/[userId]', () => {
       const request = new Request('http://localhost/api/users/user1', { method: 'DELETE' });
       const response = await DELETE(request, { params: Promise.resolve({ userId: 'user1' }) });
 
-      expect(response.status).toBe(401);
+      expect(response.status).toBe(403);
       expect(prisma.user.delete).not.toHaveBeenCalled();
     });
   });
