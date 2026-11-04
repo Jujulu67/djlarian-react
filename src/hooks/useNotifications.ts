@@ -3,6 +3,7 @@ import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
+import { logger } from '@/lib/logger';
 
 export type NotificationType =
   | 'MILESTONE'
@@ -220,7 +221,7 @@ export function useNotifications(
           setError(null);
         } else {
           setError(err instanceof Error ? err.message : 'Erreur inconnue');
-          console.error('Erreur lors du chargement des notifications:', err);
+          logger.error('Erreur lors du chargement des notifications:', err);
         }
       } finally {
         setIsLoading(false);
@@ -257,7 +258,7 @@ export function useNotifications(
       // Émettre un événement pour synchroniser les autres instances du hook
       window.dispatchEvent(new CustomEvent('notification-read', { detail: { id } }));
     } catch (err) {
-      console.error('Erreur lors de la mise à jour de la notification:', err);
+      logger.error('Erreur lors de la mise à jour de la notification:', err);
       throw err;
     }
   }, []);
@@ -287,7 +288,7 @@ export function useNotifications(
       // Émettre un événement pour synchroniser les autres instances du hook
       window.dispatchEvent(new CustomEvent('notifications-all-read'));
     } catch (err) {
-      console.error('Erreur lors de la mise à jour de toutes les notifications:', err);
+      logger.error('Erreur lors de la mise à jour de toutes les notifications:', err);
       throw err;
     }
   }, []);
@@ -313,7 +314,7 @@ export function useNotifications(
           return notif && !notif.isRead ? Math.max(0, prev - 1) : prev;
         });
       } catch (err) {
-        console.error("Erreur lors de l'archivage de la notification:", err);
+        logger.error("Erreur lors de l'archivage de la notification:", err);
         throw err;
       }
     },
@@ -333,7 +334,7 @@ export function useNotifications(
 
       // La notification sera rechargée via refresh
     } catch (err) {
-      console.error('Erreur lors du désarchivage de la notification:', err);
+      logger.error('Erreur lors du désarchivage de la notification:', err);
       throw err;
     }
   }, []);
@@ -359,7 +360,7 @@ export function useNotifications(
           return notif && !notif.isRead ? Math.max(0, prev - 1) : prev;
         });
       } catch (err) {
-        console.error('Erreur lors de la suppression de la notification:', err);
+        logger.error('Erreur lors de la suppression de la notification:', err);
         throw err;
       }
     },

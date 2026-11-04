@@ -3,6 +3,7 @@
  * Gère les patterns "X en Y" et "de X à Y" pour les changements de statut
  */
 import { UpdateData, statusPatterns } from './types';
+import { logger } from '@/lib/logger';
 
 interface BestMatch {
   status1: string;
@@ -88,7 +89,7 @@ export function extractStatusUpdate(
     if (filters.status === bestMatch.status1) {
       delete filters.status;
     }
-    console.warn('[Parse Query API] ✅ Pattern "X en Y" ou "de X à Y" détecté:', {
+    logger.warn('[Parse Query API] ✅ Pattern "X en Y" ou "de X à Y" détecté:', {
       filtre: bestMatch.status1,
       nouvelleValeur: bestMatch.status2,
     });
@@ -205,7 +206,7 @@ function extractSimpleStatusUpdate(
     for (const updateVerbPattern of updateVerbPatterns) {
       if (updateVerbPattern.test(cleanedQuery)) {
         updateData.newStatus = status;
-        console.warn('[Parse Query API] ✅ Nouveau statut détecté:', status);
+        logger.warn('[Parse Query API] ✅ Nouveau statut détecté:', status);
         return;
       }
     }

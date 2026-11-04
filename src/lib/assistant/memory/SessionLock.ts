@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * SessionLock - Protection contre les requêtes concurrentes sur la même session
  *
@@ -40,7 +41,7 @@ export async function withSessionLock<T>(sessionId: string, fn: () => Promise<T>
 
   // O5: Détecter double-inflight en mode debug
   if (isDebug() && currentCount > 0) {
-    console.warn(`[SessionLock] ⚠️ Double-inflight détecté sur session ${sessionId}!`, {
+    logger.warn(`[SessionLock] ⚠️ Double-inflight détecté sur session ${sessionId}!`, {
       inflightCount: currentCount + 1,
     });
     // En développement, on peut throw pour détecter les problèmes
@@ -53,8 +54,7 @@ export async function withSessionLock<T>(sessionId: string, fn: () => Promise<T>
   const previousLock = sessionLocks.get(sessionId);
   if (previousLock) {
     if (isDebug()) {
-      // eslint-disable-next-line no-console -- Debug-only log gated behind ASSISTANT_DEBUG
-      console.log(`[SessionLock] Session ${sessionId}: waiting for previous lock...`);
+      logger.debug(`[SessionLock] Session ${sessionId}: waiting for previous lock...`);
     }
     await previousLock;
   }
@@ -68,8 +68,7 @@ export async function withSessionLock<T>(sessionId: string, fn: () => Promise<T>
 
   try {
     if (isDebug()) {
-      // eslint-disable-next-line no-console -- Debug-only log gated behind ASSISTANT_DEBUG
-      console.log(`[SessionLock] Session ${sessionId}: acquired lock`);
+      logger.debug(`[SessionLock] Session ${sessionId}: acquired lock`);
     }
     return await fn();
   } finally {
@@ -86,8 +85,7 @@ export async function withSessionLock<T>(sessionId: string, fn: () => Promise<T>
     }
 
     if (isDebug()) {
-      // eslint-disable-next-line no-console -- Debug-only log gated behind ASSISTANT_DEBUG
-      console.log(`[SessionLock] Session ${sessionId}: released lock`);
+      logger.debug(`[SessionLock] Session ${sessionId}: released lock`);
     }
   }
 }

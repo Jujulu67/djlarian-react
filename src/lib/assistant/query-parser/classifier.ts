@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * Classification des requêtes utilisateur
  * Détermine le type de requête (update, create, count, list, conversational)
@@ -237,7 +238,7 @@ export function classifyQuery(
     );
 
   if (isQuestionAboutAssistantProjects) {
-    console.warn("[Parse Query API] Question sur les projets de l'assistant détectée pour:", query);
+    logger.warn("[Parse Query API] Question sur les projets de l'assistant détectée pour:", query);
   }
 
   // Détecter les messages très longs qui sont clairement conversationnels
@@ -261,7 +262,7 @@ export function classifyQuery(
 
   // Debug pour les messages longs
   if (query.length > 200) {
-    console.warn('[Parse Query API] 🔍 Détection message long:', {
+    logger.warn('[Parse Query API] 🔍 Détection message long:', {
       length: query.length,
       hasProjectMention,
       hasActionVerb,
@@ -374,7 +375,7 @@ export function classifyQuery(
   // Removed hardcoded fetch to localhost endpoint - use debugLog instead
 
   if (isQuestionAboutAssistantProjects || isLongPersonalMessage) {
-    console.warn('[Parse Query API] 🔍 Détection conversationnelle:', {
+    logger.warn('[Parse Query API] 🔍 Détection conversationnelle:', {
       isQuestionAboutAssistantProjects,
       isLongPersonalMessage,
       isConversationalQuestion,

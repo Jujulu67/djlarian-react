@@ -113,14 +113,15 @@ describe('useImageFilters', () => {
     expect(result.current.sortOption).toBe('name-asc');
   });
 
-  it('should handle pagination', () => {
+  it('ramène à la dernière page existante (ex. après une suppression)', () => {
     const { result } = renderHook(() => useImageFilters(mockImages, mockGroupedImages));
+    expect(result.current.totalPages).toBe(1);
 
     act(() => {
       result.current.setCurrentPage(2);
     });
 
-    expect(result.current.currentPage).toBe(2);
+    expect(result.current.currentPage).toBe(1);
   });
 
   it('should update items per page', () => {

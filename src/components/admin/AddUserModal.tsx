@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation';
 
 import AddUserForm from '@/components/admin/AddUserForm'; // Importer le formulaire
 import Modal from '@/components/ui/Modal'; // Importer la modale générique
-import { logger } from '@/lib/logger';
 
 // Rétablir l'interface locale (identique à AddUserForm)
 interface User {
@@ -25,17 +24,10 @@ export default function AddUserModal({ userToEdit }: AddUserModalProps) {
   // Accepter la prop
   const router = useRouter();
 
-  // Le callback onSuccess rafraîchira explicitement les données avant de fermer la modale
+  // Fermer la modale (route interceptée) puis rafraîchir la liste, sans délai arbitraire
   const handleSuccess = () => {
-    logger.debug('AddUserModal: handleSuccess appelé.'); // Log pour vérifier
+    router.back();
     router.refresh();
-    logger.debug('AddUserModal: router.refresh() appelé.'); // Log
-
-    // Augmenter le délai
-    setTimeout(() => {
-      logger.debug('AddUserModal: setTimeout terminé, appel de router.back().'); // Log
-      router.back();
-    }, 800); // Essayer 800ms au lieu de 300ms
   };
 
   return (

@@ -4,6 +4,7 @@ import type { SubmissionWithUser } from './useAdminLiveSubmissions';
 import { calculateTicketWeight, calculateMultiplier } from '@/lib/live/calculations';
 import type { UserTicket, UserLiveItem } from '@/types/live';
 import { TicketSource, LiveItemType } from '@/types/live';
+import { logger } from '@/lib/logger';
 
 export type AdminLiveActionsState = {
   downloadsEnabled: boolean;
@@ -34,7 +35,7 @@ export function useAdminLiveActions(
         setActions((prev) => ({ ...prev, ...result.data }));
       }
     } catch (error) {
-      console.error('Erreur lors du chargement des paramètres:', error);
+      logger.error('Erreur lors du chargement des paramètres:', error);
     }
   }, []);
 
@@ -100,7 +101,7 @@ export function useAdminLiveActions(
         body: JSON.stringify({ key, value }),
       });
     } catch (error) {
-      console.error('Erreur lors de la sauvegarde du paramètre:', error);
+      logger.error('Erreur lors de la sauvegarde du paramètre:', error);
       // Restaurer l'état précédent en cas d'erreur
       setActions((prev) => ({ ...prev, [key]: !value }));
       toast.error('Erreur lors de la sauvegarde du paramètre');
@@ -113,7 +114,7 @@ export function useAdminLiveActions(
       toast.success('Sockets rafraîchis');
     } catch (error) {
       toast.error('Erreur lors du rafraîchissement des sockets');
-      console.error(error);
+      logger.error(error);
     }
   }, []);
 
@@ -150,7 +151,7 @@ export function useAdminLiveActions(
       toast.success(`${uniqueNames.length} nom(s) copié(s) dans le presse-papiers`);
     } catch (error) {
       toast.error('Erreur lors de la copie des noms');
-      console.error(error);
+      logger.error(error);
     }
   }, [submissions]);
 
@@ -177,7 +178,7 @@ export function useAdminLiveActions(
       toast.success(`${rolledNames.length} nom(s) rollé(s) copié(s) dans le presse-papiers`);
     } catch (error) {
       toast.error('Erreur lors de la copie des noms rollés');
-      console.error(error);
+      logger.error(error);
     }
   }, [submissions]);
 
@@ -214,7 +215,7 @@ export function useAdminLiveActions(
       toast.success('Téléchargement terminé !');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Erreur lors du téléchargement');
-      console.error(error);
+      logger.error(error);
     }
   }, []);
 
@@ -247,7 +248,7 @@ export function useAdminLiveActions(
         toast.error(error.error || 'Erreur lors de la purge');
       }
     } catch (error) {
-      console.error('Erreur purge:', error);
+      logger.error('Erreur purge:', error);
       toast.error('Erreur lors de la purge');
     }
   }, [fetchSubmissions]);
@@ -280,7 +281,7 @@ export function useAdminLiveActions(
           timeOffsetMinutes = offsetData.data?.timeOffsetMinutes || 0;
         }
       } catch (error) {
-        console.error('Erreur lors de la récupération du time offset:', error);
+        logger.error('Erreur lors de la récupération du time offset:', error);
       }
 
       // Extraire l'ID de Queue Skip directement depuis les soumissions
@@ -440,7 +441,7 @@ export function useAdminLiveActions(
       setIsWheelModalOpen(true);
     } catch (error) {
       toast.error('Erreur lors du roll random');
-      console.error(error);
+      logger.error(error);
     }
   }, [submissions, queueSkipItemId, extractQueueSkipIdFromSubmissions]);
 
@@ -504,7 +505,7 @@ export function useAdminLiveActions(
                     } catch (parseError) {
                       errorMessage = `Erreur ${consumeResponse.status}: ${consumeResponse.statusText}`;
                     }
-                    console.error('Erreur lors de la consommation du Queue Skip:', {
+                    logger.error('Erreur lors de la consommation du Queue Skip:', {
                       status: consumeResponse.status,
                       statusText: consumeResponse.statusText,
                       error: errorMessage,
@@ -517,7 +518,7 @@ export function useAdminLiveActions(
                   toast.success('Soumission sélectionnée et pinée !');
                 }
               } catch (error) {
-                console.error('Erreur lors de la consommation du Queue Skip:', {
+                logger.error('Erreur lors de la consommation du Queue Skip:', {
                   error: error instanceof Error ? error.message : String(error),
                   stack: error instanceof Error ? error.stack : undefined,
                 });
@@ -539,7 +540,7 @@ export function useAdminLiveActions(
         }
       } catch (error) {
         toast.error('Erreur lors du pin de la soumission');
-        console.error(error);
+        logger.error(error);
       }
     },
     [updateSubmissionRolled, updateSubmissionPinned, fetchSubmissions, submissions]
@@ -583,7 +584,7 @@ export function useAdminLiveActions(
         }
       } catch (error) {
         toast.error("Erreur lors de l'avancement du temps");
-        console.error(error);
+        logger.error(error);
       }
     },
     [fetchSubmissions]
@@ -607,7 +608,7 @@ export function useAdminLiveActions(
       }
     } catch (error) {
       toast.error('Erreur lors de la réinitialisation');
-      console.error(error);
+      logger.error(error);
     }
   }, [fetchSubmissions]);
 

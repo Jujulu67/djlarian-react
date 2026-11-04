@@ -101,7 +101,7 @@ describe('ProfilePage', () => {
       ).toBeInTheDocument();
     });
 
-    it("devrait afficher un message d'accès non autorisé quand la session est en chargement", () => {
+    it("n'affiche pas « Accès non autorisé » pendant le chargement de la session", () => {
       mockUseSession.mockReturnValue({
         data: null,
         status: 'loading',
@@ -110,7 +110,19 @@ describe('ProfilePage', () => {
 
       render(<ProfilePage />);
 
-      expect(screen.getByText('Accès non autorisé')).toBeInTheDocument();
+      expect(screen.queryByText('Accès non autorisé')).not.toBeInTheDocument();
+    });
+
+    it('propose de se connecter via la modale du site', () => {
+      mockUseSession.mockReturnValue({ data: null, status: 'unauthenticated', update: mockUpdate });
+      const listener = jest.fn();
+      window.addEventListener('open-auth-modal', listener);
+
+      render(<ProfilePage />);
+      screen.getByRole('button', { name: 'Se connecter' }).click();
+
+      expect(listener).toHaveBeenCalledTimes(1);
+      window.removeEventListener('open-auth-modal', listener);
     });
   });
 

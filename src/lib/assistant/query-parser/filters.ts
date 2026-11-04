@@ -3,6 +3,7 @@
  */
 import { findStyleFromString } from '../parsers/style-matcher';
 import { BuildAlternationRegexPart, UpdateVerbs, StatusSynonyms } from './nlp-dictionary';
+import { logger } from '@/lib/logger';
 
 /**
  * Helper pour les logs de debug (patterns matching)
@@ -12,7 +13,7 @@ const isDebugPatterns = () => process.env.ASSISTANT_DEBUG_PATTERNS === 'true';
 
 const debugLog = (...args: unknown[]) => {
   if (isDebugPatterns()) {
-    console.warn(...args);
+    logger.warn(args[0], ...args.slice(1));
   }
 };
 
@@ -40,7 +41,7 @@ export function detectFilters(
     )
   ) {
     filters.noProgress = true;
-    console.warn('[Parse Query API] Filtre noProgress détecté pour:', query);
+    logger.warn('[Parse Query API] Filtre noProgress détecté pour:', query);
   }
 
   // Détecter demande de champs spécifiques à afficher
@@ -182,7 +183,7 @@ export function detectFilters(
         ) {
           filters.minProgress = exactValue;
           filters.maxProgress = exactValue;
-          console.warn('[Parse Query API] ✅ Filtre progression exacte détecté:', exactValue);
+          logger.warn('[Parse Query API] ✅ Filtre progression exacte détecté:', exactValue);
           break;
         }
       }
@@ -317,7 +318,7 @@ export function detectFilters(
         const mappedStatus = statusMapping[statusText];
         if (mappedStatus) {
           filters.status = mappedStatus;
-          console.warn(
+          logger.warn(
             '[Parse Query API] ✅ Statut détecté comme filtre explicite (pattern "pour/sur"):',
             mappedStatus,
             'dans:',
@@ -340,7 +341,7 @@ export function detectFilters(
       // Si c'est un pattern "de X à Y", ne pas détecter les statuts comme filtres
       // car ils font partie du pattern et seront gérés par extractUpdateData
       if (hasDeXaYPattern) {
-        console.warn(
+        logger.warn(
           '[Parse Query API] ⚠️ Statut détecté mais ignoré (pattern "de X à Y"):',
           status,
           'dans:',
@@ -375,7 +376,7 @@ export function detectFilters(
           // Si le statut est précédé de "à", "en" ou "comme", c'est la nouvelle valeur, pas un filtre
           if (endsWithAorEn || hasAEnPattern || hasEnBeforeStatus) {
             // C'est la nouvelle valeur, pas un filtre - continuer à chercher d'autres statuts
-            console.warn(
+            logger.warn(
               '[Parse Query API] ⚠️ Statut détecté mais ignoré (nouvelle valeur):',
               status,
               'dans:',
@@ -391,7 +392,7 @@ export function detectFilters(
           const hasAorEnAfterStatus = /^(?:\s+)?(?:à|en|comme|as)\s+/.test(textAfterStatus);
           if (hasAorEnAfterStatus) {
             // Le statut apparaît avant "à" ou "en", donc c'est un filtre explicite
-            console.warn(
+            logger.warn(
               '[Parse Query API] ✅ Statut détecté comme filtre explicite (avant "à"/"en"):',
               status,
               'dans:',
@@ -403,7 +404,7 @@ export function detectFilters(
         }
       }
       filters.status = status;
-      console.warn('[Parse Query API] ✅ Statut détecté comme filtre:', status, 'dans:', query);
+      logger.warn('[Parse Query API] ✅ Statut détecté comme filtre:', status, 'dans:', query);
       break;
     }
   }
@@ -515,7 +516,7 @@ export function detectFilters(
     const styleMatch = findStyleFromString(query, availableStyles);
     if (styleMatch) {
       // Log de debug pour voir ce qui est détecté
-      console.warn('[Parse Query API] 🔍 Style détecté par findStyleFromString:', {
+      logger.warn('[Parse Query API] 🔍 Style détecté par findStyleFromString:', {
         style: styleMatch.style,
         matchedText: styleMatch.matchedText,
         query: query.substring(0, 50),
@@ -550,7 +551,7 @@ export function detectFilters(
 
       // Log de debug pour comprendre pourquoi la condition ne matche pas
       if (styleMatch.style === 'Progressive') {
-        console.warn('[Parse Query API] 🔍 Debug Progressive detection:', {
+        logger.warn('[Parse Query API] 🔍 Debug Progressive detection:', {
           style: styleMatch.style,
           matchedText: styleMatch.matchedText,
           matchedTextLower,
@@ -563,9 +564,9 @@ export function detectFilters(
 
       if (!isFalsePositive && !isProgressionFalsePositive) {
         filters.style = styleMatch.style;
-        console.warn('[Parse Query API] ✅ Style défini dans filters:', filters.style);
+        logger.warn('[Parse Query API] ✅ Style défini dans filters:', filters.style);
       } else if (isProgressionFalsePositive) {
-        console.warn(
+        logger.warn(
           '[Parse Query API] ⚠️ Style "Progressive" détecté dans filters mais ignoré (faux positif via "prog" dans "progression"):',
           styleMatch.style
         );
@@ -648,7 +649,7 @@ export function detectFilters(
     if (pattern.test(lowerQuery)) {
       filters.hasDeadline = true;
       hasDeadlineDetected = true;
-      console.warn('[Parse Query API] ✅ Filtre hasDeadline=true détecté:', query);
+      logger.warn('[Parse Query API] ✅ Filtre hasDeadline=true détecté:', query);
       break;
     }
   }
@@ -657,7 +658,7 @@ export function detectFilters(
     for (const pattern of hasNoDeadlinePatterns) {
       if (pattern.test(lowerQuery)) {
         filters.hasDeadline = false;
-        console.warn('[Parse Query API] ✅ Filtre hasDeadline=false détecté:', query);
+        logger.warn('[Parse Query API] ✅ Filtre hasDeadline=false détecté:', query);
         break;
       }
     }
@@ -720,7 +721,7 @@ export function detectFilters(
         if (!excludeStatuses.includes(excludedStatus)) {
           excludeStatuses.push(excludedStatus);
         }
-        console.warn('[Parse Query API] ✅ Exclusion de statut détectée:', excludedStatus);
+        logger.warn('[Parse Query API] ✅ Exclusion de statut détectée:', excludedStatus);
       }
     }
   }

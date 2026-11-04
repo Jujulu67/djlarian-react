@@ -4,6 +4,7 @@
  */
 import { UpdateData } from './types';
 import { findStyleFromString } from '../../parsers/style-matcher';
+import { logger } from '@/lib/logger';
 
 /**
  * Extrait les modifications de metadata depuis une requête
@@ -61,7 +62,7 @@ function extractCollabUpdate(
       if (!ignoredWords.includes(newCollab.toLowerCase()) && newCollab.length > 0) {
         filters.collab = filterCollab;
         updateData.newCollab = newCollab;
-        console.warn(
+        logger.warn(
           '[Parse Query API] ✅ Pattern "collab avec X à Y" détecté:',
           `filtre=${filterCollab}, nouvelle valeur=${newCollab}`
         );
@@ -91,7 +92,7 @@ function extractCollabUpdate(
       }
       if (!ignoredWords.includes(collabName.toLowerCase()) && collabName.length > 0) {
         updateData.newCollab = collabName;
-        console.warn('[Parse Query API] ✅ Nouveau collaborateur détecté:', collabName);
+        logger.warn('[Parse Query API] ✅ Nouveau collaborateur détecté:', collabName);
         return;
       }
     }
@@ -118,7 +119,7 @@ function extractStyleUpdate(
 
   // Si on a des mots de progression mais pas de mention explicite de "style", ignorer complètement l'extraction de style
   if (hasProgressionKeywords && !hasExplicitStyleKeyword) {
-    console.warn(
+    logger.warn(
       '[Parse Query API] ⚠️ Extraction de style ignorée (requête contient progression/avancement sans "style"):',
       cleanedQuery
     );
@@ -135,7 +136,7 @@ function extractStyleUpdate(
     filters.style = filterStyle;
     const styleMatch = findStyleFromString(newStyle, availableStyles);
     updateData.newStyle = styleMatch ? styleMatch.style : newStyle;
-    console.warn(
+    logger.warn(
       '[Parse Query API] ✅ Pattern "de style X à Y" détecté:',
       `filtre=${filterStyle}, nouvelle valeur=${updateData.newStyle}`
     );
@@ -193,7 +194,7 @@ function extractStyleUpdate(
         // Si la requête contient des mots de progression ET qu'on n'a pas explicitement mentionné "style",
         // ignorer cette détection de style
         if (!queryLower.includes('style')) {
-          console.warn(
+          logger.warn(
             '[Parse Query API] ⚠️ Style détecté mais ignoré (requête contient progression/avancement):',
             styleName
           );
@@ -221,7 +222,7 @@ function extractStyleUpdate(
       if (styleMatch && styleMatch.style === 'Progressive') {
         // Si la requête contient "progression" ou "avancement" sans "style", ignorer
         if (hasProgressionKeywords && !hasExplicitStyleKeyword) {
-          console.warn(
+          logger.warn(
             '[Parse Query API] ⚠️ Style "Progressive" détecté mais ignoré (faux positif via "prog" dans "progression"):',
             styleName
           );
@@ -230,7 +231,7 @@ function extractStyleUpdate(
 
         // Si le styleName contient "prog" mais n'est pas exactement "progressive" ou "prog", ignorer
         if (lowerStyleName.includes('prog') && !lowerStyleName.match(/^(progressive|prog)$/)) {
-          console.warn(
+          logger.warn(
             '[Parse Query API] ⚠️ Style "Progressive" détecté mais ignoré (faux positif):',
             styleName
           );
@@ -239,7 +240,7 @@ function extractStyleUpdate(
       }
 
       updateData.newStyle = styleMatch ? styleMatch.style : styleName;
-      console.warn('[Parse Query API] ✅ Nouveau style détecté:', updateData.newStyle);
+      logger.warn('[Parse Query API] ✅ Nouveau style détecté:', updateData.newStyle);
       return;
     }
   }
@@ -275,7 +276,7 @@ function extractLabelUpdate(query: string, updateData: UpdateData): void {
       const labelName = match[1].trim();
       if (!ignoredWords.includes(labelName.toLowerCase())) {
         updateData.newLabel = labelName;
-        console.warn('[Parse Query API] ✅ Nouveau label détecté:', labelName);
+        logger.warn('[Parse Query API] ✅ Nouveau label détecté:', labelName);
         return;
       }
     }
@@ -300,7 +301,7 @@ function extractLabelFinalUpdate(query: string, updateData: UpdateData): void {
       const labelFinalName = match[1].trim();
       if (!ignoredWords.includes(labelFinalName.toLowerCase())) {
         updateData.newLabelFinal = labelFinalName;
-        console.warn('[Parse Query API] ✅ Nouveau label final détecté:', labelFinalName);
+        logger.warn('[Parse Query API] ✅ Nouveau label final détecté:', labelFinalName);
         return;
       }
     }

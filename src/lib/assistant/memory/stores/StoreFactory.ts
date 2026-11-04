@@ -17,6 +17,7 @@ import { IActionMemoryStore } from './IActionMemoryStore';
 import { getConversationMemoryStore as getMapConversationStore } from '../ConversationMemoryStore';
 import { getActionMemoryStore as getMapActionStore } from '../ActionMemoryStore';
 import { ConversationMemoryOptions, ActionMemoryOptions } from '../Types';
+import { logger } from '@/lib/logger';
 
 // ============================================================================
 // Configuration
@@ -76,7 +77,7 @@ export function getConversationStore(
     // TODO: Implémenter RedisConversationMemoryStore
     // Pour l'instant, fallback sur Map avec warning
     if (process.env.NODE_ENV === 'development') {
-      console.warn(
+      logger.warn(
         '[StoreFactory] Redis configured but RedisConversationMemoryStore not yet implemented, using Map fallback'
       );
     }
@@ -116,7 +117,7 @@ export function getActionStore(
     // TODO: Implémenter RedisActionMemoryStore
     // Pour l'instant, fallback sur Map avec warning
     if (process.env.NODE_ENV === 'development') {
-      console.warn(
+      logger.warn(
         '[StoreFactory] Redis configured but RedisActionMemoryStore not yet implemented, using Map fallback'
       );
     }

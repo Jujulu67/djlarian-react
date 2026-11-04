@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * Utilitaires de debug pour l'assistant
  * Les logs sont conditionnels et activables via localStorage ou variable d'environnement
@@ -40,9 +41,9 @@ export function debugLog(category: string, message: string, data?: unknown): voi
 
   const prefix = `[Assistant Debug:${category}]`;
   if (data !== undefined) {
-    console.warn(prefix, message, data);
+    logger.warn(prefix, message, data);
   } else {
-    console.warn(prefix, message);
+    logger.warn(prefix, message);
   }
 }
 
@@ -55,6 +56,6 @@ export function debugLogObject(category: string, message: string, obj: unknown):
   }
 
   const prefix = `[Assistant Debug:${category}]`;
-  console.warn(prefix, message);
-  console.warn(prefix, '→', JSON.stringify(obj, null, 2));
+  logger.warn(prefix, message);
+  logger.warn(prefix, '→', JSON.stringify(obj, null, 2));
 }

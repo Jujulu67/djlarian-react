@@ -18,6 +18,7 @@
  */
 
 import { ActionType, RouterResult } from './Types';
+import { logger } from '@/lib/logger';
 
 // ==========================================================================
 // Patterns et configurations
@@ -558,8 +559,7 @@ export class Router {
 
   private log(message: string): void {
     if (this.debug) {
-      // eslint-disable-next-line no-console -- Debug-only log gated behind ASSISTANT_DEBUG
-      console.log(`[Router] ${message}`);
+      logger.debug(`[Router] ${message}`);
     }
   }
 }

@@ -17,6 +17,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
 import { Prisma } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 type UserLicenseWithDetails = Prisma.LicenseGetPayload<{
   include: {
@@ -166,7 +167,7 @@ export default function LicensesPage() {
           setError('Erreur lors du chargement des licences');
         }
       } catch (err) {
-        console.error('Failed to fetch licenses:', err);
+        logger.error('Failed to fetch licenses:', err);
         setError('Erreur de connexion');
       } finally {
         setIsLoading(false);

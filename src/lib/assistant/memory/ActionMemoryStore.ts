@@ -18,6 +18,7 @@ import {
   PendingConfirmation,
   QueryFilter,
 } from './Types';
+import { logger } from '@/lib/logger';
 
 /** Contexte par défaut */
 const DEFAULT_CONTEXT: ActionContext = {
@@ -245,7 +246,7 @@ export class ActionMemoryStore {
     }
 
     if (violations.length > 0 && this.isDebugEnabled()) {
-      console.error('[ActionMemory] Invariant violations:', violations);
+      logger.error('[ActionMemory] Invariant violations:', violations);
     }
 
     return { valid: violations.length === 0, violations };
@@ -265,8 +266,7 @@ export class ActionMemoryStore {
 
   private debugLog(message: string): void {
     if (this.isDebugEnabled()) {
-      // eslint-disable-next-line no-console -- Debug-only log gated behind ASSISTANT_DEBUG
-      console.log(`[ActionMemory][${this.options.sessionId}] ${message}`);
+      logger.debug(`[ActionMemory][${this.options.sessionId}] ${message}`);
     }
   }
 }

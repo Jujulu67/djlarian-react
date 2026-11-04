@@ -5,6 +5,7 @@
 import type { Project } from '@/lib/domain/projects';
 import { ProjectCommandType, type ProjectCommandResult } from './types';
 import { extractCreateData } from '../../query-parser/creates';
+import { logger } from '@/lib/logger';
 
 /**
  * Gère la création d'un projet
@@ -16,7 +17,7 @@ export function handleCreateCommand(
   availableStyles: string[],
   requestId?: string
 ): ProjectCommandResult {
-  console.warn('[Router] ➕ Routing vers Création');
+  logger.warn('[Router] ➕ Routing vers Création');
 
   const createData = extractCreateData(userMessage, lowerQuery, availableCollabs, availableStyles);
 

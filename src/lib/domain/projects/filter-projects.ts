@@ -6,6 +6,7 @@
  */
 import type { Project } from './types';
 import type { QueryFilters } from './filters';
+import { logger } from '@/lib/logger';
 
 export interface FilterResult {
   filtered: Project[];
@@ -30,7 +31,7 @@ export function filterProjects(projects: Project[], filters: QueryFilters): Filt
       // Si on cherche des projets sans avancement, on retourne directement le résultat
       // (les autres filtres comme statut, collab, etc. sont déjà vérifiés avant)
       if (!hasNoProgress) {
-        console.warn(
+        logger.warn(
           '[Filter Projects] ❌ Projet exclu (a une progression):',
           project.name,
           project.progress

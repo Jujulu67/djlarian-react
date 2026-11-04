@@ -1,5 +1,6 @@
 import { useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
+import { logger } from '@/lib/logger';
 
 /**
  * Hook pour synchroniser les stats de jeu avec l'API
@@ -28,7 +29,7 @@ export function useGameStats() {
         return data?.gameHighScore ?? 0;
       }
     } catch (error) {
-      console.error('Error fetching game stats:', error);
+      logger.error('Error fetching game stats:', error);
     }
 
     // Fallback to localStorage on error
@@ -56,7 +57,7 @@ export function useGameStats() {
           body: JSON.stringify({ gameHighScore: score }),
         });
       } catch (error) {
-        console.error('Error saving game stats:', error);
+        logger.error('Error saving game stats:', error);
       }
     },
     [isAuthenticated]
@@ -73,7 +74,7 @@ export function useGameStats() {
         body: JSON.stringify({ hasDiscoveredCasino: true }),
       });
     } catch (error) {
-      console.error('Error tracking casino discovery:', error);
+      logger.error('Error tracking casino discovery:', error);
     }
   }, [isAuthenticated]);
 

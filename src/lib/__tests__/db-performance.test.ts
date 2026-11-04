@@ -131,14 +131,14 @@ describe('db-performance', () => {
       const perf = createDbPerformanceLogger('test-handler');
       const t0 = Date.now() - 1500; // 1.5 seconds ago
       perf.end(t0);
-      expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('est lent'));
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('est lent'));
     });
 
     it('should warn when query is fast but handler is slow', () => {
       const perf = createDbPerformanceLogger('test-handler');
       const t0 = Date.now() - 600; // 600ms ago
       perf.end(t0, { queryTime: 50 }); // Query took 50ms
-      expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('cold start'));
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('cold start'));
     });
   });
 

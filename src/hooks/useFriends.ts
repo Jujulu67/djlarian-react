@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
+import { logger } from '@/lib/logger';
 
 export interface FriendUser {
   id: string;
@@ -126,7 +127,7 @@ export function useFriends(): UseFriendsReturn {
         setError(null);
       } else {
         setError(err instanceof Error ? err.message : 'Erreur inconnue');
-        console.error('Erreur lors du chargement des amis:', err);
+        logger.error('Erreur lors du chargement des amis:', err);
       }
     } finally {
       setIsLoading(false);
@@ -152,7 +153,7 @@ export function useFriends(): UseFriendsReturn {
         // Rafraîchir la liste
         await fetchFriends();
       } catch (err) {
-        console.error("Erreur lors de l'envoi de la demande:", err);
+        logger.error("Erreur lors de l'envoi de la demande:", err);
         throw err;
       }
     },
@@ -174,7 +175,7 @@ export function useFriends(): UseFriendsReturn {
         // Rafraîchir la liste
         await fetchFriends();
       } catch (err) {
-        console.error("Erreur lors de l'acceptation:", err);
+        logger.error("Erreur lors de l'acceptation:", err);
         throw err;
       }
     },
@@ -196,7 +197,7 @@ export function useFriends(): UseFriendsReturn {
         // Rafraîchir la liste
         await fetchFriends();
       } catch (err) {
-        console.error('Erreur lors du rejet:', err);
+        logger.error('Erreur lors du rejet:', err);
         throw err;
       }
     },
@@ -218,7 +219,7 @@ export function useFriends(): UseFriendsReturn {
         // Rafraîchir la liste
         await fetchFriends();
       } catch (err) {
-        console.error('Erreur lors de la suppression:', err);
+        logger.error('Erreur lors de la suppression:', err);
         throw err;
       }
     },

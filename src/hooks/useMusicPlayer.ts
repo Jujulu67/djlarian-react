@@ -93,11 +93,11 @@ export function useMusicPlayer({ filteredTracks }: UseMusicPlayerParams): UseMus
 
       // New track - switch to it
       if (isProcessingRef.current) {
-        console.warn(`[PLAYER] Play blocked: processing in progress for track ${track.id}`);
+        logger.debug(`[PLAYER] Play blocked: processing in progress for track ${track.id}`);
         return;
       }
 
-      console.warn(
+      logger.debug(
         `[PLAYER] Switching to new track: ${track.title} (ID: ${track.id}) - SYNC update`
       );
       logger.remote(`-------------------------------------------`);
@@ -138,7 +138,7 @@ export function useMusicPlayer({ filteredTracks }: UseMusicPlayerParams): UseMus
 
     const currentIndex = filteredTracks.findIndex((t) => t.id === currentTrack.id);
     if (currentIndex === -1 || currentIndex >= filteredTracks.length - 1) {
-      console.warn('[PLAYER] Last track reached');
+      logger.debug('[PLAYER] Last track reached');
       return;
     }
 
@@ -168,7 +168,7 @@ export function useMusicPlayer({ filteredTracks }: UseMusicPlayerParams): UseMus
 
     const currentIndex = filteredTracks.findIndex((t) => t.id === currentTrack.id);
     if (currentIndex <= 0) {
-      console.warn('[PLAYER] First track reached');
+      logger.debug('[PLAYER] First track reached');
       return;
     }
 

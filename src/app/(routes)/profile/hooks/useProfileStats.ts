@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 
 export interface UserStats {
   projects: number;
@@ -30,10 +31,10 @@ export function useProfileStats() {
         });
       } else {
         // Afficher une erreur silencieuse pour les stats (non bloquant)
-        console.error('Erreur lors du chargement des statistiques');
+        logger.error('Erreur lors du chargement des statistiques');
       }
     } catch (error) {
-      console.error('Erreur lors du chargement des statistiques:', error);
+      logger.error('Erreur lors du chargement des statistiques:', error);
       toast.error('Impossible de charger les statistiques');
     } finally {
       setIsLoading(false);

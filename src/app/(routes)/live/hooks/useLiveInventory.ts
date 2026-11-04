@@ -4,6 +4,7 @@ import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
 import type { LiveInventory, UpdateInventoryInput } from '@/types/live';
 import { useBatchedInventory } from './useBatchedInventory';
 import { calculateTicketWeightClient } from '@/lib/live/calculations';
+import { logger } from '@/lib/logger';
 
 export function useLiveInventory() {
   const [inventory, setInventory] = useState<LiveInventory | null>(null);
@@ -26,7 +27,7 @@ export function useLiveInventory() {
       }
     } catch (err) {
       setError('Erreur de connexion');
-      console.error('[Live] Erreur chargement inventaire:', err);
+      logger.error('[Live] Erreur chargement inventaire:', err);
     } finally {
       setIsLoading(false);
     }
@@ -210,7 +211,7 @@ export function useLiveInventory() {
         await loadInventory();
         const errorMessage = err instanceof Error ? err.message : 'Erreur de connexion';
         setError(errorMessage);
-        console.error('[Live] Erreur mise à jour item:', err);
+        logger.error('[Live] Erreur mise à jour item:', err);
         return { success: false, error: errorMessage };
       }
     },

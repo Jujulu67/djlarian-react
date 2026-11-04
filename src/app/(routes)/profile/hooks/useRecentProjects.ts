@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
+import { logger } from '@/lib/logger';
 
 export interface RecentProject {
   id: string;
@@ -35,7 +36,7 @@ export function useRecentProjects() {
       }
     } catch (error) {
       // Erreur silencieuse, non bloquant
-      console.error('Erreur lors du chargement des projets récents:', error);
+      logger.error('Erreur lors du chargement des projets récents:', error);
     } finally {
       setIsLoading(false);
     }

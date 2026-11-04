@@ -2,6 +2,7 @@
  * Détecteur de deadlines depuis les requêtes utilisateur
  */
 import { parseRelativeDate } from './date-parser';
+import { logger } from '@/lib/logger';
 
 /**
  * Détecte les filtres de deadline depuis la requête
@@ -16,10 +17,10 @@ export function detectDeadlineFromQuery(query: string): {
   // Patterns pour "avec deadline", "sans deadline", "qui ont une deadline"
   if (/avec\s*deadline|qui\s*ont\s*(?:une\s*)?deadline|deadline\s*prévue/i.test(lowerQuery)) {
     result.hasDeadline = true;
-    console.warn('[Assistant] Deadline détectée: hasDeadline = true');
+    logger.warn('[Assistant] Deadline détectée: hasDeadline = true');
   } else if (/sans\s*deadline|pas\s*de\s*deadline/i.test(lowerQuery)) {
     result.hasDeadline = false;
-    console.warn('[Assistant] Deadline détectée: hasDeadline = false');
+    logger.warn('[Assistant] Deadline détectée: hasDeadline = false');
   }
 
   // Patterns pour dates relatives : "vendredi", "lundi prochain", "dans 3 jours", etc.
@@ -39,7 +40,7 @@ export function detectDeadlineFromQuery(query: string): {
       const parsed = parseRelativeDate(dateStr);
       if (parsed) {
         result.deadlineDate = parsed;
-        console.warn(`[Assistant] Date de deadline détectée: ${result.deadlineDate}`);
+        logger.warn(`[Assistant] Date de deadline détectée: ${result.deadlineDate}`);
         return result;
       }
     }

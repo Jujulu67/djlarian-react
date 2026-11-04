@@ -47,9 +47,12 @@ describe('ErrorModal', () => {
   it('should render image when imageUrl is provided', () => {
     render(<ErrorModal imageUrl="/test.jpg" />);
 
-    const image = screen.getByAltText(/Illustration d'erreur/i);
-    expect(image).toBeInTheDocument();
-    expect(image).toHaveAttribute('src', '/test.jpg');
+    expect(document.querySelector('img')).toHaveAttribute('src', '/test.jpg');
+  });
+
+  it("n'affiche pas d'image par défaut", () => {
+    render(<ErrorModal />);
+    expect(document.querySelector('img')).toBeNull();
   });
 
   it('should call router.back when back button is clicked without backHref', () => {

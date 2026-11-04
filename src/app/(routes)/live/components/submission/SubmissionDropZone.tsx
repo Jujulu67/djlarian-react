@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 
 import { type AudioAnalysisResult, formatDuration } from '@/lib/live/audio-analysis';
 import { type LiveSubmission } from '@/types/live';
+import { logger } from '@/lib/logger';
 
 interface SubmissionDropZoneProps {
   activeSubmission: LiveSubmission | null;
@@ -191,7 +192,7 @@ export function SubmissionDropZone({
                 }
               }}
               onError={(e) => {
-                console.error('Audio error:', e);
+                logger.error('Audio error:', e);
                 toast.error('Erreur lors du chargement audio');
               }}
             />

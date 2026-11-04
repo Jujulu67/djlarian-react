@@ -15,6 +15,7 @@ import {
 import { Loader2, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 
 interface CreateLicenseModalProps {
   isOpen: boolean;
@@ -54,7 +55,7 @@ export function CreateLicenseModal({ isOpen, onClose }: CreateLicenseModalProps)
             setUsers(validUsers);
           }
         })
-        .catch((err) => console.error('Failed to fetch users:', err));
+        .catch((err) => logger.error('Failed to fetch users:', err));
     }
   }, [isOpen]);
 

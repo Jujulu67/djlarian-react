@@ -21,6 +21,7 @@ import {
   columnsCompact,
   columnsNormal,
 } from './project-table/utils';
+import { logger } from '@/lib/logger';
 
 interface ProjectTableProps {
   projects: Project[];
@@ -155,7 +156,7 @@ export const ProjectTable = ({
       setEditingLinkId(null);
       setLinkValue('');
     } catch (error) {
-      console.error('Erreur lors de la sauvegarde du lien:', error);
+      logger.error('Erreur lors de la sauvegarde du lien:', error);
     }
   };
 
@@ -167,7 +168,7 @@ export const ProjectTable = ({
       setEditingNoteId(null);
       setNoteValue('');
     } catch (error) {
-      console.error('Erreur lors de la sauvegarde de la note:', error);
+      logger.error('Erreur lors de la sauvegarde de la note:', error);
     }
   };
 

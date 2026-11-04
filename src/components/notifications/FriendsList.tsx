@@ -29,6 +29,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { logger } from '@/lib/logger';
 
 interface FriendsListProps {
   onSendMessage?: (userId: string) => void;
@@ -71,7 +72,7 @@ export function FriendsList({ onSendMessage }: FriendsListProps) {
         setUsers(Array.isArray(result) ? result : []);
       }
     } catch (err) {
-      console.error('Erreur lors du chargement des utilisateurs:', err);
+      logger.error('Erreur lors du chargement des utilisateurs:', err);
       toast.error('Erreur lors du chargement des utilisateurs');
     } finally {
       setIsLoadingUsers(false);

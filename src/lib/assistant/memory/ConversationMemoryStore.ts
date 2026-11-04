@@ -18,6 +18,7 @@ import {
   generateId,
   isChatMessage,
 } from './Types';
+import { logger } from '@/lib/logger';
 
 /** Estimation tokens par caractère (approximation pour Llama) */
 const CHARS_PER_TOKEN = 4;
@@ -89,7 +90,7 @@ export class ConversationMemoryStore {
     if (this.isPolludedContent(content, role)) {
       this.debugLog(`REJECTED: polluted content detected (role=${role})`);
       if (this.isDebugEnabled()) {
-        console.warn('[ConversationMemory] Pollution detected:', content.substring(0, 100));
+        logger.warn('[ConversationMemory] Pollution detected:', content.substring(0, 100));
       }
       return null;
     }
@@ -222,7 +223,7 @@ export class ConversationMemoryStore {
     }
 
     if (violations.length > 0 && this.isDebugEnabled()) {
-      console.error('[ConversationMemory] Invariant violations:', violations);
+      logger.error('[ConversationMemory] Invariant violations:', violations);
       throw new Error(`ConversationMemory invariant violations: ${violations.join(', ')}`);
     }
 
@@ -272,8 +273,7 @@ export class ConversationMemoryStore {
 
   private debugLog(message: string): void {
     if (this.isDebugEnabled()) {
-      // eslint-disable-next-line no-console -- Debug-only log gated behind ASSISTANT_DEBUG
-      console.log(`[ConversationMemory][${this.options.sessionId}] ${message}`);
+      logger.debug(`[ConversationMemory][${this.options.sessionId}] ${message}`);
     }
   }
 }

@@ -30,6 +30,7 @@ import {
   handleListCommand,
   handleUpdateCommand,
 } from './router-handlers';
+import { logger } from '@/lib/logger';
 
 // Re-export public pour maintenir l'API existante
 export { isScopingFilter } from './filter-helpers';
@@ -117,11 +118,11 @@ export async function routeProjectCommand(
 
     // Guard: Intercepter les questions sur les fonctionnalités
     if (isCapabilitiesQuestion(normalized)) {
-      console.warn('[Router] 🛡️ Interception question fonctionnalités (réponse hardcodée)');
+      logger.warn('[Router] 🛡️ Interception question fonctionnalités (réponse hardcodée)');
       return getCapabilitiesResponse(requestId);
     }
 
-    console.warn('[Router] 🧠 Routing vers Groq (question généraliste)');
+    logger.warn('[Router] 🧠 Routing vers Groq (question généraliste)');
 
     return await handleConversationalQuery(
       userMessage,
@@ -196,7 +197,7 @@ export async function routeProjectCommand(
   // ========================================
   // FALLBACK : Question généraliste
   // ========================================
-  console.warn('[Router] 🤖 Fallback vers Groq');
+  logger.warn('[Router] 🤖 Fallback vers Groq');
 
   // Utiliser isComplex de la classification pour le routing de modèle
   const isComplex = classification.isComplex || false;

@@ -1,40 +1,37 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Project } from '@/components/projects';
+
+import { waitForElement } from '@/lib/utils/waitForElement';
 
 interface UseScrollToNewProjectParams {
-  filteredAndSortedProjects: Project[];
   lastCreatedProjectId: string | null;
   setLastCreatedProjectId: React.Dispatch<React.SetStateAction<string | null>>;
 }
 
+/** Durée de l'animation de mise en avant du nouveau projet. */
+const HIGHLIGHT_MS = 2000;
+
+/**
+ * Amène le projet créé à l'écran (où qu'il soit selon le tri), puis retire sa mise en avant.
+ */
 export function useScrollToNewProject({
-  filteredAndSortedProjects,
   lastCreatedProjectId,
   setLastCreatedProjectId,
 }: UseScrollToNewProjectParams) {
-  // Scroll vers le nouveau projet après création et réinitialiser l'animation après 2s
   useEffect(() => {
-    if (lastCreatedProjectId) {
-      // Attendre que le DOM soit mis à jour
-      const timer = setTimeout(() => {
-        // Scroller jusqu'en bas de la fenêtre
-        window.scrollTo({
-          top: document.documentElement.scrollHeight,
-          behavior: 'smooth',
-        });
-      }, 150);
+    if (!lastCreatedProjectId) return;
 
-      // Réinitialiser l'ID après l'animation (2 secondes)
-      const resetTimer = setTimeout(() => {
-        setLastCreatedProjectId(null);
-      }, 2000);
+    const controller = new AbortController();
+    waitForElement(`#project-${CSS.escape(lastCreatedProjectId)}`, {
+      signal: controller.signal,
+    }).then((el) => el?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
 
-      return () => {
-        clearTimeout(timer);
-        clearTimeout(resetTimer);
-      };
-    }
-  }, [lastCreatedProjectId, filteredAndSortedProjects]);
+    const resetTimer = setTimeout(() => setLastCreatedProjectId(null), HIGHLIGHT_MS);
+
+    return () => {
+      controller.abort();
+      clearTimeout(resetTimer);
+    };
+  }, [lastCreatedProjectId, setLastCreatedProjectId]);
 }

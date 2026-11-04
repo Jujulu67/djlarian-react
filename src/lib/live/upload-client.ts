@@ -4,6 +4,7 @@
  */
 
 import { upload } from '@vercel/blob/client';
+import { logger } from '@/lib/logger';
 
 const MAX_FILE_SIZE = 128 * 1024 * 1024; // 128MB
 const ALLOWED_MIME_TYPES = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/wave'];
@@ -77,7 +78,7 @@ export async function uploadAudioFileToBlob(
       size: file.size,
     };
   } catch (error) {
-    console.error('[Live Upload Client] Erreur upload Blob:', error);
+    logger.error('[Live Upload Client] Erreur upload Blob:', error);
     throw new Error("Erreur lors de l'upload vers Blob Storage");
   }
 }

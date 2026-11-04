@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * Utilitaires pour le formatage des dates dans le profil
  */
@@ -22,7 +23,7 @@ export function getMemberSince(createdAt?: string | Date | null): string | null 
       year: 'numeric',
     });
   } catch (error) {
-    console.error('Erreur lors du parsing de la date:', error);
+    logger.error('Erreur lors du parsing de la date:', error);
     return null;
   }
 }
@@ -46,7 +47,7 @@ export function getMemberMonths(createdAt?: string | Date | null): number {
     const diffMonths = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 30));
     return diffMonths;
   } catch (error) {
-    console.error("Erreur lors du calcul de l'ancienneté:", error);
+    logger.error("Erreur lors du calcul de l'ancienneté:", error);
     return 0;
   }
 }

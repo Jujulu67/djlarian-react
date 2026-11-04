@@ -22,6 +22,7 @@ import { YearlyProgressionChart } from './components/YearlyProgressionChart';
 import { YearProjectsList } from './components/YearProjectsList';
 import { computeYearStatistics } from './computeYearStatistics';
 import type { StatisticsClientProps, StatisticsData } from './types';
+import { logger } from '@/lib/logger';
 
 export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => {
   const [statistics, setStatistics] = useState<StatisticsData | null>(null);
@@ -53,10 +54,10 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
             setViewMode('global');
           }
         } else {
-          console.error('Erreur lors du chargement des statistiques');
+          logger.error('Erreur lors du chargement des statistiques');
         }
       } catch (error) {
-        console.error('Erreur:', error);
+        logger.error('Erreur:', error);
       } finally {
         setLoading(false);
       }

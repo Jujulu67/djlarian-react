@@ -6,6 +6,7 @@ import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { buildWhereClause, buildUpdateData, findProjectByName } from './tool-helpers';
 import { generateNoteFromContent } from '../parsers/note-generator';
+import { logger } from '@/lib/logger';
 
 export interface UpdateProjectsToolParams {
   getTargetUserId: (query?: string) => Promise<string>;
@@ -112,7 +113,7 @@ export function createUpdateProjectsTool({
 
         // Mode test : ne pas modifier la base de données
         if (isTestMode) {
-          console.warn("[TEST MODE] Simulation d'ajout de note:", {
+          logger.warn("[TEST MODE] Simulation d'ajout de note:", {
             projectName: projectMatch.project.name,
             generatedNote: generatedNote.substring(0, 100) + '...',
           });
@@ -163,7 +164,7 @@ export function createUpdateProjectsTool({
       // Mode test : ne pas modifier la base de données
       if (isTestMode) {
         // Simuler une mise à jour sans vraiment modifier
-        console.warn('[TEST MODE] Simulation de mise à jour:', {
+        logger.warn('[TEST MODE] Simulation de mise à jour:', {
           where: whereClause,
           data: data,
         });

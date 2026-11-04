@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 
 import type { Notification } from '@/hooks/useNotifications';
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
+import { logger } from '@/lib/logger';
 
 /**
  * Charge les notifications archivées séparément de la liste principale
@@ -21,7 +22,7 @@ export function useArchivedNotifications() {
         setArchivedNotifications(archived);
       }
     } catch (err) {
-      console.error('Erreur lors du chargement des notifications archivées:', err);
+      logger.error('Erreur lors du chargement des notifications archivées:', err);
     }
   };
 

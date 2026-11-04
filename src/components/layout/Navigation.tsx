@@ -25,12 +25,19 @@ import {
   useShopEnabled,
   useClickOutsideMenus,
 } from './navigation/useNavigationEffects';
+import { OPEN_AUTH_MODAL_EVENT } from '@/lib/auth/openAuthModal';
+import { logger } from '@/lib/logger';
 
 const Navigation = () => {
   const { data: session, status } = useSession();
   const pathname = usePathname();
   const router = useRouter();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  useEffect(() => {
+    const open = () => setIsAuthModalOpen(true);
+    window.addEventListener(OPEN_AUTH_MODAL_EVENT, open);
+    return () => window.removeEventListener(OPEN_AUTH_MODAL_EVENT, open);
+  }, []);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileUserMenuOpen, setIsMobileUserMenuOpen] = useState(false);
@@ -52,7 +59,7 @@ const Navigation = () => {
         credentials: 'include',
       });
     } catch (error) {
-      console.error('[Navigation] Erreur API signout:', error);
+      logger.error('[Navigation] Erreur API signout:', error);
     }
 
     // Forcer un rechargement complet de la page

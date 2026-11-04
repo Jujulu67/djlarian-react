@@ -12,6 +12,7 @@ import { RevealGroup, RevealItem } from '@/components/ui/Reveal';
 import { useUiVersion } from '@/hooks/useUiVersion';
 import { cn } from '@/lib/utils/cn';
 import { GalleryItem, InstagramPost } from '@/lib/utils/types';
+import { logger } from '@/lib/logger';
 
 const galleryItems: GalleryItem[] = [
   {
@@ -387,7 +388,7 @@ export default function GalleryPage() {
           }
         })
         .catch((error) => {
-          console.error('Error fetching Instagram posts:', error);
+          logger.error('Error fetching Instagram posts:', error);
         })
         .finally(() => {
           setIsLoadingInstagram(false);

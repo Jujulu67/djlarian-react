@@ -458,7 +458,7 @@ export function useSeamlessAudioLoop({
       }
 
       if (!buffer) {
-        console.warn(`Buffer not loaded for ${file}`);
+        logger.warn(`Buffer not loaded for ${file}`);
         return;
       }
 
@@ -526,7 +526,7 @@ export function useSeamlessAudioLoop({
           newAudio.gain.gain.setValueAtTime(0, switchNow);
           newAudio.gain.gain.setValueCurveAtTime(fadeIn, switchNow, switchDuration);
         } catch (e) {
-          console.error('Failed to start new audio source:', e);
+          logger.error('Failed to start new audio source:', e);
         }
 
         newAudio.startTime = switchNow - safeStartOffset;
@@ -538,7 +538,7 @@ export function useSeamlessAudioLoop({
 
         setCurrentFile(file);
       } catch (err) {
-        console.error('Error in switchTo:', err);
+        logger.error('Error in switchTo:', err);
       }
     },
     [

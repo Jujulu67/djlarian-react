@@ -5,6 +5,7 @@ import { useState, useRef, useEffect, KeyboardEvent } from 'react';
 
 import { PROJECT_STATUSES, ProjectStatus } from './types';
 import { GlassSelect } from './GlassSelect';
+import { logger } from '@/lib/logger';
 
 // Format text in Title Case (first letter of each word in uppercase, rest in lowercase)
 const formatTitleCase = (text: string): string => {
@@ -61,7 +62,7 @@ export const AddProjectRow = ({
       setStatus(defaultStatus === 'ALL' || !defaultStatus ? 'EN_COURS' : defaultStatus);
       setIsAdding(false);
     } catch (error) {
-      console.error("Erreur lors de l'ajout:", error);
+      logger.error("Erreur lors de l'ajout:", error);
     } finally {
       setIsSaving(false);
     }

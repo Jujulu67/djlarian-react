@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
 import { toast } from 'sonner';
 import { RewardType } from '@/types/slot-machine';
+import { logger } from '@/lib/logger';
 
 export interface GameResult {
   rewardType: RewardType | null;
@@ -44,7 +45,7 @@ export function useMiniGame(onTokenUpdate?: () => Promise<void>) {
           return null;
         }
       } catch (error) {
-        console.error('Erreur lors du jeu:', error);
+        logger.error('Erreur lors du jeu:', error);
         toast.error('Une erreur est survenue');
         return null;
       } finally {
@@ -70,7 +71,7 @@ export function useMiniGame(onTokenUpdate?: () => Promise<void>) {
         toast.error('Erreur lors de la réinitialisation');
       }
     } catch (error) {
-      console.error('Erreur reset:', error);
+      logger.error('Erreur reset:', error);
       toast.error('Erreur reset');
     } finally {
       setIsLoading(false);

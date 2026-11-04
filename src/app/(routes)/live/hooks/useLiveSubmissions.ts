@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
 import type { LiveSubmission, CreateSubmissionInput } from '@/types/live';
+import { logger } from '@/lib/logger';
 
 interface UseLiveSubmissionsOptions {
   useBlobStorage?: boolean;
@@ -28,7 +29,7 @@ export function useLiveSubmissions(options?: UseLiveSubmissionsOptions) {
       }
     } catch (err) {
       setError('Erreur de connexion');
-      console.error('[Live] Erreur chargement soumissions:', err);
+      logger.error('[Live] Erreur chargement soumissions:', err);
     } finally {
       setIsLoading(false);
     }
@@ -137,7 +138,7 @@ export function useLiveSubmissions(options?: UseLiveSubmissionsOptions) {
         }
       } catch (err) {
         setError('Erreur de connexion');
-        console.error('[Live] Erreur soumission:', err);
+        logger.error('[Live] Erreur soumission:', err);
         return { success: false, error: 'Erreur de connexion' };
       } finally {
         setIsSubmitting(false);
@@ -171,7 +172,7 @@ export function useLiveSubmissions(options?: UseLiveSubmissionsOptions) {
         }
       } catch (err) {
         setError('Erreur de connexion');
-        console.error('[Live] Erreur mise à jour:', err);
+        logger.error('[Live] Erreur mise à jour:', err);
         return { success: false, error: 'Erreur de connexion' };
       } finally {
         setIsSubmitting(false);
@@ -200,7 +201,7 @@ export function useLiveSubmissions(options?: UseLiveSubmissionsOptions) {
         }
       } catch (err) {
         setError('Erreur de connexion');
-        console.error('[Live] Erreur suppression:', err);
+        logger.error('[Live] Erreur suppression:', err);
         return { success: false, error: 'Erreur de connexion' };
       } finally {
         setIsSubmitting(false);

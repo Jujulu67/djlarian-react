@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * Détecteur de progression depuis les requêtes utilisateur
  * Détecte les valeurs de progression (pourcentages) avec différentes formulations
@@ -25,7 +26,7 @@ export function detectProgressFromQuery(query: string): {
     const match = lowerQuery.match(pattern);
     if (match) {
       result.maxProgress = parseInt(match[1], 10);
-      console.warn(`[Assistant] Progression max détectée (inférieur à): ${result.maxProgress}%`);
+      logger.warn(`[Assistant] Progression max détectée (inférieur à): ${result.maxProgress}%`);
       return result;
     }
   }
@@ -41,7 +42,7 @@ export function detectProgressFromQuery(query: string): {
     const match = lowerQuery.match(pattern);
     if (match) {
       result.minProgress = parseInt(match[1], 10);
-      console.warn(`[Assistant] Progression min détectée (supérieur à): ${result.minProgress}%`);
+      logger.warn(`[Assistant] Progression min détectée (supérieur à): ${result.minProgress}%`);
       return result;
     }
   }
@@ -67,7 +68,7 @@ export function detectProgressFromQuery(query: string): {
         // Pattern "entre X et Y"
         result.minProgress = parseInt(match[1], 10);
         result.maxProgress = parseInt(match[2], 10);
-        console.warn(
+        logger.warn(
           `[Assistant] Progression détectée: ${result.minProgress}% - ${result.maxProgress}%`
         );
         return result;
@@ -78,7 +79,7 @@ export function detectProgressFromQuery(query: string): {
       ) {
         // "plus de X%"
         result.minProgress = parseInt(match[1], 10);
-        console.warn(`[Assistant] Progression min détectée: ${result.minProgress}%`);
+        logger.warn(`[Assistant] Progression min détectée: ${result.minProgress}%`);
         return result;
       } else if (
         lowerQuery.includes('moins') ||
@@ -87,7 +88,7 @@ export function detectProgressFromQuery(query: string): {
       ) {
         // "moins de X%"
         result.maxProgress = parseInt(match[1], 10);
-        console.warn(`[Assistant] Progression max détectée: ${result.maxProgress}%`);
+        logger.warn(`[Assistant] Progression max détectée: ${result.maxProgress}%`);
         return result;
       } else {
         // "à X%" ou "X%"
@@ -100,7 +101,7 @@ export function detectProgressFromQuery(query: string): {
           result.minProgress = value;
           result.maxProgress = value;
         }
-        console.warn(`[Assistant] Progression détectée: ${value}%`);
+        logger.warn(`[Assistant] Progression détectée: ${value}%`);
         return result;
       }
     }
@@ -122,7 +123,7 @@ export function detectProgressFromQuery(query: string): {
         const percentValue = Math.round(decimalValue * 100);
         result.minProgress = percentValue;
         result.maxProgress = percentValue;
-        console.warn(
+        logger.warn(
           `[Assistant] Progression décimale détectée: ${decimalValue} → ${percentValue}%`
         );
         return result;
@@ -148,7 +149,7 @@ export function detectProgressFromQuery(query: string): {
     if (pattern.test(lowerQuery)) {
       if (min !== undefined) result.minProgress = min;
       if (max !== undefined) result.maxProgress = max;
-      console.warn(`[Assistant] Progression textuelle détectée: ${min}% - ${max}%`);
+      logger.warn(`[Assistant] Progression textuelle détectée: ${min}% - ${max}%`);
       return result;
     }
   }

@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * ModelLimits.ts - Configuration des limites officielles par modèle Groq
  *
@@ -104,7 +105,7 @@ export function capMaxCompletionTokens(modelId: string, requestedTokens: number)
 
   // Debug log si cap appliqué
   if (capped < requestedTokens && process.env.ASSISTANT_DEBUG === 'true') {
-    console.warn(
+    logger.warn(
       `[ModelLimits] ⚠️ max_completion_tokens capped: ${requestedTokens} → ${capped} (model: ${modelId}, max: ${maxAllowed})`
     );
   }

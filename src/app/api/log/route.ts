@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { rateLimit } from '@/lib/api/rateLimiter';
+import { logger } from '@/lib/logger';
 
 const ALLOWED_LEVELS = ['debug', 'info', 'warn', 'error'];
 const MAX_MESSAGE_LENGTH = 2000;
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
     const prefix = `[REMOTE-${safeLevel.toUpperCase()}]`;
 
     // Use warn for general logs to avoid lint error on console.log
-    console.warn(`${timestamp} ${prefix} ${message.slice(0, MAX_MESSAGE_LENGTH)}`, safeArgs);
+    logger.warn(`${timestamp} ${prefix} ${message.slice(0, MAX_MESSAGE_LENGTH)}`, safeArgs);
 
     return NextResponse.json({ success: true });
   } catch (e) {

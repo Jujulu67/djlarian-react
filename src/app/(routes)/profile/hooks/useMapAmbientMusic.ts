@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useState, useCallback } from 'react';
+import { logger } from '@/lib/logger';
 
 const AUDIO_PATH = '/audio/casino-map-ambient.mp3';
 const STORAGE_KEY_MUTED = 'casino-map-muted';
@@ -41,7 +42,7 @@ export function useMapAmbientMusic(isOpen: boolean) {
     });
 
     audio.addEventListener('error', (e) => {
-      console.warn('Failed to load casino map ambient music:', e);
+      logger.warn('Failed to load casino map ambient music:', e);
     });
 
     audioRef.current = audio;
@@ -104,7 +105,7 @@ export function useMapAmbientMusic(isOpen: boolean) {
         })
         .catch((e) => {
           // Autoplay might be blocked by browser
-          console.warn('Autoplay blocked:', e);
+          logger.warn('Autoplay blocked:', e);
         });
     } else {
       // Fade out and pause

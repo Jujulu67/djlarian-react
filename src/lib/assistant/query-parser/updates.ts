@@ -16,6 +16,7 @@ import {
 import { extractStatusUpdate } from './updates/status-updates';
 import { extractDeadlineUpdate } from './updates/deadline-updates';
 import { extractMetadataUpdate } from './updates/metadata-updates';
+import { logger } from '@/lib/logger';
 
 // Re-export UpdateData for backwards compatibility
 export type { UpdateData } from './updates/types';
@@ -75,7 +76,7 @@ export function extractUpdateData(
     if (!isProgressionFalsePositive) {
       updateData.style = filters.style;
     } else {
-      console.warn(
+      logger.warn(
         '[Parse Query API] ⚠️ filters.style "Progressive" ignoré dans updateData (faux positif via "prog" dans "progression")'
       );
     }
@@ -114,7 +115,7 @@ export function extractUpdateData(
   if (noteData) {
     updateData.projectName = noteData.projectName;
     updateData.newNote = noteData.newNote;
-    console.warn('[Parse Query API] ✅ Données de note détectées:', noteData);
+    logger.warn('[Parse Query API] ✅ Données de note détectées:', noteData);
   }
 
   // Si on a au moins une modification à faire, c'est une commande de modification valide
@@ -129,7 +130,7 @@ export function extractUpdateData(
     updateData.newLabelFinal !== undefined ||
     updateData.newNote !== undefined
   ) {
-    console.warn('[Parse Query API] updateData final:', updateData);
+    logger.warn('[Parse Query API] updateData final:', updateData);
     return updateData;
   }
 
@@ -163,7 +164,7 @@ function extractNoteUpdateData(
   ) {
     // C'est probablement une phrase conversationnelle, pas une note
     // Sauf si c'est explicitement un pattern de note comme "Session X du jour" ou "Note pour X"
-    console.warn(
+    logger.warn(
       '[Parse Query API] ⚠️ Phrase conversationnelle détectée, skip extraction de note:',
       query
     );
@@ -351,7 +352,7 @@ function extractNoteUpdateData(
       // Pour le pattern direct, on exige au moins 3 caractères pour éviter les faux positifs
       const minLength = i === notePatterns.length - 1 ? 3 : 2;
       if (projectName.length >= minLength && noteContent.length > 0) {
-        console.warn('[Parse Query API] ✅ Note détectée:', {
+        logger.warn('[Parse Query API] ✅ Note détectée:', {
           projectName,
           noteContent: noteContent.substring(0, 50) + '...',
           patternIndex: i,
@@ -400,7 +401,7 @@ function extractNoteUpdateData(
       !commonWords.includes(projectName.toLowerCase()) &&
       !startsWithConnector
     ) {
-      console.warn('[Parse Query API] ✅ Note détectée (pattern direct):', {
+      logger.warn('[Parse Query API] ✅ Note détectée (pattern direct):', {
         projectName,
         noteContent: noteContent.substring(0, 50) + '...',
       });

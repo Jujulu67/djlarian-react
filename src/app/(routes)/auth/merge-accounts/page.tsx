@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 
 interface AccountMergeData {
   existingAccount: {
@@ -69,7 +70,7 @@ function MergeAccountsContent() {
           keepPassword: data.existingAccount.hasPassword,
         });
       } catch (error) {
-        console.error('Erreur:', error);
+        logger.error('Erreur:', error);
         toast.error('Erreur lors du chargement des données');
         router.push('/');
       } finally {
@@ -130,7 +131,7 @@ function MergeAccountsContent() {
         router.push('/');
       }
     } catch (error) {
-      console.error('Erreur:', error);
+      logger.error('Erreur:', error);
       toast.error('Erreur lors de la fusion');
     } finally {
       setMerging(false);

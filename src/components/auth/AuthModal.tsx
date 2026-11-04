@@ -3,7 +3,6 @@
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 
@@ -22,7 +21,6 @@ interface AvailableProviders {
 }
 
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
-  const router = useRouter();
   const isV2 = useUiVersion() !== 'legacy';
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
@@ -70,8 +68,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const handleLoginSuccess = useCallback(() => {
     toast.success('Connexion réussie !');
     onClose();
-    // Recharger la page pour récupérer la nouvelle session
-    window.location.href = '/';
+    // Recharger la page courante pour récupérer la nouvelle session (sans renvoyer à l'accueil)
+    window.location.reload();
   }, [onClose]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -105,7 +103,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             errorMessage = data.error;
           }
 
-          console.error('[AuthModal] Erreur de connexion:', data.error);
+          logger.error('[AuthModal] Erreur de connexion:', data.error);
           toast.error(errorMessage);
           setIsLoading(false);
           return;
@@ -126,7 +124,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         const data = await response.json();
 
         if (!response.ok) {
-          console.error('[AuthModal] Erreur inscription:', data.error);
+          logger.error('[AuthModal] Erreur inscription:', data.error);
           toast.error(
             response.status === 429
               ? 'Trop de tentatives, réessayez dans une minute'
@@ -151,7 +149,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         const loginData = await loginResponse.json().catch(() => ({}));
 
         if (!loginResponse.ok || loginData.error) {
-          console.error('[AuthModal] Erreur connexion après inscription:', loginData.error);
+          logger.error('[AuthModal] Erreur connexion après inscription:', loginData.error);
           toast.success('Veuillez vous connecter maintenant.');
           setIsLogin(true);
           setIsLoading(false);
@@ -162,7 +160,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         handleLoginSuccess();
       }
     } catch (error) {
-      console.error('[AuthModal] Erreur:', error);
+      logger.error('[AuthModal] Erreur:', error);
       toast.error('Une erreur est survenue');
       logger.error("Erreur lors de l'authentification", error);
       setIsLoading(false);
@@ -190,7 +188,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         ...(callbackUrl && { callbackUrl }),
       });
     } catch (error) {
-      console.error('[AuthModal] Erreur OAuth:', error);
+      logger.error('[AuthModal] Erreur OAuth:', error);
       setIsLoading(false);
       toast.error(`Erreur de connexion avec ${provider}`);
       logger.error('Erreur lors de la connexion OAuth', error);
@@ -200,7 +198,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   if (!isOpen) return null;
 
   return (
-    <Modal maxWidth="max-w-md" showLoader={false}>
+    <Modal maxWidth="max-w-md" showLoader={false} onClose={onClose}>
       <motion.div
         key="content"
         initial={{ scale: 0.97, opacity: 0 }}

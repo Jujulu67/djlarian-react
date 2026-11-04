@@ -17,6 +17,7 @@
 import { GroqMessage, GroqPayload, isChatMessage } from './Types';
 import { ConversationMemoryStore } from './ConversationMemoryStore';
 import { capMaxCompletionTokens, getModelMaxOutput, ModelContextTokens } from './ModelLimits';
+import { logger } from '@/lib/logger';
 
 const DEFAULT_MODEL = 'llama-3.1-8b-instant';
 
@@ -202,8 +203,7 @@ export class GroqPayloadBuilder {
 
     // Log debug sanitisé
     if (this.debug) {
-      // eslint-disable-next-line no-console -- Debug-only log gated behind ASSISTANT_DEBUG
-      console.log('[GroqPayloadBuilder] Payload built:', {
+      logger.debug('[GroqPayloadBuilder] Payload built:', {
         messageCount: messages.length,
         estimatedTokens: totalTokens,
         modelId: this.options.model,
@@ -231,7 +231,7 @@ export class GroqPayloadBuilder {
     if (SEND_DEPRECATED_MAX_TOKENS) {
       payload.max_tokens = cappedMaxTokens;
       if (this.debug) {
-        console.warn(
+        logger.warn(
           '[GroqPayloadBuilder] ⚠️ DEPRECATED: max_tokens fallback enabled via GROQ_SEND_DEPRECATED_MAX_TOKENS'
         );
       }
@@ -239,8 +239,7 @@ export class GroqPayloadBuilder {
 
     // Debug payload en mode ASSISTANT_DEBUG=true (O2)
     if (this.debug) {
-      // eslint-disable-next-line no-console -- Debug-only log gated behind ASSISTANT_DEBUG
-      console.log('[GroqPayloadBuilder] 🔍 Payload debug:', {
+      logger.debug('[GroqPayloadBuilder] 🔍 Payload debug:', {
         model: payload.model,
         messageCount: payload.messages.length,
         max_completion_tokens: payload.max_completion_tokens,
@@ -336,8 +335,7 @@ export class GroqPayloadBuilder {
 
   private log(message: string): void {
     if (this.debug) {
-      // eslint-disable-next-line no-console -- Debug-only log gated behind ASSISTANT_DEBUG
-      console.log(`[GroqPayloadBuilder] ${message}`);
+      logger.debug(`[GroqPayloadBuilder] ${message}`);
     }
   }
 
@@ -347,11 +345,11 @@ export class GroqPayloadBuilder {
       if (process.env.NODE_ENV === 'development') {
         throw new Error(`${prefix} ${message}`);
       } else {
-        console.error(`${prefix} ${message}`);
+        logger.error(`${prefix} ${message}`);
       }
     } else {
       // En prod, log discret
-      console.warn(`${prefix} ${message}`);
+      logger.warn(`${prefix} ${message}`);
     }
   }
 }

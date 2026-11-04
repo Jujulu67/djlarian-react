@@ -225,11 +225,9 @@ export function useAssistantProjectSync({
 
       // Si une note a été ajoutée, recharger les projets depuis le serveur
       // car la note est complexe (template, tâches extraites, etc.) et difficile à mettre à jour localement
+      // (la mise à jour est déjà enregistrée côté serveur quand cet événement arrive)
       if (updates.note) {
-        // Attendre un peu pour s'assurer que le cache est invalidé côté serveur
-        setTimeout(() => {
-          fetchProjects();
-        }, 100);
+        fetchProjects();
       }
 
       // Rafraîchir les compteurs

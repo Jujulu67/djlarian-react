@@ -12,6 +12,7 @@ import {
 } from './types';
 import { isAssistantDebugEnabled } from '../../utils/debug';
 import { applyProjectFilterAndSort, isFilterEmpty } from '../filter-helpers';
+import { logger } from '@/lib/logger';
 
 /**
  * Gère l'intention "en détail" pour relister le dernier scope en mode détaillé
@@ -43,7 +44,7 @@ export function handleDetailIntent(
     effectiveFilter = {}; // Pas de filtre, on utilise les IDs
 
     if (isAssistantDebugEnabled()) {
-      console.warn('[Router] 🔎 DetailIntent', {
+      logger.warn('[Router] 🔎 DetailIntent', {
         scopeSource,
         listedCount: scopedProjects.length,
         requestId,
@@ -78,7 +79,7 @@ export function handleDetailIntent(
     effectiveFilter = lastAppliedFilter;
 
     if (isAssistantDebugEnabled()) {
-      console.warn('[Router] 🔎 DetailIntent', {
+      logger.warn('[Router] 🔎 DetailIntent', {
         scopeSource,
         listedCount: scopedProjects.length,
         requestId,
@@ -108,7 +109,7 @@ export function handleDetailIntent(
   } else {
     // Pas de scope récent : demander clarification
     if (isAssistantDebugEnabled()) {
-      console.warn('[Router] 🔎 DetailIntent', {
+      logger.warn('[Router] 🔎 DetailIntent', {
         scopeSource: 'scope_missing',
         listedCount: 0,
         requestId,

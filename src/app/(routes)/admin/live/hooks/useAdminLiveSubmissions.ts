@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
 import { LiveSubmissionStatus } from '@/types/live';
+import { logger } from '@/lib/logger';
 
 export type SubmissionWithUser = {
   id: string;
@@ -57,7 +58,7 @@ export function useAdminLiveSubmissions() {
       const response = await fetchWithAuth('/api/admin/live/submissions');
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Erreur API:', response.status, errorText);
+        logger.error('Erreur API:', response.status, errorText);
         throw new Error(`Erreur ${response.status}: ${errorText}`);
       }
       const result = await response.json();
@@ -73,7 +74,7 @@ export function useAdminLiveSubmissions() {
         err instanceof Error ? err.message : 'Erreur lors du chargement des soumissions';
       setError(errorMessage);
       toast.error(errorMessage);
-      console.error('Erreur fetchSubmissions:', err);
+      logger.error('Erreur fetchSubmissions:', err);
     } finally {
       setLoading(false);
     }
@@ -99,7 +100,7 @@ export function useAdminLiveSubmissions() {
         }
       } catch (err) {
         toast.error('Erreur lors de la mise à jour');
-        console.error(err);
+        logger.error(err);
         return false;
       }
     },
@@ -130,7 +131,7 @@ export function useAdminLiveSubmissions() {
       // En cas d'erreur, restaurer l'état précédent
       setSubmissions((prev) => prev.map((s) => (s.id === id ? { ...s, isRolled: !isRolled } : s)));
       toast.error('Erreur lors de la mise à jour du statut rolled');
-      console.error(err);
+      logger.error(err);
       return false;
     }
   }, []);
@@ -154,7 +155,7 @@ export function useAdminLiveSubmissions() {
         }
       } catch (err) {
         toast.error('Erreur lors de la mise à jour du pin');
-        console.error(err);
+        logger.error(err);
         return false;
       }
     },

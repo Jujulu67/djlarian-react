@@ -1,8 +1,8 @@
-'use client'; // Nécessaire pour useRouter
+'use client';
 
-import { AlertTriangle, ArrowLeft } from 'lucide-react'; // Ajouter ArrowLeft
+import { AlertTriangle, ArrowLeft } from 'lucide-react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation'; // Importer useRouter
+import { useRouter } from 'next/navigation';
 
 import Modal from '@/components/ui/Modal';
 
@@ -17,9 +17,9 @@ interface ErrorModalProps {
 const ErrorModal = ({
   title = "Oops ! Quelque chose s'est mal passé...",
   message = 'Une erreur inattendue est survenue. Rassurez-vous, tout est sous contrôle (normalement).',
-  imageUrl = 'https://placehold.co/300x200?text=Image+Rigolote+%3AP&font=Lille',
-  backHref, // Récupérer la prop
-  backButtonLabel = 'Retour', // Label par défaut
+  imageUrl,
+  backHref,
+  backButtonLabel = 'Retour',
 }: ErrorModalProps) => {
   const router = useRouter();
 
@@ -32,7 +32,8 @@ const ErrorModal = ({
   };
 
   return (
-    <Modal>
+    // La croix mène au même endroit que le bouton de retour
+    <Modal onClose={handleBackClick}>
       <div className="flex flex-col items-center justify-center text-center p-6 bg-gray-800 rounded-lg shadow-xl">
         <AlertTriangle className="h-12 w-12 text-red-500 mb-4" />
 
@@ -43,7 +44,7 @@ const ErrorModal = ({
         {imageUrl && (
           <Image
             src={imageUrl}
-            alt="Illustration d'erreur humoristique"
+            alt=""
             width={300}
             height={200}
             unoptimized
@@ -51,14 +52,12 @@ const ErrorModal = ({
           />
         )}
 
-        {/* Remplacer Link par Button */}
         <button
-          onClick={handleBackClick} // Utiliser le handler
+          onClick={handleBackClick}
           className="inline-flex items-center px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-md transition-colors shadow-md"
         >
-          {/* Utiliser une icône plus générique comme 'Retour' */}
           <ArrowLeft className="h-5 w-5 mr-2" />
-          {backButtonLabel} {/* Utiliser le label dynamique */}
+          {backButtonLabel}
         </button>
       </div>
     </Modal>

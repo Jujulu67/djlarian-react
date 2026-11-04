@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import type { ImageMeta } from '@/app/api/admin/images/shared';
 
@@ -66,6 +66,11 @@ export function useImageFilters(
       ),
     [filteredGroups, sortOption, showDuplicatesState, itemsPerPage]
   );
+
+  // Après une suppression, ne pas rester sur une page qui n'existe plus
+  useEffect(() => {
+    if (totalPages > 0 && currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
 
   // Regroupement des familles de doublons (par taille d'ori)
   const doublonFamilies = useMemo(() => {

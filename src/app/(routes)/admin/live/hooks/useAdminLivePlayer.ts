@@ -6,6 +6,7 @@ import {
   type AudioAnalysisResult,
 } from '@/lib/live/audio-analysis';
 import type { SubmissionWithUser } from './useAdminLiveSubmissions';
+import { logger } from '@/lib/logger';
 
 export function useAdminLivePlayer() {
   const [selectedSubmission, setSelectedSubmission] = useState<SubmissionWithUser | null>(null);
@@ -142,7 +143,7 @@ export function useAdminLivePlayer() {
         const analysis = await analyzeAudioFile(file);
         setAudioAnalysis(analysis);
       } catch (error) {
-        console.error('Erreur chargement audio:', error);
+        logger.error('Erreur chargement audio:', error);
         toast.error("Erreur lors du chargement de l'audio");
       }
     },
@@ -260,7 +261,7 @@ export function useAdminLivePlayer() {
     try {
       localStorage.removeItem('adminLiveSelectedSubmissionId');
     } catch (error) {
-      console.warn('Erreur lors du nettoyage du localStorage:', error);
+      logger.warn('Erreur lors du nettoyage du localStorage:', error);
     }
   }, []);
 
@@ -270,7 +271,7 @@ export function useAdminLivePlayer() {
       try {
         localStorage.setItem('adminLiveSelectedSubmissionId', selectedSubmission.id);
       } catch (error) {
-        console.warn('Erreur lors de la sauvegarde dans localStorage:', error);
+        logger.warn('Erreur lors de la sauvegarde dans localStorage:', error);
       }
     }
   }, [selectedSubmission]);
@@ -290,7 +291,7 @@ export function useAdminLivePlayer() {
           }
         }
       } catch (error) {
-        console.warn('Erreur lors de la restauration depuis localStorage:', error);
+        logger.warn('Erreur lors de la restauration depuis localStorage:', error);
       }
     },
     [selectedSubmission]

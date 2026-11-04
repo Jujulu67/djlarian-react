@@ -17,6 +17,11 @@ interface LogOptions {
   disableInProduction?: boolean;
 }
 
+/** `[LEVEL] message` si le message est une chaîne, sinon le niveau puis la valeur telle quelle. */
+function withLevel(level: string, message: unknown, args: unknown[]): unknown[] {
+  return typeof message === 'string' ? [`${level} ${message}`, ...args] : [level, message, ...args];
+}
+
 class Logger {
   private isDevelopment = process.env.NODE_ENV === 'development';
   private isProduction = process.env.NODE_ENV === 'production';
@@ -24,41 +29,33 @@ class Logger {
   /**
    * Log de débogage (uniquement en développement)
    */
-  debug(message: string, ...args: unknown[]): void {
+  debug(message: unknown, ...args: unknown[]): void {
     if (this.isDevelopment) {
-      console.log(`[DEBUG] ${message}`, ...args);
+      console.log(...withLevel('[DEBUG]', message, args));
     }
   }
 
   /**
    * Log d'information
    */
-  info(message: string, ...args: unknown[]): void {
+  info(message: unknown, ...args: unknown[]): void {
     if (!this.isProduction) {
-      console.log(`[INFO] ${message}`, ...args);
+      console.log(...withLevel('[INFO]', message, args));
     }
   }
 
   /**
    * Log d'avertissement
    */
-  warn(message: string, ...args: unknown[]): void {
-    console.warn(`[WARN] ${message}`, ...args);
+  warn(message: unknown, ...args: unknown[]): void {
+    console.warn(...withLevel('[WARN]', message, args));
   }
 
   /**
-   * Log d'erreur
-   * Accepte un message et des arguments supplémentaires (peut être une erreur)
+   * Log d'erreur. Les objets Error sont transmis tels quels (pile d'appels conservée).
    */
-  error(message: string, ...args: unknown[]): void {
-    // Convertir les erreurs en format lisible
-    const formattedArgs = args.map((arg) => {
-      if (arg instanceof Error) {
-        return arg.message;
-      }
-      return arg;
-    });
-    console.error(`[ERROR] ${message}`, ...formattedArgs);
+  error(message: unknown, ...args: unknown[]): void {
+    console.error(...withLevel('[ERROR]', message, args));
   }
 
   /**

@@ -22,6 +22,7 @@ import {
   NO_RELEASE_DATE_ERROR,
   toIsoDateOnly,
 } from './import-streams/streamsUtils';
+import { logger } from '@/lib/logger';
 
 interface ImportStreamsDialogProps {
   isOpen: boolean;
@@ -119,7 +120,7 @@ export const ImportStreamsDialog = ({
           }
         });
       } catch (error) {
-        console.error('Erreur lors du traitement des fichiers:', error);
+        logger.error('Erreur lors du traitement des fichiers:', error);
         alert('Erreur lors du traitement des fichiers');
       } finally {
         setIsProcessing(false);
@@ -291,7 +292,7 @@ export const ImportStreamsDialog = ({
       const result = await onImport(imports);
       setImportResult(result);
     } catch (error) {
-      console.error("Erreur lors de l'import:", error);
+      logger.error("Erreur lors de l'import:", error);
       setImportResult({
         success: false,
         updated: 0,
