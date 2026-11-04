@@ -4,23 +4,13 @@
  */
 import { NextRequest } from 'next/server';
 
-import { GET, POST } from '../route';
+import * as route from '../route';
+
+const { POST } = route;
 
 describe('/api/auth/signout', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-  });
-
-  it('should sign out user with GET', async () => {
-    const request = new NextRequest('http://localhost/api/auth/signout', {
-      method: 'GET',
-    });
-
-    const response = await GET(request);
-    const data = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(data.success).toBe(true);
   });
 
   it('should sign out user with POST', async () => {
@@ -33,5 +23,11 @@ describe('/api/auth/signout', () => {
 
     expect(response.status).toBe(200);
     expect(data.success).toBe(true);
+    // Ne vide pas le localStorage (préférences) à la déconnexion
+    expect(response.headers.get('Clear-Site-Data')).toBe('"cookies"');
+  });
+
+  it("n'expose pas de GET (déconnexion par simple lien)", () => {
+    expect('GET' in route).toBe(false);
   });
 });

@@ -1,10 +1,13 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import AuthModal from '../AuthModal';
+
+const mockRouterBack = jest.fn();
 
 // Mock next/navigation
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
     push: jest.fn(),
+    back: mockRouterBack,
   }),
 }));
 
@@ -15,8 +18,13 @@ jest.mock('next-auth/react', () => ({
 
 // Mock Modal
 jest.mock('@/components/ui/Modal', () => {
-  return function MockModal({ children }: any) {
-    return <div data-testid="modal">{children}</div>;
+  return function MockModal({ children, onClose }: any) {
+    return (
+      <div data-testid="modal">
+        <button aria-label="Fermer la modale" onClick={onClose ?? mockRouterBack} />
+        {children}
+      </div>
+    );
   };
 });
 
@@ -54,5 +62,12 @@ describe('AuthModal', () => {
   it('should fetch providers on mount', async () => {
     render(<AuthModal isOpen={true} onClose={mockOnClose} />);
     expect(global.fetch).toHaveBeenCalledWith('/api/auth/providers');
+  });
+
+  it('la croix ferme la modale sans revenir à la page précédente', () => {
+    render(<AuthModal isOpen={true} onClose={mockOnClose} />);
+    fireEvent.click(screen.getByLabelText('Fermer la modale'));
+    expect(mockOnClose).toHaveBeenCalledTimes(1);
+    expect(mockRouterBack).not.toHaveBeenCalled();
   });
 });

@@ -3,7 +3,6 @@
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 
@@ -22,7 +21,6 @@ interface AvailableProviders {
 }
 
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
-  const router = useRouter();
   const isV2 = useUiVersion() !== 'legacy';
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
@@ -70,8 +68,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const handleLoginSuccess = useCallback(() => {
     toast.success('Connexion réussie !');
     onClose();
-    // Recharger la page pour récupérer la nouvelle session
-    window.location.href = '/';
+    // Recharger la page courante pour récupérer la nouvelle session (sans renvoyer à l'accueil)
+    window.location.reload();
   }, [onClose]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -200,7 +198,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   if (!isOpen) return null;
 
   return (
-    <Modal maxWidth="max-w-md" showLoader={false}>
+    <Modal maxWidth="max-w-md" showLoader={false} onClose={onClose}>
       <motion.div
         key="content"
         initial={{ scale: 0.97, opacity: 0 }}

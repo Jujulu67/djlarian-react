@@ -51,24 +51,8 @@ function clearAllAuthCookies(request: NextRequest, response: NextResponse): void
 }
 
 /**
- * GET /api/auth/signout - Nettoie les cookies (utile pour les cookies corrompus)
- */
-export async function GET(request: NextRequest) {
-  const response = NextResponse.json(
-    { success: true, message: 'Cookies nettoyés' },
-    { status: 200 }
-  );
-  clearAllAuthCookies(request, response);
-
-  response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
-  response.headers.set('Pragma', 'no-cache');
-  response.headers.set('Clear-Site-Data', '"cookies", "storage"');
-
-  return response;
-}
-
-/**
- * POST /api/auth/signout - Déconnexion complète
+ * POST /api/auth/signout - Déconnexion complète.
+ * Pas de GET : un simple lien ou une image vers cette adresse déconnectait l'utilisateur.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -77,7 +61,9 @@ export async function POST(request: NextRequest) {
 
     response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
     response.headers.set('Pragma', 'no-cache');
-    response.headers.set('Clear-Site-Data', '"cookies", "storage"');
+    // Seulement les cookies : "storage" effaçait aussi le localStorage (préférences d'affichage,
+    // brouillons…) à chaque déconnexion
+    response.headers.set('Clear-Site-Data', '"cookies"');
 
     return response;
   } catch (error: unknown) {

@@ -24,7 +24,8 @@ export default function CasinoPage() {
     setIsOpen(false);
     // Wait for animation to finish then redirect
     setTimeout(() => {
-      router.push('/profile');
+      // Un visiteur n'a pas de profil : le renvoyer à l'accueil
+      router.push(isAuthenticated ? '/profile' : '/');
     }, 300);
   };
 
