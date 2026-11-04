@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
+import { logger } from '@/lib/logger';
 
 export interface OAuthAccounts {
   google: { linked: boolean; available: boolean; accountId: string | null };
@@ -28,10 +29,10 @@ export function useOAuthAccounts() {
         setOauthAccounts(data.accounts);
         setOauthSecurity(data.security);
       } else {
-        console.error('Erreur lors du chargement des comptes OAuth');
+        logger.error('Erreur lors du chargement des comptes OAuth');
       }
     } catch (error) {
-      console.error('Erreur lors du chargement des comptes OAuth:', error);
+      logger.error('Erreur lors du chargement des comptes OAuth:', error);
     } finally {
       setIsLoading(false);
     }

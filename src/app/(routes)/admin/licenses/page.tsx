@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Plus, Download } from 'lucide-react';
 import { CreateLicenseButton } from '@/components/admin/CreateLicenseButton';
 import Link from 'next/link';
+import { logger } from '@/lib/logger';
 
 export const revalidate = 0; // Données toujours fraîches
 
@@ -49,7 +50,7 @@ export default async function AdminLicensesPage() {
       },
     });
   } catch (e) {
-    console.error('Failed to fetch licenses:', e);
+    logger.error('Failed to fetch licenses:', e);
     error =
       'Impossible de charger les licences. La base de données est peut-être en cours de migration.';
   }

@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * SanitizeGroqMessages.ts - Validation stricte des messages avant envoi à Groq
  *
@@ -181,7 +182,7 @@ export function sanitizeGroqMessages(
 
   // Log en debug
   if (debug && result.issues.length > 0) {
-    console.warn('[SanitizeGroqMessages] Issues detected:', {
+    logger.warn('[SanitizeGroqMessages] Issues detected:', {
       issueCount: result.issues.length,
       issues: result.issues,
     });

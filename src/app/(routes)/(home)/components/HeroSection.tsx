@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/Button';
 import { useUiVersion } from '@/hooks/useUiVersion';
 import { durations, easeOutExpo, springs } from '@/lib/motion';
 import { HomepageConfig } from '@/types/config';
+import { logger } from '@/lib/logger';
 
 interface HeroSectionProps {
   config: HomepageConfig;
@@ -138,7 +139,7 @@ export default function HeroSection({ config }: HeroSectionProps) {
       const video = videoRef.current;
       video.currentTime = 0;
       video.play().catch((err) => {
-        console.warn('[Waveform] Erreur lors du démarrage de la vidéo:', err);
+        logger.warn('[Waveform] Erreur lors du démarrage de la vidéo:', err);
       });
     }
   }, [waveformAnimationReady, videoLoaded, videoFailed]);

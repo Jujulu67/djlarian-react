@@ -105,13 +105,13 @@ class DbPerformanceLogger {
 
       // Avertissement si le temps total est suspect (> 1000ms)
       if (totalTime > 1000) {
-        console.warn(`[DB Perf] ⚠️ ${this.handlerName} est lent: ${totalTime}ms (seuil: 1000ms)`);
+        logger.warn(`[DB Perf] ⚠️ ${this.handlerName} est lent: ${totalTime}ms (seuil: 1000ms)`);
       }
 
       // Avertissement si la query est rapide mais le handler total est lent
       // Cela indique un problème de cold start Vercel
       if (queryTime !== undefined && queryTime < 100 && totalTime > 500) {
-        console.warn(
+        logger.warn(
           `[DB Perf] ⚠️ ${this.handlerName}: query rapide (${queryTime}ms) mais handler lent (${totalTime}ms) - possible cold start Vercel`
         );
       }

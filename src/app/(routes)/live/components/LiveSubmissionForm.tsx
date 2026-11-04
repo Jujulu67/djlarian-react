@@ -20,6 +20,7 @@ import { analyzeAudioFile, type AudioAnalysisResult } from '@/lib/live/audio-ana
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
 import type { LiveSubmission } from '@/types/live';
 import { useUiVersion } from '@/hooks/useUiVersion';
+import { logger } from '@/lib/logger';
 
 export function LiveSubmissionForm() {
   const { data: session } = useSession();
@@ -65,10 +66,10 @@ export function LiveSubmissionForm() {
           setUseBlobStorage(!!data.useBlobStorage);
         } else {
           // En cas d'erreur, on reste sur la valeur par défaut (local en test)
-          console.warn('Impossible de charger le mode de stockage, utilisation valeur locale');
+          logger.warn('Impossible de charger le mode de stockage, utilisation valeur locale');
         }
       } catch (error) {
-        console.error('Erreur lors du chargement du mode de stockage:', error);
+        logger.error('Erreur lors du chargement du mode de stockage:', error);
       }
     };
 
@@ -86,7 +87,7 @@ export function LiveSubmissionForm() {
           setTrackSubmissionsEnabled(true);
         }
       } catch (error) {
-        console.error('Erreur lors de la vérification des soumissions:', error);
+        logger.error('Erreur lors de la vérification des soumissions:', error);
         // Par défaut, on considère que c'est activé
         setTrackSubmissionsEnabled(true);
       }
@@ -136,7 +137,7 @@ export function LiveSubmissionForm() {
               audioRef.current.src = audioUrl;
             }
           })
-          .catch((err) => console.error('Erreur chargement fichier soumis:', err));
+          .catch((err) => logger.error('Erreur chargement fichier soumis:', err));
       }
     } else {
       setActiveSubmission(null);
@@ -214,12 +215,12 @@ export function LiveSubmissionForm() {
             // Note: On pourrait supprimer le fichier Blob ici, mais c'est optionnel
             // Le fichier sera nettoyé automatiquement plus tard si nécessaire
           } catch (cleanupError) {
-            console.warn('Erreur lors du nettoyage du fichier Blob:', cleanupError);
+            logger.warn('Erreur lors du nettoyage du fichier Blob:', cleanupError);
           }
           return null;
         }
       } catch (error) {
-        console.error('Erreur upload draft:', error);
+        logger.error('Erreur upload draft:', error);
         toast.error("Erreur de connexion lors de l'upload");
         return null;
       } finally {
@@ -255,7 +256,7 @@ export function LiveSubmissionForm() {
         try {
           sessionStorage.setItem('liveSubmissionAnalysis', JSON.stringify(analysis));
         } catch (error) {
-          console.warn("Impossible de sauvegarder l'analyse dans sessionStorage:", error);
+          logger.warn("Impossible de sauvegarder l'analyse dans sessionStorage:", error);
         }
 
         // Pré-remplir le titre avec le nom du fichier (sans extension)
@@ -286,11 +287,11 @@ export function LiveSubmissionForm() {
             }
           })
           .catch((error) => {
-            console.warn('Upload draft échoué, continuation avec analyse locale:', error);
+            logger.warn('Upload draft échoué, continuation avec analyse locale:', error);
           });
       } catch (error) {
         toast.error("Erreur lors de l'analyse du fichier audio");
-        console.error('Erreur analyse audio:', error);
+        logger.error('Erreur analyse audio:', error);
         setIsAnalyzing(false);
       }
     },
@@ -378,7 +379,7 @@ export function LiveSubmissionForm() {
               sessionStorage.removeItem('liveSubmissionForm');
               sessionStorage.removeItem('liveSubmissionDraftId');
             } catch (error) {
-              console.error('Erreur lors du nettoyage de sessionStorage:', error);
+              logger.error('Erreur lors du nettoyage de sessionStorage:', error);
             }
           } else {
             const errorData = await response.json();
@@ -410,14 +411,14 @@ export function LiveSubmissionForm() {
               sessionStorage.removeItem('liveSubmissionForm');
               sessionStorage.removeItem('liveSubmissionDraftId');
             } catch (error) {
-              console.error('Erreur lors du nettoyage de sessionStorage:', error);
+              logger.error('Erreur lors du nettoyage de sessionStorage:', error);
             }
           } else {
             toast.error(result.error || 'Erreur lors de la soumission');
           }
         }
       } catch (error) {
-        console.error('Erreur soumission:', error);
+        logger.error('Erreur soumission:', error);
         toast.error('Erreur de connexion');
       }
     },
@@ -459,7 +460,7 @@ export function LiveSubmissionForm() {
 
   const handlePlayPause = useCallback(async () => {
     if (!audioRef.current) {
-      console.error('Audio ref not available');
+      logger.error('Audio ref not available');
       return;
     }
 
@@ -518,14 +519,14 @@ export function LiveSubmissionForm() {
           // Ignorer les erreurs d'interruption (AbortError)
           const error = playError as { name?: string };
           if (error.name !== 'AbortError' && error.name !== 'NotAllowedError') {
-            console.error('Erreur lecture audio:', playError);
+            logger.error('Erreur lecture audio:', playError);
             toast.error('Erreur lors de la lecture audio');
           }
           setIsPlaying(false);
         }
       }
     } catch (error) {
-      console.error('Erreur lecture audio:', error);
+      logger.error('Erreur lecture audio:', error);
       setIsPlaying(false);
     }
   }, [isPlaying, selectedFile]);
@@ -598,13 +599,13 @@ export function LiveSubmissionForm() {
             // Ignorer les erreurs d'interruption (AbortError)
             const error = playError as { name?: string };
             if (error.name !== 'AbortError' && error.name !== 'NotAllowedError') {
-              console.error('Erreur lecture audio:', playError);
+              logger.error('Erreur lecture audio:', playError);
               toast.error('Erreur lors de la lecture audio');
             }
           }
         }
       } catch (error) {
-        console.error('Erreur lors du clic sur la waveform:', error);
+        logger.error('Erreur lors du clic sur la waveform:', error);
       }
     },
     [audioAnalysis, isPlaying, selectedFile]
@@ -618,7 +619,7 @@ export function LiveSubmissionForm() {
           method: 'DELETE',
         });
       } catch (error) {
-        console.error('Erreur lors de la suppression du draft:', error);
+        logger.error('Erreur lors de la suppression du draft:', error);
       }
     }
 
@@ -645,7 +646,7 @@ export function LiveSubmissionForm() {
       sessionStorage.removeItem('liveSubmissionDraftId');
       sessionStorage.removeItem('liveSubmissionAnalysis');
     } catch (error) {
-      console.error('Erreur lors du nettoyage de sessionStorage:', error);
+      logger.error('Erreur lors du nettoyage de sessionStorage:', error);
     }
   }, [draftId]);
 
@@ -700,7 +701,7 @@ export function LiveSubmissionForm() {
             cachedAnalysis = JSON.parse(cached);
           }
         } catch (error) {
-          console.warn("Erreur lors de la lecture de l'analyse en cache:", error);
+          logger.warn("Erreur lors de la lecture de l'analyse en cache:", error);
         }
 
         // Récupérer le draft depuis le serveur
@@ -747,7 +748,7 @@ export function LiveSubmissionForm() {
                   try {
                     sessionStorage.setItem('liveSubmissionAnalysis', JSON.stringify(analysis));
                   } catch (error) {
-                    console.warn("Impossible de sauvegarder l'analyse:", error);
+                    logger.warn("Impossible de sauvegarder l'analyse:", error);
                   }
                 } else {
                   // L'analyse était en cache, on peut arrêter le loader
@@ -769,14 +770,14 @@ export function LiveSubmissionForm() {
                 }, 0);
               }
             } catch (error) {
-              console.error('Erreur lors du téléchargement du fichier:', error);
+              logger.error('Erreur lors du téléchargement du fichier:', error);
               toast.error('Erreur lors de la restauration du fichier');
               setIsAnalyzing(false);
             }
           }
         }
       } catch (error) {
-        console.error('Erreur lors de la restauration du draft:', error);
+        logger.error('Erreur lors de la restauration du draft:', error);
         setIsAnalyzing(false);
       }
     };
@@ -797,7 +798,7 @@ export function LiveSubmissionForm() {
         sessionStorage.setItem('liveSubmissionForm', JSON.stringify(dataToSave));
       }
     } catch (error) {
-      console.error('Erreur lors de la sauvegarde dans sessionStorage:', error);
+      logger.error('Erreur lors de la sauvegarde dans sessionStorage:', error);
     }
   }, [audioAnalysis, title, description, currentTime]);
 

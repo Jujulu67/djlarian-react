@@ -17,8 +17,8 @@ export async function POST(req: NextRequest) {
     const body: ActivationRequest = await req.json();
     const { email, license_key, machine_id, plugin_version, os_info } = body;
 
-    // console.log('[License Activate] Request received for:', license_key);
-    // console.log(
+    // logger.debug('[License Activate] Request received for:', license_key);
+    // logger.debug(
     //   '[License Activate] ED25519_PRIVATE_KEY exists:',
     //    !!process.env.ED25519_PRIVATE_KEY
     // );

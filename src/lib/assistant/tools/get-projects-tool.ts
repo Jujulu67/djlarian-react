@@ -9,6 +9,7 @@ import { detectStatusFromQuery } from '../parsers/status-detector';
 import { detectProgressFromQuery } from '../parsers/progress-detector';
 import { detectDeadlineFromQuery } from '../parsers/deadline-detector';
 import { buildWhereClause } from './tool-helpers';
+import { logger } from '@/lib/logger';
 
 export interface GetProjectsToolParams {
   getTargetUserId: (query?: string) => Promise<string>;
@@ -85,7 +86,7 @@ export function createGetProjectsTool({
       if (!finalStatus || finalStatus === 'undefined' || finalStatus === 'null') {
         const detectedStatus = detectStatusFromQuery(normalizedInput);
         if (detectedStatus) {
-          console.warn(
+          logger.warn(
             `[Assistant] Statut détecté automatiquement: ${detectedStatus} (non fourni par l'IA ou undefined)`
           );
           finalStatus = detectedStatus as
@@ -132,7 +133,7 @@ export function createGetProjectsTool({
 
       // Mode test : retourner des données simulées
       if (isTestMode) {
-        console.warn('[TEST MODE] Simulation de lecture:', { where: whereClause });
+        logger.warn('[TEST MODE] Simulation de lecture:', { where: whereClause });
         // Simuler des projets
         const simulatedCount = Math.floor(Math.random() * 5) + 1; // 1-5 projets
         const parsedDeadline = deadlineDate ? parseRelativeDate(deadlineDate) : null;

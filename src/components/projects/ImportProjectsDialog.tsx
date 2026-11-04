@@ -11,6 +11,7 @@ import { ResultStep } from './import-projects/ResultStep';
 import type { DialogStep, ImportResult } from './import-projects/types';
 import { calculateColumnWidths, formatTitleCase, parseCsvLine } from './importProjectsUtils';
 import { ProjectStatus, PROJECT_STATUSES } from './types';
+import { logger } from '@/lib/logger';
 
 interface ImportProjectsDialogProps {
   isOpen: boolean;
@@ -104,7 +105,7 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
           setExistingProjects(projectsWithStatus);
         }
       } catch (error) {
-        console.error('Erreur lors de la récupération des projets existants:', error);
+        logger.error('Erreur lors de la récupération des projets existants:', error);
       }
 
       // Détecter les colonnes si on a des en-têtes
@@ -186,7 +187,7 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
 
       setStep('preview');
     } catch (error) {
-      console.error('Erreur lors du parsing:', error);
+      logger.error('Erreur lors du parsing:', error);
       alert('Erreur lors du parsing des données. Vérifiez le format.');
     }
   }, [pastedText, hasHeaders, dateFormat, isSpotifyCsv]);
@@ -315,7 +316,7 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
       }
       setStep('result');
     } catch (error) {
-      console.error("Erreur lors de l'import:", error);
+      logger.error("Erreur lors de l'import:", error);
       setImportResult({
         success: false,
         created: 0,

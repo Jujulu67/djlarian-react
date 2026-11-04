@@ -103,7 +103,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             errorMessage = data.error;
           }
 
-          console.error('[AuthModal] Erreur de connexion:', data.error);
+          logger.error('[AuthModal] Erreur de connexion:', data.error);
           toast.error(errorMessage);
           setIsLoading(false);
           return;
@@ -124,7 +124,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         const data = await response.json();
 
         if (!response.ok) {
-          console.error('[AuthModal] Erreur inscription:', data.error);
+          logger.error('[AuthModal] Erreur inscription:', data.error);
           toast.error(
             response.status === 429
               ? 'Trop de tentatives, réessayez dans une minute'
@@ -149,7 +149,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         const loginData = await loginResponse.json().catch(() => ({}));
 
         if (!loginResponse.ok || loginData.error) {
-          console.error('[AuthModal] Erreur connexion après inscription:', loginData.error);
+          logger.error('[AuthModal] Erreur connexion après inscription:', loginData.error);
           toast.success('Veuillez vous connecter maintenant.');
           setIsLogin(true);
           setIsLoading(false);
@@ -160,7 +160,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         handleLoginSuccess();
       }
     } catch (error) {
-      console.error('[AuthModal] Erreur:', error);
+      logger.error('[AuthModal] Erreur:', error);
       toast.error('Une erreur est survenue');
       logger.error("Erreur lors de l'authentification", error);
       setIsLoading(false);
@@ -188,7 +188,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         ...(callbackUrl && { callbackUrl }),
       });
     } catch (error) {
-      console.error('[AuthModal] Erreur OAuth:', error);
+      logger.error('[AuthModal] Erreur OAuth:', error);
       setIsLoading(false);
       toast.error(`Erreur de connexion avec ${provider}`);
       logger.error('Erreur lors de la connexion OAuth', error);

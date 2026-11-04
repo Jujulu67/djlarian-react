@@ -11,6 +11,7 @@ import {
   FieldAliases,
   TimeUnitsSynonyms,
 } from '../nlp-dictionary';
+import { logger } from '@/lib/logger';
 
 /**
  * Extrait les données de modification de deadline depuis une requête
@@ -64,7 +65,7 @@ function extractRemoveDeadline(
         // Pas de filtre explicite → on ne met PAS hasDeadline dans filters
         updateData.hasDeadline = true;
       }
-      console.warn('[Parse Query API] ✅ Suppression de deadlines détectée');
+      logger.warn('[Parse Query API] ✅ Suppression de deadlines détectée');
       return true;
     }
   }
@@ -247,7 +248,7 @@ function extractPushDeadline(
 
         updateData.pushDeadlineBy = parsedDelta;
 
-        console.warn(
+        logger.warn(
           '[Parse Query API] ✅ Décalage de deadlines détecté:',
           updateData.pushDeadlineBy,
           explicitDeadlineFilter
@@ -306,7 +307,7 @@ function extractNewDeadline(query: string, updateData: UpdateData): void {
       const parsedDate = parseRelativeDate(dateStr);
       if (parsedDate) {
         updateData.newDeadline = parsedDate;
-        console.warn('[Parse Query API] ✅ Nouvelle deadline détectée:', dateStr, '->', parsedDate);
+        logger.warn('[Parse Query API] ✅ Nouvelle deadline détectée:', dateStr, '->', parsedDate);
         return;
       }
     }

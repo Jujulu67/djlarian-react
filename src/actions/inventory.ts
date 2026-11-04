@@ -4,6 +4,7 @@ import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { createDbPerformanceLogger } from '@/lib/db-performance';
+import { logger } from '@/lib/logger';
 
 export async function getInventory(userId: string) {
   const perf = createDbPerformanceLogger('getInventory');
@@ -34,7 +35,7 @@ export async function getInventory(userId: string) {
 
     return { success: true, data: inventory };
   } catch (error) {
-    console.error('Error fetching inventory:', error);
+    logger.error('Error fetching inventory:', error);
     perf.end(t0, { metadata: { error: error instanceof Error ? error.message : String(error) } });
     return { success: false, error: 'Failed to fetch inventory' };
   }
@@ -54,7 +55,7 @@ export async function getAllItems() {
 
     return { success: true, data: items };
   } catch (error) {
-    console.error('Error fetching items:', error);
+    logger.error('Error fetching items:', error);
     return { success: false, error: 'Failed to fetch items' };
   }
 }
@@ -109,7 +110,7 @@ export async function addItemToUser(userId: string, itemId: string, quantity: nu
 
     return { success: true };
   } catch (error) {
-    console.error('Error adding item:', error);
+    logger.error('Error adding item:', error);
     perf.end(t0, { metadata: { error: error instanceof Error ? error.message : String(error) } });
     return { success: false, error: 'Failed to add item' };
   }
@@ -169,7 +170,7 @@ export async function removeItemFromUser(userId: string, itemId: string, quantit
 
     return { success: true };
   } catch (error) {
-    console.error('Error removing item:', error);
+    logger.error('Error removing item:', error);
     perf.end(t0, { metadata: { error: error instanceof Error ? error.message : String(error) } });
     return { success: false, error: 'Failed to remove item' };
   }
@@ -264,7 +265,7 @@ export async function activateItem(userItemId: string) {
     // et refresh manuel/automatique si nécessaire.
     return { success: true };
   } catch (error) {
-    console.error('Error activating item:', error);
+    logger.error('Error activating item:', error);
     return { success: false, error: 'Failed to activate item' };
   }
 }
@@ -310,7 +311,7 @@ export async function deactivateItem(userItemId: string) {
     // et refresh manuel/automatique si nécessaire.
     return { success: true };
   } catch (error) {
-    console.error('Error deactivating item:', error);
+    logger.error('Error deactivating item:', error);
     return { success: false, error: 'Failed to deactivate item' };
   }
 }
@@ -343,7 +344,7 @@ export async function toggleItemActivation(userItemId: string) {
       return deactivateItem(userItemId);
     }
   } catch (error) {
-    console.error('Error toggling item activation:', error);
+    logger.error('Error toggling item activation:', error);
     return { success: false, error: 'Failed to toggle item activation' };
   }
 }
@@ -381,7 +382,7 @@ export async function searchUsers(query: string) {
 
     return { success: true, data: users };
   } catch (error) {
-    console.error('Error searching users:', error);
+    logger.error('Error searching users:', error);
     return { success: false, error: 'Failed to search users' };
   }
 }

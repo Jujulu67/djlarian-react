@@ -181,11 +181,6 @@ export default function GestionImages({
     clearSelection();
     setIsMultiSelectMode(false);
     setDeleteTarget(null);
-    setTimeout(() => {
-      if (paginatedGroups.length === 1 && currentPage > 1) {
-        setCurrentPage(currentPage - 1);
-      }
-    }, 100);
     if (errorCount > 0) {
       setError(`${errorCount} image(s) n'ont pas pu être supprimées.`);
     } else {
@@ -197,9 +192,6 @@ export default function GestionImages({
     handleDeleteImage,
     clearSelection,
     setIsMultiSelectMode,
-    paginatedGroups,
-    currentPage,
-    setCurrentPage,
     setError,
   ]);
 
@@ -387,11 +379,6 @@ export default function GestionImages({
             } else {
               await handleDeleteImage(deleteTarget.id);
               setDeleteTarget(null);
-              setTimeout(() => {
-                if (paginatedGroups.length === 1 && currentPage > 1) {
-                  setCurrentPage(currentPage - 1);
-                }
-              }, 100);
             }
           }}
         />

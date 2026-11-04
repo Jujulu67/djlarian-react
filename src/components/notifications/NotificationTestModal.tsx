@@ -13,6 +13,7 @@ import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import ReactDOM from 'react-dom';
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
+import { logger } from '@/lib/logger';
 
 interface NotificationTestModalProps {
   isOpen: boolean;
@@ -53,7 +54,7 @@ export function NotificationTestModal({ isOpen, onClose, onSuccess }: Notificati
         alert(`Erreur: ${data.message || "Impossible d'envoyer la notification de test"}`);
       }
     } catch (err) {
-      console.error("Erreur lors de l'envoi de la notification de test:", err);
+      logger.error("Erreur lors de l'envoi de la notification de test:", err);
       alert("Erreur lors de l'envoi de la notification de test");
     } finally {
       setIsSendingTest(null);

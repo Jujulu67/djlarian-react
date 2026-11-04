@@ -32,6 +32,7 @@ import {
   NotificationType,
   NotificationMetadata,
 } from '@/hooks/useNotifications';
+import { logger } from '@/lib/logger';
 
 interface MilestoneInboxProps {
   isOpen: boolean;
@@ -252,7 +253,7 @@ export function MilestoneInbox({ isOpen, onClose }: MilestoneInboxProps) {
   const handleNotificationClick = async (notification: Notification) => {
     // Vérifier que l'ID existe
     if (!notification.id) {
-      console.error('Notification sans ID:', notification);
+      logger.error('Notification sans ID:', notification);
       return;
     }
 
@@ -271,7 +272,7 @@ export function MilestoneInbox({ isOpen, onClose }: MilestoneInboxProps) {
       try {
         await markAsRead(notification.id);
       } catch (err) {
-        console.error('Erreur lors de la mise à jour:', err);
+        logger.error('Erreur lors de la mise à jour:', err);
         // Ne pas empêcher la redirection en cas d'erreur
       }
     }
@@ -298,7 +299,7 @@ export function MilestoneInbox({ isOpen, onClose }: MilestoneInboxProps) {
     try {
       await markAllAsRead();
     } catch (err) {
-      console.error('Erreur lors de la mise à jour:', err);
+      logger.error('Erreur lors de la mise à jour:', err);
     }
   };
 
@@ -585,7 +586,7 @@ export function MilestoneInbox({ isOpen, onClose }: MilestoneInboxProps) {
                                   try {
                                     await markAsRead(notification.id);
                                   } catch (err) {
-                                    console.error('Erreur lors de la mise à jour:', err);
+                                    logger.error('Erreur lors de la mise à jour:', err);
                                   }
                                 }}
                                 className="p-2 sm:p-1.5 text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 rounded-lg transition-colors touch-manipulation v2:rounded-xl v2:hover:bg-white/[0.06]"
@@ -609,7 +610,7 @@ export function MilestoneInbox({ isOpen, onClose }: MilestoneInboxProps) {
                                 try {
                                   await archive(notification.id);
                                 } catch (err) {
-                                  console.error("Erreur lors de l'archivage:", err);
+                                  logger.error("Erreur lors de l'archivage:", err);
                                 }
                               }}
                               className="p-2 sm:p-1.5 text-gray-400 hover:text-orange-400 hover:bg-orange-500/10 rounded-lg transition-colors touch-manipulation v2:rounded-xl v2:hover:bg-white/[0.06] v2:hover:text-white"

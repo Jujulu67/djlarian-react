@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { Play, Pause, Volume2, VolumeX, Download, X, RotateCcw, Gauge, User } from 'lucide-react';
 import { useAdminLivePlayerContext } from '../context/AdminLivePlayerContext';
 import { getImageUrl } from '@/lib/utils/getImageUrl';
+import { logger } from '@/lib/logger';
 
 export function AdminLivePlayer() {
   const {
@@ -105,12 +106,12 @@ export function AdminLivePlayer() {
           // Ignorer les erreurs d'interruption (AbortError)
           const error = playError as { name?: string };
           if (error.name !== 'AbortError' && error.name !== 'NotAllowedError') {
-            console.error('Erreur lecture audio:', playError);
+            logger.error('Erreur lecture audio:', playError);
           }
         }
       }
     } catch (error) {
-      console.error('Erreur lors du clic sur la waveform:', error);
+      logger.error('Erreur lors du clic sur la waveform:', error);
     }
   };
 
@@ -305,7 +306,7 @@ export function AdminLivePlayer() {
                   document.body.removeChild(a);
                   window.URL.revokeObjectURL(url);
                 } catch (error) {
-                  console.error('Erreur lors du téléchargement:', error);
+                  logger.error('Erreur lors du téléchargement:', error);
                 }
               }}
               className="p-2 hover:bg-white/10 rounded-lg transition-colors"

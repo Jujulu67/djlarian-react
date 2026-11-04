@@ -196,7 +196,7 @@ export const useSoundCloudPlayer = ({
         }
       } catch (e) {
         if (!event.data.includes('__sc_') && !event.data.includes('playProgress')) {
-          console.warn(`[SC-IFRAME] Error parsing message for card ${track.id}:`, e);
+          logger.warn(`[SC-IFRAME] Error parsing message for card ${track.id}:`, e);
         }
       }
     };

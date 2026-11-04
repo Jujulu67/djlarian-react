@@ -13,6 +13,7 @@ import { startOfYear, format, addWeeks, startOfWeek, isWithinInterval, addDays }
 import { fr } from 'date-fns/locale';
 
 import { Project } from './types';
+import { logger } from '@/lib/logger';
 
 interface ReleaseCalendarProps {
   projects: Project[];
@@ -41,7 +42,7 @@ export const ReleaseCalendar = ({ projects, onUpdate }: ReleaseCalendarProps) =>
         setEditingLinkId(null);
         setLinkValue('');
       } catch (error) {
-        console.error('Erreur lors de la sauvegarde du lien:', error);
+        logger.error('Erreur lors de la sauvegarde du lien:', error);
       }
     }
   };

@@ -10,6 +10,7 @@ import Image from 'next/image';
 
 import { PageHeader } from '@/components/ui/PageHeader';
 import { useUiVersion } from '@/hooks/useUiVersion';
+import { logger } from '@/lib/logger';
 
 interface UserLeaderboard {
   id: string;
@@ -74,7 +75,7 @@ export default function GamesPage() {
           setLoading(false);
         })
         .catch((err) => {
-          console.error(err);
+          logger.error(err);
           setLoading(false);
         });
     }

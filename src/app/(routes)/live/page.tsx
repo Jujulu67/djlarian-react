@@ -2,13 +2,13 @@
 
 import { useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Loader2, Lock, User } from 'lucide-react';
 
 import { Button } from '@/components/ui/Button';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { useUiVersion } from '@/hooks/useUiVersion';
+import { openAuthModal } from '@/lib/auth/openAuthModal';
 
 import { LiveSubmissionForm } from './components/LiveSubmissionForm';
 import { LiveChances } from './components/LiveChances';
@@ -21,7 +21,6 @@ import PosterState from '@/components/v3/PosterState';
 
 function LivePageContent() {
   const { data: session, status } = useSession();
-  const router = useRouter();
   const { loadInventory } = useLiveInventoryContext();
   const { loadRewards } = useLiveRewards();
   const uiVersion = useUiVersion();
@@ -60,7 +59,7 @@ function LivePageContent() {
           word="LIVE"
           title="Le live, côté coulisses"
           description="Soumets tes morceaux, gagne des tickets et suis les sets en direct. Connecte-toi pour entrer."
-          action={{ label: 'Se connecter', onClick: () => router.push('/api/auth/signin') }}
+          action={{ label: 'Se connecter', onClick: () => openAuthModal() }}
         />
       );
     }
@@ -76,7 +75,7 @@ function LivePageContent() {
             <p className="mb-6 text-sm text-white/60">
               Veuillez vous connecter pour accéder au panneau live.
             </p>
-            <Button onClick={() => router.push('/api/auth/signin')}>Se connecter</Button>
+            <Button onClick={() => openAuthModal()}>Se connecter</Button>
           </div>
         </div>
       );
@@ -94,7 +93,7 @@ function LivePageContent() {
             Veuillez vous connecter pour accéder au panneau live.
           </p>
           <button
-            onClick={() => router.push('/api/auth/signin')}
+            onClick={() => openAuthModal()}
             className="bg-purple-500 hover:bg-purple-600 text-white px-6 py-2 rounded-lg font-medium transition-colors"
           >
             Se connecter

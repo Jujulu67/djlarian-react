@@ -17,6 +17,7 @@
  */
 
 import { getStoreBackend } from '../memory/stores/StoreFactory';
+import { logger } from '@/lib/logger';
 
 // ============================================================================
 // Configuration
@@ -150,7 +151,7 @@ export class SessionRateLimiter {
 
     if (this.useRedis) {
       // TODO: Redis DEL
-      console.warn('[SessionRateLimiter] Redis reset not implemented');
+      logger.warn('[SessionRateLimiter] Redis reset not implemented');
     }
 
     rateLimitCache.delete(key);
@@ -231,7 +232,7 @@ export class SessionRateLimiter {
     // TODO: Implémenter avec Redis INCR + EXPIRE
     // Pour l'instant, fallback sur memory avec warning
     if (process.env.NODE_ENV === 'development') {
-      console.warn('[SessionRateLimiter] Redis not yet implemented, using memory fallback');
+      logger.warn('[SessionRateLimiter] Redis not yet implemented, using memory fallback');
     }
     return this.checkMemory(key);
   }

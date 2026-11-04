@@ -43,6 +43,7 @@ import {
 import { extractUpdateData } from '@/lib/assistant/query-parser/updates';
 
 import { SYSTEM_PROMPT_8B } from '@/lib/assistant/prompts/system-prompt-8b';
+import { logger } from '@/lib/logger';
 
 export async function processProjectCommand(userInput: string) {
   // Vérifier l'authentification
@@ -119,7 +120,7 @@ export async function processProjectCommand(userInput: string) {
     // Récupérer le contexte de conversation (projets précédemment listés, etc.)
     const resolution = await resolveContextReference(currentUserId, normalizedInput);
 
-    console.warn('[Assistant] 🧠 Mémoire/Contexte récupéré:', {
+    logger.warn('[Assistant] 🧠 Mémoire/Contexte récupéré:', {
       hasContext: resolution.resolved,
       filters: resolution.filters,
       message: resolution.message,
@@ -131,7 +132,7 @@ export async function processProjectCommand(userInput: string) {
       // Fusionner les filtres du contexte avec les filtres actuels
       filters = { ...resolution.filters, ...filters };
       contextResolutionMessage = resolution.message;
-      console.warn('[Assistant] Contexte résolu:', {
+      logger.warn('[Assistant] Contexte résolu:', {
         referenceType,
         projectCount: resolution.projectIds.length,
         appliedFilters: Object.keys(filters),
@@ -161,7 +162,7 @@ export async function processProjectCommand(userInput: string) {
   });
 
   // Log console pour debug
-  console.warn('[ROUTING DEBUG]', {
+  logger.warn('[ROUTING DEBUG]', {
     query: normalizedInput.substring(0, 50),
     isUpdate: classification.isUpdate,
     isList: classification.isList,
@@ -189,7 +190,7 @@ export async function processProjectCommand(userInput: string) {
       (hasContextReference && !classification.isUpdate) ||
       isContextualListRequest
     ) {
-      console.warn('[Assistant] 🚀 Exécution DIRECTE (LISTE/COMPTAGE)');
+      logger.warn('[Assistant] 🚀 Exécution DIRECTE (LISTE/COMPTAGE)');
 
       const params = {
         ...filters,
@@ -244,7 +245,7 @@ export async function processProjectCommand(userInput: string) {
             if (reDetectedFields && reDetectedFields.length > 0) {
               // Si des champs ont été explicitement demandés (ex: "tous les détails"), les utiliser
               fieldsToShow = reDetectedFields;
-              console.warn('[Assistant] Champs à afficher détectés depuis requête:', fieldsToShow);
+              logger.warn('[Assistant] Champs à afficher détectés depuis requête:', fieldsToShow);
             } else {
               // Sinon, utiliser les champs par défaut + ceux filtrés
               fieldsToShow = ['progress', 'status', 'deadline'];
@@ -254,7 +255,7 @@ export async function processProjectCommand(userInput: string) {
               if (filters.style && !fieldsToShow.includes('style')) fieldsToShow.push('style');
               if (filters.releaseDate && !fieldsToShow.includes('releaseDate'))
                 fieldsToShow.push('releaseDate');
-              console.warn('[Assistant] Champs par défaut utilisés:', fieldsToShow);
+              logger.warn('[Assistant] Champs par défaut utilisés:', fieldsToShow);
             }
 
             return JSON.stringify({
@@ -268,13 +269,13 @@ export async function processProjectCommand(userInput: string) {
           }
         }
       } catch (error) {
-        console.error('[Assistant] Erreur exécution directe (List):', error);
+        logger.error('[Assistant] Erreur exécution directe (List):', error);
       }
     }
 
     // CAS 2: MISE À JOUR (UPDATE)
     if (classification.isUpdate) {
-      console.warn('[Assistant] 🚀 Exécution DIRECTE (UPDATE)');
+      logger.warn('[Assistant] 🚀 Exécution DIRECTE (UPDATE)');
 
       // Extraction des paramètres de mise à jour via updates.ts
       const availableStyles = ['Techno', 'House', 'DNB', 'Dubstep', 'Trance'];
@@ -310,16 +311,16 @@ export async function processProjectCommand(userInput: string) {
             }
           }
         } catch (error) {
-          console.error('[Assistant] Erreur exécution directe (Update):', error);
+          logger.error('[Assistant] Erreur exécution directe (Update):', error);
         }
       } else {
-        console.warn('[Assistant] Update détecté mais pas de paramètres extraits');
+        logger.warn('[Assistant] Update détecté mais pas de paramètres extraits');
       }
     }
 
     // CAS 3: CRÉATION (CREATE)
     if (classification.isCreate && !classification.isUpdate) {
-      console.warn('[Assistant] 🚀 Exécution DIRECTE (CREATE)');
+      logger.warn('[Assistant] 🚀 Exécution DIRECTE (CREATE)');
 
       // Utiliser le parseur pour extraire les données de création
       const { parseQuery } = await import('@/lib/assistant/query-parser');
@@ -388,11 +389,11 @@ export async function processProjectCommand(userInput: string) {
             }
           }
         } catch (error) {
-          console.error('[Assistant] Erreur exécution directe (Create):', error);
+          logger.error('[Assistant] Erreur exécution directe (Create):', error);
           // Si erreur, continuer vers l'IA comme fallback
         }
       } else {
-        console.warn("[Assistant] Create détecté mais pas de nom extrait, passage à l'IA");
+        logger.warn("[Assistant] Create détecté mais pas de nom extrait, passage à l'IA");
       }
     }
   }
@@ -401,7 +402,7 @@ export async function processProjectCommand(userInput: string) {
   // FALLBACK IA (GROQ)
   // ========================================
 
-  console.warn("[Assistant] 🤖 Passage à l'IA (Conversationnel ou Fallback)", {
+  logger.warn("[Assistant] 🤖 Passage à l'IA (Conversationnel ou Fallback)", {
     isComplex: classification.isComplex,
   });
 
@@ -427,7 +428,7 @@ Date: ${today}\nUtilisateur: ${currentUserName || 'Inconnu'}\n${isAdmin ? 'Rôle
       // @ts-expect-error - SDK AI v5 type inference issue with tool types
       tools: Object.keys(availableTools).length > 0 ? availableTools : undefined,
     }).catch(async (error: unknown) => {
-      console.error('[Assistant] Erreur lors de generateText:', error);
+      logger.error('[Assistant] Erreur lors de generateText:', error);
       throw error;
     });
 
@@ -494,7 +495,7 @@ Date: ${today}\nUtilisateur: ${currentUserName || 'Inconnu'}\n${isAdmin ? 'Rôle
           if (reDetectedFields && reDetectedFields.length > 0) {
             // Si des champs ont été explicitement demandés (ex: "tous les détails"), les utiliser
             fieldsToShow = reDetectedFields;
-            console.warn(
+            logger.warn(
               '[Assistant] Champs à afficher détectés depuis requête (IA):',
               fieldsToShow
             );
@@ -507,7 +508,7 @@ Date: ${today}\nUtilisateur: ${currentUserName || 'Inconnu'}\n${isAdmin ? 'Rôle
             if (filters.style && !fieldsToShow.includes('style')) fieldsToShow.push('style');
             if (filters.releaseDate && !fieldsToShow.includes('releaseDate'))
               fieldsToShow.push('releaseDate');
-            console.warn('[Assistant] Champs par défaut utilisés (IA):', fieldsToShow);
+            logger.warn('[Assistant] Champs par défaut utilisés (IA):', fieldsToShow);
           }
 
           return JSON.stringify({

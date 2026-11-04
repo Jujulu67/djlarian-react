@@ -5,6 +5,7 @@ import { Session } from 'next-auth';
 
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { shouldShowIngestLocalhostWarning } from '@/lib/utils/warning-flags';
+import { logger } from '@/lib/logger';
 
 // Cache global pour dédupliquer les requêtes de session
 let sessionRequestCache: {
@@ -209,7 +210,7 @@ if (typeof window !== 'undefined') {
       // En production: détecter la mauvaise config et logger une alerte (une seule fois)
       // Ne pas masquer l'erreur, laisser l'appel passer normalement
       if (shouldShowIngestLocalhostWarning()) {
-        console.warn(
+        logger.warn(
           '[AuthProvider] Ingest endpoint is localhost in production. Check configuration.'
         );
       }

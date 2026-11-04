@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
 import type { LiveRewards, UpdateRewardsInput } from '@/types/live';
+import { logger } from '@/lib/logger';
 
 export function useLiveRewards() {
   const [rewards, setRewards] = useState<LiveRewards | null>(null);
@@ -21,7 +22,7 @@ export function useLiveRewards() {
       }
     } catch (err) {
       setError('Erreur de connexion');
-      console.error('[Live] Erreur chargement récompenses:', err);
+      logger.error('[Live] Erreur chargement récompenses:', err);
     } finally {
       setIsLoading(false);
     }
@@ -50,7 +51,7 @@ export function useLiveRewards() {
         }
       } catch (err) {
         setError('Erreur de connexion');
-        console.error('[Live] Erreur mise à jour récompenses:', err);
+        logger.error('[Live] Erreur mise à jour récompenses:', err);
         return { success: false, error: 'Erreur de connexion' };
       }
     },

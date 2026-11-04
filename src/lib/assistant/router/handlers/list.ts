@@ -12,6 +12,7 @@ import {
 } from './types';
 import { debugLog } from '../../utils/debug';
 import { applyProjectFilterAndSort, isFilterEmpty, summarizeFilter } from '../filter-helpers';
+import { logger } from '@/lib/logger';
 
 /**
  * Gère le listing des projets
@@ -26,7 +27,7 @@ export function handleListCommand(
   isDetailsViewRequested: boolean = false,
   isAllProjectsRequested: boolean = false
 ): ProjectCommandResult {
-  console.warn('[Router] 📋 Routing vers Listing (côté client)');
+  logger.warn('[Router] 📋 Routing vers Listing (côté client)');
 
   // Détecter si un filtre explicite est présent
   const hasExplicitFilter = !isFilterEmpty(filters);
@@ -41,14 +42,14 @@ export function handleListCommand(
     if (isDetailsViewRequested && lastAppliedFilter && !isFilterEmpty(lastAppliedFilter)) {
       // Cas spécial : "voir les détails" sans préciser de filtre, mais on en a un en mémoire
       // On réapplique le dernier filtre
-      console.warn('[Router] 📋 LIST sans filtre explicite (vue détails) → scope = last filter');
+      logger.warn('[Router] 📋 LIST sans filtre explicite (vue détails) → scope = last filter');
       scopeSource = 'LastAppliedFilter';
       const { filtered } = applyProjectFilterAndSort(projects, lastAppliedFilter);
       scopedProjects = filtered;
       effectiveFilter = lastAppliedFilter;
     } else {
       // Fallback : tous les projets (pas de working set disponible)
-      console.warn(
+      logger.warn(
         '[Router] 📋 LIST sans filtre explicite et sans historique → scope = tous les projets'
       );
       scopeSource = 'AllProjects';
@@ -57,7 +58,7 @@ export function handleListCommand(
     }
   } else if (hasExplicitFilter || isAllProjectsRequested) {
     // Filtre explicite présent OU demande explicite de "tous les projets" : utiliser le filtre
-    console.warn(
+    logger.warn(
       `[Router] 📋 LIST avec ${hasExplicitFilter ? 'filtre explicite' : 'demande tous les projets'} → scope = filtre de la commande`
     );
     scopeSource = 'ExplicitFilter';

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
+import { logger } from '@/lib/logger';
 
 interface Product {
   id: string;
@@ -104,7 +105,7 @@ export default function AdminShopClient({ initialSettings }: AdminShopClientProp
         }),
       });
     } catch (error) {
-      console.error('Error toggling shop:', error);
+      logger.error('Error toggling shop:', error);
       // Revert on error
       setShopEnabled(!newValue);
     }
@@ -128,7 +129,7 @@ export default function AdminShopClient({ initialSettings }: AdminShopClientProp
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (error) {
-      console.error('Error saving settings:', error);
+      logger.error('Error saving settings:', error);
     }
     setSaving(false);
   };

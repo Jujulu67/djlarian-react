@@ -58,10 +58,10 @@ export const AdminProjectsClient = ({ initialProjects, users }: AdminProjectsCli
         setProjects(Array.isArray(projects) ? projects : []);
       } else {
         const error = await response.json();
-        console.error('Erreur lors du chargement:', error.error || error);
+        logger.error('Erreur lors du chargement:', error.error || error);
       }
     } catch (error) {
-      console.error('Erreur lors du chargement:', error);
+      logger.error('Erreur lors du chargement:', error);
     } finally {
       setIsLoading(false);
     }
@@ -88,7 +88,7 @@ export const AdminProjectsClient = ({ initialProjects, users }: AdminProjectsCli
         });
       }
     } catch (error) {
-      console.error('Erreur lors du chargement des comptes:', error);
+      logger.error('Erreur lors du chargement des comptes:', error);
     }
   }, [userFilter, projects]);
 

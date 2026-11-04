@@ -8,23 +8,38 @@ import * as route from '../route';
 
 const { POST } = route;
 
+const signOut = (cookie: string) =>
+  POST(
+    new NextRequest('http://localhost/api/auth/signout', {
+      method: 'POST',
+      headers: { cookie },
+    })
+  );
+
 describe('/api/auth/signout', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
+  it('supprime les cookies Auth.js, y compris un jeton découpé', async () => {
+    const response = await signOut(
+      'authjs.session-token.0=a; authjs.session-token.1=b; __Secure-authjs.csrf-token=c; ui=v3'
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ success: true });
+
+    const cleared = response.cookies.getAll().map((c) => c.name);
+    expect(cleared).toEqual(
+      expect.arrayContaining([
+        'authjs.session-token.0',
+        'authjs.session-token.1',
+        '__Secure-authjs.csrf-token',
+      ])
+    );
+    expect(cleared).not.toContain('ui');
+    expect(response.cookies.get('__Secure-authjs.csrf-token')?.secure).toBe(true);
   });
 
-  it('should sign out user with POST', async () => {
-    const request = new NextRequest('http://localhost/api/auth/signout', {
-      method: 'POST',
-    });
-
-    const response = await POST(request);
-    const data = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(data.success).toBe(true);
-    // Ne vide pas le localStorage (préférences) à la déconnexion
-    expect(response.headers.get('Clear-Site-Data')).toBe('"cookies"');
+  it('garde les préférences (pas de Clear-Site-Data)', async () => {
+    const response = await signOut('ui=v3');
+    expect(response.headers.get('Clear-Site-Data')).toBeNull();
+    expect(response.cookies.get('ui')).toBeUndefined();
   });
 
   it("n'expose pas de GET (déconnexion par simple lien)", () => {

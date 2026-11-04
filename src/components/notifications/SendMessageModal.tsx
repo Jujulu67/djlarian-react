@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import ReactDOM from 'react-dom';
 import { Notification } from '@/hooks/useNotifications';
 import { useFriends } from '@/hooks/useFriends';
+import { logger } from '@/lib/logger';
 
 interface User {
   id: string;
@@ -60,7 +61,7 @@ export function SendMessageModal({
         }
         setTitle(`Re: ${replyTo.title}`);
       } catch (err) {
-        console.error('Erreur lors du parsing des métadonnées:', err);
+        logger.error('Erreur lors du parsing des métadonnées:', err);
       }
     } else if (isOpen && !replyTo) {
       // Réinitialiser si ce n'est pas une réponse
@@ -108,7 +109,7 @@ export function SendMessageModal({
         setUsers(friendsList);
       }
     } catch (err) {
-      console.error('Erreur lors du chargement des utilisateurs:', err);
+      logger.error('Erreur lors du chargement des utilisateurs:', err);
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
     } finally {
       setIsLoadingUsers(false);
@@ -179,7 +180,7 @@ export function SendMessageModal({
       }
       onClose();
     } catch (err) {
-      console.error("Erreur lors de l'envoi:", err);
+      logger.error("Erreur lors de l'envoi:", err);
       setError(err instanceof Error ? err.message : "Erreur lors de l'envoi");
     } finally {
       setIsSending(false);

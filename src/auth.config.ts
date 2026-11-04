@@ -1,6 +1,7 @@
 import type { NextAuthConfig, Session } from 'next-auth';
 import Google from 'next-auth/providers/google';
 import Twitch from 'next-auth/providers/twitch';
+import { logger } from '@/lib/logger';
 
 // Auth.js configuration - Vercel (Node.js runtime natif)
 // Ne configurer les providers OAuth que si les credentials sont disponibles
@@ -78,7 +79,7 @@ export const authConfig = {
             return true;
           } else {
             // Le compte OAuth est lié à un autre utilisateur avec un email différent
-            console.warn(
+            logger.warn(
               `[Auth] Tentative de connexion avec un compte OAuth déjà lié à un autre utilisateur (${existingAccount.user.email})`
             );
             // Autoriser quand même, NextAuth gérera la création/liaison
@@ -293,7 +294,7 @@ export const authConfig = {
           token.roleCheckedAt = Date.now();
         } catch (error) {
           // Base indisponible : on garde le jeton tel quel et on réessaiera
-          console.error('[AuthConfig] jwt - Relecture du rôle impossible:', error);
+          logger.error('[AuthConfig] jwt - Relecture du rôle impossible:', error);
         }
       }
 
@@ -303,7 +304,7 @@ export const authConfig = {
       try {
         // Vérifications défensives - s'assurer que session existe
         if (!session) {
-          console.warn('[AuthConfig] session callback - session is null/undefined');
+          logger.warn('[AuthConfig] session callback - session is null/undefined');
           // Retourner une session minimale valide
           return {
             user: {
@@ -318,7 +319,7 @@ export const authConfig = {
 
         // Si session.user n'existe pas, retourner la session telle quelle
         if (!session.user) {
-          console.warn('[AuthConfig] session callback - session.user is null/undefined');
+          logger.warn('[AuthConfig] session callback - session.user is null/undefined');
           return session;
         }
 
@@ -364,7 +365,7 @@ export const authConfig = {
               }
             }
           } catch (error) {
-            console.error('[AuthConfig] Erreur récupération image depuis DB:', error);
+            logger.error('[AuthConfig] Erreur récupération image depuis DB:', error);
           }
         }
 
@@ -397,7 +398,7 @@ export const authConfig = {
               }
             }
           } catch (error) {
-            console.error('[AuthConfig] Erreur récupération createdAt/isVip depuis DB:', error);
+            logger.error('[AuthConfig] Erreur récupération createdAt/isVip depuis DB:', error);
           }
         }
 
@@ -429,7 +430,7 @@ export const authConfig = {
               }
             }
           } catch (error) {
-            console.error('[AuthConfig] Erreur récupération game stats depuis DB:', error);
+            logger.error('[AuthConfig] Erreur récupération game stats depuis DB:', error);
           }
         }
 
@@ -440,7 +441,7 @@ export const authConfig = {
 
         return session;
       } catch (error) {
-        console.error('[AuthConfig] session callback error:', error);
+        logger.error('[AuthConfig] session callback error:', error);
         // En cas d'erreur, retourner la session originale ou une session minimale valide
         return (
           session ||
@@ -505,14 +506,14 @@ export const authConfig = {
         // Vérifier que l'URL finale est sur le même domaine
         const finalUrlObj = new URL(finalUrl);
         if (finalUrlObj.origin !== new URL(baseUrl).origin) {
-          console.warn('[AuthConfig] redirect - Origine différente, retour baseUrl:', baseUrl);
+          logger.warn('[AuthConfig] redirect - Origine différente, retour baseUrl:', baseUrl);
           return baseUrl;
         }
 
         return finalUrl;
       } catch (error) {
         // En cas d'erreur, retourner la baseUrl
-        console.error('[AuthConfig] redirect - Erreur:', error);
+        logger.error('[AuthConfig] redirect - Erreur:', error);
         return baseUrl;
       }
     },

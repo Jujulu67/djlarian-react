@@ -25,6 +25,7 @@ import {
   type NotificationFilter,
   type NotificationView,
 } from './notificationsUtils';
+import { logger } from '@/lib/logger';
 export default function NotificationsClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -89,7 +90,7 @@ export default function NotificationsClient() {
       await fetchArchivedNotifications();
       await refresh();
     } catch (err) {
-      console.error("Erreur lors de l'archivage:", err);
+      logger.error("Erreur lors de l'archivage:", err);
     }
   };
 
@@ -99,7 +100,7 @@ export default function NotificationsClient() {
       await fetchArchivedNotifications();
       await refresh();
     } catch (err) {
-      console.error('Erreur lors du désarchivage:', err);
+      logger.error('Erreur lors du désarchivage:', err);
     }
   };
 
@@ -111,7 +112,7 @@ export default function NotificationsClient() {
       await deleteNotification(id);
       setArchivedNotifications((prev) => prev.filter((n) => n.id !== id));
     } catch (err) {
-      console.error('Erreur lors de la suppression:', err);
+      logger.error('Erreur lors de la suppression:', err);
     }
   };
 
@@ -159,7 +160,7 @@ export default function NotificationsClient() {
       try {
         await markAsRead(notification.id);
       } catch (err) {
-        console.error('Erreur lors de la mise à jour:', err);
+        logger.error('Erreur lors de la mise à jour:', err);
       }
     }
 
@@ -174,7 +175,7 @@ export default function NotificationsClient() {
     try {
       await markAllAsRead();
     } catch (err) {
-      console.error('Erreur lors de la mise à jour:', err);
+      logger.error('Erreur lors de la mise à jour:', err);
     }
   };
 

@@ -5,6 +5,7 @@ import Modal from '@/components/ui/Modal';
 import { InventoryContent } from './InventoryContent';
 import { Search, User, Loader2 } from 'lucide-react';
 import { searchUsers } from '@/actions/inventory';
+import { logger } from '@/lib/logger';
 
 interface GlobalInventoryManagerProps {
   isOpen: boolean;
@@ -44,7 +45,7 @@ export function GlobalInventoryManager({ isOpen, onClose }: GlobalInventoryManag
         setUsers([]);
       }
     } catch (error) {
-      console.error('Search failed', error);
+      logger.error('Search failed', error);
     } finally {
       setLoading(false);
     }

@@ -11,6 +11,7 @@ import {
   getNotificationVisuals,
   parseMetadata,
 } from '../notificationsUtils';
+import { logger } from '@/lib/logger';
 
 interface NotificationItemProps {
   notification: Notification;
@@ -57,7 +58,7 @@ export function NotificationItem({
             try {
               await onMarkAsRead(notification.id);
             } catch (err) {
-              console.error('Erreur lors de la mise à jour:', err);
+              logger.error('Erreur lors de la mise à jour:', err);
             }
           }
         }
@@ -98,7 +99,7 @@ export function NotificationItem({
                 try {
                   await onMarkAsRead(notification.id);
                 } catch (err) {
-                  console.error('Erreur lors de la mise à jour:', err);
+                  logger.error('Erreur lors de la mise à jour:', err);
                 }
               }
               return;

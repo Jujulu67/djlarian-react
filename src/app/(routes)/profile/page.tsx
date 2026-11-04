@@ -6,7 +6,9 @@ import { useSession, signIn } from 'next-auth/react';
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/Button';
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
+import { openAuthModal } from '@/lib/auth/openAuthModal';
 import { useProfileStats } from './hooks/useProfileStats';
 import { useRecentProjects } from './hooks/useRecentProjects';
 import { useOAuthAccounts } from './hooks/useOAuthAccounts';
@@ -17,9 +19,10 @@ import { ProfileHero } from './components/ProfileHero';
 import { ProfileBadges } from './components/ProfileBadges';
 import { ProfileOAuth } from './components/ProfileOAuth';
 import { ProfilePasswordModal } from './components/ProfilePasswordModal';
+import { logger } from '@/lib/logger';
 
 function ProfileContent() {
-  const { data: session, update: updateSession } = useSession();
+  const { data: session, status, update: updateSession } = useSession();
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -100,6 +103,11 @@ function ProfileContent() {
     }
   }, [session?.user]);
 
+  // Pendant le chargement de la session, ne pas afficher « Accès non autorisé »
+  if (!session && status === 'loading') {
+    return <div className="min-h-[80vh]" aria-busy="true" />;
+  }
+
   if (!session) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center px-4">
@@ -115,6 +123,9 @@ function ProfileContent() {
           <p className="text-gray-400 v2:text-white/60">
             Veuillez vous connecter pour accéder à votre profil.
           </p>
+          <Button className="mt-6" onClick={openAuthModal}>
+            Se connecter
+          </Button>
         </motion.div>
       </div>
     );
@@ -163,7 +174,7 @@ function ProfileContent() {
       const errorMessage = 'Erreur de connexion. Veuillez réessayer.';
       setError(errorMessage);
       toast.error(errorMessage);
-      console.error('Erreur lors de la sauvegarde:', err);
+      logger.error('Erreur lors de la sauvegarde:', err);
     } finally {
       setIsSaving(false);
     }
@@ -252,7 +263,7 @@ function ProfileContent() {
       const errorMessage = 'Erreur de connexion. Veuillez réessayer.';
       setError(errorMessage);
       toast.error(errorMessage);
-      console.error("Erreur lors de l'upload:", err);
+      logger.error("Erreur lors de l'upload:", err);
     } finally {
       setIsUploadingAvatar(false);
       setImageToCrop(null);
@@ -310,7 +321,7 @@ function ProfileContent() {
       const errorMessage = 'Erreur de connexion. Veuillez réessayer.';
       setError(errorMessage);
       toast.error(errorMessage);
-      console.error('Erreur lors de la suppression:', err);
+      logger.error('Erreur lors de la suppression:', err);
     } finally {
       setIsUploadingAvatar(false);
     }
@@ -325,7 +336,7 @@ function ProfileContent() {
         callbackUrl: '/profile?link=true',
       });
     } catch (error) {
-      console.error(`[Profile] Erreur association ${provider}:`, error);
+      logger.error(`[Profile] Erreur association ${provider}:`, error);
       toast.error(`Erreur lors de l'association du compte ${provider}`);
     }
   };
@@ -367,7 +378,7 @@ function ProfileContent() {
         toast.error(error.error || 'Erreur lors de la désassociation');
       }
     } catch (error) {
-      console.error(`[Profile] Erreur désassociation ${provider}:`, error);
+      logger.error(`[Profile] Erreur désassociation ${provider}:`, error);
       toast.error('Erreur de connexion. Veuillez réessayer.');
     } finally {
       setUnlinkingProvider(null);
@@ -459,7 +470,7 @@ function ProfileContent() {
         setPasswordError(error.error || 'Erreur lors de la modification du mot de passe');
       }
     } catch (error) {
-      console.error('[Profile] Erreur modification mot de passe:', error);
+      logger.error('[Profile] Erreur modification mot de passe:', error);
       setPasswordError('Erreur de connexion. Veuillez réessayer.');
     } finally {
       setIsChangingPassword(false);

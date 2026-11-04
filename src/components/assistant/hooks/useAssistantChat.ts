@@ -32,6 +32,7 @@ import {
   debugMemoryState,
   getConversationMemorySize,
 } from '@/lib/assistant/memory';
+import { logger } from '@/lib/logger';
 
 export interface UseAssistantChatOptions {
   projects: Project[];
@@ -86,7 +87,7 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
       // Log debug pour vérifier la persistence
       if (isAssistantDebugEnabled()) {
         const sessionInfo = getSessionInfo();
-        console.warn('[Assistant] 🔒 Session persistence initialized:', sessionInfo);
+        logger.warn('[Assistant] 🔒 Session persistence initialized:', sessionInfo);
       }
     }
   }, []);
@@ -130,7 +131,7 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
     resetSession(sessionIdRef.current);
     // O10: Générer un nouveau sessionId pour vraiment "recommencer"
     sessionIdRef.current = resetSessionStorage();
-    console.warn('[Assistant] 🔄 Session reset, nouveau sessionId:', sessionIdRef.current);
+    logger.warn('[Assistant] 🔄 Session reset, nouveau sessionId:', sessionIdRef.current);
   }, []);
 
   const handleSubmit = useCallback(
@@ -146,7 +147,7 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
       setInput('');
 
       try {
-        console.warn('[Assistant] 📝 Question reçue:', currentInput);
+        logger.warn('[Assistant] 📝 Question reçue:', currentInput);
 
         // 🔒 Classification SUPPRIMÉE côté client (I2 - un seul routeur)
         // Le routing se fait UNIQUEMENT par routeProjectCommand() dans router/router.ts
@@ -168,7 +169,7 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
           timestamp: new Date(), // Le timestamp exact n'est pas critique pour Groq
         }));
 
-        console.warn('[Assistant] 🔒 Historique filtré pour Groq:', {
+        logger.warn('[Assistant] 🔒 Historique filtré pour Groq:', {
           originalMessagesCount: messages.length,
           filteredHistoryCount: currentHistory.length,
           filteredPreview: currentHistory
@@ -389,7 +390,7 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
             timestamp: new Date(),
           },
         ]);
-        console.error('[Assistant] ❌ Error processing query:', err);
+        logger.error('[Assistant] ❌ Error processing query:', err);
       } finally {
         setIsLoading(false);
       }

@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * Gestionnaire de mémoire conversationnelle pour l'assistant
  *
@@ -84,7 +85,7 @@ export function updateConversationContext(
 
   contextStore.set(userId, newContext);
 
-  console.warn('[ConversationMemory] Contexte mis à jour pour', userId, {
+  logger.warn('[ConversationMemory] Contexte mis à jour pour', userId, {
     projectCount: newContext.lastProjectCount,
     actionType: newContext.lastActionType,
     filters: Object.keys(newContext.lastFilters),
@@ -222,7 +223,7 @@ export function resolveContextReference(
     };
   }
 
-  console.warn('[ConversationMemory] Résolution de référence contextuelle:', {
+  logger.warn('[ConversationMemory] Résolution de référence contextuelle:', {
     referenceType,
     lastProjectCount: context.lastProjectCount,
     lastFilters: context.lastFilters,

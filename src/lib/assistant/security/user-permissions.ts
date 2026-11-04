@@ -3,6 +3,7 @@
  * SÉCURITÉ : Seuls les ADMIN peuvent accéder aux projets d'autres utilisateurs
  */
 import { extractUserNameFromQuery, findUserByName } from '../parsers/user-extractor';
+import { logger } from '@/lib/logger';
 
 export interface UserPermissionsParams {
   currentUserId: string;
@@ -30,7 +31,7 @@ export function createGetTargetUserId({
           if (extractedUserName.toLowerCase() !== currentUserName?.toLowerCase()) {
             // L'utilisateur essaie d'accéder aux projets d'un autre utilisateur sans être admin
             // Forcer l'utilisation de son propre ID
-            console.warn(
+            logger.warn(
               `[Assistant] Sécurité : Utilisateur non-admin (${currentUserName}) a tenté d'accéder aux projets de ${extractedUserName}. Accès refusé.`
             );
             return currentUserId; // Forcer l'utilisation de l'utilisateur connecté
@@ -42,7 +43,7 @@ export function createGetTargetUserId({
         if (targetUser) {
           // Double vérification : si pas admin, s'assurer que c'est bien l'utilisateur connecté
           if (!isAdmin && targetUser.id !== currentUserId) {
-            console.warn(
+            logger.warn(
               `[Assistant] Sécurité : Tentative d'accès non autorisée aux projets de ${extractedUserName}.`
             );
             return currentUserId;

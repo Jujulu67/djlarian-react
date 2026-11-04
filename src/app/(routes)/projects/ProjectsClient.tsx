@@ -31,6 +31,7 @@ import { ProjectsToolbar } from './components/ProjectsToolbar';
 import { useAssistantProjectSync } from './hooks/useAssistantProjectSync';
 import { useNotificationHighlight } from './hooks/useNotificationHighlight';
 import { useScrollToNewProject } from './hooks/useScrollToNewProject';
+import { logger } from '@/lib/logger';
 
 /** En-tête compact de l'espace Projets (UI v2) : surtitre, titre display, description */
 function ProjectsHeader({ description }: { description: string }) {
@@ -112,7 +113,7 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
         setCounts(countsData);
       }
     } catch (error) {
-      console.error('Erreur lors du chargement des compteurs:', error);
+      logger.error('Erreur lors du chargement des compteurs:', error);
     }
   }, [sessionStatus, session]);
 
@@ -184,14 +185,14 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
         // Erreur d'authentification - fetchWithAuth devrait déjà avoir géré la déconnexion
         const errorMessage = await getErrorMessage(response);
         setAuthError(errorMessage || 'Votre session a expiré. Déconnexion en cours...');
-        console.error("Erreur d'authentification:", errorMessage);
+        logger.error("Erreur d'authentification:", errorMessage);
       } else {
         const error = await response.json();
-        console.error('Erreur lors du chargement:', error.error || error);
+        logger.error('Erreur lors du chargement:', error.error || error);
         setAuthError(error.error || 'Erreur lors du chargement des projets');
       }
     } catch (error) {
-      console.error('Erreur lors du chargement:', error);
+      logger.error('Erreur lors du chargement:', error);
       setAuthError('Erreur lors du chargement des projets. Veuillez réessayer.');
     } finally {
       setIsLoading(false);
@@ -321,7 +322,7 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
         fetchCounts();
       }
     } catch (error) {
-      console.error('Erreur:', error);
+      logger.error('Erreur:', error);
       // Revert on error : restaurer l'état précédent au lieu de recharger tous les projets
       if (previousProjectState) {
         setProjects((prev) => prev.map((p) => (p.id === id ? previousProjectState : p)));
@@ -375,7 +376,7 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
       // Rafraîchir les compteurs depuis l'API
       fetchCounts();
     } catch (error) {
-      console.error('Erreur:', error);
+      logger.error('Erreur:', error);
       fetchProjects();
     }
   };
@@ -422,7 +423,7 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
       // Rafraîchir la liste (qui sera vide maintenant)
       await fetchProjects();
     } catch (error) {
-      console.error('Erreur lors de la purge:', error);
+      logger.error('Erreur lors de la purge:', error);
       alert(error instanceof Error ? error.message : 'Erreur lors de la suppression des projets.');
     } finally {
       setIsLoading(false);
@@ -478,7 +479,7 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
       setHighlightedFromNotification(null);
       setLastCreatedProjectId(newProject.id);
     } catch (error) {
-      console.error('Erreur:', error);
+      logger.error('Erreur:', error);
       throw error;
     }
   };
@@ -513,7 +514,7 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
 
       return batchResult;
     } catch (error) {
-      console.error("Erreur lors de l'import:", error);
+      logger.error("Erreur lors de l'import:", error);
       throw error;
     }
   };
@@ -547,7 +548,7 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
 
       return importResult;
     } catch (error) {
-      console.error("Erreur lors de l'import des streams:", error);
+      logger.error("Erreur lors de l'import des streams:", error);
       throw error;
     }
   };
@@ -588,7 +589,7 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
       const updatedProjects = result.data || result;
       setProjects(updatedProjects);
     } catch (error) {
-      console.error('Erreur lors du réordonnancement:', error);
+      logger.error('Erreur lors du réordonnancement:', error);
       // Revert on error
       fetchProjects();
     }
@@ -602,7 +603,7 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
       const filename = `projets_${date}.xlsx`;
       await exportProjectsToExcel(projectsToExport, filename);
     } catch (error) {
-      console.error("Erreur lors de l'export:", error);
+      logger.error("Erreur lors de l'export:", error);
       alert("Erreur lors de l'export Excel");
     }
   };
@@ -669,7 +670,6 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
     statusFilter,
   });
   useScrollToNewProject({
-    filteredAndSortedProjects,
     lastCreatedProjectId,
     setLastCreatedProjectId,
   });

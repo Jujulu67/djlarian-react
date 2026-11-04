@@ -2,54 +2,37 @@
 
 import { useEffect } from 'react';
 
+import { waitForElement } from '@/lib/utils/waitForElement';
+
 interface UseNotificationHighlightParams {
   setHighlightedFromNotification: React.Dispatch<React.SetStateAction<string | null>>;
 }
 
+/**
+ * Arrivée depuis une notification (`?highlight=<id>&fromNotification=true`) : met le projet en
+ * avant, nettoie l'URL et l'amène à l'écran dès qu'il est affiché.
+ */
 export function useNotificationHighlight({
   setHighlightedFromNotification,
 }: UseNotificationHighlightParams) {
-  // Gérer le highlight depuis les notifications (animation dorée persistante)
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const highlightId = params.get('highlight');
+    if (!highlightId || params.get('fromNotification') !== 'true') return;
 
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const highlightId = params.get('highlight');
-      const fromNotification = params.get('fromNotification') === 'true';
+    setHighlightedFromNotification(highlightId);
 
-      if (highlightId && fromNotification) {
-        setHighlightedFromNotification(highlightId);
+    params.delete('highlight');
+    params.delete('fromNotification');
+    const query = params.toString();
+    window.history.replaceState({}, '', window.location.pathname + (query ? `?${query}` : ''));
 
-        // Nettoyer l'URL sans recharger la page
-        try {
-          params.delete('highlight');
-          params.delete('fromNotification');
-          const newUrl =
-            window.location.pathname + (params.toString() ? '?' + params.toString() : '');
-          window.history.replaceState({}, '', newUrl);
-        } catch (historyError) {
-          // Ignorer les erreurs d'historique (peuvent être causées par des extensions)
-          // Erreur silencieuse - pas besoin de logger
-        }
-
-        // Scroller vers le projet après un délai plus long pour laisser le temps au rendu
-        setTimeout(() => {
-          try {
-            const element = document.getElementById(`project-${highlightId}`);
-            if (element) {
-              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            } else {
-              console.warn('Projet non trouvé dans le DOM:', highlightId);
-            }
-          } catch (scrollError) {
-            // Erreur silencieuse - pas besoin de logger
-          }
-        }, 500); // Délai augmenté pour laisser le temps au rendu
-      }
-    } catch (error) {
-      // Ignorer les erreurs silencieusement (peuvent être causées par des extensions)
-      // Erreur silencieuse - pas besoin de logger
-    }
-  }, []);
+    // Les projets arrivent après un chargement réseau : laisser plus de temps que par défaut
+    const controller = new AbortController();
+    waitForElement(`#project-${CSS.escape(highlightId)}`, {
+      timeoutMs: 10000,
+      signal: controller.signal,
+    }).then((el) => el?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+    return () => controller.abort();
+  }, [setHighlightedFromNotification]);
 }

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Ticket, FileText, RefreshCw } from 'lucide-react';
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
+import { logger } from '@/lib/logger';
 
 interface PoolStats {
   totalTickets: number;
@@ -24,7 +25,7 @@ export function LivePoolStats() {
         setStats(result.data);
       }
     } catch (error) {
-      console.error('Erreur lors du chargement des stats:', error);
+      logger.error('Erreur lors du chargement des stats:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);

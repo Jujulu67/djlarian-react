@@ -8,6 +8,7 @@ import type { Project } from '@/components/projects/types';
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import type { Message, QueryFilters, UpdateData } from '../types';
 import { debugLogObject, isAssistantDebugEnabled } from '@/lib/assistant/utils/debug';
+import { logger } from '@/lib/logger';
 
 interface HandleConfirmUpdateParams {
   msg: Message;
@@ -63,19 +64,15 @@ export async function handleConfirmUpdate({
       // Dispatch event for ProjectsClient
       const projectId = result.data?.projectId || msg.updateConfirmation!.affectedProjects[0]?.id;
       if (projectId) {
-        // Attendre un peu pour s'assurer que le cache est invalidé côté serveur
-        // avant de déclencher le refresh
-        setTimeout(() => {
-          window.dispatchEvent(
-            new CustomEvent('projectsUpdatedFromAssistant', {
-              detail: { projectIds: [projectId], updates: { note: true } },
-            })
-          );
-        }, 200);
+        // La note est enregistrée (réponse reçue) : prévenir la page projets tout de suite
+        window.dispatchEvent(
+          new CustomEvent('projectsUpdatedFromAssistant', {
+            detail: { projectIds: [projectId], updates: { note: true } },
+          })
+        );
       }
 
-      // Refresh après un délai plus long pour laisser le temps au cache d'être invalidé
-      setTimeout(() => router.refresh(), 800);
+      router.refresh();
 
       // Mark message as processed
       setMessages((prev) =>
@@ -235,12 +232,12 @@ export async function handleConfirmUpdate({
 
     // Afficher un warning visible en UI si mismatch (dev only)
     if (mismatch && isAssistantDebugEnabled()) {
-      console.error(
+      logger.error(
         `[handleConfirmUpdate] ⚠️ MISMATCH DÉTECTÉ: ${expectedCount} projets détectés, ${apiUpdatedCount} projets modifiés par l'API`
       );
       // Ajouter un warning dans le message
       const warningMessage = `⚠️ [DEBUG] Mismatch détecté: ${expectedCount} détectés, ${apiUpdatedCount} modifiés`;
-      console.error(warningMessage);
+      logger.error(warningMessage);
     }
 
     let successMessage =
@@ -347,7 +344,7 @@ export async function handleConfirmUpdate({
       })
     );
 
-    setTimeout(() => router.refresh(), 500);
+    router.refresh();
   } catch (error) {
     const errorMessage = `❌ Erreur : ${error instanceof Error ? error.message : 'Erreur inconnue'}`;
     setMessages((prev) =>

@@ -3,6 +3,7 @@ import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
 import { toast } from 'sonner';
 import type { SlotMachineStatus, SpinResult, BatchSpinResult } from '@/types/slot-machine';
 import { RewardType } from '@/types/slot-machine';
+import { logger } from '@/lib/logger';
 
 export function useSlotMachine() {
   const [status, setStatus] = useState<SlotMachineStatus | null>(null);
@@ -30,12 +31,12 @@ export function useSlotMachine() {
       } else {
         const errorData = await response.json().catch(() => ({}));
         const errorMessage = errorData.error || errorData.message || 'Erreur inconnue';
-        console.error('Erreur lors du chargement du statut:', errorMessage, errorData);
+        logger.error('Erreur lors du chargement du statut:', errorMessage, errorData);
         // Ne pas afficher de toast pour les erreurs silencieuses
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
-      console.error('Erreur lors du chargement du statut:', errorMessage, error);
+      logger.error('Erreur lors du chargement du statut:', errorMessage, error);
       // Ne pas afficher de toast pour les erreurs silencieuses
     } finally {
       setIsLoading(false);
@@ -115,7 +116,7 @@ export function useSlotMachine() {
       }
     } catch (error) {
       setIsSpinning(false);
-      console.error('Erreur lors du spin:', error);
+      logger.error('Erreur lors du spin:', error);
       toast.error('Erreur lors du spin');
       return null;
     }
@@ -210,7 +211,7 @@ export function useSlotMachine() {
         }
       } catch (error) {
         setIsSpinning(false);
-        console.error('Erreur lors des spins multiples:', error);
+        logger.error('Erreur lors des spins multiples:', error);
         toast.error('Erreur lors des spins multiples');
       }
     },

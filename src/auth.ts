@@ -7,19 +7,20 @@ import { compare as bcryptCompare } from '@/lib/bcrypt-edge';
 import prisma from '@/lib/prisma';
 
 import { authConfig } from './auth.config';
+import { logger } from '@/lib/logger';
 
 // Configuration principale avec adaptateur Prisma et Credentials
 const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
 
 // Vérifier la configuration au démarrage
 if (!secret) {
-  console.error('[Auth] ⚠️ NEXTAUTH_SECRET ou AUTH_SECRET non défini !');
+  logger.error('[Auth] ⚠️ NEXTAUTH_SECRET ou AUTH_SECRET non défini !');
 }
 
 const nextAuthUrl = process.env.NEXTAUTH_URL || process.env.AUTH_URL;
 if (!nextAuthUrl) {
-  console.error('[Auth] ⚠️ NEXTAUTH_URL ou AUTH_URL non défini !');
-  console.error('[Auth] ⚠️ Ajoutez NEXTAUTH_URL=http://localhost:3000 dans votre .env.local');
+  logger.error('[Auth] ⚠️ NEXTAUTH_URL ou AUTH_URL non défini !');
+  logger.error('[Auth] ⚠️ Ajoutez NEXTAUTH_URL=http://localhost:3000 dans votre .env.local');
 }
 
 // Adapter personnalisé minimal : comme authorize() pour credentials, retourner l'utilisateur existant
@@ -119,7 +120,7 @@ const customAdapter: Adapter = {
         // L'image du profil OAuth est disponible dans le token JWT, on la mettra à jour via le callback jwt
         // Pour l'instant, on stocke juste l'info que le compte est lié
       } catch (error) {
-        console.error('[Auth] Erreur lors de la mise à jour après liaison:', error);
+        logger.error('[Auth] Erreur lors de la mise à jour après liaison:', error);
       }
     }
 
@@ -140,7 +141,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          console.warn('[Auth] authorize - Credentials manquants');
+          logger.warn('[Auth] authorize - Credentials manquants');
           // Retourner null au lieu de throw pour que NextAuth retourne CredentialsSignin
           return null;
         }
@@ -162,7 +163,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         });
 
         if (!user || !user.hashedPassword) {
-          console.warn('[Auth] authorize - Utilisateur non trouvé ou sans mot de passe');
+          logger.warn('[Auth] authorize - Utilisateur non trouvé ou sans mot de passe');
           // Retourner null pour que NextAuth retourne CredentialsSignin
           return null;
         }
@@ -173,7 +174,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         );
 
         if (!isPasswordValid) {
-          console.warn('[Auth] authorize - Mot de passe invalide');
+          logger.warn('[Auth] authorize - Mot de passe invalide');
           // Retourner null pour que NextAuth retourne CredentialsSignin
           return null;
         }

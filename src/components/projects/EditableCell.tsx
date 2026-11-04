@@ -5,6 +5,7 @@ import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent } from 'react';
 
 import { PROJECT_STATUSES, ProjectStatus, LABEL_OPTIONS, LabelStatus, CellType } from './types';
 import { GlassSelect } from './GlassSelect';
+import { logger } from '@/lib/logger';
 
 /**
  * Formate un texte en Title Case (première lettre de chaque mot en majuscule, reste en minuscule)
@@ -141,7 +142,7 @@ export const EditableCell = ({
       await onSave(field, finalValue);
       setIsEditing(false);
     } catch (error) {
-      console.error('Erreur lors de la sauvegarde:', error);
+      logger.error('Erreur lors de la sauvegarde:', error);
       // Restaurer la valeur originale en cas d'erreur
       setEditValue(originalValue);
     } finally {

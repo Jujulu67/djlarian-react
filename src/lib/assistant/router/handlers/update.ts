@@ -25,6 +25,7 @@ import {
   generateProjectPreviewDiff,
   buildActionDescription,
 } from '../action-helpers';
+import { logger } from '@/lib/logger';
 
 /**
  * Gère la modification de projets (Update)
@@ -40,7 +41,7 @@ export function handleUpdateCommand(
   fieldsToShow?: string[],
   requestId?: string
 ): ProjectCommandResult {
-  console.warn('[Router] ✏️ Routing vers Modification (avec confirmation)');
+  logger.warn('[Router] ✏️ Routing vers Modification (avec confirmation)');
 
   // Passer une copie des filtres pour éviter les effets de bord (modification in-place)
   // Utiliser JSON.parse/stringify pour un deep clone sûr car filters peut contenir des objets
@@ -85,13 +86,13 @@ export function handleUpdateCommand(
 
     if (lastListedProjectIds && lastListedProjectIds.length > 0) {
       // Priorité 1 : Utiliser les IDs du dernier listing
-      console.warn('[Router] ✏️ UPDATE sans filtre explicite → scope = last listing (IDs)');
+      logger.warn('[Router] ✏️ UPDATE sans filtre explicite → scope = last listing (IDs)');
       scopeSource = 'LastListedIds';
       affectedProjects = projects.filter((p) => lastListedProjectIds.includes(p.id));
       effectiveFilters = {}; // Pas de filtre, on utilise les IDs
     } else if (lastAppliedFilter && !isFilterEmpty(lastAppliedFilter)) {
       // Priorité 2 : Utiliser le dernier filtre appliqué
-      console.warn('[Router] ✏️ UPDATE sans filtre explicite → scope = last filter');
+      logger.warn('[Router] ✏️ UPDATE sans filtre explicite → scope = last filter');
       scopeSource = 'LastAppliedFilter';
       const { filtered } = applyProjectFilterAndSort(projects, lastAppliedFilter);
       affectedProjects = filtered;
@@ -100,7 +101,7 @@ export function handleUpdateCommand(
       // CAS SPÉCIAL : Ajout de note à un projet spécifique (projectName + newNote)
       // Dans ce cas, on n'a pas besoin de scope - on cherche directement le projet par nom
       if (updateData.projectName && updateData.newNote) {
-        console.warn(
+        logger.warn(
           '[Router] ✏️ Ajout de note à projet spécifique → bypass garde-fou, recherche par nom'
         );
         // On va continuer avec affectedProjects vide, le projet sera trouvé par nom plus tard
@@ -132,7 +133,7 @@ export function handleUpdateCommand(
           mutationSummary,
         });
 
-        console.warn('[Router] ⚠️ GARDE-FOU: Pas de scope récent pour mutation', sanitizedLogData);
+        logger.warn('[Router] ⚠️ GARDE-FOU: Pas de scope récent pour mutation', sanitizedLogData);
 
         // Demander confirmation explicite au lieu de fallback automatique
         const mutationDescription = buildActionDescription(
@@ -174,9 +175,7 @@ export function handleUpdateCommand(
     }
   } else {
     // Filtre scoping explicite présent : l'utiliser (ignore le working set)
-    console.warn(
-      '[Router] ✏️ UPDATE avec filtre scoping explicite → scope = filtre de la commande'
-    );
+    logger.warn('[Router] ✏️ UPDATE avec filtre scoping explicite → scope = filtre de la commande');
     // D'abord, vérifier si un filtre explicite est fourni dans la commande actuelle
     scopeSource = 'ExplicitFilter';
     affectedProjects = calculateAffectedProjects(projects, filters);
@@ -221,7 +220,7 @@ export function handleUpdateCommand(
         },
       });
 
-      console.warn(
+      logger.warn(
         '[Router] ⚠️ GARDE-FOU: LastListedIds choisi mais lastListedProjectIds est vide ou aucun projet trouvé',
         sanitizedGuardrailLogData
       );
@@ -324,7 +323,7 @@ export function handleUpdateCommand(
         effectiveFilter: summarizeFilter(effectiveFilters),
       });
 
-      console.warn(
+      logger.warn(
         '[Router] ⚠️ Aucun projet trouvé - pas de scope récent',
         sanitizedEdgeCaseLogData
       );
@@ -384,7 +383,7 @@ export function handleUpdateCommand(
       effectiveFilter: summarizeFilter(effectiveFilters),
     });
 
-    console.warn('[Router] ⚠️ Aucun projet trouvé pour mutation', sanitizedNoMatchLogData);
+    logger.warn('[Router] ⚠️ Aucun projet trouvé pour mutation', sanitizedNoMatchLogData);
 
     // Message d'erreur avec détails en mode debug
     const effectiveFilterSummary = summarizeFilter(effectiveFilters);

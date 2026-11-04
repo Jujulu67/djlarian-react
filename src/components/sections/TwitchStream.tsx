@@ -10,6 +10,7 @@ import SectionIndex from '@/components/v3/SectionIndex';
 import { RevealGroup, RevealItem } from '@/components/ui/Reveal';
 import { useSpotlight } from '@/hooks/useSpotlight';
 import { useUiVersion } from '@/hooks/useUiVersion';
+import { logger } from '@/lib/logger';
 
 interface StreamStatus {
   isLive: boolean;
@@ -263,7 +264,7 @@ const TwitchStream = () => {
         const data = await response.json();
         setStreamStatus(data);
       } catch (error) {
-        console.error('Error checking stream status:', error);
+        logger.error('Error checking stream status:', error);
         setStreamStatus({ isLive: false });
       } finally {
         setIsLoading(false);

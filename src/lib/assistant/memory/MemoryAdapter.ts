@@ -18,6 +18,7 @@ import {
   ChatMessage,
   ActionType,
 } from './index';
+import { logger } from '@/lib/logger';
 
 // =============================================================================
 // Session Manager - Singleton par session
@@ -134,8 +135,7 @@ export function debugMemoryState(sessionId: string): void {
 
   const { conversation, action } = getSessionStores(sessionId);
 
-  // eslint-disable-next-line no-console -- Debug-only log gated behind ASSISTANT_DEBUG
-  console.log(`[MemoryAdapter][${sessionId}] État mémoires:`, {
+  logger.debug(`[MemoryAdapter][${sessionId}] État mémoires:`, {
     conversationSize: conversation.size,
     conversationTokens: conversation.totalTokens,
     actionContext: {

@@ -2,6 +2,7 @@ import { tool } from 'ai';
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 interface CreateProjectsToolParams {
   getTargetUserId: () => Promise<string | null>;
@@ -134,7 +135,7 @@ export const createCreateProjectsTool = ({
           project: newProject,
         };
       } catch (error) {
-        console.error('[CreateProjectsTool] Error:', error);
+        logger.error('[CreateProjectsTool] Error:', error);
         return { message: 'Une erreur est survenue lors de la création du projet.' };
       }
     },

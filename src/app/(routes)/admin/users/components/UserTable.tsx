@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { toast } from 'sonner';
 
 import UserActions from '@/components/admin/UserActions';
+import { logger } from '@/lib/logger';
 
 type UserData = {
   id: string;
@@ -89,7 +90,7 @@ function OAuthAccountsCell({ user }: { user: UserData }) {
       // Rafraîchir la page pour mettre à jour les données
       window.location.reload();
     } catch (error) {
-      console.error('Erreur désassociation:', error);
+      logger.error('Erreur désassociation:', error);
       toast.error(error instanceof Error ? error.message : 'Erreur lors de la désassociation');
     } finally {
       setUnlinking(null);

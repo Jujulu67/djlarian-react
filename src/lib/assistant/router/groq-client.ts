@@ -9,6 +9,7 @@ import { internalAuthHeaders } from '@/lib/api/internalAuth';
 
 import type { ConversationMessage } from '../conversational/memory-manager';
 import { sanitizeForLogs } from '../utils/sanitize-logs';
+import { logger } from '@/lib/logger';
 
 /**
  * Contexte pour l'appel à l'API Groq
@@ -79,7 +80,7 @@ export async function callGroqApi(
     // Log l'erreur (sanitizer)
     const errorMessage = error instanceof Error ? error.message : String(error);
     const sanitizedError = sanitizeForLogs(errorMessage, 200);
-    console.error("[Router] ❌ Erreur lors de l'appel à Groq API", {
+    logger.error("[Router] ❌ Erreur lors de l'appel à Groq API", {
       requestId,
       error: sanitizedError,
     });

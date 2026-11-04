@@ -2,6 +2,7 @@
  * Extraction des données de progression depuis les requêtes
  */
 import { UpdateData, debugLog } from './types';
+import { logger } from '@/lib/logger';
 
 /**
  * Copie les filtres de progression depuis filters vers updateData
@@ -50,7 +51,7 @@ export function extractDeXaYProgress(
       filters.minProgress = filterValue;
       filters.maxProgress = filterValue;
       updateData.newProgress = newValue;
-      console.warn(
+      logger.warn(
         '[Parse Query API] ✅ Pattern "de X% à Y" détecté:',
         `filtre=${filterValue}%, nouvelle valeur=${newValue}%`
       );

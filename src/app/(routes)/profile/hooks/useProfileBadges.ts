@@ -3,6 +3,7 @@ import { calculateBadges, type Badge, type GameStats } from '../utils/badgeCalcu
 import { getMemberMonths } from '../utils/dateUtils';
 import type { UserStats } from './useProfileStats';
 import { useSession } from 'next-auth/react';
+import { logger } from '@/lib/logger';
 
 interface User {
   role?: string;
@@ -27,7 +28,7 @@ export function useProfileBadges(stats: UserStats, user: User) {
           setGameStats(data);
         }
       } catch (error) {
-        console.error('Error fetching game stats:', error);
+        logger.error('Error fetching game stats:', error);
       }
     };
 

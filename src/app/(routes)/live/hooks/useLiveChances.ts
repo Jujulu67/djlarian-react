@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
 import type { LiveChances } from '@/types/live';
+import { logger } from '@/lib/logger';
 
 export function useLiveChances() {
   const [chances, setChances] = useState<LiveChances | null>(null);
@@ -21,7 +22,7 @@ export function useLiveChances() {
       }
     } catch (err) {
       setError('Erreur de connexion');
-      console.error('[Live] Erreur calcul chances:', err);
+      logger.error('[Live] Erreur calcul chances:', err);
     } finally {
       setIsLoading(false);
     }

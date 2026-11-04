@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * PiiRedactor - Redaction des données personnelles identifiables
  *
@@ -228,11 +229,10 @@ export function safeDebugLog(
   if (data) {
     // Redacter toutes les valeurs string dans data
     const redactedData = redactObject(data);
-    // eslint-disable-next-line no-console -- Debug-only log gated behind isDebugAllowed()
-    console.log(prefix, redactedMessage, redactedData);
+
+    logger.debug(prefix, redactedMessage, redactedData);
   } else {
-    // eslint-disable-next-line no-console -- Debug-only log gated behind isDebugAllowed()
-    console.log(prefix, redactedMessage);
+    logger.debug(prefix, redactedMessage);
   }
 }
 

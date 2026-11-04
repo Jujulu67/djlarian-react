@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * Types et interfaces pour l'extraction des données de mise à jour
  */
@@ -87,6 +88,6 @@ export const isDebugPatterns = () => process.env.ASSISTANT_DEBUG_PATTERNS === 't
 
 export const debugLog = (...args: unknown[]) => {
   if (isDebugPatterns()) {
-    console.warn(...args);
+    logger.warn(args[0], ...args.slice(1));
   }
 };

@@ -26,6 +26,7 @@ import { sanitizeForLogs } from '../utils/sanitize-logs';
 import { formatConversationContextForPrompt } from './memory-manager';
 import { capMaxCompletionTokens } from '../memory/ModelLimits';
 import { sanitizeGroqMessages } from '../memory/SanitizeGroqMessages';
+import { logger } from '@/lib/logger';
 
 /**
  * O7: Feature flag pour envoyer max_tokens (déprécié)
@@ -83,7 +84,7 @@ export async function getConversationalResponse(
       }
 
       if (isDebugEnabled && preparedContext) {
-        console.warn('[Groq 8B] Contexte préparé:', {
+        logger.warn('[Groq 8B] Contexte préparé:', {
           factualMemory: !!preparedContext.factualMemory,
           interpretativeNotes: !!preparedContext.interpretativeNotes,
           recentMessages: preparedContext.recentMessages?.length || 0,
@@ -153,7 +154,7 @@ export async function getConversationalResponse(
       const hardcodedResponse =
         'Je suis LARIAN BOT, assistant studio de gestion de projets musicaux.';
       if (isDebugEnabled || process.env.NODE_ENV === 'development') {
-        console.warn(
+        logger.warn(
           "[Groq 8B] Question d'identité détectée → réponse hardcodée:",
           hardcodedResponse
         );
@@ -165,7 +166,7 @@ export async function getConversationalResponse(
       const userPromptStartsWith = userPrompt.substring(0, 100);
       const hasIdentityLine = userPrompt.includes('IDENTITÉ: Tu es LARIAN BOT');
 
-      console.warn('[Groq 8B] Appel avec format system + messages', {
+      logger.warn('[Groq 8B] Appel avec format system + messages', {
         mode,
         hasHistory: conversationHistory && conversationHistory.length > 0,
         historyLength: conversationHistory?.length || 0,
@@ -186,7 +187,7 @@ export async function getConversationalResponse(
     // Logs dev-only pour rendre le routage observable
     if (isDebugEnabled || process.env.NODE_ENV === 'development') {
       const userPromptStartsWith = userPrompt.substring(0, 100);
-      console.warn('[Groq Model Routing] 🎯 Sélection du modèle', {
+      logger.warn('[Groq Model Routing] 🎯 Sélection du modèle', {
         requestId: requestId || `groq-${Date.now()}`,
         chosenModelId: modelId,
         reason: isComplex
@@ -212,7 +213,7 @@ export async function getConversationalResponse(
       const sanitizeResult = sanitizeGroqMessages(messages, { debug: isDebugEnabled });
 
       if (sanitizeResult.sanitized && isDebugEnabled) {
-        console.warn('[Groq 8B] Messages sanitized:', {
+        logger.warn('[Groq 8B] Messages sanitized:', {
           issueCount: sanitizeResult.issues.length,
           issues: sanitizeResult.issues,
         });
@@ -229,7 +230,7 @@ export async function getConversationalResponse(
 
       if (lastMessageLength > MAX_USER_PROMPT_LENGTH) {
         if (isDebugEnabled) {
-          console.warn('[Groq 8B] Long prompt detected, simplifying:', {
+          logger.warn('[Groq 8B] Long prompt detected, simplifying:', {
             originalLength: lastMessageLength,
             threshold: MAX_USER_PROMPT_LENGTH,
           });
@@ -243,7 +244,7 @@ export async function getConversationalResponse(
 
       // Debug: log des messages finaux
       if (isDebugEnabled) {
-        console.warn('[Groq 8B] Final messages:', {
+        logger.warn('[Groq 8B] Final messages:', {
           count: finalMessages.length,
           lengths: finalMessages.map((m) => m.content.length),
           preview: finalMessages.slice(-1).map((m) => m.content.substring(0, 50)),
@@ -269,7 +270,7 @@ export async function getConversationalResponse(
       if (SEND_DEPRECATED_MAX_TOKENS) {
         groqPayload.max_tokens = cappedTokens;
         if (isDebugEnabled) {
-          console.warn('[Groq Responder] ⚠️ DEPRECATED: max_tokens fallback enabled');
+          logger.warn('[Groq Responder] ⚠️ DEPRECATED: max_tokens fallback enabled');
         }
       }
 
@@ -292,13 +293,13 @@ export async function getConversationalResponse(
 
       // Log réponse uniquement en debug/dev (éviter les romans en prod)
       if (isDebugEnabled || process.env.NODE_ENV === 'development') {
-        console.warn('[Groq 8B] Réponse (fetch direct):', resultText.substring(0, 100) + '...');
+        logger.warn('[Groq 8B] Réponse (fetch direct):', resultText.substring(0, 100) + '...');
       }
       return resultText.trim();
     } catch (apiError) {
       // Log détaillé de l'erreur pour debug
       if (isDebugEnabled || process.env.NODE_ENV === 'development' || isIdentityQuery) {
-        console.error('[Groq 8B] Erreur API détaillée:', {
+        logger.error('[Groq 8B] Erreur API détaillée:', {
           error: apiError instanceof Error ? apiError.message : String(apiError),
           errorName: apiError instanceof Error ? apiError.name : 'Unknown',
           messagesCount: messages.length,
@@ -323,7 +324,7 @@ export async function getConversationalResponse(
     const sanitizedStack =
       error instanceof Error && error.stack ? sanitizeForLogs(error.stack, 500) : undefined;
 
-    console.error('[Groq 8B] Erreur:', {
+    logger.error('[Groq 8B] Erreur:', {
       error: sanitizedError,
       stack: sanitizedStack,
       errorName: error instanceof Error ? error.name : 'Unknown',
