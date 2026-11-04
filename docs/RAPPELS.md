@@ -18,7 +18,7 @@ comme compromises.
       suppression de tous les fichiers du site) à tout compte connecté. Le code est corrigé, mais le
       jeton a pu être récupéré : Vercel → Storage → le store Blob → régénérer le jeton (la variable
       du projet est mise à jour par Vercel, puis redéployer).
-- [ ] 🔴 **Compte `assistant-ia@djlarian.local`** : `scripts/archive/create-bot-admin.mjs` créait un
+- [x] **Compte `assistant-ia@djlarian.local`** (04/11/2026 : absent de la prod, un seul admin) : `scripts/archive/create-bot-admin.mjs` créait un
       compte ADMIN avec un mot de passe par défaut écrit dans le code public. Si ce compte existe en
       prod, le supprimer ou lui donner un mot de passe fort (le script n'a plus de mot de passe par défaut).
       des comptes présents dans le dump (les 3 comptes avec
