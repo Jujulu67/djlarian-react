@@ -218,6 +218,7 @@ export function FriendsList({ onSendMessage }: FriendsListProps) {
               <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar">
                 {filteredAvailableUsers.map((user) => (
                   <div
+                    role="presentation"
                     key={user.id}
                     className="flex items-center justify-between p-3 bg-gray-900/50 hover:bg-gray-900/70 border border-gray-700/30 rounded-lg transition-all group v2:bg-white/[0.03] v2:border-white/[0.08] v2:hover:bg-white/[0.05] v2:rounded-xl"
                     onClick={(e) => e.stopPropagation()}

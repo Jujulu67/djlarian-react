@@ -3,6 +3,7 @@ import Image from 'next/image';
 import React, { useRef, useState } from 'react';
 
 import ImageLibraryModal from './ImageLibraryModal';
+import { onActivateKey } from '@/lib/a11y';
 
 interface ImageDropzoneProps {
   label: string;
@@ -131,6 +132,7 @@ const ImageDropzone: React.FC<ImageDropzoneProps> = ({
       ) : (
         <div
           className="border-2 border-dashed border-gray-600 rounded-lg p-6 text-center hover:border-purple-500 transition-colors cursor-pointer"
+          role="button"
           onClick={() => fileInputRef.current?.click()}
           tabIndex={0}
           aria-label={placeholderText}

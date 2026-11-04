@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { type AudioAnalysisResult, formatDuration } from '@/lib/live/audio-analysis';
 import { type LiveSubmission } from '@/types/live';
 import { logger } from '@/lib/logger';
+import { onActivateKey } from '@/lib/a11y';
 
 interface SubmissionDropZoneProps {
   activeSubmission: LiveSubmission | null;
@@ -62,6 +63,8 @@ export function SubmissionDropZone({
         </button>
       </div>
       <div
+        role="button"
+        tabIndex={0}
         onDragOver={!activeSubmission ? handleDragOver : undefined}
         onDragLeave={!activeSubmission ? handleDragLeave : undefined}
         onDrop={!activeSubmission ? handleDrop : undefined}
@@ -71,6 +74,12 @@ export function SubmissionDropZone({
             fileInputRef.current?.click();
           }
         }}
+        onKeyDown={onActivateKey(() => {
+          // Ne pas ouvrir le sélecteur si une track est déjà chargée ou soumise
+          if (!audioAnalysis && !activeSubmission) {
+            fileInputRef.current?.click();
+          }
+        })}
         className={`
       relative border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200
       ${audioAnalysis || activeSubmission ? 'cursor-default' : 'cursor-pointer'}
@@ -94,9 +103,14 @@ export function SubmissionDropZone({
             <p className="text-white">Analyzing audio file...</p>
           </div>
         ) : audioAnalysis ? (
-          <div className="w-full space-y-3" onClick={(e) => e.stopPropagation()}>
+          <div
+            role="presentation"
+            className="w-full space-y-3"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Waveform style Mofalk */}
             <div
+              role="presentation"
               className={`w-full h-20 rounded-lg relative group overflow-hidden ${
                 selectedFile ? 'cursor-pointer' : 'cursor-not-allowed opacity-75'
               }`}

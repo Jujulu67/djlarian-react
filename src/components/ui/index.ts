@@ -5,7 +5,6 @@ export * from './switch';
 export * from './textarea';
 export * from './Card';
 export * from './Select';
-export * from './AudioPlayer';
 export * from './CustomCursor';
 export * from './LoadingSpinner';
 export * from './Checkbox';

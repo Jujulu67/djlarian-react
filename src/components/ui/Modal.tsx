@@ -117,6 +117,7 @@ export default function Modal({
       />
       <div
         ref={modalRef}
+        role="presentation"
         tabIndex={-1}
         className={`relative transform overflow-hidden rounded-xl ${bgClass ?? 'glass-modern backdrop-blur-xl v2:surface-3'} ${borderClass ?? ''} w-full ${maxWidth} text-left shadow-2xl transition-all ${fullscreenContent ? 'w-screen h-screen m-0 rounded-none' : 'sm:my-8 v2:rounded-3xl'} animate-fadeIn outline-none v2:animate-[v2-modal-in_400ms_cubic-bezier(0.16,1,0.3,1)]`}
         onClick={(e) => e.stopPropagation()}

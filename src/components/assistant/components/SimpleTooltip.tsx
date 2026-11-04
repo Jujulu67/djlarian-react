@@ -55,6 +55,7 @@ export function SimpleTooltip({
 
   return (
     <div
+      role="presentation"
       ref={triggerRef}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}

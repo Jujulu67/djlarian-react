@@ -17,6 +17,7 @@ import { formatDistanceToNow, format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { onActivateKey } from '@/lib/a11y';
 
 interface LicenseActivation {
   id: string;
@@ -145,8 +146,11 @@ export function LicenseDetailsModal({ license, isOpen, onClose }: LicenseDetails
           <div>
             <h2 className="text-2xl font-audiowide text-white mb-2">Détails de la licence</h2>
             <div
+              role="button"
+              tabIndex={0}
               className="flex items-center space-x-2 text-gray-400 font-mono bg-black/30 px-3 py-1 rounded cursor-pointer hover:text-white transition-colors group"
               onClick={() => copyToClipboard(license.licenseKey, 'Clé de licence')}
+              onKeyDown={onActivateKey(() => copyToClipboard(license.licenseKey, 'Clé de licence'))}
               title="Cliquer pour copier"
             >
               <span>{license.licenseKey}</span>
@@ -187,8 +191,13 @@ export function LicenseDetailsModal({ license, isOpen, onClose }: LicenseDetails
             </h3>
             <p className="text-white">{license.user.name || 'Sans nom'}</p>
             <p
+              role="button"
+              tabIndex={0}
               className="text-gray-400 text-sm cursor-pointer hover:text-white flex items-center gap-2 group"
               onClick={() => license.user.email && copyToClipboard(license.user.email, 'Email')}
+              onKeyDown={onActivateKey(
+                () => license.user.email && copyToClipboard(license.user.email, 'Email')
+              )}
             >
               {license.user.email}
               <Copy className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />

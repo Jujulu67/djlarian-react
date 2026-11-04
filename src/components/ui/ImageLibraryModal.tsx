@@ -5,6 +5,7 @@ import { logger } from '@/lib/logger';
 import { getImageUrl } from '@/lib/utils/getImageUrl';
 
 import Modal from './Modal';
+import { onActivateKey } from '@/lib/a11y';
 
 interface ImageMeta {
   id: string;
@@ -75,6 +76,11 @@ const ImageLibraryModal: React.FC<ImageLibraryModalProps> = ({ open, onClose, on
 
   if (!open) return null;
 
+  const selectImage = (img: (typeof filtered)[number]) => {
+    logger.debug('[BIBLIO] Image sélectionnée', img);
+    onSelect(img);
+  };
+
   return (
     <Modal maxWidth="max-w-3xl" onClose={onClose} showLoader={false}>
       <div className="flex items-center justify-between mb-4">
@@ -95,11 +101,9 @@ const ImageLibraryModal: React.FC<ImageLibraryModalProps> = ({ open, onClose, on
           {filtered.map((img) => (
             <div
               key={img.id}
+              role="button"
               className="cursor-pointer bg-gray-800 rounded-lg p-2 hover:ring-2 hover:ring-purple-500 transition"
-              onClick={() => {
-                logger.debug('[BIBLIO] Image sélectionnée', img);
-                onSelect(img);
-              }}
+              onClick={() => selectImage(img)}
               tabIndex={0}
               aria-label={`Sélectionner ${img.name}`}
               onKeyDown={(e) => {

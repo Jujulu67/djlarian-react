@@ -70,12 +70,16 @@ export function NotificationTestModal({ isOpen, onClose, onSuccess }: Notificati
       role="dialog"
       aria-modal="true"
       onClick={onClose}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') onClose();
+      }}
     >
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity v2:bg-black/55 v2:backdrop-blur-md"
         aria-hidden="true"
       />
       <div
+        role="presentation"
         className="relative transform overflow-hidden rounded-xl glass-modern backdrop-blur-xl w-full max-w-2xl text-left shadow-2xl transition-all sm:my-8 animate-fadeIn v2:surface-3 v2:rounded-3xl"
         onClick={(e) => e.stopPropagation()}
       >

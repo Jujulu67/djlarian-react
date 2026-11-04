@@ -25,6 +25,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
 import { LicenseDetailsModal } from './LicenseDetailsModal';
+import { onActivateKey } from '@/lib/a11y';
 
 interface LicenseActivation {
   id: string;
@@ -268,8 +269,13 @@ export function LicenseTable({ licenses }: LicenseTableProps) {
                 <TableRow key={license.id} className="border-purple-500/10 hover:bg-purple-500/5">
                   <TableCell className="font-mono text-gray-300">
                     <div
+                      role="button"
+                      tabIndex={0}
                       className="group flex items-center space-x-2 cursor-pointer hover:text-white transition-colors"
                       onClick={() => copyToClipboard(license.licenseKey, 'Clé de licence')}
+                      onKeyDown={onActivateKey(() =>
+                        copyToClipboard(license.licenseKey, 'Clé de licence')
+                      )}
                       title="Cliquez pour copier"
                     >
                       <span>{maskLicenseKey(license.licenseKey)}</span>
@@ -278,11 +284,18 @@ export function LicenseTable({ licenses }: LicenseTableProps) {
                   </TableCell>
                   <TableCell className="text-gray-300">
                     <div
+                      role="button"
+                      tabIndex={0}
                       className="flex flex-col group cursor-pointer"
                       onClick={() =>
                         license.user.email &&
                         copyToClipboard(license.user.email, 'Email utilisateur')
                       }
+                      onKeyDown={onActivateKey(
+                        () =>
+                          license.user.email &&
+                          copyToClipboard(license.user.email, 'Email utilisateur')
+                      )}
                     >
                       <div className="flex items-center space-x-1">
                         <span className="font-medium text-white group-hover:text-purple-300 transition-colors">

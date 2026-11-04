@@ -16,7 +16,11 @@ export function InventoryModal({ userId, userName, trigger }: InventoryModalProp
 
   return (
     <>
-      <div onClick={() => setIsOpen(true)} className="cursor-pointer inline-block">
+      <div
+        role="presentation"
+        onClick={() => setIsOpen(true)}
+        className="cursor-pointer inline-block"
+      >
         {trigger || <Button variant="outline">Inventory</Button>}
       </div>
 

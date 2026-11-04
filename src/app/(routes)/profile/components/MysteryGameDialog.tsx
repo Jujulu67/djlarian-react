@@ -459,6 +459,7 @@ export function MysteryGameDialog({ isOpen, onClose, onTokenUpdate }: MysteryGam
                     ))}
 
                     <div
+                      role="presentation"
                       ref={gridRef}
                       className={`grid gap-1 bg-black/50 p-3 rounded-xl border border-white/10 transition-all duration-300 ${isGameOver ? 'opacity-40' : 'opacity-100'}`}
                       style={{

@@ -28,6 +28,7 @@ export function SubmissionInfoModal({ setShowInfoModal }: SubmissionInfoModalPro
         onClick={() => setShowInfoModal(false)}
       >
         <div
+          role="presentation"
           onClick={(e) => e.stopPropagation()}
           className="bg-gray-900/95 backdrop-blur-xl border border-purple-500/30 rounded-2xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto shadow-2xl"
         >

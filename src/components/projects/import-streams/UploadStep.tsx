@@ -24,6 +24,7 @@ export function UploadStep({
   return (
     <div className="space-y-4">
       <div
+        role="presentation"
         ref={dropZoneRef}
         onDrop={handleDrop}
         onDragOver={handleDragOver}

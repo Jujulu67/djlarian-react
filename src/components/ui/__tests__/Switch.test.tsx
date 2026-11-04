@@ -62,7 +62,8 @@ describe('Switch', () => {
     const switchContainer = screen.getByRole('checkbox').parentElement;
     fireEvent.click(switchContainer!);
 
-    // onCheckedChange should be called via onClick on the container
+    // Le label transmet le clic à la case : les deux rappels sont appelés
     expect(handleCheckedChange).toHaveBeenCalled();
+    expect(handleChange).toHaveBeenCalled();
   });
 });

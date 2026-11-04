@@ -3,6 +3,7 @@ import Image from 'next/image';
 
 import { MUSIC_TYPES } from '@/lib/utils/music-helpers';
 import type { DetectedRelease } from '@/lib/services/types';
+import { onActivateKey } from '@/lib/a11y';
 
 interface ReleaseItemProps {
   release: DetectedRelease;
@@ -13,6 +14,7 @@ interface ReleaseItemProps {
 export function ReleaseItem({ release, isSelected, onToggle }: ReleaseItemProps) {
   return (
     <div
+      role="button"
       onClick={() => {
         if (!release.exists) onToggle(release.id);
       }}

@@ -114,6 +114,7 @@ export function ProjectAssistant({ projects }: ProjectAssistantProps) {
       {/* Chat Window */}
       {isOpen && (
         <div
+          role="presentation"
           onClick={(e) => e.stopPropagation()}
           onWheel={(e) => e.stopPropagation()}
           className={`fixed z-50 animate-in slide-in-from-bottom-5 fade-in duration-150 bg-neutral-900 border border-purple-500/30 shadow-2xl overflow-hidden flex flex-col transition-all duration-300 overscroll-contain ${

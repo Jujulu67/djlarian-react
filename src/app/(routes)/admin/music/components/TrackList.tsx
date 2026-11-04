@@ -12,6 +12,7 @@ import type { MusicPlatform } from '@/lib/utils/types';
 
 import { platformLabels, platformIcons } from '../constants';
 import { getTrackStatus } from '../utils/getTrackStatus';
+import { onActivateKey } from '@/lib/a11y';
 
 interface TrackListProps {
   tracks: Track[];
@@ -54,6 +55,8 @@ export const TrackList: React.FC<TrackListProps> = ({
     <div className="space-y-4">
       {tracks.map((track) => (
         <div
+          role="button"
+          tabIndex={0}
           key={track.id}
           data-track-id={track.id}
           className={`flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-gray-800/40 hover:bg-gray-800/60 rounded-lg border border-gray-700/30 transition-all duration-300 cursor-pointer ${
@@ -75,6 +78,11 @@ export const TrackList: React.FC<TrackListProps> = ({
               router.push(`/admin/music/${track.id}/detail`);
             }
           }}
+          onKeyDown={onActivateKey(() => {
+            if (track.id && typeof window !== 'undefined') {
+              router.push(`/admin/music/${track.id}/detail`);
+            }
+          })}
         >
           {/* Première ligne sur mobile : Image + Info principale */}
           <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">

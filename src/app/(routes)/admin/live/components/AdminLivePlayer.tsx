@@ -165,6 +165,7 @@ export function AdminLivePlayer() {
         <>
           {/* Waveform */}
           <div
+            role="presentation"
             className="w-full h-20 rounded-lg relative group overflow-hidden mb-4 cursor-pointer"
             onClick={handleWaveformClick}
             style={{ backgroundColor: 'rgba(30, 30, 35, 0.9)' }}
