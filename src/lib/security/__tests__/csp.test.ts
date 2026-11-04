@@ -52,4 +52,10 @@ describe('buildCsp', () => {
       'report-uri https://o1.ingest.sentry.io/api/2/security/?sentry_key=k'
     );
   });
+
+  it('ignores a non-HTTPS Umami URL', () => {
+    const csp = buildCsp({ umamiUrl: 'http://localhost:3001' });
+    expect(csp).not.toContain('localhost');
+    expect(csp).toContain('https://analytics.umami.is');
+  });
 });

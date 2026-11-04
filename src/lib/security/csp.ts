@@ -43,7 +43,10 @@ export function sentryCspReportUri(dsn: string | undefined): string | null {
 }
 
 export function buildCsp({ umamiUrl, sentryDsn }: CspOptions = {}): string {
-  const umami = originOf(umamiUrl) ?? 'https://analytics.umami.is';
+  // Seule une origine HTTPS est autorisée : une valeur de dev (http://localhost) ne doit pas
+  // se retrouver dans la CSP de prod.
+  const umamiOrigin = originOf(umamiUrl);
+  const umami = umamiOrigin?.startsWith('https://') ? umamiOrigin : 'https://analytics.umami.is';
   const reportUri = sentryCspReportUri(sentryDsn);
 
   const directives: Record<string, string[]> = {
