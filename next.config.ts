@@ -1,6 +1,8 @@
 import type { NextConfig } from 'next';
 import { withSentryConfig, type SentryBuildOptions } from '@sentry/nextjs/config';
 
+import { buildCsp, CSP_HEADER_REPORT_ONLY } from './src/lib/security/csp';
+
 const nextConfig: NextConfig = {
   // Optimisation majeure pour Vercel : ne bundle que le strict nécessaire
   output: 'standalone',
@@ -156,6 +158,19 @@ const nextConfig: NextConfig = {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=()',
           },
+          // CSP en mode test (rapports vers Sentry, rien n'est bloqué). Absente en dev,
+          // où le rechargement à chaud déclencherait des rapports parasites.
+          ...(process.env.NODE_ENV === 'production'
+            ? [
+                {
+                  key: CSP_HEADER_REPORT_ONLY,
+                  value: buildCsp({
+                    umamiUrl: process.env.NEXT_PUBLIC_UMAMI_URL,
+                    sentryDsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+                  }),
+                },
+              ]
+            : []),
         ],
       },
     ];
