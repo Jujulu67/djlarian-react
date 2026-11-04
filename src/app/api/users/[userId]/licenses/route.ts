@@ -1,16 +1,12 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { auth } from '@/auth';
+import { requireAuth } from '@/lib/api/requireAuth';
 import { logger } from '@/lib/logger';
 
 export async function GET(request: Request, { params }: { params: Promise<{ userId: string }> }) {
-  const session = await auth();
-  const resolvedParams = await params;
-  const userId = resolvedParams.userId;
-
-  if (!session || !session.user) {
-    return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
-  }
+  const { session, error: authError } = await requireAuth({ message: 'Non authentifié' });
+  if (authError) return authError;
+  const { userId } = await params;
 
   // Seul l'utilisateur lui-même ou un admin peut voir les licences
   if (session.user.id !== userId && session.user.role !== 'ADMIN') {

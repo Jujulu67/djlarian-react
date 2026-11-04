@@ -39,14 +39,16 @@ comme compromises.
       basses/modérées non exploitables ici : `deepmerge` (Jest, dev seulement), `minimatch`/`glob`
       via `archiver`/`exceljs` (motifs fixes, aucune entrée utilisateur) ; à reprendre quand les
       paquets parents publient un correctif.
-- [ ] Ajouter une Content-Security-Policy (les autres en-têtes de sécurité sont en place dans
-      `next.config.ts`) : à tester en mode `Report-Only` avant de l'imposer.
-
+- [ ] **Imposer la Content-Security-Policy** : elle est en place en mode `Report-Only` depuis le
+      04/11/2026 (`src/lib/security/csp.ts`, rapports vers Sentry), mais la prod n'a pas encore été
+      redéployée. Après le redéploiement, laisser tourner quelques jours, regarder les rapports CSP
+      dans Sentry, ajuster les sources, puis passer `CSP_HEADER_REPORT_ONLY` à
+      `Content-Security-Policy` dans `next.config.ts`.
 - [x] Découper les gros composants (24/10/2026 : statistiques, projets, import, live, table,
       notifications, admin, événements, boutique, navigation, machine à sous, SoundCloud).
-- [ ] Routes API restantes non migrées vers `requireAuth` (04/11/2026 : 9 handlers admin migrés, PR #29 ; restent
-      `admin/inventory/batch`, `admin/live/submissions/purge`, `music` POST, `spotify/enrich`, `user/game-stats`,
-      `users/[userId]`, `users/[userId]/licenses`).
+- [x] Routes API migrées vers `requireAuth` / `requireAdmin` (04/11/2026, PR #29 puis
+      refactor/require-auth-remaining). Restent volontairement sans session : `events` GET (public)
+      et `license/*` appelées par le plugin (la clé de licence sert de preuve).
 - [x] **Trous d'accès repérés pendant la migration** (corrigés le 04/11/2026, PR fix/access-holes) :
   - `minigames/reset-tokens` : réservé aux admins (403 sinon) ;
   - `events` GET : `?isPublished=` n'est plus pris en compte pour un visiteur ;

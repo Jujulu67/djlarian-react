@@ -98,7 +98,7 @@ describe('/api/music', () => {
       const response = await POST(request);
       const data = await response.json();
 
-      expect(response.status).toBe(403);
+      expect(response.status).toBe(401);
       expect(data.error).toContain('Unauthorized');
     });
 

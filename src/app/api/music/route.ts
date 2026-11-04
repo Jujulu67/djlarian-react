@@ -1,12 +1,13 @@
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 
-import { requireAuth } from '@/lib/api/requireAuth';
+import { requireAdmin } from '@/lib/api/requireAuth';
 import { handleApiError } from '@/lib/api/errorHandler';
 import { formatTrackData } from '@/lib/api/musicService';
 import {
   createSuccessResponse,
   createForbiddenResponse,
+  createUnauthorizedResponse,
   createBadRequestResponse,
 } from '@/lib/api/responseHelpers';
 import { logger } from '@/lib/logger';
@@ -157,16 +158,12 @@ export async function POST(request: Request): Promise<Response> {
     return rateLimitResponse;
   }
 
-  // Vérifier l'authentification
-  const { session, error: authError } = await requireAuth({
-    onAnonymous: () => createForbiddenResponse('Unauthorized'),
+  // Réservé aux admins
+  const { session, error: authError } = await requireAdmin({
+    onAnonymous: () => createUnauthorizedResponse('Unauthorized'),
+    onNonAdmin: () => createForbiddenResponse('Insufficient permissions'),
   });
   if (authError) return authError;
-
-  // Vérifier le rôle d'admin
-  if (session.user.role !== 'ADMIN') {
-    return createForbiddenResponse('Insufficient permissions');
-  }
 
   let rawData;
   try {
