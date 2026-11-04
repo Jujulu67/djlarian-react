@@ -33,10 +33,8 @@ export async function GET(request: NextRequest) {
 
       if (dsnMatch) {
         const [, , orgSlug, dsnRegion, projectId] = dsnMatch;
-        // Si l'org commence par "o" suivi de chiffres, c'est un ID numérique
-        // L'API Sentry accepte soit le slug soit l'ID (avec ou sans le "o")
-        // On garde le "o" car c'est le format dans le DSN
-        const orgId = orgSlug.startsWith('o') ? orgSlug : orgSlug;
+        // L'API Sentry accepte l'ID d'organisation du DSN (« o123… ») comme le slug
+        const orgId = orgSlug;
 
         // Utiliser les variables d'environnement si disponibles (slugs préférés)
         // Sinon utiliser les IDs du DSN

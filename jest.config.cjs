@@ -52,5 +52,5 @@ module.exports = {
   // Force Jest à échouer si les seuils ne sont pas atteints
   // Cela bloque uniquement lors des tests (test:ci, test:coverage)
   // et n'affecte pas le build de production sur Vercel
-  coverageReporters: ['text', 'text-summary', 'json-summary'],
+  coverageReporters: ['text', 'text-summary', 'json-summary', 'lcov'],
 };

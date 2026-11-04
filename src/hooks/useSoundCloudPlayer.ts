@@ -83,9 +83,7 @@ export const useSoundCloudPlayer = ({
     }
 
     // 2. Handle Playback Visibility
-    if (isPlaying && soundcloudUrl) {
-      setIsSoundcloudVisible(true);
-    } else if (soundcloudUrl) {
+    if (soundcloudUrl) {
       setIsSoundcloudVisible(true);
     }
 

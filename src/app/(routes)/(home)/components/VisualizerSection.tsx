@@ -224,7 +224,7 @@ export default function VisualizerSection({
               }
             : {
                 initial: isMobile ? { opacity: 0, scale: 1 } : { opacity: 0, scale: 0.95 },
-                whileInView: isMobile ? { opacity: 1, scale: 1 } : { opacity: 1, scale: 1 },
+                whileInView: { opacity: 1, scale: 1 },
                 transition: isMobile ? { duration: 0.3, ease: 'easeOut' } : { duration: 0.8 },
               })}
           viewport={{ once: true, margin: '-50px' }}

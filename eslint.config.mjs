@@ -2,6 +2,7 @@ import { dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 import { FlatCompat } from '@eslint/eslintrc';
+import sonarjs from 'eslint-plugin-sonarjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -19,6 +20,20 @@ const nextConfig = require('eslint-config-next/core-web-vitals');
 // Version de React explicite : eslint-plugin-react 7.x utilise `context.getFilename()`
 // (retiré dans ESLint 10) pour la détection automatique `version: 'detect'`.
 const reactVersion = require('react/package.json').version;
+
+// Règles de qualité SonarJS (bugs probables, complexité, code dupliqué) en avertissement :
+// elles alimentent l'audit de dette (`pnpm debt`) sans bloquer `pnpm lint` (--quiet).
+const toWarn = (value) => {
+  const level = Array.isArray(value) ? value[0] : value;
+  if (level === 'off' || level === 0) return value;
+  return Array.isArray(value) ? ['warn', ...value.slice(1)] : 'warn';
+};
+const sonarjsWarn = {
+  ...sonarjs.configs.recommended,
+  rules: Object.fromEntries(
+    Object.entries(sonarjs.configs.recommended.rules).map(([name, value]) => [name, toWarn(value)])
+  ),
+};
 
 const eslintConfig = [
   {
@@ -186,6 +201,7 @@ const eslintConfig = [
       '@typescript-eslint/no-explicit-any': 'warn', // Warning au lieu d'error pour les types Prisma dynamiques
     },
   },
+  sonarjsWarn,
 ];
 
 export default eslintConfig;

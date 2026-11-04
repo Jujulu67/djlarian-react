@@ -11,13 +11,11 @@
  * Le routing réel est fait par router/router.ts.
  */
 
-import {
-  ConversationMemoryStore,
-  ActionMemoryStore,
-  Router as MessageClassifier, // Renommé pour clarifier (I2)
-  ChatMessage,
-  ActionType,
-} from './index';
+// Imports directs (pas via ./index, qui réexporte ce fichier : import circulaire)
+import { ActionMemoryStore } from './ActionMemoryStore';
+import { ConversationMemoryStore } from './ConversationMemoryStore';
+import { Router as MessageClassifier } from './MessageClassifier'; // Renommé pour clarifier (I2)
+import type { ActionType, ChatMessage } from './Types';
 import { logger } from '@/lib/logger';
 
 // =============================================================================

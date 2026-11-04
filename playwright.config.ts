@@ -9,7 +9,7 @@ export default defineConfig({
   testDir: './e2e',
 
   /* Maximum time one test can run for. */
-  timeout: 30 * 1000,
+  timeout: 60 * 1000,
 
   expect: {
     /**
@@ -28,11 +28,12 @@ export default defineConfig({
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
 
-  /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
+  /* Le serveur de dev compile chaque page à la demande : trop de navigateurs en parallèle le
+     saturent (pages > 30 s). Deux workers suffisent pour une dizaine de tests. */
+  workers: process.env.CI ? 1 : 2,
 
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: 'html',
+  reporter: process.env.CI ? 'html' : 'line',
 
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {

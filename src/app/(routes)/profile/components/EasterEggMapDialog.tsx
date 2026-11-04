@@ -61,11 +61,30 @@ export function EasterEggMapDialog({ isOpen, onClose }: EasterEggMapDialogProps)
     }))
   );
 
+  // Le solde de jetons n'existe que pour un compte connecté (sinon 401 inutile)
+  const isLoggedIn = !!session?.user;
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && isLoggedIn) {
       refreshStatus();
     }
-  }, [isOpen, refreshStatus]);
+  }, [isOpen, isLoggedIn, refreshStatus]);
+
+  // Échap ferme la carte (sauf si un jeu est ouvert par-dessus : il gère sa propre fermeture)
+  const hasOverlay =
+    !!selectedGame ||
+    showRules ||
+    showSlotMachineSelection ||
+    showRoulette ||
+    showScratchCard ||
+    showMysteryGame;
+  useEffect(() => {
+    if (!isOpen || hasOverlay) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, hasOverlay, onClose]);
 
   if (!isOpen) return null;
 
@@ -102,6 +121,9 @@ export function EasterEggMapDialog({ isOpen, onClose }: EasterEggMapDialogProps)
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Carte du casino"
           className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/90 backdrop-blur-md"
         >
           {/* Close Button */}
@@ -181,6 +203,7 @@ export function EasterEggMapDialog({ isOpen, onClose }: EasterEggMapDialogProps)
             {/* Close Button */}
             <button
               onClick={onClose}
+              aria-label="Fermer la carte"
               className="p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"
             >
               <X size={24} />
