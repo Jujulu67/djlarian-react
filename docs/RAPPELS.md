@@ -39,10 +39,13 @@ comme compromises.
       basses/modérées non exploitables ici : `deepmerge` (Jest, dev seulement), `minimatch`/`glob`
       via `archiver`/`exceljs` (motifs fixes, aucune entrée utilisateur) ; à reprendre quand les
       paquets parents publient un correctif.
-- [ ] **Brancher un domaine avant l'ouverture** (noté le 04/11/2026) : le projet Vercel n'a que des
-      adresses `*.vercel.app`, toutes derrière la protection Vercel (écran de connexion pour les
-      visiteurs). Une fois le domaine acheté : l'ajouter au projet sur Vercel, régler le DNS, puis
-      mettre à jour `NEXTAUTH_URL`, les URL de redirection OAuth Google et Twitch (et toute URL du site codée en dur).
+- [ ] _(facultatif)_ **Domaine perso** : le site est public sur `https://djlarian-react.vercel.app`
+      (seules les autres adresses `*.vercel.app` sont derrière la protection Vercel). Si un domaine est
+      acheté : l'ajouter au projet sur Vercel, régler le DNS, puis mettre à jour `NEXTAUTH_URL` et les
+      URL de redirection OAuth Google et Twitch.
+- [ ] **Umami en prod** : `NEXT_PUBLIC_UMAMI_URL` vaut `http://localhost:3001` sur Vercel, donc les
+      statistiques Umami ne fonctionnent pas en prod. Mettre l'URL réelle de l'instance (ou supprimer
+      la variable si Umami n'est pas utilisé).
 - [ ] **Imposer la Content-Security-Policy** : elle est en place en mode `Report-Only` depuis le
       04/11/2026 (`src/lib/security/csp.ts`, rapports vers Sentry), et en prod depuis ce jour-là.
       Laisser tourner quelques jours, regarder les rapports CSP
