@@ -44,6 +44,19 @@ jest.mock('@/lib/logger', () => ({
   },
 }));
 
+const OWN_URL =
+  'https://abc123.public.blob.vercel-storage.com/live-audio/live-audio-user1-1700000000000-abc.mp3';
+const OTHER_USER_URL =
+  'https://abc123.public.blob.vercel-storage.com/live-audio/live-audio-user2-1700000000000-abc.mp3';
+
+function draftRequest(body: Record<string, unknown>) {
+  return new NextRequest('http://localhost/api/live/submissions/draft', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
 describe('/api/live/submissions/draft', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -68,7 +81,7 @@ describe('/api/live/submissions/draft', () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        fileUrl: 'https://example.com/file.mp3',
+        fileUrl: OWN_URL,
         fileName: 'file.mp3',
         fileSize: 1024,
       }),
@@ -89,7 +102,7 @@ describe('/api/live/submissions/draft', () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        fileUrl: 'https://example.com/file.mp3',
+        fileUrl: OWN_URL,
         fileName: 'file.mp3',
       }),
     });
@@ -99,5 +112,85 @@ describe('/api/live/submissions/draft', () => {
 
     expect(response.status).toBe(401);
     expect(data.error).toBe('Non authentifié');
+  });
+
+  describe('refus', () => {
+    beforeEach(async () => {
+      const { auth } = await import('@/auth');
+      (auth as jest.Mock).mockResolvedValue({ user: { id: 'user1', role: 'USER' } });
+    });
+
+    it('renvoie 400 si fileUrl pointe vers un autre hôte', async () => {
+      const { default: mockPrisma } = await import('@/lib/prisma');
+      const response = await POST(
+        draftRequest({ fileUrl: 'https://example.com/file.mp3', fileName: 'file.mp3' })
+      );
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error).toBe('URL de fichier invalide');
+      expect(mockPrisma.liveSubmission.create).not.toHaveBeenCalled();
+      expect(mockPrisma.liveSubmission.update).not.toHaveBeenCalled();
+    });
+
+    it('renvoie 400 si fileUrl appartient à un autre utilisateur', async () => {
+      const { default: mockPrisma } = await import('@/lib/prisma');
+      const response = await POST(draftRequest({ fileUrl: OTHER_USER_URL, fileName: 'file.mp3' }));
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error).toBe('URL de fichier invalide');
+      expect(mockPrisma.liveSubmission.create).not.toHaveBeenCalled();
+    });
+
+    it('renvoie 404 si le draftId appartient à un autre utilisateur', async () => {
+      const { default: mockPrisma } = await import('@/lib/prisma');
+      const { deleteAudioFile } = await import('@/lib/live/upload');
+      (mockPrisma.liveSubmission.findUnique as jest.Mock).mockResolvedValue({
+        id: 'draft-x',
+        userId: 'user2',
+        isDraft: true,
+        fileUrl: OTHER_USER_URL,
+      });
+
+      const response = await POST(
+        draftRequest({ fileUrl: OWN_URL, fileName: 'file.mp3', draftId: 'draft-x' })
+      );
+      const data = await response.json();
+
+      expect(response.status).toBe(404);
+      expect(data.error).toBe('Brouillon introuvable');
+      expect(mockPrisma.liveSubmission.update).not.toHaveBeenCalled();
+      expect(deleteAudioFile).not.toHaveBeenCalled();
+    });
+
+    it("renvoie 404 si le draftId n'est plus un brouillon", async () => {
+      const { default: mockPrisma } = await import('@/lib/prisma');
+      (mockPrisma.liveSubmission.findUnique as jest.Mock).mockResolvedValue({
+        id: 'draft-x',
+        userId: 'user1',
+        isDraft: false,
+        fileUrl: OWN_URL,
+      });
+
+      const response = await POST(
+        draftRequest({ fileUrl: OWN_URL, fileName: 'file.mp3', draftId: 'draft-x' })
+      );
+
+      expect(response.status).toBe(404);
+      expect(mockPrisma.liveSubmission.update).not.toHaveBeenCalled();
+    });
+
+    it("renvoie 404 si le draftId n'existe pas", async () => {
+      const { default: mockPrisma } = await import('@/lib/prisma');
+      (mockPrisma.liveSubmission.findUnique as jest.Mock).mockResolvedValue(null);
+
+      const response = await POST(
+        draftRequest({ fileUrl: OWN_URL, fileName: 'file.mp3', draftId: 'inconnu' })
+      );
+
+      expect(response.status).toBe(404);
+      expect(mockPrisma.liveSubmission.update).not.toHaveBeenCalled();
+    });
   });
 });

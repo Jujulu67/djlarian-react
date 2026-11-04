@@ -1,100 +1,56 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { createSuccessResponse, createUnauthorizedResponse } from '@/lib/api/responseHelpers';
 import { handleApiError } from '@/lib/api/errorHandler';
-import prisma from '@/lib/prisma';
 import type { SpinResult } from '@/types/slot-machine';
 import { SymbolType, RewardType } from '@/types/slot-machine';
 import { COST_PER_SPIN, getRandomSymbol, determineReward } from '@/lib/slot-machine-logic';
+import { applySpinOutcome, loadUserTokens } from '@/lib/slot-machine-rewards';
 import { requireAuth } from '@/lib/api/requireAuth';
 
-const DAILY_TOKENS = 100;
-
-/**
- * Vérifie si un reset quotidien est nécessaire et le fait si besoin
- */
-function shouldResetDaily(lastResetDate: Date): boolean {
-  const now = new Date();
-  const lastReset = new Date(lastResetDate);
-
-  const nowDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const lastResetDateOnly = new Date(
-    lastReset.getFullYear(),
-    lastReset.getMonth(),
-    lastReset.getDate()
+const insufficientTokens = () =>
+  NextResponse.json(
+    {
+      error: `Vous n'avez plus assez de jetons. Il vous faut ${COST_PER_SPIN} jetons par spin. Revenez demain !`,
+    },
+    { status: 400 }
   );
-
-  return nowDate.getTime() > lastResetDateOnly.getTime();
-}
 
 /**
  * POST /api/slot-machine/spin
- * Joue un tour de machine à sous
+ * Joue un tour de machine à sous. Le débit des jetons, le crédit des gains et l'octroi des
+ * items (Queue Skip, Ticket Éternel) se font côté serveur, dans une même transaction.
  */
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     const { session, error } = await requireAuth({
       requireUserId: true,
       onAnonymous: () => createUnauthorizedResponse('Non authentifié'),
     });
     if (error) return error;
+    const userId = session.user.id;
 
-    // Récupérer ou créer l'entrée pour l'utilisateur
-    let userTokens = await prisma.userSlotMachineTokens.findUnique({
-      where: { userId: session.user.id },
-    });
+    const userTokens = await loadUserTokens(userId);
 
-    if (!userTokens) {
-      userTokens = await prisma.userSlotMachineTokens.create({
-        data: {
-          userId: session.user.id,
-          tokens: DAILY_TOKENS,
-          lastResetDate: new Date(),
-        },
-      });
-    }
-
-    // Vérifier si un reset quotidien est nécessaire
-    if (shouldResetDaily(userTokens.lastResetDate)) {
-      const today = new Date();
-      userTokens = await prisma.userSlotMachineTokens.update({
-        where: { userId: session.user.id },
-        data: {
-          tokens: DAILY_TOKENS,
-          lastResetDate: today,
-        },
-      });
-    }
-
-    // Vérifier que l'utilisateur a des jetons (3 jetons par spin)
+    // Contrôle rapide (le débit reste conditionné au solde au moment de l'écriture)
     if (userTokens.tokens < COST_PER_SPIN) {
-      return NextResponse.json(
-        {
-          error: `Vous n'avez plus assez de jetons. Il vous faut ${COST_PER_SPIN} jetons par spin. Revenez demain !`,
-        },
-        { status: 400 }
-      );
+      return insufficientTokens();
     }
 
     // --- DYNAMIC LUCK SYSTEM ---
     // Si l'utilisateur a un taux de victoire inférieur à 45% (et au moins 10 spins), on booste les chances
-    // Calcule du Win Rate : totalWins / totalSpins
     const winRate = userTokens.totalSpins > 10 ? userTokens.totalWins / userTokens.totalSpins : 1;
     const useBooster = winRate < 0.45;
 
-    // Générer les 3 symboles avec pondération pour un résultat "réaliste"
-    // Si useBooster est true, on augmente les chances de petits gains (Cerise/Citron)
     const symbols: [SymbolType, SymbolType, SymbolType] = [
       getRandomSymbol(useBooster),
       getRandomSymbol(useBooster),
       getRandomSymbol(useBooster),
     ];
 
-    // Déterminer la récompense
     const reward = determineReward(symbols);
 
     // --- SPECIAL REWARD BONUS ---
-    // User request: "sousous avec les big wins"
-    // Ajouter un bonus de jetons pour les items spéciaux
+    // Bonus de jetons pour les items spéciaux
     let tokenBonus = 0;
     if (reward.rewardType === RewardType.QUEUE_SKIP) {
       tokenBonus = 100;
@@ -104,38 +60,20 @@ export async function POST(request: NextRequest) {
       reward.message += ` (+${tokenBonus} jetons)`;
     }
 
-    // Calculer le nouveau nombre de jetons (3 jetons par spin)
-    // + gain éventuel de jetons (si rewardType === TOKENS)
-    // + bonus de jetons (si item spécial)
     const tokensWon =
       (reward.rewardType === RewardType.TOKENS ? reward.rewardAmount : 0) + tokenBonus;
-    let newTokens = userTokens.tokens - COST_PER_SPIN + tokensWon;
 
-    // Mettre à jour la base de données
-    await prisma.userSlotMachineTokens.update({
-      where: { userId: session.user.id },
-      data: {
-        tokens: newTokens,
-        totalSpins: { increment: 1 },
-        totalWins: { increment: reward.isWin ? 1 : 0 },
-      },
+    const applied = await applySpinOutcome(userId, {
+      cost: COST_PER_SPIN,
+      tokensWon,
+      spins: 1,
+      wins: reward.isWin ? 1 : 0,
+      queueSkips: reward.rewardType === RewardType.QUEUE_SKIP ? reward.rewardAmount : 0,
+      eternalTickets: reward.rewardType === RewardType.ETERNAL_TICKET ? reward.rewardAmount : 0,
     });
-
-    // Mettre à jour l'inventaire si récompense spéciale
-    if (reward.rewardType === RewardType.QUEUE_SKIP) {
-      // Logique pour Queue Skip (via table UserLiveItem ou autre - à adapter selon votre schéma)
-      // Ici on suppose que le client gère la réclamation via /claim-reward qui fera l'ajout réel
-      // OU on l'ajoute directement ici. Le système actuel semble utiliser /claim-reward pour les items.
-      // On garde donc la logique actuelle : on retourne le rewardType et le client appellera claim-reward.
-      // MAIS on a déjà donné les jetons bonus ci-dessus.
-    } else if (reward.rewardType === RewardType.ETERNAL_TICKET) {
-      // Idem
+    if (!applied) {
+      return insufficientTokens();
     }
-
-    // Si on a un token bonus, on doit le renvoyer dans le rewardAmount pour que le toast affiche le bon montant ?
-    // Non, rewardAmount pour les items spéciaux est "1" (quantité).
-    // On ne change pas rewardAmount pour ne pas casser la logique de claim.
-    // Les jetons sont ajoutés directement au solde.
 
     const result: SpinResult = {
       symbols,

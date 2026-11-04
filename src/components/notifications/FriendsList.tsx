@@ -51,7 +51,9 @@ export function FriendsList({ onSendMessage }: FriendsListProps) {
   const [isSendModalOpen, setIsSendModalOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
-  const [users, setUsers] = useState<Array<{ id: string; name: string | null; email: string }>>([]);
+  const [users, setUsers] = useState<Array<{ id: string; name: string | null; email?: string }>>(
+    []
+  );
   const [showUserSearch, setShowUserSearch] = useState(true); // Ouvert par défaut
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [unfriendDialogOpen, setUnfriendDialogOpen] = useState(false);
@@ -95,7 +97,9 @@ export function FriendsList({ onSendMessage }: FriendsListProps) {
   const filteredAvailableUsers = availableUsers.filter((user) => {
     if (!searchQuery.trim()) return true; // Afficher tous si pas de recherche
     const query = searchQuery.toLowerCase();
-    return user.name?.toLowerCase().includes(query) || user.email.toLowerCase().includes(query);
+    return (
+      user.name?.toLowerCase().includes(query) || user.email?.toLowerCase().includes(query) || false
+    );
   });
 
   const handleAction = async (
@@ -186,7 +190,7 @@ export function FriendsList({ onSendMessage }: FriendsListProps) {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Rechercher un utilisateur par nom ou email..."
+                placeholder="Rechercher un utilisateur par nom..."
                 className="w-full pl-10 pr-4 py-2.5 bg-gray-900/70 border border-gray-700/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all v2:rounded-xl v2:border-white/10 v2:bg-white/[0.03] v2:focus:border-brand/70 v2:focus:ring-4 v2:focus:ring-brand/15"
                 onClick={(e) => e.stopPropagation()}
               />
@@ -222,9 +226,9 @@ export function FriendsList({ onSendMessage }: FriendsListProps) {
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-white truncate">
-                          {user.name || user.email}
+                          {user.name || user.email || 'Utilisateur'}
                         </p>
-                        {user.name && (
+                        {user.name && user.email && (
                           <p className="text-xs text-gray-400 truncate">{user.email}</p>
                         )}
                       </div>

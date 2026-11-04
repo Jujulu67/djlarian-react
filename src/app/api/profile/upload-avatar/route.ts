@@ -11,6 +11,14 @@ import { convertToWebP, canConvertToWebP } from '@/lib/utils/convertToWebP';
 import { shouldUseBlobStorage } from '@/lib/utils/getStorageConfig';
 
 // Upload de photo de profil - Accessible aux utilisateurs connectés
+/** Types d'image acceptés pour un avatar, avec l'extension enregistrée. */
+const AVATAR_EXTENSIONS: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/gif': 'gif',
+};
+
 export async function POST(request: NextRequest) {
   try {
     // Vérifier l'authentification
@@ -28,8 +36,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Vérifier le type de fichier
-    if (!imageFile.type.startsWith('image/')) {
-      return NextResponse.json({ error: 'Le fichier doit être une image' }, { status: 400 });
+    // Liste fermée : pas de SVG/HTML qui pourraient exécuter du script une fois servis
+    if (!Object.hasOwn(AVATAR_EXTENSIONS, imageFile.type)) {
+      return NextResponse.json(
+        { error: 'Format accepté : JPEG, PNG, WebP ou GIF' },
+        { status: 400 }
+      );
     }
 
     // Vérifier la taille (max 5MB)
@@ -78,7 +90,7 @@ export async function POST(request: NextRequest) {
       // Upload vers Vercel Blob
       try {
         // Utiliser la bonne extension selon le type final
-        const extension = isWebP ? 'webp' : imageFile.name.split('.').pop() || 'jpg';
+        const extension = isWebP ? 'webp' : AVATAR_EXTENSIONS[imageFile.type];
         const key = `uploads/avatars/${imageId}.${extension}`;
         // OPTIMISATION: Vérifier si l'avatar existe déjà avant d'uploader (évite put() redondant)
         const { url, hash } = await uploadToBlobWithCheck(
@@ -138,7 +150,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Sauvegarder la nouvelle image avec la bonne extension
-        const extension = isWebP ? 'webp' : imageFile.name.split('.').pop() || 'jpg';
+        const extension = isWebP ? 'webp' : AVATAR_EXTENSIONS[imageFile.type];
         const imagePath = path.join(uploadsDir, `${imageId}.${extension}`);
         fs.writeFileSync(imagePath, imageBuffer);
         imageUrl = `/uploads/avatars/${imageId}.${extension}`;

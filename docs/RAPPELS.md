@@ -13,7 +13,15 @@ Twitch, dont un refresh token Twitch). Les fichiers ont été retirés et l'hist
 mais des forks, caches ou clones ont pu les récupérer avant : il faut considérer ces données
 comme compromises.
 
-- [ ] **Changer les mots de passe** des comptes présents dans le dump (les 3 comptes avec
+- [ ] 🔴 **Régénérer le jeton du store Vercel Blob** (audit du 04/11/2026) : jusqu'à cette date,
+      `/api/live/submissions/upload-token` donnait `BLOB_READ_WRITE_TOKEN` (lecture, écriture et
+      suppression de tous les fichiers du site) à tout compte connecté. Le code est corrigé, mais le
+      jeton a pu être récupéré : Vercel → Storage → le store Blob → régénérer le jeton (la variable
+      du projet est mise à jour par Vercel, puis redéployer).
+- [ ] 🔴 **Compte `assistant-ia@djlarian.local`** : `scripts/archive/create-bot-admin.mjs` créait un
+      compte ADMIN avec un mot de passe par défaut écrit dans le code public. Si ce compte existe en
+      prod, le supprimer ou lui donner un mot de passe fort (le script n'a plus de mot de passe par défaut).
+      des comptes présents dans le dump (les 3 comptes avec
       mot de passe, dont les admins).
 - [x] **Secret client OAuth Google** (04/11/2026) : le secret actuel (`…HvLo`, créé le 30/11/2025) n'a jamais fuité. Le 2ᵉ secret inutilisé (`…7hqP`) est désactivé ; le supprimer après un test de connexion Google en prod.
 - [x] **Secret client Twitch** (04/11/2026) : n'a pas fuité (absent des builds), les tokens des dumps sont inutilisables sans lui. Rotation facultative.
@@ -48,6 +56,16 @@ comme compromises.
       d'historique en offre gratuite). Les 6 variables `UMAMI_*` / `NEXT_PUBLIC_UMAMI_*` ne servent plus ;
       `NEXT_PUBLIC_UMAMI_USERNAME`/`PASSWORD` étaient lisibles dans le JavaScript public (identifiants par
       défaut d'une instance locale) : ne pas les réutiliser ailleurs.
+- [ ] _(à décider)_ **Audit sécurité du 04/11/2026, points non corrigés** :
+  - pas de vérification d'email à l'inscription : quelqu'un peut créer un compte avec l'email d'un
+    autre avant lui (la fusion OAuth demande une confirmation, ce qui limite le risque) ;
+  - le rate limiter garde ses compteurs en mémoire, par instance Vercel : il freine mais ne bloque
+    pas une attaque répartie (il faudrait un stockage partagé, ex. Upstash Redis) ;
+  - licences : les signatures renvoyées (`active`, `invalid`…) ne contiennent ni date ni machine ;
+    à vérifier côté plugin qu'une réponse ne peut pas être rejouée.
+  - musique : `POST /api/music` crée les morceaux déjà publiés même avec un `publishAt` futur, et
+    `getLatestReleases` (accueil) ne filtre pas la publication ;
+  - `/api/minigames/play` débite les jetons sans transaction et n'octroie pas les items gagnés.
 - [ ] **Imposer la Content-Security-Policy** : elle est en place en mode `Report-Only` depuis le
       04/11/2026 (`src/lib/security/csp.ts`, rapports vers Sentry), et en prod depuis ce jour-là.
       Laisser tourner quelques jours, regarder les rapports CSP

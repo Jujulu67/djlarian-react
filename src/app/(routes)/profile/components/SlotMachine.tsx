@@ -112,7 +112,7 @@ export function SlotMachine({ isOpen, onClose }: SlotMachineProps) {
     refreshStatus,
     spin,
     spinMultiple,
-    claimReward,
+    dismissReward,
   } = useSlotMachine();
 
   const [showWinAnimation, setShowWinAnimation] = useState(false);
@@ -151,10 +151,6 @@ export function SlotMachine({ isOpen, onClose }: SlotMachineProps) {
   const handleSpinMultiple = async (count: number) => {
     if (isSpinning || !status || status.tokens < count) return;
     await spinMultiple(count);
-  };
-
-  const handleClaimReward = async () => {
-    await claimReward();
   };
 
   if (!isOpen) return null;
@@ -419,17 +415,17 @@ export function SlotMachine({ isOpen, onClose }: SlotMachineProps) {
                     <span className="text-white">
                       {pendingReward.rewardType === 'ETERNAL_TICKET'
                         ? `${pendingReward.rewardAmount} Ticket(s) Éternel(s)`
-                        : `${pendingReward.rewardAmount} Queue Skip(s)`}
+                        : `${pendingReward.rewardAmount} Queue Skip(s)`}{' '}
+                      ajouté(s) à votre inventaire
                     </span>
                   </div>
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={handleClaimReward}
-                    disabled={isLoading}
+                    onClick={dismissReward}
                     className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg text-white font-semibold hover:shadow-lg hover:shadow-green-500/30 transition-all disabled:opacity-50"
                   >
-                    Réclamer
+                    OK
                   </motion.button>
                 </div>
               </motion.div>

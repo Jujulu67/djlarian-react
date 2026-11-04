@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isOwnLiveAudioUrl } from '@/lib/live/fileUrl';
 import { z } from 'zod';
 
 import { logger } from '@/lib/logger';
@@ -169,6 +170,9 @@ export async function POST(request: NextRequest) {
 
     // Si fileUrl est fourni, le fichier est déjà uploadé vers Blob
     if (fileUrl && fileName) {
+      if (!isOwnLiveAudioUrl(fileUrl, session.user.id)) {
+        return NextResponse.json({ error: 'URL de fichier invalide' }, { status: 400 });
+      }
       // Valider les données du formulaire
       const validationResult = submissionSchema.safeParse({
         title,

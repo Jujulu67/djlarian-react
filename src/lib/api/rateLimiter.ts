@@ -13,9 +13,10 @@ interface RateLimitEntry {
 const rateLimitCache = new Map<string, RateLimitEntry>();
 const CACHE_CLEANUP_INTERVAL = 60 * 1000; // Nettoyer le cache toutes les minutes
 
-// Nettoyer le cache périodiquement
+// Nettoyer le cache périodiquement (unref : le minuteur ne retient pas le processus,
+// ni Node ni Jest, ouvert à lui seul)
 if (typeof setInterval !== 'undefined') {
-  setInterval(() => {
+  const cleanupTimer = setInterval(() => {
     const now = Date.now();
     for (const [key, entry] of rateLimitCache.entries()) {
       if (entry.resetTime < now) {
@@ -23,6 +24,7 @@ if (typeof setInterval !== 'undefined') {
       }
     }
   }, CACHE_CLEANUP_INTERVAL);
+  (cleanupTimer as { unref?: () => void }).unref?.();
 }
 
 /**

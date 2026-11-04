@@ -249,6 +249,98 @@ describe('useSlotMachine', () => {
       expect(mockToast.success).toHaveBeenCalledWith('You won a queue skip!', {
         duration: 5000,
       });
+
+      // L'item est octroyé par le serveur pendant le tirage : aucun appel de réclamation,
+      // mais le statut est rafraîchi
+      const calledUrls = mockFetchWithAuth.mock.calls.map(([url]) => url);
+      expect(calledUrls).not.toContain('/api/slot-machine/claim-reward');
+      expect(calledUrls.filter((url) => url === '/api/slot-machine/status')).toHaveLength(2);
+    });
+
+    it('should dismiss the won reward locally without any request', async () => {
+      const mockStatus = { tokens: 10, totalSpins: 5, totalWins: 2 };
+      mockFetchWithAuth
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ data: mockStatus }) } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            data: { isWin: true, rewardType: 'ETERNAL_TICKET', rewardAmount: 1, message: 'ET' },
+          }),
+        } as Response)
+        .mockResolvedValue({ ok: true, json: async () => ({ data: mockStatus }) } as Response);
+
+      const { result } = renderHook(() => useSlotMachine());
+
+      await act(async () => {
+        await result.current.refreshStatus();
+      });
+      await act(async () => {
+        await result.current.spin();
+      });
+      act(() => {
+        jest.advanceTimersByTime(3600);
+      });
+      await waitFor(() => {
+        expect(result.current.pendingReward).not.toBeNull();
+      });
+
+      const callsBefore = mockFetchWithAuth.mock.calls.length;
+      act(() => {
+        result.current.dismissReward();
+      });
+
+      expect(result.current.pendingReward).toBeNull();
+      expect(mockFetchWithAuth.mock.calls.length).toBe(callsBefore);
+    });
+  });
+
+  describe('spinMultiple', () => {
+    it('should show won items from the batch without calling claim-reward', async () => {
+      const mockStatus = { tokens: 100, totalSpins: 0, totalWins: 0 };
+      mockFetchWithAuth
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ data: mockStatus }) } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            data: {
+              symbols: [],
+              rewardType: null,
+              rewardAmount: 0,
+              isWin: false,
+              message: '',
+              results: [],
+              summary: {
+                totalSpins: 5,
+                totalWins: 2,
+                totalTokensWon: 150,
+                queueSkips: 1,
+                eternalTickets: 1,
+                netProfit: 135,
+                winRate: 40,
+              },
+            },
+          }),
+        } as Response)
+        .mockResolvedValue({ ok: true, json: async () => ({ data: mockStatus }) } as Response);
+
+      const { result } = renderHook(() => useSlotMachine());
+
+      await act(async () => {
+        await result.current.refreshStatus();
+      });
+      await act(async () => {
+        await result.current.spinMultiple(5);
+      });
+
+      expect(result.current.pendingReward).toEqual({ rewardType: 'QUEUE_SKIP', rewardAmount: 1 });
+
+      act(() => {
+        jest.advanceTimersByTime(3600);
+      });
+
+      const calledUrls = mockFetchWithAuth.mock.calls.map(([url]) => url);
+      expect(calledUrls).not.toContain('/api/slot-machine/claim-reward');
+      expect(calledUrls).toContain('/api/slot-machine/spin-batch');
     });
   });
 });

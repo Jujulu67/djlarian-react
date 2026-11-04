@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isOwnLiveAudioUrl } from '@/lib/live/fileUrl';
 
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
@@ -40,6 +41,9 @@ export async function POST(request: NextRequest) {
     if (!fileUrl || !fileName) {
       return NextResponse.json({ error: 'URL et nom de fichier requis' }, { status: 400 });
     }
+    if (!isOwnLiveAudioUrl(fileUrl, session.user.id)) {
+      return NextResponse.json({ error: 'URL de fichier invalide' }, { status: 400 });
+    }
 
     // Vérifier que le modèle liveSubmission est disponible
     if (!prisma.liveSubmission) {
@@ -78,15 +82,18 @@ export async function POST(request: NextRequest) {
         where: { id: existingDraftId },
       });
 
-      if (existingDraft && existingDraft.userId === session.user.id && existingDraft.isDraft) {
-        try {
-          await deleteAudioFile(existingDraft.fileUrl);
-        } catch (error) {
-          logger.warn(
-            `[Live Draft] Erreur lors de la suppression de l'ancien fichier: ${existingDraft.fileUrl}`,
-            error
-          );
-        }
+      // Un brouillon d'un autre utilisateur (ou déjà soumis) ne peut pas être modifié
+      if (!existingDraft || existingDraft.userId !== session.user.id || !existingDraft.isDraft) {
+        return NextResponse.json({ error: 'Brouillon introuvable' }, { status: 404 });
+      }
+
+      try {
+        await deleteAudioFile(existingDraft.fileUrl);
+      } catch (error) {
+        logger.warn(
+          `[Live Draft] Erreur lors de la suppression de l'ancien fichier: ${existingDraft.fileUrl}`,
+          error
+        );
       }
     }
 

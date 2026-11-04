@@ -1,74 +1,13 @@
 'use client';
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useEffect, useState, Suspense } from 'react';
+import { Suspense } from 'react';
 import { Button } from '@/components/ui/Button';
 
 function AuthErrorContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [checking, setChecking] = useState(true);
   const error = searchParams.get('error');
-
-  useEffect(() => {
-    const checkMergeToken = async () => {
-      try {
-        // Essayer plusieurs fois avec un petit délai pour laisser le temps au cache de se synchroniser
-        let attempts = 0;
-        const maxAttempts = 5;
-
-        while (attempts < maxAttempts) {
-          attempts++;
-
-          // Récupérer le token depuis le cache
-          // On essaie d'abord sans email, puis avec l'email du cookie si disponible
-          const response = await fetch('/api/auth/merge-accounts/check');
-          if (response.ok) {
-            const data = await response.json();
-            if (data.hasToken && data.token) {
-              // Rediriger immédiatement vers la page de fusion avec le token
-              router.replace(`/auth/merge-accounts?token=${encodeURIComponent(data.token)}`);
-              return;
-            }
-          }
-
-          // Attendre un peu avant de réessayer (seulement si ce n'est pas la dernière tentative)
-          if (attempts < maxAttempts) {
-            // Augmenter le délai progressivement
-            const delay = Math.min(200 * attempts, 1000);
-            await new Promise((resolve) => setTimeout(resolve, delay));
-          }
-        }
-      } catch (error) {
-        console.error('[AuthError] Erreur lors de la vérification du token:', error);
-      }
-
-      setChecking(false);
-    };
-
-    if (error === 'AccessDenied') {
-      // Attendre un peu pour laisser le temps au cache de se synchroniser
-      const timeout = setTimeout(() => {
-        checkMergeToken();
-      }, 300);
-
-      return () => clearTimeout(timeout);
-    } else {
-      setChecking(false);
-    }
-  }, [error, router]);
-
-  if (checking) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-gray-900 to-black v2:bg-none v2:bg-transparent">
-        <div className="text-center">
-          <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-purple-600 border-t-transparent mx-auto v2:h-8 v2:w-8 v2:border-2 v2:border-white/15 v2:border-t-brand" />
-          <p className="text-gray-300 v2:text-white/60">Redirection en cours...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-gray-900 to-black p-4 v2:bg-none v2:bg-transparent">
       <div className="w-full max-w-md text-center rounded-xl bg-gray-800/40 backdrop-blur-sm border border-gray-700/50 p-8 v2:rounded-2xl v2:surface-1 v2:px-6 v2:py-10">

@@ -3,7 +3,7 @@
  * These functions can be used in browser/client components
  */
 
-import { put } from '@vercel/blob';
+import { upload } from '@vercel/blob/client';
 
 const MAX_FILE_SIZE = 128 * 1024 * 1024; // 128MB
 const ALLOWED_MIME_TYPES = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/wave'];
@@ -65,23 +65,11 @@ export async function uploadAudioFileToBlob(
   fileId: string
 ): Promise<{ url: string; size: number }> {
   try {
-    // Obtenir le token depuis l'API (sécurisé, ne pas exposer le token côté client)
-    const tokenResponse = await fetch('/api/live/submissions/upload-token');
-    if (!tokenResponse.ok) {
-      throw new Error("Impossible de récupérer le token d'upload");
-    }
-    const { token } = await tokenResponse.json();
-
-    if (!token) {
-      throw new Error("Token d'upload non disponible");
-    }
-
-    // Upload directement vers Vercel Blob depuis le client
-    const contentType = file.type || 'audio/mpeg';
-    const blob = await put(`live-audio/${fileId}`, file, {
+    // Jeton limité à ce fichier, délivré par le serveur (le jeton du store reste côté serveur)
+    const blob = await upload(`live-audio/${fileId}`, file, {
       access: 'public',
-      contentType,
-      token, // Token pour l'upload (sécurisé via endpoint authentifié)
+      contentType: file.type || 'audio/mpeg',
+      handleUploadUrl: '/api/live/submissions/upload-token',
     });
 
     return {

@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { isLiveAudioUrl } from '@/lib/live/fileUrl';
 import path from 'path';
 
 import { uploadToBlob } from '@/lib/blob';
@@ -64,6 +65,12 @@ export async function uploadAudioFile(
  * SERVER-ONLY: Utilise fs et path (modules Node.js)
  */
 export async function deleteAudioFile(fileUrl: string): Promise<void> {
+  // Ne jamais supprimer autre chose qu'un fichier du dossier live-audio
+  if (!isLiveAudioUrl(fileUrl)) {
+    logger.warn('[Live Upload] Suppression refusée (hors live-audio):', fileUrl);
+    return;
+  }
+
   const useBlobStorage = await shouldUseBlobStorage();
 
   if (useBlobStorage) {

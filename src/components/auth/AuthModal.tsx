@@ -95,7 +95,9 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         if (!response.ok || data.error) {
           let errorMessage = 'Email ou mot de passe incorrect';
 
-          if (data.error === 'CredentialsSignin') {
+          if (response.status === 429) {
+            errorMessage = 'Trop de tentatives, réessayez dans une minute';
+          } else if (data.error === 'CredentialsSignin') {
             errorMessage = 'Email ou mot de passe incorrect';
           } else if (data.error === 'Configuration error') {
             errorMessage = 'Erreur de configuration serveur';
@@ -125,7 +127,11 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
         if (!response.ok) {
           console.error('[AuthModal] Erreur inscription:', data.error);
-          toast.error(data.error || "Une erreur est survenue lors de l'inscription");
+          toast.error(
+            response.status === 429
+              ? 'Trop de tentatives, réessayez dans une minute'
+              : data.error || "Une erreur est survenue lors de l'inscription"
+          );
           setIsLoading(false);
           return;
         }
@@ -299,6 +305,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   id="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  maxLength={100}
                   className="w-full px-4 py-2 bg-purple-900/20 border border-purple-500/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-white v2:rounded-xl v2:border-white/10 v2:bg-white/[0.03] v2:transition-[border-color,box-shadow] v2:duration-200 v2:focus:border-brand/70 v2:focus:ring-4 v2:focus:ring-brand/15"
                   required
                   disabled={isLoading}
@@ -328,6 +335,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                minLength={isLogin ? undefined : 8}
+                maxLength={isLogin ? undefined : 128}
                 className="w-full px-4 py-2 bg-purple-900/20 border border-purple-500/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-white v2:rounded-xl v2:border-white/10 v2:bg-white/[0.03] v2:transition-[border-color,box-shadow] v2:duration-200 v2:focus:border-brand/70 v2:focus:ring-4 v2:focus:ring-brand/15"
                 required
                 disabled={isLoading}

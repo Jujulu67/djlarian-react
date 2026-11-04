@@ -1,7 +1,20 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { requireAuth } from '@/lib/api/requireAuth';
 import prisma from '@/lib/prisma';
 import { logger } from '@/lib/logger';
+
+/**
+ * Score maximal accepté pour RhythmCatcher. Un coup vaut ~100 à 300 points multipliés par le
+ * combo (+10 % par coup enchaîné) : une partie exceptionnelle de plusieurs minutes sans erreur
+ * dépasse le million, d'où une borne à 10 millions (le champ est un Int 32 bits).
+ */
+const MAX_GAME_HIGH_SCORE = 10_000_000;
+
+const gameStatsSchema = z.object({
+  gameHighScore: z.number().int().min(0).max(MAX_GAME_HIGH_SCORE).optional(),
+  hasDiscoveredCasino: z.boolean().optional(),
+});
 
 // GET /api/user/game-stats - Get user game stats
 export async function GET() {
@@ -40,8 +53,12 @@ export async function POST(request: Request) {
     });
     if (authError) return authError;
 
-    const body = await request.json();
-    const { gameHighScore, hasDiscoveredCasino } = body;
+    const body = await request.json().catch(() => null);
+    const parsed = gameStatsSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Données invalides' }, { status: 400 });
+    }
+    const { gameHighScore, hasDiscoveredCasino } = parsed.data;
 
     // Build update data conditionally
     const updateData: { gameHighScore?: number; hasDiscoveredCasino?: boolean } = {};

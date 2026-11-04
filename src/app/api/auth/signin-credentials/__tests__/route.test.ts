@@ -2,6 +2,10 @@
  * Tests for /api/auth/signin-credentials route
  * @jest-environment node
  */
+import { NextRequest } from 'next/server';
+
+import { rateLimit } from '@/lib/api/rateLimiter';
+
 import { POST } from '../route';
 
 // Mock dependencies
@@ -12,6 +16,14 @@ jest.mock('@/lib/prisma', () => ({
       findUnique: jest.fn(),
     },
   },
+}));
+
+jest.mock('@/lib/logger', () => ({
+  logger: { error: jest.fn(), warn: jest.fn(), info: jest.fn(), debug: jest.fn() },
+}));
+
+jest.mock('@/lib/api/rateLimiter', () => ({
+  rateLimit: jest.fn(() => Promise.resolve(null)),
 }));
 
 jest.mock('@/lib/bcrypt-edge', () => ({
@@ -82,7 +94,7 @@ describe('/api/auth/signin-credentials', () => {
     (prisma.user.findUnique as jest.Mock).mockResolvedValue(user);
     (compare as jest.Mock).mockResolvedValue(true);
 
-    const request = new Request('http://localhost/api/auth/signin-credentials', {
+    const request = new NextRequest('http://localhost/api/auth/signin-credentials', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -108,7 +120,7 @@ describe('/api/auth/signin-credentials', () => {
   });
 
   it('should return 400 if email is missing', async () => {
-    const request = new Request('http://localhost/api/auth/signin-credentials', {
+    const request = new NextRequest('http://localhost/api/auth/signin-credentials', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -124,7 +136,7 @@ describe('/api/auth/signin-credentials', () => {
   });
 
   it('should return 400 if password is missing', async () => {
-    const request = new Request('http://localhost/api/auth/signin-credentials', {
+    const request = new NextRequest('http://localhost/api/auth/signin-credentials', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -144,7 +156,7 @@ describe('/api/auth/signin-credentials', () => {
 
     (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
 
-    const request = new Request('http://localhost/api/auth/signin-credentials', {
+    const request = new NextRequest('http://localhost/api/auth/signin-credentials', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -169,7 +181,7 @@ describe('/api/auth/signin-credentials', () => {
       hashedPassword: null,
     });
 
-    const request = new Request('http://localhost/api/auth/signin-credentials', {
+    const request = new NextRequest('http://localhost/api/auth/signin-credentials', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -201,7 +213,7 @@ describe('/api/auth/signin-credentials', () => {
     (prisma.user.findUnique as jest.Mock).mockResolvedValue(user);
     (compare as jest.Mock).mockResolvedValue(false);
 
-    const request = new Request('http://localhost/api/auth/signin-credentials', {
+    const request = new NextRequest('http://localhost/api/auth/signin-credentials', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -236,7 +248,7 @@ describe('/api/auth/signin-credentials', () => {
     (prisma.user.findUnique as jest.Mock).mockResolvedValue(user);
     (compare as jest.Mock).mockResolvedValue(true);
 
-    const request = new Request('http://localhost/api/auth/signin-credentials', {
+    const request = new NextRequest('http://localhost/api/auth/signin-credentials', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -260,7 +272,7 @@ describe('/api/auth/signin-credentials', () => {
 
     (prisma.user.findUnique as jest.Mock).mockRejectedValue(new Error('Database error'));
 
-    const request = new Request('http://localhost/api/auth/signin-credentials', {
+    const request = new NextRequest('http://localhost/api/auth/signin-credentials', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -273,7 +285,7 @@ describe('/api/auth/signin-credentials', () => {
     const data = await response.json();
 
     expect(response.status).toBe(500);
-    expect(data.error).toBe('Database error');
+    expect(data.error).toBe('Erreur serveur');
   });
 
   it('should set secure cookie in production', async () => {
@@ -295,7 +307,7 @@ describe('/api/auth/signin-credentials', () => {
     (prisma.user.findUnique as jest.Mock).mockResolvedValue(user);
     (compare as jest.Mock).mockResolvedValue(true);
 
-    const request = new Request('http://localhost/api/auth/signin-credentials', {
+    const request = new NextRequest('http://localhost/api/auth/signin-credentials', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -331,7 +343,7 @@ describe('/api/auth/signin-credentials', () => {
     (prisma.user.findUnique as jest.Mock).mockResolvedValue(user);
     (compare as jest.Mock).mockResolvedValue(true);
 
-    const request = new Request('http://localhost/api/auth/signin-credentials', {
+    const request = new NextRequest('http://localhost/api/auth/signin-credentials', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -367,7 +379,7 @@ describe('/api/auth/signin-credentials', () => {
     (prisma.user.findUnique as jest.Mock).mockResolvedValue(adminUser);
     (compare as jest.Mock).mockResolvedValue(true);
 
-    const request = new Request('http://localhost/api/auth/signin-credentials', {
+    const request = new NextRequest('http://localhost/api/auth/signin-credentials', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -399,7 +411,7 @@ describe('/api/auth/signin-credentials', () => {
     (prisma.user.findUnique as jest.Mock).mockResolvedValue(user);
     (compare as jest.Mock).mockResolvedValue(true);
 
-    const request = new Request('http://localhost/api/auth/signin-credentials', {
+    const request = new NextRequest('http://localhost/api/auth/signin-credentials', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -431,7 +443,7 @@ describe('/api/auth/signin-credentials', () => {
     (prisma.user.findUnique as jest.Mock).mockResolvedValue(user);
     (compare as jest.Mock).mockResolvedValue(true);
 
-    const request = new Request('http://localhost/api/auth/signin-credentials', {
+    const request = new NextRequest('http://localhost/api/auth/signin-credentials', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -470,7 +482,7 @@ describe('/api/auth/signin-credentials', () => {
     (prisma.user.findUnique as jest.Mock).mockResolvedValue(user);
     (compare as jest.Mock).mockResolvedValue(true);
 
-    const request = new Request('http://localhost/api/auth/signin-credentials', {
+    const request = new NextRequest('http://localhost/api/auth/signin-credentials', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -490,7 +502,7 @@ describe('/api/auth/signin-credentials', () => {
   });
 
   it('should handle invalid JSON body', async () => {
-    const request = new Request('http://localhost/api/auth/signin-credentials', {
+    const request = new NextRequest('http://localhost/api/auth/signin-credentials', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: 'invalid json',
@@ -504,7 +516,7 @@ describe('/api/auth/signin-credentials', () => {
   });
 
   it('should handle empty body', async () => {
-    const request = new Request('http://localhost/api/auth/signin-credentials', {
+    const request = new NextRequest('http://localhost/api/auth/signin-credentials', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '',
@@ -518,7 +530,7 @@ describe('/api/auth/signin-credentials', () => {
   });
 
   it('should handle email as empty string', async () => {
-    const request = new Request('http://localhost/api/auth/signin-credentials', {
+    const request = new NextRequest('http://localhost/api/auth/signin-credentials', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -535,7 +547,7 @@ describe('/api/auth/signin-credentials', () => {
   });
 
   it('should handle password as empty string', async () => {
-    const request = new Request('http://localhost/api/auth/signin-credentials', {
+    const request = new NextRequest('http://localhost/api/auth/signin-credentials', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -567,7 +579,7 @@ describe('/api/auth/signin-credentials', () => {
     (prisma.user.findUnique as jest.Mock).mockResolvedValue(user);
     (compare as jest.Mock).mockRejectedValue(new Error('Bcrypt error'));
 
-    const request = new Request('http://localhost/api/auth/signin-credentials', {
+    const request = new NextRequest('http://localhost/api/auth/signin-credentials', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -580,7 +592,7 @@ describe('/api/auth/signin-credentials', () => {
     const data = await response.json();
 
     expect(response.status).toBe(500);
-    expect(data.error).toBe('Bcrypt error');
+    expect(data.error).toBe('Erreur serveur');
   });
 
   it('should handle hkdf error', async () => {
@@ -601,7 +613,7 @@ describe('/api/auth/signin-credentials', () => {
     (compare as jest.Mock).mockResolvedValue(true);
     (hkdf as jest.Mock).mockRejectedValue(new Error('HKDF error'));
 
-    const request = new Request('http://localhost/api/auth/signin-credentials', {
+    const request = new NextRequest('http://localhost/api/auth/signin-credentials', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -614,7 +626,7 @@ describe('/api/auth/signin-credentials', () => {
     const data = await response.json();
 
     expect(response.status).toBe(500);
-    expect(data.error).toBe('HKDF error');
+    expect(data.error).toBe('Erreur serveur');
   });
 
   it('should handle jose EncryptJWT error', async () => {
@@ -646,7 +658,7 @@ describe('/api/auth/signin-credentials', () => {
 
     (jose.EncryptJWT as jest.Mock).mockImplementation(() => mockEncryptJWT);
 
-    const request = new Request('http://localhost/api/auth/signin-credentials', {
+    const request = new NextRequest('http://localhost/api/auth/signin-credentials', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -659,7 +671,7 @@ describe('/api/auth/signin-credentials', () => {
     const data = await response.json();
 
     expect(response.status).toBe(500);
-    expect(data.error).toBe('JWE encryption error');
+    expect(data.error).toBe('Erreur serveur');
 
     // Restore mock
     (jose.EncryptJWT as jest.Mock).mockImplementation(() => ({
@@ -703,7 +715,7 @@ describe('/api/auth/signin-credentials', () => {
 
     (jose.EncryptJWT as jest.Mock).mockImplementation(() => mockEncryptJWT);
 
-    const request = new Request('http://localhost/api/auth/signin-credentials', {
+    const request = new NextRequest('http://localhost/api/auth/signin-credentials', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -752,7 +764,7 @@ describe('/api/auth/signin-credentials', () => {
 
     (prisma.user.findUnique as jest.Mock).mockRejectedValue('String error');
 
-    const request = new Request('http://localhost/api/auth/signin-credentials', {
+    const request = new NextRequest('http://localhost/api/auth/signin-credentials', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -765,6 +777,63 @@ describe('/api/auth/signin-credentials', () => {
     const data = await response.json();
 
     expect(response.status).toBe(500);
-    expect(data.error).toBe('Erreur inconnue');
+    expect(data.error).toBe('Erreur serveur');
+  });
+
+  it('should never return an internal error message to the client', async () => {
+    const { default: prisma } = await import('@/lib/prisma');
+    const { logger } = await import('@/lib/logger');
+    (prisma.user.findUnique as jest.Mock).mockRejectedValue(
+      new Error('connect ECONNREFUSED db.internal:5432')
+    );
+
+    const response = await POST(
+      new NextRequest('http://localhost/api/auth/signin-credentials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'user@test.com', password: 'password123' }),
+      })
+    );
+    const body = await response.text();
+
+    expect(response.status).toBe(500);
+    expect(JSON.parse(body)).toEqual({ error: 'Erreur serveur' });
+    expect(body).not.toContain('db.internal');
+    expect(logger.error).toHaveBeenCalled();
+  });
+
+  it('should reject a non-string email with 400', async () => {
+    const { default: prisma } = await import('@/lib/prisma');
+
+    const response = await POST(
+      new NextRequest('http://localhost/api/auth/signin-credentials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: { contains: '@' }, password: 'password123' }),
+      })
+    );
+
+    expect(response.status).toBe(400);
+    expect(prisma.user.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('should apply a rate limit (10/min) before checking credentials', async () => {
+    const { default: prisma } = await import('@/lib/prisma');
+    const { NextResponse } = await import('next/server');
+    (rateLimit as jest.Mock).mockResolvedValueOnce(
+      NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+    );
+
+    const response = await POST(
+      new NextRequest('http://localhost/api/auth/signin-credentials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'user@test.com', password: 'password123' }),
+      })
+    );
+
+    expect(response.status).toBe(429);
+    expect(rateLimit).toHaveBeenCalledWith(expect.anything(), 10);
+    expect(prisma.user.findUnique).not.toHaveBeenCalled();
   });
 });

@@ -90,9 +90,8 @@ Quand vous activez le switch :
 Pour vérifier que tout fonctionne :
 
 1. Activez le switch
-2. Vérifiez `/api/health` :
-   - `database.status` devrait être `"connected"`
-   - `blob.status` devrait être `"configured"` si le token est défini
+2. Vérifiez `/api/health` : `status` devrait être `"ok"` (base joignable). L'endpoint est
+   public et ne renvoie que ce statut ; en cas d'erreur, le détail est dans les logs serveur.
 
 ## Sécurité
 

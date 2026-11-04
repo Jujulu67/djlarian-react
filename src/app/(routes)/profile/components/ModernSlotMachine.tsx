@@ -44,7 +44,7 @@ export function ModernSlotMachine({ isOpen, onClose }: ModernSlotMachineProps) {
     batchResult,
     setBatchResult,
     pendingReward,
-    claimReward,
+    dismissReward,
     refreshStatus,
     sessionSpent,
   } = useSlotMachine();
@@ -291,15 +291,16 @@ export function ModernSlotMachine({ isOpen, onClose }: ModernSlotMachineProps) {
                       <div className="text-white text-sm">
                         {pendingReward.rewardType === 'ETERNAL_TICKET'
                           ? `${pendingReward.rewardAmount} Ticket(s) Éternel(s)`
-                          : `${pendingReward.rewardAmount} Queue Skip(s)`}
+                          : `${pendingReward.rewardAmount} Queue Skip(s)`}{' '}
+                        ajouté(s) à votre inventaire
                       </div>
                     </div>
                   </div>
                   <button
-                    onClick={() => claimReward()}
+                    onClick={dismissReward}
                     className="px-6 py-2 bg-green-500 hover:bg-green-400 text-black font-bold rounded-lg transition-colors shadow-lg shadow-green-500/20"
                   >
-                    RÉCLAMER
+                    OK
                   </button>
                 </motion.div>
               )}

@@ -41,17 +41,14 @@ export async function GET(request: NextRequest) {
     });
     if (error) return error;
 
-    // Permettre à tous les utilisateurs authentifiés de voir la liste des utilisateurs
+    // Un admin voit email et rôle ; les autres utilisateurs (recherche d'amis, messages)
+    // ne voient que le nom : pas de liste des emails de tout le site.
+    const isAdmin = session.user.role === 'ADMIN';
     const users = await prisma.user.findMany({
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-      },
-      orderBy: {
-        email: 'asc',
-      },
+      select: isAdmin
+        ? { id: true, name: true, email: true, role: true }
+        : { id: true, name: true },
+      orderBy: isAdmin ? { email: 'asc' } : { name: 'asc' },
     });
 
     return createSuccessResponse(users, 200, 'Utilisateurs récupérés');

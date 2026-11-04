@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 
+import { auth } from '@/auth';
 import { requireAdmin } from '@/lib/api/requireAuth';
 import { handleApiError } from '@/lib/api/errorHandler';
 import { formatTrackData } from '@/lib/api/musicService';
@@ -91,7 +92,7 @@ const trackCreateSchema = z.object({
 // Re-define CreateTrackInput based on Zod schema if needed elsewhere, or use z.infer
 type CreateTrackInput = z.infer<typeof trackCreateSchema>;
 
-// GET /api/music - Récupérer toutes les pistes
+// GET /api/music - Récupérer les pistes (toutes pour un admin, publiées seulement sinon)
 export async function GET(): Promise<Response> {
   try {
     // Vérifier que Prisma est correctement initialisé
@@ -100,7 +101,15 @@ export async function GET(): Promise<Response> {
       return handleApiError(new Error('Database connection not available'), 'GET /api/music');
     }
 
+    const session = await auth();
+    const isAdmin = session?.user?.role === 'ADMIN';
+
     const tracks = await prisma.track.findMany({
+      // Un visiteur ne voit que les pistes publiées (ou dont la date de publication est
+      // passée : elles sont publiées plus bas), comme pour /api/events.
+      ...(isAdmin
+        ? {}
+        : { where: { OR: [{ isPublished: true }, { publishAt: { lte: new Date() } }] } }),
       include: {
         TrackPlatform: true,
         GenresOnTracks: {
