@@ -23,8 +23,8 @@ comme compromises.
 - [x] **Clé `YOUTUBE_API_KEY` régénérée** (04/11/2026) : les deux clés Google fuitées dans les
       builds `.open-next/` (projets « projet 2 » et « My First Project ») sont révoquées, projets
       arrêtés, alertes GitHub fermées. Nouvelle clé dans « DJLarian Search », restreinte à
-      YouTube Data API v3. Reste à **redéployer la prod sur Vercel** : le dernier déploiement
-      (25/10) utilise encore l'ancienne clé, donc les vidéos YouTube ne marchent plus en prod.
+      YouTube Data API v3. La prod se redéploie toute seule à chaque fusion
+      dans `main` (intégration GitHub de Vercel) : elle utilise la nouvelle clé depuis le 04/11/2026.
 - [ ] _(facultatif, décidé le 04/11/2026 : tous les secrets fuités sont révoqués ; seule raison restante, les données personnelles des dumps)_ **Demander au support GitHub de purger les anciens commits** : l'historique a été
       réécrit le 24/10/2026, mais les PR #1 à #4 et #16 gardent des références en lecture
       seule vers l'ancien historique, et les commits restent accessibles par leur SHA.
@@ -40,8 +40,8 @@ comme compromises.
       via `archiver`/`exceljs` (motifs fixes, aucune entrée utilisateur) ; à reprendre quand les
       paquets parents publient un correctif.
 - [ ] **Imposer la Content-Security-Policy** : elle est en place en mode `Report-Only` depuis le
-      04/11/2026 (`src/lib/security/csp.ts`, rapports vers Sentry), mais la prod n'a pas encore été
-      redéployée. Après le redéploiement, laisser tourner quelques jours, regarder les rapports CSP
+      04/11/2026 (`src/lib/security/csp.ts`, rapports vers Sentry), et en prod depuis ce jour-là.
+      Laisser tourner quelques jours, regarder les rapports CSP
       dans Sentry, ajuster les sources, puis passer `CSP_HEADER_REPORT_ONLY` à
       `Content-Security-Policy` dans `next.config.ts`.
 - [x] Découper les gros composants (24/10/2026 : statistiques, projets, import, live, table,
