@@ -39,6 +39,10 @@ comme compromises.
       basses/modérées non exploitables ici : `deepmerge` (Jest, dev seulement), `minimatch`/`glob`
       via `archiver`/`exceljs` (motifs fixes, aucune entrée utilisateur) ; à reprendre quand les
       paquets parents publient un correctif.
+- [ ] **Brancher un domaine avant l'ouverture** (noté le 04/11/2026) : le projet Vercel n'a que des
+      adresses `*.vercel.app`, toutes derrière la protection Vercel (écran de connexion pour les
+      visiteurs). Une fois le domaine acheté : l'ajouter au projet sur Vercel, régler le DNS, puis
+      mettre à jour `NEXTAUTH_URL`, les URL de redirection OAuth Google et Twitch (et toute URL du site codée en dur).
 - [ ] **Imposer la Content-Security-Policy** : elle est en place en mode `Report-Only` depuis le
       04/11/2026 (`src/lib/security/csp.ts`, rapports vers Sentry), et en prod depuis ce jour-là.
       Laisser tourner quelques jours, regarder les rapports CSP
