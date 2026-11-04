@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { NextRequest } from 'next/server';
 
-import { auth } from '@/auth';
+import { requireDbAdmin } from '@/lib/api/requireDbAdmin';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import {
@@ -40,31 +40,15 @@ function clearCache(key?: string): void {
   }
 }
 
-async function getUser() {
-  const session = await auth();
-  return session?.user;
-}
-
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const url = new URL(req.url);
     const artistId = url.searchParams.get('artistId') || process.env.SPOTIFY_ARTIST_ID;
     const artistName = url.searchParams.get('artistName');
 
-    // Authentification
-    const user = await getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const dbUser = await prisma.user.findUnique({
-      where: { email: user.email as string },
-      select: { role: true },
-    });
-
-    if (dbUser?.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    // Authentification (rôle admin relu en base)
+    const { error: authError } = await requireDbAdmin();
+    if (authError) return authError;
 
     if (!artistId && !artistName) {
       return NextResponse.json({ error: 'artistId ou artistName requis' }, { status: 400 });
@@ -221,19 +205,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 // POST /api/spotify/releases - Invalider le cache
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
-    const user = await getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const dbUser = await prisma.user.findUnique({
-      where: { email: user.email as string },
-      select: { role: true },
-    });
-
-    if (dbUser?.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    // Authentification (rôle admin relu en base)
+    const { error: authError } = await requireDbAdmin();
+    if (authError) return authError;
 
     const body = await req.json().catch(() => ({}));
     const { artistId, artistName } = body;

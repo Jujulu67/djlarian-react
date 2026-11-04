@@ -7,7 +7,7 @@ import { auth } from '@/auth';
 
 import { getInternalSecret, INTERNAL_AUTH_HEADER } from './internalAuth';
 
-type AuthResult = { session: Session; error: null } | { session: null; error: NextResponse };
+export type AuthResult = { session: Session; error: null } | { session: null; error: NextResponse };
 
 type AuthErrorOptions = {
   /** Code renvoyé à un visiteur non connecté (401 par défaut). */

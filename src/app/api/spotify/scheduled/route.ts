@@ -1,14 +1,8 @@
 import { NextResponse } from 'next/server';
 import { NextRequest } from 'next/server';
 
-import { auth } from '@/auth';
+import { requireDbAdmin } from '@/lib/api/requireDbAdmin';
 import { logger } from '@/lib/logger';
-import prisma from '@/lib/prisma';
-
-async function getUser() {
-  const session = await auth();
-  return session?.user;
-}
 
 /**
  * Route pour récupérer les releases planifiées sur Spotify
@@ -21,20 +15,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const url = new URL(req.url);
     const artistId = url.searchParams.get('artistId') || process.env.SPOTIFY_ARTIST_ID;
 
-    // Authentification
-    const user = await getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const dbUser = await prisma.user.findUnique({
-      where: { email: user.email as string },
-      select: { role: true },
-    });
-
-    if (dbUser?.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    // Authentification (rôle admin relu en base)
+    const { error: authError } = await requireDbAdmin();
+    if (authError) return authError;
 
     if (!artistId) {
       return NextResponse.json({ error: 'artistId requis' }, { status: 400 });
