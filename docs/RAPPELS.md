@@ -44,8 +44,15 @@ comme compromises.
 
 - [x] Découper les gros composants (24/10/2026 : statistiques, projets, import, live, table,
       notifications, admin, événements, boutique, navigation, machine à sous, SoundCloud).
-- [ ] Routes API restantes non migrées vers `requireAuth` : celles qui testent `session.user.id`/`email`
-      ou mélangent admin et propriétaire (~50).
+- [ ] Routes API restantes non migrées vers `requireAuth` (04/11/2026 : 9 handlers admin migrés, PR #29 ; restent
+      `admin/inventory/batch`, `admin/live/submissions/purge`, `music` POST, `spotify/enrich`, `user/game-stats`,
+      `users/[userId]`, `users/[userId]/licenses`).
+- [ ] 🔴 **Trous d'accès repérés pendant la migration (à corriger avant l'ouverture)** :
+  - `minigames/reset-tokens` : la vérification admin est commentée, n'importe qui peut l'appeler ;
+  - `events` GET avec `?isPublished=false` : un visiteur voit les événements non publiés ;
+  - `spotify/enrich` : ouvert à tout utilisateur connecté (les routes Spotify voisines sont admin) ;
+  - `users/[userId]` PUT/DELETE : 401 au lieu de 403 pour un non-propriétaire (gêne mineure) ;
+  - `events/[id]` : un événement dont `publishAt` est passé reste caché tant qu'un admin ne l'a pas ouvert.
 - [x] Récurrence d'événements (25/10/2026) : les occurrences étaient calculées en UTC côté serveur,
       donc décalées d'une heure après un changement d'heure. Tout est maintenant calculé en heure de
       Paris (`src/lib/utils/timezone.ts`), ce qui aligne aussi les clés d'exclusion du serveur sur
