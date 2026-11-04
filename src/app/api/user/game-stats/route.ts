@@ -1,19 +1,19 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { requireAuth } from '@/lib/api/requireAuth';
 import prisma from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 
 // GET /api/user/game-stats - Get user game stats
 export async function GET() {
   try {
-    const session = await auth();
-
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
-    }
+    const { session, error: authError } = await requireAuth({
+      message: 'Non authentifié',
+      requireUserId: true,
+    });
+    if (authError) return authError;
 
     const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
+      where: { id: session.user.id },
       select: {
         gameHighScore: true,
         hasDiscoveredCasino: true,
@@ -34,11 +34,11 @@ export async function GET() {
 // POST /api/user/game-stats - Update user game stats
 export async function POST(request: Request) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
-    }
+    const { session, error: authError } = await requireAuth({
+      message: 'Non authentifié',
+      requireUserId: true,
+    });
+    if (authError) return authError;
 
     const body = await request.json();
     const { gameHighScore, hasDiscoveredCasino } = body;
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     // Only update highscore if provided and greater than current
     if (typeof gameHighScore === 'number') {
       const currentUser = await prisma.user.findUnique({
-        where: { email: session.user.email },
+        where: { id: session.user.id },
         select: { gameHighScore: true },
       });
 
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
     }
 
     const user = await prisma.user.update({
-      where: { email: session.user.email },
+      where: { id: session.user.id },
       data: updateData,
       select: {
         gameHighScore: true,

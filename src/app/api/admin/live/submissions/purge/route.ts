@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/api/requireAuth';
+import { requireAdmin } from '@/lib/api/requireAuth';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import {
@@ -17,14 +17,11 @@ export const maxDuration = 300; // 5 minutes max pour le nettoyage
  */
 export async function DELETE(request: NextRequest) {
   try {
-    const { session, error: authError } = await requireAuth({
+    const { error: authError } = await requireAdmin({
       onAnonymous: () => createUnauthorizedResponse('Non authentifié'),
+      onNonAdmin: () => createForbiddenResponse('Non autorisé'),
     });
     if (authError) return authError;
-
-    if (session.user.role !== 'ADMIN') {
-      return createForbiddenResponse('Non autorisé');
-    }
 
     // 1. Récupérer toutes les soumissions pour avoir les URLs des fichiers
     const allSubmissions = await prisma.liveSubmission.findMany({

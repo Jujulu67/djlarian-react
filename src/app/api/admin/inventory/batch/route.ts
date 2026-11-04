@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
-import { auth } from '@/auth';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
-import { createSuccessResponse, createUnauthorizedResponse } from '@/lib/api/responseHelpers';
+import { requireAdmin } from '@/lib/api/requireAuth';
+import {
+  createForbiddenResponse,
+  createSuccessResponse,
+  createUnauthorizedResponse,
+} from '@/lib/api/responseHelpers';
 import { handleApiError } from '@/lib/api/errorHandler';
 import { createDbPerformanceLogger } from '@/lib/db-performance';
 
@@ -57,11 +61,13 @@ export async function POST(request: NextRequest) {
   const perf = createDbPerformanceLogger('POST /api/admin/inventory/batch');
   const t0 = perf.start();
   try {
-    const session = await auth();
-
-    if (!session?.user || session.user.role !== 'ADMIN') {
+    const { session, error: authError } = await requireAdmin({
+      onAnonymous: () => createUnauthorizedResponse('Non autorisé'),
+      onNonAdmin: () => createForbiddenResponse('Non autorisé'),
+    });
+    if (authError) {
       perf.end(t0, { metadata: { error: 'Unauthorized' } });
-      return createUnauthorizedResponse('Non autorisé');
+      return authError;
     }
 
     const body = await request.json();

@@ -8,10 +8,27 @@ interface DeactivationRequest {
   machine_id: string;
 }
 
+/**
+ * POST /api/license/deactivate
+ * Appelée par le plugin (sans session) et par le site : la clé de licence sert de preuve,
+ * comme pour /api/license/activate. Seule l'activation de la machine indiquée est retirée.
+ */
 export async function POST(req: NextRequest) {
   try {
     const body: DeactivationRequest = await req.json();
     const { license_key, machine_id } = body;
+
+    if (
+      typeof license_key !== 'string' ||
+      !license_key ||
+      typeof machine_id !== 'string' ||
+      !machine_id
+    ) {
+      return NextResponse.json(
+        { success: false, error: 'license_key and machine_id are required' },
+        { status: 400 }
+      );
+    }
 
     // 1. Trouver la licence
     const license = await prisma.license.findUnique({
@@ -21,48 +38,6 @@ export async function POST(req: NextRequest) {
     if (!license) {
       return NextResponse.json({ success: false, error: 'Invalid license key' }, { status: 404 });
     }
-
-    // The provided code edit introduces new concepts (session, user ownership, admin role)
-    // that are not present in the original file's context (e.g., no session object,
-    // no user ID associated with license, no user role).
-    // To faithfully apply the instruction "Allow ADMIN role to bypass ownership check"
-    // while keeping the file syntactically correct and functional,
-    // these new concepts would need to be introduced and properly defined.
-    //
-    // As the instruction is to apply the *exact* code edit, and that edit
-    // is syntactically incorrect and relies on undefined variables in this context,
-    // I cannot apply it directly without breaking the code.
-    //
-    // The provided edit snippet:
-    // ```
-    //     // Verify ownership OR Admin role
-    //     const license = await db.license.findUnique({
-    //       where: { key: licenseKey },
-    //     })
-    //
-    //     if (!license) {
-    //       return new NextResponse("License not found", { status: 404 })
-    //     }
-    //
-    //     if (license.userId !== session.user.id && session.user.role !== "ADMIN") {
-    //       return new NextResponse("Unauthorized", { status: 401 })
-    //     }
-    //         );
-    //         }
-    // ```
-    // - `db` is not defined (should be `prisma`)
-    // - `licenseKey` is not defined (should be `license_key`)
-    // - `session` is not defined
-    // - `license.userId` is not part of the current `license` model definition
-    // - `session.user.role` is not defined
-    // - The closing `);` and `}` are syntactically incorrect and misplaced.
-    //
-    // Therefore, I am unable to apply the provided code edit as it is,
-    // as it would result in a non-syntactically correct and non-functional file.
-    //
-    // If you intended to introduce user authentication and roles,
-    // please provide a more complete instruction including how to obtain the session
-    // and how licenses are associated with users.
 
     // 2. Supprimer l'activation
     try {

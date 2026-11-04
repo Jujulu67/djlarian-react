@@ -4,7 +4,7 @@ type PrismaUser = Prisma.UserGetPayload<{}>;
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
-import { auth } from '@/auth';
+import { requireAuth } from '@/lib/api/requireAuth';
 import { hash as bcryptHash } from '@/lib/bcrypt-edge';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
@@ -31,11 +31,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ user
   }
 
   // Admin : peut tout modifier. Utilisateur : uniquement son propre compte.
-  const session = await auth();
-  const isAdmin = session?.user?.role === 'ADMIN';
-  if (!session?.user) {
-    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
-  }
+  const { session, error: authError } = await requireAuth();
+  if (authError) return authError;
+  const isAdmin = session.user.role === 'ADMIN';
   if (!isAdmin && session.user.id !== userId) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
   }
@@ -138,10 +136,8 @@ export async function DELETE(
   }
 
   // Admin : peut supprimer n'importe quel compte. Utilisateur : uniquement le sien.
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
-  }
+  const { session, error: authError } = await requireAuth();
+  if (authError) return authError;
   if (session.user.role !== 'ADMIN' && session.user.id !== userId) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
   }
