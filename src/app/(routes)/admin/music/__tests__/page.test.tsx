@@ -18,7 +18,7 @@ jest.mock('next/navigation', () => ({
   }),
 }));
 
-jest.mock('react-hot-toast', () => ({
+jest.mock('sonner', () => ({
   toast: {
     error: jest.fn(),
     success: jest.fn(),

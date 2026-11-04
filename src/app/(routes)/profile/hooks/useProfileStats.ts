@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 
 export interface UserStats {
   projects: number;

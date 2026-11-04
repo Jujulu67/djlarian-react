@@ -15,8 +15,8 @@ jest.mock('next/navigation', () => ({
   useSearchParams: jest.fn(),
 }));
 
-// Mock react-hot-toast
-jest.mock('react-hot-toast', () => ({
+// Mock sonner
+jest.mock('sonner', () => ({
   toast: {
     success: jest.fn(),
     error: jest.fn(),
@@ -51,7 +51,7 @@ import userEvent from '@testing-library/user-event';
 import { useSession, signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import ProfilePage from '../page';
 
 const mockUseSession = useSession as jest.MockedFunction<typeof useSession>;

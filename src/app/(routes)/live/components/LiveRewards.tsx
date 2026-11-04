@@ -1,12 +1,24 @@
 'use client';
 
 import { motion } from 'framer-motion';
+
+import { useUiVersion } from '@/hooks/useUiVersion';
+
 import { useLiveRewards } from '../hooks/useLiveRewards';
 import { useLiveInventoryContext } from '../context/LiveInventoryContext';
+
+/** v2 : cartes neutres (verre), l'accent de couleur se limite à une pastille */
+const REWARD_CARD_V2 =
+  'relative overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6 transition-colors duration-300 hover:border-white/15';
+const REWARD_BUTTON_V2 =
+  'w-full rounded-xl bg-gradient-to-b from-brand to-purple-600 px-4 py-3 font-semibold text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.22)] transition-[filter,transform] duration-200 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:brightness-100';
 
 export function LiveRewards() {
   const { rewards, isLoading } = useLiveRewards();
   const { updateItem, inventory } = useLiveInventoryContext();
+  const isV2 = useUiVersion() === 'v2';
+  // Survol des cartes : légère montée seulement en v2
+  const cardHover = isV2 ? { y: -2 } : { scale: 1.02, y: -2 };
 
   const handleClaimBonus = async (itemType: string) => {
     // Trouver l'item correspondant dans l'inventaire
@@ -22,10 +34,16 @@ export function LiveRewards() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, delay: 0.4 }}
-      className="glass-modern glass-modern-hover rounded-2xl p-4 sm:p-6 lg:p-5"
+      className={
+        isV2
+          ? 'surface-1 rounded-2xl p-5 sm:p-6'
+          : 'glass-modern glass-modern-hover rounded-2xl p-4 sm:p-6 lg:p-5'
+      }
     >
-      <h2 className="text-lg sm:text-xl lg:text-lg font-audiowide text-white mb-2">YOUR REWARDS</h2>
-      <p className="text-xs text-gray-400 mb-6">
+      <h2 className="text-lg sm:text-xl lg:text-lg font-audiowide text-white mb-2 v2:font-sans v2:text-base v2:font-semibold">
+        YOUR REWARDS
+      </h2>
+      <p className="text-xs text-gray-400 mb-6 v2:mb-4">
         {/* KEEP TRACK OF YOUR STREAKS AND BONUS ITEMS. THE MORE STREAMS YOU WATCH, THE MORE YOU
         EARN. */}
       </p>
@@ -33,27 +51,37 @@ export function LiveRewards() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
         {/* Loyalty Card */}
         <motion.div
-          whileHover={{ scale: 1.02, y: -2 }}
-          className="bg-gradient-to-br from-purple-500/20 to-purple-600/10 border border-purple-500/30 rounded-xl p-6 relative overflow-hidden"
+          whileHover={cardHover}
+          className={
+            isV2
+              ? REWARD_CARD_V2
+              : 'bg-gradient-to-br from-purple-500/20 to-purple-600/10 border border-purple-500/30 rounded-xl p-6 relative overflow-hidden'
+          }
         >
           {/* Large number in background */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-10">
+          <div className="absolute inset-0 flex items-center justify-center opacity-10 v2:opacity-[0.05]">
             <span className="text-8xl font-bold text-white">
               {rewards?.loyalty.current || 0}/{rewards?.loyalty.threshold || 10}
             </span>
           </div>
           <div className="relative z-10">
-            <h3 className="text-lg font-audiowide text-white mb-3">LOYALTY</h3>
-            <p className="text-sm text-gray-300 mb-4">
+            <h3 className="text-lg font-audiowide text-white mb-3 v2:font-sans v2:text-sm v2:font-semibold v2:tracking-[0.15em]">
+              LOYALTY
+            </h3>
+            <p className="text-sm text-gray-300 mb-4 v2:text-white/60">
               Increases for every stream you watch and decreases whenever you miss a stream. When
               above 6, grants the Loyalty Bonus item.
             </p>
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={isV2 ? undefined : { scale: 1.05 }}
+              whileTap={{ scale: isV2 ? 0.98 : 0.95 }}
               onClick={() => handleClaimBonus('LOYALTY_BONUS')}
               disabled={!rewards?.loyalty.bonusAvailable || isLoading}
-              className="w-full bg-purple-500 hover:bg-purple-600 text-white py-3 px-4 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className={
+                isV2
+                  ? REWARD_BUTTON_V2
+                  : 'w-full bg-purple-500 hover:bg-purple-600 text-white py-3 px-4 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors'
+              }
             >
               Loyalty Bonus
             </motion.button>
@@ -62,26 +90,36 @@ export function LiveRewards() {
 
         {/* Watch Streak Card */}
         <motion.div
-          whileHover={{ scale: 1.02, y: -2 }}
-          className="bg-gradient-to-br from-green-500/20 to-green-600/10 border border-green-500/30 rounded-xl p-6 relative overflow-hidden"
+          whileHover={cardHover}
+          className={
+            isV2
+              ? REWARD_CARD_V2
+              : 'bg-gradient-to-br from-green-500/20 to-green-600/10 border border-green-500/30 rounded-xl p-6 relative overflow-hidden'
+          }
         >
           {/* Large number in background */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-10">
+          <div className="absolute inset-0 flex items-center justify-center opacity-10 v2:opacity-[0.05]">
             <span className="text-8xl font-bold text-white">
               {rewards?.watchStreak.current || 0}/{rewards?.watchStreak.threshold || 10}
             </span>
           </div>
           <div className="relative z-10">
-            <h3 className="text-lg font-audiowide text-white mb-3">WATCH STREAK</h3>
-            <p className="text-sm text-gray-300 mb-4">
+            <h3 className="text-lg font-audiowide text-white mb-3 v2:font-sans v2:text-sm v2:font-semibold v2:tracking-[0.15em]">
+              WATCH STREAK
+            </h3>
+            <p className="text-sm text-gray-300 mb-4 v2:text-white/60">
               Increases when you watch streams. Grants a Watch Streak Bonus Item when full.
             </p>
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={isV2 ? undefined : { scale: 1.05 }}
+              whileTap={{ scale: isV2 ? 0.98 : 0.95 }}
               onClick={() => handleClaimBonus('WATCH_STREAK')}
               disabled={!rewards?.watchStreak.bonusAvailable || isLoading}
-              className="w-full bg-green-500 hover:bg-green-600 text-white py-3 px-4 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className={
+                isV2
+                  ? REWARD_BUTTON_V2
+                  : 'w-full bg-green-500 hover:bg-green-600 text-white py-3 px-4 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors'
+              }
             >
               Watch Streak Bonus
             </motion.button>
@@ -90,26 +128,36 @@ export function LiveRewards() {
 
         {/* Cheer Progress Card */}
         <motion.div
-          whileHover={{ scale: 1.02, y: -2 }}
-          className="bg-gradient-to-br from-red-500/20 to-red-600/10 border border-red-500/30 rounded-xl p-6 relative overflow-hidden"
+          whileHover={cardHover}
+          className={
+            isV2
+              ? REWARD_CARD_V2
+              : 'bg-gradient-to-br from-red-500/20 to-red-600/10 border border-red-500/30 rounded-xl p-6 relative overflow-hidden'
+          }
         >
           {/* Large number in background */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-10">
+          <div className="absolute inset-0 flex items-center justify-center opacity-10 v2:opacity-[0.05]">
             <span className="text-8xl font-bold text-white">
               {rewards?.cheerProgress.current || 0}/{rewards?.cheerProgress.threshold || 1}
             </span>
           </div>
           <div className="relative z-10">
-            <h3 className="text-lg font-audiowide text-white mb-3">CHEER PROGRESS</h3>
-            <p className="text-sm text-gray-300 mb-4">
+            <h3 className="text-lg font-audiowide text-white mb-3 v2:font-sans v2:text-sm v2:font-semibold v2:tracking-[0.15em]">
+              CHEER PROGRESS
+            </h3>
+            <p className="text-sm text-gray-300 mb-4 v2:text-white/60">
               Your progress towards earning a Cheer Bonus item.
             </p>
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={isV2 ? undefined : { scale: 1.05 }}
+              whileTap={{ scale: isV2 ? 0.98 : 0.95 }}
               onClick={() => handleClaimBonus('CHEER_PROGRESS')}
               disabled={!rewards?.cheerProgress.bonusAvailable || isLoading}
-              className="w-full bg-red-500 hover:bg-red-600 text-white py-3 px-4 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className={
+                isV2
+                  ? REWARD_BUTTON_V2
+                  : 'w-full bg-red-500 hover:bg-red-600 text-white py-3 px-4 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors'
+              }
             >
               1+ Cheer Bonus
             </motion.button>

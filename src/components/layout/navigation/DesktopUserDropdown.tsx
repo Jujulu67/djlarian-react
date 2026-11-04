@@ -1,11 +1,14 @@
 'use client';
 
 import { hasArcadeAccess } from './navigationUtils';
+import { USER_MENU_PANEL_V2, userMenuItemClass } from './userMenuStyles';
 
 import type { Session } from 'next-auth';
 import { AnimatePresence, motion } from 'framer-motion';
 import { FolderKanban, Gamepad2, KeyRound, LogOut, Settings, User } from 'lucide-react';
 import Link from 'next/link';
+
+import { useUiVersion } from '@/hooks/useUiVersion';
 
 interface DesktopUserDropdownProps {
   handleSignOut: () => void;
@@ -18,6 +21,7 @@ export function DesktopUserDropdown({
   isUserMenuOpen,
   session,
 }: DesktopUserDropdownProps) {
+  const isV2 = useUiVersion() === 'v2';
   return (
     <AnimatePresence>
       {isUserMenuOpen && (
@@ -42,7 +46,7 @@ export function DesktopUserDropdown({
               duration: 0.15,
             },
           }}
-          className="absolute right-0 mt-2 w-48 rounded-lg bg-black/95 backdrop-blur-lg border border-purple-500/20 shadow-lg shadow-purple-500/5"
+          className={`absolute right-0 mt-2 w-48 rounded-lg bg-black/95 backdrop-blur-lg border border-purple-500/20 shadow-lg shadow-purple-500/5 ${USER_MENU_PANEL_V2}`}
           style={{ padding: '0.25rem' }}
         >
           <motion.div
@@ -57,8 +61,11 @@ export function DesktopUserDropdown({
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ delay: 0.05, duration: 0.1 }}
               >
-                <Link href="/admin" className="navMenuItem navMenuItemDanger">
-                  <Settings className="w-4 h-4 mr-2" />
+                <Link
+                  href="/admin"
+                  className={userMenuItemClass(isV2, 'navMenuItem navMenuItemDanger', 'danger')}
+                >
+                  <Settings className="w-4 h-4 mr-2 v2:mr-0 v2:text-brand" />
                   Panel Admin
                 </Link>
               </motion.div>
@@ -68,8 +75,8 @@ export function DesktopUserDropdown({
               animate={{ x: 0, opacity: 1 }}
               transition={{ delay: 0.1, duration: 0.1 }}
             >
-              <Link href="/profile" className="navMenuItem">
-                <User className="w-4 h-4 mr-2" />
+              <Link href="/profile" className={userMenuItemClass(isV2, 'navMenuItem')}>
+                <User className="w-4 h-4 mr-2 v2:mr-0" />
                 Profil
               </Link>
             </motion.div>
@@ -78,8 +85,11 @@ export function DesktopUserDropdown({
               animate={{ x: 0, opacity: 1 }}
               transition={{ delay: 0.12, duration: 0.1 }}
             >
-              <Link href="/projects" className="navMenuItem navMenuItemAccent">
-                <FolderKanban className="w-4 h-4 mr-2" />
+              <Link
+                href="/projects"
+                className={userMenuItemClass(isV2, 'navMenuItem navMenuItemAccent')}
+              >
+                <FolderKanban className="w-4 h-4 mr-2 v2:mr-0" />
                 Mes Projets
               </Link>
             </motion.div>
@@ -89,8 +99,11 @@ export function DesktopUserDropdown({
               animate={{ x: 0, opacity: 1 }}
               transition={{ delay: 0.14, duration: 0.1 }}
             >
-              <Link href="/licenses" className="navMenuItem navMenuItemSuccess">
-                <KeyRound className="w-4 h-4 mr-2" />
+              <Link
+                href="/licenses"
+                className={userMenuItemClass(isV2, 'navMenuItem navMenuItemSuccess')}
+              >
+                <KeyRound className="w-4 h-4 mr-2 v2:mr-0" />
                 Mes Licences
               </Link>
             </motion.div>
@@ -102,8 +115,11 @@ export function DesktopUserDropdown({
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ delay: 0.15, duration: 0.1 }}
               >
-                <Link href="/games" className="navMenuItem navMenuItemWarning">
-                  <Gamepad2 className="w-4 h-4 mr-2" />
+                <Link
+                  href="/games"
+                  className={userMenuItemClass(isV2, 'navMenuItem navMenuItemWarning')}
+                >
+                  <Gamepad2 className="w-4 h-4 mr-2 v2:mr-0" />
                   Arcade
                 </Link>
               </motion.div>
@@ -114,8 +130,15 @@ export function DesktopUserDropdown({
               animate={{ x: 0, opacity: 1 }}
               transition={{ delay: 0.17, duration: 0.1 }}
             >
-              <button onClick={handleSignOut} className="navMenuItem navMenuItemDanger w-full">
-                <LogOut className="w-4 h-4 mr-2" />
+              <button
+                onClick={handleSignOut}
+                className={userMenuItemClass(
+                  isV2,
+                  'navMenuItem navMenuItemDanger w-full',
+                  'danger'
+                )}
+              >
+                <LogOut className="w-4 h-4 mr-2 v2:mr-0" />
                 Déconnexion
               </button>
             </motion.div>

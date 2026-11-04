@@ -17,6 +17,13 @@ export function SlotMachineSelectionDialog({
 }: SlotMachineSelectionDialogProps) {
   if (!isOpen) return null;
 
+  const handleCardKey = (version: 'retro' | 'modern') => (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onSelect(version);
+    }
+  };
+
   const content = (
     <AnimatePresence>
       {isOpen && (
@@ -25,7 +32,7 @@ export function SlotMachineSelectionDialog({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-sm"
+          className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-sm v2:bg-black/60 v2:backdrop-blur-md"
           onClick={onClose}
         >
           <motion.div
@@ -39,17 +46,17 @@ export function SlotMachineSelectionDialog({
             {/* Bouton de fermeture */}
             <button
               onClick={onClose}
-              className="absolute -top-12 right-0 p-2 text-gray-400 hover:text-white bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+              className="absolute -top-12 right-0 p-2 text-gray-400 hover:text-white bg-white/10 hover:bg-white/20 rounded-full transition-colors v2:bg-white/[0.06] v2:hover:bg-white/[0.12]"
               aria-label="Fermer"
             >
               <X className="w-6 h-6" />
             </button>
 
             <div className="text-center mb-8">
-              <h2 className="text-3xl sm:text-4xl font-audiowide text-white mb-2">
+              <h2 className="text-3xl sm:text-4xl font-audiowide text-white mb-2 v2:text-display">
                 Choisissez votre style
               </h2>
-              <p className="text-gray-400">Deux façons de tenter votre chance</p>
+              <p className="text-gray-400 v2:text-white/60">Deux façons de tenter votre chance</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -58,21 +65,24 @@ export function SlotMachineSelectionDialog({
                 whileHover={{ scale: 1.02, y: -5 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => onSelect('retro')}
-                className="group relative cursor-pointer overflow-hidden rounded-2xl border border-purple-500/30 bg-gradient-to-br from-[#1a0f2a] to-[#0c0117] p-1"
+                onKeyDown={handleCardKey('retro')}
+                role="button"
+                tabIndex={0}
+                className="group relative cursor-pointer overflow-hidden rounded-2xl border border-purple-500/30 bg-gradient-to-br from-[#1a0f2a] to-[#0c0117] p-1 v2:bg-none v2:surface-1 v2:border-white/10 v2:hover:border-white/20"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-blue-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-blue-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 v2:hidden" />
 
-                <div className="relative h-full flex flex-col items-center justify-center p-8 rounded-xl bg-black/40 backdrop-blur-sm">
-                  <div className="w-24 h-24 mb-6 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center shadow-lg shadow-purple-500/30 group-hover:shadow-purple-500/50 transition-all">
+                <div className="relative h-full flex flex-col items-center justify-center p-8 rounded-xl bg-black/40 backdrop-blur-sm v2:bg-transparent">
+                  <div className="w-24 h-24 mb-6 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center shadow-lg shadow-purple-500/30 group-hover:shadow-purple-500/50 transition-all v2:bg-none v2:bg-white/[0.06] v2:shadow-none v2:group-hover:shadow-none">
                     <Gamepad2 className="w-12 h-12 text-white" />
                   </div>
 
                   <h3 className="text-2xl font-bold text-white mb-2 font-audiowide">Retro</h3>
-                  <p className="text-gray-400 text-center text-sm">
+                  <p className="text-gray-400 text-center text-sm v2:text-white/60">
                     L'expérience classique avec des emojis et un style arcade.
                   </p>
 
-                  <div className="mt-6 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm text-purple-300 group-hover:bg-purple-500 group-hover:text-white transition-colors">
+                  <div className="mt-6 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm text-purple-300 group-hover:bg-purple-500 group-hover:text-white transition-colors v2:text-white/80 v2:group-hover:bg-white v2:group-hover:text-zinc-950">
                     Jouer en Retro
                   </div>
                 </div>
@@ -83,21 +93,24 @@ export function SlotMachineSelectionDialog({
                 whileHover={{ scale: 1.02, y: -5 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => onSelect('modern')}
-                className="group relative cursor-pointer overflow-hidden rounded-2xl border border-pink-500/30 bg-gradient-to-br from-[#2a0f1a] to-[#17010c] p-1"
+                onKeyDown={handleCardKey('modern')}
+                role="button"
+                tabIndex={0}
+                className="group relative cursor-pointer overflow-hidden rounded-2xl border border-pink-500/30 bg-gradient-to-br from-[#2a0f1a] to-[#17010c] p-1 v2:bg-none v2:surface-1 v2:border-white/10 v2:hover:border-white/20"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-pink-500/20 to-orange-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="absolute inset-0 bg-gradient-to-br from-pink-500/20 to-orange-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 v2:hidden" />
 
-                <div className="relative h-full flex flex-col items-center justify-center p-8 rounded-xl bg-black/40 backdrop-blur-sm">
-                  <div className="w-24 h-24 mb-6 rounded-full bg-gradient-to-br from-pink-500 to-orange-500 flex items-center justify-center shadow-lg shadow-pink-500/30 group-hover:shadow-pink-500/50 transition-all">
+                <div className="relative h-full flex flex-col items-center justify-center p-8 rounded-xl bg-black/40 backdrop-blur-sm v2:bg-transparent">
+                  <div className="w-24 h-24 mb-6 rounded-full bg-gradient-to-br from-pink-500 to-orange-500 flex items-center justify-center shadow-lg shadow-pink-500/30 group-hover:shadow-pink-500/50 transition-all v2:bg-none v2:bg-white/[0.06] v2:shadow-none v2:group-hover:shadow-none">
                     <Sparkles className="w-12 h-12 text-white" />
                   </div>
 
                   <h3 className="text-2xl font-bold text-white mb-2 font-audiowide">Moderne</h3>
-                  <p className="text-gray-400 text-center text-sm">
+                  <p className="text-gray-400 text-center text-sm v2:text-white/60">
                     Une nouvelle expérience immersive avec des graphismes HD.
                   </p>
 
-                  <div className="mt-6 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm text-pink-300 group-hover:bg-pink-500 group-hover:text-white transition-colors">
+                  <div className="mt-6 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm text-pink-300 group-hover:bg-pink-500 group-hover:text-white transition-colors v2:text-white/80 v2:group-hover:bg-white v2:group-hover:text-zinc-950">
                     Jouer en Moderne
                   </div>
                 </div>

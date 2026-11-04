@@ -1,7 +1,7 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useSlotMachine } from '../useSlotMachine';
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 
 // Mock dependencies
 jest.mock('next-auth/react', () => ({
@@ -9,7 +9,7 @@ jest.mock('next-auth/react', () => ({
 }));
 
 jest.mock('@/lib/api/fetchWithAuth');
-jest.mock('react-hot-toast', () => ({
+jest.mock('sonner', () => ({
   toast: {
     success: jest.fn(),
     error: jest.fn(),

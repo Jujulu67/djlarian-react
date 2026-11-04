@@ -16,7 +16,7 @@ import { ShieldAlert, Trash2, Calendar, Monitor, Cpu, RotateCw, Loader2, Copy } 
 import { formatDistanceToNow, format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 
 interface LicenseActivation {
   id: string;

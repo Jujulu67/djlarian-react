@@ -129,14 +129,14 @@ export function FriendsList({ onSendMessage }: FriendsListProps) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-purple-500 v2:text-white/50" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-4 bg-red-500/20 border border-red-500/30 rounded-lg text-red-400">
+      <div className="p-4 bg-red-500/20 border border-red-500/30 rounded-lg text-red-400 v2:rounded-xl">
         {error}
       </div>
     );
@@ -145,7 +145,7 @@ export function FriendsList({ onSendMessage }: FriendsListProps) {
   return (
     <div className="space-y-6">
       {/* Recherche d'utilisateurs pour envoyer une demande */}
-      <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700/50 rounded-lg overflow-hidden transition-all duration-200">
+      <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700/50 rounded-lg overflow-hidden transition-all duration-200 v2:bg-none v2:surface-1 v2:rounded-2xl">
         {/* Header cliquable pour collapse/expand */}
         <button
           onClick={() => {
@@ -157,8 +157,8 @@ export function FriendsList({ onSendMessage }: FriendsListProps) {
           className="w-full flex items-center justify-between p-4 hover:bg-gray-800/30 transition-colors"
         >
           <h3 className="text-base font-semibold text-white flex items-center gap-2">
-            <div className="p-1.5 bg-purple-500/20 rounded-lg border border-purple-500/30">
-              <UserPlus className="w-4 h-4 text-purple-400" />
+            <div className="p-1.5 bg-purple-500/20 rounded-lg border border-purple-500/30 v2:bg-white/[0.06] v2:border-white/10 v2:rounded-xl">
+              <UserPlus className="w-4 h-4 text-purple-400 v2:text-white/70" />
             </div>
             Ajouter un ami
           </h3>
@@ -187,7 +187,7 @@ export function FriendsList({ onSendMessage }: FriendsListProps) {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Rechercher un utilisateur par nom ou email..."
-                className="w-full pl-10 pr-4 py-2.5 bg-gray-900/70 border border-gray-700/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all"
+                className="w-full pl-10 pr-4 py-2.5 bg-gray-900/70 border border-gray-700/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all v2:rounded-xl v2:border-white/10 v2:bg-white/[0.03] v2:focus:border-brand/70 v2:focus:ring-4 v2:focus:ring-brand/15"
                 onClick={(e) => e.stopPropagation()}
               />
             </div>
@@ -195,7 +195,7 @@ export function FriendsList({ onSendMessage }: FriendsListProps) {
             {/* Liste des utilisateurs */}
             {isLoadingUsers ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-purple-500" />
+                <Loader2 className="w-6 h-6 animate-spin text-purple-500 v2:text-white/50" />
               </div>
             ) : filteredAvailableUsers.length === 0 ? (
               <div className="text-center py-6">
@@ -213,12 +213,12 @@ export function FriendsList({ onSendMessage }: FriendsListProps) {
                 {filteredAvailableUsers.map((user) => (
                   <div
                     key={user.id}
-                    className="flex items-center justify-between p-3 bg-gray-900/50 hover:bg-gray-900/70 border border-gray-700/30 rounded-lg transition-all group"
+                    className="flex items-center justify-between p-3 bg-gray-900/50 hover:bg-gray-900/70 border border-gray-700/30 rounded-lg transition-all group v2:bg-white/[0.03] v2:border-white/[0.08] v2:hover:bg-white/[0.05] v2:rounded-xl"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-purple-900/40 to-purple-800/20 flex items-center justify-center border border-purple-500/30 flex-shrink-0 group-hover:border-purple-500/50 transition-colors">
-                        <User className="w-5 h-5 text-purple-400" />
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-purple-900/40 to-purple-800/20 flex items-center justify-center border border-purple-500/30 flex-shrink-0 group-hover:border-purple-500/50 transition-colors v2:bg-none v2:bg-white/[0.06] v2:border-white/10">
+                        <User className="w-5 h-5 text-purple-400 v2:text-white/70" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-white truncate">
@@ -239,7 +239,7 @@ export function FriendsList({ onSendMessage }: FriendsListProps) {
                         );
                       }}
                       disabled={processingIds.has(`request-${user.id}`)}
-                      className="px-4 py-2 bg-gradient-to-r from-purple-600/20 to-purple-500/20 hover:from-purple-600/30 hover:to-purple-500/30 border border-purple-500/30 rounded-lg text-purple-300 text-xs font-medium transition-all disabled:opacity-50 flex items-center gap-2 flex-shrink-0 hover:scale-105 active:scale-95"
+                      className="px-4 py-2 bg-gradient-to-r from-purple-600/20 to-purple-500/20 hover:from-purple-600/30 hover:to-purple-500/30 border border-purple-500/30 rounded-lg text-purple-300 text-xs font-medium transition-all disabled:opacity-50 flex items-center gap-2 flex-shrink-0 hover:scale-105 active:scale-95 v2:bg-none v2:rounded-xl v2:border-transparent v2:bg-white/[0.04] v2:ring-1 v2:ring-inset v2:ring-white/10 v2:text-white/80 v2:hover:bg-white/[0.08] v2:hover:text-white v2:active:scale-[0.98]"
                     >
                       {processingIds.has(`request-${user.id}`) ? (
                         <>
@@ -265,17 +265,17 @@ export function FriendsList({ onSendMessage }: FriendsListProps) {
       {pendingReceived.length > 0 && (
         <div>
           <h2 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
-            <UserPlus className="w-5 h-5 text-blue-400" />
+            <UserPlus className="w-5 h-5 text-blue-400 v2:text-white/70" />
             Demandes reçues ({pendingReceived.length})
           </h2>
           <div className="space-y-2">
             {pendingReceived.map((request) => (
               <div
                 key={request.friendshipId}
-                className="flex items-center justify-between p-4 bg-gray-800/50 border border-gray-700/50 rounded-lg"
+                className="flex items-center justify-between p-4 bg-gray-800/50 border border-gray-700/50 rounded-lg v2:bg-white/[0.03] v2:border-white/[0.08] v2:rounded-2xl"
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="h-10 w-10 rounded-full bg-blue-900/30 flex items-center justify-center border border-blue-500/20 flex-shrink-0">
+                  <div className="h-10 w-10 rounded-full bg-blue-900/30 flex items-center justify-center border border-blue-500/20 flex-shrink-0 v2:bg-none v2:bg-white/[0.06] v2:border-white/10">
                     {request.user.image ? (
                       <img
                         src={request.user.image}
@@ -283,7 +283,7 @@ export function FriendsList({ onSendMessage }: FriendsListProps) {
                         className="h-full w-full object-cover rounded-full"
                       />
                     ) : (
-                      <User className="w-5 h-5 text-blue-400" />
+                      <User className="w-5 h-5 text-blue-400 v2:text-white/70" />
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -305,7 +305,7 @@ export function FriendsList({ onSendMessage }: FriendsListProps) {
                       )
                     }
                     disabled={processingIds.has(request.friendshipId)}
-                    className="px-3 py-1.5 bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 rounded-lg text-green-300 text-xs font-medium transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                    className="px-3 py-1.5 bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 rounded-lg text-green-300 text-xs font-medium transition-colors disabled:opacity-50 flex items-center gap-1.5 v2:rounded-xl v2:border-transparent v2:bg-gradient-to-b v2:from-brand v2:to-purple-600 v2:text-white v2:shadow-[inset_0_1px_0_rgb(255_255_255/0.22)] v2:hover:brightness-110 v2:active:scale-[0.98]"
                   >
                     {processingIds.has(request.friendshipId) ? (
                       <Loader2 className="w-3 h-3 animate-spin" />
@@ -323,7 +323,7 @@ export function FriendsList({ onSendMessage }: FriendsListProps) {
                       )
                     }
                     disabled={processingIds.has(request.friendshipId)}
-                    className="px-3 py-1.5 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 rounded-lg text-red-300 text-xs font-medium transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                    className="px-3 py-1.5 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 rounded-lg text-red-300 text-xs font-medium transition-colors disabled:opacity-50 flex items-center gap-1.5 v2:rounded-xl v2:border-red-500/20 v2:bg-red-500/10 v2:hover:bg-red-500/20 v2:text-red-300 v2:active:scale-[0.98]"
                   >
                     {processingIds.has(request.friendshipId) ? (
                       <Loader2 className="w-3 h-3 animate-spin" />
@@ -343,17 +343,17 @@ export function FriendsList({ onSendMessage }: FriendsListProps) {
       {pendingSent.length > 0 && (
         <div>
           <h2 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
-            <Send className="w-5 h-5 text-yellow-400" />
+            <Send className="w-5 h-5 text-yellow-400 v2:text-white/70" />
             Demandes envoyées ({pendingSent.length})
           </h2>
           <div className="space-y-2">
             {pendingSent.map((request) => (
               <div
                 key={request.friendshipId}
-                className="flex items-center justify-between p-4 bg-gray-800/50 border border-gray-700/50 rounded-lg"
+                className="flex items-center justify-between p-4 bg-gray-800/50 border border-gray-700/50 rounded-lg v2:bg-white/[0.03] v2:border-white/[0.08] v2:rounded-2xl"
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="h-10 w-10 rounded-full bg-yellow-900/30 flex items-center justify-center border border-yellow-500/20 flex-shrink-0">
+                  <div className="h-10 w-10 rounded-full bg-yellow-900/30 flex items-center justify-center border border-yellow-500/20 flex-shrink-0 v2:bg-none v2:bg-white/[0.06] v2:border-white/10">
                     {request.user.image ? (
                       <img
                         src={request.user.image}
@@ -361,7 +361,7 @@ export function FriendsList({ onSendMessage }: FriendsListProps) {
                         className="h-full w-full object-cover rounded-full"
                       />
                     ) : (
-                      <User className="w-5 h-5 text-yellow-400" />
+                      <User className="w-5 h-5 text-yellow-400 v2:text-white/70" />
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -383,11 +383,11 @@ export function FriendsList({ onSendMessage }: FriendsListProps) {
       {/* Liste des amis */}
       <div>
         <h2 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
-          <User className="w-5 h-5 text-purple-400" />
+          <User className="w-5 h-5 text-purple-400 v2:text-white/70" />
           Mes amis ({friends.length})
         </h2>
         {friends.length === 0 ? (
-          <div className="p-8 bg-gray-800/50 border border-gray-700/50 rounded-lg text-center">
+          <div className="p-8 bg-gray-800/50 border border-gray-700/50 rounded-lg text-center v2:bg-white/[0.03] v2:border-white/[0.08] v2:rounded-2xl">
             <User className="w-12 h-12 text-gray-500 mx-auto mb-3" />
             <p className="text-gray-400">Vous n'avez pas encore d'amis</p>
             <p className="text-sm text-gray-500 mt-1">
@@ -399,10 +399,10 @@ export function FriendsList({ onSendMessage }: FriendsListProps) {
             {friends.map((friend) => (
               <div
                 key={friend.friendshipId}
-                className="flex items-center justify-between p-4 bg-gray-800/50 border border-gray-700/50 rounded-lg hover:bg-gray-800/70 transition-colors"
+                className="flex items-center justify-between p-4 bg-gray-800/50 border border-gray-700/50 rounded-lg hover:bg-gray-800/70 transition-colors v2:bg-white/[0.03] v2:border-white/[0.08] v2:rounded-2xl"
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="h-10 w-10 rounded-full bg-purple-900/30 flex items-center justify-center border border-purple-500/20 flex-shrink-0">
+                  <div className="h-10 w-10 rounded-full bg-purple-900/30 flex items-center justify-center border border-purple-500/20 flex-shrink-0 v2:bg-none v2:bg-white/[0.06] v2:border-white/10">
                     {friend.user.image ? (
                       <img
                         src={friend.user.image}
@@ -410,7 +410,7 @@ export function FriendsList({ onSendMessage }: FriendsListProps) {
                         className="h-full w-full object-cover rounded-full"
                       />
                     ) : (
-                      <User className="w-5 h-5 text-purple-400" />
+                      <User className="w-5 h-5 text-purple-400 v2:text-white/70" />
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -425,7 +425,7 @@ export function FriendsList({ onSendMessage }: FriendsListProps) {
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <button
                     onClick={() => handleSendMessage(friend.user.id)}
-                    className="px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded-lg text-blue-300 text-xs font-medium transition-colors flex items-center gap-1.5"
+                    className="px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded-lg text-blue-300 text-xs font-medium transition-colors flex items-center gap-1.5 v2:rounded-xl v2:border-transparent v2:bg-white/[0.04] v2:ring-1 v2:ring-inset v2:ring-white/10 v2:text-white/80 v2:hover:bg-white/[0.08] v2:hover:text-white v2:active:scale-[0.98]"
                   >
                     <MessageSquare className="w-3 h-3" />
                     Message
@@ -439,7 +439,7 @@ export function FriendsList({ onSendMessage }: FriendsListProps) {
                       setUnfriendDialogOpen(true);
                     }}
                     disabled={processingIds.has(friend.friendshipId)}
-                    className="px-3 py-1.5 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 rounded-lg text-red-300 text-xs font-medium transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                    className="px-3 py-1.5 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 rounded-lg text-red-300 text-xs font-medium transition-colors disabled:opacity-50 flex items-center gap-1.5 v2:rounded-xl v2:border-red-500/20 v2:bg-red-500/10 v2:hover:bg-red-500/20 v2:text-red-300 v2:active:scale-[0.98]"
                   >
                     {processingIds.has(friend.friendshipId) ? (
                       <Loader2 className="w-3 h-3 animate-spin" />

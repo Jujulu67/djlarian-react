@@ -51,7 +51,7 @@ export function ProjectsToolbar({
   statusFilter,
 }: ProjectsToolbarProps) {
   return (
-    <div className="glass-modern rounded-2xl p-4 sm:p-6">
+    <div className="glass-modern rounded-2xl p-4 sm:p-6 v2:surface-1">
       <div className="flex flex-col gap-4">
         {/* Ligne 1: Recherche */}
         <div className="flex gap-3 items-center flex-wrap">
@@ -65,7 +65,7 @@ export function ProjectsToolbar({
               placeholder="Rechercher un projet..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-gray-900/70 text-white w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-700/70 focus:border-purple-500/70 focus:ring-1 focus:ring-purple-500/70 transition-all shadow-inner text-sm"
+              className="bg-gray-900/70 text-white w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-700/70 focus:border-purple-500/70 focus:ring-1 focus:ring-purple-500/70 transition-all shadow-inner text-sm v2:bg-white/[0.03] v2:border-white/10 v2:shadow-none v2:focus:border-brand/70 v2:focus:ring-4 v2:focus:ring-brand/15"
             />
           </div>
         </div>
@@ -74,7 +74,7 @@ export function ProjectsToolbar({
           {/* Ligne 2: Checkboxes */}
           <div className="flex gap-3 items-center flex-wrap lg:flex-nowrap">
             {/* Checkbox pour masquer/afficher les projets sortis */}
-            <div className="px-3 py-2 bg-gray-800/70 backdrop-blur-md rounded-xl border border-gray-700/70 flex-1 sm:flex-none">
+            <div className="px-3 py-2 bg-gray-800/70 backdrop-blur-md rounded-xl border border-gray-700/70 flex-1 sm:flex-none v2:bg-white/[0.04] v2:border-white/10 v2:rounded-full">
               <Checkbox
                 checked={showReleasedProjects}
                 onCheckedChange={setShowReleasedProjects}
@@ -89,7 +89,7 @@ export function ProjectsToolbar({
             </div>
 
             {/* Checkbox pour masquer/afficher les stats */}
-            <div className="px-3 py-2 bg-gray-800/70 backdrop-blur-md rounded-xl border border-gray-700/70 flex-1 sm:flex-none">
+            <div className="px-3 py-2 bg-gray-800/70 backdrop-blur-md rounded-xl border border-gray-700/70 flex-1 sm:flex-none v2:bg-white/[0.04] v2:border-white/10 v2:rounded-full">
               <Checkbox
                 checked={showStats}
                 onCheckedChange={setShowStats}
@@ -107,14 +107,14 @@ export function ProjectsToolbar({
           {/* Ligne 3: Filtres par statut */}
           <div className="flex gap-3 items-center flex-1 min-w-0">
             {/* Filtres par statut - scrollables sur mobile */}
-            <div className="bg-gray-800/70 backdrop-blur-md rounded-xl p-1.5 flex items-center border border-gray-700/70 shadow-lg overflow-x-auto flex-1 min-w-0">
+            <div className="bg-gray-800/70 backdrop-blur-md rounded-xl p-1.5 flex items-center border border-gray-700/70 shadow-lg overflow-x-auto flex-1 min-w-0 v2:bg-white/[0.04] v2:border-white/10 v2:rounded-full v2:shadow-none">
               <div className="flex gap-1 min-w-max">
                 <button
                   onClick={() => setStatusFilter('ALL')}
-                  className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
+                  className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap v2:rounded-full v2:active:scale-[0.98] ${
                     statusFilter === 'ALL'
-                      ? 'bg-gradient-to-r from-purple-600 to-purple-800 text-white shadow-md'
-                      : 'text-gray-300 hover:bg-gray-700/60'
+                      ? 'bg-gradient-to-r from-purple-600 to-purple-800 text-white shadow-md v2:bg-none v2:bg-white v2:text-zinc-950 v2:shadow-none'
+                      : 'text-gray-300 hover:bg-gray-700/60 v2:text-white/70 v2:hover:bg-white/[0.06] v2:hover:text-white'
                   }`}
                 >
                   Tous ({counts?.total ?? allProjects.length})
@@ -127,10 +127,10 @@ export function ProjectsToolbar({
                     <button
                       key={status.value}
                       onClick={() => setStatusFilter(status.value)}
-                      className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
+                      className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap v2:rounded-full v2:active:scale-[0.98] ${
                         statusFilter === status.value
-                          ? 'bg-gradient-to-r from-purple-600 to-purple-800 text-white shadow-md'
-                          : 'text-gray-300 hover:bg-gray-700/60'
+                          ? 'bg-gradient-to-r from-purple-600 to-purple-800 text-white shadow-md v2:bg-none v2:bg-white v2:text-zinc-950 v2:shadow-none'
+                          : 'text-gray-300 hover:bg-gray-700/60 v2:text-white/70 v2:hover:bg-white/[0.06] v2:hover:text-white'
                       }`}
                     >
                       {status.label} ({count})
@@ -158,7 +158,7 @@ export function ProjectsToolbar({
                     setSortField(null);
                     setSortDirection('asc');
                   }}
-                  className="text-sm text-gray-400 hover:text-purple-400 transition-colors px-3 py-2 bg-gray-800/70 rounded-xl border border-gray-700/70 hover:border-purple-500/70"
+                  className="text-sm text-gray-400 hover:text-purple-400 transition-colors px-3 py-2 bg-gray-800/70 rounded-xl border border-gray-700/70 hover:border-purple-500/70 v2:rounded-full v2:bg-white/[0.04] v2:border-white/10 v2:hover:border-white/20 v2:hover:text-white"
                   title="Réinitialiser les filtres"
                 >
                   Réinitialiser
@@ -166,10 +166,10 @@ export function ProjectsToolbar({
               )}
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className={`bg-gray-800/70 p-3 rounded-xl border transition-all ${
+                className={`bg-gray-800/70 p-3 rounded-xl border transition-all v2:rounded-full v2:bg-white/[0.04] ${
                   showFilters
-                    ? 'border-purple-500/70 text-purple-400 bg-purple-500/10'
-                    : 'border-gray-700/70 text-gray-300 hover:border-gray-500/70'
+                    ? 'border-purple-500/70 text-purple-400 bg-purple-500/10 v2:border-white v2:bg-white v2:text-zinc-950'
+                    : 'border-gray-700/70 text-gray-300 hover:border-gray-500/70 v2:border-white/10 v2:text-white/70 v2:hover:border-white/20 v2:hover:text-white'
                 }`}
                 aria-label="Plus de filtres"
                 title="Filtres additionnels"
@@ -182,15 +182,17 @@ export function ProjectsToolbar({
 
         {/* Filtres additionnels par champ */}
         {showFilters && (
-          <div className="mt-2 pt-4 border-t border-gray-700/50 animate-fadeIn">
+          <div className="mt-2 pt-4 border-t border-gray-700/50 animate-fadeIn v2:border-white/10">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Nom */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Nom Projet</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2 v2:text-white/70">
+                  Nom Projet
+                </label>
                 <select
                   value={fieldFilters.name}
                   onChange={(e) => handleFieldFilterChange('name', e.target.value)}
-                  className="bg-gray-900/70 text-white w-full px-4 py-2.5 rounded-xl border border-gray-700/70 focus:border-purple-500/70 focus:ring-1 focus:ring-purple-500/70 transition-all shadow-inner text-sm"
+                  className="bg-gray-900/70 text-white w-full px-4 py-2.5 rounded-xl border border-gray-700/70 focus:border-purple-500/70 focus:ring-1 focus:ring-purple-500/70 transition-all shadow-inner text-sm v2:bg-white/[0.03] v2:border-white/10 v2:shadow-none v2:focus:border-brand/70 v2:focus:ring-4 v2:focus:ring-brand/15"
                 >
                   <option value="">Tous les noms</option>
                   {getFieldOptions('name').map((name) => (
@@ -203,11 +205,13 @@ export function ProjectsToolbar({
 
               {/* Style */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Style</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2 v2:text-white/70">
+                  Style
+                </label>
                 <select
                   value={fieldFilters.style}
                   onChange={(e) => handleFieldFilterChange('style', e.target.value)}
-                  className="bg-gray-900/70 text-white w-full px-4 py-2.5 rounded-xl border border-gray-700/70 focus:border-purple-500/70 focus:ring-1 focus:ring-purple-500/70 transition-all shadow-inner text-sm"
+                  className="bg-gray-900/70 text-white w-full px-4 py-2.5 rounded-xl border border-gray-700/70 focus:border-purple-500/70 focus:ring-1 focus:ring-purple-500/70 transition-all shadow-inner text-sm v2:bg-white/[0.03] v2:border-white/10 v2:shadow-none v2:focus:border-brand/70 v2:focus:ring-4 v2:focus:ring-brand/15"
                 >
                   <option value="">Tous les styles</option>
                   {getFieldOptions('style').map((style) => (
@@ -220,11 +224,13 @@ export function ProjectsToolbar({
 
               {/* Collab */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Collab</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2 v2:text-white/70">
+                  Collab
+                </label>
                 <select
                   value={fieldFilters.collab}
                   onChange={(e) => handleFieldFilterChange('collab', e.target.value)}
-                  className="bg-gray-900/70 text-white w-full px-4 py-2.5 rounded-xl border border-gray-700/70 focus:border-purple-500/70 focus:ring-1 focus:ring-purple-500/70 transition-all shadow-inner text-sm"
+                  className="bg-gray-900/70 text-white w-full px-4 py-2.5 rounded-xl border border-gray-700/70 focus:border-purple-500/70 focus:ring-1 focus:ring-purple-500/70 transition-all shadow-inner text-sm v2:bg-white/[0.03] v2:border-white/10 v2:shadow-none v2:focus:border-brand/70 v2:focus:ring-4 v2:focus:ring-brand/15"
                 >
                   <option value="">Toutes les collabs</option>
                   {getFieldOptions('collab').map((collab) => (
@@ -237,11 +243,13 @@ export function ProjectsToolbar({
 
               {/* Label */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Label</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2 v2:text-white/70">
+                  Label
+                </label>
                 <select
                   value={fieldFilters.label}
                   onChange={(e) => handleFieldFilterChange('label', e.target.value)}
-                  className="bg-gray-900/70 text-white w-full px-4 py-2.5 rounded-xl border border-gray-700/70 focus:border-purple-500/70 focus:ring-1 focus:ring-purple-500/70 transition-all shadow-inner text-sm"
+                  className="bg-gray-900/70 text-white w-full px-4 py-2.5 rounded-xl border border-gray-700/70 focus:border-purple-500/70 focus:ring-1 focus:ring-purple-500/70 transition-all shadow-inner text-sm v2:bg-white/[0.03] v2:border-white/10 v2:shadow-none v2:focus:border-brand/70 v2:focus:ring-4 v2:focus:ring-brand/15"
                 >
                   <option value="">Tous les labels</option>
                   {getFieldOptions('label').map((label) => (
@@ -254,11 +262,13 @@ export function ProjectsToolbar({
 
               {/* Label Final */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Label Final</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2 v2:text-white/70">
+                  Label Final
+                </label>
                 <select
                   value={fieldFilters.labelFinal}
                   onChange={(e) => handleFieldFilterChange('labelFinal', e.target.value)}
-                  className="bg-gray-900/70 text-white w-full px-4 py-2.5 rounded-xl border border-gray-700/70 focus:border-purple-500/70 focus:ring-1 focus:ring-purple-500/70 transition-all shadow-inner text-sm"
+                  className="bg-gray-900/70 text-white w-full px-4 py-2.5 rounded-xl border border-gray-700/70 focus:border-purple-500/70 focus:ring-1 focus:ring-purple-500/70 transition-all shadow-inner text-sm v2:bg-white/[0.03] v2:border-white/10 v2:shadow-none v2:focus:border-brand/70 v2:focus:ring-4 v2:focus:ring-brand/15"
                 >
                   <option value="">Tous les labels finaux</option>
                   {getFieldOptions('labelFinal').map((labelFinal) => (
@@ -271,11 +281,13 @@ export function ProjectsToolbar({
 
               {/* Lien */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Lien</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2 v2:text-white/70">
+                  Lien
+                </label>
                 <select
                   value={fieldFilters.externalLink}
                   onChange={(e) => handleFieldFilterChange('externalLink', e.target.value)}
-                  className="bg-gray-900/70 text-white w-full px-4 py-2.5 rounded-xl border border-gray-700/70 focus:border-purple-500/70 focus:ring-1 focus:ring-purple-500/70 transition-all shadow-inner text-sm"
+                  className="bg-gray-900/70 text-white w-full px-4 py-2.5 rounded-xl border border-gray-700/70 focus:border-purple-500/70 focus:ring-1 focus:ring-purple-500/70 transition-all shadow-inner text-sm v2:bg-white/[0.03] v2:border-white/10 v2:shadow-none v2:focus:border-brand/70 v2:focus:ring-4 v2:focus:ring-brand/15"
                 >
                   <option value="">Tous les liens</option>
                   {getFieldOptions('externalLink').map((link) => (

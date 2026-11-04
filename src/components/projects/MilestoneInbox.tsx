@@ -312,7 +312,7 @@ export function MilestoneInbox({ isOpen, onClose }: MilestoneInboxProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 v2:bg-black/40"
             onClick={onClose}
             aria-hidden="true"
           />
@@ -329,16 +329,16 @@ export function MilestoneInbox({ isOpen, onClose }: MilestoneInboxProps) {
               stiffness: 300,
               duration: 0.3,
             }}
-            className="fixed top-16 left-0 right-0 sm:left-auto sm:right-4 w-full sm:w-auto sm:max-w-md bg-gradient-to-br from-gray-900/95 via-gray-800/95 to-gray-900/95 backdrop-blur-xl border border-purple-500/30 rounded-none sm:rounded-xl shadow-2xl z-50 max-h-[calc(100vh-4rem)] sm:max-h-[calc(100vh-5rem)] flex flex-col"
+            className="fixed top-16 left-0 right-0 sm:left-auto sm:right-4 w-full sm:w-auto sm:max-w-md bg-gradient-to-br from-gray-900/95 via-gray-800/95 to-gray-900/95 backdrop-blur-xl border border-purple-500/30 rounded-none sm:rounded-xl shadow-2xl z-50 max-h-[calc(100vh-4rem)] sm:max-h-[calc(100vh-5rem)] flex flex-col v2:bg-none v2:surface-3 v2:sm:rounded-2xl v2:overflow-hidden"
             role="dialog"
             aria-labelledby="inbox-title"
             aria-modal="true"
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-700/50 bg-gray-900/80 backdrop-blur-sm">
+            <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-700/50 bg-gray-900/80 backdrop-blur-sm v2:bg-transparent v2:border-white/10">
               <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-                <div className="p-1.5 sm:p-2 bg-purple-500/20 rounded-lg flex-shrink-0">
-                  <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" />
+                <div className="p-1.5 sm:p-2 bg-purple-500/20 rounded-lg flex-shrink-0 v2:rounded-xl v2:bg-white/[0.06]">
+                  <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400 v2:text-white/80" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <h2
@@ -358,7 +358,7 @@ export function MilestoneInbox({ isOpen, onClose }: MilestoneInboxProps) {
                 {unreadCount > 0 && (
                   <button
                     onClick={handleMarkAllAsRead}
-                    className="p-2 text-gray-400 hover:text-purple-400 hover:bg-purple-500/10 rounded-lg transition-colors touch-manipulation"
+                    className="p-2 text-gray-400 hover:text-purple-400 hover:bg-purple-500/10 rounded-lg transition-colors touch-manipulation v2:rounded-xl v2:hover:bg-white/[0.06] v2:hover:text-white"
                     title="Tout marquer comme lu"
                     aria-label="Tout marquer comme lu"
                   >
@@ -367,7 +367,7 @@ export function MilestoneInbox({ isOpen, onClose }: MilestoneInboxProps) {
                 )}
                 <button
                   onClick={onClose}
-                  className="p-2 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-lg transition-colors touch-manipulation"
+                  className="p-2 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-lg transition-colors touch-manipulation v2:rounded-xl v2:hover:bg-white/[0.06]"
                   aria-label="Fermer"
                 >
                   <X className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -379,19 +379,19 @@ export function MilestoneInbox({ isOpen, onClose }: MilestoneInboxProps) {
             <div className="flex-1 overflow-y-auto">
               {isLoading ? (
                 <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-6 h-6 animate-spin text-purple-500" />
+                  <Loader2 className="w-6 h-6 animate-spin text-purple-500 v2:text-white/50" />
                 </div>
               ) : error ? (
-                <div className="p-6 text-center">
-                  <p className="text-red-400 text-sm">{error}</p>
+                <div className="p-6 text-center v2:py-12">
+                  <p className="text-red-400 text-sm v2:text-red-300">{error}</p>
                 </div>
               ) : notifications.length === 0 ? (
-                <div className="p-6 text-center">
-                  <Bell className="w-12 h-12 mx-auto mb-3 text-gray-500" />
-                  <p className="text-gray-400 text-sm">Aucune notification</p>
+                <div className="p-6 text-center v2:py-12">
+                  <Bell className="w-12 h-12 mx-auto mb-3 text-gray-500 v2:box-content v2:size-6 v2:rounded-full v2:bg-white/[0.04] v2:p-3.5 v2:text-white/50" />
+                  <p className="text-gray-400 text-sm v2:text-white/60">Aucune notification</p>
                 </div>
               ) : (
-                <div className="divide-y divide-gray-700/50">
+                <div className="divide-y divide-gray-700/50 v2:divide-white/[0.06]">
                   {notifications.map((notification) => {
                     const style = getNotificationStyle(notification.type);
                     const metadata = parseMetadata(notification.metadata);
@@ -425,13 +425,15 @@ export function MilestoneInbox({ isOpen, onClose }: MilestoneInboxProps) {
                       <div
                         key={notification.id}
                         className={`w-full p-3 sm:p-4 hover:bg-gray-800/50 transition-colors touch-manipulation ${
-                          isUnread ? 'bg-purple-500/5 border-l-2 border-purple-500' : ''
-                        }`}
+                          isUnread
+                            ? 'bg-purple-500/5 border-l-2 border-purple-500 v2:bg-brand/[0.06] v2:border-brand'
+                            : ''
+                        } v2:hover:bg-white/[0.04]`}
                       >
                         <div className="flex items-start gap-2 sm:gap-3">
                           {/* Badge de type */}
                           <div
-                            className={`flex-shrink-0 p-1.5 sm:p-2 rounded-lg ${bgColor} border ${borderColor}`}
+                            className={`flex-shrink-0 p-1.5 sm:p-2 rounded-lg v2:rounded-xl ${bgColor} border ${borderColor}`}
                           >
                             <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${iconColor}`} />
                           </div>
@@ -448,7 +450,7 @@ export function MilestoneInbox({ isOpen, onClose }: MilestoneInboxProps) {
                                   {notification.title}
                                 </h3>
                                 {notification.message && (
-                                  <p className="text-xs sm:text-sm text-gray-400 mb-2 mt-1 line-clamp-3">
+                                  <p className="text-xs sm:text-sm text-gray-400 mb-2 mt-1 line-clamp-3 v2:text-white/60">
                                     {notification.message}
                                   </p>
                                 )}
@@ -526,7 +528,7 @@ export function MilestoneInbox({ isOpen, onClose }: MilestoneInboxProps) {
                                   return (
                                     <div
                                       key={reply.id}
-                                      className="p-2 bg-gray-800/30 rounded-lg border border-gray-700/30"
+                                      className="p-2 bg-gray-800/30 rounded-lg border border-gray-700/30 v2:rounded-xl v2:bg-white/[0.03] v2:border-white/[0.06]"
                                     >
                                       <div className="flex items-start gap-2">
                                         <div
@@ -586,7 +588,7 @@ export function MilestoneInbox({ isOpen, onClose }: MilestoneInboxProps) {
                                     console.error('Erreur lors de la mise à jour:', err);
                                   }
                                 }}
-                                className="p-2 sm:p-1.5 text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 rounded-lg transition-colors touch-manipulation"
+                                className="p-2 sm:p-1.5 text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 rounded-lg transition-colors touch-manipulation v2:rounded-xl v2:hover:bg-white/[0.06]"
                                 title="Marquer comme lu"
                                 aria-label="Marquer comme lu"
                               >
@@ -610,7 +612,7 @@ export function MilestoneInbox({ isOpen, onClose }: MilestoneInboxProps) {
                                   console.error("Erreur lors de l'archivage:", err);
                                 }
                               }}
-                              className="p-2 sm:p-1.5 text-gray-400 hover:text-orange-400 hover:bg-orange-500/10 rounded-lg transition-colors touch-manipulation"
+                              className="p-2 sm:p-1.5 text-gray-400 hover:text-orange-400 hover:bg-orange-500/10 rounded-lg transition-colors touch-manipulation v2:rounded-xl v2:hover:bg-white/[0.06] v2:hover:text-white"
                               title="Archiver"
                               aria-label="Archiver la notification"
                             >
@@ -626,13 +628,13 @@ export function MilestoneInbox({ isOpen, onClose }: MilestoneInboxProps) {
             </div>
 
             {/* Footer */}
-            <div className="p-3 sm:p-4 border-t border-gray-700/50 bg-gray-900/50">
+            <div className="p-3 sm:p-4 border-t border-gray-700/50 bg-gray-900/50 v2:bg-transparent v2:border-white/10">
               <button
                 onClick={() => {
                   onClose();
                   router.push('/notifications?view=messages');
                 }}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 sm:py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded-lg text-purple-300 text-sm font-medium transition-colors touch-manipulation"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 sm:py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded-lg text-purple-300 text-sm font-medium transition-colors touch-manipulation v2:rounded-xl v2:border-transparent v2:bg-white/[0.04] v2:hover:bg-white/[0.08] v2:text-white/80 v2:hover:text-white v2:ring-1 v2:ring-inset v2:ring-white/10 v2:active:scale-[0.98]"
               >
                 <ExternalLink className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span className="sm:hidden">Messagerie</span>

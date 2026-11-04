@@ -3,11 +3,14 @@ import { fr } from 'date-fns/locale';
 import { Calendar } from 'lucide-react';
 import React from 'react';
 
+import { useUiVersion } from '@/hooks/useUiVersion';
 import { Track } from '@/lib/utils/types';
 
 interface MusicCardInfoProps {
   track: Track;
   isPlayerVisible: boolean;
+  /** Pied de carte (UI v2 : rangée des plateformes) */
+  footer?: React.ReactNode;
 }
 
 /**
@@ -37,9 +40,46 @@ const getTypeLabel = (type: string): string => {
 /**
  * Component to display track information (title, date, badges)
  */
-export const MusicCardInfo: React.FC<MusicCardInfoProps> = ({ track, isPlayerVisible }) => {
+export const MusicCardInfo: React.FC<MusicCardInfoProps> = ({ track, isPlayerVisible, footer }) => {
+  const isV2 = useUiVersion() === 'v2';
+
   if (isPlayerVisible) {
     return null;
+  }
+
+  if (isV2) {
+    const meta = [
+      format(parseISO(track.releaseDate), 'd MMM yyyy', { locale: fr }),
+      track.bpm ? `${track.bpm} BPM` : null,
+      track.musicalKey || null,
+    ].filter(Boolean);
+
+    return (
+      <div className="flex flex-1 flex-col px-1.5 pb-1 pt-4">
+        <h3 className="line-clamp-1 text-base font-semibold text-white">{track.title}</h3>
+        {track.artist && (
+          <p className="mt-0.5 line-clamp-1 text-sm text-white/60">{track.artist}</p>
+        )}
+
+        <p className="mt-2 text-xs text-white/50">{meta.join(' · ')}</p>
+
+        {(track.genre.length > 0 || footer) && (
+          <div className="mt-auto flex items-center justify-between gap-3 pt-4">
+            <div className="flex min-w-0 flex-wrap gap-1.5">
+              {track.genre.slice(0, 2).map((genre) => (
+                <span
+                  key={genre}
+                  className="truncate rounded-full bg-white/[0.04] px-2 py-0.5 text-[11px] text-white/60 ring-1 ring-inset ring-white/10"
+                >
+                  {genre}
+                </span>
+              ))}
+            </div>
+            {footer}
+          </div>
+        )}
+      </div>
+    );
   }
 
   return (

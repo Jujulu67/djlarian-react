@@ -2,7 +2,7 @@
 
 import { Database, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 
 import ToggleRow from '@/components/config/ToggleRow';
 import { logger } from '@/lib/logger';
@@ -69,7 +69,6 @@ export default function DatabaseSwitch() {
         // ✅ Hot swap: pas de redémarrage nécessaire
         toast.success(data.message || 'Base de données changée avec succès (hot swap) !', {
           duration: 3000,
-          icon: '✅',
         });
       } else {
         const error = await response.json();

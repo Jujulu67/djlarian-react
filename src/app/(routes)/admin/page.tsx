@@ -168,40 +168,43 @@ export default async function AdminPage() {
     .slice(0, 5);
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-black via-[#0c0117] to-black">
-      <div className="container mx-auto px-4 py-12">
-        <div className="mb-12 text-center">
-          <h1 className="text-5xl font-audiowide text-white mb-4">
-            <span className="text-gradient">Panel Administrateur</span>
+    <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-black via-[#0c0117] to-black v2:bg-none v2:bg-transparent">
+      <div className="container mx-auto px-4 py-12 v2:max-w-[1180px] v2:py-10 md:v2:py-14">
+        <div className="mb-12 text-center v2:mb-10 v2:text-left">
+          <p className="hidden v2:block mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-brand">
+            Administration
+          </p>
+          <h1 className="text-5xl font-audiowide text-white mb-4 v2:text-display v2:text-4xl v2:md:text-5xl v2:mb-0">
+            <span className="text-gradient v2:bg-none v2:text-white">Panel Administrateur</span>
           </h1>
-          <div className="bg-purple-500/10 h-1 w-32 mx-auto rounded-full"></div>
+          <div className="bg-purple-500/10 h-1 w-32 mx-auto rounded-full v2:hidden"></div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {/* Carte Musique */}
-          <div className="glass rounded-xl backdrop-blur-md overflow-hidden group relative transition-all duration-300 hover:shadow-[0_0_30px_rgba(139,92,246,0.3)] border border-purple-500/20">
-            <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/5 to-blue-600/5 opacity-70 group-hover:opacity-100 transition-opacity"></div>
-            <div className="absolute -bottom-20 -right-20 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl group-hover:bg-indigo-500/20 transition-all duration-500"></div>
+          <div className="glass rounded-xl backdrop-blur-md overflow-hidden group relative transition-all duration-300 hover:shadow-[0_0_30px_rgba(139,92,246,0.3)] border border-purple-500/20 v2:rounded-2xl v2:surface-1 v2:duration-[400ms] v2:ease-[cubic-bezier(0.16,1,0.3,1)] v2:hover:-translate-y-0.5 v2:hover:border-white/15 v2:hover:shadow-[inset_0_1px_0_0_rgb(255_255_255/0.07)]">
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/5 to-blue-600/5 opacity-70 group-hover:opacity-100 transition-opacity v2:hidden"></div>
+            <div className="absolute -bottom-20 -right-20 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl group-hover:bg-indigo-500/20 transition-all duration-500 v2:hidden"></div>
 
             <div className="p-6 relative z-10">
-              <div className="bg-indigo-500/20 w-12 h-12 flex items-center justify-center rounded-lg mb-4">
-                <Music2 className="text-indigo-400 h-6 w-6" />
+              <div className="bg-indigo-500/20 w-12 h-12 flex items-center justify-center rounded-lg mb-4 v2:bg-white/[0.06] v2:rounded-xl">
+                <Music2 className="text-indigo-400 h-6 w-6 v2:text-brand" />
               </div>
-              <h2 className="text-2xl font-audiowide text-white mb-2 group-hover:text-indigo-300 transition-colors">
+              <h2 className="text-2xl font-audiowide text-white mb-2 group-hover:text-indigo-300 transition-colors v2:text-xl v2:group-hover:text-white">
                 Musique
               </h2>
-              <p className="text-gray-400 mb-8">
+              <p className="text-gray-400 mb-8 v2:text-white/60">
                 Gérez les morceaux et playlists, intégrez du contenu depuis Spotify ou SoundCloud.
               </p>
 
               <div className="flex space-x-2 mb-6">
-                <span className="bg-indigo-900/30 text-indigo-300 text-xs px-2 py-1 rounded-full">
+                <span className="bg-indigo-900/30 text-indigo-300 text-xs px-2 py-1 rounded-full v2:bg-white/[0.04] v2:text-white/70 v2:ring-1 v2:ring-inset v2:ring-white/10">
                   Tracks
                 </span>
-                <span className="bg-blue-900/30 text-blue-300 text-xs px-2 py-1 rounded-full">
+                <span className="bg-blue-900/30 text-blue-300 text-xs px-2 py-1 rounded-full v2:bg-white/[0.04] v2:text-white/70 v2:ring-1 v2:ring-inset v2:ring-white/10">
                   Albums
                 </span>
-                <span className="bg-purple-900/30 text-purple-300 text-xs px-2 py-1 rounded-full">
+                <span className="bg-purple-900/30 text-purple-300 text-xs px-2 py-1 rounded-full v2:bg-white/[0.04] v2:text-white/70 v2:ring-1 v2:ring-inset v2:ring-white/10">
                   Playlists
                 </span>
               </div>
@@ -209,15 +212,15 @@ export default async function AdminPage() {
               <div className="flex justify-between items-center">
                 <Link
                   href="/admin/music"
-                  className="relative overflow-hidden px-6 py-2.5 rounded-lg bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-medium group admin-button-link"
+                  className="relative overflow-hidden px-6 py-2.5 rounded-lg bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-medium group admin-button-link v2:rounded-xl v2:bg-gradient-to-b v2:from-brand v2:to-purple-600 v2:shadow-[inset_0_1px_0_rgb(255_255_255/0.22)] v2:active:scale-[0.98]"
                 >
-                  <span className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-indigo-600 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                  <span className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-indigo-600 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity v2:hidden"></span>
                   <span className="relative flex items-center">
                     Gérer
                     <Zap className="ml-2 h-4 w-4" />
                   </span>
                 </Link>
-                <span className="text-xs text-indigo-300/70 flex items-center">
+                <span className="text-xs text-indigo-300/70 flex items-center v2:text-white/50">
                   <Music2 className="h-3 w-3 mr-1" /> Total: {tracksCount}
                 </span>
               </div>
@@ -225,30 +228,30 @@ export default async function AdminPage() {
           </div>
 
           {/* Carte Événements */}
-          <div className="glass rounded-xl backdrop-blur-md overflow-hidden group relative transition-all duration-300 hover:shadow-[0_0_30px_rgba(139,92,246,0.3)] border border-purple-500/20">
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-600/5 to-blue-600/5 opacity-70 group-hover:opacity-100 transition-opacity"></div>
-            <div className="absolute -bottom-20 -right-20 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl group-hover:bg-purple-500/20 transition-all duration-500"></div>
+          <div className="glass rounded-xl backdrop-blur-md overflow-hidden group relative transition-all duration-300 hover:shadow-[0_0_30px_rgba(139,92,246,0.3)] border border-purple-500/20 v2:rounded-2xl v2:surface-1 v2:duration-[400ms] v2:ease-[cubic-bezier(0.16,1,0.3,1)] v2:hover:-translate-y-0.5 v2:hover:border-white/15 v2:hover:shadow-[inset_0_1px_0_0_rgb(255_255_255/0.07)]">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-600/5 to-blue-600/5 opacity-70 group-hover:opacity-100 transition-opacity v2:hidden"></div>
+            <div className="absolute -bottom-20 -right-20 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl group-hover:bg-purple-500/20 transition-all duration-500 v2:hidden"></div>
 
             <div className="p-6 relative z-10">
-              <div className="bg-purple-500/20 w-12 h-12 flex items-center justify-center rounded-lg mb-4">
-                <CalendarDays className="text-purple-400 h-6 w-6" />
+              <div className="bg-purple-500/20 w-12 h-12 flex items-center justify-center rounded-lg mb-4 v2:bg-white/[0.06] v2:rounded-xl">
+                <CalendarDays className="text-purple-400 h-6 w-6 v2:text-brand" />
               </div>
-              <h2 className="text-2xl font-audiowide text-white mb-2 group-hover:text-purple-300 transition-colors">
+              <h2 className="text-2xl font-audiowide text-white mb-2 group-hover:text-purple-300 transition-colors v2:text-xl v2:group-hover:text-white">
                 Événements
               </h2>
-              <p className="text-gray-400 mb-8">
+              <p className="text-gray-400 mb-8 v2:text-white/60">
                 Gérez les événements à venir et passés, créez des récurrences et configurez la
                 billetterie.
               </p>
 
               <div className="flex space-x-2 mb-6">
-                <span className="bg-purple-900/30 text-purple-300 text-xs px-2 py-1 rounded-full">
+                <span className="bg-purple-900/30 text-purple-300 text-xs px-2 py-1 rounded-full v2:bg-white/[0.04] v2:text-white/70 v2:ring-1 v2:ring-inset v2:ring-white/10">
                   Concerts
                 </span>
-                <span className="bg-blue-900/30 text-blue-300 text-xs px-2 py-1 rounded-full">
+                <span className="bg-blue-900/30 text-blue-300 text-xs px-2 py-1 rounded-full v2:bg-white/[0.04] v2:text-white/70 v2:ring-1 v2:ring-inset v2:ring-white/10">
                   Festivals
                 </span>
-                <span className="bg-indigo-900/30 text-indigo-300 text-xs px-2 py-1 rounded-full">
+                <span className="bg-indigo-900/30 text-indigo-300 text-xs px-2 py-1 rounded-full v2:bg-white/[0.04] v2:text-white/70 v2:ring-1 v2:ring-inset v2:ring-white/10">
                   Master Events
                 </span>
               </div>
@@ -256,15 +259,15 @@ export default async function AdminPage() {
               <div className="flex justify-between items-center">
                 <Link
                   href="/admin/events"
-                  className="relative overflow-hidden px-6 py-2.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-medium group admin-button-link"
+                  className="relative overflow-hidden px-6 py-2.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-medium group admin-button-link v2:rounded-xl v2:bg-gradient-to-b v2:from-brand v2:to-purple-600 v2:shadow-[inset_0_1px_0_rgb(255_255_255/0.22)] v2:active:scale-[0.98]"
                 >
-                  <span className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-purple-600 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                  <span className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-purple-600 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity v2:hidden"></span>
                   <span className="relative flex items-center">
                     Gérer
                     <Zap className="ml-2 h-4 w-4" />
                   </span>
                 </Link>
-                <span className="text-xs text-purple-300/70 flex items-center">
+                <span className="text-xs text-purple-300/70 flex items-center v2:text-white/50">
                   <Clock className="h-3 w-3 mr-1" /> Récents: {recentEvents || 0}
                 </span>
               </div>
@@ -272,30 +275,30 @@ export default async function AdminPage() {
           </div>
 
           {/* Carte Galerie - Réactivée avec compteur N/A */}
-          <div className="glass rounded-xl backdrop-blur-md overflow-hidden group relative transition-all duration-300 hover:shadow-[0_0_30px_rgba(139,92,246,0.3)] border border-purple-500/20">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 to-purple-600/5 opacity-70 group-hover:opacity-100 transition-opacity"></div>
-            <div className="absolute -bottom-20 -right-20 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl group-hover:bg-blue-500/20 transition-all duration-500"></div>
+          <div className="glass rounded-xl backdrop-blur-md overflow-hidden group relative transition-all duration-300 hover:shadow-[0_0_30px_rgba(139,92,246,0.3)] border border-purple-500/20 v2:rounded-2xl v2:surface-1 v2:duration-[400ms] v2:ease-[cubic-bezier(0.16,1,0.3,1)] v2:hover:-translate-y-0.5 v2:hover:border-white/15 v2:hover:shadow-[inset_0_1px_0_0_rgb(255_255_255/0.07)]">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 to-purple-600/5 opacity-70 group-hover:opacity-100 transition-opacity v2:hidden"></div>
+            <div className="absolute -bottom-20 -right-20 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl group-hover:bg-blue-500/20 transition-all duration-500 v2:hidden"></div>
 
             <div className="p-6 relative z-10">
-              <div className="bg-blue-500/20 w-12 h-12 flex items-center justify-center rounded-lg mb-4">
-                <ImageIcon className="text-blue-400 h-6 w-6" />
+              <div className="bg-blue-500/20 w-12 h-12 flex items-center justify-center rounded-lg mb-4 v2:bg-white/[0.06] v2:rounded-xl">
+                <ImageIcon className="text-blue-400 h-6 w-6 v2:text-brand" />
               </div>
-              <h2 className="text-2xl font-audiowide text-white mb-2 group-hover:text-blue-300 transition-colors">
+              <h2 className="text-2xl font-audiowide text-white mb-2 group-hover:text-blue-300 transition-colors v2:text-xl v2:group-hover:text-white">
                 Galerie
               </h2>
-              <p className="text-gray-400 mb-8">
+              <p className="text-gray-400 mb-8 v2:text-white/60">
                 Gérez les photos et médias, organisez vos collections et contrôlez la visibilité du
                 contenu.
               </p>
 
               <div className="flex space-x-2 mb-6">
-                <span className="bg-blue-900/30 text-blue-300 text-xs px-2 py-1 rounded-full">
+                <span className="bg-blue-900/30 text-blue-300 text-xs px-2 py-1 rounded-full v2:bg-white/[0.04] v2:text-white/70 v2:ring-1 v2:ring-inset v2:ring-white/10">
                   Photos
                 </span>
-                <span className="bg-indigo-900/30 text-indigo-300 text-xs px-2 py-1 rounded-full">
+                <span className="bg-indigo-900/30 text-indigo-300 text-xs px-2 py-1 rounded-full v2:bg-white/[0.04] v2:text-white/70 v2:ring-1 v2:ring-inset v2:ring-white/10">
                   Vidéos
                 </span>
-                <span className="bg-purple-900/30 text-purple-300 text-xs px-2 py-1 rounded-full">
+                <span className="bg-purple-900/30 text-purple-300 text-xs px-2 py-1 rounded-full v2:bg-white/[0.04] v2:text-white/70 v2:ring-1 v2:ring-inset v2:ring-white/10">
                   Albums
                 </span>
               </div>
@@ -303,15 +306,15 @@ export default async function AdminPage() {
               <div className="flex justify-between items-center">
                 <Link
                   href="/admin/gallery"
-                  className="relative overflow-hidden px-6 py-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium group admin-button-link"
+                  className="relative overflow-hidden px-6 py-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium group admin-button-link v2:rounded-xl v2:bg-gradient-to-b v2:from-brand v2:to-purple-600 v2:shadow-[inset_0_1px_0_rgb(255_255_255/0.22)] v2:active:scale-[0.98]"
                 >
-                  <span className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-blue-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                  <span className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-blue-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity v2:hidden"></span>
                   <span className="relative flex items-center">
                     Gérer
                     <Zap className="ml-2 h-4 w-4" />
                   </span>
                 </Link>
-                <span className="text-xs text-blue-300/70 flex items-center">
+                <span className="text-xs text-blue-300/70 flex items-center v2:text-white/50">
                   <ImageIcon className="h-3 w-3 mr-1" /> Total: N/A
                 </span>
               </div>
@@ -319,29 +322,29 @@ export default async function AdminPage() {
           </div>
 
           {/* Carte Utilisateurs */}
-          <div className="glass rounded-xl backdrop-blur-md overflow-hidden group relative transition-all duration-300 hover:shadow-[0_0_30px_rgba(139,92,246,0.3)] border border-purple-500/20">
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-600/5 to-pink-600/5 opacity-70 group-hover:opacity-100 transition-opacity"></div>
-            <div className="absolute -bottom-20 -right-20 w-48 h-48 bg-pink-500/10 rounded-full blur-3xl group-hover:bg-pink-500/20 transition-all duration-500"></div>
+          <div className="glass rounded-xl backdrop-blur-md overflow-hidden group relative transition-all duration-300 hover:shadow-[0_0_30px_rgba(139,92,246,0.3)] border border-purple-500/20 v2:rounded-2xl v2:surface-1 v2:duration-[400ms] v2:ease-[cubic-bezier(0.16,1,0.3,1)] v2:hover:-translate-y-0.5 v2:hover:border-white/15 v2:hover:shadow-[inset_0_1px_0_0_rgb(255_255_255/0.07)]">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-600/5 to-pink-600/5 opacity-70 group-hover:opacity-100 transition-opacity v2:hidden"></div>
+            <div className="absolute -bottom-20 -right-20 w-48 h-48 bg-pink-500/10 rounded-full blur-3xl group-hover:bg-pink-500/20 transition-all duration-500 v2:hidden"></div>
 
             <div className="p-6 relative z-10">
-              <div className="bg-pink-500/20 w-12 h-12 flex items-center justify-center rounded-lg mb-4">
-                <Users className="text-pink-400 h-6 w-6" />
+              <div className="bg-pink-500/20 w-12 h-12 flex items-center justify-center rounded-lg mb-4 v2:bg-white/[0.06] v2:rounded-xl">
+                <Users className="text-pink-400 h-6 w-6 v2:text-brand" />
               </div>
-              <h2 className="text-2xl font-audiowide text-white mb-2 group-hover:text-pink-300 transition-colors">
+              <h2 className="text-2xl font-audiowide text-white mb-2 group-hover:text-pink-300 transition-colors v2:text-xl v2:group-hover:text-white">
                 Utilisateurs
               </h2>
-              <p className="text-gray-400 mb-8">
+              <p className="text-gray-400 mb-8 v2:text-white/60">
                 Gérez les comptes utilisateurs, les rôles et les permissions d&apos;accès au site.
               </p>
 
               <div className="flex space-x-2 mb-6">
-                <span className="bg-pink-900/30 text-pink-300 text-xs px-2 py-1 rounded-full">
+                <span className="bg-pink-900/30 text-pink-300 text-xs px-2 py-1 rounded-full v2:bg-white/[0.04] v2:text-white/70 v2:ring-1 v2:ring-inset v2:ring-white/10">
                   Comptes
                 </span>
-                <span className="bg-purple-900/30 text-purple-300 text-xs px-2 py-1 rounded-full">
+                <span className="bg-purple-900/30 text-purple-300 text-xs px-2 py-1 rounded-full v2:bg-white/[0.04] v2:text-white/70 v2:ring-1 v2:ring-inset v2:ring-white/10">
                   Rôles
                 </span>
-                <span className="bg-indigo-900/30 text-indigo-300 text-xs px-2 py-1 rounded-full">
+                <span className="bg-indigo-900/30 text-indigo-300 text-xs px-2 py-1 rounded-full v2:bg-white/[0.04] v2:text-white/70 v2:ring-1 v2:ring-inset v2:ring-white/10">
                   Permissions
                 </span>
               </div>
@@ -349,15 +352,15 @@ export default async function AdminPage() {
               <div className="flex justify-between items-center">
                 <Link
                   href="/admin/users"
-                  className="relative overflow-hidden px-6 py-2.5 rounded-lg bg-gradient-to-r from-pink-600 to-purple-600 text-white font-medium group admin-button-link"
+                  className="relative overflow-hidden px-6 py-2.5 rounded-lg bg-gradient-to-r from-pink-600 to-purple-600 text-white font-medium group admin-button-link v2:rounded-xl v2:bg-gradient-to-b v2:from-brand v2:to-purple-600 v2:shadow-[inset_0_1px_0_rgb(255_255_255/0.22)] v2:active:scale-[0.98]"
                 >
-                  <span className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-pink-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                  <span className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-pink-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity v2:hidden"></span>
                   <span className="relative flex items-center">
                     Gérer
                     <Zap className="ml-2 h-4 w-4" />
                   </span>
                 </Link>
-                <span className="text-xs text-pink-300/70 flex items-center">
+                <span className="text-xs text-pink-300/70 flex items-center v2:text-white/50">
                   <Users className="h-3 w-3 mr-1" /> Actifs: {usersCount}
                 </span>
               </div>
@@ -365,29 +368,29 @@ export default async function AdminPage() {
           </div>
 
           {/* Carte Licences Plugin */}
-          <div className="glass rounded-xl backdrop-blur-md overflow-hidden group relative transition-all duration-300 hover:shadow-[0_0_30px_rgba(139,92,246,0.3)] border border-purple-500/20">
-            <div className="absolute inset-0 bg-gradient-to-br from-green-600/5 to-emerald-600/5 opacity-70 group-hover:opacity-100 transition-opacity"></div>
-            <div className="absolute -bottom-20 -right-20 w-48 h-48 bg-green-500/10 rounded-full blur-3xl group-hover:bg-green-500/20 transition-all duration-500"></div>
+          <div className="glass rounded-xl backdrop-blur-md overflow-hidden group relative transition-all duration-300 hover:shadow-[0_0_30px_rgba(139,92,246,0.3)] border border-purple-500/20 v2:rounded-2xl v2:surface-1 v2:duration-[400ms] v2:ease-[cubic-bezier(0.16,1,0.3,1)] v2:hover:-translate-y-0.5 v2:hover:border-white/15 v2:hover:shadow-[inset_0_1px_0_0_rgb(255_255_255/0.07)]">
+            <div className="absolute inset-0 bg-gradient-to-br from-green-600/5 to-emerald-600/5 opacity-70 group-hover:opacity-100 transition-opacity v2:hidden"></div>
+            <div className="absolute -bottom-20 -right-20 w-48 h-48 bg-green-500/10 rounded-full blur-3xl group-hover:bg-green-500/20 transition-all duration-500 v2:hidden"></div>
 
             <div className="p-6 relative z-10">
-              <div className="bg-green-500/20 w-12 h-12 flex items-center justify-center rounded-lg mb-4">
-                <KeyRound className="text-green-400 h-6 w-6" />
+              <div className="bg-green-500/20 w-12 h-12 flex items-center justify-center rounded-lg mb-4 v2:bg-white/[0.06] v2:rounded-xl">
+                <KeyRound className="text-green-400 h-6 w-6 v2:text-brand" />
               </div>
-              <h2 className="text-2xl font-audiowide text-white mb-2 group-hover:text-green-300 transition-colors">
+              <h2 className="text-2xl font-audiowide text-white mb-2 group-hover:text-green-300 transition-colors v2:text-xl v2:group-hover:text-white">
                 Licences Plugin
               </h2>
-              <p className="text-gray-400 mb-8">
+              <p className="text-gray-400 mb-8 v2:text-white/60">
                 Gérez les licences LarianCrusher, suivez les activations et révoquez les accès.
               </p>
 
               <div className="flex space-x-2 mb-6">
-                <span className="bg-green-900/30 text-green-300 text-xs px-2 py-1 rounded-full">
+                <span className="bg-green-900/30 text-green-300 text-xs px-2 py-1 rounded-full v2:bg-white/[0.04] v2:text-white/70 v2:ring-1 v2:ring-inset v2:ring-white/10">
                   Standard
                 </span>
-                <span className="bg-teal-900/30 text-teal-300 text-xs px-2 py-1 rounded-full">
+                <span className="bg-teal-900/30 text-teal-300 text-xs px-2 py-1 rounded-full v2:bg-white/[0.04] v2:text-white/70 v2:ring-1 v2:ring-inset v2:ring-white/10">
                   EDU
                 </span>
-                <span className="bg-emerald-900/30 text-emerald-300 text-xs px-2 py-1 rounded-full">
+                <span className="bg-emerald-900/30 text-emerald-300 text-xs px-2 py-1 rounded-full v2:bg-white/[0.04] v2:text-white/70 v2:ring-1 v2:ring-inset v2:ring-white/10">
                   NFR
                 </span>
               </div>
@@ -395,15 +398,15 @@ export default async function AdminPage() {
               <div className="flex justify-between items-center">
                 <Link
                   href="/admin/licenses"
-                  className="relative overflow-hidden px-6 py-2.5 rounded-lg bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium group admin-button-link"
+                  className="relative overflow-hidden px-6 py-2.5 rounded-lg bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium group admin-button-link v2:rounded-xl v2:bg-gradient-to-b v2:from-brand v2:to-purple-600 v2:shadow-[inset_0_1px_0_rgb(255_255_255/0.22)] v2:active:scale-[0.98]"
                 >
-                  <span className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-green-600 to-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                  <span className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-green-600 to-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity v2:hidden"></span>
                   <span className="relative flex items-center">
                     Gérer
                     <Zap className="ml-2 h-4 w-4" />
                   </span>
                 </Link>
-                <span className="text-xs text-green-300/70 flex items-center">
+                <span className="text-xs text-green-300/70 flex items-center v2:text-white/50">
                   <KeyRound className="h-3 w-3 mr-1" /> Total: {licensesCount}
                 </span>
               </div>
@@ -411,29 +414,29 @@ export default async function AdminPage() {
           </div>
 
           {/* Carte Projets Utilisateurs */}
-          <div className="glass rounded-xl backdrop-blur-md overflow-hidden group relative transition-all duration-300 hover:shadow-[0_0_30px_rgba(139,92,246,0.3)] border border-purple-500/20">
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/5 to-teal-600/5 opacity-70 group-hover:opacity-100 transition-opacity"></div>
-            <div className="absolute -bottom-20 -right-20 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl group-hover:bg-emerald-500/20 transition-all duration-500"></div>
+          <div className="glass rounded-xl backdrop-blur-md overflow-hidden group relative transition-all duration-300 hover:shadow-[0_0_30px_rgba(139,92,246,0.3)] border border-purple-500/20 v2:rounded-2xl v2:surface-1 v2:duration-[400ms] v2:ease-[cubic-bezier(0.16,1,0.3,1)] v2:hover:-translate-y-0.5 v2:hover:border-white/15 v2:hover:shadow-[inset_0_1px_0_0_rgb(255_255_255/0.07)]">
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/5 to-teal-600/5 opacity-70 group-hover:opacity-100 transition-opacity v2:hidden"></div>
+            <div className="absolute -bottom-20 -right-20 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl group-hover:bg-emerald-500/20 transition-all duration-500 v2:hidden"></div>
 
             <div className="p-6 relative z-10">
-              <div className="bg-emerald-500/20 w-12 h-12 flex items-center justify-center rounded-lg mb-4">
-                <FolderKanban className="text-emerald-400 h-6 w-6" />
+              <div className="bg-emerald-500/20 w-12 h-12 flex items-center justify-center rounded-lg mb-4 v2:bg-white/[0.06] v2:rounded-xl">
+                <FolderKanban className="text-emerald-400 h-6 w-6 v2:text-brand" />
               </div>
-              <h2 className="text-2xl font-audiowide text-white mb-2 group-hover:text-emerald-300 transition-colors">
+              <h2 className="text-2xl font-audiowide text-white mb-2 group-hover:text-emerald-300 transition-colors v2:text-xl v2:group-hover:text-white">
                 Projets
               </h2>
-              <p className="text-gray-400 mb-8">
+              <p className="text-gray-400 mb-8 v2:text-white/60">
                 Visualisez tous les projets musicaux des utilisateurs et suivez leur avancement.
               </p>
 
               <div className="flex space-x-2 mb-6">
-                <span className="bg-emerald-900/30 text-emerald-300 text-xs px-2 py-1 rounded-full">
+                <span className="bg-emerald-900/30 text-emerald-300 text-xs px-2 py-1 rounded-full v2:bg-white/[0.04] v2:text-white/70 v2:ring-1 v2:ring-inset v2:ring-white/10">
                   En cours
                 </span>
-                <span className="bg-teal-900/30 text-teal-300 text-xs px-2 py-1 rounded-full">
+                <span className="bg-teal-900/30 text-teal-300 text-xs px-2 py-1 rounded-full v2:bg-white/[0.04] v2:text-white/70 v2:ring-1 v2:ring-inset v2:ring-white/10">
                   Terminés
                 </span>
-                <span className="bg-purple-900/30 text-purple-300 text-xs px-2 py-1 rounded-full">
+                <span className="bg-purple-900/30 text-purple-300 text-xs px-2 py-1 rounded-full v2:bg-white/[0.04] v2:text-white/70 v2:ring-1 v2:ring-inset v2:ring-white/10">
                   Ghost Prod
                 </span>
               </div>
@@ -441,15 +444,15 @@ export default async function AdminPage() {
               <div className="flex justify-between items-center">
                 <Link
                   href="/admin/projects"
-                  className="relative overflow-hidden px-6 py-2.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-medium group admin-button-link"
+                  className="relative overflow-hidden px-6 py-2.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-medium group admin-button-link v2:rounded-xl v2:bg-gradient-to-b v2:from-brand v2:to-purple-600 v2:shadow-[inset_0_1px_0_rgb(255_255_255/0.22)] v2:active:scale-[0.98]"
                 >
-                  <span className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-emerald-600 to-teal-600 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                  <span className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-emerald-600 to-teal-600 opacity-0 group-hover:opacity-100 transition-opacity v2:hidden"></span>
                   <span className="relative flex items-center">
                     Voir
                     <Zap className="ml-2 h-4 w-4" />
                   </span>
                 </Link>
-                <span className="text-xs text-emerald-300/70 flex items-center">
+                <span className="text-xs text-emerald-300/70 flex items-center v2:text-white/50">
                   <Users className="h-3 w-3 mr-1" /> {projectsUsersCount} utilisateur
                   {projectsUsersCount > 1 ? 's' : ''} • {projectsCount} projet
                   {projectsCount > 1 ? 's' : ''}
@@ -459,30 +462,30 @@ export default async function AdminPage() {
           </div>
 
           {/* Carte Statistiques */}
-          <div className="glass rounded-xl backdrop-blur-md overflow-hidden group relative transition-all duration-300 hover:shadow-[0_0_30px_rgba(139,92,246,0.3)] border border-purple-500/20">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 to-teal-600/5 opacity-70 group-hover:opacity-100 transition-opacity"></div>
-            <div className="absolute -bottom-20 -right-20 w-48 h-48 bg-teal-500/10 rounded-full blur-3xl group-hover:bg-teal-500/20 transition-all duration-500"></div>
+          <div className="glass rounded-xl backdrop-blur-md overflow-hidden group relative transition-all duration-300 hover:shadow-[0_0_30px_rgba(139,92,246,0.3)] border border-purple-500/20 v2:rounded-2xl v2:surface-1 v2:duration-[400ms] v2:ease-[cubic-bezier(0.16,1,0.3,1)] v2:hover:-translate-y-0.5 v2:hover:border-white/15 v2:hover:shadow-[inset_0_1px_0_0_rgb(255_255_255/0.07)]">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 to-teal-600/5 opacity-70 group-hover:opacity-100 transition-opacity v2:hidden"></div>
+            <div className="absolute -bottom-20 -right-20 w-48 h-48 bg-teal-500/10 rounded-full blur-3xl group-hover:bg-teal-500/20 transition-all duration-500 v2:hidden"></div>
 
             <div className="p-6 relative z-10">
-              <div className="bg-teal-500/20 w-12 h-12 flex items-center justify-center rounded-lg mb-4">
-                <BarChart3 className="text-teal-400 h-6 w-6" />
+              <div className="bg-teal-500/20 w-12 h-12 flex items-center justify-center rounded-lg mb-4 v2:bg-white/[0.06] v2:rounded-xl">
+                <BarChart3 className="text-teal-400 h-6 w-6 v2:text-brand" />
               </div>
-              <h2 className="text-2xl font-audiowide text-white mb-2 group-hover:text-teal-300 transition-colors">
+              <h2 className="text-2xl font-audiowide text-white mb-2 group-hover:text-teal-300 transition-colors v2:text-xl v2:group-hover:text-white">
                 Statistiques
               </h2>
-              <p className="text-gray-400 mb-8">
+              <p className="text-gray-400 mb-8 v2:text-white/60">
                 Consultez les statistiques du site, analysez le trafic et l&apos;engagement des
                 visiteurs.
               </p>
 
               <div className="flex space-x-2 mb-6">
-                <span className="bg-teal-900/30 text-teal-300 text-xs px-2 py-1 rounded-full">
+                <span className="bg-teal-900/30 text-teal-300 text-xs px-2 py-1 rounded-full v2:bg-white/[0.04] v2:text-white/70 v2:ring-1 v2:ring-inset v2:ring-white/10">
                   Visites
                 </span>
-                <span className="bg-blue-900/30 text-blue-300 text-xs px-2 py-1 rounded-full">
+                <span className="bg-blue-900/30 text-blue-300 text-xs px-2 py-1 rounded-full v2:bg-white/[0.04] v2:text-white/70 v2:ring-1 v2:ring-inset v2:ring-white/10">
                   Trafic
                 </span>
-                <span className="bg-indigo-900/30 text-indigo-300 text-xs px-2 py-1 rounded-full">
+                <span className="bg-indigo-900/30 text-indigo-300 text-xs px-2 py-1 rounded-full v2:bg-white/[0.04] v2:text-white/70 v2:ring-1 v2:ring-inset v2:ring-white/10">
                   Conversion
                 </span>
               </div>
@@ -490,15 +493,15 @@ export default async function AdminPage() {
               <div className="flex justify-between items-center">
                 <Link
                   href="/admin/statistics"
-                  className="relative overflow-hidden px-6 py-2.5 rounded-lg bg-gradient-to-r from-teal-600 to-blue-600 text-white font-medium group admin-button-link"
+                  className="relative overflow-hidden px-6 py-2.5 rounded-lg bg-gradient-to-r from-teal-600 to-blue-600 text-white font-medium group admin-button-link v2:rounded-xl v2:bg-gradient-to-b v2:from-brand v2:to-purple-600 v2:shadow-[inset_0_1px_0_rgb(255_255_255/0.22)] v2:active:scale-[0.98]"
                 >
-                  <span className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-teal-600 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                  <span className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-teal-600 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity v2:hidden"></span>
                   <span className="relative flex items-center">
                     Voir
                     <Zap className="ml-2 h-4 w-4" />
                   </span>
                 </Link>
-                <span className="text-xs text-teal-300/70 flex items-center">
+                <span className="text-xs text-teal-300/70 flex items-center v2:text-white/50">
                   {adminCount > 0
                     ? `${adminCount} admin${adminCount > 1 ? 's' : ''}`
                     : 'Aucune donnée'}
@@ -508,30 +511,30 @@ export default async function AdminPage() {
           </div>
 
           {/* Nouvelle Carte Configuration */}
-          <div className="glass rounded-xl backdrop-blur-md overflow-hidden group relative transition-all duration-300 hover:shadow-[0_0_30px_rgba(139,92,246,0.3)] border border-purple-500/20">
-            <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/5 to-purple-600/5 opacity-70 group-hover:opacity-100 transition-opacity"></div>
-            <div className="absolute -bottom-20 -right-20 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl group-hover:bg-indigo-500/20 transition-all duration-500"></div>
+          <div className="glass rounded-xl backdrop-blur-md overflow-hidden group relative transition-all duration-300 hover:shadow-[0_0_30px_rgba(139,92,246,0.3)] border border-purple-500/20 v2:rounded-2xl v2:surface-1 v2:duration-[400ms] v2:ease-[cubic-bezier(0.16,1,0.3,1)] v2:hover:-translate-y-0.5 v2:hover:border-white/15 v2:hover:shadow-[inset_0_1px_0_0_rgb(255_255_255/0.07)]">
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/5 to-purple-600/5 opacity-70 group-hover:opacity-100 transition-opacity v2:hidden"></div>
+            <div className="absolute -bottom-20 -right-20 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl group-hover:bg-indigo-500/20 transition-all duration-500 v2:hidden"></div>
 
             <div className="p-6 relative z-10">
-              <div className="bg-indigo-500/20 w-12 h-12 flex items-center justify-center rounded-lg mb-4">
-                <Settings className="text-indigo-400 h-6 w-6" />
+              <div className="bg-indigo-500/20 w-12 h-12 flex items-center justify-center rounded-lg mb-4 v2:bg-white/[0.06] v2:rounded-xl">
+                <Settings className="text-indigo-400 h-6 w-6 v2:text-brand" />
               </div>
-              <h2 className="text-2xl font-audiowide text-white mb-2 group-hover:text-indigo-300 transition-colors">
+              <h2 className="text-2xl font-audiowide text-white mb-2 group-hover:text-indigo-300 transition-colors v2:text-xl v2:group-hover:text-white">
                 Configuration
               </h2>
-              <p className="text-gray-400 mb-8">
+              <p className="text-gray-400 mb-8 v2:text-white/60">
                 Gérez les paramètres du site, l&apos;apparence, les notifications, la sécurité et
                 les intégrations API.
               </p>
 
               <div className="flex space-x-2 mb-6">
-                <span className="bg-indigo-900/30 text-indigo-300 text-xs px-2 py-1 rounded-full">
+                <span className="bg-indigo-900/30 text-indigo-300 text-xs px-2 py-1 rounded-full v2:bg-white/[0.04] v2:text-white/70 v2:ring-1 v2:ring-inset v2:ring-white/10">
                   Général
                 </span>
-                <span className="bg-blue-900/30 text-blue-300 text-xs px-2 py-1 rounded-full">
+                <span className="bg-blue-900/30 text-blue-300 text-xs px-2 py-1 rounded-full v2:bg-white/[0.04] v2:text-white/70 v2:ring-1 v2:ring-inset v2:ring-white/10">
                   Apparence
                 </span>
-                <span className="bg-purple-900/30 text-purple-300 text-xs px-2 py-1 rounded-full">
+                <span className="bg-purple-900/30 text-purple-300 text-xs px-2 py-1 rounded-full v2:bg-white/[0.04] v2:text-white/70 v2:ring-1 v2:ring-inset v2:ring-white/10">
                   Sécurité
                 </span>
               </div>
@@ -539,15 +542,15 @@ export default async function AdminPage() {
               <div className="flex justify-between items-center">
                 <Link
                   href="/admin/configuration"
-                  className="relative overflow-hidden px-6 py-2.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium group admin-button-link"
+                  className="relative overflow-hidden px-6 py-2.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium group admin-button-link v2:rounded-xl v2:bg-gradient-to-b v2:from-brand v2:to-purple-600 v2:shadow-[inset_0_1px_0_rgb(255_255_255/0.22)] v2:active:scale-[0.98]"
                 >
-                  <span className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-indigo-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                  <span className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-indigo-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity v2:hidden"></span>
                   <span className="relative flex items-center">
                     Configurer
                     <Zap className="ml-2 h-4 w-4" />
                   </span>
                 </Link>
-                <span className="text-xs text-indigo-300/70 flex items-center">
+                <span className="text-xs text-indigo-300/70 flex items-center v2:text-white/50">
                   <Clock className="h-3 w-3 mr-1" /> Dernière mise à jour: 1j
                 </span>
               </div>
@@ -555,29 +558,29 @@ export default async function AdminPage() {
           </div>
 
           {/* Carte Boutique */}
-          <div className="glass rounded-xl backdrop-blur-md overflow-hidden group relative transition-all duration-300 hover:shadow-[0_0_30px_rgba(139,92,246,0.3)] border border-purple-500/20">
-            <div className="absolute inset-0 bg-gradient-to-br from-orange-600/5 to-amber-600/5 opacity-70 group-hover:opacity-100 transition-opacity"></div>
-            <div className="absolute -bottom-20 -right-20 w-48 h-48 bg-orange-500/10 rounded-full blur-3xl group-hover:bg-orange-500/20 transition-all duration-500"></div>
+          <div className="glass rounded-xl backdrop-blur-md overflow-hidden group relative transition-all duration-300 hover:shadow-[0_0_30px_rgba(139,92,246,0.3)] border border-purple-500/20 v2:rounded-2xl v2:surface-1 v2:duration-[400ms] v2:ease-[cubic-bezier(0.16,1,0.3,1)] v2:hover:-translate-y-0.5 v2:hover:border-white/15 v2:hover:shadow-[inset_0_1px_0_0_rgb(255_255_255/0.07)]">
+            <div className="absolute inset-0 bg-gradient-to-br from-orange-600/5 to-amber-600/5 opacity-70 group-hover:opacity-100 transition-opacity v2:hidden"></div>
+            <div className="absolute -bottom-20 -right-20 w-48 h-48 bg-orange-500/10 rounded-full blur-3xl group-hover:bg-orange-500/20 transition-all duration-500 v2:hidden"></div>
 
             <div className="p-6 relative z-10">
-              <div className="bg-orange-500/20 w-12 h-12 flex items-center justify-center rounded-lg mb-4">
-                <ShoppingBag className="text-orange-400 h-6 w-6" />
+              <div className="bg-orange-500/20 w-12 h-12 flex items-center justify-center rounded-lg mb-4 v2:bg-white/[0.06] v2:rounded-xl">
+                <ShoppingBag className="text-orange-400 h-6 w-6 v2:text-brand" />
               </div>
-              <h2 className="text-2xl font-audiowide text-white mb-2 group-hover:text-orange-300 transition-colors">
+              <h2 className="text-2xl font-audiowide text-white mb-2 group-hover:text-orange-300 transition-colors v2:text-xl v2:group-hover:text-white">
                 Boutique
               </h2>
-              <p className="text-gray-400 mb-8">
+              <p className="text-gray-400 mb-8 v2:text-white/60">
                 Gérez les paramètres de la boutique, les liens Stripe et les prix des produits.
               </p>
 
               <div className="flex space-x-2 mb-6">
-                <span className="bg-orange-900/30 text-orange-300 text-xs px-2 py-1 rounded-full">
+                <span className="bg-orange-900/30 text-orange-300 text-xs px-2 py-1 rounded-full v2:bg-white/[0.04] v2:text-white/70 v2:ring-1 v2:ring-inset v2:ring-white/10">
                   Stripe
                 </span>
-                <span className="bg-amber-900/30 text-amber-300 text-xs px-2 py-1 rounded-full">
+                <span className="bg-amber-900/30 text-amber-300 text-xs px-2 py-1 rounded-full v2:bg-white/[0.04] v2:text-white/70 v2:ring-1 v2:ring-inset v2:ring-white/10">
                   Prix
                 </span>
-                <span className="bg-yellow-900/30 text-yellow-300 text-xs px-2 py-1 rounded-full">
+                <span className="bg-yellow-900/30 text-yellow-300 text-xs px-2 py-1 rounded-full v2:bg-white/[0.04] v2:text-white/70 v2:ring-1 v2:ring-inset v2:ring-white/10">
                   Produits
                 </span>
               </div>
@@ -585,15 +588,15 @@ export default async function AdminPage() {
               <div className="flex justify-between items-center">
                 <Link
                   href="/admin/shop"
-                  className="relative overflow-hidden px-6 py-2.5 rounded-lg bg-gradient-to-r from-orange-600 to-amber-600 text-white font-medium group admin-button-link"
+                  className="relative overflow-hidden px-6 py-2.5 rounded-lg bg-gradient-to-r from-orange-600 to-amber-600 text-white font-medium group admin-button-link v2:rounded-xl v2:bg-gradient-to-b v2:from-brand v2:to-purple-600 v2:shadow-[inset_0_1px_0_rgb(255_255_255/0.22)] v2:active:scale-[0.98]"
                 >
-                  <span className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-orange-600 to-amber-600 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                  <span className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-orange-600 to-amber-600 opacity-0 group-hover:opacity-100 transition-opacity v2:hidden"></span>
                   <span className="relative flex items-center">
                     Configurer
                     <Zap className="ml-2 h-4 w-4" />
                   </span>
                 </Link>
-                <span className="text-xs text-orange-300/70 flex items-center">
+                <span className="text-xs text-orange-300/70 flex items-center v2:text-white/50">
                   <ShoppingBag className="h-3 w-3 mr-1" /> LarianCrusher
                 </span>
               </div>
@@ -602,14 +605,14 @@ export default async function AdminPage() {
         </div>
 
         <div className="mt-12">
-          <div className="glass rounded-xl backdrop-blur-md overflow-hidden relative border border-purple-500/20 p-6">
-            <div className="absolute inset-0 bg-gradient-to-b from-purple-900/5 to-black/20"></div>
+          <div className="glass rounded-xl backdrop-blur-md overflow-hidden relative border border-purple-500/20 p-6 v2:rounded-2xl v2:surface-1">
+            <div className="absolute inset-0 bg-gradient-to-b from-purple-900/5 to-black/20 v2:hidden"></div>
             <div className="relative z-10">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-audiowide text-white">Activités récentes</h3>
+                <h3 className="text-xl font-audiowide text-white v2:text-lg">Activités récentes</h3>
                 <Link
                   href="/admin/activities"
-                  className="text-sm text-white hover:text-gray-300 transition-colors flex items-center"
+                  className="text-sm text-white hover:text-gray-300 transition-colors flex items-center v2:text-white/70 v2:hover:text-white"
                 >
                   Voir tout
                   <ArrowRight className="ml-1 h-4 w-4" />
@@ -621,7 +624,7 @@ export default async function AdminPage() {
                   sortedActivities.map((activity, index) => (
                     <div
                       key={index}
-                      className="bg-black/30 p-3 rounded-lg flex items-center justify-between"
+                      className="bg-black/30 p-3 rounded-lg flex items-center justify-between v2:rounded-xl v2:bg-white/[0.03]"
                     >
                       <div className="flex items-center">
                         <div
@@ -631,10 +634,10 @@ export default async function AdminPage() {
                               : activity.type === 'track'
                                 ? 'bg-blue-500/20'
                                 : 'bg-pink-500/20'
-                          } p-2 rounded-lg mr-3`}
+                          } p-2 rounded-lg mr-3 v2:rounded-xl v2:bg-white/[0.06]`}
                         >
                           <activity.icon
-                            className={`h-5 w-5 ${
+                            className={`h-5 w-5 v2:text-brand ${
                               activity.type === 'event'
                                 ? 'text-purple-400'
                                 : activity.type === 'track'
@@ -661,7 +664,7 @@ export default async function AdminPage() {
                     </div>
                   ))
                 ) : (
-                  <div className="bg-black/30 p-3 rounded-lg text-center">
+                  <div className="bg-black/30 p-3 rounded-lg text-center v2:rounded-xl v2:bg-white/[0.03]">
                     <p className="text-gray-400">Aucune activité récente</p>
                   </div>
                 )}

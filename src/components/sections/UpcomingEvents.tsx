@@ -1,9 +1,15 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Calendar, MapPin } from 'lucide-react';
+import { ArrowRight, Calendar, CalendarX, Clock, MapPin } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 
+import { Button } from '@/components/ui/Button';
+import { SectionHeading } from '@/components/ui/PageHeader';
+import { RevealGroup, RevealItem } from '@/components/ui/Reveal';
+import { useSpotlight } from '@/hooks/useSpotlight';
+import { useUiVersion } from '@/hooks/useUiVersion';
 import { Event } from '@/types';
 
 export interface UpcomingEventsProps {
@@ -24,6 +30,118 @@ interface DisplayEvent {
   isFeatured?: boolean;
 }
 
+/* -------------------------------------------------------------------------- */
+/* UI v2                                                                      */
+/* -------------------------------------------------------------------------- */
+
+function EventCardV2({ event }: { event: Event }) {
+  const spotlight = useSpotlight<HTMLElement>();
+  const date = new Date(event.date);
+
+  return (
+    <article
+      {...spotlight}
+      aria-label={`Event: ${event.title}`}
+      className="surface-1 spotlight flex h-full flex-col gap-5 rounded-2xl p-5 transition-[transform,border-color] duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-white/15 sm:flex-row sm:items-center md:p-6"
+    >
+      <div className="flex min-w-0 flex-1 items-center gap-4 md:gap-5">
+        {/* Pavé date */}
+        <div className="flex w-16 shrink-0 flex-col items-center rounded-xl bg-white/[0.04] py-2.5 ring-1 ring-inset ring-white/10">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-brand">
+            {date.toLocaleDateString('en-US', { month: 'short' })}
+          </span>
+          <span className="text-2xl font-semibold leading-tight text-white tabular-nums">
+            {date.toLocaleDateString('en-US', { day: '2-digit' })}
+          </span>
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate text-lg font-semibold text-white">{event.title}</h3>
+          <div className="mt-1.5 flex flex-col gap-1 text-sm text-white/60">
+            <span className="flex items-center gap-2">
+              <Clock className="h-4 w-4 shrink-0 text-white/40" aria-hidden="true" />
+              {date.toLocaleDateString('en-US', { weekday: 'long' })}
+              {' · '}
+              {date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+            </span>
+            <span className="flex min-w-0 items-center gap-2">
+              <MapPin className="h-4 w-4 shrink-0 text-white/40" aria-hidden="true" />
+              <span className="truncate">{event.location}</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {event.ticketUrl && (
+        <Button asChild size="sm" className="h-10 shrink-0 px-5">
+          <a
+            href={event.ticketUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Buy tickets for ${event.title}`}
+          >
+            Buy Tickets
+          </a>
+        </Button>
+      )}
+    </article>
+  );
+}
+
+function UpcomingEventsV2({ title, events }: { title: string; events: Event[] }) {
+  return (
+    <section className="relative py-16 md:py-24">
+      <div className="mx-auto max-w-[1180px] px-4">
+        <SectionHeading eyebrow="Prochaines dates" title={title}>
+          <Link
+            href="/events"
+            className="group/link hidden shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-white/60 transition-colors duration-300 hover:text-white sm:inline-flex"
+            aria-label="View all events"
+          >
+            View all
+            <ArrowRight
+              className="h-4 w-4 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover/link:translate-x-0.5"
+              aria-hidden="true"
+            />
+          </Link>
+        </SectionHeading>
+
+        {events.length > 0 ? (
+          <RevealGroup className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-6">
+            {events.map((event) => (
+              <RevealItem key={event.id} className="h-full">
+                <EventCardV2 event={event} />
+              </RevealItem>
+            ))}
+          </RevealGroup>
+        ) : (
+          <div className="surface-1 mx-auto flex max-w-md flex-col items-center gap-4 rounded-2xl px-6 py-10 text-center">
+            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/[0.04]">
+              <CalendarX className="h-5 w-5 text-white/60" aria-hidden="true" />
+            </span>
+            <p className="text-sm text-white/70">No upcoming events at the moment.</p>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/events">View All Events</Link>
+            </Button>
+          </div>
+        )}
+
+        {events.length > 0 && (
+          <div className="mt-8 flex justify-center sm:hidden">
+            <Link
+              href="/events"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-white/60 transition-colors hover:text-white"
+            >
+              View All Events
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export default function UpcomingEvents({
   title = 'Upcoming Events',
   count = 4,
@@ -31,6 +149,9 @@ export default function UpcomingEvents({
 }: UpcomingEventsProps) {
   // Filtrer les événements en fonction du nombre demandé
   const filteredEvents = events.slice(0, count);
+  const isV2 = useUiVersion() === 'v2';
+
+  if (isV2) return <UpcomingEventsV2 title={title} events={filteredEvents} />;
 
   return (
     <section className="py-20 relative overflow-hidden">

@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss';
+import tailwindcssAnimate from 'tailwindcss-animate';
 
 export default {
   darkMode: 'class',
@@ -10,6 +11,12 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Accent unique de l'UI v2 (voir les tokens --brand-* dans globals.css)
+        brand: {
+          DEFAULT: 'rgb(var(--brand) / <alpha-value>)',
+          indigo: 'rgb(var(--brand-indigo) / <alpha-value>)',
+          magenta: 'rgb(var(--brand-magenta) / <alpha-value>)',
+        },
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         card: {
@@ -51,18 +58,20 @@ export default {
           '5': 'hsl(var(--chart-5))',
         },
         // Modern gradient colors for 2025 design
+        // Palette violette exposée en variables : valeurs legacy dans globals.css (:root),
+        // remappées sur l'accent unique (échelle violet) sous [data-ui='v2'].
         purple: {
-          50: '#faf5ff',
-          100: '#f3e8ff',
-          200: '#e9d5ff',
-          300: '#d8b4fe',
-          400: '#c084fc',
-          500: '#a855f7',
-          600: '#9333ea',
-          700: '#7e22ce',
-          800: '#6b21a8',
-          900: '#581c87',
-          950: '#3b0764',
+          50: 'var(--purple-50)',
+          100: 'var(--purple-100)',
+          200: 'var(--purple-200)',
+          300: 'var(--purple-300)',
+          400: 'var(--purple-400)',
+          500: 'var(--purple-500)',
+          600: 'var(--purple-600)',
+          700: 'var(--purple-700)',
+          800: 'var(--purple-800)',
+          900: 'var(--purple-900)',
+          950: 'var(--purple-950)',
         },
         blue: {
           50: '#eff6ff',
@@ -163,5 +172,5 @@ export default {
       },
     },
   },
-  plugins: [require('tailwindcss-animate')],
+  plugins: [tailwindcssAnimate],
 } satisfies Config;

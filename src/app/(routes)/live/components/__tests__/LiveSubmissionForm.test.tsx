@@ -27,7 +27,7 @@ jest.mock('@/lib/live/audio-analysis', () => ({
 jest.mock('@/lib/api/fetchWithAuth', () => ({
   fetchWithAuth: jest.fn(),
 }));
-jest.mock('react-hot-toast', () => ({
+jest.mock('sonner', () => ({
   toast: {
     success: jest.fn(),
     error: jest.fn(),

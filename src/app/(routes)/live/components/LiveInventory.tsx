@@ -1,12 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+import type { KeyboardEvent } from 'react';
 import { motion } from 'framer-motion';
 import { Package, ExternalLink, Zap } from 'lucide-react';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/Badge';
+import { useUiVersion } from '@/hooks/useUiVersion';
 import { useLiveInventoryContext } from '../context/LiveInventoryContext';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 
 export function LiveInventory() {
   const { inventory, isLoading, updateItem } = useLiveInventoryContext();
@@ -23,6 +25,27 @@ export function LiveInventory() {
     }
   };
 
+  const isV2 = useUiVersion() === 'v2';
+
+  /** Accessibilité clavier des cases d'item (rendu inchangé) */
+  const tileA11y = (
+    item: { itemId: string; LiveItem?: { name?: string | null } | null } | undefined,
+    isActivated: boolean
+  ) =>
+    item
+      ? {
+          role: 'button' as const,
+          tabIndex: 0,
+          'aria-label': `${item.LiveItem?.name || 'Item'} : ${isActivated ? 'désactiver' : 'activer'}`,
+          onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              handleItemClick(item.itemId, isActivated);
+            }
+          },
+        }
+      : {};
+
   const activatedItems = inventory?.activatedItems || [];
   const unactivatedItems = inventory?.unactivatedItems || [];
 
@@ -31,18 +54,22 @@ export function LiveInventory() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, delay: 0.2 }}
-      className="glass-modern glass-modern-hover rounded-2xl p-3 sm:p-4 lg:p-4 h-full flex flex-col"
+      className={
+        isV2
+          ? 'surface-1 flex h-full flex-col rounded-2xl p-5'
+          : 'glass-modern glass-modern-hover rounded-2xl p-3 sm:p-4 lg:p-4 h-full flex flex-col'
+      }
     >
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-base sm:text-lg lg:text-base font-audiowide text-white">
-          INVENTORY 📦
+        <h2 className="text-base sm:text-lg lg:text-base font-audiowide text-white v2:font-sans v2:font-semibold">
+          {isV2 ? 'INVENTORY' : 'INVENTORY 📦'}
         </h2>
-        <button className="text-purple-400 hover:text-purple-300 text-xs flex items-center gap-1">
+        <button className="text-purple-400 hover:text-purple-300 text-xs flex items-center gap-1 v2:rounded-full v2:bg-white/[0.04] v2:px-3 v2:py-1 v2:font-medium v2:text-white/70 v2:ring-1 v2:ring-inset v2:ring-white/10 v2:hover:text-white">
           TRADES <ExternalLink className="w-3 h-3" />
         </button>
       </div>
 
-      <p className="text-[10px] text-gray-400 mb-3">
+      <p className="text-[10px] text-gray-400 mb-3 v2:text-xs v2:text-white/50">
         {/* ALL YOUR ITEMS & BONUSES IN ONE PLACE. SOME ITEMS MAY REQUIRE A TWITCH CHAT MESSAGE TO
         APPEAR. */}{' '}
         ACTIVE TICKETS: {inventory?.totalTickets || 0} {/* LIST OF ALL ITEMS -&gt; */}
@@ -50,8 +77,10 @@ export function LiveInventory() {
 
       {/* Items activés */}
       <div className="mb-3">
-        <h3 className="text-[10px] font-medium text-gray-300 mb-1.5">Activated Items</h3>
-        <div className="grid grid-cols-5 gap-1">
+        <h3 className="text-[10px] font-medium text-gray-300 mb-1.5 v2:text-xs v2:text-white/60">
+          Activated Items
+        </h3>
+        <div className="grid grid-cols-5 gap-1 v2:gap-2">
           {Array.from({ length: 5 }).map((_, index) => {
             const item = activatedItems[index];
             return (
@@ -60,18 +89,20 @@ export function LiveInventory() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => item && handleItemClick(item.itemId, true)}
+                {...tileA11y(item, true)}
                 className="flex flex-col"
               >
                 <div
                   className={`
                   aspect-square rounded-lg relative overflow-hidden flex flex-col cursor-pointer
-                  ${item ? 'bg-gradient-to-br from-purple-900/50 to-blue-900/50 border-2 border-purple-500/50 shadow-[0_0_8px_rgba(168,85,247,0.4)]' : 'border border-gray-700 bg-gray-800/30'}
+                  ${item ? 'bg-gradient-to-br from-purple-900/50 to-blue-900/50 border-2 border-purple-500/50 shadow-[0_0_8px_rgba(168,85,247,0.4)] v2:border v2:border-brand/50 v2:bg-none v2:bg-brand/10 v2:shadow-none' : 'border border-gray-700 bg-gray-800/30 v2:border-white/[0.06] v2:bg-white/[0.02]'}
+                  v2:rounded-xl
                 `}
                 >
                   {item && (
                     <>
                       {/* Animation pulse background */}
-                      <div className="absolute inset-0 bg-purple-500/10 animate-pulse" />
+                      <div className="absolute inset-0 bg-purple-500/10 animate-pulse v2:hidden" />
 
                       {/* Image remplissant toute la div */}
                       <div className="absolute inset-0 w-full h-full">
@@ -114,7 +145,7 @@ export function LiveInventory() {
                   )}
                   {!item && (
                     <div className="w-full h-full flex items-center justify-center">
-                      <Package className="w-6 h-6 text-gray-600" />
+                      <Package className="w-6 h-6 text-gray-600 v2:h-5 v2:w-5 v2:text-white/15" />
                     </div>
                   )}
                 </div>
@@ -129,8 +160,10 @@ export function LiveInventory() {
 
       {/* Inventaire (non activé) - Toujours afficher une première ligne */}
       <div>
-        <h3 className="text-[10px] font-medium text-gray-300 mb-1.5">Inventory</h3>
-        <div className="grid grid-cols-5 gap-1">
+        <h3 className="text-[10px] font-medium text-gray-300 mb-1.5 v2:text-xs v2:text-white/60">
+          Inventory
+        </h3>
+        <div className="grid grid-cols-5 gap-1 v2:gap-2">
           {Array.from({ length: 5 }).map((_, index) => {
             const item = unactivatedItems[index];
             return (
@@ -139,12 +172,14 @@ export function LiveInventory() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => item && handleItemClick(item.itemId, false)}
+                {...tileA11y(item, false)}
                 className="flex flex-col"
               >
                 <div
                   className={`
                   aspect-square rounded-lg relative overflow-hidden cursor-pointer
-                  ${item ? 'bg-gray-900/50 border border-gray-800 hover:border-gray-600 transition-colors' : 'border border-gray-700 bg-gray-800/20'}
+                  ${item ? 'bg-gray-900/50 border border-gray-800 hover:border-gray-600 transition-colors v2:border-white/[0.08] v2:bg-white/[0.03] v2:hover:border-white/20' : 'border border-gray-700 bg-gray-800/20 v2:border-white/[0.06] v2:bg-white/[0.02]'}
+                  v2:rounded-xl
                 `}
                 >
                   {item ? (
@@ -187,7 +222,7 @@ export function LiveInventory() {
                     </>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <Package className="w-6 h-6 text-gray-600" />
+                      <Package className="w-6 h-6 text-gray-600 v2:h-5 v2:w-5 v2:text-white/15" />
                     </div>
                   )}
                 </div>
@@ -203,7 +238,7 @@ export function LiveInventory() {
       {/* Deuxième ligne d'inventaire - Afficher seulement si on a 5 items ou plus */}
       {unactivatedItems.length >= 5 && (
         <div className="mt-2">
-          <div className="grid grid-cols-5 gap-1">
+          <div className="grid grid-cols-5 gap-1 v2:gap-2">
             {Array.from({ length: 5 }).map((_, index) => {
               const item = unactivatedItems[index + 5];
               return (
@@ -212,12 +247,14 @@ export function LiveInventory() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => item && handleItemClick(item.itemId, false)}
+                  {...tileA11y(item, false)}
                   className="flex flex-col"
                 >
                   <div
                     className={`
                     aspect-square rounded-lg relative overflow-hidden cursor-pointer
-                    ${item ? 'bg-gray-900/50 border border-gray-800 hover:border-gray-600 transition-colors' : 'border border-gray-700 bg-gray-800/20'}
+                    ${item ? 'bg-gray-900/50 border border-gray-800 hover:border-gray-600 transition-colors v2:border-white/[0.08] v2:bg-white/[0.03] v2:hover:border-white/20' : 'border border-gray-700 bg-gray-800/20 v2:border-white/[0.06] v2:bg-white/[0.02]'}
+                  v2:rounded-xl
                   `}
                   >
                     {item ? (
@@ -257,7 +294,7 @@ export function LiveInventory() {
                       </>
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <Package className="w-6 h-6 text-gray-600" />
+                        <Package className="w-6 h-6 text-gray-600 v2:h-5 v2:w-5 v2:text-white/15" />
                       </div>
                     )}
                   </div>

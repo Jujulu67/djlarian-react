@@ -6,10 +6,14 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useAudioFrequencyCapture } from '@/hooks/useAudioFrequencyCapture';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { useSoundCloudPlayer } from '@/hooks/useSoundCloudPlayer';
+import { useSpotlight } from '@/hooks/useSpotlight';
+import { useUiVersion } from '@/hooks/useUiVersion';
 import { useYouTubePlayer } from '@/hooks/useYouTubePlayer';
 import { logger } from '@/lib/logger';
+import { fadeUp } from '@/lib/motion';
 import { sendPlayerCommand } from '@/lib/utils/audioUtils';
 import { selectPreferredPlatform } from '@/lib/utils/platformSelector';
+import { cn } from '@/lib/utils/cn';
 import { Track } from '@/lib/utils/types';
 
 import { MusicCardBadges } from './MusicCard/MusicCardBadges';
@@ -47,6 +51,8 @@ const MusicCardComponent: React.FC<MusicCardProps> = ({
   const [localIsPlaying, setLocalIsPlaying] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
+  const isV2 = useUiVersion() === 'v2';
+  const spotlight = useSpotlight<HTMLDivElement>();
 
   // Determine which platform to use based on priority (YouTube > SoundCloud) - memoized
   // Utiliser track comme dépendance pour correspondre à l'inférence du React Compiler
@@ -172,6 +178,104 @@ const MusicCardComponent: React.FC<MusicCardProps> = ({
     },
     [handlePlayClick, track.id, isActive, isPlaying]
   );
+
+  if (isV2) {
+    return (
+      <motion.div
+        id={`music-card-${track.id}`}
+        ref={cardRef}
+        // Participe à la cascade d'un <RevealGroup> parent (sans parent : aucun effet)
+        variants={fadeUp}
+        className={cn(
+          'group relative flex flex-col overflow-hidden rounded-2xl p-3 surface-1 spotlight',
+          'transition-[transform,border-color] duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)]',
+          'hover:border-white/15',
+          isActive && 'border-brand/40 hover:border-brand/50',
+          isPlayerActive ? 'col-span-1 md:col-span-2' : 'cursor-pointer hover:-translate-y-0.5'
+        )}
+        onClick={handleCardClick}
+        {...spotlight}
+      >
+        {/* Pochette ou lecteur intégré, inset dans la carte */}
+        <div
+          className="relative overflow-hidden rounded-xl bg-black/40"
+          style={{ aspectRatio: isPlayerActive ? '16/9' : '1/1' }}
+        >
+          {track.platforms.youtube &&
+            youtubePlayer.youtubeVideoId &&
+            (youtubePlayer.isYoutubeVisible || youtubePlayer.isYoutubeLoaded) && (
+              <MusicCardPlayer
+                track={track}
+                platform="youtube"
+                videoId={youtubePlayer.youtubeVideoId}
+                currentTime={youtubePlayer.currentTime}
+                iframeRef={youtubePlayer.iframeRef}
+                isVisible={youtubePlayer.isYoutubeVisible}
+                isLoaded={youtubePlayer.isYoutubeLoaded}
+                onLoad={youtubePlayer.handleIframeLoad}
+                onClose={handleClosePlayer}
+              />
+            )}
+
+          {track.platforms.soundcloud &&
+            soundcloudPlayer.soundcloudUrl &&
+            (soundcloudPlayer.isSoundcloudVisible || soundcloudPlayer.isSoundcloudLoaded) && (
+              <MusicCardPlayer
+                track={track}
+                platform="soundcloud"
+                embedUrl={soundcloudPlayer.getSoundcloudEmbedUrl(soundcloudPlayer.soundcloudUrl)}
+                iframeRef={soundcloudPlayer.soundcloudIframeRef}
+                isVisible={soundcloudPlayer.isSoundcloudVisible}
+                isLoaded={soundcloudPlayer.isSoundcloudLoaded}
+                onLoad={soundcloudPlayer.handleSoundcloudIframeLoad}
+                onClose={handleClosePlayer}
+              />
+            )}
+
+          {!isPlayerVisible && (
+            <>
+              <MusicCardImage
+                track={track}
+                imageError={imageError}
+                onImageError={() => setImageError(true)}
+                priority={priority}
+              />
+              {/* Léger assombrissement au survol, pour détacher le bouton play */}
+              <div className="pointer-events-none absolute inset-0 bg-black/25 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+            </>
+          )}
+
+          <MusicCardBadges track={track} isPlayerVisible={isPlayerVisible} />
+
+          <MusicCardControls
+            isActive={isActive}
+            isPlaying={isPlaying}
+            isPlayerVisible={isPlayerVisible}
+            onPlayClick={handlePlayClick}
+            trackTitle={track.title}
+          />
+        </div>
+
+        {/* Visualiseur sous le lecteur (désactivé sur mobile pour les performances) */}
+        {isPlayerVisible && !isMobile && (
+          <div className="mt-3 flex h-16 w-full items-center overflow-hidden rounded-xl bg-white/[0.03]">
+            <MusicCardVisualizer
+              isVisible={true}
+              isPlaying={isPlaying && isActive}
+              frequencyData={audioCapture.frequencyData}
+              isRealAudio={audioCapture.isCapturing}
+            />
+          </div>
+        )}
+
+        <MusicCardInfo
+          track={track}
+          isPlayerVisible={isPlayerVisible}
+          footer={<MusicCardPlatforms track={track} isPlayerVisible={isPlayerVisible} />}
+        />
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div

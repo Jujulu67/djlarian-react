@@ -5,9 +5,10 @@ import Image from 'next/image';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import React, { useState, useEffect, useCallback } from 'react';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 
 import Modal from '@/components/ui/Modal';
+import { useUiVersion } from '@/hooks/useUiVersion';
 import { logger } from '@/lib/logger';
 
 interface AuthModalProps {
@@ -22,6 +23,7 @@ interface AvailableProviders {
 
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const router = useRouter();
+  const isV2 = useUiVersion() === 'v2';
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -217,7 +219,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         }}
         className="p-0 relative z-10 w-full max-w-md"
       >
-        <h2 className="text-2xl font-audiowide mb-6 text-center">
+        <h2 className="text-2xl font-audiowide mb-6 text-center v2:text-display v2:text-3xl v2:text-white">
           {isLogin ? 'Connexion' : 'Inscription'}
         </h2>
         <div className="space-y-4">
@@ -228,7 +230,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 <button
                   onClick={() => handleProviderSignIn('google')}
                   disabled={isLoading || providersLoading}
-                  className="w-full py-3 px-4 bg-white !text-black rounded-lg flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed lift-3d"
+                  className="w-full py-3 px-4 bg-white !text-black rounded-lg flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed lift-3d v2:rounded-xl v2:active:scale-[0.98]"
                 >
                   <Image
                     src="/icons/google.svg"
@@ -244,7 +246,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 <button
                   onClick={() => handleProviderSignIn('twitch')}
                   disabled={isLoading || providersLoading}
-                  className="w-full py-3 px-4 bg-[#9146FF] text-white rounded-lg flex items-center justify-center gap-2 hover:bg-[#7c2cff] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed lift-3d"
+                  className="w-full py-3 px-4 bg-[#9146FF] text-white rounded-lg flex items-center justify-center gap-2 hover:bg-[#7c2cff] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed lift-3d v2:rounded-xl v2:active:scale-[0.98]"
                 >
                   <Image
                     src="/icons/twitch.svg"
@@ -256,20 +258,28 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   Continuer avec Twitch
                 </button>
               )}
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-500/30" />
+              {isV2 ? (
+                <div className="flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-white/40">
+                  <div className="h-px flex-1 bg-white/10" />
+                  Ou
+                  <div className="h-px flex-1 bg-white/10" />
                 </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-black/50 text-gray-400">Ou</span>
+              ) : (
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-500/30" />
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-black/50 text-gray-400">Ou</span>
+                  </div>
                 </div>
-              </div>
+              )}
             </>
           )}
 
           {/* Message si aucun provider OAuth n'est configuré */}
           {!providersLoading && !availableProviders.google && !availableProviders.twitch && (
-            <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg text-sm text-yellow-400">
+            <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg text-sm text-yellow-400 v2:rounded-xl">
               <p className="font-medium mb-1">OAuth non configuré</p>
               <p className="text-xs">
                 Pour activer la connexion Google/Twitch, configurez les variables d'environnement.
@@ -281,7 +291,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
               <div>
-                <label htmlFor="name" className="block text-sm font-medium mb-2">
+                <label htmlFor="name" className="block text-sm font-medium mb-2 v2:text-white/70">
                   Nom
                 </label>
                 <input
@@ -289,14 +299,14 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   id="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-2 bg-purple-900/20 border border-purple-500/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-white"
+                  className="w-full px-4 py-2 bg-purple-900/20 border border-purple-500/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-white v2:rounded-xl v2:border-white/10 v2:bg-white/[0.03] v2:transition-[border-color,box-shadow] v2:duration-200 v2:focus:border-brand/70 v2:focus:ring-4 v2:focus:ring-brand/15"
                   required
                   disabled={isLoading}
                 />
               </div>
             )}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium mb-2">
+              <label htmlFor="email" className="block text-sm font-medium mb-2 v2:text-white/70">
                 Email
               </label>
               <input
@@ -304,13 +314,13 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 id="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2 bg-purple-900/20 border border-purple-500/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-white"
+                className="w-full px-4 py-2 bg-purple-900/20 border border-purple-500/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-white v2:rounded-xl v2:border-white/10 v2:bg-white/[0.03] v2:transition-[border-color,box-shadow] v2:duration-200 v2:focus:border-brand/70 v2:focus:ring-4 v2:focus:ring-brand/15"
                 required
                 disabled={isLoading}
               />
             </div>
             <div>
-              <label htmlFor="password" className="block text-sm font-medium mb-2">
+              <label htmlFor="password" className="block text-sm font-medium mb-2 v2:text-white/70">
                 Mot de passe
               </label>
               <input
@@ -318,7 +328,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2 bg-purple-900/20 border border-purple-500/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-white"
+                className="w-full px-4 py-2 bg-purple-900/20 border border-purple-500/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-white v2:rounded-xl v2:border-white/10 v2:bg-white/[0.03] v2:transition-[border-color,box-shadow] v2:duration-200 v2:focus:border-brand/70 v2:focus:ring-4 v2:focus:ring-brand/15"
                 required
                 disabled={isLoading}
               />
@@ -326,7 +336,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 px-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 px-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed v2:rounded-xl v2:bg-gradient-to-b v2:from-brand v2:to-purple-600 v2:shadow-[inset_0_1px_0_rgb(255_255_255/0.22)] v2:hover:brightness-110 v2:active:scale-[0.98]"
             >
               {isLoading ? (
                 <>
@@ -356,11 +366,11 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             </button>
           </form>
 
-          <p className="text-center text-sm text-gray-400">
+          <p className="text-center text-sm text-gray-400 v2:text-white/60">
             {isLogin ? 'Pas encore de compte ?' : 'Déjà un compte ?'}{' '}
             <button
               onClick={() => setIsLogin(!isLogin)}
-              className="text-white hover:text-gray-300 transition-colors"
+              className="text-white hover:text-gray-300 transition-colors v2:font-medium v2:underline v2:decoration-white/30 v2:underline-offset-4 v2:hover:decoration-white"
               disabled={isLoading}
             >
               {isLogin ? "S'inscrire" : 'Se connecter'}

@@ -6,9 +6,13 @@ import {
   UserLicense,
   LicenseActivation,
 } from '@/components/licenses/UserLicenseCard';
-import { KeyRound, ShoppingBag, ExternalLink, Ghost } from 'lucide-react';
+import { KeyRound, ShoppingBag, ExternalLink, Ghost, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/Button';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Reveal, RevealGroup, RevealItem } from '@/components/ui/Reveal';
+import { useUiVersion } from '@/hooks/useUiVersion';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
@@ -27,6 +31,112 @@ interface RawActivation extends Omit<LicenseActivation, 'lastValidated'> {
 interface RawLicense extends Omit<UserLicense, 'createdAt' | 'activations'> {
   createdAt: string;
   activations: RawActivation[];
+}
+
+/** État vide v2 : carte surface-1 centrée, icône dans un cercle, phrase courte, action */
+function EmptyStateV2({
+  icon,
+  title,
+  description,
+  action,
+}: {
+  icon: ReactNode;
+  title: string;
+  description: string;
+  action: ReactNode;
+}) {
+  return (
+    <div className="surface-1 mx-auto flex w-full max-w-md flex-col items-center rounded-2xl px-6 py-12 text-center">
+      <span className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-white/[0.04] text-white/70">
+        {icon}
+      </span>
+      <h2 className="mb-2 text-lg font-semibold text-white">{title}</h2>
+      <p className="mb-6 text-sm leading-relaxed text-white/60">{description}</p>
+      {action}
+    </div>
+  );
+}
+
+function LicensesPageV2({
+  status,
+  isLoading,
+  licenses,
+  userEmail,
+}: {
+  status: 'loading' | 'authenticated' | 'unauthenticated';
+  isLoading: boolean;
+  licenses: UserLicense[];
+  userEmail?: string | null;
+}) {
+  if (status === 'loading' || isLoading) {
+    return (
+      <div className="flex min-h-[70vh] items-center justify-center" role="status">
+        <Loader2 className="h-6 w-6 animate-spin text-white/50" aria-hidden="true" />
+        <span className="sr-only">Chargement...</span>
+      </div>
+    );
+  }
+
+  if (status === 'unauthenticated') {
+    return (
+      <div className="flex min-h-[70vh] items-center justify-center px-4">
+        <EmptyStateV2
+          icon={<Ghost className="h-6 w-6" aria-hidden="true" />}
+          title="Accès réservé"
+          description="Veuillez vous connecter pour voir vos licences."
+          action={
+            <Button asChild>
+              <Link href="/auth/signin?callbackUrl=/licenses">Se connecter</Link>
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-[1180px] px-4 pb-16 pt-16 md:pb-24 md:pt-24">
+      <PageHeader
+        eyebrow="Licences"
+        title="Mes Licences"
+        description="Gérez vos licences logicielles et vos appareils activés."
+        actions={
+          <Button asChild variant="outline">
+            <Link href="/shop">
+              <ShoppingBag className="h-4 w-4" />
+              Boutique
+            </Link>
+          </Button>
+        }
+      />
+
+      {licenses.length > 0 ? (
+        <RevealGroup className="mx-auto max-w-4xl space-y-6">
+          {licenses.map((license) => (
+            <RevealItem key={license.id}>
+              <UserLicenseCard license={license} userEmail={userEmail} />
+            </RevealItem>
+          ))}
+        </RevealGroup>
+      ) : (
+        <Reveal>
+          <EmptyStateV2
+            icon={<KeyRound className="h-6 w-6" aria-hidden="true" />}
+            title="Aucune licence trouvée"
+            description="Exploitez tout le potentiel de votre musique avec nos plugins professionnels. Visitez la boutique pour obtenir votre première licence."
+            action={
+              <Button asChild>
+                <Link href="/shop">
+                  Voir les plugins
+                  <ExternalLink className="h-4 w-4" />
+                </Link>
+              </Button>
+            }
+          />
+        </Reveal>
+      )}
+    </div>
+  );
 }
 
 export default function LicensesPage() {
@@ -69,6 +179,18 @@ export default function LicensesPage() {
       setIsLoading(false);
     }
   }, [session, status]);
+
+  const isV2 = useUiVersion() === 'v2';
+  if (isV2) {
+    return (
+      <LicensesPageV2
+        status={status}
+        isLoading={isLoading}
+        licenses={licenses}
+        userEmail={session?.user?.email}
+      />
+    );
+  }
 
   if (status === 'loading' || isLoading) {
     return (

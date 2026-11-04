@@ -1,7 +1,7 @@
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useState, useEffect, useRef } from 'react';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 
 import { logger } from '@/lib/logger';
 import type { Track, MusicPlatform } from '@/lib/utils/types';

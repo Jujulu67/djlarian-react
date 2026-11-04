@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 
 import { logger } from '@/lib/logger';
 import type { DetectedRelease, PlatformSearchResult } from '@/lib/services/types';

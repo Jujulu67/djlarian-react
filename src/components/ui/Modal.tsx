@@ -67,6 +67,45 @@ export default function Modal({
     };
   }, []);
 
+  // Escape pour fermer, focus déplacé dans la modale puis rendu à l'élément d'origine,
+  // et Tab qui reste dans la modale (piège de focus minimal)
+  const handleCloseRef = useRef(handleClose);
+  useLayoutEffect(() => {
+    handleCloseRef.current = handleClose;
+  });
+  useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    modalRef.current?.focus({ preventScroll: true });
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        handleCloseRef.current();
+        return;
+      }
+      if (e.key !== 'Tab' || !modalRef.current) return;
+      const focusables = modalRef.current.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      previouslyFocused?.focus?.({ preventScroll: true });
+    };
+  }, []);
+
   const handleMouseDown = (e: React.MouseEvent) => {
     // Vérifie si le clic a commencé en dehors du contenu de la modale
     if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
@@ -88,22 +127,22 @@ export default function Modal({
   const modalContent = (
     <div
       className={`fixed inset-0 ${zClass ?? 'z-[9999]'} flex items-center justify-center overflow-hidden`}
-      aria-labelledby="modal-title"
       role="dialog"
       aria-modal="true"
     >
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity v2:bg-black/55 v2:backdrop-blur-md v2:animate-[v2-fade-in_250ms_cubic-bezier(0.16,1,0.3,1)]"
         aria-hidden="true"
       />
       <div
         ref={modalRef}
-        className={`relative transform overflow-hidden rounded-xl ${bgClass ?? 'glass-modern backdrop-blur-xl'} ${borderClass ?? ''} w-full ${maxWidth} text-left shadow-2xl transition-all ${fullscreenContent ? 'w-screen h-screen m-0 rounded-none' : 'sm:my-8'} animate-fadeIn`}
+        tabIndex={-1}
+        className={`relative transform overflow-hidden rounded-xl ${bgClass ?? 'glass-modern backdrop-blur-xl v2:surface-3'} ${borderClass ?? ''} w-full ${maxWidth} text-left shadow-2xl transition-all ${fullscreenContent ? 'w-screen h-screen m-0 rounded-none' : 'sm:my-8 v2:rounded-3xl'} animate-fadeIn outline-none v2:animate-[v2-modal-in_400ms_cubic-bezier(0.16,1,0.3,1)]`}
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={handleClose}
-          className="absolute top-3 right-3 p-2 text-gray-400 hover:text-white bg-black/20 hover:bg-black/40 rounded-full transition-colors z-10"
+          className="absolute top-3 right-3 p-2 text-gray-400 hover:text-white bg-black/20 hover:bg-black/40 rounded-full transition-colors z-10 v2:bg-white/[0.06] v2:hover:bg-white/[0.12] v2:hover:rotate-90 v2:transition-[transform,background-color,color] v2:duration-300"
           aria-label="Fermer la modale"
         >
           <X className="w-5 h-5" />

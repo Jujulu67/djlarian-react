@@ -1,4 +1,11 @@
+'use client';
+
+import { motion } from 'framer-motion';
 import Link from 'next/link';
+
+import { useUiVersion } from '@/hooks/useUiVersion';
+import { springs } from '@/lib/motion';
+
 import type { NavLink } from './navigationConfig';
 
 interface DesktopNavLinkProps {
@@ -7,6 +14,9 @@ interface DesktopNavLinkProps {
 }
 
 export function DesktopNavLink({ link, isActive }: DesktopNavLinkProps) {
+  const uiVersion = useUiVersion();
+  if (uiVersion === 'v2') return <DesktopNavLinkV2 link={link} isActive={isActive} />;
+
   return (
     <Link
       key={link.href}
@@ -72,6 +82,34 @@ export function DesktopNavLink({ link, isActive }: DesktopNavLinkProps) {
           }`}
         />
       </span>
+    </Link>
+  );
+}
+
+/** UI v2 : lien sobre, pastille active partagée qui glisse d'un lien à l'autre */
+function DesktopNavLinkV2({ link, isActive }: DesktopNavLinkProps) {
+  return (
+    <Link
+      href={link.href}
+      aria-current={isActive ? 'page' : undefined}
+      className={`relative flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-medium transition-colors duration-200 ${
+        isActive ? 'text-white' : 'text-white/60 hover:text-white'
+      }`}
+    >
+      {isActive && (
+        <motion.span
+          layoutId="nav-active-pill"
+          transition={springs.snappy}
+          className="absolute inset-0 rounded-full bg-white/[0.08] shadow-[inset_0_1px_0_rgb(255_255_255/0.1)] ring-1 ring-inset ring-white/10"
+        />
+      )}
+      {link.icon && (
+        <link.icon
+          size={16}
+          className={`relative transition-colors duration-200 ${isActive ? 'text-brand' : ''}`}
+        />
+      )}
+      <span className="relative">{link.label}</span>
     </Link>
   );
 }

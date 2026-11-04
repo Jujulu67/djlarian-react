@@ -5,7 +5,7 @@ import { User } from 'lucide-react';
 import { useSession, signIn } from 'next-auth/react';
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
 import { useProfileStats } from './hooks/useProfileStats';
 import { useRecentProjects } from './hooks/useRecentProjects';
@@ -106,11 +106,15 @@ function ProfileContent() {
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="glass-modern rounded-2xl p-8 text-center max-w-md"
+          className="glass-modern rounded-2xl p-8 text-center max-w-md v2:surface-1"
         >
-          <User className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-          <h1 className="text-2xl font-audiowide mb-4 text-white">Accès non autorisé</h1>
-          <p className="text-gray-400">Veuillez vous connecter pour accéder à votre profil.</p>
+          <User className="w-16 h-16 mx-auto mb-4 text-gray-400 v2:box-content v2:size-8 v2:rounded-full v2:bg-white/[0.04] v2:p-4 v2:text-white/50" />
+          <h1 className="text-2xl font-audiowide mb-4 text-white v2:text-display">
+            Accès non autorisé
+          </h1>
+          <p className="text-gray-400 v2:text-white/60">
+            Veuillez vous connecter pour accéder à votre profil.
+          </p>
         </motion.div>
       </div>
     );
@@ -463,8 +467,8 @@ function ProfileContent() {
   };
 
   return (
-    <div className="h-[calc(100vh-4rem)] overflow-y-auto pt-4 sm:pt-8 pb-6 lg:pb-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="h-[calc(100vh-4rem)] overflow-y-auto pt-4 sm:pt-8 pb-6 lg:pb-8 px-4 sm:px-6 lg:px-8 v2:h-auto v2:overflow-visible v2:pb-16 v2:pt-8 lg:v2:pb-24">
+      <div className="max-w-7xl mx-auto v2:max-w-[1180px]">
         {/* Hero Section */}
         {session.user && (
           <ProfileHero
@@ -569,7 +573,9 @@ export default function ProfilePage() {
     <Suspense
       fallback={
         <div className="min-h-[80vh] flex items-center justify-center px-4">
-          <div className="text-white font-audiowide animate-pulse">Chargement du profil...</div>
+          <div className="text-white font-audiowide animate-pulse v2:text-white/60 v2:font-normal">
+            Chargement du profil...
+          </div>
         </div>
       }
     >

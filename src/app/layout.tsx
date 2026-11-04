@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
 import { Audiowide, Montserrat } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
@@ -11,6 +12,7 @@ import UmamiAnalytics from '@/components/analytics/UmamiScript';
 import prisma, { initializePrisma } from '@/lib/prisma';
 import { defaultConfigs } from '@/config/defaults';
 import { auth } from '@/auth';
+import { resolveUiVersion, UI_VERSION_COOKIE } from '@/lib/ui-version';
 
 const audiowide = Audiowide({
   subsets: ['latin'],
@@ -84,9 +86,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     }
   }
 
+  // Version de l'UI (legacy ou v2) posée côté serveur pour éviter tout flash au chargement
+  const uiVersion = resolveUiVersion((await cookies()).get(UI_VERSION_COOKIE)?.value);
+
   return (
     <html
-      lang="en"
+      lang="fr"
+      data-ui={uiVersion}
       className={`${audiowide.variable} ${montserrat.variable}`}
       suppressHydrationWarning
     >

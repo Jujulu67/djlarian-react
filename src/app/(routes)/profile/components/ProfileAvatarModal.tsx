@@ -22,7 +22,7 @@ export function ProfileAvatarModal({ isOpen, imageUrl, onClose }: ProfileAvatarM
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-[99999] bg-black/95 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-[99999] bg-black/95 backdrop-blur-sm flex items-center justify-center p-4 v2:bg-black/80 v2:backdrop-blur-md"
           onMouseDown={(e) => {
             // Fermer uniquement si on clique sur le fond (pas sur l'image)
             if (e.target === e.currentTarget) {
@@ -39,7 +39,7 @@ export function ProfileAvatarModal({ isOpen, imageUrl, onClose }: ProfileAvatarM
               onClose();
             }}
             onMouseDown={(e) => e.stopPropagation()}
-            className="absolute top-4 right-4 z-10 w-12 h-12 rounded-full bg-gray-900/80 hover:bg-gray-800/80 border border-gray-700/50 flex items-center justify-center transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-purple-500/50 pointer-events-auto"
+            className="absolute top-4 right-4 z-10 w-12 h-12 rounded-full bg-gray-900/80 hover:bg-gray-800/80 border border-gray-700/50 v2:surface-2 v2:hover:bg-white/10 flex items-center justify-center transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-purple-500/50 pointer-events-auto"
             aria-label="Fermer"
           >
             <X className="w-6 h-6 text-white" />

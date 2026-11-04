@@ -49,7 +49,7 @@ export function SubmissionActions({
                   setTitle(activeSubmission.title);
                   setDescription(activeSubmission.description || '');
                 }}
-                className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-3 px-6 rounded-xl font-audiowide transition-all duration-200 flex items-center justify-center gap-2"
+                className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-3 px-6 rounded-xl font-audiowide transition-all duration-200 flex items-center justify-center gap-2 v2:rounded-xl v2:bg-white/[0.04] v2:font-sans v2:font-semibold v2:ring-1 v2:ring-inset v2:ring-white/10 v2:hover:bg-white/[0.08] v2:active:scale-[0.98]"
               >
                 <X className="w-5 h-5" />
                 CANCEL
@@ -57,7 +57,7 @@ export function SubmissionActions({
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex-1 bg-purple-600 hover:bg-purple-500 text-white py-3 px-6 rounded-xl font-audiowide transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-purple-900/20"
+                className="flex-1 bg-purple-600 hover:bg-purple-500 text-white py-3 px-6 rounded-xl font-audiowide transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-purple-900/20 v2:bg-gradient-to-b v2:from-brand v2:to-purple-600 v2:font-sans v2:font-semibold v2:shadow-none v2:hover:brightness-110 v2:active:scale-[0.98]"
                 aria-label="Sauvegarder les modifications"
               >
                 {isSubmitting ? (
@@ -73,7 +73,7 @@ export function SubmissionActions({
               <button
                 type="button"
                 onClick={handleDeleteSubmission}
-                className="bg-red-500/10 hover:bg-red-500/20 text-red-500 py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center"
+                className="bg-red-500/10 hover:bg-red-500/20 text-red-500 py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center v2:text-red-400 v2:ring-1 v2:ring-inset v2:ring-red-500/20"
                 title="Delete Submission"
                 aria-label="Supprimer la soumission"
               >
@@ -85,7 +85,7 @@ export function SubmissionActions({
                   e.preventDefault();
                   setIsEditing(true);
                 }}
-                className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-3 px-6 rounded-xl font-audiowide transition-all duration-200 flex items-center justify-center gap-2"
+                className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-3 px-6 rounded-xl font-audiowide transition-all duration-200 flex items-center justify-center gap-2 v2:rounded-xl v2:bg-white/[0.04] v2:font-sans v2:font-semibold v2:ring-1 v2:ring-inset v2:ring-white/10 v2:hover:bg-white/[0.08] v2:active:scale-[0.98]"
                 aria-label="Modifier les informations"
               >
                 <Edit className="w-5 h-5" />
@@ -105,7 +105,7 @@ export function SubmissionActions({
             <button
               type="button"
               onClick={handleDelete}
-              className="bg-red-500/10 hover:bg-red-500/20 text-red-500 py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center"
+              className="bg-red-500/10 hover:bg-red-500/20 text-red-500 py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center v2:text-red-400 v2:ring-1 v2:ring-inset v2:ring-red-500/20"
               title="Clear Form"
               aria-label="Effacer le formulaire"
             >
@@ -122,6 +122,8 @@ export function SubmissionActions({
           text-white py-3 px-6 rounded-xl font-audiowide transition-all duration-200
           flex items-center justify-center gap-2 shadow-lg shadow-purple-900/20
           disabled:opacity-50 disabled:cursor-not-allowed
+          v2:bg-gradient-to-b v2:from-brand v2:to-purple-600 v2:hover:from-brand v2:hover:to-purple-600 v2:hover:brightness-110
+          v2:font-sans v2:font-semibold v2:shadow-none v2:active:scale-[0.98]
         `}
             aria-label="Soumettre la piste"
           >

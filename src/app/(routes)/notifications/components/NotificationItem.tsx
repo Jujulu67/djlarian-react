@@ -62,23 +62,23 @@ export function NotificationItem({
           }
         }
       }}
-      className={`w-full p-3 sm:p-4 md:p-6 hover:bg-gray-800/50 transition-colors touch-manipulation focus:outline-none ${
+      className={`w-full p-3 sm:p-4 md:p-6 hover:bg-gray-800/50 transition-colors touch-manipulation focus:outline-none v2:hover:bg-white/[0.04] ${
         (notification.type === 'ADMIN_MESSAGE' || notification.type === 'USER_MESSAGE') &&
         hasReplies
           ? 'cursor-pointer'
           : ''
       } ${
         isUnread
-          ? 'bg-purple-500/5 border-l-2 sm:border-l-4 border-purple-500'
+          ? 'bg-purple-500/5 border-l-2 sm:border-l-4 border-purple-500 v2:bg-brand/[0.06] v2:border-brand'
           : isSentMessage
-            ? 'bg-green-500/5 border-l-2 sm:border-l-4 border-green-500/50'
+            ? 'bg-green-500/5 border-l-2 sm:border-l-4 border-green-500/50 v2:bg-white/[0.02] v2:border-white/20'
             : 'border-l-2 sm:border-l-4 border-transparent'
       }`}
     >
       <div className="flex items-start gap-2 sm:gap-3 md:gap-4">
         {/* Badge de type */}
         <div
-          className={`flex-shrink-0 p-2 sm:p-2.5 md:p-3 rounded-lg ${bgColor} border ${borderColor}`}
+          className={`flex-shrink-0 p-2 sm:p-2.5 md:p-3 rounded-lg v2:rounded-xl ${bgColor} border ${borderColor}`}
         >
           <Icon className={`w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 ${iconColor}`} />
         </div>
@@ -113,12 +113,12 @@ export function NotificationItem({
                 <h3 className="text-sm sm:text-base md:text-lg font-semibold text-white line-clamp-2">
                   {notification.title}
                 </h3>
-                <span className="px-1.5 sm:px-2 py-0.5 text-xs font-medium rounded-full bg-gray-700/50 text-gray-300 flex-shrink-0">
+                <span className="px-1.5 sm:px-2 py-0.5 text-xs font-medium rounded-full bg-gray-700/50 text-gray-300 flex-shrink-0 v2:bg-white/[0.06] v2:text-white/70">
                   {style.label}
                 </span>
               </div>
               {notification.message && (
-                <p className="text-xs sm:text-sm md:text-base text-gray-400 mb-1.5 sm:mb-2 line-clamp-3">
+                <p className="text-xs sm:text-sm md:text-base text-gray-400 mb-1.5 sm:mb-2 line-clamp-3 v2:text-white/60">
                   {notification.message}
                 </p>
               )}
@@ -137,7 +137,7 @@ export function NotificationItem({
                 ))}
             </div>
             {isUnread && (
-              <span className="flex-shrink-0 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-purple-500 rounded-full mt-1" />
+              <span className="flex-shrink-0 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-purple-500 rounded-full mt-1 v2:bg-brand" />
             )}
           </div>
 
@@ -186,7 +186,7 @@ export function NotificationItem({
                 e.stopPropagation();
                 onToggleThread(notification.id);
               }}
-              className="p-2 text-gray-400 hover:text-purple-400 hover:bg-purple-500/10 rounded-lg transition-colors touch-manipulation focus:outline-none"
+              className="p-2 text-gray-400 hover:text-purple-400 hover:bg-purple-500/10 rounded-lg transition-colors touch-manipulation focus:outline-none v2:rounded-xl v2:hover:bg-white/[0.06] v2:hover:text-white"
               title={isThreadExpanded ? 'Réduire le thread' : 'Développer le thread'}
               aria-label={isThreadExpanded ? 'Réduire le thread' : 'Développer le thread'}
             >
@@ -205,7 +205,7 @@ export function NotificationItem({
                   e.stopPropagation();
                   onReply(notification);
                 }}
-                className="p-2 text-gray-400 hover:text-green-400 hover:bg-green-500/10 rounded-lg transition-colors touch-manipulation focus:outline-none"
+                className="p-2 text-gray-400 hover:text-green-400 hover:bg-green-500/10 rounded-lg transition-colors touch-manipulation focus:outline-none v2:rounded-xl v2:hover:bg-white/[0.06] v2:hover:text-white"
                 title="Répondre"
                 aria-label="Répondre au message"
               >
@@ -218,7 +218,7 @@ export function NotificationItem({
               e.stopPropagation();
               await onArchive(notification.id);
             }}
-            className="p-2 text-gray-400 hover:text-orange-400 hover:bg-orange-500/10 rounded-lg transition-colors touch-manipulation focus:outline-none"
+            className="p-2 text-gray-400 hover:text-orange-400 hover:bg-orange-500/10 rounded-lg transition-colors touch-manipulation focus:outline-none v2:rounded-xl v2:hover:bg-white/[0.06] v2:hover:text-white"
             title="Archiver"
             aria-label="Archiver la notification"
           >
@@ -227,7 +227,7 @@ export function NotificationItem({
 
           {/* Icône de statut */}
           {isUnread ? (
-            <div className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 rounded-full bg-purple-500/20 flex items-center justify-center">
+            <div className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 rounded-full bg-purple-500/20 flex items-center justify-center v2:bg-brand/20">
               <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-purple-500 rounded-full" />
             </div>
           ) : (
@@ -266,11 +266,11 @@ export function NotificationItem({
             return (
               <div
                 key={reply.id}
-                className="p-3 sm:p-4 bg-gray-800/30 rounded-lg border border-gray-700/30"
+                className="p-3 sm:p-4 bg-gray-800/30 rounded-lg border border-gray-700/30 v2:rounded-xl v2:bg-white/[0.03] v2:border-white/[0.06]"
               >
                 <div className="flex items-start gap-2 sm:gap-3">
                   <div
-                    className={`flex-shrink-0 p-1.5 sm:p-2 rounded-lg ${replyStyle.bgColor} border ${replyStyle.borderColor}`}
+                    className={`flex-shrink-0 p-1.5 sm:p-2 rounded-lg v2:rounded-xl ${replyStyle.bgColor} border ${replyStyle.borderColor}`}
                   >
                     <ReplyIcon className={`w-3 h-3 sm:w-4 sm:h-4 ${replyStyle.iconColor}`} />
                   </div>

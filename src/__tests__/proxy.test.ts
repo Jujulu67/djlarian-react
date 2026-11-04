@@ -24,4 +24,21 @@ describe('proxy', () => {
     expect(response1).toBeDefined();
     expect(response2).toBeDefined();
   });
+
+  it("mémorise ?ui=v2 dans un cookie et redirige vers l'URL sans le paramètre", async () => {
+    const request = new NextRequest('http://localhost/music?ui=v2&page=2');
+    const response = await proxy(request);
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe('http://localhost/music?page=2');
+    expect(response.cookies.get('ui')?.value).toBe('v2');
+  });
+
+  it('ignore une valeur ?ui= inconnue', async () => {
+    const request = new NextRequest('http://localhost/music?ui=foo');
+    const response = await proxy(request);
+
+    expect(response.status).toBe(200);
+    expect(response.cookies.get('ui')).toBeUndefined();
+  });
 });

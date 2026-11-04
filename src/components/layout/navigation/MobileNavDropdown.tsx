@@ -37,11 +37,12 @@ export function MobileNavDropdown({
               opacity: { duration: 0.1 },
             },
           }}
-          className="lg:hidden mobile-menu bg-black/95 backdrop-blur-md border-b border-purple-500/20 overflow-hidden rounded-b-2xl"
+          id="mobile-nav"
+          className="lg:hidden mobile-menu bg-black/95 backdrop-blur-md border-b border-purple-500/20 overflow-hidden rounded-b-2xl v2:border-b-0 v2:border-t v2:border-white/10 v2:bg-transparent v2:backdrop-blur-none"
           style={{ borderTopLeftRadius: 0, borderTopRightRadius: 0 }}
         >
           <div
-            className="container mx-auto px-4 py-4 flex flex-col space-y-3"
+            className="container mx-auto px-4 py-4 flex flex-col space-y-3 v2:space-y-1 v2:py-3"
             style={{ paddingLeft: '1.5rem', paddingRight: '1.5rem' }}
           >
             {links.map((link, index) => (
@@ -53,7 +54,7 @@ export function MobileNavDropdown({
               >
                 <Link
                   href={link.href}
-                  className="text-white/90 hover:text-white py-2 transition-colors flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-inset rounded"
+                  className="text-white/90 hover:text-white py-2 transition-colors flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-inset rounded v2:gap-3 v2:rounded-2xl v2:px-3 v2:py-3 v2:text-lg v2:font-medium v2:hover:bg-white/[0.06]"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   {link.icon && <link.icon size={18} className="text-purple-400" />}

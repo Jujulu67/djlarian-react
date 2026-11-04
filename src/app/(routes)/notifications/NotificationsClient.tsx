@@ -5,7 +5,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useState, useMemo, useEffect } from 'react';
 
+import { PageHeader } from '@/components/ui/PageHeader';
 import { useNotifications, Notification } from '@/hooks/useNotifications';
+import { useUiVersion } from '@/hooks/useUiVersion';
 import { SendMessageModal } from '@/components/notifications/SendMessageModal';
 import { NotificationTestModal } from '@/components/notifications/NotificationTestModal';
 import { FriendsList } from '@/components/notifications/FriendsList';
@@ -27,6 +29,7 @@ export default function NotificationsClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session } = useSession();
+  const isV2 = useUiVersion() === 'v2';
 
   // Déterminer la vue initiale depuis l'URL (par défaut: 'notifications')
   const [activeView, setActiveView] = useState<NotificationView>(
@@ -193,46 +196,72 @@ export default function NotificationsClient() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 pb-4">
-      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-6xl">
+    <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 pb-4 v2:bg-none v2:bg-transparent v2:pb-16">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-6xl v2:max-w-[1180px] v2:px-4 v2:py-10 md:v2:py-14">
         {/* Header */}
-        <div className="mb-4 sm:mb-6 md:mb-8">
-          <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4">
-            <button
-              onClick={() => router.back()}
-              className="p-2 text-gray-400 hover:text-white hover:bg-gray-800/50 rounded-lg transition-colors touch-manipulation"
-              aria-label="Retour"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-              <div className="p-1.5 sm:p-2 bg-purple-500/20 rounded-lg flex-shrink-0">
-                <Bell className="w-5 h-5 sm:w-6 sm:h-7 text-purple-400" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white truncate">
-                  Notifications
-                </h1>
-                {unreadCount > 0 && (
-                  <p className="text-xs sm:text-sm text-gray-400 mt-0.5 sm:mt-1">
-                    {unreadCount} non {unreadCount === 1 ? 'lue' : 'lues'}
-                  </p>
-                )}
-              </div>
-            </div>
-            {/* Bouton discret pour les tests (admin uniquement) */}
-            {isAdmin && (
+        <div className="mb-4 sm:mb-6 md:mb-8 v2:mb-6">
+          {isV2 ? (
+            <PageHeader
+              eyebrow="Messagerie"
+              title="Notifications"
+              description={
+                unreadCount > 0
+                  ? `${unreadCount} non ${unreadCount === 1 ? 'lue' : 'lues'}`
+                  : 'Tout est à jour'
+              }
+              className="mb-6 md:mb-8"
+              actions={
+                isAdmin ? (
+                  <button
+                    onClick={() => setIsTestModalOpen(true)}
+                    className="flex items-center gap-2 rounded-xl bg-white/[0.04] px-4 py-2 text-sm font-medium text-white/70 ring-1 ring-inset ring-white/10 transition-colors hover:bg-white/[0.08] hover:text-white active:scale-[0.98]"
+                    title="Tests de notifications"
+                    aria-label="Tests de notifications"
+                  >
+                    <TestTube className="h-4 w-4" />
+                    <span>Tests notifs</span>
+                  </button>
+                ) : undefined
+              }
+            />
+          ) : (
+            <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4">
               <button
-                onClick={() => setIsTestModalOpen(true)}
-                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 rounded-lg text-yellow-300 text-xs sm:text-sm font-medium transition-colors touch-manipulation"
-                title="Tests de notifications"
-                aria-label="Tests de notifications"
+                onClick={() => router.back()}
+                className="p-2 text-gray-400 hover:text-white hover:bg-gray-800/50 rounded-lg transition-colors touch-manipulation"
+                aria-label="Retour"
               >
-                <TestTube className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="hidden sm:inline">Tests notifs</span>
+                <ArrowLeft className="w-5 h-5" />
               </button>
-            )}
-          </div>
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                <div className="p-1.5 sm:p-2 bg-purple-500/20 rounded-lg flex-shrink-0">
+                  <Bell className="w-5 h-5 sm:w-6 sm:h-7 text-purple-400" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white truncate">
+                    Notifications
+                  </h1>
+                  {unreadCount > 0 && (
+                    <p className="text-xs sm:text-sm text-gray-400 mt-0.5 sm:mt-1">
+                      {unreadCount} non {unreadCount === 1 ? 'lue' : 'lues'}
+                    </p>
+                  )}
+                </div>
+              </div>
+              {/* Bouton discret pour les tests (admin uniquement) */}
+              {isAdmin && (
+                <button
+                  onClick={() => setIsTestModalOpen(true)}
+                  className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 rounded-lg text-yellow-300 text-xs sm:text-sm font-medium transition-colors touch-manipulation"
+                  title="Tests de notifications"
+                  aria-label="Tests de notifications"
+                >
+                  <TestTube className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="hidden sm:inline">Tests notifs</span>
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Onglets Messages / Notifications / Amis */}
           <NotificationsTabs
@@ -255,21 +284,21 @@ export default function NotificationsClient() {
         </div>
 
         {/* Content */}
-        <div className="bg-gradient-to-br from-gray-900/95 via-gray-800/95 to-gray-900/95 backdrop-blur-xl border border-purple-500/30 rounded-lg sm:rounded-xl shadow-2xl overflow-hidden">
+        <div className="bg-gradient-to-br from-gray-900/95 via-gray-800/95 to-gray-900/95 backdrop-blur-xl border border-purple-500/30 rounded-lg sm:rounded-xl shadow-2xl overflow-hidden v2:bg-none v2:surface-1 v2:rounded-2xl">
           {activeView === 'friends' ? (
             <div className="p-4 sm:p-6">
               <FriendsList />
             </div>
           ) : isLoading ? (
             <div className="flex items-center justify-center py-8 sm:py-12">
-              <Loader2 className="w-6 h-6 animate-spin text-purple-500" />
+              <Loader2 className="w-6 h-6 animate-spin text-purple-500 v2:text-white/50" />
             </div>
           ) : error ? (
             <div className="p-4 sm:p-6 text-center">
-              <p className="text-red-400 text-xs sm:text-sm">{error}</p>
+              <p className="text-red-400 text-xs sm:text-sm v2:text-red-300">{error}</p>
               <button
                 onClick={() => refresh()}
-                className="mt-3 sm:mt-4 px-3 sm:px-4 py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded-lg text-purple-300 text-xs sm:text-sm font-medium transition-colors touch-manipulation"
+                className="mt-3 sm:mt-4 px-3 sm:px-4 py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded-lg text-purple-300 text-xs sm:text-sm font-medium transition-colors touch-manipulation v2:rounded-xl v2:border-transparent v2:bg-white/[0.04] v2:ring-1 v2:ring-inset v2:ring-white/10 v2:text-white/80 v2:hover:bg-white/[0.08] v2:hover:text-white"
               >
                 Réessayer
               </button>
@@ -278,25 +307,27 @@ export default function NotificationsClient() {
             <div className="p-8 sm:p-12 text-center">
               {activeView === 'messages' ? (
                 <>
-                  <MessageSquare className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-gray-500" />
-                  <p className="text-gray-400 text-base sm:text-lg mb-2">Aucun message</p>
+                  <MessageSquare className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-gray-500 v2:box-content v2:size-6 sm:v2:size-6 v2:rounded-full v2:bg-white/[0.04] v2:p-4 v2:text-white/50" />
+                  <p className="text-gray-400 text-base sm:text-lg mb-2 v2:text-white/60">
+                    Aucun message
+                  </p>
                   <button
                     onClick={openNewMessageModal}
-                    className="mt-3 sm:mt-4 px-3 sm:px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded-lg text-blue-300 text-xs sm:text-sm font-medium transition-colors touch-manipulation"
+                    className="mt-3 sm:mt-4 px-3 sm:px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded-lg text-blue-300 text-xs sm:text-sm font-medium transition-colors touch-manipulation v2:rounded-xl v2:border-transparent v2:bg-gradient-to-b v2:from-brand v2:to-purple-600 v2:text-white v2:shadow-[inset_0_1px_0_rgb(255_255_255/0.22)] v2:hover:brightness-110"
                   >
                     Envoyer un message
                   </button>
                 </>
               ) : (
                 <>
-                  <Bell className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-gray-500" />
-                  <p className="text-gray-400 text-base sm:text-lg mb-2">
+                  <Bell className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-gray-500 v2:box-content v2:size-6 sm:v2:size-6 v2:rounded-full v2:bg-white/[0.04] v2:p-4 v2:text-white/50" />
+                  <p className="text-gray-400 text-base sm:text-lg mb-2 v2:text-white/60">
                     {filter === 'unread' ? 'Aucune notification non lue' : 'Aucune notification'}
                   </p>
                   {filter !== 'all' && (
                     <button
                       onClick={() => setFilter('all')}
-                      className="mt-3 sm:mt-4 px-3 sm:px-4 py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded-lg text-purple-300 text-xs sm:text-sm font-medium transition-colors touch-manipulation"
+                      className="mt-3 sm:mt-4 px-3 sm:px-4 py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded-lg text-purple-300 text-xs sm:text-sm font-medium transition-colors touch-manipulation v2:rounded-xl v2:border-transparent v2:bg-white/[0.04] v2:ring-1 v2:ring-inset v2:ring-white/10 v2:text-white/80 v2:hover:bg-white/[0.08] v2:hover:text-white"
                     >
                       Voir toutes les notifications
                     </button>
@@ -306,7 +337,7 @@ export default function NotificationsClient() {
             </div>
           ) : (
             <div className="max-h-[calc(100vh-16rem)] sm:max-h-[calc(100vh-20rem)] overflow-y-auto">
-              <div className="divide-y divide-gray-700/50">
+              <div className="divide-y divide-gray-700/50 v2:divide-white/[0.06]">
                 {displayedNotifications.map((notification) => (
                   <NotificationItem
                     key={notification.id}

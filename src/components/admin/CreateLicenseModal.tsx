@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/Select';
 import { Loader2, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 
 interface CreateLicenseModalProps {
   isOpen: boolean;

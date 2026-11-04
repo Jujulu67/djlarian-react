@@ -1,66 +1,63 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import {
+  ArrowUpRight,
+  Briefcase,
+  CalendarCheck,
+  CheckCircle2,
+  AlertCircle,
+  Mail,
+} from 'lucide-react';
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 
-const socialLinks = [
-  {
-    name: 'Instagram',
-    url: 'https://instagram.com/djlarian',
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        className="h-6 w-6"
-        fill="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
-      </svg>
-    ),
-  },
-  {
-    name: 'Twitter',
-    url: 'https://twitter.com/djlarian',
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        className="h-6 w-6"
-        fill="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z" />
-      </svg>
-    ),
-  },
-  {
-    name: 'Facebook',
-    url: 'https://facebook.com/djlarian',
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        className="h-6 w-6"
-        fill="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z" />
-      </svg>
-    ),
-  },
-  {
-    name: 'YouTube',
-    url: 'https://youtube.com/djlarian',
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        className="h-6 w-6"
-        fill="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z" />
-      </svg>
-    ),
-  },
-];
+import { Button } from '@/components/ui/Button';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Reveal, RevealGroup, RevealItem } from '@/components/ui/Reveal';
+import { socialLinks } from '@/config/socialLinks';
+import { useSpotlight } from '@/hooks/useSpotlight';
+import { useUiVersion } from '@/hooks/useUiVersion';
+
+/** Champ de formulaire v2 */
+const FIELD_V2 =
+  'w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-white placeholder:text-white/30 outline-none transition-[border-color,box-shadow,background-color] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-white/20 focus:border-brand/70 focus:ring-4 focus:ring-brand/15';
+const LABEL_V2 = 'mb-2 block text-sm font-medium text-white/80';
+
+/** Carte de contact pro (management, booking) */
+function ContactCardV2({
+  icon,
+  title,
+  description,
+  email,
+}: {
+  icon: ReactNode;
+  title: string;
+  description: string;
+  email: string;
+}) {
+  const spotlight = useSpotlight<HTMLAnchorElement>();
+
+  return (
+    <a
+      href={`mailto:${email}`}
+      className="group spotlight surface-1 flex items-start gap-4 rounded-2xl p-5 transition-[transform,border-color] duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-white/15 active:scale-[0.99] md:p-6"
+      {...spotlight}
+    >
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/[0.04] text-white/70 ring-1 ring-inset ring-white/10">
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="mb-1 block font-semibold text-white">{title}</span>
+        <span className="mb-2 block text-sm text-white/60">{description}</span>
+        <span className="inline-flex items-center gap-1.5 break-all text-sm font-medium text-purple-300 transition-colors group-hover:text-white">
+          <Mail className="h-4 w-4 shrink-0" aria-hidden="true" />
+          {email}
+        </span>
+      </span>
+    </a>
+  );
+}
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -87,6 +84,146 @@ export default function ContactPage() {
       setIsSubmitting(false);
     }
   };
+
+  const isV2 = useUiVersion() === 'v2';
+
+  if (isV2) {
+    return (
+      <div className="min-h-[calc(100vh-4rem)] px-4 py-16 md:py-24">
+        <div className="mx-auto max-w-[1180px]">
+          <PageHeader
+            eyebrow="Contact"
+            title="Contact"
+            description="Une question ? Une proposition de collaboration ? N'hésitez pas à me contacter."
+          />
+
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.25fr_1fr] lg:gap-8">
+            {/* Formulaire */}
+            <Reveal className="surface-1 rounded-2xl p-6 md:p-8">
+              <h2 className="mb-6 text-lg font-semibold text-white">Envoyer un message</h2>
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="name" className={LABEL_V2}>
+                      Nom
+                    </label>
+                    <input
+                      type="text"
+                      id="name"
+                      autoComplete="name"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      required
+                      className={FIELD_V2}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="email" className={LABEL_V2}>
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      id="email"
+                      autoComplete="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      required
+                      className={FIELD_V2}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="subject" className={LABEL_V2}>
+                    Sujet
+                  </label>
+                  <input
+                    type="text"
+                    id="subject"
+                    value={formData.subject}
+                    onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                    required
+                    className={FIELD_V2}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="message" className={LABEL_V2}>
+                    Message
+                  </label>
+                  <textarea
+                    id="message"
+                    value={formData.message}
+                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                    required
+                    rows={6}
+                    className={`${FIELD_V2} resize-none`}
+                  />
+                </div>
+                <Button type="submit" size="lg" disabled={isSubmitting} className="h-12 w-full">
+                  {isSubmitting ? 'Envoi en cours...' : 'Envoyer'}
+                </Button>
+                <div role="status" aria-live="polite">
+                  {submitStatus === 'success' && (
+                    <p className="flex items-center gap-2 text-sm text-emerald-400">
+                      <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+                      Message envoyé avec succès !
+                    </p>
+                  )}
+                  {submitStatus === 'error' && (
+                    <p className="flex items-center gap-2 text-sm text-red-400">
+                      <AlertCircle className="h-4 w-4" aria-hidden="true" />
+                      Une erreur est survenue. Veuillez réessayer.
+                    </p>
+                  )}
+                </div>
+              </form>
+            </Reveal>
+
+            {/* Réseaux + contacts pro */}
+            <RevealGroup className="flex flex-col gap-6">
+              <RevealItem className="surface-1 rounded-2xl p-6 md:p-8">
+                <h2 className="mb-4 text-lg font-semibold text-white">Réseaux Sociaux</h2>
+                <ul className="grid grid-cols-2 gap-2">
+                  {socialLinks.map((link) => (
+                    <li key={link.name}>
+                      <a
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group flex items-center gap-3 rounded-xl bg-white/[0.03] px-3 py-2.5 text-sm text-white/70 ring-1 ring-inset ring-white/[0.06] transition-[color,background-color,transform] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-white/[0.06] hover:text-white active:scale-[0.98] [&_svg]:h-5 [&_svg]:w-5"
+                      >
+                        {link.icon}
+                        <span className="min-w-0 flex-1 truncate">{link.name}</span>
+                        <ArrowUpRight
+                          className="h-4 w-4 shrink-0 text-white/30 transition-colors group-hover:text-white/70"
+                          aria-hidden="true"
+                        />
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </RevealItem>
+              <RevealItem>
+                <ContactCardV2
+                  icon={<Briefcase className="h-5 w-5" />}
+                  title="Management"
+                  description="Pour les demandes professionnelles, veuillez contacter mon manager :"
+                  email="manager@larian.com"
+                />
+              </RevealItem>
+              <RevealItem>
+                <ContactCardV2
+                  icon={<CalendarCheck className="h-5 w-5" />}
+                  title="Booking"
+                  description="Pour les réservations d'événements et les performances live :"
+                  email="booking@larian.com"
+                />
+              </RevealItem>
+            </RevealGroup>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[calc(100vh-4rem)] py-24 px-4">
@@ -197,6 +334,7 @@ export default function ContactPage() {
                     href={link.url}
                     target="_blank"
                     rel="noopener noreferrer"
+                    aria-label={link.name}
                     className="text-gray-300 hover:text-purple-400 transition-colors duration-200"
                   >
                     {link.icon}
