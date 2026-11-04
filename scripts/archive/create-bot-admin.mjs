@@ -70,7 +70,11 @@ async function createAdapter(databaseUrl) {
 
 const BOT_EMAIL = 'assistant-ia@djlarian.local';
 const BOT_NAME = 'Assistant IA Bot';
-const BOT_PASSWORD = process.env.BOT_ADMIN_PASSWORD || 'BotAdmin2024!Secure';
+const BOT_PASSWORD = process.env.BOT_ADMIN_PASSWORD;
+if (!BOT_PASSWORD) {
+  console.error('BOT_ADMIN_PASSWORD est requis (aucun mot de passe par défaut).');
+  process.exit(1);
+}
 
 async function createBotAdmin() {
   // Créer le client Prisma avec adaptateur

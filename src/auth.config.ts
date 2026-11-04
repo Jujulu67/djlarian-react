@@ -1,7 +1,6 @@
 import type { NextAuthConfig, Session } from 'next-auth';
 import Google from 'next-auth/providers/google';
 import Twitch from 'next-auth/providers/twitch';
-import { storeMergeToken } from '@/lib/merge-token-cache';
 
 // Auth.js configuration - Vercel (Node.js runtime natif)
 // Ne configurer les providers OAuth que si les credentials sont disponibles
@@ -174,12 +173,9 @@ export const authConfig = {
                 .setExpirationTime(Math.floor(Date.now() / 1000) + 3600) // 1 heure
                 .encrypt(encryptionSecret);
 
-              // Stocker le token dans la base de données (partagé entre tous les workers)
-              await storeMergeToken(user.email, mergeToken);
-
-              // Retourner false pour bloquer la connexion
-              // La page d'erreur récupérera le token depuis la base de données et redirigera
-              return false;
+              // Bloquer la connexion et envoyer CE navigateur vers la page de confirmation.
+              // Le jeton (chiffré, valable 1 h) n'est jamais stocké ni consultable par un tiers.
+              return `/auth/merge-accounts?token=${encodeURIComponent(mergeToken)}`;
             }
           }
 
@@ -213,21 +209,29 @@ export const authConfig = {
       // Autoriser la connexion
       return true;
     },
-    async jwt({ token, user, trigger, session }) {
-      if (trigger === 'update' && session?.user) {
-        // Mettre à jour le token avec toutes les données de session.user, y compris l'image, createdAt et isVip
-        const userWithExtras = session.user as { createdAt?: string | Date; isVip?: boolean };
-        return {
-          ...token,
-          ...session.user,
-          image: session.user.image,
-          name: session.user.name,
-          email: session.user.email,
-          createdAt: userWithExtras.createdAt || token.createdAt,
-          isVip: userWithExtras.isVip !== undefined ? userWithExtras.isVip : token.isVip,
-          gameHighScore: session.user.gameHighScore ?? token.gameHighScore,
-          hasDiscoveredCasino: session.user.hasDiscoveredCasino ?? token.hasDiscoveredCasino,
-        };
+    async jwt({ token, user, trigger }) {
+      if (trigger === 'update') {
+        // Les données envoyées par le client (update(...)) ne sont jamais reprises : elles
+        // permettraient de se donner un rôle ou l'id d'un autre compte. On relit le compte en base.
+        const userId = (token.id ?? token.sub) as string | undefined;
+        if (!userId) return token;
+        const prismaModule = await import('@/lib/prisma');
+        const dbUser = await prismaModule.default.user.findUnique({
+          where: { id: userId },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+            role: true,
+            isVip: true,
+            createdAt: true,
+            gameHighScore: true,
+            hasDiscoveredCasino: true,
+          },
+        });
+        if (!dbUser) return token;
+        return { ...token, ...dbUser };
       }
 
       // Si user est présent (première connexion via authorize)
@@ -260,6 +264,29 @@ export const authConfig = {
       // Utiliser sub comme id
       if (!token.id && token.sub) {
         token.id = token.sub;
+      }
+
+      // Relire le rôle en base toutes les 5 minutes : un changement de rôle (ou la suppression
+      // du compte) s'applique sans attendre l'expiration de la session (30 jours).
+      const ROLE_REFRESH_MS = 5 * 60 * 1000;
+      const checkedAt = typeof token.roleCheckedAt === 'number' ? token.roleCheckedAt : 0;
+      if (user) {
+        token.roleCheckedAt = Date.now();
+      } else if (token.id && Date.now() - checkedAt > ROLE_REFRESH_MS) {
+        try {
+          const prismaModule = await import('@/lib/prisma');
+          const dbUser = await prismaModule.default.user.findUnique({
+            where: { id: token.id as string },
+            select: { role: true, isVip: true },
+          });
+          if (!dbUser) return null;
+          token.role = dbUser.role;
+          token.isVip = dbUser.isVip;
+          token.roleCheckedAt = Date.now();
+        } catch (error) {
+          // Base indisponible : on garde le jeton tel quel et on réessaiera
+          console.error('[AuthConfig] jwt - Relecture du rôle impossible:', error);
+        }
       }
 
       return token;
@@ -422,18 +449,6 @@ export const authConfig = {
       }
     },
     async redirect({ url, baseUrl }) {
-      // Vérifier s'il y a un token de fusion en attente et définir le cookie
-      try {
-        const { peekAnyMergeToken } = await import('@/lib/merge-token-cache');
-        const peekedToken = await peekAnyMergeToken();
-        if (peekedToken) {
-          // Note: On ne peut pas définir de cookie directement ici, mais on peut utiliser l'email dans l'URL
-          // Le cookie sera défini par la page d'erreur ou l'API check
-        }
-      } catch (error) {
-        console.error('[AuthConfig] redirect - Erreur vérification token fusion:', error);
-      }
-
       // Nettoyer l'URL pour éviter les boucles de callbackUrl
       try {
         // Si l'URL est la baseUrl ou la page d'accueil, retourner baseUrl sans query params

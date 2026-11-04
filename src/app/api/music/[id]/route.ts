@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 
+import { auth } from '@/auth';
 import { requireAdmin } from '@/lib/api/requireAuth';
 import { handleApiError } from '@/lib/api/errorHandler';
 import { UpdateTrackInput, formatTrackData } from '@/lib/api/musicService';
@@ -47,7 +48,18 @@ export async function GET(
     });
 
     if (!track) {
-      return handleApiError(new Error('Track not found'), 'GET /api/music/[id]');
+      return createNotFoundResponse('Track not found');
+    }
+
+    // Une piste non publiée (et dont la date de publication n'est pas passée) n'existe pas
+    // pour un visiteur : 404, comme une piste inexistante.
+    const isVisible =
+      track.isPublished || (track.publishAt !== null && new Date(track.publishAt) <= new Date());
+    if (!isVisible) {
+      const session = await auth();
+      if (session?.user?.role !== 'ADMIN') {
+        return createNotFoundResponse('Track not found');
+      }
     }
 
     return createSuccessResponse(formatTrackData(track));

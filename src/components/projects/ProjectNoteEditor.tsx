@@ -73,7 +73,10 @@ const parseMarkdownInline = (text: string): React.ReactNode => {
     }
 
     // Ajouter le contenu formaté
-    if (match.type === 'link') {
+    if (match.type === 'link' && !/^(https?:|mailto:)/i.test(match.url.trim())) {
+      // Lien non http(s)/mailto (ex. javascript:) : affiché comme texte simple
+      parts.push(<span key={key++}>{match.text}</span>);
+    } else if (match.type === 'link') {
       parts.push(
         <a
           key={key++}

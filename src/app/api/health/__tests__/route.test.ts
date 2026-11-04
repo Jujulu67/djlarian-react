@@ -12,10 +12,6 @@ jest.mock('@/lib/prisma', () => ({
   },
 }));
 
-jest.mock('@/lib/blob', () => ({
-  isBlobConfigured: false,
-}));
-
 jest.mock('@/lib/logger', () => ({
   logger: {
     debug: jest.fn(),
@@ -28,7 +24,7 @@ describe('/api/health', () => {
     jest.clearAllMocks();
   });
 
-  it('should return health status', async () => {
+  it('should return only an ok status when the database answers', async () => {
     const { default: prisma } = await import('@/lib/prisma');
     (prisma.$queryRaw as jest.Mock).mockResolvedValue([{ test: 1 }]);
 
@@ -36,19 +32,25 @@ describe('/api/health', () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.status).toBe('ok');
-    expect(data.checks).toBeDefined();
+    expect(data).toEqual({ status: 'ok' });
   });
 
-  it('should return degraded status on database error', async () => {
+  it('should return only an error status on database error, details in the logs', async () => {
     const { default: prisma } = await import('@/lib/prisma');
-    (prisma.$queryRaw as jest.Mock).mockRejectedValue(new Error('Database error'));
+    const { logger } = await import('@/lib/logger');
+    (prisma.$queryRaw as jest.Mock).mockRejectedValue(
+      new Error("Can't reach database server at db.internal:5432")
+    );
 
     const response = await GET();
     const data = await response.json();
 
     expect(response.status).toBe(503);
-    expect(data.status).toBe('degraded');
-    expect(data.checks.database.status).toBe('error');
+    expect(data).toEqual({ status: 'error' });
+    expect(JSON.stringify(data)).not.toContain('db.internal');
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ message: expect.stringContaining('db.internal') })
+    );
   });
 });

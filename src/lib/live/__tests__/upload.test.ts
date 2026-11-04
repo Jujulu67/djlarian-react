@@ -12,6 +12,7 @@ jest.mock('@/lib/blob', () => ({
 jest.mock('@/lib/logger', () => ({
   logger: {
     error: jest.fn(),
+    warn: jest.fn(),
     debug: jest.fn(),
   },
 }));
@@ -151,18 +152,22 @@ describe('upload (server)', () => {
       const { deleteFromBlob } = await import('@/lib/blob');
       (deleteFromBlob as jest.Mock).mockResolvedValue(undefined);
 
-      await deleteAudioFile('https://blob.vercel-storage.com/test.mp3');
+      await deleteAudioFile(
+        'https://abc123.public.blob.vercel-storage.com/live-audio/live-audio-user1-1700000000000-abc.mp3'
+      );
 
-      expect(deleteFromBlob).toHaveBeenCalledWith('https://blob.vercel-storage.com/test.mp3');
+      expect(deleteFromBlob).toHaveBeenCalledWith(
+        'https://abc123.public.blob.vercel-storage.com/live-audio/live-audio-user1-1700000000000-abc.mp3'
+      );
     });
 
     it('should delete locally when blob storage is not configured', async () => {
       (shouldUseBlobStorage as jest.Mock).mockReturnValue(false);
-      (path.basename as jest.Mock).mockReturnValue('test.mp3');
+      (path.basename as jest.Mock).mockReturnValue('live-audio-user1-1700000000000-abc.mp3');
       (fs.existsSync as jest.Mock).mockReturnValue(true);
       (fs.unlinkSync as jest.Mock).mockImplementation(() => {});
 
-      await deleteAudioFile('/uploads/live-audio/test.mp3');
+      await deleteAudioFile('/uploads/live-audio/live-audio-user1-1700000000000-abc.mp3');
 
       expect(fs.existsSync).toHaveBeenCalled();
       expect(fs.unlinkSync).toHaveBeenCalled();
@@ -170,10 +175,10 @@ describe('upload (server)', () => {
 
     it('should not throw if file does not exist locally', async () => {
       (shouldUseBlobStorage as jest.Mock).mockReturnValue(false);
-      (path.basename as jest.Mock).mockReturnValue('test.mp3');
+      (path.basename as jest.Mock).mockReturnValue('live-audio-user1-1700000000000-abc.mp3');
       (fs.existsSync as jest.Mock).mockReturnValue(false);
 
-      await deleteAudioFile('/uploads/live-audio/test.mp3');
+      await deleteAudioFile('/uploads/live-audio/live-audio-user1-1700000000000-abc.mp3');
 
       expect(fs.unlinkSync).not.toHaveBeenCalled();
     });
@@ -184,23 +189,50 @@ describe('upload (server)', () => {
       (deleteFromBlob as jest.Mock).mockRejectedValue(new Error('Delete error'));
 
       // Should not throw
-      await deleteAudioFile('https://blob.vercel-storage.com/test.mp3');
+      await deleteAudioFile(
+        'https://abc123.public.blob.vercel-storage.com/live-audio/live-audio-user1-1700000000000-abc.mp3'
+      );
 
       expect(logger.error).toHaveBeenCalled();
     });
 
     it('should handle local deletion errors gracefully', async () => {
       (shouldUseBlobStorage as jest.Mock).mockReturnValue(false);
-      (path.basename as jest.Mock).mockReturnValue('test.mp3');
+      (path.basename as jest.Mock).mockReturnValue('live-audio-user1-1700000000000-abc.mp3');
       (fs.existsSync as jest.Mock).mockReturnValue(true);
       (fs.unlinkSync as jest.Mock).mockImplementation(() => {
         throw new Error('Delete error');
       });
 
       // Should not throw
-      await deleteAudioFile('/uploads/live-audio/test.mp3');
+      await deleteAudioFile('/uploads/live-audio/live-audio-user1-1700000000000-abc.mp3');
 
       expect(logger.error).toHaveBeenCalled();
+    });
+
+    it('refuse de supprimer une URL hors live-audio', async () => {
+      (shouldUseBlobStorage as jest.Mock).mockReturnValue(true);
+      const { deleteFromBlob } = await import('@/lib/blob');
+
+      await expect(
+        deleteAudioFile('https://abc123.public.blob.vercel-storage.com/avatars/photo.png')
+      ).resolves.toBeUndefined();
+      await expect(
+        deleteAudioFile('https://blob.vercel-storage.com/test.mp3')
+      ).resolves.toBeUndefined();
+
+      expect(deleteFromBlob).not.toHaveBeenCalled();
+      expect(fs.unlinkSync).not.toHaveBeenCalled();
+    });
+
+    it('refuse de supprimer un chemin local hors live-audio', async () => {
+      (shouldUseBlobStorage as jest.Mock).mockReturnValue(false);
+      (fs.existsSync as jest.Mock).mockReturnValue(true);
+
+      await deleteAudioFile('/uploads/avatars/live-audio-user1-x.mp3');
+      await deleteAudioFile('/uploads/live-audio/../../.env');
+
+      expect(fs.unlinkSync).not.toHaveBeenCalled();
     });
   });
 });

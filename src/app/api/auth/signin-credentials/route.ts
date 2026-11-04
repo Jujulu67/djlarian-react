@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/api/rateLimiter';
 import { compare as bcryptCompare } from '@/lib/bcrypt-edge';
 import prisma from '@/lib/prisma';
 import { logger } from '@/lib/logger';
@@ -14,19 +15,26 @@ import { EncryptJWT, base64url, calculateJwkThumbprint } from 'jose';
  * - Salt = nom du cookie
  * - Info = "Auth.js Generated Encryption Key ({salt})"
  */
+
+/** Tentatives de connexion par minute et par IP. */
+const SIGNIN_RATE_LIMIT = 10;
+
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = await rateLimit(request, SIGNIN_RATE_LIMIT);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const body = await request.json();
     const { email, password } = body;
 
-    if (!email || !password) {
+    if (!email || !password || typeof email !== 'string' || typeof password !== 'string') {
       logger.warn('[API] /api/auth/signin-credentials - Credentials manquants');
       return NextResponse.json({ error: 'Email et mot de passe requis' }, { status: 400 });
     }
 
     // Récupérer l'utilisateur
     const user = await prisma.user.findUnique({
-      where: { email: email as string },
+      where: { email },
       select: {
         id: true,
         email: true,
@@ -45,7 +53,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Vérifier le mot de passe
-    const isPasswordValid = await bcryptCompare(password as string, user.hashedPassword);
+    const isPasswordValid = await bcryptCompare(password, user.hashedPassword);
 
     if (!isPasswordValid) {
       logger.warn('[API] /api/auth/signin-credentials - Mot de passe invalide');
@@ -134,8 +142,8 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
-    logger.error('[API] /api/auth/signin-credentials - Erreur:', errorMessage);
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    // Le détail reste dans les logs : le client ne reçoit qu'un message générique
+    logger.error('[API] /api/auth/signin-credentials - Erreur:', error);
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }

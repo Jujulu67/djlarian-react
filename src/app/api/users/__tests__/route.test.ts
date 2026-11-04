@@ -78,17 +78,24 @@ describe('/api/users', () => {
 
       expect(response.status).toBe(200);
       expect(data.data).toEqual(mockUsers);
+      // Un non-admin ne reçoit ni email ni rôle
+      expect(prisma.user.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ select: { id: true, name: true } })
+      );
       expect(data.message).toBe('Utilisateurs récupérés');
+    });
+
+    it('should include email and role for an admin', async () => {
+      const { auth } = await import('@/auth');
+      const { default: prisma } = await import('@/lib/prisma');
+      (auth as jest.Mock).mockResolvedValue({ user: { id: 'admin1', role: 'ADMIN' } });
+      (prisma.user.findMany as jest.Mock).mockResolvedValue([]);
+
+      await GET(new NextRequest('http://localhost/api/users'));
+
       expect(prisma.user.findMany).toHaveBeenCalledWith({
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          role: true,
-        },
-        orderBy: {
-          email: 'asc',
-        },
+        select: { id: true, name: true, email: true, role: true },
+        orderBy: { email: 'asc' },
       });
     });
 

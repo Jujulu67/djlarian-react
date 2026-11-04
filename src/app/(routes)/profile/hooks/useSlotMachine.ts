@@ -1,12 +1,7 @@
 import { useState, useCallback } from 'react';
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
 import { toast } from 'sonner';
-import type {
-  SlotMachineStatus,
-  SpinResult,
-  ClaimRewardInput,
-  BatchSpinResult,
-} from '@/types/slot-machine';
+import type { SlotMachineStatus, SpinResult, BatchSpinResult } from '@/types/slot-machine';
 import { RewardType } from '@/types/slot-machine';
 
 export function useSlotMachine() {
@@ -15,6 +10,7 @@ export function useSlotMachine() {
   const [isSpinning, setIsSpinning] = useState(false);
   const [lastResult, setLastResult] = useState<SpinResult | null>(null);
   const [batchResult, setBatchResult] = useState<BatchSpinResult | null>(null); // New state for batch results
+  // Dernier item gagné (déjà ajouté à l'inventaire par le serveur), affiché jusqu'à fermeture
   const [pendingReward, setPendingReward] = useState<{
     rewardType: RewardType;
     rewardAmount: number;
@@ -93,11 +89,14 @@ export function useSlotMachine() {
           if (result.rewardType === 'TOKENS') {
             toast.success(result.message);
           } else if (result.rewardType) {
+            // L'item est déjà ajouté à l'inventaire par le serveur : on l'affiche et on
+            // resynchronise le solde (le bonus de jetons des items n'est pas calculé ici)
             setPendingReward({
               rewardType: result.rewardType,
               rewardAmount: result.rewardAmount,
             });
             toast.success(result.message, { duration: 5000 });
+            refreshStatus();
           } else if (!result.isWin) {
             toast.error(result.message);
           }
@@ -120,50 +119,12 @@ export function useSlotMachine() {
       toast.error('Erreur lors du spin');
       return null;
     }
-  }, [isSpinning, status]);
+  }, [isSpinning, status, refreshStatus]);
 
-  const claimReward = useCallback(async (): Promise<boolean> => {
-    if (!pendingReward) {
-      return false;
-    }
-
-    try {
-      setIsLoading(true);
-      const input: ClaimRewardInput = {
-        rewardType: pendingReward.rewardType,
-        rewardAmount: pendingReward.rewardAmount,
-      };
-
-      const response = await fetchWithAuth('/api/slot-machine/claim-reward', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(input),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const message = data.data?.message || data.message || 'Récompense réclamée !';
-        toast.success(message);
-        setPendingReward(null);
-        // Rafraîchir le statut
-        await refreshStatus();
-        return true;
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.error || 'Erreur lors de la réclamation';
-        toast.error(errorMessage);
-        return false;
-      }
-    } catch (error) {
-      console.error('Erreur lors de la réclamation:', error);
-      toast.error('Erreur lors de la réclamation');
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [pendingReward, refreshStatus]);
+  // Ferme l'affichage du gain (l'octroi a déjà eu lieu côté serveur lors du tirage)
+  const dismissReward = useCallback(() => {
+    setPendingReward(null);
+  }, []);
 
   const spinMultiple = useCallback(
     async (count: number): Promise<void> => {
@@ -219,9 +180,8 @@ export function useSlotMachine() {
             refreshStatus();
           }, 3600); // Match reel animation timing
 
-          // Gérer les récompenses non-jetons (immédiat ou différé ? Différé pour sync)
+          // Afficher les items gagnés (déjà ajoutés à l'inventaire par le serveur)
           if (result.summary.queueSkips > 0 || result.summary.eternalTickets > 0) {
-            // Si on a gagné des queue skips ou tickets éternels, les ajouter à pendingReward
             // On priorise les queue skips s'il y en a, sinon les tickets éternels
             if (result.summary.queueSkips > 0) {
               setPendingReward({
@@ -269,6 +229,6 @@ export function useSlotMachine() {
     refreshStatus,
     spin,
     spinMultiple,
-    claimReward,
+    dismissReward,
   };
 }

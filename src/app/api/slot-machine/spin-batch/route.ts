@@ -1,33 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { createSuccessResponse, createUnauthorizedResponse } from '@/lib/api/responseHelpers';
 import { handleApiError } from '@/lib/api/errorHandler';
-import prisma from '@/lib/prisma';
 import { SymbolType, RewardType, SpinResult } from '@/types/slot-machine';
 import { COST_PER_SPIN, getRandomSymbol, determineReward } from '@/lib/slot-machine-logic';
+import { applySpinOutcome, loadUserTokens } from '@/lib/slot-machine-rewards';
 import { requireAuth } from '@/lib/api/requireAuth';
 
-const DAILY_TOKENS = 100;
+/** Plus grand lot proposé par l'interface (boutons x5, x10, x100). */
+const MAX_BATCH_SPINS = 100;
 
-/**
- * Vérifie si un reset quotidien est nécessaire et le fait si besoin
- */
-function shouldResetDaily(lastResetDate: Date): boolean {
-  const now = new Date();
-  const lastReset = new Date(lastResetDate);
+const spinBatchSchema = z.object({
+  count: z.number().int().min(1).max(MAX_BATCH_SPINS),
+});
 
-  const nowDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const lastResetDateOnly = new Date(
-    lastReset.getFullYear(),
-    lastReset.getMonth(),
-    lastReset.getDate()
+const insufficientTokens = (tokens: number, totalCost: number) =>
+  NextResponse.json(
+    {
+      error: `Vous n'avez que ${tokens} jetons. Il vous en faut ${totalCost} (${COST_PER_SPIN} par spin).`,
+    },
+    { status: 400 }
   );
-
-  return nowDate.getTime() > lastResetDateOnly.getTime();
-}
 
 /**
  * POST /api/slot-machine/spin-batch
- * Calcule plusieurs spins en une fois et retourne le résultat agrégé
+ * Calcule plusieurs spins en une fois et retourne le résultat agrégé. Le débit des jetons,
+ * le crédit des gains et l'octroi des items se font côté serveur, dans une même transaction.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -36,50 +34,24 @@ export async function POST(request: NextRequest) {
       onAnonymous: () => createUnauthorizedResponse('Non authentifié'),
     });
     if (error) return error;
+    const userId = session.user.id;
 
-    const body = await request.json();
-    const { count } = body;
-
-    if (!count || typeof count !== 'number' || count < 1 || count > 1000) {
-      return NextResponse.json({ error: 'Nombre de spins invalide (1-1000)' }, { status: 400 });
-    }
-
-    // Récupérer ou créer l'entrée pour l'utilisateur
-    let userTokens = await prisma.userSlotMachineTokens.findUnique({
-      where: { userId: session.user.id },
-    });
-
-    if (!userTokens) {
-      userTokens = await prisma.userSlotMachineTokens.create({
-        data: {
-          userId: session.user.id,
-          tokens: DAILY_TOKENS,
-          lastResetDate: new Date(),
-        },
-      });
-    }
-
-    // Vérifier si un reset quotidien est nécessaire
-    if (shouldResetDaily(userTokens.lastResetDate)) {
-      const today = new Date();
-      userTokens = await prisma.userSlotMachineTokens.update({
-        where: { userId: session.user.id },
-        data: {
-          tokens: DAILY_TOKENS,
-          lastResetDate: today,
-        },
-      });
-    }
-
-    // Vérifier que l'utilisateur a assez de jetons (3 jetons par spin)
-    const totalCost = count * COST_PER_SPIN;
-    if (userTokens.tokens < totalCost) {
+    const body = await request.json().catch(() => null);
+    const parsed = spinBatchSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        {
-          error: `Vous n'avez que ${userTokens.tokens} jetons. Il vous en faut ${totalCost} (${COST_PER_SPIN} par spin).`,
-        },
+        { error: `Nombre de spins invalide (entier de 1 à ${MAX_BATCH_SPINS})` },
         { status: 400 }
       );
+    }
+    const { count } = parsed.data;
+
+    const userTokens = await loadUserTokens(userId);
+
+    // Contrôle rapide (le débit reste conditionné au solde au moment de l'écriture)
+    const totalCost = count * COST_PER_SPIN;
+    if (userTokens.tokens < totalCost) {
+      return insufficientTokens(userTokens.tokens, totalCost);
     }
 
     // --- DYNAMIC LUCK SYSTEM ---
@@ -160,18 +132,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Calculer le nouveau nombre de jetons (3 jetons par spin)
-    let newTokens = userTokens.tokens - totalCost + totalTokensWon;
-
-    // Mettre à jour la base de données
-    await prisma.userSlotMachineTokens.update({
-      where: { userId: session.user.id },
-      data: {
-        tokens: newTokens,
-        totalSpins: { increment: count },
-        totalWins: { increment: totalWins },
-      },
+    const applied = await applySpinOutcome(userId, {
+      cost: totalCost,
+      tokensWon: totalTokensWon,
+      spins: count,
+      wins: totalWins,
+      queueSkips,
+      eternalTickets,
     });
+    if (!applied) {
+      return insufficientTokens(userTokens.tokens, totalCost);
+    }
 
     // Construire le message récapitulatif
     const messageParts = [];

@@ -29,11 +29,6 @@ export interface SpinResult {
   message: string;
 }
 
-export interface ClaimRewardInput {
-  rewardType: RewardType;
-  rewardAmount: number;
-}
-
 export interface BatchSpinResult extends SpinResult {
   results: SpinResult[]; // Detailed list of all spins
   summary: {

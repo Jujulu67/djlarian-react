@@ -61,6 +61,8 @@ describe('/api/music/[id]', () => {
         id: 'track-1',
         title: 'Test Track',
         artist: 'Test Artist',
+        isPublished: true,
+        publishAt: null,
         TrackPlatform: [],
         GenresOnTracks: [],
         MusicCollection: null,
@@ -80,7 +82,71 @@ describe('/api/music/[id]', () => {
       const request = new NextRequest('http://localhost/api/music/invalid');
       const response = await GET(request, { params: Promise.resolve({ id: 'invalid' }) });
 
-      expect(response.status).toBeGreaterThanOrEqual(400);
+      expect(response.status).toBe(404);
+    });
+
+    const unpublishedTrack = (publishAt: Date | null) => ({
+      id: 'track-2',
+      title: 'Draft',
+      artist: 'Artist',
+      isPublished: false,
+      publishAt,
+      TrackPlatform: [],
+      GenresOnTracks: [],
+      MusicCollection: null,
+      User: null,
+    });
+
+    it('should return 404 for an unpublished track to a visitor', async () => {
+      const { auth } = await import('@/auth');
+      const { default: mockPrisma } = await import('@/lib/prisma');
+      (auth as jest.Mock).mockResolvedValue(null);
+      (mockPrisma.track.findUnique as jest.Mock).mockResolvedValue(unpublishedTrack(null));
+
+      const request = new NextRequest('http://localhost/api/music/track-2');
+      const response = await GET(request, { params: Promise.resolve({ id: 'track-2' }) });
+
+      expect(response.status).toBe(404);
+    });
+
+    it('should return 404 for a track scheduled in the future to a non-admin user', async () => {
+      const { auth } = await import('@/auth');
+      const { default: mockPrisma } = await import('@/lib/prisma');
+      (auth as jest.Mock).mockResolvedValue({ user: { id: 'u1', role: 'USER' } });
+      (mockPrisma.track.findUnique as jest.Mock).mockResolvedValue(
+        unpublishedTrack(new Date(Date.now() + 86_400_000))
+      );
+
+      const request = new NextRequest('http://localhost/api/music/track-2');
+      const response = await GET(request, { params: Promise.resolve({ id: 'track-2' }) });
+
+      expect(response.status).toBe(404);
+    });
+
+    it('should return a track whose publication date has passed to a visitor', async () => {
+      const { auth } = await import('@/auth');
+      const { default: mockPrisma } = await import('@/lib/prisma');
+      (auth as jest.Mock).mockResolvedValue(null);
+      (mockPrisma.track.findUnique as jest.Mock).mockResolvedValue(
+        unpublishedTrack(new Date(Date.now() - 86_400_000))
+      );
+
+      const request = new NextRequest('http://localhost/api/music/track-2');
+      const response = await GET(request, { params: Promise.resolve({ id: 'track-2' }) });
+
+      expect(response.status).toBe(200);
+    });
+
+    it('should return an unpublished track to an admin', async () => {
+      const { auth } = await import('@/auth');
+      const { default: mockPrisma } = await import('@/lib/prisma');
+      (auth as jest.Mock).mockResolvedValue({ user: { id: 'a1', role: 'ADMIN' } });
+      (mockPrisma.track.findUnique as jest.Mock).mockResolvedValue(unpublishedTrack(null));
+
+      const request = new NextRequest('http://localhost/api/music/track-2');
+      const response = await GET(request, { params: Promise.resolve({ id: 'track-2' }) });
+
+      expect(response.status).toBe(200);
     });
   });
 

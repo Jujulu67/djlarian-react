@@ -1,7 +1,6 @@
 /**
  * @jest-environment node
  */
-import { isBlobConfigured } from '@/lib/blob';
 import prisma from '@/lib/prisma';
 
 import { GET } from '../health/route';
@@ -14,10 +13,6 @@ jest.mock('@/lib/prisma', () => ({
   },
 }));
 
-jest.mock('@/lib/blob', () => ({
-  isBlobConfigured: jest.fn(() => false),
-}));
-
 jest.mock('@/lib/logger', () => ({
   logger: {
     debug: jest.fn(),
@@ -27,61 +22,38 @@ jest.mock('@/lib/logger', () => ({
 }));
 
 describe('/api/health', () => {
+  const originalDatabaseUrl = process.env.DATABASE_URL;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    process.env.DATABASE_URL = 'postgresql://user:secret@host:5432/db';
   });
 
-  it('should return health status with all checks', async () => {
-    (prisma.$queryRaw as jest.Mock).mockResolvedValue([{ result: 1 }]);
+  afterAll(() => {
+    process.env.DATABASE_URL = originalDatabaseUrl;
+  });
+
+  it('should expose nothing but the status when healthy', async () => {
+    (prisma.$queryRaw as jest.Mock).mockResolvedValue([{ test: 1 }]);
 
     const response = await GET();
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data).toHaveProperty('status');
-    expect(data).toHaveProperty('timestamp');
-    expect(data).toHaveProperty('checks');
-    expect(data.checks).toHaveProperty('database');
-    expect(data.checks).toHaveProperty('blob');
-    expect(data.checks).toHaveProperty('environment');
+    expect(Object.keys(data)).toEqual(['status']);
+    expect(data.status).toBe('ok');
   });
 
-  it('should report database as healthy when connection succeeds', async () => {
-    (prisma.$queryRaw as jest.Mock).mockResolvedValue([{ test: 1 }]);
-
-    const response = await GET();
-    const data = await response.json();
-
-    expect(data.checks.database.status).toBe('connected');
-  });
-
-  it('should report database as unhealthy when connection fails', async () => {
+  it('should not leak the Prisma error message nor DATABASE_URL details when unhealthy', async () => {
     (prisma.$queryRaw as jest.Mock).mockRejectedValue(new Error('Connection failed'));
 
     const response = await GET();
-    const data = await response.json();
+    const body = await response.text();
 
-    expect(data.checks.database.status).toBe('error');
-    expect(data.checks.database.message).toContain('Connection failed');
-  });
-
-  it('should report blob configuration status', async () => {
-    (prisma.$queryRaw as jest.Mock).mockResolvedValue([{ test: 1 }]);
-    (isBlobConfigured as unknown as jest.Mock<boolean>).mockReturnValue(true);
-
-    const response = await GET();
-    const data = await response.json();
-
-    expect(data.checks.blob.status).toBe('available');
-  });
-
-  it('should include environment information', async () => {
-    (prisma.$queryRaw as jest.Mock).mockResolvedValue([{ result: 1 }]);
-
-    const response = await GET();
-    const data = await response.json();
-
-    expect(data.checks.environment).toHaveProperty('nodeEnv');
-    expect(data.checks.environment).toHaveProperty('runtime');
+    expect(response.status).toBe(503);
+    expect(JSON.parse(body)).toEqual({ status: 'error' });
+    expect(body).not.toContain('Connection failed');
+    expect(body).not.toContain('chars');
+    expect(body).not.toContain('secret');
   });
 });

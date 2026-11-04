@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isLiveAudioBlobUrl } from '@/lib/live/fileUrl';
 import { requireAdmin } from '@/lib/api/requireAuth';
 import { createUnauthorizedResponse, createErrorResponse } from '@/lib/api/responseHelpers';
 import { handleApiError } from '@/lib/api/errorHandler';
@@ -59,7 +60,11 @@ export async function GET(request: NextRequest) {
     // Ajouter chaque fichier au ZIP
     for (const submission of submissions) {
       try {
-        // Télécharger le fichier depuis l'URL
+        // Ne télécharger que des fichiers Live du store Blob (pas d'URL arbitraire)
+        if (!isLiveAudioBlobUrl(submission.fileUrl)) {
+          logger.warn(`[DOWNLOAD ALL] URL ignorée pour ${submission.id}`);
+          continue;
+        }
         const fileResponse = await fetch(submission.fileUrl);
         if (!fileResponse.ok) {
           logger.warn(

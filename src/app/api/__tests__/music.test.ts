@@ -68,6 +68,48 @@ describe('/api/music', () => {
       expect(prisma.track.findMany).toHaveBeenCalled();
     });
 
+    it('should only query published tracks for a visitor', async () => {
+      const { auth } = await import('@/auth');
+      const { default: prisma } = await import('@/lib/prisma');
+      (auth as jest.Mock).mockResolvedValue(null);
+      (prisma.track.findMany as jest.Mock).mockResolvedValue([]);
+
+      const response = await GET();
+
+      expect(response.status).toBe(200);
+      expect(prisma.track.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { OR: [{ isPublished: true }, { publishAt: { lte: expect.any(Date) } }] },
+        })
+      );
+    });
+
+    it('should only query published tracks for a non-admin user', async () => {
+      const { auth } = await import('@/auth');
+      const { default: prisma } = await import('@/lib/prisma');
+      (auth as jest.Mock).mockResolvedValue({ user: { id: 'u1', role: 'USER' } });
+      (prisma.track.findMany as jest.Mock).mockResolvedValue([]);
+
+      await GET();
+
+      const args = (prisma.track.findMany as jest.Mock).mock.calls[0][0];
+      expect(args.where).toEqual({
+        OR: [{ isPublished: true }, { publishAt: { lte: expect.any(Date) } }],
+      });
+    });
+
+    it('should query every track (no publication filter) for an admin', async () => {
+      const { auth } = await import('@/auth');
+      const { default: prisma } = await import('@/lib/prisma');
+      (auth as jest.Mock).mockResolvedValue({ user: { id: 'a1', role: 'ADMIN' } });
+      (prisma.track.findMany as jest.Mock).mockResolvedValue([]);
+
+      await GET();
+
+      const args = (prisma.track.findMany as jest.Mock).mock.calls[0][0];
+      expect(args.where).toBeUndefined();
+    });
+
     it('should handle errors gracefully', async () => {
       const { default: prisma } = await import('@/lib/prisma');
       (prisma.track.findMany as jest.Mock).mockRejectedValue(new Error('Database error'));
