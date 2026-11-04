@@ -1,5 +1,5 @@
 import type { NextConfig } from 'next';
-import { withSentryConfig } from '@sentry/nextjs';
+import { withSentryConfig, type SentryBuildOptions } from '@sentry/nextjs/config';
 
 const nextConfig: NextConfig = {
   // Optimisation majeure pour Vercel : ne bundle que le strict nécessaire
@@ -166,7 +166,7 @@ const nextConfig: NextConfig = {
 // This allows Sentry to be optional - it will only be active if NEXT_PUBLIC_SENTRY_DSN is set
 const sentryEnabled = !!process.env.NEXT_PUBLIC_SENTRY_DSN;
 
-const sentryConfig = {
+const sentryConfig: SentryBuildOptions = {
   // For all available options, see:
   // https://github.com/getsentry/sentry-webpack-plugin#options
 
@@ -189,7 +189,10 @@ const sentryConfig = {
   // Désactiver l'upload des source maps si le token n'est pas configuré ou si explicitement désactivé
   // Les erreurs seront toujours capturées via le DSN, mais sans source maps
   // Pour activer l'upload des source maps, le token doit avoir les permissions: project:releases, project:write
-  dryRun: !process.env.SENTRY_AUTH_TOKEN || process.env.SENTRY_DISABLE_SOURCEMAPS === 'true',
+  // (Sentry v11 : remplace l'ancienne option `dryRun`, qui n'est plus reconnue)
+  sourcemaps: {
+    disable: !process.env.SENTRY_AUTH_TOKEN || process.env.SENTRY_DISABLE_SOURCEMAPS === 'true',
+  },
 
   // Upload a larger set of source maps for prettier stack traces (increases build time)
   widenClientFileUpload: true,
@@ -200,17 +203,21 @@ const sentryConfig = {
   // side errors will fail.
   tunnelRoute: '/monitoring',
 
-  // Hides source maps from generated client bundles
-  hideSourceMaps: true,
+  // Note : `hideSourceMaps` n'existe plus (les source maps client sont supprimées après upload par défaut).
 
   // Automatically tree-shake Sentry logger statements to reduce bundle size
-  disableLogger: true,
+  // (Sentry v11 : anciennement `disableLogger` ; fonctionne pour webpack et Turbopack)
+  bundleSizeOptimizations: {
+    excludeDebugStatements: true,
+  },
 
-  // Enables automatic instrumentation of Vercel Cron Monitors.
-  // See the following for more information:
-  // https://docs.sentry.io/product/crons/
-  // https://vercel.com/docs/cron-jobs
-  automaticVercelMonitors: true,
+  webpack: {
+    // Enables automatic instrumentation of Vercel Cron Monitors.
+    // See the following for more information:
+    // https://docs.sentry.io/product/crons/
+    // https://vercel.com/docs/cron-jobs
+    automaticVercelMonitors: true,
+  },
 };
 
 // Conditionally wrap with Sentry - if DSN is not set, Sentry config files will handle gracefully

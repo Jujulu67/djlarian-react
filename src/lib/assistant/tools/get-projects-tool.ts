@@ -61,8 +61,7 @@ export function createGetProjectsTool({
       "tu DOIS utiliser le paramètre 'status' avec la valeur correspondante (ANNULE, TERMINE, EN_COURS, GHOST_PRODUCTION, ARCHIVE, A_REWORK). " +
       "Comprends les variations et fautes d'orthographe : 'ghos prod', 'ghost prod', 'ghost production' → GHOST_PRODUCTION, " +
       "'annulé' ou 'annulés' → ANNULE, 'terminé' ou 'fini' → TERMINE, etc.",
-    parameters,
-    // @ts-expect-error - SDK AI v5 type inference issue
+    inputSchema: parameters,
     execute: async (params: {
       minProgress?: number;
       maxProgress?: number;

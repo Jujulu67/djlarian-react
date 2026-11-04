@@ -54,8 +54,7 @@ export const createCreateProjectsTool = ({
         - "collab" doit être une STRING (ex: "Martin"), PAS un tableau.
         - "style" doit être une des valeurs exactes ou null.
         - Ne pas inventer de clés (pas de descriptions, pas de sentiment).`,
-    parameters,
-    // @ts-expect-error - SDK AI v5 type inference issue
+    inputSchema: parameters,
     execute: async ({
       name,
       style,

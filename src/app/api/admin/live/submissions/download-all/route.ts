@@ -4,7 +4,7 @@ import { createUnauthorizedResponse, createErrorResponse } from '@/lib/api/respo
 import { handleApiError } from '@/lib/api/errorHandler';
 import prisma from '@/lib/prisma';
 import { logger } from '@/lib/logger';
-import archiver from 'archiver';
+import { ZipArchive } from 'archiver';
 import { Readable } from 'stream';
 
 /**
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Créer un stream pour le ZIP
-    const archive = archiver('zip', {
+    const archive = new ZipArchive({
       zlib: { level: 9 }, // Compression maximale
     });
 
