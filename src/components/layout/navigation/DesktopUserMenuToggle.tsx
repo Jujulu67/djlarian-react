@@ -20,6 +20,8 @@ export function DesktopUserMenuToggle({
 }: DesktopUserMenuToggleProps) {
   return (
     <button
+      aria-label="Menu utilisateur"
+      aria-expanded={isUserMenuOpen}
       onClick={(e) => {
         e.stopPropagation();
         setIsUserMenuOpen(!isUserMenuOpen);

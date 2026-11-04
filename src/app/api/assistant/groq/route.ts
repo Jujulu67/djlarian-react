@@ -7,6 +7,10 @@ import {
   getSessionRateLimiter,
   createRateLimitResponse,
 } from '@/lib/assistant/rate-limit/SessionRateLimiter';
+import {
+  ASSISTANT_INPUT_TOO_LONG,
+  isAssistantInputTooLong,
+} from '@/lib/assistant/security/input-limits';
 import { redactPii, isDebugAllowed } from '@/lib/assistant/security/PiiRedactor';
 import { logger } from '@/lib/logger';
 
@@ -99,6 +103,9 @@ export async function POST(request: NextRequest) {
         { error: 'Message is required and must be a non-empty string' },
         { status: 400 }
       );
+    }
+    if (isAssistantInputTooLong(message)) {
+      return NextResponse.json({ error: ASSISTANT_INPUT_TOO_LONG }, { status: 413 });
     }
 
     // Sanitizer le message pour les logs (O13: avec redaction PII)

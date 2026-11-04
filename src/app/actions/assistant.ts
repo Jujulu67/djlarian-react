@@ -15,6 +15,10 @@
  * Il ne peut pas contourner les permissions en appelant des APIs admin.
  */
 
+import {
+  ASSISTANT_INPUT_TOO_LONG,
+  isAssistantInputTooLong,
+} from '@/lib/assistant/security/input-limits';
 import { generateText } from 'ai';
 import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
@@ -50,6 +54,9 @@ export async function processProjectCommand(userInput: string) {
   const session = await auth();
   if (!session?.user?.id) {
     return "Erreur : Vous devez être connecté pour utiliser l'assistant.";
+  }
+  if (isAssistantInputTooLong(userInput)) {
+    return `Erreur : ${ASSISTANT_INPUT_TOO_LONG}`;
   }
 
   const currentUserId = session.user.id;

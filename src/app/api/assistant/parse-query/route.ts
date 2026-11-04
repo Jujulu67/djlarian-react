@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isInternalRequest, requireAuth } from '@/lib/api/requireAuth';
 import { parseQuery } from '@/lib/assistant/query-parser';
+import {
+  ASSISTANT_INPUT_TOO_LONG,
+  isAssistantInputTooLong,
+} from '@/lib/assistant/security/input-limits';
 import { getConversationalResponse } from '@/lib/assistant/conversational/groq-responder';
 import type { ConversationMessage } from '@/lib/assistant/conversational/memory-manager';
 import { logger } from '@/lib/logger';
@@ -44,6 +48,9 @@ export async function POST(request: NextRequest) {
 
     if (!query) {
       return NextResponse.json({ error: 'Query is required' }, { status: 400 });
+    }
+    if (isAssistantInputTooLong(query)) {
+      return NextResponse.json({ error: ASSISTANT_INPUT_TOO_LONG }, { status: 413 });
     }
 
     // Nettoyer la requête: enlever les guillemets en début/fin qui peuvent causer des problèmes de classification

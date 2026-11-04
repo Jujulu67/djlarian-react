@@ -1,164 +1,88 @@
-import { test, expect } from '@playwright/test';
-import { config } from 'dotenv';
-import { resolve } from 'path';
-import { PrismaClient } from '@prisma/client';
-import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
-import betterSqlite3 from 'better-sqlite3';
-import { hash } from '@/lib/bcrypt-edge';
+import { expect, test, type Page } from '@playwright/test';
 
-// Charger les variables d'environnement depuis .env.local
-config({ path: resolve(process.cwd(), '.env.local') });
-
-// Créer un Prisma Client pour les tests E2E
-const databaseUrl = process.env.DATABASE_URL || 'file:./prisma/dev.db';
-const sqliteDb = betterSqlite3(databaseUrl.replace('file:', ''));
-const adapter = new PrismaBetterSqlite3({ url: databaseUrl });
-const prisma = new PrismaClient({ adapter });
-
-// Variables globales pour le test
-let testUserEmail: string;
-let testUserPassword: string;
-let testUserId: string;
+import { createTestUser, deleteTestUser, prisma, type TestUser } from './helpers/db';
 
 /**
- * Smoke Test E2E pour le Login
- *
- * Ce test suit le pattern "Setup/Teardown" :
- * 1. BeforeAll : Crée un utilisateur de test dans la DB avec mot de passe hashé
- * 2. Test : Teste la connexion via l'API /api/auth/signin-credentials
- * 3. AfterAll : Supprime l'utilisateur de test pour laisser la base propre
+ * Parcours de connexion réels (navigateur), sur une base locale.
+ * Ils couvrent des bugs passés : croix de la modale qui revenait à la page précédente,
+ * renvoi à l'accueil après connexion, préférences effacées à la déconnexion.
  */
-test.describe('Smoke Test - Authentication', () => {
-  test.beforeAll(async () => {
-    // Utiliser le Prisma Client configuré depuis @/lib/prisma
-    // S'assurer que la base de données est accessible
-    try {
-      await prisma.$connect();
-      console.log('✅ Connexion Prisma établie');
-    } catch (error) {
-      console.error('❌ Erreur de connexion Prisma:', error);
-      throw error;
-    }
 
-    // Générer un email unique pour éviter les conflits
-    const timestamp = Date.now();
-    testUserEmail = `smoke-test-${timestamp}@test.com`;
-    testUserPassword = 'TestPassword123!';
+const openLoginModal = async (page: Page) => {
+  await page.getByRole('button', { name: 'Connexion' }).first().click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+};
 
-    try {
-      // Hasher le mot de passe avec bcrypt (même méthode que l'application)
-      const hashedPassword = await hash(testUserPassword, 10);
+const login = async (page: Page, user: TestUser) => {
+  await openLoginModal(page);
+  const dialog = page.getByRole('dialog');
+  await dialog.locator('input[type="email"]').fill(user.email);
+  await dialog.locator('input[type="password"]').fill(user.password);
+  await dialog.locator('button[type="submit"]').click();
+  await expect(page.getByRole('button', { name: 'Menu utilisateur' })).toBeVisible({
+    timeout: 30000,
+  });
+};
 
-      // Créer l'utilisateur de test dans la base de données
-      const user = await prisma.user.create({
-        data: {
-          email: testUserEmail,
-          name: 'Smoke Test User',
-          hashedPassword: hashedPassword,
-          role: 'USER',
-          emailVerified: null,
-        },
-      });
+test.describe('Visiteur', () => {
+  test('la croix ferme la modale de connexion sans changer de page', async ({ page }) => {
+    await page.goto('/');
+    await page.goto('/music');
+    await openLoginModal(page);
+    await page.getByRole('button', { name: 'Fermer la modale' }).click();
+    await expect(page.getByRole('dialog')).toBeHidden();
+    await expect(page).toHaveURL(/\/music$/);
+  });
 
-      testUserId = user.id;
-      console.log(`✅ Utilisateur de test créé: ${testUserEmail} (ID: ${testUserId})`);
-    } catch (error) {
-      console.error("❌ Erreur lors de la création de l'utilisateur de test:", error);
-      throw error;
-    }
+  test('le bouton « Se connecter » du profil ouvre la modale du site', async ({ page }) => {
+    await page.goto('/profile');
+    await page.getByRole('button', { name: 'Se connecter' }).click();
+    await expect(page.getByRole('dialog').locator('input[type="email"]')).toBeVisible();
+    await expect(page).toHaveURL(/\/profile$/);
+  });
+
+  test('connexion refusée avec un mauvais mot de passe', async ({ request }) => {
+    const response = await request.post('/api/auth/signin-credentials', {
+      data: { email: 'personne@test.local', password: 'faux' },
+    });
+    expect(response.status()).toBe(401);
+  });
+});
+
+test.describe('Compte connecté', () => {
+  let user: TestUser | undefined;
+
+  test.beforeEach(async () => {
+    user = await createTestUser();
+  });
+
+  test.afterEach(async () => {
+    await deleteTestUser(user);
   });
 
   test.afterAll(async () => {
-    // Nettoyer : Supprimer l'utilisateur de test
-    try {
-      if (testUserId) {
-        await prisma.user.delete({
-          where: { id: testUserId },
-        });
-        console.log(`✅ Utilisateur de test supprimé: ${testUserEmail}`);
-      }
-    } catch (error) {
-      console.error("❌ Erreur lors de la suppression de l'utilisateur de test:", error);
-      // Ne pas throw pour ne pas masquer d'autres erreurs
-    } finally {
-      // Fermer la connexion Prisma
-      await prisma.$disconnect();
-    }
+    await prisma.$disconnect();
   });
 
-  test('should successfully login with valid credentials', async ({ request, baseURL }) => {
-    // Test de l'API de connexion
-    const url = `${baseURL}/api/auth/signin-credentials`;
-    const response = await request.post(url, {
-      data: {
-        email: testUserEmail,
-        password: testUserPassword,
-      },
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    // Vérifier que la réponse est OK
-    expect(response.ok()).toBeTruthy();
-    expect(response.status()).toBe(200);
-
-    // Vérifier le contenu de la réponse
-    const data = await response.json();
-    expect(data.success).toBe(true);
-    expect(data.user).toBeDefined();
-    expect(data.user.email).toBe(testUserEmail);
-    expect(data.user.name).toBe('Smoke Test User');
-
-    // Vérifier que le cookie de session est présent
-    const setCookieHeader = response.headers()['set-cookie'];
-    expect(setCookieHeader).toBeDefined();
-    if (Array.isArray(setCookieHeader)) {
-      expect(
-        setCookieHeader.some((cookie) => cookie.includes('authjs.session-token'))
-      ).toBeTruthy();
-    } else if (typeof setCookieHeader === 'string') {
-      expect(setCookieHeader).toContain('authjs.session-token');
-    }
+  test('après connexion, on reste sur la page courante', async ({ page }) => {
+    await page.goto('/music');
+    await login(page, user!);
+    await expect(page).toHaveURL(/\/music$/);
   });
 
-  test('should reject invalid password', async ({ request, baseURL }) => {
-    // Test avec un mot de passe incorrect
-    const url = `${baseURL}/api/auth/signin-credentials`;
-    const response = await request.post(url, {
-      data: {
-        email: testUserEmail,
-        password: 'WrongPassword123!',
-      },
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+  test('la déconnexion garde la préférence d’interface', async ({ page, context }) => {
+    await page.goto('/music');
+    await login(page, user!);
+    const uiBefore = (await context.cookies()).find((c) => c.name === 'ui')?.value;
 
-    // Vérifier que la réponse est une erreur 401
-    expect(response.status()).toBe(401);
+    await page.getByRole('button', { name: 'Menu utilisateur' }).click();
+    await page.getByRole('button', { name: 'Déconnexion' }).click();
 
-    const data = await response.json();
-    expect(data.error).toBe('CredentialsSignin');
-  });
-
-  test('should reject invalid email', async ({ request, baseURL }) => {
-    // Test avec un email inexistant
-    const url = `${baseURL}/api/auth/signin-credentials`;
-    const response = await request.post(url, {
-      data: {
-        email: 'nonexistent@test.com',
-        password: testUserPassword,
-      },
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    // Vérifier que la réponse est une erreur 401
-    expect(response.status()).toBe(401);
-
-    const data = await response.json();
-    expect(data.error).toBe('CredentialsSignin');
+    // La déconnexion recharge l'accueil une fois les cookies supprimés
+    await page.waitForURL((url) => url.pathname === '/', { timeout: 15000 });
+    await expect(page.getByRole('button', { name: 'Connexion' }).first()).toBeVisible();
+    const cookies = await context.cookies();
+    expect(cookies.some((c) => c.name.includes('authjs.session-token'))).toBe(false);
+    expect(cookies.find((c) => c.name === 'ui')?.value).toBe(uiBefore);
   });
 });

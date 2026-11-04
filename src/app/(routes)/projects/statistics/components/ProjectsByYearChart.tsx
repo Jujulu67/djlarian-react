@@ -136,7 +136,7 @@ export function ProjectsByYearChart({
                       fill={colors.fill}
                       stroke={colors.stroke}
                       strokeWidth={2}
-                      radius={hiddenStatuses.has('TERMINE') ? [8, 8, 0, 0] : [8, 8, 0, 0]}
+                      radius={[8, 8, 0, 0]}
                       isAnimationActive={false}
                       activeBar={{
                         fill: colors.fill,

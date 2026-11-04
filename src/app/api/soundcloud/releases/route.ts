@@ -184,15 +184,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       try {
         // Parser la date (format peut varier: YYYY-MM-DD, DD/MM/YYYY, etc.)
         if (track.releaseDate) {
-          // Essayer de parser différentes formats
-          const dateStr = track.releaseDate;
-          // Format YYYY-MM-DD
-          if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-            releaseDateObj = new Date(dateStr);
-          } else {
-            // Essayer de parser d'autres formats
-            releaseDateObj = new Date(dateStr);
-          }
+          releaseDateObj = new Date(track.releaseDate);
           releaseDateObj.setHours(0, 0, 0, 0);
           isScheduled = releaseDateObj > now;
         } else {

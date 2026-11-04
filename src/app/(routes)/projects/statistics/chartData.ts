@@ -1,4 +1,4 @@
-import { MILESTONE_DAYS, type StatisticsData } from './types';
+import { MILESTONE_DAYS, type ComparisonChartPoint, type StatisticsData } from './types';
 
 export type StreamsProject = StatisticsData['streamsEvolution'][number];
 
@@ -76,7 +76,7 @@ export function buildComparisonChartData(
   filteredProjects: StreamsProject[],
   comparisonMode: ComparisonMode,
   selectedProjectsForComparison: string[]
-) {
+): ComparisonChartPoint[] {
   if (comparisonMode === 'all') {
     // Tous les projets (filtrés par année si nécessaire)
     if (filteredProjects.length === 0) return [];

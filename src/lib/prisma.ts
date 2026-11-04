@@ -222,13 +222,7 @@ export async function disconnectAllPrismaClients(): Promise<void> {
  * Initialise le système Prisma (appelé au démarrage)
  */
 export async function initializePrisma(): Promise<void> {
-  if (process.env.NODE_ENV === 'production') {
-    // En production, toujours utiliser production
-    await initializeDatabaseTarget();
-  } else {
-    // En dev, initialiser depuis le fichier
-    await initializeDatabaseTarget();
-  }
+  await initializeDatabaseTarget();
 
   // ⚠️ IMPORTANT: Mettre à jour process.env.BLOB_READ_WRITE_TOKEN selon la cible active
   // Le SDK @vercel/blob lit directement cette variable

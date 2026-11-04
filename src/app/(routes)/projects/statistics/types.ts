@@ -1,7 +1,5 @@
 import type { Project } from '@/components/projects/types';
 
-import type { buildComparisonChartData } from './chartData';
-
 // Types pour les composants Recharts
 export interface TooltipProps {
   active?: boolean;
@@ -75,6 +73,8 @@ export type ViewMode = 'project' | 'global' | 'comparison';
 export type YearViewMode = 'global' | 'year';
 
 /** Données du graphique d'évolution des streams (comparaison, ou une courbe unique) */
-export type StreamsChartData =
-  | ReturnType<typeof buildComparisonChartData>
-  | Array<{ day: string; streams: number }>;
+/** Un jalon du graphique de comparaison : `day` puis une valeur par projet (`project0`…). */
+export type ComparisonChartPoint = Record<string, string | number | null>;
+
+/** Données du graphique d'évolution des streams (comparaison, ou une courbe unique) */
+export type StreamsChartData = ComparisonChartPoint[] | Array<{ day: string; streams: number }>;

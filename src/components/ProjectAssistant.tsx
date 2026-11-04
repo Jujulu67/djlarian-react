@@ -14,6 +14,7 @@
  * - utils/formatMessage.ts, filterProjects.ts, parseQueryWithAI.ts
  */
 
+import { MAX_ASSISTANT_INPUT_LENGTH } from '@/lib/assistant/security/input-limits';
 import { useMemo, useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sparkles, Send, X, Trash2, Maximize2, Minimize2 } from 'lucide-react';
@@ -210,6 +211,7 @@ export function ProjectAssistant({ projects }: ProjectAssistantProps) {
             <div className="relative flex items-end gap-2">
               <textarea
                 ref={inputRef}
+                maxLength={MAX_ASSISTANT_INPUT_LENGTH}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onPaste={(e) => {

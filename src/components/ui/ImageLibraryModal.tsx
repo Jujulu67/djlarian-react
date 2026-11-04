@@ -50,7 +50,7 @@ const getImageUrlForModal = (img: ImageMeta) => {
 const getImageDate = (img: ImageMeta) => {
   const raw = img.date || img.lastModified || img.createdAt;
   if (!raw) return '';
-  const d = typeof raw === 'number' ? new Date(raw) : new Date(raw);
+  const d = new Date(raw);
   if (isNaN(d.getTime())) return '';
   return d.toLocaleDateString();
 };
