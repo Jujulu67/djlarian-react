@@ -183,6 +183,35 @@ describe('/api/music/[id]', () => {
       expect(response.status).toBe(200);
     });
 
+    const putAsAdmin = async (body: Record<string, unknown>) => {
+      const { auth } = await import('@/auth');
+      const { default: mockPrisma } = await import('@/lib/prisma');
+      (auth as jest.Mock).mockResolvedValue({ user: { id: 'admin1', role: 'ADMIN' } });
+      (mockPrisma.track.findUnique as jest.Mock).mockResolvedValue({ id: 'track-1' });
+      (mockPrisma.track.update as jest.Mock).mockResolvedValue({ id: 'track-1' });
+      const request = new NextRequest('http://localhost/api/music/track-1', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const response = await PUT(request, { params: Promise.resolve({ id: 'track-1' }) });
+      return { response, data: (mockPrisma.track.update as jest.Mock).mock.calls[0][0].data };
+    };
+
+    it('dépublie un morceau dont la publication est programmée plus tard', async () => {
+      const future = new Date(Date.now() + 86400000).toISOString();
+      const { response, data } = await putAsAdmin({ isPublished: true, publishAt: future });
+      expect(response.status).toBe(200);
+      expect(data.isPublished).toBe(false);
+      expect(data.publishAt).toEqual(new Date(future));
+    });
+
+    it('garde isPublished avec une date de publication passée', async () => {
+      const past = new Date(Date.now() - 86400000).toISOString();
+      const { data } = await putAsAdmin({ isPublished: true, publishAt: past });
+      expect(data.isPublished).toBe(true);
+    });
+
     it('should return 401 for non-admin user', async () => {
       const { auth } = await import('@/auth');
       (auth as jest.Mock).mockResolvedValue({

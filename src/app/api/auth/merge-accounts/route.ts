@@ -1,17 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import prisma from '@/lib/prisma';
-import { logger } from '@/lib/logger';
 import { hkdf } from '@panva/hkdf';
 import { jwtDecrypt } from 'jose';
+
+import { rateLimit } from '@/lib/api/rateLimiter';
+import { compare as bcryptCompare } from '@/lib/bcrypt-edge';
+import { logger } from '@/lib/logger';
+import prisma from '@/lib/prisma';
+
+/** Tentatives de fusion par minute et par IP (le mot de passe y est vérifié). */
+const MERGE_RATE_LIMIT = 5;
 
 /**
  * Route pour fusionner les comptes après confirmation utilisateur
  */
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = await rateLimit(request, MERGE_RATE_LIMIT);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const body = await request.json();
-    const { token, options } = body;
+    const { token, password } = body;
+    const options = body.options ?? {};
 
     if (!token) {
       return NextResponse.json({ error: 'Token manquant' }, { status: 400 });
@@ -78,6 +88,20 @@ export async function POST(request: NextRequest) {
 
     if (hasAccountForProvider) {
       return NextResponse.json({ error: 'Le compte est déjà lié' }, { status: 400 });
+    }
+
+    // Compte protégé par mot de passe : prouver qu'on en est le propriétaire. Sans cette
+    // vérification, quelqu'un qui a créé un compte avec l'email d'une victime garderait
+    // l'accès par mot de passe une fois la connexion OAuth de la victime fusionnée.
+    if (existingUser.hashedPassword) {
+      const passwordOk =
+        typeof password === 'string' &&
+        password.length > 0 &&
+        (await bcryptCompare(password, existingUser.hashedPassword));
+      if (!passwordOk) {
+        logger.warn('[API] merge accounts - Mot de passe absent ou incorrect');
+        return NextResponse.json({ error: 'Mot de passe incorrect' }, { status: 403 });
+      }
     }
 
     // Préparer les données de mise à jour

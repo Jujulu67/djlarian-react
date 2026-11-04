@@ -58,14 +58,14 @@ comme compromises.
       défaut d'une instance locale) : ne pas les réutiliser ailleurs.
 - [ ] _(à décider)_ **Audit sécurité du 04/11/2026, points non corrigés** :
   - pas de vérification d'email à l'inscription : quelqu'un peut créer un compte avec l'email d'un
-    autre avant lui (la fusion OAuth demande une confirmation, ce qui limite le risque) ;
-  - le rate limiter garde ses compteurs en mémoire, par instance Vercel : il freine mais ne bloque
-    pas une attaque répartie (il faudrait un stockage partagé, ex. Upstash Redis) ;
+    autre avant lui. La corriger demande un domaine et un service d'envoi d'emails (pas faisable sans
+    domaine). Risque atténué depuis le 04/11/2026 : la fusion OAuth exige le mot de passe du compte
+    existant et n'est jamais automatique pour un compte qui en a un ;
+  - rate limiter : réglé le 04/11/2026 par une règle du pare-feu Vercel (20 req/min par IP sur
+    `/api/auth/register`, `signin-credentials`, `callback/credentials`, `merge-accounts` et
+    `/api/license/*`, testée : 429 à la 21ᵉ). Le limiteur en mémoire reste en complément ;
   - licences : les signatures renvoyées (`active`, `invalid`…) ne contiennent ni date ni machine ;
     à vérifier côté plugin qu'une réponse ne peut pas être rejouée.
-  - musique : `POST /api/music` crée les morceaux déjà publiés même avec un `publishAt` futur, et
-    `getLatestReleases` (accueil) ne filtre pas la publication ;
-  - `/api/minigames/play` débite les jetons sans transaction et n'octroie pas les items gagnés.
 - [ ] **Imposer la Content-Security-Policy** : elle est en place en mode `Report-Only` depuis le
       04/11/2026 (`src/lib/security/csp.ts`, rapports vers Sentry), et en prod depuis ce jour-là.
       Laisser tourner quelques jours, regarder les rapports CSP

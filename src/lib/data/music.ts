@@ -1,5 +1,6 @@
 import { formatTrackData } from '@/lib/api/musicService';
 import { logger } from '@/lib/logger';
+import { publicTrackWhere } from '@/lib/music-publication';
 import prisma from '@/lib/prisma';
 import { Track } from '@/lib/utils/types';
 
@@ -10,6 +11,8 @@ import { Track } from '@/lib/utils/types';
 export async function getLatestReleases(count: number = 3): Promise<Track[]> {
   try {
     const tracks = await prisma.track.findMany({
+      // Même filtre public que GET /api/music
+      where: publicTrackWhere(),
       include: {
         TrackPlatform: true,
         GenresOnTracks: {

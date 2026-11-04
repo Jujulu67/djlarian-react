@@ -67,6 +67,18 @@ describe('getLatestReleases', () => {
     User: { id: 'user1', name: 'Artist 1' },
   };
 
+  it('applique le filtre public de GET /api/music', async () => {
+    (prisma.track.findMany as jest.Mock).mockResolvedValue([]);
+    await getLatestReleases(3);
+    expect(prisma.track.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          OR: [{ isPublished: true }, { publishAt: { lte: new Date('2024-01-15T10:00:00Z') } }],
+        },
+      })
+    );
+  });
+
   it('should return latest releases filtered by type', async () => {
     const mockTracks = [
       { ...mockTrack, id: '1', title: 'Single 1' },
@@ -276,6 +288,7 @@ describe('getLatestReleases', () => {
     await getLatestReleases(3);
 
     expect(prisma.track.findMany).toHaveBeenCalledWith({
+      where: expect.any(Object),
       include: expect.any(Object),
       orderBy: [{ featured: 'desc' }, { releaseDate: 'desc' }],
     });

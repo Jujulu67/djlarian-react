@@ -12,6 +12,7 @@ import {
   createBadRequestResponse,
 } from '@/lib/api/responseHelpers';
 import { logger } from '@/lib/logger';
+import { isScheduledInFuture, publicTrackWhere } from '@/lib/music-publication';
 import prisma from '@/lib/prisma';
 import { isNotEmpty } from '@/lib/utils/arrayHelpers';
 import { convertToWebP, canConvertToWebP } from '@/lib/utils/convertToWebP';
@@ -107,9 +108,7 @@ export async function GET(): Promise<Response> {
     const tracks = await prisma.track.findMany({
       // Un visiteur ne voit que les pistes publiées (ou dont la date de publication est
       // passée : elles sont publiées plus bas), comme pour /api/events.
-      ...(isAdmin
-        ? {}
-        : { where: { OR: [{ isPublished: true }, { publishAt: { lte: new Date() } }] } }),
+      ...(isAdmin ? {} : { where: publicTrackWhere() }),
       include: {
         TrackPlatform: true,
         GenresOnTracks: {
@@ -350,7 +349,8 @@ export async function POST(request: Request): Promise<Response> {
             description: dataForPrisma.description,
             type: dataForPrisma.type,
             featured: dataForPrisma.featured || false,
-            isPublished: true,
+            // Publication programmée plus tard : le morceau reste caché jusqu'à publishAt
+            isPublished: !isScheduledInFuture(processedPublishAt),
             ...(processedPublishAt !== undefined && { publishAt: processedPublishAt }),
             updatedAt: new Date(),
             ...userConnect,

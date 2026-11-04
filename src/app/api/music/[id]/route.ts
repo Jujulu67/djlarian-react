@@ -12,6 +12,7 @@ import {
   createNotFoundResponse,
   createBadRequestResponse,
 } from '@/lib/api/responseHelpers';
+import { isScheduledInFuture } from '@/lib/music-publication';
 import prisma from '@/lib/prisma';
 import { isNotEmpty } from '@/lib/utils/arrayHelpers';
 
@@ -218,6 +219,8 @@ export async function PUT(
             ...(typeof baseDataToUpdate.isPublished === 'boolean' && {
               isPublished: baseDataToUpdate.isPublished,
             }),
+            // Publication programmée plus tard : le morceau reste caché jusqu'à publishAt
+            ...(isScheduledInFuture(processedPublishAt) && { isPublished: false }),
           },
           include: {
             TrackPlatform: true,

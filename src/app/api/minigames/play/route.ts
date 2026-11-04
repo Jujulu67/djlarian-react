@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createSuccessResponse, createUnauthorizedResponse } from '@/lib/api/responseHelpers';
 import { handleApiError } from '@/lib/api/errorHandler';
 import prisma from '@/lib/prisma';
+import { applySpinOutcome, loadUserTokens } from '@/lib/slot-machine-rewards';
 import { RewardType } from '@/types/slot-machine';
 import { requireAuth } from '@/lib/api/requireAuth';
 
@@ -119,45 +120,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Type de jeu invalide' }, { status: 400 });
     }
 
-    // Gestion des jetons
-    let userTokens = await prisma.userSlotMachineTokens.findUnique({
-      where: { userId: session.user.id },
-    });
-
-    if (!userTokens) {
-      // Création initiale si n'existe pas (ne devrait pas arriver souvent si passé par la map)
-      userTokens = await prisma.userSlotMachineTokens.create({
-        data: {
-          userId: session.user.id,
-          tokens: 100, // Default daily
-          lastResetDate: new Date(),
-        },
-      });
-    }
-
-    if (userTokens.tokens < GAME_COST) {
-      return NextResponse.json(
+    const userId = session.user.id;
+    const insufficientTokens = () =>
+      NextResponse.json(
         { error: `Pas assez de jetons. Coût : ${GAME_COST} jetons.` },
         { status: 400 }
       );
+
+    // Solde (créé et rechargé chaque jour si besoin) ; contrôle rapide, le débit reste
+    // conditionné au solde au moment de l'écriture
+    const userTokens = await loadUserTokens(userId);
+    if (userTokens.tokens < GAME_COST) {
+      return insufficientTokens();
     }
 
     const outcome = determineOutcome(gameType as 'roulette' | 'scratch' | 'mystery');
 
-    // Mise à jour BDD
-    let newTokens = userTokens.tokens - GAME_COST;
-    if (outcome.rewardType === RewardType.TOKENS) {
-      newTokens += outcome.rewardAmount;
+    // Débit atomique, crédit des gains et octroi des items dans une même transaction
+    const applied = await applySpinOutcome(userId, {
+      cost: GAME_COST,
+      tokensWon: outcome.rewardType === RewardType.TOKENS ? outcome.rewardAmount : 0,
+      spins: 1,
+      wins: outcome.isWin ? 1 : 0,
+      queueSkips: outcome.rewardType === RewardType.QUEUE_SKIP ? outcome.rewardAmount : 0,
+      eternalTickets: outcome.rewardType === RewardType.ETERNAL_TICKET ? outcome.rewardAmount : 0,
+    });
+    if (!applied) {
+      return insufficientTokens();
     }
 
-    await prisma.userSlotMachineTokens.update({
-      where: { userId: session.user.id },
-      data: {
-        tokens: newTokens,
-        totalSpins: { increment: 1 }, // On utilise le même compteur pour tous les jeux pour l'instant
-        totalWins: outcome.isWin ? { increment: 1 } : undefined,
-      },
+    const updated = await prisma.userSlotMachineTokens.findUnique({
+      where: { userId },
+      select: { tokens: true },
     });
+    const newTokens = updated?.tokens ?? 0;
 
     return createSuccessResponse({
       ...outcome,
