@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { NextRequest } from 'next/server';
 
-import { auth } from '@/auth';
+import { requireDbAdmin } from '@/lib/api/requireDbAdmin';
 import { logger } from '@/lib/logger';
 import {
   getTrackAudioFeatures,
@@ -9,11 +9,6 @@ import {
   getAlbumTracks,
   formatMusicalKey,
 } from '@/lib/services/spotify';
-
-async function getUser() {
-  const session = await auth();
-  return session?.user;
-}
 
 /**
  * POST /api/spotify/enrich
@@ -35,11 +30,9 @@ async function getUser() {
  */
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
-    // Authentification
-    const user = await getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // Réservé aux admins, comme les autres routes Spotify
+    const { error } = await requireDbAdmin();
+    if (error) return error;
 
     const body = await req.json();
     const { albumId, spotifyId } = body;

@@ -28,13 +28,13 @@ export async function GET(request: NextRequest): Promise<Response> {
 
     // Préparer la condition de filtrage
     const where: Prisma.EventWhereInput = {
-      // Pour les non-admins, ne montrer que les événements publiés
-      // Si un paramètre isPublished est fourni, l'utiliser à la place
-      ...(isPublishedParam !== null
-        ? { isPublished: isPublishedParam === 'true' }
-        : isAdmin
-          ? {}
-          : { isPublished: true }),
+      // Un visiteur ne voit que les événements publiés (ou dont la date de publication est
+      // passée : ils sont publiés plus bas). Seul un admin peut filtrer avec isPublished.
+      ...(isAdmin
+        ? isPublishedParam !== null
+          ? { isPublished: isPublishedParam === 'true' }
+          : {}
+        : { OR: [{ isPublished: true }, { publishAt: { lte: new Date() } }] }),
 
       // Filtres
       ...(titleFilter

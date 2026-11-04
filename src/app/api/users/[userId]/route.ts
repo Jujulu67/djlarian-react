@@ -33,8 +33,11 @@ export async function PUT(request: Request, { params }: { params: Promise<{ user
   // Admin : peut tout modifier. Utilisateur : uniquement son propre compte.
   const session = await auth();
   const isAdmin = session?.user?.role === 'ADMIN';
-  if (!session?.user || (!isAdmin && session.user.id !== userId)) {
+  if (!session?.user) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+  }
+  if (!isAdmin && session.user.id !== userId) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
   }
 
   let body;
@@ -136,8 +139,11 @@ export async function DELETE(
 
   // Admin : peut supprimer n'importe quel compte. Utilisateur : uniquement le sien.
   const session = await auth();
-  if (!session?.user || (session.user.role !== 'ADMIN' && session.user.id !== userId)) {
+  if (!session?.user) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+  }
+  if (session.user.role !== 'ADMIN' && session.user.id !== userId) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
   }
 
   try {

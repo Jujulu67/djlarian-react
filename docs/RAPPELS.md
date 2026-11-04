@@ -47,12 +47,12 @@ comme compromises.
 - [ ] Routes API restantes non migrées vers `requireAuth` (04/11/2026 : 9 handlers admin migrés, PR #29 ; restent
       `admin/inventory/batch`, `admin/live/submissions/purge`, `music` POST, `spotify/enrich`, `user/game-stats`,
       `users/[userId]`, `users/[userId]/licenses`).
-- [ ] 🔴 **Trous d'accès repérés pendant la migration (à corriger avant l'ouverture)** :
-  - `minigames/reset-tokens` : la vérification admin est commentée, n'importe qui peut l'appeler ;
-  - `events` GET avec `?isPublished=false` : un visiteur voit les événements non publiés ;
-  - `spotify/enrich` : ouvert à tout utilisateur connecté (les routes Spotify voisines sont admin) ;
-  - `users/[userId]` PUT/DELETE : 401 au lieu de 403 pour un non-propriétaire (gêne mineure) ;
-  - `events/[id]` : un événement dont `publishAt` est passé reste caché tant qu'un admin ne l'a pas ouvert.
+- [x] **Trous d'accès repérés pendant la migration** (corrigés le 04/11/2026, PR fix/access-holes) :
+  - `minigames/reset-tokens` : réservé aux admins (403 sinon) ;
+  - `events` GET : `?isPublished=` n'est plus pris en compte pour un visiteur ;
+  - `spotify/enrich` : réservé aux admins, rôle relu en base comme les routes voisines ;
+  - `users/[userId]` PUT/DELETE : 403 pour un non-propriétaire (401 seulement si anonyme) ;
+  - `events` et `events/[id]` : un événement dont `publishAt` est passé est publié dès qu'un visiteur le demande.
 - [x] Récurrence d'événements (25/10/2026) : les occurrences étaient calculées en UTC côté serveur,
       donc décalées d'une heure après un changement d'heure. Tout est maintenant calculé en heure de
       Paris (`src/lib/utils/timezone.ts`), ce qui aligne aussi les clés d'exclusion du serveur sur
