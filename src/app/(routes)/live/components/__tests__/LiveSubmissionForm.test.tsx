@@ -270,4 +270,69 @@ describe('LiveSubmissionForm', () => {
       // But we can check if the button class changed or if it calls play on the ref
     }
   });
+
+  describe('rafraîchissement du statut des soumissions', () => {
+    const statusCalls = () =>
+      (global.fetch as jest.Mock).mock.calls.filter(
+        ([url]) => url === '/api/live/submissions/status'
+      ).length;
+
+    const setVisibility = (state: 'visible' | 'hidden') => {
+      Object.defineProperty(document, 'visibilityState', { configurable: true, value: state });
+      document.dispatchEvent(new Event('visibilitychange'));
+    };
+
+    const renderForm = async () => {
+      (useLiveSubmissions as jest.Mock).mockReturnValue({
+        submissions: [],
+        isSubmitting: false,
+        submitFile: mockSubmitFile,
+        loadSubmissions: mockLoadSubmissions,
+        updateSubmission: mockUpdateSubmission,
+        deleteSubmission: mockDeleteSubmission,
+      });
+      await act(async () => {
+        render(<LiveSubmissionForm />);
+      });
+    };
+
+    beforeEach(() => {
+      jest.useFakeTimers();
+      Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+      Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+    });
+
+    it('revérifie toutes les 60 secondes, pas avant', async () => {
+      await renderForm();
+      expect(statusCalls()).toBe(1);
+
+      act(() => {
+        jest.advanceTimersByTime(59_000);
+      });
+      expect(statusCalls()).toBe(1);
+
+      await act(async () => {
+        jest.advanceTimersByTime(1_000);
+      });
+      expect(statusCalls()).toBe(2);
+    });
+
+    it('ne fait aucune requête quand l’onglet est masqué, et revérifie au retour', async () => {
+      await renderForm();
+      expect(statusCalls()).toBe(1);
+
+      act(() => setVisibility('hidden'));
+      act(() => {
+        jest.advanceTimersByTime(300_000);
+      });
+      expect(statusCalls()).toBe(1);
+
+      await act(async () => setVisibility('visible'));
+      expect(statusCalls()).toBe(2);
+    });
+  });
 });
