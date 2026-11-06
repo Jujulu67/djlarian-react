@@ -61,7 +61,7 @@ export function classifyQuery(
       lowerQuery
     );
   let isCreate =
-    /(?:ajoute|ajouter|ajout|créer|créé|creer|créa|nouveau\s+projet|add|create|new\s+project)/i.test(
+    /(?:ajoute|ajouter|ajout|créer|créé|creer|créa|\bcr[ée](?:e|es|ez|ent)(?![a-zà-ÿ])|nouveau\s+projet|add|create|new\s+project)/i.test(
       lowerQuery
     );
 
@@ -172,6 +172,8 @@ export function classifyQuery(
 
   const isList =
     !isNoteAdditionPattern && // Ne pas détecter comme liste si c'est un ajout de note
+    // « crée un projet X avec collab Y » : le « avec » ne fait pas de cette commande une liste
+    !(isCreate && !isUpdate && !hasExplicitListVerb && !hasQuestionWord) &&
     (hasExplicitListVerb ||
       hasQuestionWord ||
       hasImplicitListPattern ||

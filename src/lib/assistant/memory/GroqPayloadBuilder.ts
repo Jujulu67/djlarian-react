@@ -16,11 +16,16 @@
 
 import { GroqMessage, GroqPayload, isChatMessage } from './Types';
 import { ConversationMemoryStore } from './ConversationMemoryStore';
-import { capMaxCompletionTokens, getModelMaxOutput, ModelContextTokens } from './ModelLimits';
+import {
+  capMaxCompletionTokens,
+  getModelMaxOutput,
+  GROQ_FAST_MODEL,
+  ModelContextTokens,
+} from './ModelLimits';
 import { logger } from '@/lib/logger';
 import { inOrder, jsonArrayWithId, type TextPattern } from './linear-patterns';
 
-const DEFAULT_MODEL = 'llama-3.1-8b-instant';
+const DEFAULT_MODEL = GROQ_FAST_MODEL;
 
 /**
  * O7: Feature flag pour envoyer max_tokens (déprécié)
@@ -37,8 +42,8 @@ const SEND_DEPRECATED_MAX_TOKENS = process.env.GROQ_SEND_DEPRECATED_MAX_TOKENS =
  * @see ModelLimits.ts pour la source de vérité
  *
  * Rappel (source: GroqCloud docs):
- * - llama-3.1-8b-instant: context 131072, max output 131072
- * - llama-3.3-70b-versatile: context 131072, max output 32768 (⚠️ limité!)
+ * - openai/gpt-oss-20b: context 131072, max output 131072
+ * - openai/gpt-oss-120b: context 131072, max output 32768 (⚠️ limité!)
  */
 const MODEL_CONTEXT_LIMITS = ModelContextTokens;
 
@@ -59,7 +64,7 @@ interface TokenBudgetConfig {
  * - Coût API (limiter les tokens envoyés)
  * - Expérience utilisateur (trimmer les vieux messages)
  *
- * ⚠️ Ce ne sont PAS les limites du modèle (131072 tokens pour llama-3.1-8b-instant)
+ * ⚠️ Ce ne sont PAS les limites du modèle (131072 tokens pour openai/gpt-oss-20b)
  * Configurable via variables d'environnement.
  */
 const DEFAULT_TOKEN_BUDGET: TokenBudgetConfig = {

@@ -39,6 +39,7 @@ import {
 import { extractUpdateData } from '@/lib/assistant/query-parser/updates';
 
 import { SYSTEM_PROMPT_8B } from '@/lib/assistant/prompts/system-prompt-8b';
+import { GROQ_COMPLEX_MODEL, GROQ_FAST_MODEL } from '@/lib/assistant/memory/ModelLimits';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 
@@ -321,7 +322,7 @@ async function askModel({
     : { ...tools };
 
   // Choix du modèle : 70B pour les requêtes complexes, 8B pour le reste (plus rapide/économique)
-  const modelId = classification.isComplex ? 'llama-3.3-70b-versatile' : 'llama-3.1-8b-instant';
+  const modelId = classification.isComplex ? GROQ_COMPLEX_MODEL : GROQ_FAST_MODEL;
 
   try {
     const result = await generateText({

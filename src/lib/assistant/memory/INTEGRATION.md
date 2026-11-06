@@ -49,7 +49,7 @@ const sendMessage = async (input: string) => {
 export async function POST(req: Request) {
   const { messages, input } = await req.json();
   const response = await groq.chat.completions.create({
-    model: 'llama-3.1-8b-instant',
+    model: 'openai/gpt-oss-20b',
     messages: [...messages, { role: 'user', content: input }],
   });
   return NextResponse.json({ message: response.choices[0].message });
@@ -131,7 +131,7 @@ Quand `ASSISTANT_DEBUG=true`, chaque appel à `handleUserInput` génère:
 [Router] Decision: GENERAL_CHAT (Small talk pattern detected)
 [ConversationMemory][session-xyz] ADDED: user message (12 tokens)
 [GroqPayloadBuilder] Payload built:
-  - Model: llama-3.1-8b-instant
+  - Model: openai/gpt-oss-20b
   - Messages: 5
   - Last messages preview:
     [user] Comment ça va?...

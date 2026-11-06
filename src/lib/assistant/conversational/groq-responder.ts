@@ -24,7 +24,7 @@ import { SYSTEM_DISCIPLINE_PROMPT } from '../prompts/system-discipline-prompt';
 import { InferModeFromQuery } from './mode-inference';
 import { sanitizeForLogs } from '../utils/sanitize-logs';
 import { formatConversationContextForPrompt } from './memory-manager';
-import { capMaxCompletionTokens } from '../memory/ModelLimits';
+import { capMaxCompletionTokens, GROQ_COMPLEX_MODEL, GROQ_FAST_MODEL } from '../memory/ModelLimits';
 import { sanitizeGroqMessages } from '../memory/SanitizeGroqMessages';
 import { logger } from '@/lib/logger';
 
@@ -114,6 +114,8 @@ async function callGroq({
       ...finalMessages.map((m) => ({ role: m.role, content: m.content })),
     ],
     temperature: 0.7,
+    // Modèle à raisonnement : effort bas pour rester rapide et économiser le quota gratuit
+    reasoning_effort: 'low',
     max_completion_tokens: cappedTokens,
   };
 
@@ -229,7 +231,7 @@ export async function getConversationalResponse(
 
     // Choix du modèle selon la complexité (même prompts pour 8B et 70B)
     // L'identité et la discipline ne dépendent pas du modèle
-    const modelId = isComplex ? 'llama-3.3-70b-versatile' : 'llama-3.1-8b-instant';
+    const modelId = isComplex ? GROQ_COMPLEX_MODEL : GROQ_FAST_MODEL;
 
     return await callGroq({ groqApiKey, modelId, combinedSystemPrompt, messages, query });
   } catch (error) {

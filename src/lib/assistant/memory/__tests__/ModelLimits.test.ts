@@ -4,8 +4,7 @@
  * O6: Vérifier les limites modèle officielles et le cap de max_completion_tokens
  *
  * RT1 - Cap max_completion_tokens:
- * - sur 70B: si on demande 100k, doit cap à 32768
- * - sur 8B: cap à 131072 si nécessaire
+ * - si on demande 100k, doit cap à 65536 ; 768
  */
 
 import {
@@ -22,22 +21,22 @@ describe('ModelLimits', () => {
   describe('Constants', () => {
     it('should have correct context limits for supported models', () => {
       // Rappel (source: GroqCloud docs)
-      // llama-3.1-8b-instant: context 131072, max output 131072
-      // llama-3.3-70b-versatile: context 131072, max output 32768
-      expect(ModelContextTokens['llama-3.1-8b-instant']).toBe(131072);
-      expect(ModelContextTokens['llama-3.3-70b-versatile']).toBe(131072);
+      // openai/gpt-oss-20b: context 131072, max output 131072
+      // openai/gpt-oss-120b: context 131072, max output 32768
+      expect(ModelContextTokens['openai/gpt-oss-20b']).toBe(131072);
+      expect(ModelContextTokens['openai/gpt-oss-120b']).toBe(131072);
     });
 
     it('should have correct max output limits for supported models', () => {
-      expect(ModelMaxOutputTokens['llama-3.1-8b-instant']).toBe(131072);
-      expect(ModelMaxOutputTokens['llama-3.3-70b-versatile']).toBe(32768);
+      expect(ModelMaxOutputTokens['openai/gpt-oss-20b']).toBe(65536);
+      expect(ModelMaxOutputTokens['openai/gpt-oss-120b']).toBe(65536);
     });
   });
 
   describe('getModelContextLimit', () => {
     it('should return correct limit for known model', () => {
-      expect(getModelContextLimit('llama-3.1-8b-instant')).toBe(131072);
-      expect(getModelContextLimit('llama-3.3-70b-versatile')).toBe(131072);
+      expect(getModelContextLimit('openai/gpt-oss-20b')).toBe(131072);
+      expect(getModelContextLimit('openai/gpt-oss-120b')).toBe(131072);
     });
 
     it('should return default for unknown model', () => {
@@ -47,8 +46,8 @@ describe('ModelLimits', () => {
 
   describe('getModelMaxOutput', () => {
     it('should return correct limit for known model', () => {
-      expect(getModelMaxOutput('llama-3.1-8b-instant')).toBe(131072);
-      expect(getModelMaxOutput('llama-3.3-70b-versatile')).toBe(32768);
+      expect(getModelMaxOutput('openai/gpt-oss-20b')).toBe(65536);
+      expect(getModelMaxOutput('openai/gpt-oss-120b')).toBe(65536);
     });
 
     it('should return default for unknown model', () => {
@@ -57,35 +56,33 @@ describe('ModelLimits', () => {
   });
 
   describe('capMaxCompletionTokens (RT1)', () => {
-    describe('llama-3.3-70b-versatile (max output 32768)', () => {
-      const model = 'llama-3.3-70b-versatile';
+    describe('openai/gpt-oss-120b (max output 65536)', () => {
+      const model = 'openai/gpt-oss-120b';
 
-      it('should cap 100k tokens to 32768', () => {
-        // RT1: sur 70B: si on demande 100k, doit cap à 32768
-        expect(capMaxCompletionTokens(model, 100000)).toBe(32768);
+      it('should cap 100k tokens to 65536', () => {
+        expect(capMaxCompletionTokens(model, 100000)).toBe(65536);
       });
 
-      it('should cap 50k tokens to 32768', () => {
-        expect(capMaxCompletionTokens(model, 50000)).toBe(32768);
+      it('should cap 70k tokens to 65536', () => {
+        expect(capMaxCompletionTokens(model, 70000)).toBe(65536);
       });
 
       it('should not cap tokens below limit', () => {
         expect(capMaxCompletionTokens(model, 1024)).toBe(1024);
-        expect(capMaxCompletionTokens(model, 32768)).toBe(32768);
+        expect(capMaxCompletionTokens(model, 65536)).toBe(65536);
       });
     });
 
-    describe('llama-3.1-8b-instant (max output 131072)', () => {
-      const model = 'llama-3.1-8b-instant';
+    describe('openai/gpt-oss-20b (max output 65536)', () => {
+      const model = 'openai/gpt-oss-20b';
 
-      it('should cap tokens exceeding 131072', () => {
-        // RT1: sur 8B: cap à 131072 si nécessaire
-        expect(capMaxCompletionTokens(model, 200000)).toBe(131072);
+      it('should cap tokens exceeding 65536', () => {
+        expect(capMaxCompletionTokens(model, 200000)).toBe(65536);
       });
 
       it('should not cap tokens below limit', () => {
-        expect(capMaxCompletionTokens(model, 100000)).toBe(100000);
-        expect(capMaxCompletionTokens(model, 131072)).toBe(131072);
+        expect(capMaxCompletionTokens(model, 50000)).toBe(50000);
+        expect(capMaxCompletionTokens(model, 65536)).toBe(65536);
       });
     });
 
@@ -100,30 +97,30 @@ describe('ModelLimits', () => {
   describe('getBoundedResponseReserve', () => {
     it('should bound reserve within model limits', () => {
       // 8B model: min 256, max 8192, default 1024
-      expect(getBoundedResponseReserve('llama-3.1-8b-instant', 100)).toBe(256); // Below min
-      expect(getBoundedResponseReserve('llama-3.1-8b-instant', 1024)).toBe(1024); // Within range
-      expect(getBoundedResponseReserve('llama-3.1-8b-instant', 10000)).toBe(8192); // Above max
+      expect(getBoundedResponseReserve('openai/gpt-oss-20b', 100)).toBe(256); // Below min
+      expect(getBoundedResponseReserve('openai/gpt-oss-20b', 1024)).toBe(1024); // Within range
+      expect(getBoundedResponseReserve('openai/gpt-oss-20b', 10000)).toBe(8192); // Above max
 
       // 70B model: min 256, max 4096, default 1024
-      expect(getBoundedResponseReserve('llama-3.3-70b-versatile', 100)).toBe(256);
-      expect(getBoundedResponseReserve('llama-3.3-70b-versatile', 1024)).toBe(1024);
-      expect(getBoundedResponseReserve('llama-3.3-70b-versatile', 10000)).toBe(4096);
+      expect(getBoundedResponseReserve('openai/gpt-oss-120b', 100)).toBe(256);
+      expect(getBoundedResponseReserve('openai/gpt-oss-120b', 1024)).toBe(1024);
+      expect(getBoundedResponseReserve('openai/gpt-oss-120b', 10000)).toBe(4096);
     });
   });
 
   describe('validateModelLimits', () => {
     it('should return valid for requests within limits', () => {
-      const result = validateModelLimits('llama-3.3-70b-versatile', 1024);
+      const result = validateModelLimits('openai/gpt-oss-120b', 1024);
       expect(result.valid).toBe(true);
       expect(result.warnings).toHaveLength(0);
       expect(result.cappedValue).toBe(1024);
     });
 
     it('should warn and cap for requests exceeding limits', () => {
-      const result = validateModelLimits('llama-3.3-70b-versatile', 100000);
+      const result = validateModelLimits('openai/gpt-oss-120b', 100000);
       expect(result.valid).toBe(false);
       expect(result.warnings).toContainEqual(expect.stringContaining('exceeds model limit'));
-      expect(result.cappedValue).toBe(32768);
+      expect(result.cappedValue).toBe(65536);
     });
 
     it('should warn for unknown models', () => {

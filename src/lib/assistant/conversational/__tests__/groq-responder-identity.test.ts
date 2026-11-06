@@ -96,7 +96,7 @@ describe('Groq Responder - Tests anti-régression identité', () => {
       expect(payload).not.toBeNull();
 
       // Vérifier le modèle utilisé
-      expect(payload?.body.model).toBe('llama-3.1-8b-instant');
+      expect(payload?.body.model).toBe('openai/gpt-oss-20b');
 
       // Vérifier que le system prompt contient LARIAN BOT
       const messages = payload?.body.messages as Array<{ role: string; content: string }>;
@@ -120,7 +120,7 @@ describe('Groq Responder - Tests anti-régression identité', () => {
       expect(payload).not.toBeNull();
 
       // Vérifier le modèle utilisé
-      expect(payload?.body.model).toBe('llama-3.3-70b-versatile');
+      expect(payload?.body.model).toBe('openai/gpt-oss-120b');
 
       // Vérifier que les mêmes prompts sont utilisés pour 70B
       const messages = payload?.body.messages as Array<{ role: string; content: string }>;
