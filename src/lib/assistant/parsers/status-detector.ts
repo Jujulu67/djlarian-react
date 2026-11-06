@@ -1,4 +1,3 @@
-import { logger } from '@/lib/logger';
 /**
  * Détecteur de statuts depuis les requêtes utilisateur
  * Utilise la distance de Levenshtein pour détecter les statuts même avec des fautes d'orthographe

@@ -1,7 +1,7 @@
 /**
  * Extraction des données de progression depuis les requêtes
  */
-import { UpdateData, debugLog } from './types';
+import { UpdateData } from './types';
 import { logger } from '@/lib/logger';
 
 /**
