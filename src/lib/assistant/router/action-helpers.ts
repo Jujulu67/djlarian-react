@@ -115,6 +115,32 @@ export function generateProjectPreviewDiff(
   };
 }
 
+/** « +2 semaines », « -1 semaine », ou null si la valeur est nulle. */
+function formatShift(value: number | undefined, unit: string, plural = 's'): string | null {
+  if (!value) return null;
+  return `${value > 0 ? '+' : ''}${value} ${unit}${value !== 1 ? plural : ''}`;
+}
+
+function describeDeadlineShift(delta: NonNullable<ProjectMutation['pushDeadlineBy']>): string {
+  const parts = [
+    formatShift(delta.days, 'jour'),
+    formatShift(delta.weeks, 'semaine'),
+    formatShift(delta.months, 'mois', ''),
+    formatShift(delta.years, 'an'),
+  ].filter(Boolean);
+  return parts.length > 0 ? `Décaler la deadline de ${parts.join(', ')}` : 'Décaler la deadline';
+}
+
+function describeFieldChanges(mutation: ProjectMutation): string[] {
+  const changes: string[] = [];
+  if (mutation.newStatus) changes.push(`statut → ${mutation.newStatus}`);
+  if (mutation.newDeadline) changes.push(`deadline → ${mutation.newDeadline}`);
+  if (mutation.newProgress !== undefined) changes.push(`progression → ${mutation.newProgress}%`);
+  if (mutation.newCollab) changes.push(`collab → ${mutation.newCollab}`);
+  if (mutation.newStyle) changes.push(`style → ${mutation.newStyle}`);
+  return changes;
+}
+
 /**
  * Construit une description lisible de l'action
  */
@@ -131,40 +157,9 @@ export function buildActionDescription(
     return `Ajouter une note à ${affectedCount} projet(s)`;
   }
 
-  // Type UPDATE
-  const changes: string[] = [];
-
-  // Gestion spéciale pour pushDeadlineBy (décalage de deadline)
-  if (mutation.pushDeadlineBy) {
-    const delta = mutation.pushDeadlineBy;
-    const parts: string[] = [];
-    if (delta.days) {
-      parts.push(`${delta.days > 0 ? '+' : ''}${delta.days} jour${delta.days !== 1 ? 's' : ''}`);
-    }
-    if (delta.weeks) {
-      parts.push(
-        `${delta.weeks > 0 ? '+' : ''}${delta.weeks} semaine${delta.weeks !== 1 ? 's' : ''}`
-      );
-    }
-    if (delta.months) {
-      parts.push(`${delta.months > 0 ? '+' : ''}${delta.months} mois`);
-    }
-    if (delta.years) {
-      parts.push(`${delta.years > 0 ? '+' : ''}${delta.years} an${delta.years !== 1 ? 's' : ''}`);
-    }
-    if (parts.length > 0) {
-      changes.push(`Décaler la deadline de ${parts.join(', ')}`);
-    } else {
-      changes.push('Décaler la deadline');
-    }
-  } else {
-    // Autres mutations
-    if (mutation.newStatus) changes.push(`statut → ${mutation.newStatus}`);
-    if (mutation.newDeadline) changes.push(`deadline → ${mutation.newDeadline}`);
-    if (mutation.newProgress !== undefined) changes.push(`progression → ${mutation.newProgress}%`);
-    if (mutation.newCollab) changes.push(`collab → ${mutation.newCollab}`);
-    if (mutation.newStyle) changes.push(`style → ${mutation.newStyle}`);
-  }
+  const changes = mutation.pushDeadlineBy
+    ? [describeDeadlineShift(mutation.pushDeadlineBy)]
+    : describeFieldChanges(mutation);
 
   let description = `Modifier ${affectedCount} projet(s)`;
   if (changes.length > 0) {
