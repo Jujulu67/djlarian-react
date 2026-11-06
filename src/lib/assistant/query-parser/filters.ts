@@ -22,18 +22,9 @@ export interface FilterResult {
   fieldsToShow: string[];
 }
 
-/**
- * Détecte tous les filtres depuis une requête
- */
-export function detectFilters(
-  query: string,
-  lowerQuery: string,
-  availableCollabs: string[],
-  availableStyles: string[]
-): FilterResult {
-  const filters: Record<string, unknown> = {};
-  const fieldsToShow: string[] = [];
+type Filters = Record<string, unknown>;
 
+function detectNoProgress(query: string, lowerQuery: string, filters: Filters): void {
   // Détecter "sans avancement" / "no progress" / "not set"
   if (
     /sans\s*(?:avancement|progression)|pas\s*(?:de\s*)?(?:avancement|progression)|non\s*renseign[ée]|no\s*(?:progress|percentage|percent)|not\s*set|null|vide/i.test(
@@ -43,7 +34,10 @@ export function detectFilters(
     filters.noProgress = true;
     logger.warn('[Parse Query API] Filtre noProgress détecté pour:', query);
   }
+}
 
+function detectFieldsToShow(lowerQuery: string): string[] {
+  const fieldsToShow: string[] = [];
   // Détecter demande de champs spécifiques à afficher
 
   // "Tout" / "Détails" / "Infos" -> on affiche tout
@@ -76,7 +70,94 @@ export function detectFilters(
       fieldsToShow.push('style');
     }
   }
+  return fieldsToShow;
+}
 
+/** Ce pourcentage désigne-t-il les projets visés (filtre) plutôt que la nouvelle valeur ? */
+function isExactProgressFilter(
+  query: string,
+  exactMatch: RegExpMatchArray,
+  patternIndex: number
+): boolean {
+  const exactValue = parseInt(exactMatch[1], 10);
+  const matchIndex = exactMatch.index || 0;
+  const matchedText = exactMatch[0];
+  const textAfter = query
+    .substring(matchIndex + matchedText.length)
+    .toLowerCase()
+    .trim();
+
+  // Vérifier si le match se termine par "et" (le pattern l'a inclus, c'est un filtre)
+  const matchEndsWithEt =
+    /(?<!\s)\s+(?:et|,)\s*$/i.test(matchedText) ||
+    matchedText.trim().endsWith('et') ||
+    matchedText.trim().endsWith(',');
+
+  // Si c'est suivi de "et" puis d'un verbe, c'est un filtre (ex: "à 7% et mets")
+  // Si c'est suivi directement d'un verbe sans "et", c'est probablement une nouvelle valeur
+  const isFollowedByUpdateVerbDirectly =
+    /^(?:mets?|met|passe|passer|change|changer|modifie|modifier)/i.test(textAfter);
+
+  // Si c'est suivi de "et", c'est un filtre
+  const isFollowedByEt = /^\s*et/i.test(textAfter);
+
+  // Si c'est suivi d'une date/deadline (ex: "au mois prochain", "demain"), c'est un filtre
+  // car "à 15% au mois prochain" signifie "les projets à 15%"
+  const isFollowedByDate =
+    /\b(?:au|à\s+le|pour|pour\s+le)\s+(?:le\s+)?(?:mois\s+prochain|semaine\s+pro|semaine\s+prochaine|next\s+month|next\s+week|demain|tomorrow|aujourd['’]hui|today)/i.test(
+      textAfter
+    );
+
+  debugLog(`[Parse Query API] 🔍 Pattern ${patternIndex + 1} matché:`, {
+    value: exactValue,
+    matchedText,
+    textAfter,
+    matchEndsWithEt,
+    isFollowedByEt,
+    isFollowedByUpdateVerbDirectly,
+    isFollowedByDate,
+    willUse:
+      matchEndsWithEt || isFollowedByEt || isFollowedByDate || !isFollowedByUpdateVerbDirectly,
+  });
+
+  // Vérifier si le match est précédé d'un verbe de modification
+  const textBefore = query.substring(0, matchIndex).toLowerCase().trim();
+
+  // Cas 1: C'est explicitement "avancement à X%" -> Toujours une cible, jamais un filtre
+  const isExplicitAvancementTarget = /(?:avancement|progression)\s*$/i.test(textBefore);
+
+  // Cas 2: C'est "met les projets à X%" (ambigu)
+  // Utiliser le dictionnaire NLP pour les verbes de mise à jour
+  const updateVerbsRegex = BuildAlternationRegexPart(UpdateVerbs);
+  const isPrecededByUpdateVerb = new RegExp(
+    `(?:${updateVerbsRegex})(?:\\s+(?:les?|leur|leurs|projets?))?$`,
+    'i'
+  ).test(textBefore);
+
+  // Si c'est ambigu, on regarde ce qui suit
+  // Si c'est suivi d'un autre paramètre de modif (status, collab, etc), alors le % est un filtre
+  // Ex: "met les projets à 50% en TERMINE" -> 50% est un filtre
+  // Utiliser les synonymes de statut du dictionnaire
+  const statusValues = Object.keys(StatusSynonyms).join('|');
+  const isFollowedByUpdateParam = new RegExp(
+    `(?:en|à|avec|pour)\\s+(?:${statusValues}|collab|style)`,
+    'i'
+  ).test(textAfter);
+
+  // On exclut le filtre si :
+  // - C'est explicitement "avancement à"
+  // - OU c'est une commande de modif qui n'est PAS suivie d'autres paramètres (donc le % est la cible)
+  const shouldExcludeAsFilter =
+    isExplicitAvancementTarget ||
+    (isPrecededByUpdateVerb && !isFollowedByUpdateParam && patternIndex !== 3); // i===3 est le pattern explicite "modifie... à X% et"
+
+  return (
+    (matchEndsWithEt || isFollowedByEt || isFollowedByDate || !isFollowedByUpdateVerbDirectly) &&
+    !shouldExcludeAsFilter
+  );
+}
+
+function detectExactProgress(query: string, filters: Filters): void {
   // Détecter "à X% d'avancement" ou "à X%" comme filtre exact (min = max = X)
   // Patterns: "projets à 7%", "à 7% d'avancement", "modifie les projets à 7% et mets les à 10"
   // Note: "a" (sans accent) est aussi accepté pour tolérer les fautes de frappe
@@ -92,104 +173,19 @@ export function detectFilters(
   ];
 
   for (let i = 0; i < exactProgressPatterns.length; i++) {
-    const pattern = exactProgressPatterns[i];
-    const exactMatch = query.match(pattern);
-    debugLog(`[Parse Query API] 🔍 Test pattern ${i + 1}:`, pattern, '→ match:', exactMatch);
-    if (exactMatch) {
-      const exactValue = parseInt(exactMatch[1], 10);
-      if (!isNaN(exactValue) && exactValue >= 0 && exactValue <= 100) {
-        const matchIndex = exactMatch.index || 0;
-        const matchedText = exactMatch[0];
-        const textAfter = query
-          .substring(matchIndex + matchedText.length)
-          .toLowerCase()
-          .trim();
-
-        // Vérifier si le match se termine par "et" (le pattern l'a inclus, c'est un filtre)
-        const matchEndsWithEt =
-          /(?<!\s)\s+(?:et|,)\s*$/i.test(matchedText) ||
-          matchedText.trim().endsWith('et') ||
-          matchedText.trim().endsWith(',');
-
-        // Si c'est suivi de "et" puis d'un verbe, c'est un filtre (ex: "à 7% et mets")
-        // Si c'est suivi directement d'un verbe sans "et", c'est probablement une nouvelle valeur
-        const isFollowedByUpdateVerbDirectly =
-          /^(?:mets?|met|passe|passer|change|changer|modifie|modifier)/i.test(textAfter);
-
-        // Si c'est suivi de "et", c'est un filtre
-        const isFollowedByEt = /^\s*et/i.test(textAfter);
-
-        // Si c'est suivi d'une date/deadline (ex: "au mois prochain", "demain"), c'est un filtre
-        // car "à 15% au mois prochain" signifie "les projets à 15%"
-        const isFollowedByDate =
-          /\b(?:au|à\s+le|pour|pour\s+le)\s+(?:le\s+)?(?:mois\s+prochain|semaine\s+pro|semaine\s+prochaine|next\s+month|next\s+week|demain|tomorrow|aujourd['’]hui|today)/i.test(
-            textAfter
-          );
-
-        debugLog(`[Parse Query API] 🔍 Pattern ${i + 1} matché:`, {
-          value: exactValue,
-          matchedText,
-          textAfter,
-          matchEndsWithEt,
-          isFollowedByEt,
-          isFollowedByUpdateVerbDirectly,
-          isFollowedByDate,
-          willUse:
-            matchEndsWithEt ||
-            isFollowedByEt ||
-            isFollowedByDate ||
-            !isFollowedByUpdateVerbDirectly,
-        });
-
-        // Vérifier si le match est précédé d'un verbe de modification
-        const textBefore = query.substring(0, matchIndex).toLowerCase().trim();
-
-        // Cas 1: C'est explicitement "avancement à X%" -> Toujours une cible, jamais un filtre
-        const isExplicitAvancementTarget = /(?:avancement|progression)\s*$/i.test(textBefore);
-
-        // Cas 2: C'est "met les projets à X%" (ambigu)
-        // Utiliser le dictionnaire NLP pour les verbes de mise à jour
-        const updateVerbsRegex = BuildAlternationRegexPart(UpdateVerbs);
-        const isPrecededByUpdateVerb = new RegExp(
-          `(?:${updateVerbsRegex})(?:\\s+(?:les?|leur|leurs|projets?))?$`,
-          'i'
-        ).test(textBefore);
-
-        // Si c'est ambigu, on regarde ce qui suit
-        // Si c'est suivi d'un autre paramètre de modif (status, collab, etc), alors le % est un filtre
-        // Ex: "met les projets à 50% en TERMINE" -> 50% est un filtre
-        // Utiliser les synonymes de statut du dictionnaire
-        const statusValues = Object.keys(StatusSynonyms).join('|');
-        const isFollowedByUpdateParam = new RegExp(
-          `(?:en|à|avec|pour)\\s+(?:${statusValues}|collab|style)`,
-          'i'
-        ).test(textAfter);
-
-        // On exclut le filtre si :
-        // - C'est explicitement "avancement à"
-        // - OU c'est une commande de modif qui n'est PAS suivie d'autres paramètres (donc le % est la cible)
-        const shouldExcludeAsFilter =
-          isExplicitAvancementTarget ||
-          (isPrecededByUpdateVerb && !isFollowedByUpdateParam && i !== 3); // i===3 est le pattern explicite "modifie... à X% et"
-
-        // Si le match se termine par "et" ou est suivi de "et", d'une date, ou pas d'un verbe de modification, c'est un filtre
-        // Sauf si on a déterminé que c'était une cible de modif
-        if (
-          (matchEndsWithEt ||
-            isFollowedByEt ||
-            isFollowedByDate ||
-            !isFollowedByUpdateVerbDirectly) &&
-          !shouldExcludeAsFilter
-        ) {
-          filters.minProgress = exactValue;
-          filters.maxProgress = exactValue;
-          logger.warn('[Parse Query API] ✅ Filtre progression exacte détecté:', exactValue);
-          break;
-        }
-      }
+    const exactMatch = query.match(exactProgressPatterns[i]);
+    if (!exactMatch) continue;
+    const exactValue = parseInt(exactMatch[1], 10);
+    if (isNaN(exactValue) || exactValue < 0 || exactValue > 100) continue;
+    if (isExactProgressFilter(query, exactMatch, i)) {
+      filters.minProgress = exactValue;
+      filters.maxProgress = exactValue;
+      break;
     }
   }
+}
 
+function detectProgressRange(lowerQuery: string, filters: Filters): void {
   // Détecter progression max (sous les X%, under X%, less than X%)
   const maxPatterns = [
     /(?:sous\s*(?:les?)?|moins\s*de|inf[ée]rieur[es]?\s*[àa]|<)\s*(\d+)\s*(?:%|pourcent)?/i,
@@ -224,65 +220,52 @@ export function detectFilters(
     filters.minProgress = parseInt(entreMatch[1], 10);
     filters.maxProgress = parseInt(entreMatch[2], 10);
   }
+}
 
-  // Détecter statuts avec variations FR + EN
-  // IMPORTANT: Ne pas détecter un statut comme filtre si c'est une commande de mise à jour
-  // et que le statut apparaît après "à" ou "en" (c'est la nouvelle valeur, pas un filtre)
-  // Exemple: "passe les à en cours" -> "en cours" est la nouvelle valeur, pas un filtre
-  // IMPORTANT: Ne pas détecter un statut comme filtre s'il fait partie d'un pattern "de X à Y"
-  // Exemple: "passe les projets de EN_COURS à TERMINE" -> "TERMINE" est la nouvelle valeur, pas un filtre
-  // IMPORTANT: Détecter aussi les commandes UPDATE avec un statut entre le verbe et "à" (ex: "passe les terminés à 20%")
-  const isUpdateCommand =
-    /(?:passe|met|mets?|change|changer|modifie|modifier|marque|marquer)\s+(?:les?\s+)?(?:projets?\s+)?(?:.*?\s+)?(?:à|en|comme)/i.test(
-      query
-    );
-  const hasDeXaYPattern =
-    /(?:passe|met|mets?|change|changer|modifie|modifier|marque|marquer)\s+(?:les?\s+)?(?:projets?\s+)?de\s+(?:en\s*cours|termin[ée]s?|annul[ée]s?|ghost\s*prod|archiv[ée]s?)\s+à\s+(?:en\s*cours|termin[ée]s?|annul[ée]s?|ghost\s*prod|archiv[ée]s?)/i.test(
-      query
-    );
+const STATUS_PATTERNS: { pattern: RegExp; status: string }[] = [
+  // GHOST_PRODUCTION - Très tolérant aux fautes d'orthographe
+  {
+    pattern:
+      /ghost\s*prod(?:uction)?|ghostprod|gost\s*prod|ghosprod|gausprod|goastprod|ghosp\s*rod|goes\s*prod|gosht\s*prod|gostprod|goshtprod|ghosst\s*prod|ghots\s*prod|ghostproduction|ghost-prod|ghost-production|góstprod|gauspraud|gausteprauds|gausotprod/i,
+    status: 'GHOST_PRODUCTION',
+  },
+  // TERMINE - Tolérant aux fautes
+  {
+    pattern:
+      /termin[ée]s?|finis?|complet[ée]?s?|finished|completed|done|100\s*%|TERMINE|treminer|terminer|termi|termne|terminne|teminé|terniné|temriné|finit|finnis|achev[ée]s?/i,
+    status: 'TERMINE',
+  },
+  // ANNULE - Tolérant aux fautes
+  {
+    pattern:
+      /annul[ée]s?|cancel(?:led)?|abandonn[ée]s?|dropped|annler|anul[ée]?|annuler|annull[ée]|anull[ée]|anuler/i,
+    status: 'ANNULE',
+  },
+  {
+    // EN_COURS - Tolérer "encours", "en courrs" (double r), "ancours", etc.
+    pattern:
+      /en\s*cours|en\s*courrs|encours|ancours|emcours|en\s*coures|n\s*cours|en\s*cous|encour|en\s*crs|encoours|ongoing|actifs?|in\s*(?:progress|the\s*works)|current|active|wip|work\s*in\s*progress|EN\s*COURS|EN_COURS/i,
+    status: 'EN_COURS',
+  },
+  {
+    pattern: /en\s*attente|pending|waiting|on\s*hold|pause|EN\s*ATTENTE|EN_ATTENTE/i,
+    status: 'EN_ATTENTE',
+  },
+  // ARCHIVE - Tolérant aux fautes
+  {
+    pattern: /archiv[ée]s?|archived|arkiv[ée]?|arkive|archiver|arch(?!ive)|archve|arciv[ée]/i,
+    status: 'ARCHIVE',
+  },
+  // A_REWORK - Tolérant aux fautes
+  {
+    pattern:
+      /rework|[àa]\s*rework|[àa]\s*refaire|retravailler|needs?\s*work|needs?\s*rework|rwork|re\s*work|reword|rewok/i,
+    status: 'A_REWORK',
+  },
+];
 
-  const statusPatterns: { pattern: RegExp; status: string }[] = [
-    // GHOST_PRODUCTION - Très tolérant aux fautes d'orthographe
-    {
-      pattern:
-        /ghost\s*prod(?:uction)?|ghostprod|gost\s*prod|ghosprod|gausprod|goastprod|ghosp\s*rod|goes\s*prod|gosht\s*prod|gostprod|goshtprod|ghosst\s*prod|ghots\s*prod|ghostproduction|ghost-prod|ghost-production|góstprod|gauspraud|gausteprauds|gausotprod/i,
-      status: 'GHOST_PRODUCTION',
-    },
-    // TERMINE - Tolérant aux fautes
-    {
-      pattern:
-        /termin[ée]s?|finis?|complet[ée]?s?|finished|completed|done|100\s*%|TERMINE|treminer|terminer|termi|termne|terminne|teminé|terniné|temriné|finit|finnis|achev[ée]s?/i,
-      status: 'TERMINE',
-    },
-    // ANNULE - Tolérant aux fautes
-    {
-      pattern:
-        /annul[ée]s?|cancel(?:led)?|abandonn[ée]s?|dropped|annler|anul[ée]?|annuler|annull[ée]|anull[ée]|anuler/i,
-      status: 'ANNULE',
-    },
-    {
-      // EN_COURS - Tolérer "encours", "en courrs" (double r), "ancours", etc.
-      pattern:
-        /en\s*cours|en\s*courrs|encours|ancours|emcours|en\s*coures|n\s*cours|en\s*cous|encour|en\s*crs|encoours|ongoing|actifs?|in\s*(?:progress|the\s*works)|current|active|wip|work\s*in\s*progress|EN\s*COURS|EN_COURS/i,
-      status: 'EN_COURS',
-    },
-    {
-      pattern: /en\s*attente|pending|waiting|on\s*hold|pause|EN\s*ATTENTE|EN_ATTENTE/i,
-      status: 'EN_ATTENTE',
-    },
-    // ARCHIVE - Tolérant aux fautes
-    {
-      pattern: /archiv[ée]s?|archived|arkiv[ée]?|arkive|archiver|arch(?!ive)|archve|arciv[ée]/i,
-      status: 'ARCHIVE',
-    },
-    // A_REWORK - Tolérant aux fautes
-    {
-      pattern:
-        /rework|[àa]\s*rework|[àa]\s*refaire|retravailler|needs?\s*work|needs?\s*rework|rwork|re\s*work|reword|rewok/i,
-      status: 'A_REWORK',
-    },
-  ];
-
+/** Statut précisé dans un filtre explicite (« pour les terminés »), même dans une commande. */
+function detectExplicitStatus(query: string, lowerQuery: string, filters: Filters): void {
   // Détecter d'abord les patterns explicites "pour les [statut]", "sur les [statut]", etc.
   // Ces patterns sont toujours des filtres, même dans les commandes UPDATE
   const explicitFilterPatterns = [
@@ -330,86 +313,114 @@ export function detectFilters(
       }
     }
   }
+}
 
-  for (const { pattern, status } of statusPatterns) {
-    if (pattern.test(lowerQuery)) {
-      // Si on a déjà détecté un statut via les patterns explicites, ne pas continuer
-      if (filters.status) {
-        break;
-      }
+/** Le statut suit « à », « en » ou « comme » : c'est la nouvelle valeur, pas un filtre. */
+function isNewStatusValue(lowerQuery: string, pattern: RegExp): boolean {
+  const match = lowerQuery.match(pattern);
+  if (!match || match.index === undefined) return false;
+  const statusIndex = match.index;
+  const textBeforeStatus = lowerQuery.substring(0, statusIndex).trim();
+  // Si le statut est précédé de "à", "en" ou "comme" (nouvelle valeur), ne pas l'utiliser comme filtre
+  // Exemple: "passe les à en cours" -> "en cours" est après "à", donc c'est la nouvelle valeur
+  // Exemple: "marques les projets en TERMINE" -> "TERMINE" est après "en", donc c'est la nouvelle valeur
+  const endsWithAorEn = /(?:^|\s)(?:à|en|comme|as)\s*$/.test(textBeforeStatus);
+  const hasAEnPattern = /(?<!\s)\s+à\s+(?:en|comme|as)\s*$/.test(textBeforeStatus);
+  // Vérifier aussi si le statut est directement après "en" (ex: "en TERMINE", "en cours")
+  const hasEnBeforeStatus = /\ben\s+$/.test(textBeforeStatus);
 
-      // Si c'est un pattern "de X à Y", ne pas détecter les statuts comme filtres
-      // car ils font partie du pattern et seront gérés par extractUpdateData
-      if (hasDeXaYPattern) {
-        logger.warn(
-          '[Parse Query API] ⚠️ Statut détecté mais ignoré (pattern "de X à Y"):',
-          status,
-          'dans:',
-          query
-        );
-        continue;
-      }
+  return endsWithAorEn || hasAEnPattern || hasEnBeforeStatus;
+}
 
-      // Si c'est une commande de mise à jour, vérifier que le statut n'est pas après "à" ou "en"
-      // (car dans ce cas, c'est la nouvelle valeur, pas un filtre)
-      // IMPORTANT: Si le statut apparaît AVANT "à" ou "en" dans la phrase, c'est un filtre explicite
-      // Exemple: "passe les terminés à 20%" -> "terminés" est avant "à", donc c'est un filtre
-      // Exemple: "mets les projets en cours en fini" -> "en cours" est avant "en fini", donc c'est un filtre
-      if (isUpdateCommand) {
-        // Chercher où le statut apparaît dans la requête
-        const match = lowerQuery.match(pattern);
-        if (match && match.index !== undefined) {
-          const statusIndex = match.index;
-          const textBeforeStatus = lowerQuery.substring(0, statusIndex).trim();
-          const textAfterStatus = lowerQuery
-            .substring(statusIndex + (match[0]?.length || 0))
-            .trim();
+function detectStatus(query: string, lowerQuery: string, filters: Filters): void {
+  // Détecter statuts avec variations FR + EN
+  // IMPORTANT: Ne pas détecter un statut comme filtre si c'est une commande de mise à jour
+  // et que le statut apparaît après "à" ou "en" (c'est la nouvelle valeur, pas un filtre)
+  // Exemple: "passe les à en cours" -> "en cours" est la nouvelle valeur, pas un filtre
+  // IMPORTANT: Ne pas détecter un statut comme filtre s'il fait partie d'un pattern "de X à Y"
+  // Exemple: "passe les projets de EN_COURS à TERMINE" -> "TERMINE" est la nouvelle valeur, pas un filtre
+  // IMPORTANT: Détecter aussi les commandes UPDATE avec un statut entre le verbe et "à" (ex: "passe les terminés à 20%")
+  const isUpdateCommand =
+    /(?:passe|met|mets?|change|changer|modifie|modifier|marque|marquer)\s+(?:les?\s+)?(?:projets?\s+)?(?:.*?\s+)?(?:à|en|comme)/i.test(
+      query
+    );
+  const hasDeXaYPattern =
+    /(?:passe|met|mets?|change|changer|modifie|modifier|marque|marquer)\s+(?:les?\s+)?(?:projets?\s+)?de\s+(?:en\s*cours|termin[ée]s?|annul[ée]s?|ghost\s*prod|archiv[ée]s?)\s+à\s+(?:en\s*cours|termin[ée]s?|annul[ée]s?|ghost\s*prod|archiv[ée]s?)/i.test(
+      query
+    );
 
-          // Si le statut est précédé de "à", "en" ou "comme" (nouvelle valeur), ne pas l'utiliser comme filtre
-          // Exemple: "passe les à en cours" -> "en cours" est après "à", donc c'est la nouvelle valeur
-          // Exemple: "marques les projets en TERMINE" -> "TERMINE" est après "en", donc c'est la nouvelle valeur
-          const endsWithAorEn = /(?:^|\s)(?:à|en|comme|as)\s*$/.test(textBeforeStatus);
-          const hasAEnPattern = /(?<!\s)\s+à\s+(?:en|comme|as)\s*$/.test(textBeforeStatus);
-          // Vérifier aussi si le statut est directement après "en" (ex: "en TERMINE", "en cours")
-          const hasEnBeforeStatus = /\ben\s+$/.test(textBeforeStatus);
+  detectExplicitStatus(query, lowerQuery, filters);
+  // « de X à Y » : les statuts sont gérés par extractUpdateData
+  if (filters.status || hasDeXaYPattern) return;
 
-          // Si le statut est précédé de "à", "en" ou "comme", c'est la nouvelle valeur, pas un filtre
-          if (endsWithAorEn || hasAEnPattern || hasEnBeforeStatus) {
-            // C'est la nouvelle valeur, pas un filtre - continuer à chercher d'autres statuts
-            logger.warn(
-              '[Parse Query API] ⚠️ Statut détecté mais ignoré (nouvelle valeur):',
-              status,
-              'dans:',
-              query,
-              'textBeforeStatus:',
-              textBeforeStatus
-            );
-            continue;
-          }
-
-          // Si le statut apparaît AVANT "à" ou "en" dans la phrase, c'est un filtre explicite
-          // Vérifier si "à" ou "en" apparaît après le statut dans la phrase
-          const hasAorEnAfterStatus = /^(?:\s+)?(?:à|en|comme|as)\s+/.test(textAfterStatus);
-          if (hasAorEnAfterStatus) {
-            // Le statut apparaît avant "à" ou "en", donc c'est un filtre explicite
-            logger.warn(
-              '[Parse Query API] ✅ Statut détecté comme filtre explicite (avant "à"/"en"):',
-              status,
-              'dans:',
-              query
-            );
-            filters.status = status;
-            break;
-          }
-        }
-      }
-      filters.status = status;
-      logger.warn('[Parse Query API] ✅ Statut détecté comme filtre:', status, 'dans:', query);
-      break;
-    }
+  for (const { pattern, status } of STATUS_PATTERNS) {
+    if (!pattern.test(lowerQuery)) continue;
+    if (isUpdateCommand && isNewStatusValue(lowerQuery, pattern)) continue;
+    filters.status = status;
+    break;
   }
+}
 
-  // Détecter collaborateurs
+const COLLAB_IGNORED_WORDS = [
+  'projets',
+  'projet',
+  'les',
+  'mes',
+  'ma', // possessive adjective (my)
+  'mon', // possessive adjective (my)
+  'ton', // possessive adjective (your)
+  'ta', // possessive adjective (your)
+  'tes', // possessive adjective (your)
+  'son', // possessive adjective (his/her)
+  'sa', // possessive adjective (his/her)
+  'ses', // possessive adjective (his/her)
+  'notre', // possessive adjective (our)
+  'nos', // possessive adjective (our)
+  'votre', // possessive adjective (your)
+  'vos', // possessive adjective (your)
+  'leur', // possessive adjective (their)
+  'leurs', // possessive adjective (their)
+  'de',
+  'en',
+  'le',
+  'la',
+  'avec',
+  'quelles',
+  'quels',
+  'ai',
+  'j',
+  'par',
+  'pour',
+  'change',
+  'met',
+  'mets',
+  'passe',
+  'modifie',
+  'modifier',
+  'affiche',
+  'donne',
+  'montre',
+  'cahnge',
+  'chnage',
+  'chang',
+  'pase',
+  'pass',
+  'modifi',
+];
+
+/** Nom exact du collaborateur connu, ou le mot lui-même s'il n'est ni un mot clé ni trop court. */
+function resolveCollab(collabName: string, availableCollabs: string[]): string | null {
+  const lowerName = collabName.toLowerCase();
+  if (COLLAB_IGNORED_WORDS.includes(lowerName)) return null;
+  const known = availableCollabs.find(
+    (c) => c.toLowerCase().includes(lowerName) || lowerName.includes(c.toLowerCase())
+  );
+  if (known) return known;
+  // Un mot de 1 ou 2 lettres est très probablement un faux positif
+  return collabName.length > 2 ? collabName : null;
+}
+
+function detectCollab(query: string, filters: Filters, availableCollabs: string[]): void {
   const collabPatterns = [
     /collab(?:oration)?s?\s+(?:avec\s+)?(\w+)/i, // "collab avec X" ou "collab X"
     /(?:avec|feat\.?|ft\.?|with)\s+(\w+)/i, // "avec X", "feat X", "with X"
@@ -417,86 +428,50 @@ export function detectFilters(
     /(?:en\s+)?collaborateur\s+(?:avec\s+)?(\w+)/i, // "en collaborateur avec X" ou "collaborateur X"
   ];
   for (const pattern of collabPatterns) {
-    const match = query.match(pattern); // Garder la casse originale
-    if (match && match[1]) {
-      const collabName = match[1].trim();
-      // Vérifier si c'est un vrai collab (pas un mot clé)
-      // Ignorer les articles, pronoms possessifs, et mots communs
-      const ignoredWords = [
-        'projets',
-        'projet',
-        'les',
-        'mes',
-        'ma', // possessive adjective (my)
-        'mon', // possessive adjective (my)
-        'ton', // possessive adjective (your)
-        'ta', // possessive adjective (your)
-        'tes', // possessive adjective (your)
-        'son', // possessive adjective (his/her)
-        'sa', // possessive adjective (his/her)
-        'ses', // possessive adjective (his/her)
-        'notre', // possessive adjective (our)
-        'nos', // possessive adjective (our)
-        'votre', // possessive adjective (your)
-        'vos', // possessive adjective (your)
-        'leur', // possessive adjective (their)
-        'leurs', // possessive adjective (their)
-        'de',
-        'en',
-        'le',
-        'la',
-        'avec',
-        'quelles',
-        'quels',
-        'ai',
-        'j',
-        'par',
-        'pour',
-        'change',
-        'met',
-        'mets',
-        'passe',
-        'modifie',
-        'modifier',
-        'affiche',
-        'donne',
-        'montre',
-        'cahnge',
-        'chnage',
-        'chang',
-        'pase',
-        'pass',
-        'modifi',
-      ];
-      if (!ignoredWords.includes(collabName.toLowerCase())) {
-        // Chercher le collab le plus proche dans la liste
-        const matchedCollab = availableCollabs.find(
-          (c) =>
-            c.toLowerCase().includes(collabName.toLowerCase()) ||
-            collabName.toLowerCase().includes(c.toLowerCase())
-        );
-        // Only set filter if we found a match in available collabs
-        // This prevents false positives from random words
-        // IMPORTANT: Utiliser le nom exact du collab trouvé dans availableCollabs (avec la bonne casse)
-        if (matchedCollab) {
-          filters.collab = matchedCollab; // Utiliser le nom exact du collab (ex: "TOTO" au lieu de "toto")
-          break;
-        }
-        // If no match found and it's a very short word (1-2 chars), ignore it
-        // as it's likely a false positive
-        if (collabName.length > 2) {
-          // Si pas de match, utiliser le nom tel quel mais essayer de trouver une correspondance proche
-          // Chercher un collab qui contient le nom ou vice versa (insensible à la casse)
-          const closeMatch = availableCollabs.find(
-            (c) => c.toLowerCase() === collabName.toLowerCase()
-          );
-          filters.collab = closeMatch || collabName;
-          break;
-        }
-      }
+    // Garder la casse originale
+    const collabName = query.match(pattern)?.[1]?.trim();
+    const collab = collabName ? resolveCollab(collabName, availableCollabs) : null;
+    if (collab) {
+      filters.collab = collab;
+      break;
     }
   }
+}
 
+/** « cours » dans « en cours », ou « Progressive » reconnu dans « progression ». */
+function isStyleFalsePositive(
+  query: string,
+  styleMatch: NonNullable<ReturnType<typeof findStyleFromString>>,
+  hasExplicitStylePattern: boolean
+): boolean {
+  const styleLower = styleMatch.style.toLowerCase();
+  // Si le style matché est "cours" ou "en" et qu'on a "en cours" ou "en collaborateur", c'est un faux positif
+  // SAUF si on a explicitement "en style cours"
+  // AUSSI: Si on a "EN_COURS" (en majuscules), ne pas détecter "cours" comme style
+  const hasEnCoursStatus = /en\s*cours|EN_COURS|EN\s*COURS/i.test(query);
+  const isFalsePositive =
+    !hasExplicitStylePattern &&
+    (styleLower === 'cours' || styleLower === 'en') &&
+    (hasEnCoursStatus || query.toLowerCase().includes('en collaborateur'));
+
+  // Vérifier aussi si c'est un faux positif lié à "progression" → "Progressive"
+  const queryLower = query.toLowerCase();
+  const hasProgressionKeywords =
+    queryLower.includes('progression') ||
+    queryLower.includes('avancement') ||
+    (queryLower.includes('progress') && !queryLower.includes('progressive'));
+  const hasExplicitStyleKeyword = queryLower.includes('style');
+
+  // Si on a matché "Progressive" mais que la requête contient "progression" sans "style",
+  // c'est un faux positif (car "progression" contient "prog" qui est une variation de "Progressive")
+  // Simplification: si on a "Progressive" + mots de progression sans "style", c'est toujours un faux positif
+  const isProgressionFalsePositive =
+    styleMatch.style === 'Progressive' && hasProgressionKeywords && !hasExplicitStyleKeyword;
+
+  return isFalsePositive || isProgressionFalsePositive;
+}
+
+function detectStyle(query: string, filters: Filters, availableStyles: string[]): void {
   // Détecter styles avec variations et alias
   // IMPORTANT: Ne pas détecter de style si on a déjà détecté un pattern de modification "X en Y"
   // car cela peut créer des faux positifs (ex: "en cours en annulé" ne doit pas être détecté comme style)
@@ -514,66 +489,13 @@ export function detectFilters(
   // Si on a un pattern X en Y mais aussi "en style X" explicite, on doit détecter le style
   if ((!hasStatusUpdatePattern && !hasCollaborateurPattern) || hasExplicitStylePattern) {
     const styleMatch = findStyleFromString(query, availableStyles);
-    if (styleMatch) {
-      // Log de debug pour voir ce qui est détecté
-      logger.warn('[Parse Query API] 🔍 Style détecté par findStyleFromString:', {
-        style: styleMatch.style,
-        matchedText: styleMatch.matchedText,
-        query: query.substring(0, 50),
-      });
-      // Vérifier que le style détecté n'est pas un faux positif
-      // Si on a "en cours en collaborateur", ne pas détecter "cours" comme style
-      // SAUF si on a explicitement "en style cours"
-      const styleLower = styleMatch.style.toLowerCase();
-      const matchedTextLower = styleMatch.matchedText.toLowerCase();
-      // Si le style matché est "cours" ou "en" et qu'on a "en cours" ou "en collaborateur", c'est un faux positif
-      // SAUF si on a explicitement "en style cours"
-      // AUSSI: Si on a "EN_COURS" (en majuscules), ne pas détecter "cours" comme style
-      const hasEnCoursStatus = /en\s*cours|EN_COURS|EN\s*COURS/i.test(query);
-      const isFalsePositive =
-        !hasExplicitStylePattern &&
-        (styleLower === 'cours' || styleLower === 'en') &&
-        (hasEnCoursStatus || query.toLowerCase().includes('en collaborateur'));
-
-      // Vérifier aussi si c'est un faux positif lié à "progression" → "Progressive"
-      const queryLower = query.toLowerCase();
-      const hasProgressionKeywords =
-        queryLower.includes('progression') ||
-        queryLower.includes('avancement') ||
-        (queryLower.includes('progress') && !queryLower.includes('progressive'));
-      const hasExplicitStyleKeyword = queryLower.includes('style');
-
-      // Si on a matché "Progressive" mais que la requête contient "progression" sans "style",
-      // c'est un faux positif (car "progression" contient "prog" qui est une variation de "Progressive")
-      // Simplification: si on a "Progressive" + mots de progression sans "style", c'est toujours un faux positif
-      const isProgressionFalsePositive =
-        styleMatch.style === 'Progressive' && hasProgressionKeywords && !hasExplicitStyleKeyword;
-
-      // Log de debug pour comprendre pourquoi la condition ne matche pas
-      if (styleMatch.style === 'Progressive') {
-        logger.warn('[Parse Query API] 🔍 Debug Progressive detection:', {
-          style: styleMatch.style,
-          matchedText: styleMatch.matchedText,
-          matchedTextLower,
-          hasProgressionKeywords,
-          hasExplicitStyleKeyword,
-          isProgressionFalsePositive,
-          query: query.substring(0, 50),
-        });
-      }
-
-      if (!isFalsePositive && !isProgressionFalsePositive) {
-        filters.style = styleMatch.style;
-        logger.warn('[Parse Query API] ✅ Style défini dans filters:', filters.style);
-      } else if (isProgressionFalsePositive) {
-        logger.warn(
-          '[Parse Query API] ⚠️ Style "Progressive" détecté dans filters mais ignoré (faux positif via "prog" dans "progression"):',
-          styleMatch.style
-        );
-      }
+    if (styleMatch && !isStyleFalsePositive(query, styleMatch, hasExplicitStylePattern)) {
+      filters.style = styleMatch.style;
     }
   }
+}
 
+function detectLabel(query: string, filters: Filters): void {
   // Détecter label (label ciblé)
   const labelPatterns = [
     /(?:label|label\s+cibl[ée])\s+(?:à|en|pour|est|de)?\s*([a-z0-9_\s]+)/i,
@@ -603,7 +525,9 @@ export function detectFilters(
       }
     }
   }
+}
 
+function detectLabelFinal(query: string, filters: Filters): void {
   // Détecter label final (si signé)
   const labelFinalPatterns = [
     /(?:label\s+final|sign[ée])\s+(?:à|en|chez|pour|est|de)?\s*([a-z0-9_\s]+)/i,
@@ -632,7 +556,9 @@ export function detectFilters(
       }
     }
   }
+}
 
+function detectDeadline(query: string, lowerQuery: string, filters: Filters): void {
   // Détecter deadline
   // Patterns: "avec deadline", "deadline prévue", "pour les projets avec deadline", "qui ont une deadline", "qui ont deadline"
   const hasDeadlinePatterns = [
@@ -663,7 +589,9 @@ export function detectFilters(
       }
     }
   }
+}
 
+function detectExcludedStatuses(query: string, lowerQuery: string, filters: Filters): void {
   // ========================================
   // PATTERNS D'EXCLUSION
   // ========================================
@@ -725,6 +653,30 @@ export function detectFilters(
       }
     }
   }
+}
+
+/**
+ * Détecte tous les filtres depuis une requête
+ */
+export function detectFilters(
+  query: string,
+  lowerQuery: string,
+  availableCollabs: string[],
+  availableStyles: string[]
+): FilterResult {
+  const filters: Record<string, unknown> = {};
+
+  detectNoProgress(query, lowerQuery, filters);
+  const fieldsToShow = detectFieldsToShow(lowerQuery);
+  detectExactProgress(query, filters);
+  detectProgressRange(lowerQuery, filters);
+  detectStatus(query, lowerQuery, filters);
+  detectCollab(query, filters, availableCollabs);
+  detectStyle(query, filters, availableStyles);
+  detectLabel(query, filters);
+  detectLabelFinal(query, filters);
+  detectDeadline(query, lowerQuery, filters);
+  detectExcludedStatuses(query, lowerQuery, filters);
 
   return { filters, fieldsToShow };
 }
