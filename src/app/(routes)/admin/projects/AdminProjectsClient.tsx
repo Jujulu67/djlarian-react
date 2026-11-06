@@ -1,7 +1,7 @@
 'use client';
 
 import { Filter, RefreshCw, Users, ChevronDown } from 'lucide-react';
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useEffectEvent, useRef } from 'react';
 
 import { logger } from '@/lib/logger';
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
@@ -92,16 +92,17 @@ export const AdminProjectsClient = ({ initialProjects, users }: AdminProjectsCli
     }
   }, [userFilter, projects]);
 
+  // Affiche les projets reçus du serveur si la liste est encore vide
+  const applyInitialProjects = useEffectEvent(() => {
+    if (initialProjects.length === 0 || projects.length > 0) return false;
+    setProjects(initialProjects);
+    return true;
+  });
+
   // Debounce fetchProjects avec 300ms
   useEffect(() => {
     // Vérifier si les initialProjects correspondent déjà aux filtres
-    if (
-      statusFilter === 'ALL' &&
-      userFilter === 'ALL' &&
-      initialProjects.length > 0 &&
-      projects.length === 0
-    ) {
-      setProjects(initialProjects);
+    if (statusFilter === 'ALL' && userFilter === 'ALL' && applyInitialProjects()) {
       return;
     }
 

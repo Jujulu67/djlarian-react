@@ -73,10 +73,7 @@ export const useSoundCloudPlayer = ({
   useEffect(() => {
     // 1. Handle Inactivity
     if (!isActive || !shouldActivate) {
-      if (isSoundcloudVisible) {
-        setIsSoundcloudVisible(false);
-        logger.remote(`[SC] Hiding player for track ${track.id} (inactive)`);
-      }
+      setIsSoundcloudVisible(false);
       setPlayWhenReady(false);
       initialCommandsSentRef.current = false; // Reset for next time
       return;

@@ -195,7 +195,7 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
     } finally {
       setIsLoading(false);
     }
-  }, [sessionStatus, session, router]);
+  }, [sessionStatus, session, router, statusFilter]);
 
   // Filtrer côté client quand on change de filtre (pas besoin de refaire un appel API)
   useEffect(() => {

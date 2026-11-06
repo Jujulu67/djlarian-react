@@ -40,28 +40,27 @@ const SimpleMusicPlayer: React.FC<SimpleMusicPlayerProps> = ({
   const previousVolumeRef = useRef<number>(getInitialVolume());
   const isProcessingFooterToggle = useRef(false);
 
-  useEffect(() => {
+  // Suivre les props (ajustement pendant le rendu, sans effet)
+  const [syncedIsPlaying, setSyncedIsPlaying] = useState(isPlaying);
+  if (isPlaying !== syncedIsPlaying) {
+    setSyncedIsPlaying(isPlaying);
     setInternalIsPlaying(isPlaying);
-    logger.debug(`SimpleMusicPlayer: état de lecture mis à jour à ${isPlaying ? 'play' : 'pause'}`);
-    isProcessingFooterToggle.current = false;
-    logger.debug('SimpleMusicPlayer: Footer toggle lock released (immediately on prop update).');
-  }, [isPlaying]);
+  }
+  const [syncedTrack, setSyncedTrack] = useState(track);
+  if (track !== syncedTrack) {
+    setSyncedTrack(track);
+    if (track) setImageError(false);
+  }
 
+  // La prop a changé : le clic du footer est traité
   useEffect(() => {
-    if (track) {
-      setImageError(false);
-      logger.debug(
-        `SimpleMusicPlayer: Réinitialisation de l\'erreur d\'image pour la piste ${track.id}`
-      );
-    }
-  }, [track]);
+    isProcessingFooterToggle.current = false;
+  }, [isPlaying]);
 
   useEffect(() => {
     try {
       logger.debug('Initialisation du lecteur musical et chargement du volume...');
       const initialVolume = getInitialVolume();
-      setVolume(initialVolume * 100);
-      setIsMuted(initialVolume === 0);
       applyVolumeToAllPlayers(initialVolume);
       if (initialVolume > 0) {
         previousVolumeRef.current = initialVolume;

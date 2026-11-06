@@ -144,7 +144,7 @@ export const useYouTubePlayer = ({
   // Control YouTube player when active state changes
   useEffect(() => {
     if (!isActive || !shouldActivate) {
-      if (isYoutubeVisible) setIsYoutubeVisible(false);
+      setIsYoutubeVisible(false);
       return;
     }
 

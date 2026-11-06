@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { RefreshCw, ExternalLink, ArrowUpDown, Pin, ArrowUp, ArrowDown } from 'lucide-react';
 import { useAdminLiveSubmissionsContext } from '../context/AdminLiveSubmissionsContext';
@@ -25,7 +25,7 @@ export function AdminLiveSubmissionsTable() {
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
 
   // Fonction pour calculer le poids d'une soumission
-  const calculateSubmissionWeight = (submission: (typeof submissions)[0]): number => {
+  const calculateSubmissionWeight = useCallback((submission: (typeof submissions)[0]): number => {
     const userTickets: UserTicket[] = (submission.User?.UserTicket || []).map((t) => ({
       id: t.id,
       userId: submission.User.id,
@@ -63,7 +63,7 @@ export function AdminLiveSubmissionsTable() {
       }));
 
     return calculateTicketWeight(userTickets, userItems);
-  };
+  }, []);
 
   // Trier les soumissions
   const sortedSubmissions = useMemo(() => {
@@ -92,7 +92,7 @@ export function AdminLiveSubmissionsTable() {
     });
 
     return sorted;
-  }, [filteredSubmissions, sortField, sortDirection]);
+  }, [filteredSubmissions, sortField, sortDirection, calculateSubmissionWeight]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {

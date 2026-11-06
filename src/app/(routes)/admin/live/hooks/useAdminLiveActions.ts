@@ -510,7 +510,7 @@ export function useAdminLiveActions(
         logger.error(error);
       }
     },
-    [updateSubmissionRolled, updateSubmissionPinned, fetchSubmissions, submissions]
+    [updateSubmissionRolled, updateSubmissionPinned, fetchSubmissions, submissions, queueSkipItemId]
   );
 
   const handleCloseWheelModal = useCallback(async () => {

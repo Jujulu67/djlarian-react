@@ -83,7 +83,16 @@ export function useAssistantProjectSync({
         handleProjectCreatedFromAssistant as EventListener
       );
     };
-  }, [statusFilter, fetchCounts]);
+  }, [
+    statusFilter,
+    fetchCounts,
+    setAllProjects,
+    setHighlightedFromNotification,
+    setLastCreatedProjectId,
+    setProjects,
+    setSortDirection,
+    setSortField,
+  ]);
 
   // Écouter les événements de modification de projets depuis l'assistant IA
   useEffect(() => {
@@ -254,5 +263,12 @@ export function useAssistantProjectSync({
         handleProjectsUpdatedFromAssistant as EventListener
       );
     };
-  }, [fetchCounts, fetchProjects]);
+  }, [
+    fetchCounts,
+    fetchProjects,
+    setAllProjects,
+    setHighlightedFromNotification,
+    setLastUpdatedProjectId,
+    setProjects,
+  ]);
 }

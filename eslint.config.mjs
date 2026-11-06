@@ -227,6 +227,21 @@ const eslintConfig = [
     rules: { 'sonarjs/pseudo-random': 'off' },
   },
   {
+    // Effets déclenchés par un changement de prop pour lancer une animation minutée (jeux)
+    // ou piloter un lecteur iframe : un état à synchroniser avec un système externe, le cas
+    // légitime de setState dans un effet.
+    files: [
+      'src/app/(routes)/profile/components/**',
+      'src/components/RhythmCatcher/**',
+      'src/components/ui/MusicCard.tsx',
+      'src/components/ui/MusicCard/**',
+      'src/hooks/useMusicPlayer.ts',
+      'src/hooks/useSoundCloudPlayer.ts',
+      'src/hooks/useYouTubePlayer.ts',
+    ],
+    rules: { 'react-hooks/set-state-in-effect': 'off' },
+  },
+  {
     // Parseur de l'assistant : messages limités à 2 000 caractères, et le test
     // query-parser/__tests__/redos.test.ts vérifie qu'aucune entrée piégée de cette taille ne
     // le ralentit (pire cas mesuré < 0,5 s). Les regex sont des listes de mots (fautes de

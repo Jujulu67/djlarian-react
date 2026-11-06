@@ -14,7 +14,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useEffectEvent } from 'react';
 import { toast } from 'sonner';
 
 import { useFriends } from '@/hooks/useFriends';
@@ -80,10 +80,12 @@ export function FriendsList({ onSendMessage }: FriendsListProps) {
     }
   };
 
+  const loadUsersOnOpen = useEffectEvent(loadUsers);
+
   // Charger les utilisateurs au montage si la section est ouverte
   useEffect(() => {
-    if (showUserSearch && users.length === 0) {
-      loadUsers();
+    if (showUserSearch) {
+      loadUsersOnOpen();
     }
   }, [showUserSearch]);
 

@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Download, LayoutDashboard } from 'lucide-react';
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useEffectEvent, useLayoutEffect } from 'react';
 import { toast } from 'sonner';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
@@ -133,6 +133,8 @@ export function LiveSubmissionForm() {
     }
   }, [session?.user?.id, loadSubmissions]);
 
+  const hasAudioAnalysis = useEffectEvent(() => audioAnalysis !== null);
+
   // Vérifier si une soumission active existe
   useEffect(() => {
     if (submissions.length > 0) {
@@ -144,7 +146,7 @@ export function LiveSubmissionForm() {
       // Si on a une URL de fichier, on peut essayer de charger l'analyse
       // Note: On ne télécharge pas le fichier complet tout de suite pour économiser la bande passante
       // sauf si l'utilisateur veut jouer le son
-      if (submission.fileUrl && !audioAnalysis) {
+      if (submission.fileUrl && !hasAudioAnalysis()) {
         // On pourrait charger l'analyse ici si on l'avait stockée côté serveur
         // Pour l'instant, on va simuler une analyse ou la charger à la demande
         // Option: Charger le fichier pour l'analyse
@@ -178,16 +180,6 @@ export function LiveSubmissionForm() {
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-  }, []);
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-
-    const file = e.dataTransfer.files[0];
-    if (file) {
-      handleFileSelect(file);
-    }
   }, []);
 
   // Uploader le fichier (Blob ou local selon le mode), puis créer/mettre à jour le draft
@@ -327,6 +319,19 @@ export function LiveSubmissionForm() {
   const handleFileInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
+      if (file) {
+        handleFileSelect(file);
+      }
+    },
+    [handleFileSelect]
+  );
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setIsDragging(false);
+
+      const file = e.dataTransfer.files[0];
       if (file) {
         handleFileSelect(file);
       }
@@ -649,14 +654,15 @@ export function LiveSubmissionForm() {
     };
   }, [audioAnalysis]);
 
-  // Nettoyer l'URL blob à la destruction
-  useEffect(() => {
-    return () => {
-      if (audioRef.current?.src.startsWith('blob:')) {
-        URL.revokeObjectURL(audioRef.current.src);
-      }
-    };
-  }, []);
+  const revokeAudioBlob = useEffectEvent(() => {
+    if (audioRef.current?.src.startsWith('blob:')) {
+      URL.revokeObjectURL(audioRef.current.src);
+    }
+  });
+
+  // Nettoyer l'URL blob à la destruction. Effet de layout : au moment du nettoyage d'un
+  // useEffect, React a déjà détaché la ref et l'URL ne serait jamais libérée.
+  useLayoutEffect(() => () => revokeAudioBlob(), []);
 
   // Restaurer le draft depuis le serveur après actualisation
   useEffect(() => {

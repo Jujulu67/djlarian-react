@@ -382,7 +382,7 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
         setIsLoading(false);
       }
     },
-    [input, isLoading, router]
+    [input, isLoading, router, lastFilters, messages.length]
   );
 
   return {

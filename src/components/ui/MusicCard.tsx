@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useEffectEvent, useRef, useCallback, useMemo } from 'react';
 
 import { useAudioFrequencyCapture } from '@/hooks/useAudioFrequencyCapture';
 import { useIsMobile } from '@/hooks/useIsMobile';
@@ -96,15 +96,19 @@ const MusicCardComponent: React.FC<MusicCardProps> = ({
     isVisible: isPlayerVisible && !isMobile,
   });
 
+  const stopPlayers = useEffectEvent(() => {
+    youtubePlayer.setIsYoutubeVisible(false);
+    soundcloudPlayer.setIsSoundcloudVisible(false);
+
+    sendPlayerCommand(youtubePlayer.iframeRef.current, 'youtube', 'pause');
+    sendPlayerCommand(soundcloudPlayer.soundcloudIframeRef.current, 'soundcloud', 'pause');
+  });
+
   // Synchronize local state with global state for non-active cards
   useEffect(() => {
     if (!isActive) {
       setLocalIsPlaying(false);
-      youtubePlayer.setIsYoutubeVisible(false);
-      soundcloudPlayer.setIsSoundcloudVisible(false);
-
-      sendPlayerCommand(youtubePlayer.iframeRef.current, 'youtube', 'pause');
-      sendPlayerCommand(soundcloudPlayer.soundcloudIframeRef.current, 'soundcloud', 'pause');
+      stopPlayers();
     } else {
       setLocalIsPlaying(isPlaying);
     }
