@@ -13,53 +13,47 @@ ce fichier à jour quand un chantier avance.
 | Imports circulaires (madge)         | 0                            | Bloqué en CI                            |
 | Fichiers / dépendances morts (knip) | 0                            | Bloqué en CI                            |
 | Exports jamais utilisés (knip)      | 35 exports, 22 types         | Petit nettoyage                         |
-| Avertissements ESLint + SonarJS     | 316 (0 erreur), contre 1 483 | Deux règles seulement, voir ci-dessous  |
-| Fonctions trop complexes            | 140 au-dessus du seuil de 15 | Le vrai chantier restant                |
+| Avertissements ESLint + SonarJS     | 307 (0 erreur), contre 1 483 | Deux règles seulement, voir ci-dessous  |
+| Fonctions trop complexes            | 131 au-dessus du seuil de 15 | Le vrai chantier restant                |
 | Tests                               | 4 507 jest, 14 Playwright    | Jest gonflé par des tests de couverture |
 
-Note estimée : **7,5/10** (6 le 04/11/2026). Objectif : 8/10. Effets React, dépendances de hooks,
-accessibilité clavier, `any`, regex à risque et code mort sont réglés, Playwright tourne en CI, et les
-routes API les plus complexes sont découpées. Pour atteindre 8, il reste les 12 fonctions de 50 à 79
-ci-dessous.
+Note estimée : **8/10** (6 le 04/11/2026). C'est une estimation, pas une mesure : SonarCloud n'est pas
+encore branché. Effets React, dépendances de hooks, accessibilité clavier, `any`, regex à risque et code
+mort sont réglés, Playwright tourne en CI, et il ne reste que 3 fonctions au-dessus de 50 de complexité,
+laissées de côté pour des raisons précises (voir ci-dessous).
 
 ## Chantiers, par priorité
 
-### 1. Fonctions géantes (complexité cognitive, seuil 15)
+### 1. Fonctions complexes (complexité cognitive, seuil 15)
 
-Répartition : 1 fonction à 80 ou plus, 12 de 50 à 79, 27 de 30 à 49, 100 de 16 à 29. Les 100 dernières
-ne sont pas urgentes : viser d'abord les 12 de 50 à 79.
+Répartition : 1 fonction à 80 ou plus, 2 de 50 à 79, 27 de 30 à 49, 101 de 16 à 29.
 
-| Complexité | Fichier                                                                   |
-| ---------- | ------------------------------------------------------------------------- |
-| 79, 71     | `(home)/components/HeroSection.tsx`, `VisualizerSection.tsx`              |
-| 67         | `lib/assistant/query-parser/updates/deadline-updates.ts`                  |
-| 65         | `lib/assistant/parsers/status-detector.ts`                                |
-| 60         | `lib/assistant/query-parser/updates.ts`                                   |
-| 58         | `lib/assistant/conversational/groq-responder.ts`                          |
-| 56         | `lib/utils/parseExcelData.ts`, `lib/assistant/router/handlers/update.ts`  |
-| 55         | `components/projects/EditableCell.tsx`                                    |
-| 52         | `lib/assistant/query-parser/updates/progress-updates.ts`                  |
-| 50         | `lib/assistant/router/action-helpers.ts`, `useBatchedInventoryActions.ts` |
+Les 3 plus complexes sont laissées de côté volontairement :
 
-Cas à part : `lib/services/soundcloud/scrapeTracksPage.ts` (139). Ce code s'exécute dans le navigateur
-de Puppeteer (fonctions sérialisées), n'a aucun test et dépend du HTML de SoundCloud. Il ne faut le
-découper qu'avec une page de référence enregistrée pour le tester, sinon le risque dépasse le gain.
+- `lib/services/soundcloud/scrapeTracksPage.ts` (139) : s'exécute dans le navigateur de Puppeteer
+  (fonctions sérialisées), sans aucun test, et dépend du HTML de SoundCloud. À découper seulement avec
+  une page de référence enregistrée pour le tester.
+- `(home)/components/HeroSection.tsx` (79) et `VisualizerSection.tsx` (71) : leur complexité vient des
+  variantes d'interface (legacy, v2, v3) dans le JSX. Elle baissera quand une variante disparaîtra.
 
-`HeroSection` et `VisualizerSection` doivent leur complexité aux variantes d'interface dans le JSX :
-à traiter quand une des variantes (legacy, v2, v3) disparaîtra.
+Suite logique, de 30 à 49 :
 
-Découpés les 06/11/2026 sans changement de comportement voulu, et sous le seuil ou presque :
-`actions/assistant.ts` (194), `query-parser/filters.ts` (144), `projects/batch-update` (137),
-`live/inventory/batch` (106), `admin/sentry/status` (101), `memory-manager` (98),
-`handleConfirmUpdate` (75), `upload` (73), `admin/inventory/batch` (72), `auth.config.ts` (72),
-`query-parser/index.ts` (70), `projects/[id]` et `events/[id]` (64). Le modèle à suivre : une étape par
-fonction, le gestionnaire ne fait plus que les enchaîner. `auth.config.ts` garde deux callbacks à
-découper (`session` à 42, `jwt` à 24).
+| Complexité | Fichier                                                |
+| ---------- | ------------------------------------------------------ |
+| 48         | `lib/assistant/query-parser/updates/status-updates.ts` |
+| 46         | `admin/live/hooks/useAdminLiveActions.ts`              |
+| 45         | `components/projects/ProjectNoteEditor.tsx`            |
+| 44         | `query-parser/creates.ts`, `api/admin/config/history`  |
+| 43         | `components/ProjectAssistant.tsx`                      |
+| 42         | `auth.config.ts` (callback `session`)                  |
+| 41         | `query-parser/updates/metadata-updates.ts`             |
+
+Modèle à suivre, appliqué le 06/11/2026 à une vingtaine de fonctions (routes API, parseur de
+l'assistant, Groq, import Excel) : une étape par fonction, le gestionnaire ne fait que les enchaîner.
 
 ### 2. Assistant IA : parseur à expressions régulières
 
-`src/lib/assistant/query-parser/` concentre encore beaucoup de fonctions complexes (`updates/*`,
-`creates.ts`). Les regex à risque sont corrigées, et les messages limités à
+`src/lib/assistant/query-parser/` garde quelques fonctions complexes (`updates/status-updates.ts`, `creates.ts`). Les regex à risque sont corrigées, et les messages limités à
 2 000 caractères (`src/lib/assistant/security/input-limits.ts`). À plus long terme, se demander si ce
 parseur reste utile à côté du modèle (Groq), qui sait déjà extraire filtres et mises à jour.
 
