@@ -1,97 +1,72 @@
 # Dette technique : état des lieux
 
-Mesuré le 04/11/2026. Relancer les mesures avec `pnpm debt` (ou une commande à la fois, voir
-« Outils » en bas). Mettre ce fichier à jour quand un chantier avance.
+Mesuré le 06/11/2026 (branche `chore/debt-8`, [PR #45](https://github.com/Jujulu67/djlarian-react/pull/45)).
+Relancer les mesures avec `pnpm debt` (ou une commande à la fois, voir « Outils » en bas). Mettre
+ce fichier à jour quand un chantier avance.
 
 ## Vue d'ensemble
 
 | Indicateur                          | Valeur                       | Lecture                                 |
 | ----------------------------------- | ---------------------------- | --------------------------------------- |
-| Code applicatif (`src`, hors tests) | ~118 000 lignes              |                                         |
-| Duplication (jscpd)                 | 2,0 %                        | Bon (alerte au-delà de 5 %)             |
+| Code applicatif (`src`, hors tests) | ~113 000 lignes              |                                         |
+| Duplication (jscpd)                 | 1,9 %                        | Bon (alerte au-delà de 5 %)             |
 | Imports circulaires (madge)         | 0                            | Bloqué en CI                            |
 | Fichiers / dépendances morts (knip) | 0                            | Bloqué en CI                            |
-| Exports jamais utilisés (knip)      | 22 exports, 9 types          | Petit nettoyage                         |
-| Avertissements ESLint + SonarJS     | 1 483 (0 erreur)             | Voir le détail ci-dessous               |
-| Fonctions trop complexes            | 151 au-dessus du seuil de 15 | Le vrai chantier                        |
-| Tests                               | 4 456 jest, 14 Playwright    | Jest gonflé par des tests de couverture |
+| Exports jamais utilisés (knip)      | 35 exports, 22 types         | Petit nettoyage                         |
+| Avertissements ESLint + SonarJS     | 329 (0 erreur), contre 1 483 | Deux règles seulement, voir ci-dessous  |
+| Fonctions trop complexes            | 146 au-dessus du seuil de 15 | Le vrai chantier restant                |
+| Tests                               | 4 495 jest, 14 Playwright    | Jest gonflé par des tests de couverture |
 
-Note estimée : **6/10** (5,5 avant les nettoyages du 04/11/2026). Base saine (types, sécurité,
-routes API, pas de cycles, peu de duplication), mais des fichiers géants et très complexes, et
-un assistant IA dont le parseur à regex est la plus grosse source de dette.
+Note estimée : **7/10** (6 le 04/11/2026). Objectif : 8/10. Effets React, dépendances de hooks,
+accessibilité clavier, `any`, regex à risque et code mort sont réglés, et Playwright tourne en CI.
+Pour atteindre 8, il reste à réduire les fonctions très complexes, surtout le parseur de l'assistant.
 
 ## Chantiers, par priorité
 
-### 1. Assistant IA : parseur à expressions régulières (risque + complexité)
+### 1. Fonctions géantes (complexité cognitive, seuil 15)
 
-- `src/lib/assistant/query-parser/` concentre l'essentiel des alertes : 70 regex au coût
-  super-linéaire (ReDoS possible), 92 classes de caractères en double, 128 regex trop
-  complexes, et les fichiers les plus complexes du dépôt (`filters.ts`, `classifier.ts`,
-  `creates.ts`, `updates/*`).
-- Atténué le 04/11/2026 : messages limités à 2 000 caractères côté serveur
-  (`src/lib/assistant/security/input-limits.ts`) et dans le champ de saisie.
-- À faire : simplifier les regex signalées (`sonarjs/super-linear-regex`,
-  `duplicates-in-character-class`), puis découper les fonctions géantes. À plus long terme, se
-  demander si ce parseur reste utile à côté du modèle (Groq), qui sait déjà extraire filtres et
-  mises à jour.
-
-### 2. Fonctions géantes (complexité cognitive, seuil 15)
+Répartition : 2 fonctions à 80 ou plus, 19 de 50 à 79, 27 de 30 à 49, 98 de 16 à 29. Les 98 dernières
+ne sont pas urgentes : viser d'abord les 21 au-dessus de 50.
 
 | Complexité | Fichier                                                               |
 | ---------- | --------------------------------------------------------------------- |
-| 193        | `src/app/actions/assistant.ts`                                        |
 | 144        | `src/lib/assistant/query-parser/filters.ts`                           |
 | 139        | `src/lib/services/soundcloud/scrapeTracksPage.ts`                     |
-| 137        | `src/app/api/projects/batch-update/route.ts`                          |
-| 106        | `src/app/api/live/inventory/batch/route.ts`                           |
-| 101        | `src/app/api/admin/sentry/status/route.ts`                            |
-| 98         | `src/lib/assistant/conversational/memory-manager.ts`                  |
 | 79         | `src/app/(routes)/(home)/components/HeroSection.tsx`                  |
-| 76         | `src/components/assistant/handlers/handleConfirmUpdate.ts`            |
+| 75         | `src/components/assistant/handlers/handleConfirmUpdate.ts`            |
 | 72–73      | `upload/route.ts`, `admin/inventory/batch/route.ts`, `auth.config.ts` |
+| 71         | `src/app/(routes)/(home)/components/VisualizerSection.tsx`            |
+| 70         | `src/lib/assistant/query-parser/index.ts`                             |
 
-Plus gros fichiers : `LiveSubmissionForm.tsx` (952 lignes), `ProjectsClient.tsx` (798),
-`batch-update/route.ts` (756), `gallery/page.tsx` (731). Découper en commençant par les routes
-API (plus faciles à tester que les composants).
+Découpés le 06/11/2026 sans changement de comportement : `actions/assistant.ts` (194),
+`projects/batch-update/route.ts` (137), `live/inventory/batch/route.ts` (106),
+`admin/sentry/status/route.ts` (101), `conversational/memory-manager.ts` (98). Le modèle à suivre :
+une étape par fonction, le gestionnaire ne fait plus que les enchaîner.
 
-### 3. Effets React fragiles
+`admin/inventory/batch/route.ts` ressemble à la route du live : réutiliser le même découpage.
 
-- 51 `setState` appelés directement dans un `useEffect` (`react-hooks/set-state-in-effect`) :
-  rendus en cascade, et souvent un état qui devrait être calculé plutôt que stocké.
-- 22 dépendances d'effet manquantes (`react-hooks/exhaustive-deps`) : risque de valeurs
-  périmées, comme le bug de pagination des images corrigé le 04/11/2026.
-- Restent quelques minuteries « au jugé » (animations de mise en avant de 2 s côté projets, roue
-  du live, machine à sous) : acceptables pour des animations, à surveiller ailleurs.
+### 2. Assistant IA : parseur à expressions régulières
 
-### 4. Code inutile mais inoffensif
+`src/lib/assistant/query-parser/` concentre encore les fonctions les plus complexes (`filters.ts`,
+`index.ts`, `updates/*`, `creates.ts`). Les regex à risque sont corrigées, et les messages limités à
+2 000 caractères (`src/lib/assistant/security/input-limits.ts`). À plus long terme, se demander si ce
+parseur reste utile à côté du modèle (Groq), qui sait déjà extraire filtres et mises à jour.
 
-- 446 variables ou imports inutilisés (`no-unused-vars`, `sonarjs/unused-import`) et 68
-  affectations jamais lues (`no-dead-store`) : nettoyage mécanique, fichier par fichier.
-- 22 exports et 9 types jamais utilisés : `pnpm debt:dead` les liste.
-- 19 `catch` vides (`no-ignored-exceptions`) : au minimum un `logger.warn`.
-- 15 `TODO` dans le code.
+### 3. Tests
 
-### 5. Accessibilité
+- Une partie des tests jest a été écrite pour la couverture, pas pour le comportement (25 fichiers
+  testaient du code mort, supprimés le 04/11/2026). La couverture surestime donc la solidité réelle.
+- Les tests Playwright (`e2e/`) couvrent les parcours de connexion et les pages publiques, et tournent
+  en CI contre une base PostgreSQL jetable. À ajouter : création de projet, admin musique, live,
+  boutique.
 
-58 éléments cliquables sans clavier ni rôle (`jsx-a11y/no-static-element-interactions`,
-`click-events-have-key-events`), surtout des `div` avec `onClick` dans l'admin et les
-mini-jeux. Les remplacer par des `button`.
+### Exceptions assumées
 
-### 6. Tests
-
-- Une partie des tests jest a été écrite pour la couverture, pas pour le comportement (25
-  fichiers testaient du code mort, supprimés le 04/11/2026). La couverture surestime donc la
-  solidité réelle.
-- Les tests Playwright (`e2e/`) couvrent maintenant les parcours de connexion et les pages
-  publiques. À ajouter : création de projet, admin musique, live, boutique. Ils ne tournent pas
-  encore en CI (il faudrait un service PostgreSQL dans le workflow).
-
-### Bruit connu (à ne pas corriger)
-
-- `sonarjs/pseudo-random` (83) : `Math.random()` dans les jeux et animations, sans enjeu de
-  sécurité.
-- `sonarjs/no-nested-conditional` (192) : ternaires imbriqués dans le JSX, une question de
-  lisibilité plus que de bugs.
+- `react-hooks/set-state-in-effect` est désactivée pour les jeux et les lecteurs iframe : ces effets
+  lancent des animations minutées ou pilotent un système externe (raison dans `eslint.config.mjs`).
+- `sonarjs/pseudo-random` est désactivée pour les jeux et animations, sans enjeu de sécurité.
+- `sonarjs/no-nested-conditional` (183) : ternaires imbriqués dans le JSX, une question de lisibilité
+  plus que de bugs. À traiter au passage quand on découpe le composant, pas en chantier séparé.
 
 ## Outils
 

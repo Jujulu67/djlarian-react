@@ -104,6 +104,9 @@ jobs:
     if: github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'Merge pull request')
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    env:
+      # En développement, l'application lit cette variable (src/lib/database-target.ts)
+      DATABASE_URL_LOCAL: postgresql://ci:ci@localhost:5432/ci
     services:
       postgres:
         image: postgres:16-alpine
