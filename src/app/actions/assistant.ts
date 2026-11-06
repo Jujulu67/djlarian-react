@@ -28,11 +28,6 @@ import { createGetProjectsTool } from '@/lib/assistant/tools/get-projects-tool';
 import { createUpdateProjectsTool } from '@/lib/assistant/tools/update-projects-tool';
 import { createCreateProjectsTool } from '@/lib/assistant/tools/create-projects-tool';
 
-// ... (imports remain the same)
-
-// ... (rest of logic)
-
-// ========================================
 import { classifyQuery } from '@/lib/assistant/query-parser/classifier';
 import { debugLog, truncate } from '@/lib/assistant/utils/debug-logger';
 import { detectFilters } from '@/lib/assistant/query-parser/filters';
@@ -47,386 +42,283 @@ import { SYSTEM_PROMPT_8B } from '@/lib/assistant/prompts/system-prompt-8b';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 
-export async function processProjectCommand(userInput: string) {
-  // Vérifier l'authentification
-  const session = await auth();
-  if (!session?.user?.id) {
-    return "Erreur : Vous devez être connecté pour utiliser l'assistant.";
-  }
-  if (isAssistantInputTooLong(userInput)) {
-    return `Erreur : ${ASSISTANT_INPUT_TOO_LONG}`;
-  }
+const KNOWN_STYLES = ['Techno', 'House', 'DNB', 'Dubstep', 'Trance'] as const;
+const VALID_STATUSES = [
+  'EN_COURS',
+  'TERMINE',
+  'ANNULE',
+  'A_REWORK',
+  'GHOST_PRODUCTION',
+  'ARCHIVE',
+] as const;
+const DEFAULT_LIST_FIELDS = ['progress', 'status', 'deadline'];
 
-  const currentUserId = session.user.id;
-  const currentUserName = session.user.name || null; // Nom de l'utilisateur connecté (ex: "Larian67")
-  const currentUserRole = session.user.role || 'USER'; // Rôle de l'utilisateur connecté
-  const isAdmin = currentUserRole === 'ADMIN'; // Vérifier si l'utilisateur est admin
-  const today = new Date().toISOString().split('T')[0];
+type Filters = ReturnType<typeof detectFilters>['filters'];
+type Classification = ReturnType<typeof classifyQuery>;
 
-  // Désactivation de la normalisation IA - elle modifie trop la requête et ne corrige pas bien les statuts
-  // On se fie uniquement à detectStatusFromQuery qui est plus robuste
-  const normalizedInput = userInput;
+interface QueryContext {
+  currentUserId: string;
+  normalizedInput: string;
+  lowerQuery: string;
+  filters: Filters;
+}
 
-  // Créer la fonction getTargetUserId avec les permissions
-  const getTargetUserId = createGetTargetUserId({
-    currentUserId,
-    currentUserName,
-    isAdmin,
-  });
+interface AssistantTools {
+  getProjects: ReturnType<typeof createGetProjectsTool>;
+  updateProjects: ReturnType<typeof createUpdateProjectsTool>;
+  createProjects: ReturnType<typeof createCreateProjectsTool>;
+}
 
-  // Mode test : détecté via variable d'environnement
-  const isTestMode = process.env.ASSISTANT_TEST_MODE === 'true';
-
-  // Créer les outils IA
-  const getProjects = createGetProjectsTool({
-    getTargetUserId,
-    normalizedInput,
-    isTestMode,
-  });
-
-  const updateProjects = createUpdateProjectsTool({
-    getTargetUserId,
-    normalizedInput,
-    isTestMode,
-  });
-
-  const createProjects = createCreateProjectsTool({
-    getTargetUserId,
-    normalizedInput,
-    isTestMode,
-  });
-
-  // Détecter le type de requête (question vs commande) avant l'appel à l'IA
-  const lowerQuery = normalizedInput.toLowerCase();
-  let { filters } = detectFilters(normalizedInput, lowerQuery, [], []); // Pas de collabs/styles nécessaires ici
-
-  // ========================================
-  // MÉMOIRE CONVERSATIONNELLE
-  // ========================================
-  // Détecter si la requête fait référence au contexte précédent
-  const { hasContextReference, referenceType } = detectContextReference(normalizedInput);
-  // Vérifier aussi si c'est une demande de détails (même sans référence explicite)
-  const isDetailsRequest =
+/** Demande de détails, même sans référence explicite au contexte. */
+function isDetailsQuery(lowerQuery: string): boolean {
+  return (
     /(?:avec|donne|donnes?|donner?|montre|montres?|montrer?|affiche|affiches?|afficher?)\s+(?:tous\s+les?\s+)?(?:les?\s+)?(?:détails?|details?|infos?|informations?)/i.test(
       lowerQuery
     ) ||
     /^(?:tous\s+les?\s+)?(?:les?\s+)?(?:détails?|details?|infos?|informations?)(?:\s+sur)?\s*$/i.test(
       lowerQuery.trim()
-    );
+    )
+  );
+}
 
-  let contextResolutionMessage: string | undefined;
+/**
+ * Champs à afficher. Toujours re-détectés depuis la requête originale : le contexte ne doit pas
+ * les influencer. À défaut, les champs par défaut + ceux filtrés.
+ */
+function fieldsToDisplay({ normalizedInput, lowerQuery, filters }: QueryContext): string[] {
+  const { fieldsToShow } = detectFilters(normalizedInput, lowerQuery, [], []);
+  if (fieldsToShow && fieldsToShow.length > 0) return fieldsToShow;
+  return [
+    ...DEFAULT_LIST_FIELDS,
+    ...(filters.collab ? ['collab'] : []),
+    ...(filters.style ? ['style'] : []),
+    ...(filters.releaseDate ? ['releaseDate'] : []),
+  ];
+}
 
-  if (hasContextReference || isDetailsRequest) {
-    // Récupérer le contexte de conversation (projets précédemment listés, etc.)
-    const resolution = await resolveContextReference(currentUserId, normalizedInput);
+/** Réponse structurée que le client affiche en tableau. */
+function listResponse(message: string, projects: unknown[], context: QueryContext): string {
+  return JSON.stringify({
+    message,
+    data: { projects, type: 'list' as const, fieldsToShow: fieldsToDisplay(context) },
+  });
+}
 
-    logger.warn('[Assistant] 🧠 Mémoire/Contexte récupéré:', {
-      hasContext: resolution.resolved,
-      filters: resolution.filters,
-      message: resolution.message,
-      lastProjectCount: resolution.projectIds?.length || 0, // Use projectIds as in original code
+async function runDirectList(
+  getProjects: AssistantTools['getProjects'],
+  context: QueryContext,
+  classification: Classification
+): Promise<string | null> {
+  const params = { ...context.filters };
+  try {
+    if (!getProjects || typeof getProjects.execute !== 'function') return null;
+    // @ts-expect-error - SDK AI v5 type inference issue with ToolCallOptions
+    const result = await getProjects.execute(params, {});
+    const typedResult = result as {
+      count?: number;
+      projects?: Array<{ id: string; name: string }>;
+      message?: string;
+    };
+    if (!typedResult || typeof typedResult !== 'object' || !('count' in typedResult)) return null;
+
+    const projects = typedResult.projects || [];
+    updateConversationContext(context.currentUserId, {
+      lastProjectIds: projects.map((p) => p.id),
+      lastProjectNames: projects.map((p) => p.name || ''),
+      lastProjectCount: typedResult.count,
+      lastFilters: params,
+      lastActionType: 'list',
+      lastStatusFilter: params.status && typeof params.status === 'string' ? params.status : null,
     });
 
-    if (resolution.resolved) {
-      // Condition corrected to check if resolved
-      // Fusionner les filtres du contexte avec les filtres actuels
-      filters = { ...resolution.filters, ...filters };
-      contextResolutionMessage = resolution.message;
-      logger.warn('[Assistant] Contexte résolu:', {
-        referenceType,
-        projectCount: resolution.projectIds.length,
-        appliedFilters: Object.keys(filters),
+    if (typedResult.count === 0) {
+      return typedResult.message || "Je n'ai trouvé aucun projet correspondant.";
+    }
+    if (classification.isCount && !classification.isList) {
+      return typedResult.message || `Vous avez ${typedResult.count} projet(s).`;
+    }
+    const message = typedResult.message || `J'ai trouvé ${typedResult.count} projet(s).`;
+    return listResponse(message, projects, context);
+  } catch (error) {
+    logger.error('[Assistant] Erreur exécution directe (List):', error);
+    return null;
+  }
+}
+
+async function runDirectUpdate(
+  updateProjects: AssistantTools['updateProjects'],
+  { currentUserId, normalizedInput, lowerQuery, filters }: QueryContext
+): Promise<string | null> {
+  const updateParams = extractUpdateData(normalizedInput, lowerQuery, filters, [...KNOWN_STYLES]);
+  if (!updateParams) {
+    logger.warn('[Assistant] Update détecté mais pas de paramètres extraits');
+    return null;
+  }
+
+  const validUpdateParams = {
+    ...filters,
+    ...updateParams,
+    newDeadline: updateParams.newDeadline || undefined,
+  };
+  try {
+    if (!updateProjects || typeof updateProjects.execute !== 'function') return null;
+    // @ts-expect-error - SDK AI v5 type inference issue with ToolCallOptions
+    const result = await updateProjects.execute(validUpdateParams, {});
+    const typedResult = result as { count?: number; message?: string };
+    if (!typedResult || typeof typedResult !== 'object') return null;
+
+    revalidatePath('/projects');
+    if (typedResult.count !== undefined && typedResult.count > 0) {
+      updateConversationContext(currentUserId, {
+        lastActionType: 'update',
+        lastActionTimestamp: Date.now(),
       });
-    } else if (resolution.message) {
-      // Pas de contexte disponible, retourner un message explicatif
-      return resolution.message;
     }
+    return typedResult.message || `Mise à jour effectuée sur ${typedResult.count} projet(s).`;
+  } catch (error) {
+    logger.error('[Assistant] Erreur exécution directe (Update):', error);
+    return null;
+  }
+}
+
+/** Données de création extraites par le parseur, ou null sans nom de projet. */
+async function parseCreateParams({ currentUserId, normalizedInput }: QueryContext) {
+  const { parseQuery } = await import('@/lib/assistant/query-parser');
+  // Collabs et styles déjà utilisés par l'utilisateur : le parseur les reconnaît ainsi
+  const known = await prisma.project.findMany({
+    where: { userId: currentUserId },
+    select: { collab: true, style: true },
+  });
+  const distinct = (values: (string | null)[]) => [
+    ...new Set(values.filter((v): v is string => Boolean(v))),
+  ];
+  const { createData } = parseQuery(
+    normalizedInput,
+    distinct(known.map((p) => p.collab)),
+    distinct([...KNOWN_STYLES, ...known.map((p) => p.style)])
+  );
+  if (!createData?.name) return null;
+
+  const style = KNOWN_STYLES.find((s) => s === createData.style);
+  const status = VALID_STATUSES.find((s) => s === createData.status);
+  return {
+    name: createData.name,
+    style,
+    collab: createData.collab || undefined,
+    status: status ?? 'EN_COURS',
+    deadline: createData.deadline || undefined,
+    label: undefined,
+  };
+}
+
+async function runDirectCreate(
+  createProjects: AssistantTools['createProjects'],
+  context: QueryContext
+): Promise<string | null> {
+  const createParams = await parseCreateParams(context);
+  if (!createParams) {
+    logger.warn("[Assistant] Create détecté mais pas de nom extrait, passage à l'IA");
+    return null;
   }
 
-  // ========================================
-  // CLASSIFICATION ET ROUTING
-  // ========================================
-  const classification = classifyQuery(normalizedInput, lowerQuery, filters);
+  try {
+    if (!createProjects || typeof createProjects.execute !== 'function') return null;
+    // @ts-expect-error - SDK AI v5 type inference issue with ToolCallOptions
+    const result = await createProjects.execute(createParams, {});
+    const typedResult = result as { project?: { id: string }; message?: string };
+    if (!typedResult || typeof typedResult !== 'object') return null;
 
-  // Debug: Classification result
-  debugLog('assistant.ts:classification', 'Classification détectée', {
-    userInput: truncate(normalizedInput),
-    filters: Object.keys(filters),
-    classification: {
-      isList: classification.isList,
-      isCount: classification.isCount,
-      isUpdate: classification.isUpdate,
-      isConversationalQuestion: classification.isConversationalQuestion,
-      understood: classification.understood,
-    },
-  });
+    revalidatePath('/projects');
+    const createdProjectId = typedResult.project?.id;
+    updateConversationContext(context.currentUserId, {
+      lastActionType: 'create',
+      lastActionTimestamp: Date.now(),
+      lastProjectIds: createdProjectId ? [createdProjectId] : [],
+    });
 
-  // Log console pour debug
-  logger.warn('[ROUTING DEBUG]', {
-    query: normalizedInput.substring(0, 50),
-    isUpdate: classification.isUpdate,
-    isList: classification.isList,
-    isCount: classification.isCount,
-    hasFilters: Object.keys(filters).length > 0,
-    isConversational: classification.isConversationalQuestion,
-    memoryResolved: hasContextReference || isDetailsRequest ? 'YES' : 'NO',
-  });
-
-  // ========================================
-  // EXECUTION DIRECTE (PARSER-FIRST)
-  // ========================================
-  // Si ce n'est PAS conversationnel, on tente l'exécution directe
-  // Cela évite d'appeler Groq pour des commandes simples
-  // AUSSI: Si on a une référence contextuelle ET que c'est une demande de détails/liste, traiter comme liste
-  // OU si c'est une demande de détails (même sans référence explicite détectée, mais avec contexte disponible)
-  const isContextualListRequest =
-    (hasContextReference || isDetailsRequest) && (classification.isList || isDetailsRequest);
-
-  if (!classification.isConversationalQuestion || isContextualListRequest) {
-    // CAS 1: LISTE / COMPTAGE
-    if (
-      classification.isList ||
-      classification.isCount ||
-      (hasContextReference && !classification.isUpdate) ||
-      isContextualListRequest
-    ) {
-      logger.warn('[Assistant] 🚀 Exécution DIRECTE (LISTE/COMPTAGE)');
-
-      const params = {
-        ...filters,
-        // Si c'est un comptage explicite, on peut le signaler, mais getProjects renvoie toujours le count
-      };
-
-      try {
-        if (getProjects && typeof getProjects.execute === 'function') {
-          // @ts-expect-error - SDK AI v5 type inference issue with ToolCallOptions
-          const result = await getProjects.execute(params, {});
-          const typedResult = result as {
-            count?: number;
-            projects?: Array<{ id: string; name: string }>;
-            message?: string;
-          };
-
-          if (typedResult && typeof typedResult === 'object' && 'count' in typedResult) {
-            // Sauvegarder le contexte
-            updateConversationContext(currentUserId, {
-              lastProjectIds: (typedResult.projects || []).map((p) => p.id),
-              lastProjectNames: (typedResult.projects || []).map((p) => p.name || ''),
-              lastProjectCount: typedResult.count,
-              lastFilters: params,
-              lastActionType: 'list',
-              lastStatusFilter:
-                params.status && typeof params.status === 'string' ? params.status : null,
-            });
-
-            if (typedResult.count === 0) {
-              return typedResult.message || "Je n'ai trouvé aucun projet correspondant.";
-            }
-
-            if (classification.isCount && !classification.isList) {
-              return typedResult.message || `Vous avez ${typedResult.count} projet(s).`;
-            }
-
-            // Retourner les données structurées pour l'affichage en tableau
-            const projects = typedResult.projects || [];
-            const message = typedResult.message || `J'ai trouvé ${typedResult.count} projet(s).`;
-
-            // Déterminer les champs à afficher
-            // IMPORTANT: Toujours re-détecter depuis la requête originale pour capturer "tous les détails"
-            // même si on a un contexte (le contexte ne doit pas affecter les champs à afficher)
-            const { fieldsToShow: reDetectedFields } = detectFilters(
-              normalizedInput,
-              lowerQuery,
-              [],
-              []
-            );
-            let fieldsToShow: string[] = [];
-
-            if (reDetectedFields && reDetectedFields.length > 0) {
-              // Si des champs ont été explicitement demandés (ex: "tous les détails"), les utiliser
-              fieldsToShow = reDetectedFields;
-              logger.warn('[Assistant] Champs à afficher détectés depuis requête:', fieldsToShow);
-            } else {
-              // Sinon, utiliser les champs par défaut + ceux filtrés
-              fieldsToShow = ['progress', 'status', 'deadline'];
-
-              // Ajouter les champs supplémentaires si filtrés
-              if (filters.collab && !fieldsToShow.includes('collab')) fieldsToShow.push('collab');
-              if (filters.style && !fieldsToShow.includes('style')) fieldsToShow.push('style');
-              if (filters.releaseDate && !fieldsToShow.includes('releaseDate'))
-                fieldsToShow.push('releaseDate');
-              logger.warn('[Assistant] Champs par défaut utilisés:', fieldsToShow);
-            }
-
-            return JSON.stringify({
-              message,
-              data: {
-                projects,
-                type: 'list' as const,
-                fieldsToShow,
-              },
-            });
-          }
-        }
-      } catch (error) {
-        logger.error('[Assistant] Erreur exécution directe (List):', error);
-      }
-    }
-
-    // CAS 2: MISE À JOUR (UPDATE)
-    if (classification.isUpdate) {
-      logger.warn('[Assistant] 🚀 Exécution DIRECTE (UPDATE)');
-
-      // Extraction des paramètres de mise à jour via updates.ts
-      const availableStyles = ['Techno', 'House', 'DNB', 'Dubstep', 'Trance'];
-
-      const updateParams = extractUpdateData(normalizedInput, lowerQuery, filters, availableStyles);
-
-      if (updateParams) {
-        const validUpdateParams = {
-          ...filters,
-          ...updateParams,
-          newDeadline: updateParams.newDeadline || undefined,
-        };
-
-        try {
-          if (updateProjects && typeof updateProjects.execute === 'function') {
-            // @ts-expect-error - SDK AI v5 type inference issue with ToolCallOptions
-            const result = await updateProjects.execute(validUpdateParams, {});
-            const typedResult = result as { count?: number; message?: string };
-
-            if (typedResult && typeof typedResult === 'object') {
-              revalidatePath('/projects');
-
-              if (typedResult.count !== undefined && typedResult.count > 0) {
-                updateConversationContext(currentUserId, {
-                  lastActionType: 'update',
-                  lastActionTimestamp: Date.now(),
-                });
-              }
-
-              return (
-                typedResult.message || `Mise à jour effectuée sur ${typedResult.count} projet(s).`
-              );
-            }
-          }
-        } catch (error) {
-          logger.error('[Assistant] Erreur exécution directe (Update):', error);
-        }
-      } else {
-        logger.warn('[Assistant] Update détecté mais pas de paramètres extraits');
-      }
-    }
-
-    // CAS 3: CRÉATION (CREATE)
-    if (classification.isCreate && !classification.isUpdate) {
-      logger.warn('[Assistant] 🚀 Exécution DIRECTE (CREATE)');
-
-      // Utiliser le parseur pour extraire les données de création
-      const { parseQuery } = await import('@/lib/assistant/query-parser');
-      // Collabs et styles déjà utilisés par l'utilisateur : le parseur les reconnaît mieux
-      const known = await prisma.project.findMany({
-        where: { userId: currentUserId },
-        select: { collab: true, style: true },
-      });
-      const distinct = (values: (string | null)[]) => [
-        ...new Set(values.filter((v): v is string => Boolean(v))),
-      ];
-      const availableCollabs = distinct(known.map((p) => p.collab));
-      const availableStyles = distinct([
-        'Techno',
-        'House',
-        'DNB',
-        'Dubstep',
-        'Trance',
-        ...known.map((p) => p.style),
-      ]);
-
-      const parseResult = parseQuery(normalizedInput, availableCollabs, availableStyles);
-
-      if (parseResult.createData && parseResult.createData.name) {
-        const validStyles = ['Techno', 'House', 'DNB', 'Dubstep', 'Trance'] as const;
-        const validStatuses = [
-          'EN_COURS',
-          'TERMINE',
-          'ANNULE',
-          'A_REWORK',
-          'GHOST_PRODUCTION',
-          'ARCHIVE',
-        ] as const;
-
-        const createParams = {
-          name: parseResult.createData.name,
-          style:
-            parseResult.createData.style &&
-            validStyles.includes(parseResult.createData.style as (typeof validStyles)[number])
-              ? (parseResult.createData.style as (typeof validStyles)[number])
-              : undefined,
-          collab: parseResult.createData.collab || undefined,
-          status: (parseResult.createData.status &&
-          validStatuses.includes(parseResult.createData.status as (typeof validStatuses)[number])
-            ? parseResult.createData.status
-            : 'EN_COURS') as (typeof validStatuses)[number],
-          deadline: parseResult.createData.deadline || undefined,
-          label: undefined,
-        };
-
-        try {
-          if (createProjects && typeof createProjects.execute === 'function') {
-            // @ts-expect-error - SDK AI v5 type inference issue with ToolCallOptions
-            const result = await createProjects.execute(createParams, {});
-            const typedResult = result as { project?: { id: string }; message?: string };
-
-            if (typedResult && typeof typedResult === 'object') {
-              revalidatePath('/projects');
-
-              // Sauvegarder le contexte
-              const createdProjectId = typedResult.project?.id;
-              updateConversationContext(currentUserId, {
-                lastActionType: 'create',
-                lastActionTimestamp: Date.now(),
-                ...(createdProjectId
-                  ? { lastProjectIds: [createdProjectId] }
-                  : { lastProjectIds: [] }),
-              });
-
-              // Retourner le message avec les données du projet pour déclencher l'événement côté client
-              const message =
-                typedResult.message || `Projet "${createParams.name}" créé avec succès.`;
-              if (typedResult.project) {
-                // Encoder le projet dans la réponse pour que le client puisse le récupérer
-                return JSON.stringify({
-                  message,
-                  createdProject: typedResult.project,
-                });
-              }
-              return message;
-            }
-          }
-        } catch (error) {
-          logger.error('[Assistant] Erreur exécution directe (Create):', error);
-          // Si erreur, continuer vers l'IA comme fallback
-        }
-      } else {
-        logger.warn("[Assistant] Create détecté mais pas de nom extrait, passage à l'IA");
-      }
-    }
+    const message = typedResult.message || `Projet "${createParams.name}" créé avec succès.`;
+    // Le projet est encodé dans la réponse pour que le client puisse le récupérer
+    return typedResult.project
+      ? JSON.stringify({ message, createdProject: typedResult.project })
+      : message;
+  } catch (error) {
+    // L'IA prend le relais
+    logger.error('[Assistant] Erreur exécution directe (Create):', error);
+    return null;
   }
+}
 
-  // ========================================
-  // FALLBACK IA (GROQ)
-  // ========================================
-
-  logger.warn("[Assistant] 🤖 Passage à l'IA (Conversationnel ou Fallback)", {
-    isComplex: classification.isComplex,
-  });
-
-  const availableTools: Record<string, unknown> = {};
-  if (!classification.isConversationalQuestion) {
-    availableTools.getProjects = getProjects;
-    availableTools.updateProjects = updateProjects;
-    availableTools.createProjects = createProjects;
+/** Essaie liste, mise à jour puis création ; null pour laisser la main à l'IA. */
+async function runDirectCommand(
+  tools: AssistantTools,
+  context: QueryContext,
+  classification: Classification,
+  isListing: boolean
+): Promise<string | null> {
+  const { isUpdate, isCreate } = classification;
+  const listed = isListing ? await runDirectList(tools.getProjects, context, classification) : null;
+  if (listed !== null) return listed;
+  if (isUpdate) {
+    return runDirectUpdate(tools.updateProjects, context);
   }
+  return isCreate ? runDirectCreate(tools.createProjects, context) : null;
+}
+
+/** Réponse du modèle quand il a appelé un outil. */
+function formatToolResponse(
+  text: string | undefined,
+  toolResult: { output?: unknown; result?: unknown; toolName?: string },
+  context: QueryContext
+): string {
+  // Le SDK ai expose le retour de l'outil dans `output` (`result` dans les anciennes versions)
+  const typedResult = (toolResult.output ?? toolResult.result) as
+    | {
+        message?: string;
+        count?: number;
+        project?: unknown;
+        projects?: Array<{ id: string; name: string }>;
+      }
+    | undefined;
+  const prefix = text ? `${text}\n\n` : '';
+  if (!typedResult) return prefix;
+
+  const countMessage =
+    typedResult.count !== undefined ? `Action effectuée (${typedResult.count})` : '';
+  const response = prefix + (typedResult.message || countMessage);
+
+  if (toolResult.toolName === 'createProjects' && typedResult.project) {
+    return JSON.stringify({ message: response, createdProject: typedResult.project });
+  }
+  if (toolResult.toolName === 'getProjects' && Array.isArray(typedResult.projects)) {
+    return listResponse(response, typedResult.projects, context);
+  }
+  return response;
+}
+
+interface ModelRequest {
+  context: QueryContext;
+  classification: Classification;
+  tools: AssistantTools;
+  currentUserName: string | null;
+  isAdmin: boolean;
+  today: string;
+  contextResolutionMessage?: string;
+}
+
+/** Fallback IA (Groq) : questions conversationnelles et commandes non résolues par le parseur. */
+async function askModel({
+  context,
+  classification,
+  tools,
+  currentUserName,
+  isAdmin,
+  today,
+  contextResolutionMessage,
+}: ModelRequest): Promise<string> {
+  const { normalizedInput } = context;
+  const availableTools: Record<string, unknown> = classification.isConversationalQuestion
+    ? {}
+    : { ...tools };
 
   // Choix du modèle : 70B pour les requêtes complexes, 8B pour le reste (plus rapide/économique)
   const modelId = classification.isComplex ? 'llama-3.3-70b-versatile' : 'llama-3.1-8b-instant';
@@ -452,96 +344,99 @@ Date: ${today}\nUtilisateur: ${currentUserName || 'Inconnu'}\n${isAdmin ? 'Rôle
     }
 
     const { text, toolResults } = result;
-
-    if ((!toolResults || toolResults.length === 0) && text) {
-      return text;
-    }
-
     if (toolResults && toolResults.length > 0) {
-      // Le SDK ai expose le retour de l'outil dans `output` (`result` dans les anciennes versions)
-      const firstResult = toolResults[0] as {
-        output?: unknown;
-        result?: unknown;
-        toolName?: string;
-      };
-      const typedResult = (firstResult.output ?? firstResult.result) as
-        | {
-            message?: string;
-            count?: number;
-            project?: unknown;
-            projects?: Array<{ id: string; name: string }>;
-          }
-        | undefined;
-      const toolName = firstResult.toolName;
-
-      let response = '';
-      if (text) response += text + '\n\n';
-
-      if (typedResult) {
-        response +=
-          typedResult.message ||
-          (typedResult.count !== undefined ? `Action effectuée (${typedResult.count})` : '');
-
-        // Si c'est une création de projet, inclure le projet dans la réponse
-        if (toolName === 'createProjects' && typedResult.project) {
-          return JSON.stringify({
-            message: response,
-            createdProject: typedResult.project,
-          });
-        }
-
-        // Si c'est getProjects (liste), retourner les données structurées pour l'affichage en tableau
-        if (
-          toolName === 'getProjects' &&
-          typedResult.projects &&
-          Array.isArray(typedResult.projects)
-        ) {
-          const projects = typedResult.projects;
-          // Déterminer les champs à afficher
-          // IMPORTANT: Toujours re-détecter depuis la requête originale pour capturer "tous les détails"
-          const { fieldsToShow: reDetectedFields } = detectFilters(
-            normalizedInput,
-            lowerQuery,
-            [],
-            []
-          );
-          let fieldsToShow: string[] = [];
-
-          if (reDetectedFields && reDetectedFields.length > 0) {
-            // Si des champs ont été explicitement demandés (ex: "tous les détails"), les utiliser
-            fieldsToShow = reDetectedFields;
-            logger.warn(
-              '[Assistant] Champs à afficher détectés depuis requête (IA):',
-              fieldsToShow
-            );
-          } else {
-            // Sinon, utiliser les champs par défaut + ceux filtrés
-            fieldsToShow = ['progress', 'status', 'deadline'];
-
-            // Ajouter les champs supplémentaires si filtrés
-            if (filters.collab && !fieldsToShow.includes('collab')) fieldsToShow.push('collab');
-            if (filters.style && !fieldsToShow.includes('style')) fieldsToShow.push('style');
-            if (filters.releaseDate && !fieldsToShow.includes('releaseDate'))
-              fieldsToShow.push('releaseDate');
-            logger.warn('[Assistant] Champs par défaut utilisés (IA):', fieldsToShow);
-          }
-
-          return JSON.stringify({
-            message: response,
-            data: {
-              projects,
-              type: 'list' as const,
-              fieldsToShow,
-            },
-          });
-        }
-      }
-      return response;
+      return formatToolResponse(text, toolResults[0], context);
     }
-
     return text || "Je n'ai pas compris.";
   } catch (error) {
     if (error instanceof Error) return `Erreur IA: ${error.message}`;
     return 'Erreur inconnue.';
   }
+}
+
+export async function processProjectCommand(userInput: string) {
+  // Vérifier l'authentification
+  const session = await auth();
+  if (!session?.user?.id) {
+    return "Erreur : Vous devez être connecté pour utiliser l'assistant.";
+  }
+  if (isAssistantInputTooLong(userInput)) {
+    return `Erreur : ${ASSISTANT_INPUT_TOO_LONG}`;
+  }
+
+  const currentUserId = session.user.id;
+  const currentUserName = session.user.name || null;
+  const isAdmin = (session.user.role || 'USER') === 'ADMIN';
+  const today = new Date().toISOString().split('T')[0];
+
+  // Pas de normalisation par l'IA : elle modifie trop la requête, detectStatusFromQuery suffit
+  const normalizedInput = userInput;
+  const lowerQuery = normalizedInput.toLowerCase();
+
+  const toolOptions = {
+    getTargetUserId: createGetTargetUserId({ currentUserId, currentUserName, isAdmin }),
+    normalizedInput,
+    isTestMode: process.env.ASSISTANT_TEST_MODE === 'true',
+  };
+  const tools: AssistantTools = {
+    getProjects: createGetProjectsTool(toolOptions),
+    updateProjects: createUpdateProjectsTool(toolOptions),
+    createProjects: createCreateProjectsTool(toolOptions),
+  };
+
+  let { filters } = detectFilters(normalizedInput, lowerQuery, [], []);
+
+  // Mémoire conversationnelle : la requête fait-elle référence au contexte précédent ?
+  const { hasContextReference } = detectContextReference(normalizedInput);
+  const isDetailsRequest = isDetailsQuery(lowerQuery);
+  let contextResolutionMessage: string | undefined;
+
+  if (hasContextReference || isDetailsRequest) {
+    const resolution = await resolveContextReference(currentUserId, normalizedInput);
+    if (resolution.resolved) {
+      filters = { ...resolution.filters, ...filters };
+      contextResolutionMessage = resolution.message;
+    } else if (resolution.message) {
+      // Pas de contexte disponible : message explicatif
+      return resolution.message;
+    }
+  }
+
+  const classification = classifyQuery(normalizedInput, lowerQuery, filters);
+  debugLog('assistant.ts:classification', 'Classification détectée', {
+    userInput: truncate(normalizedInput),
+    filters: Object.keys(filters),
+    classification: {
+      isList: classification.isList,
+      isCount: classification.isCount,
+      isUpdate: classification.isUpdate,
+      isConversationalQuestion: classification.isConversationalQuestion,
+      understood: classification.understood,
+    },
+  });
+
+  const context: QueryContext = { currentUserId, normalizedInput, lowerQuery, filters };
+  const isContextualListRequest =
+    (hasContextReference || isDetailsRequest) && (classification.isList || isDetailsRequest);
+
+  // Exécution directe (parser-first) : évite d'appeler Groq pour des commandes simples
+  if (!classification.isConversationalQuestion || isContextualListRequest) {
+    const isListing =
+      classification.isList ||
+      classification.isCount ||
+      (hasContextReference && !classification.isUpdate) ||
+      isContextualListRequest;
+    const direct = await runDirectCommand(tools, context, classification, isListing);
+    if (direct !== null) return direct;
+  }
+
+  return askModel({
+    context,
+    classification,
+    tools,
+    currentUserName,
+    isAdmin,
+    today,
+    contextResolutionMessage,
+  });
 }
