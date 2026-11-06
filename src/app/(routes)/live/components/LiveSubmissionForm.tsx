@@ -48,6 +48,8 @@ function waitForAudioReady(audio: HTMLAudioElement | null): Promise<void> {
   });
 }
 
+const SUBMISSIONS_STATUS_REFRESH_MS = 60_000;
+
 export function LiveSubmissionForm() {
   const { data: session } = useSession();
   const [title, setTitle] = useState('');
@@ -121,9 +123,17 @@ export function LiveSubmissionForm() {
 
     checkTrackSubmissions();
 
-    // Vérifier périodiquement (toutes les 5 secondes) pour mettre à jour l'état
-    const interval = setInterval(checkTrackSubmissions, 5000);
-    return () => clearInterval(interval);
+    // Revérifier périodiquement et au retour sur l'onglet, mais jamais onglet masqué : chaque
+    // appel interroge la base et consomme le quota gratuit de Vercel
+    const refreshIfVisible = () => {
+      if (document.visibilityState === 'visible') checkTrackSubmissions();
+    };
+    const interval = setInterval(refreshIfVisible, SUBMISSIONS_STATUS_REFRESH_MS);
+    document.addEventListener('visibilitychange', refreshIfVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', refreshIfVisible);
+    };
   }, []);
 
   // Charger les soumissions existantes
