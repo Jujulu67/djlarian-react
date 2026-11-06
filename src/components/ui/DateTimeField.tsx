@@ -1,6 +1,8 @@
 import React from 'react';
 
 interface DateTimeFieldProps {
+  /** Requis si `onChange` s'appuie sur `e.target.name`. */
+  name?: string;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   min?: string;
@@ -11,6 +13,7 @@ interface DateTimeFieldProps {
 }
 
 export const DateTimeField: React.FC<DateTimeFieldProps> = ({
+  name,
   value,
   onChange,
   min,
@@ -84,6 +87,7 @@ export const DateTimeField: React.FC<DateTimeFieldProps> = ({
 
       <div className="datetime-field">
         <input
+          name={name}
           type={type}
           className={`bg-gray-800/50 border border-gray-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500 ${
             error ? 'border-red-500 bg-red-900/10' : ''
