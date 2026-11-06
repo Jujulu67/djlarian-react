@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import { Play, Pause, Volume2, VolumeX, Download, X, RotateCcw, Gauge, User } from 'lucide-react';
 import { useAdminLivePlayerContext } from '../context/AdminLivePlayerContext';
@@ -27,23 +27,16 @@ export function AdminLivePlayer() {
     formatDuration,
   } = useAdminLivePlayerContext();
 
-  // État local pour le slider pendant le drag (évite les re-renders)
-  const [localVolume, setLocalVolume] = useState(volume);
-  const isDraggingRef = useRef(false);
+  // Valeur du slider pendant le drag ; sinon le volume global
+  const [dragVolume, setDragVolume] = useState<number | null>(null);
+  const localVolume = dragVolume ?? volume;
   const rafRef = useRef<number | null>(null);
-
-  // Synchroniser le volume local avec le volume global quand on ne drag pas
-  useEffect(() => {
-    if (!isDraggingRef.current && localVolume !== volume) {
-      setLocalVolume(volume);
-    }
-  }, [volume, localVolume]);
 
   const handleVolumeInput = useCallback(
     (e: React.FormEvent<HTMLInputElement>) => {
       const target = e.target as HTMLInputElement;
       const newVolume = parseFloat(target.value);
-      setLocalVolume(newVolume);
+      setDragVolume(newVolume);
 
       // Utiliser requestAnimationFrame pour des mises à jour fluides
       if (rafRef.current) {
@@ -58,16 +51,16 @@ export function AdminLivePlayer() {
   );
 
   const handleVolumeMouseDown = useCallback(() => {
-    isDraggingRef.current = true;
-  }, []);
+    setDragVolume(volume);
+  }, [volume]);
 
   const handleVolumeMouseUp = useCallback(() => {
-    isDraggingRef.current = false;
     // S'assurer que la valeur finale est synchronisée
     if (rafRef.current) {
       cancelAnimationFrame(rafRef.current);
     }
     handleVolumeChange(localVolume);
+    setDragVolume(null);
   }, [localVolume, handleVolumeChange]);
 
   if (!selectedSubmission) {
@@ -257,6 +250,8 @@ export function AdminLivePlayer() {
                 onMouseUp={handleVolumeMouseUp}
                 onTouchStart={handleVolumeMouseDown}
                 onTouchEnd={handleVolumeMouseUp}
+                onKeyUp={handleVolumeMouseUp}
+                onBlur={() => setDragVolume(null)}
                 className="flex-1 h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-500 hover:accent-purple-400 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-purple-500 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:transition-none [&::-webkit-slider-thumb]:hover:bg-purple-400 [&::-webkit-slider-thumb]:hover:scale-110 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-purple-500 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:transition-none [&::-moz-range-thumb]:hover:bg-purple-400 [&::-moz-range-thumb]:hover:scale-110"
                 style={{
                   background: `linear-gradient(to right, #a855f7 0%, #a855f7 ${localVolume * 100}%, rgba(55, 65, 81, 1) ${localVolume * 100}%, rgba(55, 65, 81, 1) 100%)`,

@@ -47,6 +47,13 @@ export function SubmissionDropZone({
   selectedFile,
   setShowInfoModal,
 }: SubmissionDropZoneProps) {
+  // Ne pas ouvrir le sélecteur si une track est déjà chargée ou soumise
+  const openFilePicker = () => {
+    if (!audioAnalysis && !activeSubmission) {
+      fileInputRef.current?.click();
+    }
+  };
+
   return (
     <div className="relative">
       <div className="flex items-center gap-2 mb-2">
@@ -68,18 +75,8 @@ export function SubmissionDropZone({
         onDragOver={!activeSubmission ? handleDragOver : undefined}
         onDragLeave={!activeSubmission ? handleDragLeave : undefined}
         onDrop={!activeSubmission ? handleDrop : undefined}
-        onClick={() => {
-          // Ne pas ouvrir le sélecteur si une track est déjà chargée ou soumise
-          if (!audioAnalysis && !activeSubmission) {
-            fileInputRef.current?.click();
-          }
-        }}
-        onKeyDown={onActivateKey(() => {
-          // Ne pas ouvrir le sélecteur si une track est déjà chargée ou soumise
-          if (!audioAnalysis && !activeSubmission) {
-            fileInputRef.current?.click();
-          }
-        })}
+        onClick={openFilePicker}
+        onKeyDown={(event) => onActivateKey(openFilePicker)(event)}
         className={`
       relative border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200
       ${audioAnalysis || activeSubmission ? 'cursor-default' : 'cursor-pointer'}

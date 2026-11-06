@@ -5,7 +5,6 @@ import { logger } from '@/lib/logger';
 import { getImageUrl } from '@/lib/utils/getImageUrl';
 
 import Modal from './Modal';
-import { onActivateKey } from '@/lib/a11y';
 
 interface ImageMeta {
   id: string;
@@ -57,22 +56,27 @@ const getImageDate = (img: ImageMeta) => {
 };
 
 const ImageLibraryModal: React.FC<ImageLibraryModalProps> = ({ open, onClose, onSelect }) => {
-  const [images, setImages] = useState<ImageMeta[]>([]);
+  // null tant que la première liste n'est pas arrivée
+  const [images, setImages] = useState<ImageMeta[] | null>(null);
   const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(false);
+  const loading = images === null;
 
   useEffect(() => {
     if (!open) return;
-    setLoading(true);
     fetch('/api/images')
       .then((res) => res.json())
       .then((data) => {
         setImages(data.images.filter((img: ImageMeta) => img.name.includes('-ori.')));
       })
-      .finally(() => setLoading(false));
+      .catch((error) => {
+        logger.error('[BIBLIO] Chargement des images impossible', error);
+        setImages([]);
+      });
   }, [open]);
 
-  const filtered = images.filter((img) => img.name.toLowerCase().includes(search.toLowerCase()));
+  const filtered = (images ?? []).filter((img) =>
+    img.name.toLowerCase().includes(search.toLowerCase())
+  );
 
   if (!open) return null;
 

@@ -3,7 +3,6 @@ import Image from 'next/image';
 import React, { useRef, useState } from 'react';
 
 import ImageLibraryModal from './ImageLibraryModal';
-import { onActivateKey } from '@/lib/a11y';
 
 interface ImageDropzoneProps {
   label: string;

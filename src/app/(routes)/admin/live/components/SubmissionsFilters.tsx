@@ -56,12 +56,15 @@ export function SubmissionsFilters({
     [updateSearchParams]
   );
 
-  // Initialiser l'état local avec les valeurs issues de l'URL
-  useEffect(() => {
+  // Resynchroniser l'état local quand l'URL change (ajustement pendant le rendu, sans effet)
+  const paramsKey = searchParams.toString();
+  const [syncedParamsKey, setSyncedParamsKey] = useState(paramsKey);
+  if (paramsKey !== syncedParamsKey) {
+    setSyncedParamsKey(paramsKey);
     setSearch(searchParams.get('search') || '');
     setStatus(searchParams.get('status') || '');
     setShowRolled(searchParams.get('showRolled') !== 'false');
-  }, [searchParams]);
+  }
 
   useEffect(() => {
     return () => {

@@ -1,23 +1,20 @@
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 
+import { useIsClient } from '@/hooks/useIsClient';
+
 export function useSuccessNotification() {
   const router = useRouter();
-  const [showSuccess, setShowSuccess] = useState(false);
+  const isClient = useIsClient();
+  const [dismissed, setDismissed] = useState(false);
+  const showSuccess =
+    isClient && !dismissed && Boolean(new URLSearchParams(window.location.search).get('success'));
   const [successTrackId, setSuccessTrackId] = useState<string | null>(null);
-
-  // Gérer successId depuis l'URL
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const searchParams = new URLSearchParams(window.location.search);
-    const successId = searchParams.get('success');
-    setShowSuccess(!!successId);
-  }, []);
 
   // Auto-hide après 3 secondes
   useEffect(() => {
     if (showSuccess) {
-      const timeout = setTimeout(() => setShowSuccess(false), 3000);
+      const timeout = setTimeout(() => setDismissed(true), 3000);
       return () => clearTimeout(timeout);
     }
   }, [showSuccess]);

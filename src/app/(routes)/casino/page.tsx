@@ -4,16 +4,17 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { EasterEggMapDialog } from '../profile/components/EasterEggMapDialog';
 import { useGameStats } from '@/hooks/useGameStats';
+import { useIsClient } from '@/hooks/useIsClient';
 
 export default function CasinoPage() {
   const router = useRouter();
-  const [isOpen, setIsOpen] = useState(false);
+  // Le dialogue s'ouvre dès l'arrivée côté client
+  const isClient = useIsClient();
+  const [closed, setClosed] = useState(false);
+  const isOpen = isClient && !closed;
   const { trackCasinoDiscovery, isAuthenticated } = useGameStats();
 
   useEffect(() => {
-    // Open the dialog immediately on mount
-    setIsOpen(true);
-
     // Track casino discovery for badges
     if (isAuthenticated) {
       trackCasinoDiscovery();
@@ -21,7 +22,7 @@ export default function CasinoPage() {
   }, [isAuthenticated, trackCasinoDiscovery]);
 
   const handleClose = () => {
-    setIsOpen(false);
+    setClosed(true);
     // Wait for animation to finish then redirect
     setTimeout(() => {
       // Un visiteur n'a pas de profil : le renvoyer à l'accueil

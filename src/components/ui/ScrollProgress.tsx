@@ -1,21 +1,12 @@
 'use client';
 
 import { motion, useScroll, useSpring } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { useIsClient } from '@/hooks/useIsClient';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 
 export default function ScrollProgress() {
-  const [mounted, setMounted] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  const mounted = useIsClient();
+  const isMobile = useMediaQuery('(max-width: 768px)');
 
   // Use scrollYProgress from window/document - no container needed
   // Optimiser sur mobile : utiliser une version simplifiée

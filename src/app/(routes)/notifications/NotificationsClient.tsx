@@ -3,7 +3,7 @@
 import { ArrowLeft, Bell, Loader2, MessageSquare, TestTube } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 
 import { PageHeader } from '@/components/ui/PageHeader';
 import { useNotifications, Notification } from '@/hooks/useNotifications';
@@ -45,13 +45,14 @@ export default function NotificationsClient() {
   // État pour gérer l'ouverture/fermeture des threads
   const [expandedThreads, setExpandedThreads] = useState<Set<string>>(new Set());
 
-  // Synchroniser avec l'URL si le paramètre change
-  useEffect(() => {
-    const viewFromUrl = parseNotificationView(searchParams.get('view'));
-    if (viewFromUrl) {
-      setActiveView(viewFromUrl);
-    }
-  }, [searchParams]);
+  // Synchroniser avec l'URL si le paramètre change (ajustement pendant le rendu, sans effet)
+  const viewParam = searchParams.get('view');
+  const [syncedViewParam, setSyncedViewParam] = useState(viewParam);
+  if (viewParam !== syncedViewParam) {
+    setSyncedViewParam(viewParam);
+    const viewFromUrl = parseNotificationView(viewParam);
+    if (viewFromUrl) setActiveView(viewFromUrl);
+  }
 
   const isAdmin = session?.user?.role === 'ADMIN';
 

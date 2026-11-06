@@ -1,10 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+
+import { useIsClient } from '@/hooks/useIsClient';
 
 import type { ConfigSection } from '@/types/config';
 
 /** Section active de la page configuration, synchronisée avec le hash de l'URL. */
 export function useActiveSection() {
-  const [activeSection, setActiveSection] = useState<ConfigSection>('general');
+  const isClient = useIsClient();
+  // Section choisie par un clic ; sinon celle de l'URL (lue côté client seulement)
+  const [chosenSection, setActiveSection] = useState<ConfigSection | null>(null);
+  const activeSection = chosenSection ?? (isClient ? sectionFromUrl() : 'general');
 
   // Fonction utilitaire pour gérer l'ancre selon la section
   const handleSectionClick = (section: ConfigSection) => {
@@ -18,26 +23,21 @@ export function useActiveSection() {
     }
   };
 
-  // useEffect pour lire le hash initial (inchangé)
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const hash = window.location.hash.replace('#', '');
-      const validSections: ConfigSection[] = [
-        'general',
-        'appearance',
-        'homepage',
-        'notifications',
-        'security',
-        'api',
-        'images',
-      ];
-      if (validSections.includes(hash as ConfigSection)) {
-        setActiveSection(hash as ConfigSection);
-      } else if (window.location.pathname.endsWith('/images')) {
-        setActiveSection('images');
-      }
-    }
-  }, []);
-
   return { activeSection, handleSectionClick };
+}
+
+const VALID_SECTIONS: ConfigSection[] = [
+  'general',
+  'appearance',
+  'homepage',
+  'notifications',
+  'security',
+  'api',
+  'images',
+];
+
+function sectionFromUrl(): ConfigSection {
+  const hash = window.location.hash.replace('#', '');
+  if (VALID_SECTIONS.includes(hash as ConfigSection)) return hash as ConfigSection;
+  return window.location.pathname.endsWith('/images') ? 'images' : 'general';
 }

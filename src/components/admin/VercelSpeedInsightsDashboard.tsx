@@ -19,35 +19,46 @@ export default function VercelSpeedInsightsDashboard() {
     loading: true,
   });
 
-  const fetchStatus = async () => {
-    setStatus((prev) => ({ ...prev, loading: true }));
+  // Lecture du statut ; l'état initial est déjà « en chargement »
+  const loadStatus = async (): Promise<SpeedInsightsStatus> => {
     try {
       // Récupérer l'URL du dashboard depuis l'API
       const response = await fetch('/api/admin/integrations/status');
       if (response.ok) {
         const data = await response.json();
-        setStatus({
-          enabled: data.vercel?.speedInsights?.enabled || true,
+        return {
+          enabled: data.vercel?.speedInsights?.enabled ?? true,
           dashboardUrl: data.vercel?.speedInsights?.dashboardUrl,
           loading: false,
-        });
+        };
       } else {
-        setStatus({
+        return {
           enabled: true,
           loading: false,
-        });
+        };
       }
     } catch (error) {
       logger.warn('VercelSpeedInsightsDashboard.tsx', error);
-      setStatus({
+      return {
         enabled: true,
         loading: false,
-      });
+      };
     }
   };
 
+  const fetchStatus = () => {
+    setStatus((prev) => ({ ...prev, loading: true }));
+    return loadStatus().then(setStatus);
+  };
+
   useEffect(() => {
-    fetchStatus();
+    let alive = true;
+    loadStatus().then((next) => {
+      if (alive) setStatus(next);
+    });
+    return () => {
+      alive = false;
+    };
   }, []);
 
   return (
