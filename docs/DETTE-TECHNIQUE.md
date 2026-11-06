@@ -13,42 +13,53 @@ ce fichier à jour quand un chantier avance.
 | Imports circulaires (madge)         | 0                            | Bloqué en CI                            |
 | Fichiers / dépendances morts (knip) | 0                            | Bloqué en CI                            |
 | Exports jamais utilisés (knip)      | 35 exports, 22 types         | Petit nettoyage                         |
-| Avertissements ESLint + SonarJS     | 329 (0 erreur), contre 1 483 | Deux règles seulement, voir ci-dessous  |
-| Fonctions trop complexes            | 146 au-dessus du seuil de 15 | Le vrai chantier restant                |
-| Tests                               | 4 495 jest, 14 Playwright    | Jest gonflé par des tests de couverture |
+| Avertissements ESLint + SonarJS     | 316 (0 erreur), contre 1 483 | Deux règles seulement, voir ci-dessous  |
+| Fonctions trop complexes            | 140 au-dessus du seuil de 15 | Le vrai chantier restant                |
+| Tests                               | 4 507 jest, 14 Playwright    | Jest gonflé par des tests de couverture |
 
-Note estimée : **7/10** (6 le 04/11/2026). Objectif : 8/10. Effets React, dépendances de hooks,
-accessibilité clavier, `any`, regex à risque et code mort sont réglés, et Playwright tourne en CI.
-Pour atteindre 8, il reste à réduire les fonctions très complexes, surtout le parseur de l'assistant.
+Note estimée : **7,5/10** (6 le 04/11/2026). Objectif : 8/10. Effets React, dépendances de hooks,
+accessibilité clavier, `any`, regex à risque et code mort sont réglés, Playwright tourne en CI, et les
+routes API les plus complexes sont découpées. Pour atteindre 8, il reste les 12 fonctions de 50 à 79
+ci-dessous.
 
 ## Chantiers, par priorité
 
 ### 1. Fonctions géantes (complexité cognitive, seuil 15)
 
-Répartition : 2 fonctions à 80 ou plus, 19 de 50 à 79, 27 de 30 à 49, 98 de 16 à 29. Les 98 dernières
-ne sont pas urgentes : viser d'abord les 21 au-dessus de 50.
+Répartition : 1 fonction à 80 ou plus, 12 de 50 à 79, 27 de 30 à 49, 100 de 16 à 29. Les 100 dernières
+ne sont pas urgentes : viser d'abord les 12 de 50 à 79.
 
-| Complexité | Fichier                                                               |
-| ---------- | --------------------------------------------------------------------- |
-| 144        | `src/lib/assistant/query-parser/filters.ts`                           |
-| 139        | `src/lib/services/soundcloud/scrapeTracksPage.ts`                     |
-| 79         | `src/app/(routes)/(home)/components/HeroSection.tsx`                  |
-| 75         | `src/components/assistant/handlers/handleConfirmUpdate.ts`            |
-| 72–73      | `upload/route.ts`, `admin/inventory/batch/route.ts`, `auth.config.ts` |
-| 71         | `src/app/(routes)/(home)/components/VisualizerSection.tsx`            |
-| 70         | `src/lib/assistant/query-parser/index.ts`                             |
+| Complexité | Fichier                                                                   |
+| ---------- | ------------------------------------------------------------------------- |
+| 79, 71     | `(home)/components/HeroSection.tsx`, `VisualizerSection.tsx`              |
+| 67         | `lib/assistant/query-parser/updates/deadline-updates.ts`                  |
+| 65         | `lib/assistant/parsers/status-detector.ts`                                |
+| 60         | `lib/assistant/query-parser/updates.ts`                                   |
+| 58         | `lib/assistant/conversational/groq-responder.ts`                          |
+| 56         | `lib/utils/parseExcelData.ts`, `lib/assistant/router/handlers/update.ts`  |
+| 55         | `components/projects/EditableCell.tsx`                                    |
+| 52         | `lib/assistant/query-parser/updates/progress-updates.ts`                  |
+| 50         | `lib/assistant/router/action-helpers.ts`, `useBatchedInventoryActions.ts` |
 
-Découpés le 06/11/2026 sans changement de comportement : `actions/assistant.ts` (194),
-`projects/batch-update/route.ts` (137), `live/inventory/batch/route.ts` (106),
-`admin/sentry/status/route.ts` (101), `conversational/memory-manager.ts` (98). Le modèle à suivre :
-une étape par fonction, le gestionnaire ne fait plus que les enchaîner.
+Cas à part : `lib/services/soundcloud/scrapeTracksPage.ts` (139). Ce code s'exécute dans le navigateur
+de Puppeteer (fonctions sérialisées), n'a aucun test et dépend du HTML de SoundCloud. Il ne faut le
+découper qu'avec une page de référence enregistrée pour le tester, sinon le risque dépasse le gain.
 
-`admin/inventory/batch/route.ts` ressemble à la route du live : réutiliser le même découpage.
+`HeroSection` et `VisualizerSection` doivent leur complexité aux variantes d'interface dans le JSX :
+à traiter quand une des variantes (legacy, v2, v3) disparaîtra.
+
+Découpés les 06/11/2026 sans changement de comportement voulu, et sous le seuil ou presque :
+`actions/assistant.ts` (194), `query-parser/filters.ts` (144), `projects/batch-update` (137),
+`live/inventory/batch` (106), `admin/sentry/status` (101), `memory-manager` (98),
+`handleConfirmUpdate` (75), `upload` (73), `admin/inventory/batch` (72), `auth.config.ts` (72),
+`query-parser/index.ts` (70), `projects/[id]` et `events/[id]` (64). Le modèle à suivre : une étape par
+fonction, le gestionnaire ne fait plus que les enchaîner. `auth.config.ts` garde deux callbacks à
+découper (`session` à 42, `jwt` à 24).
 
 ### 2. Assistant IA : parseur à expressions régulières
 
-`src/lib/assistant/query-parser/` concentre encore les fonctions les plus complexes (`filters.ts`,
-`index.ts`, `updates/*`, `creates.ts`). Les regex à risque sont corrigées, et les messages limités à
+`src/lib/assistant/query-parser/` concentre encore beaucoup de fonctions complexes (`updates/*`,
+`creates.ts`). Les regex à risque sont corrigées, et les messages limités à
 2 000 caractères (`src/lib/assistant/security/input-limits.ts`). À plus long terme, se demander si ce
 parseur reste utile à côté du modèle (Groq), qui sait déjà extraire filtres et mises à jour.
 
@@ -65,7 +76,7 @@ parseur reste utile à côté du modèle (Groq), qui sait déjà extraire filtre
 - `react-hooks/set-state-in-effect` est désactivée pour les jeux et les lecteurs iframe : ces effets
   lancent des animations minutées ou pilotent un système externe (raison dans `eslint.config.mjs`).
 - `sonarjs/pseudo-random` est désactivée pour les jeux et animations, sans enjeu de sécurité.
-- `sonarjs/no-nested-conditional` (183) : ternaires imbriqués dans le JSX, une question de lisibilité
+- `sonarjs/no-nested-conditional` (176) : ternaires imbriqués dans le JSX, une question de lisibilité
   plus que de bugs. À traiter au passage quand on découpe le composant, pas en chantier séparé.
 
 ## Outils
