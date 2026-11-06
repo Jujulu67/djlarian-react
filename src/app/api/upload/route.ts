@@ -12,6 +12,116 @@ import { requireAdmin } from '@/lib/api/requireAuth';
 
 // Upload endpoint - Support local (public/uploads/) et production (Vercel Blob)
 
+const MAX_ORIGINAL_SIZE = 15 * 1024 * 1024;
+
+/** Convertit en WebP si possible ; à défaut, garde l'image telle quelle. */
+async function toWebP(image: Blob, label: string): Promise<Buffer> {
+  const buffer = Buffer.from(await image.arrayBuffer()) as Buffer;
+  if (!canConvertToWebP(image.type)) return buffer;
+  try {
+    return await convertToWebP(buffer);
+  } catch (error) {
+    logger.warn(
+      `API UPLOAD - Conversion WebP impossible (${label}), image gardée telle quelle`,
+      error
+    );
+    return buffer;
+  }
+}
+
+/** Image originale à conserver : une image de 15 Mo au plus, sinon rien. */
+function isStorableOriginal(original: File | null): original is File {
+  if (!original || !original.type.startsWith('image/')) return false;
+  if (original.size <= MAX_ORIGINAL_SIZE) return true;
+  logger.warn(`API UPLOAD - Fichier original trop volumineux: ${original.size} octets`);
+  return false;
+}
+
+/** Enregistre dans public/uploads/ et renvoie l'URL de l'image recadrée. */
+async function saveLocally(imageId: string, cropped: Buffer, original: File | null) {
+  const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+  fs.writeFileSync(path.join(uploadsDir, `${imageId}.webp`), cropped);
+
+  if (isStorableOriginal(original)) {
+    try {
+      const originalBuffer = await toWebP(original, 'originale');
+      fs.writeFileSync(path.join(uploadsDir, `${imageId}-ori.webp`), originalBuffer);
+    } catch (error) {
+      // L'échec de l'originale ne bloque pas l'upload
+      logger.error('API UPLOAD - Erreur sauvegarde image originale locale', error);
+    }
+  }
+  return `/uploads/${imageId}.webp`;
+}
+
+async function uploadOriginalToBlob(imageId: string, original: File | null) {
+  if (!isStorableOriginal(original)) return null;
+  try {
+    return await uploadToBlobWithCheck(
+      `uploads/${imageId}-ori.webp`,
+      await toWebP(original, 'originale'),
+      'image/webp',
+      imageId,
+      true
+    );
+  } catch (error) {
+    // L'échec de l'originale ne bloque pas l'upload
+    logger.error('API UPLOAD - Erreur upload image originale vers Blob', error);
+    return null;
+  }
+}
+
+/** Envoie sur Vercel Blob, mémorise les URLs et les hashs en base, renvoie l'URL recadrée. */
+async function saveToBlob(imageId: string, cropped: Buffer, original: File | null) {
+  try {
+    const { url, hash } = await uploadToBlobWithCheck(
+      `uploads/${imageId}.webp`,
+      cropped,
+      'image/webp',
+      imageId,
+      false
+    );
+    const uploadedOriginal = await uploadOriginalToBlob(imageId, original);
+
+    const record = {
+      blobUrl: url,
+      blobUrlOriginal: uploadedOriginal?.url || undefined,
+      size: cropped.length,
+      contentType: 'image/webp',
+      hash,
+      hashOriginal: uploadedOriginal?.url ? uploadedOriginal.hash : undefined,
+    };
+    try {
+      await prisma.image.upsert({
+        where: { imageId },
+        create: { imageId, ...record },
+        update: record,
+      });
+    } catch (dbError) {
+      // L'image est bien en ligne : l'échec de la base ne fait pas échouer l'upload
+      logger.warn('[API UPLOAD] Erreur lors du stockage des URLs blob dans la DB', dbError);
+    }
+    return url;
+  } catch (error) {
+    logger.error(`API UPLOAD - Erreur upload Blob pour ${imageId}`, error);
+    throw new Error("Impossible d'uploader l'image vers Vercel Blob.");
+  }
+}
+
+async function respondUploaded(
+  imageId: string,
+  url: string,
+  storage: 'local' | 'blob',
+  userId: string
+) {
+  const { sendWebhook } = await import('@/lib/api/webhooks');
+  await sendWebhook('upload.completed', { imageId, url, storage }, { userId });
+  return NextResponse.json({ success: true, imageId, url });
+}
+
 export async function POST(request: NextRequest) {
   // Rate limiting (20 uploads/min)
   const { rateLimit } = await import('@/lib/api/rateLimiter');
@@ -29,20 +139,6 @@ export async function POST(request: NextRequest) {
     const croppedImage = formData.get('croppedImage') as Blob | null;
     const originalImage = formData.get('originalImage') as File | null;
 
-    // Vérifier si Blob est configuré (vérification à la volée)
-    const blobConfigured = !!process.env.BLOB_READ_WRITE_TOKEN;
-
-    // Logs de débogage (uniquement en développement)
-    logger.debug('API UPLOAD - Début', {
-      imageId,
-      NODE_ENV: process.env.NODE_ENV,
-      blobConfigured,
-      croppedImage: croppedImage ? `${croppedImage.size} bytes, type: ${croppedImage.type}` : null,
-      originalImage: originalImage
-        ? `${originalImage.size} bytes, type: ${originalImage.type}, name: ${originalImage.name}`
-        : null,
-    });
-
     if (!imageId) {
       logger.error('API UPLOAD - Image ID manquant');
       return NextResponse.json({ error: 'Image ID manquant' }, { status: 400 });
@@ -52,233 +148,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Image recadrée manquante' }, { status: 400 });
     }
 
-    const croppedBytes = await croppedImage.arrayBuffer();
-    let croppedBuffer = Buffer.from(croppedBytes) as Buffer;
+    const croppedBuffer = await toWebP(croppedImage, 'recadrée');
+    const userId = session.user.id;
 
-    // Convertir en WebP si possible
-    if (canConvertToWebP(croppedImage.type)) {
-      try {
-        croppedBuffer = await convertToWebP(croppedBuffer);
-        logger.debug('API UPLOAD - Image recadrée convertie en WebP');
-      } catch (error) {
-        logger.warn(
-          'API UPLOAD - Erreur conversion WebP pour image recadrée, utilisation originale',
-          error
-        );
-        // Continuer avec l'image originale si la conversion échoue
-      }
-    }
+    // Le switch d'administration décide ; sans jeton Blob, on reste en local
+    const blobConfigured = !!process.env.BLOB_READ_WRITE_TOKEN;
+    const useBlobStorage = blobConfigured && (await shouldUseBlobStorage());
 
-    // Utiliser la fonction utilitaire qui respecte le switch
-    let useBlobStorage = await shouldUseBlobStorage();
-
-    // Si on veut utiliser Blob mais qu'il n'est pas configuré, fallback vers local
-    if (useBlobStorage && !blobConfigured) {
-      logger.warn(
-        'API UPLOAD - Blob demandé mais non configuré, utilisation du dossier local en fallback'
-      );
-      useBlobStorage = false;
-    }
-
-    // Sauvegarder dans public/uploads/ si on n'utilise pas Blob
     if (!useBlobStorage) {
       try {
-        const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-
-        // Créer le dossier s'il n'existe pas
-        if (!fs.existsSync(uploadsDir)) {
-          fs.mkdirSync(uploadsDir, { recursive: true });
-        }
-
-        // Sauvegarder l'image recadrée en WebP
-        const croppedPath = path.join(uploadsDir, `${imageId}.webp`);
-        fs.writeFileSync(croppedPath, croppedBuffer);
-        logger.debug(`API UPLOAD - Image recadrée sauvegardée localement: ${croppedPath}`);
-
-        // Sauvegarder l'image originale si fournie (convertie en WebP)
-        if (originalImage && originalImage.type.startsWith('image/')) {
-          if (originalImage.size <= 15 * 1024 * 1024) {
-            try {
-              const originalBytes = await originalImage.arrayBuffer();
-              let originalBuffer = Buffer.from(originalBytes) as Buffer;
-
-              // Convertir en WebP si possible
-              if (canConvertToWebP(originalImage.type)) {
-                try {
-                  originalBuffer = await convertToWebP(originalBuffer);
-                  logger.debug('API UPLOAD - Image originale convertie en WebP');
-                } catch (error) {
-                  logger.warn(
-                    'API UPLOAD - Erreur conversion WebP pour image originale, utilisation originale',
-                    error
-                  );
-                }
-              }
-
-              const originalPath = path.join(uploadsDir, `${imageId}-ori.webp`);
-              fs.writeFileSync(originalPath, originalBuffer);
-              logger.debug(`API UPLOAD - Image originale sauvegardée localement: ${originalPath}`);
-            } catch (error) {
-              logger.error('API UPLOAD - Erreur sauvegarde image originale locale', error);
-              // Ne pas bloquer si l'originale échoue
-            }
-          } else {
-            logger.warn(
-              `API UPLOAD - Fichier original trop volumineux: ${originalImage.size} bytes`
-            );
-          }
-        }
-
-        const localUrl = `/uploads/${imageId}.webp`;
-        logger.debug(`API UPLOAD - Upload local terminé pour imageId: ${imageId}`);
-
-        // Envoyer un webhook pour l'upload
-        const { sendWebhook } = await import('@/lib/api/webhooks');
-        await sendWebhook(
-          'upload.completed',
-          {
-            imageId,
-            url: localUrl,
-            storage: 'local',
-          },
-          {
-            userId: session.user.id,
-          }
-        );
-
-        return NextResponse.json({
-          success: true,
-          imageId: imageId,
-          url: localUrl,
-        });
+        const url = await saveLocally(imageId, croppedBuffer, originalImage);
+        return await respondUploaded(imageId, url, 'local', userId);
       } catch (error) {
         logger.error(`API UPLOAD - Erreur sauvegarde locale pour ${imageId}`, error);
-        // Fallback vers Blob si erreur locale et Blob configuré
-        if (blobConfigured) {
-          logger.debug('API UPLOAD - Fallback vers Vercel Blob...');
-        } else {
-          throw new Error("Impossible d'uploader l'image localement.");
-        }
+        if (!blobConfigured) throw new Error("Impossible d'uploader l'image localement.");
+        logger.debug('API UPLOAD - Fallback vers Vercel Blob...');
       }
     }
 
-    // Utiliser Vercel Blob si demandé et configuré
-    if (useBlobStorage && blobConfigured) {
-      // Upload vers Vercel Blob
-      try {
-        const croppedKey = `uploads/${imageId}.webp`;
-        // OPTIMISATION: Vérifier si l'image existe déjà avant d'uploader (évite put() redondant)
-        const { url: croppedUrl, hash: croppedHash } = await uploadToBlobWithCheck(
-          croppedKey,
-          croppedBuffer,
-          'image/webp',
-          imageId,
-          false
-        );
-        logger.debug(`API UPLOAD - Image recadrée: ${croppedUrl}`);
-
-        // Upload de l'image originale si fournie (convertie en WebP)
-        let originalBlobUrl: string | null = null;
-        let originalHash: string | null = null;
-        if (originalImage && originalImage.type.startsWith('image/')) {
-          if (originalImage.size <= 15 * 1024 * 1024) {
-            try {
-              const originalBytes = await originalImage.arrayBuffer();
-              let originalBuffer = Buffer.from(originalBytes) as Buffer;
-
-              // Convertir en WebP si possible
-              if (canConvertToWebP(originalImage.type)) {
-                try {
-                  originalBuffer = await convertToWebP(originalBuffer);
-                  logger.debug('API UPLOAD - Image originale convertie en WebP');
-                } catch (error) {
-                  logger.warn(
-                    'API UPLOAD - Erreur conversion WebP pour image originale, utilisation originale',
-                    error
-                  );
-                }
-              }
-
-              const originalKey = `uploads/${imageId}-ori.webp`;
-              // OPTIMISATION: Vérifier si l'originale existe déjà avant d'uploader
-              const originalResult = await uploadToBlobWithCheck(
-                originalKey,
-                originalBuffer,
-                'image/webp',
-                imageId,
-                true
-              );
-              originalBlobUrl = originalResult.url;
-              originalHash = originalResult.hash;
-              logger.debug(`API UPLOAD - Image originale: ${originalBlobUrl}`);
-            } catch (error) {
-              logger.error('API UPLOAD - Erreur upload image originale vers Blob', error);
-              // Ne pas bloquer si l'originale échoue
-            }
-          } else {
-            logger.warn(
-              `API UPLOAD - Fichier original trop volumineux: ${originalImage.size} bytes`
-            );
-          }
-        }
-
-        // OPTIMISATION: Stocker les URLs blob et les hashs dans la DB pour éviter les appels list() coûteux
-        try {
-          await prisma.image.upsert({
-            where: { imageId },
-            create: {
-              imageId,
-              blobUrl: croppedUrl,
-              blobUrlOriginal: originalBlobUrl || undefined,
-              size: croppedBuffer.length,
-              contentType: 'image/webp',
-              hash: croppedHash,
-              hashOriginal: originalBlobUrl ? originalHash : undefined,
-            },
-            update: {
-              blobUrl: croppedUrl,
-              blobUrlOriginal: originalBlobUrl || undefined,
-              size: croppedBuffer.length,
-              contentType: 'image/webp',
-              hash: croppedHash,
-              hashOriginal: originalBlobUrl ? originalHash : undefined,
-            },
-          });
-          logger.debug(`API UPLOAD - URLs blob stockées dans la DB pour: ${imageId}`);
-        } catch (dbError) {
-          // Ne pas faire échouer l'upload si la DB échoue, juste logger
-          logger.warn('[API UPLOAD] Erreur lors du stockage des URLs blob dans la DB:', dbError);
-        }
-
-        logger.debug(`API UPLOAD - Upload Vercel Blob terminé pour imageId: ${imageId}`);
-
-        // Envoyer un webhook pour l'upload
-        const { sendWebhook } = await import('@/lib/api/webhooks');
-        await sendWebhook(
-          'upload.completed',
-          {
-            imageId,
-            url: croppedUrl,
-            storage: 'blob',
-          },
-          {
-            userId: session.user.id,
-          }
-        );
-
-        return NextResponse.json({
-          success: true,
-          imageId: imageId,
-          url: croppedUrl,
-        });
-      } catch (error) {
-        logger.error(`API UPLOAD - Erreur upload Blob pour ${imageId}`, error);
-        throw new Error("Impossible d'uploader l'image vers Vercel Blob.");
-      }
-    }
-
-    // Si ni local ni Blob, erreur
-    return NextResponse.json({ error: 'Aucun système de stockage configuré' }, { status: 503 });
+    const url = await saveToBlob(imageId, croppedBuffer, originalImage);
+    return await respondUploaded(imageId, url, 'blob', userId);
   } catch (error) {
     logger.error('API UPLOAD - Erreur lors du téléchargement du fichier', error);
     const message =
