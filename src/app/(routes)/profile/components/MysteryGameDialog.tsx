@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import Image from 'next/image';
 import { useMiniGame, GameResult } from '../hooks/useMiniGame';
-import { FloatingScore, ComboIndicator, CelebrationOverlay, ScreenShake } from './MiniGameEffects';
+import { FloatingScore, CelebrationOverlay, ScreenShake } from './MiniGameEffects';
 import { ConfettiExplosion, CoinsRain } from './SlotMachineEffects';
 
 interface MysteryGameDialogProps {
@@ -18,7 +18,6 @@ interface MysteryGameDialogProps {
 // Simple grid game: Click groups of colors to destroy them
 const GRID_SIZE = 8;
 const COLORS = ['#ef4444', '#3b82f6', '#22c55e', '#eab308', '#a855f7']; // Tailwind colors
-const COLOR_NAMES = ['red', 'blue', 'green', 'yellow', 'purple'];
 
 interface Explosion {
   id: number;
@@ -219,8 +218,9 @@ export function MysteryGameDialog({ isOpen, onClose, onTokenUpdate }: MysteryGam
     }
 
     // Clear explosions after animation
+    const explodedIds = new Set(newExplosions.map((ne) => ne.id));
     setTimeout(() => {
-      setExplosions((prev) => prev.filter((e) => !newExplosions.find((ne) => ne.id === e.id)));
+      setExplosions((prev) => prev.filter((e) => !explodedIds.has(e.id)));
     }, 600);
 
     // Clear score popups
@@ -459,6 +459,7 @@ export function MysteryGameDialog({ isOpen, onClose, onTokenUpdate }: MysteryGam
                     ))}
 
                     <div
+                      role="presentation"
                       ref={gridRef}
                       className={`grid gap-1 bg-black/50 p-3 rounded-xl border border-white/10 transition-all duration-300 ${isGameOver ? 'opacity-40' : 'opacity-100'}`}
                       style={{

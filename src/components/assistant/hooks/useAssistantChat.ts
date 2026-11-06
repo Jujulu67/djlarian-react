@@ -9,7 +9,7 @@
  * - tabId isole les onglets
  * - userId persiste entre sessions (localStorage)
  */
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Project } from '@/components/projects/types';
 import type { Message, QueryFilters, UpdateData } from '../types';
@@ -19,7 +19,6 @@ import { generateConfirmationId } from '@/lib/assistant/utils/generate-confirmat
 // O10: Session persistence pour survivre au refresh et isoler les onglets
 import {
   getOrCreateSessionId,
-  getOrCreateTabId,
   getSessionInfo,
   resetSession as resetSessionStorage,
 } from '@/lib/assistant/utils/SessionPersistence';
@@ -30,7 +29,6 @@ import {
   trackActionContext,
   resetSession,
   debugMemoryState,
-  getConversationMemorySize,
 } from '@/lib/assistant/memory';
 import { logger } from '@/lib/logger';
 
@@ -63,7 +61,6 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [lastFilters, setLastFilters] = useState<QueryFilters | null>(null);
-  const [lastResults, setLastResults] = useState<Project[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   // 🔒 SUPPRIMÉ: conversationHistory state fantôme - géré par ConversationMemory (I3)
@@ -110,20 +107,10 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
   // 🔒 SUPPRIMÉ: useEffect sync messages→history (I3 - source de vérité unique = ConversationMemory)
 
   // Computed values
-  const uniqueCollabs = useMemo(
-    () => [...new Set(localProjectsRef.current.filter((p) => p.collab).map((p) => p.collab!))],
-    [localProjects]
-  );
-
-  const uniqueStyles = useMemo(
-    () => [...new Set(localProjectsRef.current.filter((p) => p.style).map((p) => p.style!))],
-    [localProjects]
-  );
 
   const handleReset = useCallback(() => {
     setMessages([]);
     setLastFilters(null);
-    setLastResults([]);
     // 🔒 SUPPRIMÉ: setConversationHistory([]) - state fantôme éliminé (I3)
     lastAppliedFilterRef.current = undefined;
     lastListedProjectIdsRef.current = undefined;
@@ -395,7 +382,7 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
         setIsLoading(false);
       }
     },
-    [input, isLoading, router]
+    [input, isLoading, router, lastFilters, messages.length]
   );
 
   return {

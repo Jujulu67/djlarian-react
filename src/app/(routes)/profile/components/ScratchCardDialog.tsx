@@ -36,7 +36,6 @@ export function ScratchCardDialog({ isOpen, onClose, onTokenUpdate }: ScratchCar
   const [showCelebration, setShowCelebration] = useState(false);
   const [particles, setParticles] = useState<ScratchParticle[]>([]);
   const [particleIdCounter, setParticleIdCounter] = useState(0);
-  const [scratchProgress, setScratchProgress] = useState<number[]>([0, 0, 0]);
 
   const { play, isLoading } = useMiniGame(onTokenUpdate);
 
@@ -53,7 +52,6 @@ export function ScratchCardDialog({ isOpen, onClose, onTokenUpdate }: ScratchCar
       setSymbols(['?', '?', '?']);
       setShowCelebration(false);
       setParticles([]);
-      setScratchProgress([0, 0, 0]);
     }
   }, [isOpen]);
 
@@ -83,7 +81,7 @@ export function ScratchCardDialog({ isOpen, onClose, onTokenUpdate }: ScratchCar
   };
 
   const initCanvases = () => {
-    canvasRefs.forEach((ref, index) => {
+    canvasRefs.forEach((ref) => {
       const canvas = ref.current;
       if (!canvas) return;
 
@@ -189,11 +187,6 @@ export function ScratchCardDialog({ isOpen, onClose, onTokenUpdate }: ScratchCar
 
     const totalPixels = canvas.width * canvas.height;
     const progress = transparentPixels / totalPixels;
-    setScratchProgress((prev) => {
-      const newProgress = [...prev];
-      newProgress[index] = progress;
-      return newProgress;
-    });
 
     if (progress > 0.4) {
       setRevealedZones((prev) => {
@@ -459,7 +452,6 @@ export function ScratchCardDialog({ isOpen, onClose, onTokenUpdate }: ScratchCar
                           setSymbols(['?', '?', '?']);
                           setShowCelebration(false);
                           setParticles([]);
-                          setScratchProgress([0, 0, 0]);
                         }}
                         className="px-6 py-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"
                       >

@@ -70,7 +70,6 @@ export default function HistoryModal({
   const [applyingId, setApplyingId] = useState<string | null>(null);
   const [resetting, setResetting] = useState(false);
   const [applyingBaseConfig, setApplyingBaseConfig] = useState(false);
-  const [_defaultConfigsData, setDefaultConfigsData] = useState<Record<string, unknown>>({});
 
   // Récupérer l'historique et les snapshots
   useEffect(() => {
@@ -78,25 +77,6 @@ export default function HistoryModal({
       fetchHistoryData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, activeTab]);
-
-  useEffect(() => {
-    // Charger les configurations par défaut
-    const fetchDefaultConfigs = async () => {
-      try {
-        const res = await fetch('/api/admin/config/default');
-        if (res.ok) {
-          const data = await res.json();
-          setDefaultConfigsData(data);
-        }
-      } catch (error) {
-        logger.error('Erreur lors du chargement des configurations par défaut:', error);
-      }
-    };
-
-    if (isOpen && activeTab === 'snapshots') {
-      fetchDefaultConfigs();
-    }
   }, [isOpen, activeTab]);
 
   const fetchHistoryData = async () => {
@@ -193,6 +173,7 @@ export default function HistoryModal({
         toast.error(data.error || 'Erreur lors de la réinitialisation.');
       }
     } catch (error) {
+      logger.warn('Erreur réseau lors de la réinitialisation.', error);
       toast.error('Erreur réseau lors de la réinitialisation.');
     } finally {
       setResetting(false);
@@ -212,6 +193,7 @@ export default function HistoryModal({
         toast.error(data.error || "Erreur lors de l'application de la configuration de base.");
       }
     } catch (error) {
+      logger.warn("Erreur réseau lors de l'application de la configuration de base.", error);
       toast.error("Erreur réseau lors de l'application de la configuration de base.");
     } finally {
       setApplyingBaseConfig(false);

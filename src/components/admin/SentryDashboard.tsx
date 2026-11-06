@@ -21,36 +21,47 @@ export default function SentryDashboard() {
     loading: true,
   });
 
-  const fetchSentryStatus = async () => {
-    setStatus((prev) => ({ ...prev, loading: true }));
+  // Lecture du statut ; l'état initial est déjà « en chargement »
+  const loadSentryStatus = async (): Promise<SentryStatus> => {
     try {
       const response = await fetch('/api/admin/sentry/status');
       if (response.ok) {
         const data = await response.json();
-        setStatus({
+        return {
           enabled: data.enabled,
           errorCount: data.errorCount,
           lastError: data.lastError,
           sentryUrl: data.sentryUrl,
           loading: false,
-        });
+        };
       } else {
-        setStatus({
+        return {
           enabled: false,
           loading: false,
-        });
+        };
       }
     } catch (error) {
       logger.error('Erreur lors de la récupération du statut Sentry:', error);
-      setStatus({
+      return {
         enabled: false,
         loading: false,
-      });
+      };
     }
   };
 
+  const fetchSentryStatus = () => {
+    setStatus((prev) => ({ ...prev, loading: true }));
+    return loadSentryStatus().then(setStatus);
+  };
+
   useEffect(() => {
-    fetchSentryStatus();
+    let alive = true;
+    loadSentryStatus().then((next) => {
+      if (alive) setStatus(next);
+    });
+    return () => {
+      alive = false;
+    };
   }, []);
 
   // L'URL Sentry est retournée par l'API et stockée dans le state

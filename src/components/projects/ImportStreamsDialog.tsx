@@ -114,7 +114,7 @@ export const ImportStreamsDialog = ({
         setFilesData(validFiles);
 
         // Si un fichier a été auto-sélectionné (score >= 80), le marquer comme validé
-        validFiles.forEach((file, index) => {
+        validFiles.forEach((file) => {
           if (file.selectedProjectId && file.milestones && !file.error) {
             file.isValidated = true;
           }

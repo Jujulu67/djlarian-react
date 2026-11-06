@@ -33,7 +33,6 @@ jest.mock('@/lib/prisma', () => ({
 jest.mock('@/lib/blob', () => ({
   uploadToBlob: jest.fn(),
   isBlobConfigured: jest.fn(() => false),
-  getBlobPublicUrl: jest.fn(),
 }));
 
 describe('/api/music', () => {

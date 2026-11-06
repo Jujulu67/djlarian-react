@@ -1,6 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server';
-
-import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import { createSuccessResponse, createUnauthorizedResponse } from '@/lib/api/responseHelpers';
 import { handleApiError } from '@/lib/api/errorHandler';
@@ -10,7 +7,7 @@ import { requireAuth } from '@/lib/api/requireAuth';
  * GET /api/live/items
  * Récupère le catalogue des items disponibles
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const { error } = await requireAuth({
       requireUserId: true,

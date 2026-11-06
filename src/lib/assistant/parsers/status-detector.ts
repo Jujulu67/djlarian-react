@@ -1,4 +1,3 @@
-import { logger } from '@/lib/logger';
 /**
  * Détecteur de statuts depuis les requêtes utilisateur
  * Utilise la distance de Levenshtein pour détecter les statuts même avec des fautes d'orthographe
@@ -37,6 +36,214 @@ export function levenshteinDistance(str1: string, str2: string): number {
   return matrix[len1][len2];
 }
 
+const STATUS_KEYWORDS = [
+  {
+    value: 'EN_COURS',
+    keywords: [
+      'en cours',
+      'en cour',
+      'encours',
+      'in progress',
+      'ongoing',
+      // Fautes de frappe additionnelles
+      'ancours',
+      'emcours',
+      'en courrs',
+      'en coures',
+      'n cours',
+      'en cous',
+      'encour',
+      'en crs',
+      'encoours',
+      'wip',
+      'work in progress',
+    ],
+    minSimilarity: 0.6, // Plus tolérant
+  },
+  {
+    value: 'TERMINE',
+    keywords: [
+      'terminé',
+      'termine',
+      'terminée',
+      'terminee',
+      'terminés',
+      'termines',
+      'fini',
+      'finis',
+      'finie',
+      'finies',
+      'done',
+      'complete',
+      'completed',
+      // Fautes de frappe additionnelles
+      'treminer',
+      'terminer',
+      'termi',
+      'termne',
+      'terminne',
+      'terminee',
+      'teminé',
+      'terniné',
+      'temriné',
+      'finit',
+      'finnis',
+      'achevé',
+      'acheve',
+      'finished',
+    ],
+    minSimilarity: 0.55, // Plus tolérant
+  },
+  {
+    value: 'ANNULE',
+    keywords: [
+      'annulé',
+      'annule',
+      'annulée',
+      'annulee',
+      'annulés',
+      'annules',
+      'annulées',
+      'annulees',
+      'annul',
+      'cancel',
+      'cancelled',
+      'canceled',
+      // Fautes de frappe additionnelles
+      'annler',
+      'anul',
+      'anulé',
+      'annuler',
+      'annullé',
+      'anullé',
+      'anuler',
+      'abandonné',
+      'abandonne',
+      'dropped',
+    ],
+    minSimilarity: 0.6,
+  },
+  {
+    value: 'A_REWORK',
+    keywords: [
+      'rework',
+      'à rework',
+      'a rework',
+      'rewor',
+      'à refaire',
+      'a refaire',
+      // Fautes de frappe additionnelles
+      'rwork',
+      're work',
+      'reword',
+      'rewok',
+      'refaire',
+      'à retravailler',
+      'retravailler',
+      'needs work',
+      'needs rework',
+    ],
+    minSimilarity: 0.6,
+  },
+  {
+    value: 'GHOST_PRODUCTION',
+    keywords: [
+      'ghost production',
+      'ghostprod',
+      'ghost prod',
+      'ghos prod',
+      'ghost',
+      'ghosts',
+      // Fautes de frappe additionnelles
+      'ghosp rod',
+      'goes prod',
+      'gosht prod',
+      'gost prod',
+      'gostprod',
+      'goshtprod',
+      'ghosst prod',
+      'ghots prod',
+      'ghostproduction',
+      'ghost-prod',
+      'ghost-production',
+      'ghosprod',
+      'góstprod',
+      'gauspraud',
+      'gausprod',
+      'goastprod',
+      'gausteprauds',
+      'gausotprod',
+    ],
+    minSimilarity: 0.4, // Très tolérant pour les fautes de frappe
+  },
+  {
+    value: 'ARCHIVE',
+    keywords: [
+      'archivé',
+      'archive',
+      'archivée',
+      'archivee',
+      'archivés',
+      'archives',
+      'archivées',
+      'archivees',
+      'archiv',
+      // Fautes de frappe additionnelles
+      'arkivé',
+      'arkive',
+      'archiver',
+      'archivee',
+      'archived',
+      'arch',
+      'archve',
+      'arcivé',
+    ],
+    minSimilarity: 0.6,
+  },
+];
+
+const GHOST_PATTERNS = [
+  /g[ao]?[su]?[so]?t/i, // gost, gast, gaost, gausot, etc.
+  /g[ao]?[su]?[sp]/i, // gausp, gasp, gaosp, etc.
+  /g[ao]?[su]?[sp]r/i, // gauspr, gaspr, etc.
+];
+
+const PROD_PATTERNS = [
+  /\bpro[ds]+\b/i, // prod, prods (mais pas "projets")
+  /\bproduction\b/i, // production
+  /praud/i, // praud (fautes de frappe)
+  /prau/i, // prau
+  /\bprod\b/i, // prod (mot entier, pas dans "projets")
+];
+
+const GHOST_BEFORE_PROD_PATTERN =
+  /(?:ghost|gost|gaus|gasp|gaust)\s*(?:prod|production|praud|prau)/i;
+const GHOST_MISSPELLING_PATTERN = /gaus?praud|gaus?prod|gaus?prau/i;
+
+/** Confiance que la requête parle de ghost production malgré les fautes (0 si non). */
+function ghostProductionScore(lowerQuery: string): number {
+  if (GHOST_MISSPELLING_PATTERN.test(lowerQuery)) return 0.85;
+  const looksLikeGhostProd =
+    GHOST_PATTERNS.some((p) => p.test(lowerQuery)) &&
+    PROD_PATTERNS.some((p) => p.test(lowerQuery)) &&
+    // « projets » seul ne suffit pas : il faut « ghost » juste avant
+    GHOST_BEFORE_PROD_PATTERN.test(lowerQuery);
+  return looksLikeGhostProd ? 0.8 : 0;
+}
+
+/** « projet(s) » et les mots trop courts donneraient de faux positifs. */
+const isComparableWord = (word: string) =>
+  word.length >= 3 && word !== 'projets' && word !== 'projet';
+
+function bestSimilarity(words: string[], keyword: string): number {
+  let best = 0;
+  for (const word of words) {
+    const maxLength = Math.max(word.length, keyword.length);
+    best = Math.max(best, 1 - levenshteinDistance(word, keyword) / maxLength);
+  }
+  return best;
+}
+
 /**
  * Détecte et mappe un statut depuis la requête (utilise la similarité de chaînes)
  * Pas de requête IA intermédiaire - approche purement algorithmique
@@ -44,275 +251,24 @@ export function levenshteinDistance(str1: string, str2: string): number {
 export function detectStatusFromQuery(query: string): string | null {
   const lowerQuery = query.toLowerCase().replace(/\s+/g, ' ').trim();
 
-  const availableStatuses = [
-    {
-      value: 'EN_COURS',
-      keywords: [
-        'en cours',
-        'en cour',
-        'encours',
-        'in progress',
-        'ongoing',
-        // Fautes de frappe additionnelles
-        'ancours',
-        'emcours',
-        'en courrs',
-        'en coures',
-        'n cours',
-        'en cous',
-        'encour',
-        'en crs',
-        'encoours',
-        'wip',
-        'work in progress',
-      ],
-      minSimilarity: 0.6, // Plus tolérant
-    },
-    {
-      value: 'TERMINE',
-      keywords: [
-        'terminé',
-        'termine',
-        'terminée',
-        'terminee',
-        'terminés',
-        'termines',
-        'fini',
-        'finis',
-        'finie',
-        'finies',
-        'done',
-        'complete',
-        'completed',
-        // Fautes de frappe additionnelles
-        'treminer',
-        'terminer',
-        'termi',
-        'termne',
-        'terminne',
-        'terminee',
-        'teminé',
-        'terniné',
-        'temriné',
-        'finit',
-        'finnis',
-        'achevé',
-        'acheve',
-        'finished',
-      ],
-      minSimilarity: 0.55, // Plus tolérant
-    },
-    {
-      value: 'ANNULE',
-      keywords: [
-        'annulé',
-        'annule',
-        'annulée',
-        'annulee',
-        'annulés',
-        'annules',
-        'annulées',
-        'annulees',
-        'annul',
-        'cancel',
-        'cancelled',
-        'canceled',
-        // Fautes de frappe additionnelles
-        'annler',
-        'anul',
-        'anulé',
-        'annuler',
-        'annullé',
-        'anullé',
-        'anuler',
-        'abandonné',
-        'abandonne',
-        'dropped',
-      ],
-      minSimilarity: 0.6,
-    },
-    {
-      value: 'A_REWORK',
-      keywords: [
-        'rework',
-        'à rework',
-        'a rework',
-        'rewor',
-        'à refaire',
-        'a refaire',
-        // Fautes de frappe additionnelles
-        'rwork',
-        're work',
-        'reword',
-        'rewok',
-        'refaire',
-        'à retravailler',
-        'retravailler',
-        'needs work',
-        'needs rework',
-      ],
-      minSimilarity: 0.6,
-    },
-    {
-      value: 'GHOST_PRODUCTION',
-      keywords: [
-        'ghost production',
-        'ghostprod',
-        'ghost prod',
-        'ghos prod',
-        'ghost',
-        'ghosts',
-        // Fautes de frappe additionnelles
-        'ghosp rod',
-        'goes prod',
-        'gosht prod',
-        'gost prod',
-        'gostprod',
-        'goshtprod',
-        'ghosst prod',
-        'ghots prod',
-        'ghostproduction',
-        'ghost-prod',
-        'ghost-production',
-        'ghosprod',
-        'góstprod',
-        'gauspraud',
-        'gausprod',
-        'goastprod',
-        'gausteprauds',
-        'gausotprod',
-      ],
-      minSimilarity: 0.4, // Très tolérant pour les fautes de frappe
-    },
-    {
-      value: 'ARCHIVE',
-      keywords: [
-        'archivé',
-        'archive',
-        'archivée',
-        'archivee',
-        'archivés',
-        'archives',
-        'archivées',
-        'archivees',
-        'archiv',
-        // Fautes de frappe additionnelles
-        'arkivé',
-        'arkive',
-        'archiver',
-        'archivee',
-        'archived',
-        'arch',
-        'archve',
-        'arcivé',
-      ],
-      minSimilarity: 0.6,
-    },
-  ];
+  const queryWords = lowerQuery.split(/\s+/).filter(isComparableWord);
+  const ghostScore = queryWords.length > 0 ? ghostProductionScore(lowerQuery) : 0;
 
-  // Extraire les mots de la requête
-  const queryWords = lowerQuery.split(/\s+/);
-
-  // Pour chaque statut, chercher le meilleur match
   let bestMatch: { status: string; score: number } | null = null;
-
-  for (const status of availableStatuses) {
+  for (const status of STATUS_KEYWORDS) {
     for (const keyword of status.keywords) {
       const keywordLower = keyword.toLowerCase();
-
-      // Vérifier si le mot-clé est contenu dans la requête (match exact partiel)
       if (lowerQuery.includes(keywordLower) || keywordLower.includes(lowerQuery)) {
-        const score = 1.0;
-        if (!bestMatch || score > bestMatch.score) {
-          bestMatch = { status: status.value, score };
-          logger.warn(
-            `[Assistant] Statut détecté par match exact: "${status.value}" (keyword: "${keyword}", query: "${query}")`
-          );
-          return status.value;
-        }
+        return status.value;
       }
-
-      // Calculer la similarité avec chaque mot de la requête
-      for (const word of queryWords) {
-        if (word.length < 3) continue; // Ignorer les mots trop courts
-
-        // Exclure explicitement "projets" et "projet" pour éviter les faux positifs avec "prod"
-        if (word === 'projets' || word === 'projet') continue;
-
-        const distance = levenshteinDistance(word, keywordLower);
-        const maxLength = Math.max(word.length, keywordLower.length);
-        const similarity = 1 - distance / maxLength;
-
-        // Pour GHOST_PRODUCTION, chercher aussi des combinaisons de mots avec patterns très flexibles
-        if (status.value === 'GHOST_PRODUCTION') {
-          // Patterns très flexibles pour détecter "ghost production" même avec beaucoup de fautes
-          // "gauspraud", "gausprod", "gauspraud", "gaustprod", etc.
-          const ghostPatterns = [
-            /g[ao]?[su]?[so]?t/i, // gost, gast, gaost, gausot, etc.
-            /g[ao]?[su]?[sp]/i, // gausp, gasp, gaosp, etc.
-            /g[ao]?[su]?[sp]r/i, // gauspr, gaspr, etc.
-          ];
-
-          const prodPatterns = [
-            /\bpro[ds]+\b/i, // prod, prods (mais pas "projets")
-            /\bproduction\b/i, // production
-            /praud/i, // praud (fautes de frappe)
-            /prau/i, // prau
-            /\bprod\b/i, // prod (mot entier, pas dans "projets")
-          ];
-
-          // Vérifier toutes les combinaisons
-          // IMPORTANT: Ne pas matcher si c'est juste "projets" (sans "ghost" ou "gost")
-          const hasGhostWord = ghostPatterns.some((p) => p.test(lowerQuery));
-          const hasProdWord = prodPatterns.some((p) => p.test(lowerQuery));
-
-          // Ne détecter que si on a à la fois un pattern "ghost" ET un pattern "prod"
-          // ET que ce n'est pas juste "projets" seul
-          if (hasGhostWord && hasProdWord) {
-            // Vérifier qu'on n'a pas juste "projets" sans "ghost" avant
-            const hasGhostBeforeProd =
-              /(?:ghost|gost|gaus|gasp|gaust)\s*(?:prod|production|praud|prau)/i.test(lowerQuery);
-            if (hasGhostBeforeProd) {
-              const score = 0.8;
-              if (!bestMatch || score > bestMatch.score) {
-                bestMatch = { status: status.value, score };
-                logger.warn(
-                  `[Assistant] Statut détecté par pattern flexible: "${status.value}" (query: "${query}")`
-                );
-                return status.value;
-              }
-            }
-          }
-
-          // Pattern spécial pour "gauspraud" et variations similaires
-          if (/gaus?praud|gaus?prod|gaus?prau/i.test(lowerQuery)) {
-            const score = 0.85;
-            if (!bestMatch || score > bestMatch.score) {
-              bestMatch = { status: status.value, score };
-              logger.warn(
-                `[Assistant] Statut détecté par pattern spécial: "${status.value}" (query: "${query}")`
-              );
-              return status.value;
-            }
-          }
-        }
-
-        // Si la similarité est suffisante
-        if (similarity >= status.minSimilarity) {
-          if (!bestMatch || similarity > bestMatch.score) {
-            bestMatch = { status: status.value, score: similarity };
-          }
-        }
+      if (status.value === 'GHOST_PRODUCTION' && ghostScore > (bestMatch?.score ?? 0)) {
+        return status.value;
+      }
+      const similarity = bestSimilarity(queryWords, keywordLower);
+      if (similarity >= status.minSimilarity && similarity > (bestMatch?.score ?? 0)) {
+        bestMatch = { status: status.value, score: similarity };
       }
     }
   }
-
-  if (bestMatch) {
-    logger.warn(
-      `[Assistant] Statut détecté par similarité: "${bestMatch.status}" (score: ${bestMatch.score.toFixed(2)}, query: "${query}")`
-    );
-    return bestMatch.status;
-  }
-
-  return null;
+  return bestMatch?.status ?? null;
 }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import prisma from '@/lib/prisma';
 import { hkdf } from '@panva/hkdf';
-import { EncryptJWT, jwtDecrypt } from 'jose';
+import { jwtDecrypt } from 'jose';
 import { getImageUrl } from '@/lib/utils/getImageUrl';
 import { logger } from '@/lib/logger';
 

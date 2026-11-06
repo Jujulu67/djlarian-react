@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import type { ImageMeta } from '@/app/api/admin/images/shared';
 
@@ -13,7 +13,7 @@ export function useImageFilters(
   const [filter, setFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [sortOption, setSortOption] = useState<SortOption>('date-desc');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [requestedPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
   const [showDuplicatesState, setShowDuplicatesState] = useState(initialShowDuplicates);
 
@@ -52,25 +52,17 @@ export function useImageFilters(
   }, [groupedImages, showDuplicatesState]);
 
   // Pagination + cache trié
-  const paginatedGroups = useMemo(() => {
-    const sorted = getSortedGroups(filteredGroups, sortOption, showDuplicatesState);
-    const start = (currentPage - 1) * itemsPerPage;
-    const end = start + itemsPerPage;
-    return sorted.slice(start, end);
-  }, [filteredGroups, sortOption, showDuplicatesState, currentPage, itemsPerPage]);
-
-  const totalPages = useMemo(
-    () =>
-      Math.ceil(
-        getSortedGroups(filteredGroups, sortOption, showDuplicatesState).length / itemsPerPage
-      ),
-    [filteredGroups, sortOption, showDuplicatesState, itemsPerPage]
+  const sortedGroups = useMemo(
+    () => getSortedGroups(filteredGroups, sortOption, showDuplicatesState),
+    [filteredGroups, sortOption, showDuplicatesState]
   );
-
+  const totalPages = Math.ceil(sortedGroups.length / itemsPerPage);
   // Après une suppression, ne pas rester sur une page qui n'existe plus
-  useEffect(() => {
-    if (totalPages > 0 && currentPage > totalPages) setCurrentPage(totalPages);
-  }, [currentPage, totalPages]);
+  const currentPage = totalPages > 0 ? Math.min(requestedPage, totalPages) : requestedPage;
+  const paginatedGroups = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return sortedGroups.slice(start, start + itemsPerPage);
+  }, [sortedGroups, currentPage, itemsPerPage]);
 
   // Regroupement des familles de doublons (par taille d'ori)
   const doublonFamilies = useMemo(() => {

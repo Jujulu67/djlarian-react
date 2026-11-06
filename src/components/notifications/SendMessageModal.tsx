@@ -212,6 +212,7 @@ export function SendMessageModal({
       {/* Modal */}
       <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
         <div
+          role="presentation"
           className="w-full max-w-md bg-gradient-to-br from-gray-900/95 via-gray-800/95 to-gray-900/95 backdrop-blur-xl border border-purple-500/30 rounded-xl shadow-2xl max-h-[90vh] overflow-y-auto v2:bg-none v2:surface-3 v2:rounded-3xl"
           onClick={(e) => e.stopPropagation()}
         >

@@ -270,7 +270,6 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
       uniqueRows.push(row);
     }
 
-    const totalDuplicates = duplicatesInFileCount + duplicatesInDbCount;
     const projectsToImport = overwriteDuplicates ? [...uniqueRows, ...rowsToOverwrite] : uniqueRows;
 
     if (projectsToImport.length === 0) {

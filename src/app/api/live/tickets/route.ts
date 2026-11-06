@@ -18,7 +18,7 @@ const createTicketSchema = z.object({
  * GET /api/live/tickets
  * Récupère les tickets actifs de l'utilisateur
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const { session, error } = await requireAuth({
       requireUserId: true,

@@ -1,6 +1,5 @@
 'use client';
 
-import { Filter } from 'lucide-react';
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -87,7 +86,6 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
 
   // Ref pour le debounce
   const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const fetchCountsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   // Ref pour suivre les mises à jour en cours et éviter les race conditions
   const updatingProjectsRef = useRef<Set<string>>(new Set());
 
@@ -197,7 +195,7 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
     } finally {
       setIsLoading(false);
     }
-  }, [sessionStatus, session, router]);
+  }, [sessionStatus, session, router, statusFilter]);
 
   // Filtrer côté client quand on change de filtre (pas besoin de refaire un appel API)
   useEffect(() => {

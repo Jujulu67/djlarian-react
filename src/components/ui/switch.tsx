@@ -8,15 +8,15 @@ interface SwitchProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 const Switch = React.forwardRef<HTMLInputElement, SwitchProps>(
-  ({ className, onCheckedChange, checked, ...props }, ref) => {
+  ({ className, onCheckedChange, onChange, checked, ...props }, ref) => {
     return (
-      <div
+      // Le label transmet le clic à la case (sr-only) : clavier et lecteurs d'écran inclus
+      <label
         className={cn(
           'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
           checked ? 'bg-purple-600' : 'bg-gray-700',
           className
         )}
-        onClick={() => onCheckedChange?.(!checked)}
       >
         <span
           className={cn(
@@ -29,10 +29,13 @@ const Switch = React.forwardRef<HTMLInputElement, SwitchProps>(
           className="sr-only"
           ref={ref}
           checked={checked}
-          onChange={(e) => onCheckedChange?.(e.target.checked)}
           {...props}
+          onChange={(e) => {
+            onCheckedChange?.(e.target.checked);
+            onChange?.(e);
+          }}
         />
-      </div>
+      </label>
     );
   }
 );

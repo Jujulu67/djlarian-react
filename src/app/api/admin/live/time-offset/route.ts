@@ -9,7 +9,7 @@ import { logger } from '@/lib/logger';
  * GET /api/admin/live/time-offset
  * Récupère l'offset de temps simulé
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const { error: authError } = await requireAdmin({
       onAnonymous: () => createUnauthorizedResponse('Non autorisé'),
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
  * DELETE /api/admin/live/time-offset
  * Réinitialise l'offset de temps à 0
  */
-export async function DELETE(request: NextRequest) {
+export async function DELETE() {
   try {
     const { error: authError } = await requireAdmin({
       onAnonymous: () => createUnauthorizedResponse('Non autorisé'),

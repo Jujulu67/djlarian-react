@@ -150,21 +150,6 @@ export const deleteFromBlob = async (url: string): Promise<void> => {
   }
 };
 
-/**
- * Obtenir l'URL publique d'un fichier Blob
- * Note: Avec Vercel Blob, l'URL est retournée directement par put()
- * Cette fonction est gardée pour compatibilité avec l'ancien code
- */
-export const getBlobPublicUrl = (url: string): string => {
-  // Si c'est déjà une URL complète, la retourner telle quelle
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    return url;
-  }
-  // Sinon, c'est probablement une clé, on retourne une URL relative
-  // (normalement ça ne devrait pas arriver avec Vercel Blob)
-  return url;
-};
-
 // OPTIMISATION: Suppression de listBlobFiles() et getBlobMetadata()
 // Ces fonctions utilisaient list() et head() (Advanced Operations coûteuses)
 // Elles ont été remplacées par des requêtes DB pour éviter les Advanced Operations

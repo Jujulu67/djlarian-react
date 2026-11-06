@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
 
     // Valider externalLink si fourni
     if (externalLink && externalLink.trim() !== '') {
-      const { isValidUrl, sanitizeUrl } = await import('@/lib/utils/validateUrl');
+      const { isValidUrl } = await import('@/lib/utils/validateUrl');
       if (!isValidUrl(externalLink, false)) {
         return createBadRequestResponse("L'URL externe fournie n'est pas valide");
       }

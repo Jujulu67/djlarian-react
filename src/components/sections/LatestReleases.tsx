@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { AlertTriangle, ArrowRight, Loader } from 'lucide-react';
+import { AlertTriangle, ArrowRight } from 'lucide-react';
 import { Music } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';

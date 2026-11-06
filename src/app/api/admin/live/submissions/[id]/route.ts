@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { z } from 'zod';
 
 import { requireAdmin } from '@/lib/api/requireAuth';
@@ -12,6 +12,7 @@ import {
 } from '@/lib/api/responseHelpers';
 import { handleApiError } from '@/lib/api/errorHandler';
 import { LiveSubmissionStatus } from '@/types/live';
+import { Prisma } from '@prisma/client';
 
 const updateSubmissionSchema = z
   .object({
@@ -88,7 +89,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     // Construire les données de mise à jour
-    const updateData: any = {
+    const updateData: Prisma.LiveSubmissionUpdateInput = {
       updatedAt: new Date(),
     };
 

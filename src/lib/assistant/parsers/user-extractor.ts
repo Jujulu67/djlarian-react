@@ -21,9 +21,9 @@ export async function findUserByName(userName: string) {
 export function extractUserNameFromQuery(query: string): string | null {
   // Chercher des patterns comme "pour Larian67", "de Larian67", "Larian67", etc.
   const patterns = [
-    /(?:pour|de|à|avec|les projets de)\s+([A-Za-z0-9_]+)/i,
-    /^([A-Za-z0-9_]+)\s+(?:a|à|possède)/i,
-    /utilisateur\s+([A-Za-z0-9_]+)/i,
+    /(?:pour|de|à|avec|les projets de)\s+(\w+)/i,
+    /^(\w+)\s+(?:a|à|possède)/i,
+    /utilisateur\s+(\w+)/i,
   ];
 
   for (const pattern of patterns) {

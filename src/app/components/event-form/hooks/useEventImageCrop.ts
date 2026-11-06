@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useEffectEvent, useState } from 'react';
 import { toast } from 'sonner';
 
 import { logger } from '@/lib/logger';
@@ -30,13 +30,17 @@ export function useEventImageCrop({
   const [originalImageFile, setOriginalImageFile] = useState<File | null>(null);
   const [croppedImageFile, setCroppedImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>(imagePreviewProp ?? '');
-  const [cachedOriginalFile, setCachedOriginalFile] = useState<File | null>(null);
+  const [loadedOriginalFile, setCachedOriginalFile] = useState<File | null>(null);
   const [pendingImageChange, setPendingImageChange] = useState(false);
+  // Sans image et sans changement en attente, le cache est considéré comme vide
+  const cachedOriginalFile = formData.imageId || pendingImageChange ? loadedOriginalFile : null;
 
-  // Synchroniser le state local avec la prop imagePreview
-  useEffect(() => {
+  // Synchroniser le state local avec la prop imagePreview (ajustement pendant le rendu, sans effet)
+  const [syncedPreviewProp, setSyncedPreviewProp] = useState(imagePreviewProp);
+  if (imagePreviewProp !== syncedPreviewProp) {
+    setSyncedPreviewProp(imagePreviewProp);
     setImagePreview(imagePreviewProp ?? '');
-  }, [imagePreviewProp]);
+  }
 
   // Ajout de l'écouteur d'événement pour le recadrage
   React.useEffect(() => {
@@ -125,9 +129,6 @@ export function useEventImageCrop({
           logger.warn('[CROP] Aucune URL originale trouvée');
         }
       })();
-    } else {
-      setCachedOriginalFile(null);
-      logger.debug("[CROP] Pas d'imageId, cache vidé");
     }
     return () => {
       isMounted = false;
@@ -195,11 +196,13 @@ export function useEventImageCrop({
     logger.debug('[CROP] Image supprimée, cache vidé');
   };
 
+  const notifyImageFiles = useEffectEvent((original: File | null, cropped: File | null) => {
+    onImageFilesChange?.(original, cropped);
+  });
+
   // À chaque changement de fichier, notifier le parent
   useEffect(() => {
-    if (typeof onImageFilesChange === 'function') {
-      onImageFilesChange(originalImageFile, croppedImageFile);
-    }
+    notifyImageFiles(originalImageFile, croppedImageFile);
   }, [originalImageFile, croppedImageFile]);
 
   // Calcul de l'activation du crop

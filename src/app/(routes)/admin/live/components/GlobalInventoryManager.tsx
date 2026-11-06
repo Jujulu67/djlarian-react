@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState, useEffect, useCallback } from 'react';
 import Modal from '@/components/ui/Modal';
 import { InventoryContent } from './InventoryContent';
@@ -110,11 +111,14 @@ export function GlobalInventoryManager({ isOpen, onClose }: GlobalInventoryManag
                                   : 'bg-black/40 border-transparent hover:border-purple-500/30 hover:bg-white/5'
                               } group`}
                             >
-                              <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-purple-900/30 flex items-center justify-center border border-purple-500/20 group-hover:border-purple-500/50 overflow-hidden shrink-0">
+                              <div className="relative overflow-hidden h-8 w-8 md:h-10 md:w-10 rounded-full bg-purple-900/30 flex items-center justify-center border border-purple-500/20 group-hover:border-purple-500/50 overflow-hidden shrink-0">
                                 {user.image ? (
-                                  <img
+                                  <Image
                                     src={user.image}
                                     alt={user.name || ''}
+                                    fill
+                                    sizes="40px"
+                                    unoptimized
                                     className="h-full w-full object-cover"
                                   />
                                 ) : (

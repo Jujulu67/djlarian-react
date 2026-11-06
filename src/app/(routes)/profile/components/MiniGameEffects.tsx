@@ -1,8 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { useEffect, useState, useCallback } from 'react';
-import { Trophy, Sparkles, Star } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 // ============================================
 // ROULETTE BALL ANIMATION
@@ -13,7 +12,7 @@ interface RouletteBallProps {
   onStop: () => void;
 }
 
-export function RouletteBall({ isSpinning, wheelRotation, onStop }: RouletteBallProps) {
+export function RouletteBall({ isSpinning, onStop }: RouletteBallProps) {
   const [ballAngle, setBallAngle] = useState(0);
   const [ballRadius, setBallRadius] = useState(140);
   const [phase, setPhase] = useState<'idle' | 'fast' | 'slow' | 'bounce' | 'stopped'>('idle');

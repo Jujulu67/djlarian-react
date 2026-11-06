@@ -36,6 +36,114 @@ function truncateMessage(message: string, maxTokens: number): string {
   return message.substring(0, maxChars - 3) + '...';
 }
 
+const CONSTRAINT_PATTERN =
+  /(?:contrainte|constraint|limite|limit|budget|salaire|€|\$|ans|années|years)/i;
+
+// « je préfère X », « j'aime X », « mon choix est X », « X est mon préféré »…
+const PREFERENCE_PATTERNS = [
+  /(?:je\s+pr[ée]f[èe]re|j['’]?aime|mon\s+choix|je\s+dirais|je\s+choisirais)\s+([^.!?]+)/i,
+  /(?<![^.!?])([^.!?]+)\s+(?:est\s+mon\s+pr[ée]f[èe]r[ée]|est\s+ma\s+pr[ée]f[èe]r[ée]e)/i,
+  /(?:pr[ée]f[èe]re|choisirais)\s+(?:l['’]?|le\s+|la\s+)?([^.!?]+)/i,
+];
+
+// Mots de liaison en fin de préférence
+const PREFERENCE_TAIL_PATTERN =
+  /(?<!\s)\s+(car|parce\s+que|car|mais|donc|alors|ensuite|après|avant).*$/i;
+
+const MAX_MEMORY_ITEMS = 5;
+
+const tokensOf = (text?: string) => (text ? estimateTokens(text) : 0);
+
+const isFactual = (text: string) => /\d/.test(text) || CONSTRAINT_PATTERN.test(text);
+
+/** Fait objectif d'un échange (nombres, dates, contraintes). */
+function extractFact(question: string, answer: string): string | null {
+  if (!isFactual(answer)) return null;
+  const factualPart = answer.split(/[.!?]/).filter(isFactual).slice(0, 2).join('. ');
+  return factualPart.length > 10 && factualPart.length < 100
+    ? `${question} → ${factualPart}`
+    : null;
+}
+
+function findPreference(answer: string): string | null {
+  for (const pattern of PREFERENCE_PATTERNS) {
+    const preference = answer
+      .match(pattern)?.[1]
+      ?.trim()
+      .replace(PREFERENCE_TAIL_PATTERN, '')
+      .trim();
+    if (preference && preference.length > 2 && preference.length < 50) return preference;
+  }
+  return null;
+}
+
+/** Préférence exprimée, ou à défaut un résumé très court s'il n'y a aucun fait. */
+function extractNote(question: string, answer: string): string | null {
+  const preference = findPreference(answer);
+  if (preference) return `${question} → ${preference}`;
+  if (isFactual(answer)) return null;
+  const firstSentence = answer.split(/[.!?]/)[0].trim();
+  return firstSentence.length > 10 && firstSentence.length < 80
+    ? `${question} → ${firstSentence}`
+    : null;
+}
+
+/** Sépare les anciens échanges (user, assistant) en faits et en notes interprétatives. */
+function collectMemoryItems(oldMessages: ConversationMessage[]) {
+  const factual: string[] = [];
+  const interpretative: string[] = [];
+  for (let i = 0; i < oldMessages.length - 1; i += 2) {
+    if (oldMessages[i].role !== 'user' || oldMessages[i + 1]?.role !== 'assistant') continue;
+    const question = truncateMessage(oldMessages[i].content, 40);
+    const answer = truncateMessage(oldMessages[i + 1].content, 60);
+    const fact = extractFact(question, answer);
+    if (fact) factual.push(fact);
+    const note = extractNote(question, answer);
+    if (note) interpretative.push(note);
+  }
+  return { factual, interpretative };
+}
+
+function joinMemoryItems(items: string[], maxTokens: number): string | undefined {
+  if (items.length === 0) return undefined;
+  const suffix = items.length > MAX_MEMORY_ITEMS ? '...' : '';
+  const joined = items.slice(0, MAX_MEMORY_ITEMS).join(' | ') + suffix;
+  return estimateTokens(joined) > maxTokens ? truncateMessage(joined, maxTokens) : joined;
+}
+
+/** Ancien format de résumé, quand les échanges ne se séparent pas en faits et notes. */
+function buildTopicSummary(oldMessages: ConversationMessage[], maxTokens: number): string {
+  const userTopics = oldMessages
+    .filter((m) => m.role === 'user')
+    .map((m) => truncateMessage(m.content, 50));
+  const assistantTopics = oldMessages
+    .filter((m) => m.role !== 'user')
+    .map((m) => truncateMessage(m.content, 50));
+  const userSummary =
+    userTopics.length > 0
+      ? `L'utilisateur a mentionné : ${userTopics.slice(0, 3).join(', ')}${userTopics.length > 3 ? '...' : ''}`
+      : '';
+  const assistantSummary =
+    assistantTopics.length > 0
+      ? `L'assistant a répondu sur : ${assistantTopics.slice(0, 2).join(', ')}${assistantTopics.length > 2 ? '...' : ''}`
+      : '';
+  const summary = [userSummary, assistantSummary].filter(Boolean).join('. ');
+  return estimateTokens(summary) > maxTokens ? truncateMessage(summary, maxTokens) : summary;
+}
+
+/** Garde les messages les plus récents qui tiennent dans le budget de tokens. */
+function limitRecentMessages(messages: ConversationMessage[], targetTokens: number) {
+  let tokens = 0;
+  const limited: ConversationMessage[] = [];
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msgTokens = estimateTokens(messages[i].content);
+    if (tokens + msgTokens > targetTokens) break;
+    limited.unshift(messages[i]);
+    tokens += msgTokens;
+  }
+  return { limited, tokens };
+}
+
 /**
  * Prépare le contexte conversationnel avec une stratégie hybride
  * - Garde les N derniers messages complets (fenêtre glissante)
@@ -71,163 +179,33 @@ export function prepareConversationContext(
     content: truncateMessage(msg.content, maxMessageTokens),
   }));
 
-  // Calculer les tokens des messages récents
-  let totalTokens = truncatedRecent.reduce((sum, msg) => sum + estimateTokens(msg.content), 0);
-
-  // Si on a des messages anciens, créer un résumé séparé en mémoire factuelle et notes interprétatives
+  // Résumé des messages anciens, séparé en mémoire factuelle et notes interprétatives
   let summary: string | undefined;
   let factualMemory: string | undefined;
   let interpretativeNotes: string | undefined;
   if (oldMessages.length > 0) {
-    // Extraire les faits (nombres, dates, contraintes, informations objectives)
-    const factualItems: string[] = [];
-    // Extraire les préférences et opinions (interprétatif)
-    const interpretativeItems: string[] = [];
-
-    // Parcourir les messages par paires (user, assistant)
-    for (let i = 0; i < oldMessages.length - 1; i += 2) {
-      if (oldMessages[i].role === 'user' && oldMessages[i + 1]?.role === 'assistant') {
-        const question = truncateMessage(oldMessages[i].content, 40);
-        const answer = truncateMessage(oldMessages[i + 1].content, 60);
-
-        // Extraire les faits (nombres, dates, contraintes)
-        const numberPattern = /\d+/g;
-        const hasNumbers = numberPattern.test(answer);
-        const constraintPattern =
-          /(?:contrainte|constraint|limite|limit|budget|salaire|€|\$|ans|années|years)/i;
-        const hasConstraints = constraintPattern.test(answer);
-
-        if (hasNumbers || hasConstraints) {
-          // Extraire la partie factuelle (nombres, dates, contraintes)
-          const factualPart = answer
-            .split(/[.!?]/)
-            .filter((sentence) => numberPattern.test(sentence) || constraintPattern.test(sentence))
-            .slice(0, 2)
-            .join('. ');
-          if (factualPart.length > 10 && factualPart.length < 100) {
-            factualItems.push(`${question} → ${factualPart}`);
-          }
-        }
-
-        // Extraire les préférences importantes avec plusieurs patterns
-        // Patterns pour capturer : "je préfère X", "j'aime X", "mon choix est X", "je dirais X", "X est mon préféré"
-        const preferencePatterns = [
-          /(?:je\s+pr[ée]f[èe]re|j['']?aime|mon\s+choix|je\s+dirais|je\s+choisirais)\s+([^.!?]+)/i,
-          /([^.!?]+)\s+(?:est\s+mon\s+pr[ée]f[èe]r[ée]|est\s+ma\s+pr[ée]f[èe]r[ée]e)/i,
-          /(?:pr[ée]f[èe]re|choisirais)\s+(?:l['']?|le\s+|la\s+)?([^.!?]+)/i,
-        ];
-
-        let preferenceFound = false;
-        for (const pattern of preferencePatterns) {
-          const match = answer.match(pattern);
-          if (match && match[1]) {
-            const preference = match[1].trim();
-            // Nettoyer la préférence (enlever les mots de liaison en fin)
-            const cleanedPreference = preference
-              .replace(/\s+(car|parce\s+que|car|mais|donc|alors|ensuite|après|avant).*$/i, '')
-              .trim();
-            if (cleanedPreference.length > 2 && cleanedPreference.length < 50) {
-              interpretativeItems.push(`${question} → ${cleanedPreference}`);
-              preferenceFound = true;
-              break;
-            }
-          }
-        }
-
-        if (!preferenceFound && !hasNumbers && !hasConstraints) {
-          // Si pas de préférence claire ni de faits, garder un résumé très court (première phrase)
-          const firstSentence = answer.split(/[.!?]/)[0].trim();
-          if (firstSentence.length > 10 && firstSentence.length < 80) {
-            interpretativeItems.push(`${question} → ${firstSentence}`);
-          }
-        }
-      }
-    }
-
-    // Construire la mémoire factuelle
-    if (factualItems.length > 0) {
-      factualMemory = factualItems.slice(0, 5).join(' | ');
-      if (factualItems.length > 5) {
-        factualMemory += '...';
-      }
-      // Limiter à maxSummaryTokens / 2 pour laisser de la place aux notes interprétatives
-      if (estimateTokens(factualMemory) > maxSummaryTokens / 2) {
-        factualMemory = truncateMessage(factualMemory, maxSummaryTokens / 2);
-      }
-      totalTokens += estimateTokens(factualMemory);
-    }
-
-    // Construire les notes interprétatives
-    if (interpretativeItems.length > 0) {
-      interpretativeNotes = interpretativeItems.slice(0, 5).join(' | ');
-      if (interpretativeItems.length > 5) {
-        interpretativeNotes += '...';
-      }
-      // Limiter à maxSummaryTokens / 2
-      if (estimateTokens(interpretativeNotes) > maxSummaryTokens / 2) {
-        interpretativeNotes = truncateMessage(interpretativeNotes, maxSummaryTokens / 2);
-      }
-      totalTokens += estimateTokens(interpretativeNotes);
-    }
-
-    // Fallback: si pas de séparation possible, utiliser l'ancien format pour compatibilité
+    const items = collectMemoryItems(oldMessages);
+    // Chaque section a la moitié du budget du résumé
+    factualMemory = joinMemoryItems(items.factual, maxSummaryTokens / 2);
+    interpretativeNotes = joinMemoryItems(items.interpretative, maxSummaryTokens / 2);
     if (!factualMemory && !interpretativeNotes) {
-      const userTopics: string[] = [];
-      const assistantTopics: string[] = [];
-
-      oldMessages.forEach((msg) => {
-        const truncated = truncateMessage(msg.content, 50);
-        if (msg.role === 'user') {
-          userTopics.push(truncated);
-        } else {
-          assistantTopics.push(truncated);
-        }
-      });
-
-      const userSummary =
-        userTopics.length > 0
-          ? `L'utilisateur a mentionné : ${userTopics.slice(0, 3).join(', ')}${userTopics.length > 3 ? '...' : ''}`
-          : '';
-      const assistantSummary =
-        assistantTopics.length > 0
-          ? `L'assistant a répondu sur : ${assistantTopics.slice(0, 2).join(', ')}${assistantTopics.length > 2 ? '...' : ''}`
-          : '';
-
-      summary = [userSummary, assistantSummary].filter(Boolean).join('. ');
-      if (estimateTokens(summary) > maxSummaryTokens) {
-        summary = truncateMessage(summary, maxSummaryTokens);
-      }
-      totalTokens += estimateTokens(summary);
+      summary = buildTopicSummary(oldMessages, maxSummaryTokens);
     }
   }
+  const memoryTokens = tokensOf(summary) + tokensOf(factualMemory) + tokensOf(interpretativeNotes);
+  const totalTokens =
+    truncatedRecent.reduce((sum, msg) => sum + estimateTokens(msg.content), 0) + memoryTokens;
 
-  // Si on dépasse la limite totale, réduire progressivement
+  // Si on dépasse la limite totale, réduire le nombre de messages récents
   if (totalTokens > maxTotalTokens) {
-    // Réduire d'abord le nombre de messages récents
-    const targetTokens = maxTotalTokens - (summary ? estimateTokens(summary) : 0);
-    let currentTokens = 0;
-    const limitedRecent: ConversationMessage[] = [];
-
-    // Ajouter les messages un par un jusqu'à atteindre la limite
-    for (let i = truncatedRecent.length - 1; i >= 0; i--) {
-      const msg = truncatedRecent[i];
-      const msgTokens = estimateTokens(msg.content);
-      if (currentTokens + msgTokens <= targetTokens) {
-        limitedRecent.unshift(msg);
-        currentTokens += msgTokens;
-      } else {
-        break;
-      }
-    }
-
+    const { limited, tokens } = limitRecentMessages(
+      truncatedRecent,
+      maxTotalTokens - tokensOf(summary)
+    );
     return {
       summary,
-      recentMessages: limitedRecent,
-      totalTokens:
-        currentTokens +
-        (summary ? estimateTokens(summary) : 0) +
-        (factualMemory ? estimateTokens(factualMemory) : 0) +
-        (interpretativeNotes ? estimateTokens(interpretativeNotes) : 0),
+      recentMessages: limited,
+      totalTokens: tokens + memoryTokens,
       factualMemory,
       interpretativeNotes,
     };

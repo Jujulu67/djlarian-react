@@ -12,6 +12,7 @@ import {
   parseMetadata,
 } from '../notificationsUtils';
 import { logger } from '@/lib/logger';
+import { onActivateKey } from '@/lib/a11y';
 
 interface NotificationItemProps {
   notification: Notification;
@@ -44,8 +45,10 @@ export function NotificationItem({
   const hasReplies = notification.replies && notification.replies.length > 0;
 
   return (
+    // Clic sur toute la ligne = raccourci souris ; au clavier, le bouton du thread fait la même chose
     <div
       key={notification.id}
+      role="presentation"
       onClick={async () => {
         // Pour les messages avec réponses, toggle le thread au clic sur la div
         if (
@@ -242,9 +245,16 @@ export function NotificationItem({
       {/* Afficher les réponses en thread (collapse/expand) */}
       {hasReplies && notification.replies && (
         <div
+          role="button"
+          tabIndex={0}
+          aria-expanded={isThreadExpanded}
           onClick={(e) => {
             e.stopPropagation();
             onToggleThread(notification.id);
+          }}
+          onKeyDown={(e) => {
+            e.stopPropagation();
+            onActivateKey(() => onToggleThread(notification.id))(e);
           }}
           className="mt-2 flex items-center gap-2 text-xs text-gray-500 cursor-pointer hover:text-gray-400 transition-colors"
         >

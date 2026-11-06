@@ -5,6 +5,7 @@ import { calculateTicketWeight, calculateMultiplier } from '@/lib/live/calculati
 import type { UserTicket, UserLiveItem } from '@/types/live';
 import { TicketSource, LiveItemType } from '@/types/live';
 import { logger } from '@/lib/logger';
+import { secureRandom } from '@/lib/utils/random';
 
 export type AdminLiveActionsState = {
   downloadsEnabled: boolean;
@@ -108,31 +109,6 @@ export function useAdminLiveActions(
     }
   }, []);
 
-  const refreshAllSockets = useCallback(async () => {
-    try {
-      // TODO: Implémenter le refresh des sockets
-      toast.success('Sockets rafraîchis');
-    } catch (error) {
-      toast.error('Erreur lors du rafraîchissement des sockets');
-      logger.error(error);
-    }
-  }, []);
-
-  const addLoyalty = useCallback(async () => {
-    // TODO: Implémenter l'ajout de loyalty
-    toast.info('Fonctionnalité à implémenter');
-  }, []);
-
-  const sendDiscordNotification = useCallback(async () => {
-    // TODO: Implémenter la notification Discord
-    toast.info('Fonctionnalité à implémenter');
-  }, []);
-
-  const pasteNgrokUrl = useCallback(async () => {
-    // TODO: Implémenter le paste ngrok URL
-    toast.info('Fonctionnalité à implémenter');
-  }, []);
-
   const getAllNames = useCallback(async () => {
     try {
       // Récupérer tous les noms uniques des utilisateurs
@@ -181,16 +157,6 @@ export function useAdminLiveActions(
       logger.error(error);
     }
   }, [submissions]);
-
-  const editGenres = useCallback(async () => {
-    // TODO: Implémenter l'édition des genres
-    toast.info('Fonctionnalité à implémenter');
-  }, []);
-
-  const deleteNgrok = useCallback(async () => {
-    // TODO: Implémenter la suppression ngrok
-    toast.info('Fonctionnalité à implémenter');
-  }, []);
 
   const downloadAll = useCallback(async () => {
     try {
@@ -413,7 +379,7 @@ export function useAdminLiveActions(
       }
 
       // Sélection aléatoire pondérée parmi les éligibles
-      let randomValue = Math.random() * totalWeight;
+      let randomValue = secureRandom() * totalWeight;
       let selectedSubmission = eligibleSubmissions[0];
 
       for (const item of eligibleWeightedSubmissions) {
@@ -503,6 +469,7 @@ export function useAdminLiveActions(
                       errorMessage =
                         errorData.error || errorData.message || JSON.stringify(errorData);
                     } catch (parseError) {
+                      logger.warn("Réponse d'erreur illisible", parseError);
                       errorMessage = `Erreur ${consumeResponse.status}: ${consumeResponse.statusText}`;
                     }
                     logger.error('Erreur lors de la consommation du Queue Skip:', {
@@ -543,7 +510,7 @@ export function useAdminLiveActions(
         logger.error(error);
       }
     },
-    [updateSubmissionRolled, updateSubmissionPinned, fetchSubmissions, submissions]
+    [updateSubmissionRolled, updateSubmissionPinned, fetchSubmissions, submissions, queueSkipItemId]
   );
 
   const handleCloseWheelModal = useCallback(async () => {
@@ -615,14 +582,8 @@ export function useAdminLiveActions(
   return {
     actions,
     updateAction,
-    refreshAllSockets,
-    addLoyalty,
-    sendDiscordNotification,
-    pasteNgrokUrl,
     getAllNames,
     getRolledNames,
-    editGenres,
-    deleteNgrok,
     rollRandom,
     downloadAll,
     // État et handlers pour la modale de roue

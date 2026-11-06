@@ -30,7 +30,6 @@ export function useReleaseImport({
   setReleases,
   setSelectedReleases,
   fetchTracks,
-  activeTab,
   invalidateCache,
 }: UseReleaseImportParams) {
   const [showVerifyModal, setShowVerifyModal] = useState(false);

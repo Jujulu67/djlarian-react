@@ -36,7 +36,6 @@ export default async function AdminPage() {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
   const [
-    eventsCount,
     recentEvents,
     tracksCount,
     usersCount,
@@ -49,7 +48,6 @@ export default async function AdminPage() {
     licensesCount,
   ] = await Promise.all([
     // Statistiques événements
-    prisma.event.count(),
     prisma.event.count({
       where: {
         createdAt: {

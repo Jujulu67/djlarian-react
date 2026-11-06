@@ -3,27 +3,21 @@
 import { format, isPast, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {
-  Calendar,
   Clock,
-  MapPin,
   Euro,
   ExternalLink,
   ArrowLeft,
-  Share2,
   Calendar as CalendarIcon,
-  CheckCircle,
-  XCircle,
   Loader2,
   AlertCircle,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import {
   FaCalendarAlt,
   FaMapMarkerAlt,
-  FaTicketAlt,
   FaShareAlt,
   FaFacebook,
   FaTwitter,
@@ -82,13 +76,10 @@ type Event = {
 
 export default function EventDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const eventId = params.id as string;
   const isV2 = useUiVersion() !== 'legacy';
 
   // Récupérer le paramètre de date depuis l'URL
-  const [searchParams, setSearchParams] = useState<URLSearchParams | null>(null);
-  const [virtualDate, setVirtualDate] = useState<string | null>(null);
 
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
@@ -103,14 +94,12 @@ export default function EventDetailPage() {
   useEffect(() => {
     // Récupérer les paramètres de l'URL d'abord
     const url = new URL(window.location.href);
-    setSearchParams(url.searchParams);
 
     const dateParam = url.searchParams.get('date');
     let actualVirtualDate = null;
 
     if (dateParam) {
       actualVirtualDate = dateParam;
-      setVirtualDate(dateParam);
       logger.debug(`Virtual date from URL: ${dateParam}`);
     }
 
@@ -244,7 +233,7 @@ export default function EventDetailPage() {
         break;
       case 'twitter':
         window.open(
-          `https://twitter.com/intent/tweet?url=${encodeURIComponent(eventUrl)}&text=${encodeURIComponent(`Découvrez cet événement : ${eventTitle}`)}`,
+          `https://twitter.com/intent/tweet?url=${encodeURIComponent(eventUrl)}&text=${encodeURIComponent('Découvrez cet événement : ' + eventTitle)}`,
           '_blank'
         );
         break;

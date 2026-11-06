@@ -1,7 +1,7 @@
 'use client';
 
 import { ChevronDown } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useEffectEvent } from 'react';
 import { createPortal } from 'react-dom';
 
 interface GlassSelectOption {
@@ -147,11 +147,13 @@ export const GlassSelect = ({
     setDropdownPosition({ left: triggerRect.left, top: triggerRect.bottom + 4 });
   };
 
+  const refreshDropdownLayout = useEffectEvent(updateDropdownLayout);
+
   useEffect(() => {
     if (isOpen) {
-      updateDropdownLayout();
-      const handleResize = () => updateDropdownLayout();
-      const handleScroll = () => updateDropdownLayout();
+      refreshDropdownLayout();
+      const handleResize = () => refreshDropdownLayout();
+      const handleScroll = () => refreshDropdownLayout();
       window.addEventListener('resize', handleResize);
       window.addEventListener('scroll', handleScroll, true);
       return () => {

@@ -18,7 +18,7 @@ const parseMarkdownInline = (text: string): React.ReactNode => {
   let key = 0;
 
   // Pattern pour les liens [texte](url)
-  const linkPattern = /\[([^\]]+)\]\(([^)]+)\)/g;
+  const linkPattern = /\[([^[\]]+)\]\(([^()]+)\)/g;
   let linkMatch;
   const linkMatches: Array<{ start: number; end: number; text: string; url: string }> = [];
 
@@ -227,7 +227,6 @@ export const ProjectNoteEditor = ({
     if ((e.ctrlKey || e.metaKey) && e.key === 'i') {
       e.preventDefault();
       handleItalic();
-      return;
     }
   };
 

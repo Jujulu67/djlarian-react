@@ -64,7 +64,6 @@ export function handleListCommand(
     scopeSource = 'ExplicitFilter';
     effectiveFilter = {
       ...filters,
-      // TODO: Détecter sortBy et sortDirection depuis la requête si nécessaire
     };
     const { filtered } = applyProjectFilterAndSort(projects, effectiveFilter);
     scopedProjects = filtered;

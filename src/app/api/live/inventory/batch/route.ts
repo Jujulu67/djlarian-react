@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { requireAuth } from '@/lib/api/requireAuth';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
+import type { Prisma } from '@prisma/client';
 import { createSuccessResponse, createUnauthorizedResponse } from '@/lib/api/responseHelpers';
 import { handleApiError } from '@/lib/api/errorHandler';
 import { createDbPerformanceLogger } from '@/lib/db-performance';
@@ -33,6 +34,149 @@ type BatchActionResult = {
  * POST /api/live/inventory/batch
  * Traite plusieurs actions d'inventaire en une seule transaction
  */
+type UserItem = Prisma.UserLiveItemGetPayload<{ include: { LiveItem: true } }>;
+
+interface ActionCounts {
+  activate: number;
+  deactivate: number;
+  userItem: UserItem;
+}
+
+interface ItemUpdate {
+  id: string;
+  newActivatedQuantity: number;
+  becomesInactive: boolean;
+  wasInactive: boolean;
+}
+
+const QUEUE_SKIP_LIMIT_ERROR = 'Un seul Queue Skip peut être activé à la fois';
+
+function isQueueSkip(item: UserItem): boolean {
+  const name = item.LiveItem?.name?.toLowerCase() || '';
+  return (
+    item.LiveItem?.type === 'SKIP_QUEUE' ||
+    name.includes('skip queue') ||
+    name.includes('queue skip')
+  );
+}
+
+/** Autant de résultats identiques que d'actions du même type. */
+function repeatResult(count: number, result: BatchActionResult): BatchActionResult[] {
+  return Array.from({ length: count }, () => ({ ...result }));
+}
+
+/** Compte les actions par item pour raisonner sur le changement net. */
+function countActions(
+  actions: Array<{ itemId: string; action: string }>,
+  itemsMap: Map<string, UserItem>
+): Map<string, ActionCounts> {
+  const actionCounts = new Map<string, ActionCounts>();
+  for (const { itemId, action } of actions) {
+    const userItem = itemsMap.get(itemId);
+    if (!userItem) continue;
+    const counts = actionCounts.get(itemId) ?? { activate: 0, deactivate: 0, userItem };
+    if (action === 'activate') counts.activate++;
+    else counts.deactivate++;
+    actionCounts.set(itemId, counts);
+  }
+  return actionCounts;
+}
+
+/** Erreur empêchant toute activation de cet item, s'il y en a une. */
+function findActivationError(userItem: UserItem, userItems: UserItem[]): string | null {
+  const currentActivated = userItem.activatedQuantity || 0;
+  if (currentActivated >= userItem.quantity) return 'Tous les items sont déjà activés';
+  if (!isQueueSkip(userItem)) return null;
+  // Un seul Queue Skip activé à la fois, même dans un batch
+  if (currentActivated >= 1) return QUEUE_SKIP_LIMIT_ERROR;
+  const otherIsActive = userItems.some(
+    (item) => item.id !== userItem.id && (item.activatedQuantity || 0) > 0 && isQueueSkip(item)
+  );
+  return otherIsActive
+    ? "Un Queue Skip est déjà activé. Désactivez-le d'abord avant d'en activer un autre."
+    : null;
+}
+
+/** Résultats et mise à jour éventuelle pour un item, d'après son changement net. */
+function planItemChange(
+  itemId: string,
+  { activate, deactivate, userItem }: ActionCounts,
+  userItems: UserItem[]
+): { results: BatchActionResult[]; update?: ItemUpdate } {
+  const activated = (result: Partial<BatchActionResult> = {}) =>
+    repeatResult(activate, { itemId, action: 'activate', success: true, ...result });
+  const deactivated = (result: Partial<BatchActionResult> = {}) =>
+    repeatResult(deactivate, { itemId, action: 'deactivate', success: true, ...result });
+
+  const netChange = activate - deactivate;
+  // Pas de changement net : les actions s'annulent
+  if (netChange === 0) return { results: [...activated(), ...deactivated()] };
+
+  const currentActivated = userItem.activatedQuantity || 0;
+
+  if (netChange > 0) {
+    const activationError = findActivationError(userItem, userItems);
+    if (activationError) {
+      return {
+        results: [...activated({ success: false, error: activationError }), ...deactivated()],
+      };
+    }
+    // Au plus un Queue Skip : la première activation passe, les autres échouent
+    if (isQueueSkip(userItem) && netChange > 1) {
+      return {
+        results: [
+          { itemId, action: 'activate', success: true },
+          ...repeatResult(activate - 1, {
+            itemId,
+            action: 'activate',
+            success: false,
+            error: QUEUE_SKIP_LIMIT_ERROR,
+          }),
+          ...deactivated(),
+        ],
+        update: {
+          id: userItem.id,
+          newActivatedQuantity: 1,
+          becomesInactive: false,
+          wasInactive: true,
+        },
+      };
+    }
+  } else if (currentActivated <= 0) {
+    return {
+      results: [
+        ...deactivated({ success: false, error: "Aucun item n'est activé" }),
+        ...activated(),
+      ],
+    };
+  }
+
+  const newActivatedQuantity = Math.max(
+    0,
+    Math.min(userItem.quantity, currentActivated + netChange)
+  );
+  const updatedItem = {
+    id: userItem.id,
+    activatedQuantity: newActivatedQuantity,
+    quantity: userItem.quantity,
+  };
+  return {
+    results: [...activated({ updatedItem }), ...deactivated({ updatedItem })],
+    update: {
+      id: userItem.id,
+      newActivatedQuantity,
+      becomesInactive: newActivatedQuantity === 0,
+      wasInactive: currentActivated === 0 && netChange > 0,
+    },
+  };
+}
+
+/** Date d'activation après la mise à jour. */
+function nextActivatedAt(update: ItemUpdate, current: Date | null): Date | null {
+  if (update.wasInactive && update.newActivatedQuantity > 0) return new Date();
+  return update.becomesInactive ? null : current;
+}
+
 export async function POST(request: NextRequest) {
   const perf = createDbPerformanceLogger('POST /api/live/inventory/batch');
   const t0 = perf.start();
@@ -96,255 +240,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Compter les actions par item pour calculer le changement net
-    const actionCounts = new Map<
-      string,
-      { activate: number; deactivate: number; userItem: (typeof userItems)[number] }
-    >();
-
-    for (const action of actions) {
-      const userItem = itemsMap.get(action.itemId);
-      if (!userItem) continue;
-
-      if (!actionCounts.has(action.itemId)) {
-        actionCounts.set(action.itemId, {
-          activate: 0,
-          deactivate: 0,
-          userItem,
-        });
-      }
-
-      const counts = actionCounts.get(action.itemId)!;
-      if (action.action === 'activate') {
-        counts.activate++;
-      } else {
-        counts.deactivate++;
-      }
-    }
-
-    // Préparer les résultats et updates
     const results: BatchActionResult[] = [];
-    const updates: Array<{
-      id: string;
-      newActivatedQuantity: number;
-      becomesInactive: boolean;
-      wasInactive: boolean;
-    }> = [];
-
-    // Traiter chaque item avec son changement net
-    for (const [itemId, counts] of actionCounts.entries()) {
-      const userItem = counts.userItem;
-      const netChange = counts.activate - counts.deactivate;
-
-      if (netChange === 0) {
-        // Pas de changement net, toutes les actions sont annulées
-        for (let i = 0; i < counts.activate; i++) {
-          results.push({
-            itemId,
-            action: 'activate',
-            success: true,
-          });
-        }
-        for (let i = 0; i < counts.deactivate; i++) {
-          results.push({
-            itemId,
-            action: 'deactivate',
-            success: true,
-          });
-        }
-        continue;
-      }
-
-      const itemType = userItem.LiveItem?.type || '';
-      const itemName = userItem.LiveItem?.name || '';
-      const isQueueSkip =
-        itemType === 'SKIP_QUEUE' ||
-        itemName.toLowerCase().includes('skip queue') ||
-        itemName.toLowerCase().includes('queue skip');
-
-      const currentActivated = userItem.activatedQuantity || 0;
-      const newActivatedQuantity = Math.max(
-        0,
-        Math.min(userItem.quantity, currentActivated + netChange)
-      );
-
-      // Valider les limites
-      if (netChange > 0) {
-        // Activation
-        if (currentActivated >= userItem.quantity) {
-          // Tous déjà activés
-          for (let i = 0; i < counts.activate; i++) {
-            results.push({
-              itemId,
-              action: 'activate',
-              success: false,
-              error: 'Tous les items sont déjà activés',
-            });
-          }
-          for (let i = 0; i < counts.deactivate; i++) {
-            results.push({
-              itemId,
-              action: 'deactivate',
-              success: true,
-            });
-          }
-          continue;
-        }
-
-        // Pour Skip_Queue: vérifier qu'aucun autre n'est activé
-        if (isQueueSkip) {
-          if (currentActivated === 0) {
-            const hasOtherQueueSkip = userItems.some((item) => {
-              if (item.id === userItem.id) return false;
-              if ((item.activatedQuantity || 0) <= 0) return false;
-              const otherItemType = item.LiveItem?.type || '';
-              const otherItemName = item.LiveItem?.name?.toLowerCase() || '';
-              return (
-                otherItemType === 'SKIP_QUEUE' ||
-                otherItemName.includes('skip queue') ||
-                otherItemName.includes('queue skip')
-              );
-            });
-
-            if (hasOtherQueueSkip) {
-              for (let i = 0; i < counts.activate; i++) {
-                results.push({
-                  itemId,
-                  action: 'activate',
-                  success: false,
-                  error:
-                    "Un Queue Skip est déjà activé. Désactivez-le d'abord avant d'en activer un autre.",
-                });
-              }
-              for (let i = 0; i < counts.deactivate; i++) {
-                results.push({
-                  itemId,
-                  action: 'deactivate',
-                  success: true,
-                });
-              }
-              continue;
-            }
-          }
-
-          // Pour Skip_Queue, limiter activatedQuantity à 1 max
-          // Même dans un batch, on ne peut activer qu'un seul queue skip
-          if (currentActivated >= 1) {
-            // Déjà activé, rejeter toutes les nouvelles activations
-            for (let i = 0; i < counts.activate; i++) {
-              results.push({
-                itemId,
-                action: 'activate',
-                success: false,
-                error: 'Un seul Queue Skip peut être activé à la fois',
-              });
-            }
-            // Les désactivations peuvent toujours passer
-            for (let i = 0; i < counts.deactivate; i++) {
-              results.push({
-                itemId,
-                action: 'deactivate',
-                success: true,
-              });
-            }
-            continue;
-          }
-
-          // Si currentActivated === 0 et netChange > 1, on peut activer au moins 1
-          // Limiter le netChange à 1 maximum pour les queue skip
-          if (netChange > 1) {
-            // On ne peut activer qu'un seul queue skip, donc limiter newActivatedQuantity à 1
-            const limitedNewActivatedQuantity = 1;
-
-            updates.push({
-              id: userItem.id,
-              newActivatedQuantity: limitedNewActivatedQuantity,
-              becomesInactive: false,
-              wasInactive: true,
-            });
-
-            // Générer les résultats : une activation réussie, les autres échouent
-            results.push({
-              itemId,
-              action: 'activate',
-              success: true,
-            });
-            for (let i = 1; i < counts.activate; i++) {
-              results.push({
-                itemId,
-                action: 'activate',
-                success: false,
-                error: 'Un seul Queue Skip peut être activé à la fois',
-              });
-            }
-            for (let i = 0; i < counts.deactivate; i++) {
-              results.push({
-                itemId,
-                action: 'deactivate',
-                success: true,
-              });
-            }
-            continue;
-          }
-        }
-      } else {
-        // Désactivation
-        if (currentActivated <= 0) {
-          for (let i = 0; i < counts.deactivate; i++) {
-            results.push({
-              itemId,
-              action: 'deactivate',
-              success: false,
-              error: "Aucun item n'est activé",
-            });
-          }
-          for (let i = 0; i < counts.activate; i++) {
-            results.push({
-              itemId,
-              action: 'activate',
-              success: true,
-            });
-          }
-          continue;
-        }
-      }
-
-      // Appliquer le changement
-      const wasInactive = currentActivated === 0;
-      const becomesInactive = newActivatedQuantity === 0;
-
-      updates.push({
-        id: userItem.id,
-        newActivatedQuantity,
-        becomesInactive,
-        wasInactive: wasInactive && netChange > 0,
-      });
-
-      // Créer les résultats pour toutes les actions
-      for (let i = 0; i < counts.activate; i++) {
-        results.push({
-          itemId,
-          action: 'activate',
-          success: true,
-          updatedItem: {
-            id: userItem.id,
-            activatedQuantity: newActivatedQuantity,
-            quantity: userItem.quantity,
-          },
-        });
-      }
-      for (let i = 0; i < counts.deactivate; i++) {
-        results.push({
-          itemId,
-          action: 'deactivate',
-          success: true,
-          updatedItem: {
-            id: userItem.id,
-            activatedQuantity: newActivatedQuantity,
-            quantity: userItem.quantity,
-          },
-        });
-      }
+    const updates: ItemUpdate[] = [];
+    for (const [itemId, counts] of countActions(actions, itemsMap)) {
+      const plan = planItemChange(itemId, counts, userItems);
+      results.push(...plan.results);
+      if (plan.update) updates.push(plan.update);
     }
 
     // Exécuter toutes les mises à jour en une seule transaction
@@ -358,12 +259,7 @@ export async function POST(request: NextRequest) {
             data: {
               activatedQuantity: update.newActivatedQuantity,
               isActivated: update.newActivatedQuantity > 0,
-              activatedAt:
-                update.wasInactive && update.newActivatedQuantity > 0
-                  ? new Date()
-                  : update.becomesInactive
-                    ? null
-                    : userItem.activatedAt,
+              activatedAt: nextActivatedAt(update, userItem.activatedAt),
             },
           });
         })

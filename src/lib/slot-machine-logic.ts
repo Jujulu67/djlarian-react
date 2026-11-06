@@ -1,4 +1,5 @@
 import { SymbolType, RewardType } from '@/types/slot-machine';
+import { secureRandom } from '@/lib/utils/random';
 
 // --- CONFIGURATION ---
 // Tuned for ~96% RTP with high Hit Frequency (>50%)
@@ -41,7 +42,7 @@ export const COST_PER_SPIN = 3;
 export function getRandomSymbol(useBooster = false): SymbolType {
   const weights = useBooster ? BOOSTED_WEIGHTS : SYMBOL_WEIGHTS;
   const totalWeight = Object.values(weights).reduce((a, b) => a + b, 0);
-  let random = Math.random() * totalWeight;
+  let random = secureRandom() * totalWeight;
 
   for (const [symbol, weight] of Object.entries(weights)) {
     random -= weight;

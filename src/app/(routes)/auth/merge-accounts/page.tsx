@@ -2,11 +2,10 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
-import { useSession, signIn } from 'next-auth/react';
+import { signIn } from 'next-auth/react';
 import Image from 'next/image';
 
 import { Button } from '@/components/ui/Button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
 
@@ -29,7 +28,6 @@ interface AccountMergeData {
 function MergeAccountsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { data: session, update: updateSession } = useSession();
   const [loading, setLoading] = useState(true);
   const [merging, setMerging] = useState(false);
   const [mergeData, setMergeData] = useState<AccountMergeData | null>(null);

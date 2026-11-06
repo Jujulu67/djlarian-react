@@ -98,21 +98,21 @@ async function handleDownloadRequest(req: Request) {
     // Find asset based on OS
     // Expecting filenames like: LarianCrusher-Mac.pkg, LarianCrusher-Win.exe, etc.
     let asset;
-    const assets = release.assets || [];
+    const assets: ReleaseAsset[] = release.assets || [];
 
     if (os === 'mac') {
       asset =
-        assets.find((a: any) => a.name.toLowerCase().endsWith('.pkg')) ||
-        assets.find((a: any) => a.name.toLowerCase().endsWith('.dmg')) ||
-        assets.find((a: any) => {
+        assets.find((a: ReleaseAsset) => a.name.toLowerCase().endsWith('.pkg')) ||
+        assets.find((a: ReleaseAsset) => a.name.toLowerCase().endsWith('.dmg')) ||
+        assets.find((a: ReleaseAsset) => {
           const lowerName = a.name.toLowerCase();
           return lowerName.includes('mac') && !lowerName.includes('standalone');
         });
     } else if (os === 'windows') {
       asset =
-        assets.find((a: any) => a.name.toLowerCase().endsWith('.exe')) ||
-        assets.find((a: any) => a.name.toLowerCase().endsWith('.msi')) ||
-        assets.find((a: any) => {
+        assets.find((a: ReleaseAsset) => a.name.toLowerCase().endsWith('.exe')) ||
+        assets.find((a: ReleaseAsset) => a.name.toLowerCase().endsWith('.msi')) ||
+        assets.find((a: ReleaseAsset) => {
           const lowerName = a.name.toLowerCase();
           return lowerName.includes('win') && !lowerName.includes('standalone');
         });
@@ -191,6 +191,14 @@ async function handleDownloadRequest(req: Request) {
     return new NextResponse('Internal error', { status: 500 });
   }
 }
+
+type ReleaseAsset = {
+  name: string;
+  url: string;
+  size: number;
+  content_type?: string;
+  browser_download_url: string;
+};
 
 export async function GET(req: Request) {
   return handleDownloadRequest(req);

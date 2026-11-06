@@ -8,7 +8,7 @@ import {
   createUnauthorizedResponse,
 } from '@/lib/api/responseHelpers';
 import prisma from '@/lib/prisma';
-import { serializeProjects, serializeProject } from '@/lib/utils/serializeProject';
+import { serializeProject } from '@/lib/utils/serializeProject';
 import { Project } from '@/components/projects/types';
 import { ProjectStatus } from '@/components/projects/types';
 import { requireAuth } from '@/lib/api/requireAuth';
@@ -345,7 +345,8 @@ export async function POST(request: NextRequest) {
     return createSuccessResponse(
       result,
       200,
-      `Import terminé : ${result.created} projet(s) créé(s)${result.failed > 0 ? `, ${result.failed} échec(s)` : ''}`
+      `Import terminé : ${result.created} projet(s) créé(s)` +
+        (result.failed > 0 ? `, ${result.failed} échec(s)` : '')
     );
   } catch (error) {
     return handleApiError(error, 'POST /api/projects/batch');

@@ -20,7 +20,7 @@ const updateInventorySchema = z.object({
  * GET /api/live/inventory
  * Récupère l'inventaire complet de l'utilisateur
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   const perf = createDbPerformanceLogger('GET /api/live/inventory');
   const t0 = perf.start();
   try {

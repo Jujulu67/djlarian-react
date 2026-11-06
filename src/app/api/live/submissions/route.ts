@@ -24,7 +24,7 @@ const submissionSchema = z.object({
  * GET /api/live/submissions
  * Récupère les soumissions de l'utilisateur connecté
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const { session, error } = await requireAuth({
       requireUserId: true,
@@ -91,7 +91,6 @@ export async function POST(request: NextRequest) {
     let draftId: string | null = null;
     let fileUrl: string | null = null;
     let fileName: string | null = null;
-    let fileSize: number | null = null;
 
     if (contentType.includes('application/json')) {
       // Cas JSON : fichier déjà uploadé vers Blob
@@ -101,7 +100,6 @@ export async function POST(request: NextRequest) {
       draftId = body.draftId;
       fileUrl = body.fileUrl;
       fileName = body.fileName;
-      fileSize = body.fileSize;
     } else {
       // Cas FormData : compatibilité avec l'ancien code
       const formData = await request.formData();
@@ -236,7 +234,7 @@ export async function POST(request: NextRequest) {
     const fileId = generateAudioFileId(session.user.id, file.name);
 
     // Upload le fichier
-    const { url: uploadedFileUrl, size } = await uploadAudioFile(file, fileId, session.user.id);
+    const { url: uploadedFileUrl } = await uploadAudioFile(file, fileId, session.user.id);
 
     // Créer la soumission dans la base de données
     const submission = await prisma.liveSubmission.create({

@@ -1,11 +1,12 @@
 import fs from 'fs/promises';
 import path from 'path';
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
 import { requireAdmin } from '@/lib/api/requireAuth';
+import { logger } from '@/lib/logger';
 // Route pour vérifier si le serveur est prêt après redémarrage
-export async function GET(req: NextRequest) {
+export async function GET() {
   const { error: authError } = await requireAdmin();
   if (authError) return authError;
 
@@ -28,6 +29,7 @@ export async function GET(req: NextRequest) {
       restartRequired,
     });
   } catch (error) {
+    logger.warn('Server not ready', error);
     return NextResponse.json({ ready: false, error: 'Server not ready' }, { status: 503 });
   }
 }

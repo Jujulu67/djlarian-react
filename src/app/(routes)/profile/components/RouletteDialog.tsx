@@ -6,7 +6,7 @@ import { useState, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import Image from 'next/image';
 import { useMiniGame, GameResult } from '../hooks/useMiniGame';
-import { CelebrationOverlay, RouletteBall, ROULETTE_SECTIONS } from './MiniGameEffects';
+import { CelebrationOverlay, RouletteBall } from './MiniGameEffects';
 import { ConfettiExplosion, CoinsRain } from './SlotMachineEffects';
 
 interface RouletteDialogProps {

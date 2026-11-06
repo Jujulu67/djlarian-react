@@ -1,48 +1,23 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import {
-  RefreshCw,
-  Trash2,
-  ExternalLink,
-  ArrowUpDown,
-  Pin,
-  ArrowUp,
-  ArrowDown,
-} from 'lucide-react';
+import { RefreshCw, ExternalLink, ArrowUpDown, Pin, ArrowUp, ArrowDown } from 'lucide-react';
 import { useAdminLiveSubmissionsContext } from '../context/AdminLiveSubmissionsContext';
 import { useAdminLiveFilters } from '../hooks/useAdminLiveFilters';
 import { useAdminLivePlayerContext } from '../context/AdminLivePlayerContext';
-import { useAdminLiveActions } from '../hooks/useAdminLiveActions';
 import { calculateTicketWeight } from '@/lib/live/calculations';
 import type { UserTicket, UserLiveItem } from '@/types/live';
 import { TicketSource, LiveItemType } from '@/types/live';
-import Link from 'next/link';
 import { InventoryModal } from './InventoryModal';
 
 type SortField = 'weight' | 'username' | 'rolled' | null;
 type SortDirection = 'asc' | 'desc' | null;
 
 export function AdminLiveSubmissionsTable() {
-  const {
-    submissions,
-    loading,
-    error,
-    fetchSubmissions,
-    updateSubmissionRolled,
-    updateSubmissionPinned,
-  } = useAdminLiveSubmissionsContext();
+  const { submissions, loading, error, updateSubmissionRolled } = useAdminLiveSubmissionsContext();
 
-  const { searchUsername, showRolled, onlyActive, filteredSubmissions } =
-    useAdminLiveFilters(submissions);
-
-  const { purgeAllSubmissions } = useAdminLiveActions(
-    submissions,
-    updateSubmissionRolled,
-    updateSubmissionPinned,
-    fetchSubmissions
-  );
+  const { filteredSubmissions } = useAdminLiveFilters(submissions);
 
   const { setSelectedSubmission, restoreSelectedSubmission } = useAdminLivePlayerContext();
 
@@ -50,7 +25,7 @@ export function AdminLiveSubmissionsTable() {
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
 
   // Fonction pour calculer le poids d'une soumission
-  const calculateSubmissionWeight = (submission: (typeof submissions)[0]): number => {
+  const calculateSubmissionWeight = useCallback((submission: (typeof submissions)[0]): number => {
     const userTickets: UserTicket[] = (submission.User?.UserTicket || []).map((t) => ({
       id: t.id,
       userId: submission.User.id,
@@ -88,7 +63,7 @@ export function AdminLiveSubmissionsTable() {
       }));
 
     return calculateTicketWeight(userTickets, userItems);
-  };
+  }, []);
 
   // Trier les soumissions
   const sortedSubmissions = useMemo(() => {
@@ -117,7 +92,7 @@ export function AdminLiveSubmissionsTable() {
     });
 
     return sorted;
-  }, [filteredSubmissions, sortField, sortDirection]);
+  }, [filteredSubmissions, sortField, sortDirection, calculateSubmissionWeight]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -241,8 +216,13 @@ export function AdminLiveSubmissionsTable() {
                   <td className="px-4 py-3">
                     <input
                       type="checkbox"
-                      className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
-                      // TODO: Implémenter la vérification du statut subscription Twitch
+                      readOnly
+                      tabIndex={-1}
+                      checked={(submission.User?.UserLiveItem ?? []).some(
+                        (item) => item.LiveItem?.type === 'SUBSCRIBER_BONUS'
+                      )}
+                      aria-label="Abonné Twitch"
+                      className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500 pointer-events-none"
                     />
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-300">

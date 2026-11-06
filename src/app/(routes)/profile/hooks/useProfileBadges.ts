@@ -1,5 +1,5 @@
 import { useMemo, useEffect, useState } from 'react';
-import { calculateBadges, type Badge, type GameStats } from '../utils/badgeCalculations';
+import { calculateBadges, type GameStats } from '../utils/badgeCalculations';
 import { getMemberMonths } from '../utils/dateUtils';
 import type { UserStats } from './useProfileStats';
 import { useSession } from 'next-auth/react';

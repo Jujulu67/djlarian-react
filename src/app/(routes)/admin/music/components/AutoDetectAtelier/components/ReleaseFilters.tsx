@@ -1,5 +1,4 @@
 import { Search } from 'lucide-react';
-import React from 'react';
 
 import { logger } from '@/lib/logger';
 import type { DetectedRelease } from '@/lib/services/types';

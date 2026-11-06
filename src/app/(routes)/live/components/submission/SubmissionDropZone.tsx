@@ -1,12 +1,12 @@
 'use client';
 
 import { FileAudio, Info, Loader2, Pause, Play, Upload, X } from 'lucide-react';
-import type { Dispatch, SetStateAction, RefObject, DragEvent, ChangeEvent } from 'react';
 import { toast } from 'sonner';
 
 import { type AudioAnalysisResult, formatDuration } from '@/lib/live/audio-analysis';
 import { type LiveSubmission } from '@/types/live';
 import { logger } from '@/lib/logger';
+import { onActivateKey } from '@/lib/a11y';
 
 interface SubmissionDropZoneProps {
   activeSubmission: LiveSubmission | null;
@@ -47,6 +47,13 @@ export function SubmissionDropZone({
   selectedFile,
   setShowInfoModal,
 }: SubmissionDropZoneProps) {
+  // Ne pas ouvrir le sélecteur si une track est déjà chargée ou soumise
+  const openFilePicker = () => {
+    if (!audioAnalysis && !activeSubmission) {
+      fileInputRef.current?.click();
+    }
+  };
+
   return (
     <div className="relative">
       <div className="flex items-center gap-2 mb-2">
@@ -63,15 +70,13 @@ export function SubmissionDropZone({
         </button>
       </div>
       <div
+        role="button"
+        tabIndex={0}
         onDragOver={!activeSubmission ? handleDragOver : undefined}
         onDragLeave={!activeSubmission ? handleDragLeave : undefined}
         onDrop={!activeSubmission ? handleDrop : undefined}
-        onClick={() => {
-          // Ne pas ouvrir le sélecteur si une track est déjà chargée ou soumise
-          if (!audioAnalysis && !activeSubmission) {
-            fileInputRef.current?.click();
-          }
-        }}
+        onClick={openFilePicker}
+        onKeyDown={(event) => onActivateKey(openFilePicker)(event)}
         className={`
       relative border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200
       ${audioAnalysis || activeSubmission ? 'cursor-default' : 'cursor-pointer'}
@@ -95,9 +100,14 @@ export function SubmissionDropZone({
             <p className="text-white">Analyzing audio file...</p>
           </div>
         ) : audioAnalysis ? (
-          <div className="w-full space-y-3" onClick={(e) => e.stopPropagation()}>
+          <div
+            role="presentation"
+            className="w-full space-y-3"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Waveform style Mofalk */}
             <div
+              role="presentation"
               className={`w-full h-20 rounded-lg relative group overflow-hidden ${
                 selectedFile ? 'cursor-pointer' : 'cursor-not-allowed opacity-75'
               }`}

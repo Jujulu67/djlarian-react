@@ -1,19 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import {
-  Gift,
-  MessageSquare,
-  Download,
-  CheckCircle,
-  FileText,
-  Eye,
-  RotateCcw,
-  RefreshCw,
-  Trash2,
-  Clock,
-  RotateCw,
-} from 'lucide-react';
+import { Download, CheckCircle, FileText, RotateCcw, Trash2, Clock, RotateCw } from 'lucide-react';
 import { useAdminLiveActions } from '../hooks/useAdminLiveActions';
 import { useAdminLiveSubmissionsContext } from '../context/AdminLiveSubmissionsContext';
 import { GlobalInventoryManager } from './GlobalInventoryManager';
@@ -25,19 +13,12 @@ export function AdminLiveActions() {
     useAdminLiveSubmissionsContext();
 
   // Filtrer les soumissions non rollées pour la roue
-  const nonRolledSubmissions = submissions.filter((s) => !s.isRolled);
 
   const {
     actions,
     updateAction,
-    refreshAllSockets,
-    addLoyalty,
-    sendDiscordNotification,
-    pasteNgrokUrl,
     getAllNames,
     getRolledNames,
-    editGenres,
-    deleteNgrok,
     rollRandom,
     downloadAll,
     purgeAllSubmissions,
@@ -66,15 +47,7 @@ export function AdminLiveActions() {
       transition={{ duration: 0.6 }}
       className="glass-modern glass-modern-hover rounded-2xl p-4 sm:p-6 lg:p-6"
     >
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl sm:text-2xl font-audiowide text-white">ACTIONS</h2>
-        <button
-          onClick={refreshAllSockets}
-          className="text-xs text-gray-400 hover:text-white underline transition-colors"
-        >
-          Refresh All Sockets
-        </button>
-      </div>
+      <h2 className="text-xl sm:text-2xl font-audiowide text-white mb-4">ACTIONS</h2>
 
       {/* Première ligne de boutons/checkboxes */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-4">
@@ -85,24 +58,6 @@ export function AdminLiveActions() {
           <Package className="w-4 h-4" />
           <span className="hidden sm:inline">Inventories</span>
           <span className="sm:hidden">Inv.</span>
-        </button>
-
-        <button
-          onClick={addLoyalty}
-          className="bg-purple-600 hover:bg-purple-700 px-3 sm:px-4 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium text-white transition-colors"
-        >
-          <Gift className="w-4 h-4" />
-          <span className="hidden sm:inline">Add Loyalty</span>
-          <span className="sm:hidden">Loyalty</span>
-        </button>
-
-        <button
-          onClick={sendDiscordNotification}
-          className="bg-indigo-600 hover:bg-indigo-700 px-3 sm:px-4 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium text-white transition-colors"
-        >
-          <MessageSquare className="w-4 h-4" />
-          <span className="hidden sm:inline">Discord Notification</span>
-          <span className="sm:hidden">Discord</span>
         </button>
 
         <label className="flex items-center gap-2 cursor-pointer bg-white/5 hover:bg-white/10 px-3 sm:px-4 py-2 rounded-lg transition-colors">
@@ -141,13 +96,6 @@ export function AdminLiveActions() {
       {/* Deuxième ligne de boutons/checkboxes */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-4">
         <button
-          onClick={pasteNgrokUrl}
-          className="bg-gray-700 hover:bg-gray-600 px-3 sm:px-4 py-2 rounded-lg text-sm font-medium text-gray-300 transition-colors"
-        >
-          ngrok Paste URL
-        </button>
-
-        <button
           onClick={getAllNames}
           className="bg-gray-700 hover:bg-gray-600 px-3 sm:px-4 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium text-gray-300 transition-colors"
         >
@@ -184,25 +132,9 @@ export function AdminLiveActions() {
           <CheckCircle className="w-4 h-4 text-gray-400" />
           <span className="text-sm text-gray-300">Genre Blend</span>
         </label>
-
-        <button
-          onClick={editGenres}
-          className="bg-gray-700 hover:bg-gray-600 px-3 sm:px-4 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium text-gray-300 transition-colors"
-        >
-          <Eye className="w-4 h-4" />
-          <span className="hidden sm:inline">Edit Genres</span>
-          <span className="sm:hidden">Genres</span>
-        </button>
       </div>
 
       <div className="flex justify-start mb-4 gap-4 flex-wrap">
-        <button
-          onClick={deleteNgrok}
-          className="bg-red-600 hover:bg-red-700 px-3 sm:px-4 py-2 rounded-lg text-sm font-medium text-white transition-colors"
-        >
-          ngrok Delete
-        </button>
-
         <button
           onClick={purgeAllSubmissions}
           className="bg-red-600 hover:bg-red-700 px-3 sm:px-4 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium text-white transition-colors"

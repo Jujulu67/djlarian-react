@@ -11,7 +11,7 @@ import { useLiveInventoryContext } from '../context/LiveInventoryContext';
 import { toast } from 'sonner';
 
 export function LiveInventory() {
-  const { inventory, isLoading, updateItem } = useLiveInventoryContext();
+  const { inventory, updateItem } = useLiveInventoryContext();
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
 
   const handleItemClick = async (itemId: string, isActivated: boolean) => {

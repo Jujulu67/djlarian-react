@@ -1,7 +1,6 @@
 'use client';
 
 import { UserPlus, Loader2, Edit, Star } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 
@@ -24,7 +23,6 @@ interface AddUserFormProps {
 
 // Ce composant contient uniquement le formulaire et sa logique
 export default function AddUserForm({ onSuccess, userToEdit }: AddUserFormProps) {
-  const router = useRouter(); // Peut être utile pour rafraîchir après succès
   const { data: session, update: updateSession } = useSession();
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');

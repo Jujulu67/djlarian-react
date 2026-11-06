@@ -1,7 +1,5 @@
 'use client';
 
-import React from 'react';
-
 import GestionImages from '../GestionImages'; // Importe depuis le dossier parent
 
 export default function ImagesTab() {

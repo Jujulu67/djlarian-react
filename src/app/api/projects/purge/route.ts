@@ -1,4 +1,3 @@
-import { NextRequest } from 'next/server';
 import { revalidateTag } from 'next/cache';
 
 import { handleApiError } from '@/lib/api/errorHandler';
@@ -17,7 +16,7 @@ function invalidateProjectsCache(userId: string) {
 }
 
 // DELETE /api/projects/purge - Supprime tous les projets de l'utilisateur connecté
-export async function DELETE(request: NextRequest) {
+export async function DELETE() {
   try {
     const { session, error } = await requireAuth({
       requireUserId: true,

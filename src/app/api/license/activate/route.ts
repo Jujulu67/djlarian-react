@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { signMessage, encryptLicenseData, ensureSodium } from '@/lib/license/crypto';
 import { getLicenseTypeIndex } from '@/lib/license/types';
 import { logger } from '@/lib/logger';
+import { Prisma } from '@prisma/client';
 
 interface ActivationRequest {
   email: string;
@@ -128,7 +129,10 @@ export async function POST(req: NextRequest) {
   }
 }
 
-function buildLicenseData(license: any, machineId: string) {
+function buildLicenseData(
+  license: Prisma.LicenseGetPayload<{ include: { user: true } }>,
+  machineId: string
+) {
   return {
     email: license.user.email,
     licenseKey: license.licenseKey,

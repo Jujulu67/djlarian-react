@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (e) {
+    logger.warn('route.ts', e);
     return NextResponse.json({ success: false }, { status: 500 });
   }
 }

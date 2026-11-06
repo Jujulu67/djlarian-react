@@ -1,5 +1,4 @@
-import { Prisma } from '@prisma/client';
-import { subDays, startOfDay, startOfWeek, startOfMonth } from 'date-fns';
+import { subDays } from 'date-fns';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { logger } from '@/lib/logger';
@@ -12,7 +11,7 @@ type Period = 'daily' | 'weekly' | 'monthly';
 export async function GET(request: NextRequest) {
   try {
     // Vérifier l'authentification et les permissions administrateur
-    const { session, error: authError } = await requireAdmin({ nonAdminStatus: 401 });
+    const { error: authError } = await requireAdmin({ nonAdminStatus: 401 });
     if (authError) return authError;
 
     // Lire la période depuis les paramètres de requête, défaut sur 'daily'

@@ -28,7 +28,7 @@ export function BeforeAfterSection() {
     []
   );
 
-  const { isLoaded, isPlaying, currentFile, play, stop, switchTo } = useSeamlessAudioLoop({
+  const { isPlaying, currentFile, play, stop, switchTo } = useSeamlessAudioLoop({
     basePath: '/audio/shop/lariancrusher',
     files: audioFiles,
     crossfadeDuration: 0.1, // 100ms smooth crossfade
@@ -41,7 +41,7 @@ export function BeforeAfterSection() {
   // Handle mode or gain match changes while playing
   useEffect(() => {
     if (playingType && isPlaying) {
-      const targetFile = getFileName(playingType);
+      const targetFile = getComparisonFileName(playingType, activeMode, gainMatch);
       if (currentFile !== targetFile) {
         switchTo(targetFile);
       }

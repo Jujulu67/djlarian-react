@@ -1,4 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/api/requireAuth';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
@@ -15,7 +14,7 @@ export const maxDuration = 300; // 5 minutes max pour le nettoyage
  * DELETE /api/admin/live/submissions/purge
  * Supprime TOUTES les soumissions (drafts inclus) et nettoie le stockage Blob
  */
-export async function DELETE(request: NextRequest) {
+export async function DELETE() {
   try {
     const { error: authError } = await requireAdmin({
       onAnonymous: () => createUnauthorizedResponse('Non authentifié'),

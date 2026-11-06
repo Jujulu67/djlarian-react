@@ -12,7 +12,6 @@ import {
   Eye,
   EyeOff,
   Share2,
-  CheckCircle,
   XCircle,
   ArrowLeft,
   Calendar as CalendarIcon,

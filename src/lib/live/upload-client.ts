@@ -5,6 +5,7 @@
 
 import { upload } from '@vercel/blob/client';
 import { logger } from '@/lib/logger';
+import { randomToken } from '@/lib/utils/random';
 
 const MAX_FILE_SIZE = 128 * 1024 * 1024; // 128MB
 const ALLOWED_MIME_TYPES = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/wave'];
@@ -50,7 +51,7 @@ export function validateAudioFile(file: File): { valid: boolean; error?: string 
  */
 export function generateAudioFileId(userId: string, fileName: string): string {
   const timestamp = Date.now();
-  const random = Math.random().toString(36).substring(2, 9);
+  const random = randomToken(7);
   const extension = fileName.toLowerCase().endsWith('.mp3') ? '.mp3' : '.wav';
   return `live-audio-${userId}-${timestamp}-${random}${extension}`;
 }

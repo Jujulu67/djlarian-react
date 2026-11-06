@@ -19,7 +19,7 @@ const updateRewardsSchema = z.object({
  * GET /api/live/rewards
  * Récupère les récompenses de l'utilisateur
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const { session, error } = await requireAuth({
       requireUserId: true,

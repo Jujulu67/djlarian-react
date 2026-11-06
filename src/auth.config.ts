@@ -1,4 +1,4 @@
-import type { NextAuthConfig, Session } from 'next-auth';
+import type { Account, NextAuthConfig, Session, User } from 'next-auth';
 import Google from 'next-auth/providers/google';
 import Twitch from 'next-auth/providers/twitch';
 import { logger } from '@/lib/logger';
@@ -25,199 +25,142 @@ if (process.env.TWITCH_CLIENT_ID && process.env.TWITCH_CLIENT_SECRET) {
   );
 }
 
+/** Reprend l'image et le nom du profil OAuth s'ils ont changé. Sans image OAuth, rien ne change. */
+async function syncOAuthProfile(
+  existing: { id: string; image: string | null; name: string | null },
+  user: User
+): Promise<void> {
+  const data: { image?: string; name?: string } = {};
+  if (user.image?.trim() && existing.image !== user.image) data.image = user.image;
+  if (user.name && existing.name !== user.name) data.name = user.name;
+  if (Object.keys(data).length === 0) return;
+  const prisma = (await import('@/lib/prisma')).default;
+  await prisma.user.update({ where: { id: existing.id }, data });
+}
+
+/** Jeton chiffré (1 h) pour confirmer une fusion de comptes ; null sans secret configuré. */
+async function createMergeToken(
+  user: User,
+  account: Account,
+  existingUserId: string
+): Promise<string | null> {
+  const { hkdf } = await import('@panva/hkdf');
+  const { EncryptJWT, base64url, calculateJwkThumbprint } = await import('jose');
+
+  const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
+  if (!secret) return null;
+
+  const isSecure = process.env.NODE_ENV === 'production';
+  const cookieName = isSecure ? '__Secure-authjs.session-token' : 'authjs.session-token';
+  const salt = cookieName;
+
+  const encryptionSecret = await hkdf(
+    'sha256',
+    secret,
+    salt,
+    `Auth.js Generated Encryption Key (${salt})`,
+    64
+  );
+
+  const thumbprint = await calculateJwkThumbprint(
+    { kty: 'oct', k: base64url.encode(encryptionSecret) },
+    'sha256'
+  );
+
+  const mergeToken = await new EncryptJWT({
+    email: user.email,
+    name: user.name,
+    image: user.image,
+    provider: account.provider,
+    providerAccountId: account.providerAccountId,
+    existingUserId,
+    accountData: {
+      type: account.type,
+      refresh_token: account.refresh_token,
+      access_token: account.access_token,
+      expires_at: account.expires_at,
+      token_type: account.token_type,
+      scope: account.scope,
+      id_token: account.id_token,
+      session_state: account.session_state,
+    },
+  })
+    .setProtectedHeader({ alg: 'dir', enc: 'A256CBC-HS512', kid: thumbprint })
+    .setIssuedAt(Math.floor(Date.now() / 1000))
+    .setExpirationTime(Math.floor(Date.now() / 1000) + 3600) // 1 heure
+    .encrypt(encryptionSecret);
+
+  return mergeToken;
+}
+
 export const authConfig = {
   providers,
   callbacks: {
-    async signIn({ user, account, profile }) {
+    async signIn({ user, account }) {
       // Si c'est une connexion OAuth et qu'un utilisateur existe avec le même email.
       // Les connexions par mot de passe (provider 'credentials') ne sont pas concernées :
       // authorize() a déjà vérifié le mot de passe, et elles n'ont pas de ligne Account.
-      if (account && account.provider !== 'credentials' && user.email) {
-        const prismaModule = await import('@/lib/prisma');
-        const prisma = prismaModule.default;
+      if (!account || account.provider === 'credentials' || !user.email) return true;
 
-        // Vérifier si ce compte OAuth est déjà lié à un autre utilisateur
-        const existingAccount = await prisma.account.findUnique({
-          where: {
-            provider_providerAccountId: {
-              provider: account.provider,
-              providerAccountId: account.providerAccountId,
-            },
+      const prisma = (await import('@/lib/prisma')).default;
+
+      // Ce compte OAuth est-il déjà lié à un utilisateur ?
+      const existingAccount = await prisma.account.findUnique({
+        where: {
+          provider_providerAccountId: {
+            provider: account.provider,
+            providerAccountId: account.providerAccountId,
           },
-          include: { user: true },
-        });
-
-        // Si le compte OAuth est déjà lié à un utilisateur
-        if (existingAccount) {
-          // Si l'email correspond, c'est le même utilisateur, autoriser
-          if (existingAccount.user.email === user.email) {
-            // Le compte est déjà lié, autoriser la connexion
-            // Mettre à jour l'image et le nom depuis le profil OAuth si disponibles
-            const updateData: { image?: string; name?: string } = {};
-
-            if (
-              user.image &&
-              (!existingAccount.user.image || existingAccount.user.image !== user.image)
-            ) {
-              updateData.image = user.image;
-            }
-
-            if (
-              user.name &&
-              (!existingAccount.user.name || existingAccount.user.name !== user.name)
-            ) {
-              updateData.name = user.name;
-            }
-
-            if (Object.keys(updateData).length > 0) {
-              await prisma.user.update({
-                where: { id: existingAccount.user.id },
-                data: updateData,
-              });
-            }
-
-            return true;
-          } else {
-            // Le compte OAuth est lié à un autre utilisateur avec un email différent
-            logger.warn(
-              `[Auth] Tentative de connexion avec un compte OAuth déjà lié à un autre utilisateur (${existingAccount.user.email})`
-            );
-            // Autoriser quand même, NextAuth gérera la création/liaison
-            // Mais on log un avertissement
-          }
-        }
-
-        const existingUser = await prisma.user.findUnique({
-          where: { email: user.email },
-          include: { Account: true },
-        });
-
-        // Si un utilisateur existe et qu'il a déjà un compte OAuth pour ce provider, autoriser
-        if (existingUser) {
-          const hasAccountForProvider = existingUser.Account.some(
-            (acc) => acc.provider === account.provider
-          );
-
-          if (hasAccountForProvider) {
-            // Le compte est déjà lié, autoriser la connexion
-            // Mettre à jour l'image et le nom depuis le profil OAuth si disponibles
-            const updateData: { image?: string; name?: string } = {};
-
-            if (user.image && (!existingUser.image || existingUser.image !== user.image)) {
-              updateData.image = user.image;
-            }
-
-            if (user.name && (!existingUser.name || existingUser.name !== user.name)) {
-              updateData.name = user.name;
-            }
-
-            if (Object.keys(updateData).length > 0) {
-              await prisma.user.update({
-                where: { id: existingUser.id },
-                data: updateData,
-              });
-            }
-
-            return true;
-          }
-
-          // Si l'utilisateur existe mais n'a pas encore de compte OAuth pour ce provider
-          // Par défaut, demander confirmation avant fusion (peut être désactivé avec REQUIRE_MERGE_CONFIRMATION=false).
-          // Un compte protégé par mot de passe n'est JAMAIS fusionné automatiquement : la page de
-          // confirmation exige ce mot de passe (sinon, quelqu'un qui aurait créé un compte avec
-          // l'email d'une victime garderait l'accès après sa connexion OAuth).
-          const hasPassword = Boolean(existingUser.hashedPassword);
-          const requireMergeConfirmation =
-            hasPassword || process.env.REQUIRE_MERGE_CONFIRMATION !== 'false';
-
-          if (requireMergeConfirmation) {
-            // Créer un token temporaire pour la fusion
-            const { hkdf } = await import('@panva/hkdf');
-            const { EncryptJWT, base64url, calculateJwkThumbprint } = await import('jose');
-
-            const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
-            if (secret) {
-              const isSecure = process.env.NODE_ENV === 'production';
-              const cookieName = isSecure
-                ? '__Secure-authjs.session-token'
-                : 'authjs.session-token';
-              const salt = cookieName;
-
-              const encryptionSecret = await hkdf(
-                'sha256',
-                secret,
-                salt,
-                `Auth.js Generated Encryption Key (${salt})`,
-                64
-              );
-
-              const thumbprint = await calculateJwkThumbprint(
-                { kty: 'oct', k: base64url.encode(encryptionSecret) },
-                'sha256'
-              );
-
-              const mergeToken = await new EncryptJWT({
-                email: user.email,
-                name: user.name,
-                image: user.image,
-                provider: account.provider,
-                providerAccountId: account.providerAccountId,
-                existingUserId: existingUser.id,
-                accountData: {
-                  type: account.type,
-                  refresh_token: account.refresh_token,
-                  access_token: account.access_token,
-                  expires_at: account.expires_at,
-                  token_type: account.token_type,
-                  scope: account.scope,
-                  id_token: account.id_token,
-                  session_state: account.session_state,
-                },
-              })
-                .setProtectedHeader({ alg: 'dir', enc: 'A256CBC-HS512', kid: thumbprint })
-                .setIssuedAt(Math.floor(Date.now() / 1000))
-                .setExpirationTime(Math.floor(Date.now() / 1000) + 3600) // 1 heure
-                .encrypt(encryptionSecret);
-
-              // Bloquer la connexion et envoyer CE navigateur vers la page de confirmation.
-              // Le jeton (chiffré, valable 1 h) n'est jamais stocké ni consultable par un tiers.
-              return `/auth/merge-accounts?token=${encodeURIComponent(mergeToken)}`;
-            }
-
-            // Sans secret, impossible de créer le jeton : refuser plutôt que fusionner sans preuve
-            if (hasPassword) return false;
-          }
-
-          // Sinon, fusionner automatiquement (comportement par défaut)
-          // Mettre à jour l'image et le nom depuis le profil OAuth si disponibles
-          const updateData: { image?: string; name?: string } = {};
-
-          // Si l'image OAuth existe, l'utiliser
-          // Sinon, si l'utilisateur n'a pas d'image, laisser null (comme lors d'un signup normal)
-          if (user.image && user.image.trim() !== '') {
-            if (!existingUser.image || existingUser.image !== user.image) {
-              updateData.image = user.image;
-            }
-          }
-          // Si l'image OAuth est vide et que l'utilisateur n'a pas d'image, on ne fait rien
-          // (on laisse null, le placeholder sera géré côté UI)
-
-          if (user.name && (!existingUser.name || existingUser.name !== user.name)) {
-            updateData.name = user.name;
-          }
-
-          if (Object.keys(updateData).length > 0) {
-            await prisma.user.update({
-              where: { id: existingUser.id },
-              data: updateData,
-            });
-          }
-        }
+        },
+        include: { user: true },
+      });
+      if (existingAccount && existingAccount.user.email === user.email) {
+        await syncOAuthProfile(existingAccount.user, user);
+        return true;
+      }
+      if (existingAccount) {
+        // Lié à un autre email : NextAuth gère la création ou la liaison
+        logger.warn(
+          `[Auth] Tentative de connexion avec un compte OAuth déjà lié à un autre utilisateur (${existingAccount.user.email})`
+        );
       }
 
-      // Autoriser la connexion
+      const existingUser = await prisma.user.findUnique({
+        where: { email: user.email },
+        include: { Account: true },
+      });
+      if (!existingUser) return true;
+
+      if (existingUser.Account.some((acc) => acc.provider === account.provider)) {
+        await syncOAuthProfile(existingUser, user);
+        return true;
+      }
+
+      // Si l'utilisateur existe mais n'a pas encore de compte OAuth pour ce provider
+      // Par défaut, demander confirmation avant fusion (peut être désactivé avec REQUIRE_MERGE_CONFIRMATION=false).
+      // Un compte protégé par mot de passe n'est JAMAIS fusionné automatiquement : la page de
+      // confirmation exige ce mot de passe (sinon, quelqu'un qui aurait créé un compte avec
+      // l'email d'une victime garderait l'accès après sa connexion OAuth).
+      const hasPassword = Boolean(existingUser.hashedPassword);
+      const requireMergeConfirmation =
+        hasPassword || process.env.REQUIRE_MERGE_CONFIRMATION !== 'false';
+
+      if (requireMergeConfirmation) {
+        const mergeToken = await createMergeToken(user, account, existingUser.id);
+        if (mergeToken) {
+          // Bloquer la connexion et envoyer CE navigateur vers la page de confirmation.
+          // Le jeton (chiffré, valable 1 h) n'est jamais stocké ni consultable par un tiers.
+          return `/auth/merge-accounts?token=${encodeURIComponent(mergeToken)}`;
+        }
+        // Sans secret, impossible de créer le jeton : refuser plutôt que fusionner
+        if (hasPassword) return false;
+      }
+
+      // Sinon, fusionner automatiquement
+      await syncOAuthProfile(existingUser, user);
       return true;
     },
+
     async jwt({ token, user, trigger }) {
       if (trigger === 'update') {
         // Les données envoyées par le client (update(...)) ne sont jamais reprises : elles

@@ -353,14 +353,18 @@ export function useSeamlessAudioLoop({
               currentSourceRef.current.source.stop();
               currentSourceRef.current.source.disconnect();
               currentSourceRef.current.gain.disconnect();
-            } catch (e) {}
+            } catch {
+              // nœud déjà déconnecté
+            }
           }
           if (nextSourceRef.current) {
             try {
               nextSourceRef.current.source.stop();
               nextSourceRef.current.source.disconnect();
               nextSourceRef.current.gain.disconnect();
-            } catch (e) {}
+            } catch {
+              // nœud déjà déconnecté
+            }
           }
 
           // Create and start new source

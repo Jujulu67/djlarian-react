@@ -94,16 +94,6 @@ export function ProjectAssistant({ projects }: ProjectAssistantProps) {
     setTimeout(() => inputRef.current?.focus(), 10);
   };
 
-  // Add setLastFilters to hook return, for now we'll define it here
-  // This is a workaround since we need to pass it to handleConfirmUpdate
-  const setLastFilters = useMemo(
-    () => (value: QueryFilters | null) => {
-      // This is handled internally by the hook
-      // For the confirm handler, we need access to it
-    },
-    []
-  );
-
   const uniqueCollabs = useMemo(
     () => [...new Set(localProjects.filter((p) => p.collab).map((p) => p.collab!))],
     [localProjects]
@@ -124,6 +114,7 @@ export function ProjectAssistant({ projects }: ProjectAssistantProps) {
       {/* Chat Window */}
       {isOpen && (
         <div
+          role="presentation"
           onClick={(e) => e.stopPropagation()}
           onWheel={(e) => e.stopPropagation()}
           className={`fixed z-50 animate-in slide-in-from-bottom-5 fade-in duration-150 bg-neutral-900 border border-purple-500/30 shadow-2xl overflow-hidden flex flex-col transition-all duration-300 overscroll-contain ${
@@ -218,7 +209,7 @@ export function ProjectAssistant({ projects }: ProjectAssistantProps) {
                   // Récupérer le texte collé
                   const pastedText = e.clipboardData.getData('text');
                   // Supprimer les sauts de ligne en fin de texte
-                  const cleanedText = pastedText.replace(/\n+$/, '');
+                  const cleanedText = pastedText.replace(/(?<!\n)\n+$/, '');
 
                   // Si le texte a été modifié, empêcher le comportement par défaut
                   if (pastedText !== cleanedText) {

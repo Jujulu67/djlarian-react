@@ -9,7 +9,7 @@ import { logger } from '@/lib/logger';
  * GET /api/admin/live/settings
  * Récupère les paramètres admin
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const { error: authError } = await requireAdmin({
       onAnonymous: () => createUnauthorizedResponse('Non autorisé'),
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     const settings = await prisma.adminSettings.findMany();
 
     // Convertir en objet avec les clés comme propriétés
-    const settingsMap: Record<string, any> = {};
+    const settingsMap: Record<string, unknown> = {};
     for (const setting of settings) {
       try {
         settingsMap[setting.key] = JSON.parse(setting.value);

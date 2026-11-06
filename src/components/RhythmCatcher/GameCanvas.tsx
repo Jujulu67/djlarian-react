@@ -1,9 +1,6 @@
 'use client';
 
-import { motion } from 'framer-motion';
 import React, { useRef, useEffect, useState } from 'react';
-
-import { logger } from '@/lib/logger';
 
 import { GameState, Point, HitQuality, PowerUpType } from './gameEngine';
 import styles from './styles.module.css';
@@ -32,7 +29,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   gameState,
   onCollision,
   onCursorMove,
-  onHit,
   onHitRef,
   isAudioActive,
   onStart,
@@ -94,9 +90,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         ]);
 
         // Cleanup after 1s
-        setTimeout(() => {
-          setHitEffects((prev) => prev.filter((e) => e.id !== id));
-        }, 1000);
+        setTimeout(() => setHitEffects(withoutId(id)), 1000);
       };
     }
     return () => {
@@ -561,5 +555,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     </div>
   );
 };
+
+/** Retire d'une liste l'élément d'identifiant `id`. */
+const withoutId =
+  (id: string | number) =>
+  <T extends { id: string | number }>(list: T[]): T[] =>
+    list.filter((e) => e.id !== id);
 
 export default GameCanvas;

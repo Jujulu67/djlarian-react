@@ -35,7 +35,6 @@ jest.mock('@/lib/blob', () => ({
       hash: 'test-hash',
     })
   ),
-  getBlobPublicUrl: jest.fn((url: string) => url),
 }));
 
 jest.mock('@/lib/utils/convertToWebP', () => ({

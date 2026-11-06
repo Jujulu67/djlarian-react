@@ -311,6 +311,76 @@ function validateRow(row: ParsedProjectRow, _rowIndex: number): string[] {
   return errors;
 }
 
+type ColumnMap = Map<number, keyof ParsedProjectRow>;
+
+const TITLE_CASE_FIELDS = new Set<keyof ParsedProjectRow>([
+  'name',
+  'style',
+  'collab',
+  'label',
+  'labelFinal',
+]);
+const NUMBER_FIELDS = new Set<keyof ParsedProjectRow>([
+  'streamsJ7',
+  'streamsJ14',
+  'streamsJ21',
+  'streamsJ28',
+  'streamsJ56',
+  'streamsJ84',
+]);
+/** Ordre des colonnes quand le texte n'a pas d'en-têtes. */
+const DEFAULT_COLUMNS: ColumnMap = new Map(
+  (
+    [
+      'name',
+      'style',
+      'status',
+      'collab',
+      'label',
+      'labelFinal',
+      'releaseDate',
+      'externalLink',
+      'streamsJ7',
+      'streamsJ14',
+      'streamsJ21',
+      'streamsJ28',
+      'streamsJ56',
+      'streamsJ84',
+    ] as (keyof ParsedProjectRow)[]
+  ).map((field, index) => [index, field])
+);
+
+function splitLine(line: string, separator: string): string[] {
+  return separator === ','
+    ? parseCsvLine(line, separator)
+    : line.split(separator).map((cell) => cell.trim());
+}
+
+function parseHeaderMap(headerLine: string, separator: string): ColumnMap {
+  const columns: ColumnMap = new Map();
+  splitLine(headerLine, separator).forEach((header, index) => {
+    const field = findMappedField(header);
+    if (field) columns.set(index, field);
+  });
+  return columns;
+}
+
+/** Convertit une cellule selon le type de son champ ; une cellule vide ne change rien. */
+function assignCell(
+  row: ParsedProjectRow,
+  field: keyof ParsedProjectRow,
+  value: string,
+  dateFormat: 'fr' | 'en'
+): void {
+  if (!value) return;
+  const target = row as unknown as Record<string, unknown>;
+  if (TITLE_CASE_FIELDS.has(field)) target[field] = formatTitleCase(value);
+  else if (NUMBER_FIELDS.has(field)) target[field] = parseNumber(value) ?? undefined;
+  else if (field === 'status') target[field] = parseStatus(value) || undefined;
+  else if (field === 'releaseDate') target[field] = parseDate(value, dateFormat) || undefined;
+  else if (field === 'externalLink') target[field] = value;
+}
+
 /**
  * Parse les données collées depuis Excel
  * @param text - Texte collé depuis Excel
@@ -337,121 +407,22 @@ export function parseExcelData(
   }
 
   const separator = detectSeparator(text);
+  const headerMap = hasHeaders ? parseHeaderMap(lines[0], separator) : DEFAULT_COLUMNS;
+
   const rows: ParsedProjectRow[] = [];
-
-  // Si on a des en-têtes, les parser pour déterminer l'ordre des colonnes
-  let headerMap: Map<number, keyof ParsedProjectRow> | null = null;
-  let startIndex = 0;
-
-  if (hasHeaders && lines.length > 0) {
-    const headerLine = lines[0];
-    const headerCells =
-      separator === ','
-        ? parseCsvLine(headerLine, separator)
-        : headerLine.split(separator).map((cell) => cell.trim());
-
-    headerMap = new Map();
-    headerCells.forEach((header, index) => {
-      const field = findMappedField(header);
-      if (field) {
-        headerMap!.set(index, field);
-      }
+  for (let i = hasHeaders ? 1 : 0; i < lines.length; i++) {
+    const cells = splitLine(lines[i], separator);
+    // Index 1-based pour l'affichage
+    const row: ParsedProjectRow = { name: '', rowIndex: i + 1 };
+    headerMap.forEach((field, columnIndex) => {
+      assignCell(row, field, cells[columnIndex] || '', dateFormat);
     });
 
-    startIndex = 1; // Commencer après les en-têtes
-  }
-
-  // Parser les lignes de données
-  for (let i = startIndex; i < lines.length; i++) {
-    const line = lines[i];
-    const cells =
-      separator === ','
-        ? parseCsvLine(line, separator)
-        : line.split(separator).map((cell) => cell.trim());
-
-    const row: ParsedProjectRow = {
-      name: '',
-      rowIndex: i + 1, // Index 1-based pour l'affichage
-    };
-
-    // Si on a un mapping d'en-têtes, utiliser l'ordre des colonnes
-    if (headerMap) {
-      headerMap.forEach((field, columnIndex) => {
-        const value = cells[columnIndex] || '';
-        if (value) {
-          switch (field) {
-            case 'name':
-              row.name = formatTitleCase(value);
-              break;
-            case 'style':
-              row.style = value ? formatTitleCase(value) : undefined;
-              break;
-            case 'status':
-              row.status = parseStatus(value) || undefined;
-              break;
-            case 'collab':
-              row.collab = value ? formatTitleCase(value) : undefined;
-              break;
-            case 'label':
-              row.label = value ? formatTitleCase(value) : undefined;
-              break;
-            case 'labelFinal':
-              row.labelFinal = value ? formatTitleCase(value) : undefined;
-              break;
-            case 'releaseDate':
-              row.releaseDate = parseDate(value, dateFormat) || undefined;
-              break;
-            case 'externalLink':
-              row.externalLink = value || undefined;
-              break;
-            case 'streamsJ7':
-              row.streamsJ7 = parseNumber(value) ?? undefined;
-              break;
-            case 'streamsJ14':
-              row.streamsJ14 = parseNumber(value) ?? undefined;
-              break;
-            case 'streamsJ21':
-              row.streamsJ21 = parseNumber(value) ?? undefined;
-              break;
-            case 'streamsJ28':
-              row.streamsJ28 = parseNumber(value) ?? undefined;
-              break;
-            case 'streamsJ56':
-              row.streamsJ56 = parseNumber(value) ?? undefined;
-              break;
-            case 'streamsJ84':
-              row.streamsJ84 = parseNumber(value) ?? undefined;
-              break;
-          }
-        }
-      });
-    } else {
-      // Pas d'en-têtes : utiliser l'ordre par défaut des colonnes
-      // Ordre attendu : Nom, Style, Statut, Collab, Label, Label Final, Date Sortie, Lien, J7, J14, J21, J28, J56, J84
-      if (cells[0]) row.name = formatTitleCase(cells[0]);
-      if (cells[1]) row.style = formatTitleCase(cells[1]);
-      if (cells[2]) row.status = parseStatus(cells[2]) || undefined;
-      if (cells[3]) row.collab = formatTitleCase(cells[3]);
-      if (cells[4]) row.label = formatTitleCase(cells[4]);
-      if (cells[5]) row.labelFinal = formatTitleCase(cells[5]);
-      if (cells[6]) row.releaseDate = parseDate(cells[6], dateFormat) || undefined;
-      if (cells[7]) row.externalLink = cells[7];
-      if (cells[8]) row.streamsJ7 = parseNumber(cells[8]) ?? undefined;
-      if (cells[9]) row.streamsJ14 = parseNumber(cells[9]) ?? undefined;
-      if (cells[10]) row.streamsJ21 = parseNumber(cells[10]) ?? undefined;
-      if (cells[11]) row.streamsJ28 = parseNumber(cells[11]) ?? undefined;
-      if (cells[12]) row.streamsJ56 = parseNumber(cells[12]) ?? undefined;
-      if (cells[13]) row.streamsJ84 = parseNumber(cells[13]) ?? undefined;
-    }
-
-    // Valider la ligne
     const errors = validateRow(row, i);
     if (errors.length > 0) {
       row.errors = errors;
     }
-
     rows.push(row);
   }
-
   return rows;
 }

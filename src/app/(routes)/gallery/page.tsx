@@ -373,28 +373,21 @@ export default function GalleryPage() {
   const [selectedItem, setSelectedItem] = useState<GalleryItem | InstagramPost | null>(null);
   const [filter, setFilter] = useState<FilterType>('all');
   const [activeTab, setActiveTab] = useState<TabType>('gallery');
-  const [instagramPosts, setInstagramPosts] = useState<InstagramPost[]>([]);
-  const [isLoadingInstagram, setIsLoadingInstagram] = useState(false);
+  // null tant que les posts n'ont pas été chargés (une seule fois, au premier passage sur l'onglet)
+  const [loadedInstagramPosts, setInstagramPosts] = useState<InstagramPost[] | null>(null);
+  const instagramPosts = loadedInstagramPosts ?? [];
+  const isLoadingInstagram = activeTab === 'instagram' && loadedInstagramPosts === null;
 
-  // Fetch Instagram posts
   useEffect(() => {
-    if (activeTab === 'instagram') {
-      setIsLoadingInstagram(true);
-      fetch('/api/instagram/posts')
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.posts) {
-            setInstagramPosts(data.posts);
-          }
-        })
-        .catch((error) => {
-          logger.error('Error fetching Instagram posts:', error);
-        })
-        .finally(() => {
-          setIsLoadingInstagram(false);
-        });
-    }
-  }, [activeTab]);
+    if (activeTab !== 'instagram' || loadedInstagramPosts !== null) return;
+    fetch('/api/instagram/posts')
+      .then((res) => res.json())
+      .then((data) => setInstagramPosts(data.posts ?? []))
+      .catch((error) => {
+        logger.error('Error fetching Instagram posts:', error);
+        setInstagramPosts([]);
+      });
+  }, [activeTab, loadedInstagramPosts]);
 
   const filteredItems = galleryItems.filter((item) => {
     if (filter === 'all') return true;

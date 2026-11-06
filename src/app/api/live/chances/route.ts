@@ -1,6 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server';
-
-import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import {
   calculateMultiplier,
@@ -17,7 +14,7 @@ import { requireAuth } from '@/lib/api/requireAuth';
  * GET /api/live/chances
  * Calcule les chances de soumission de l'utilisateur
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const { session, error } = await requireAuth({
       requireUserId: true,
@@ -103,10 +100,8 @@ export async function GET(request: NextRequest) {
     let chancePercentage = 0;
     const isRolled = !!rolledSubmission;
 
-    if (isRolled) {
-      // Si l'utilisateur a été rolled, les chances sont à 0%
-      chancePercentage = 0;
-    } else if (userNonRolledSubmission && nonRolledSubmissions.length > 0) {
+    // Un utilisateur déjà tiré au sort garde 0 % de chances
+    if (!isRolled && userNonRolledSubmission && nonRolledSubmissions.length > 0) {
       // Calculer le multiplier pour la soumission de l'utilisateur
       const userMultiplier = calculateMultiplier(
         userNonRolledSubmission.createdAt,

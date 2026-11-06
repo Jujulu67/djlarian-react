@@ -67,7 +67,9 @@ export function calculateAffectedProjects(projects: Project[], filters: QueryFil
  * Vérifie si un filtre est vide ou non significatif (aucun critère de filtrage réel)
  * Gère les cas : undefined, null, chaînes vides, tableaux vides
  */
-export function isFilterEmpty(filter: QueryFilters | ProjectFilter | undefined | null): boolean {
+type AnyFilter = QueryFilters | ProjectFilter | undefined | null;
+
+export function isFilterEmpty(filter: AnyFilter): boolean {
   if (!filter) {
     return true;
   }

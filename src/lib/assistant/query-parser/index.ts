@@ -18,6 +18,78 @@ import type { ParseQueryResult } from '../types';
 import type { ConversationMessage } from '../conversational/memory-manager';
 import { logger } from '@/lib/logger';
 
+type Classification = ReturnType<typeof classifyQuery>;
+
+/** Filtres utiles à une modification : ceux déjà détectés dans la requête. */
+function pickUpdateFilters(filters: Record<string, unknown>): Record<string, unknown> {
+  const updateFilters: Record<string, unknown> = {};
+  for (const key of ['minProgress', 'maxProgress', 'hasDeadline', 'noProgress']) {
+    if (filters[key] !== undefined) updateFilters[key] = filters[key];
+  }
+  for (const key of ['status', 'deadlineDate', 'collab', 'style', 'label', 'labelFinal']) {
+    if (filters[key]) updateFilters[key] = filters[key];
+  }
+  return updateFilters;
+}
+
+/** Résultat « update » si la requête contient une modification, sinon null. */
+function buildUpdateResult(
+  query: string,
+  lowerQuery: string,
+  filters: Record<string, unknown>,
+  styles: string[],
+  classification: Classification
+): ParseQueryResult | null {
+  const updateData = extractUpdateData(query, lowerQuery, filters, styles);
+  if (!updateData) return null;
+  return {
+    filters: pickUpdateFilters(filters),
+    type: 'update',
+    understood: true,
+    lang: classification.lang,
+    updateData,
+    clarification: null,
+    isComplex: classification.isComplex,
+  };
+}
+
+/** Résultat « create » si un nom de projet a pu être extrait, sinon null. */
+function buildCreateResult(
+  query: string,
+  lowerQuery: string,
+  collabs: string[],
+  styles: string[],
+  classification: Classification
+): ParseQueryResult | null {
+  if (!classification.isCreate || classification.isUpdate) return null;
+  const createData = extractCreateData(query, lowerQuery, collabs, styles);
+  if (!createData?.name) return null;
+  return {
+    filters: {},
+    type: 'create',
+    understood: true,
+    lang: classification.lang,
+    createData,
+    clarification: null,
+    isComplex: classification.isComplex,
+  };
+}
+
+/** Une commande de modification reste « update » même si elle ressemble à une liste. */
+function resultType(classification: Classification): ParseQueryResult['type'] {
+  if (classification.isUpdate) return 'update';
+  if (classification.isCount) return 'count';
+  if (classification.isList) return 'list';
+  return classification.isCreate ? 'create' : 'search';
+}
+
+function clarificationFor({ understood, lang }: Classification): string | null {
+  if (understood) return null;
+  return lang === 'en'
+    ? "I didn't understand. Try: 'how many projects under 70%' or 'list my ghost prod'"
+    : "Je n'ai pas compris. Essaie: 'combien de projets sous les 70%' ou 'liste mes ghost prod'";
+}
+
 /**
  * Parse une requête utilisateur et retourne les filtres, type, et données extraites
  * @param query - Requête utilisateur à parser
@@ -123,134 +195,16 @@ export function parseQuery(
     // AUSSI: Vérifier les patterns de notes même si isUpdate est false
     // (car les patterns de notes comme "magnetize, contenu" ne contiennent pas de verbe d'action)
     // MAIS: Ne pas extraire si c'est une question (liste, combien, etc.) SAUF si c'est aussi une commande de modification
-    const shouldExtractUpdate = (classification.isUpdate || true) && !isQuestion;
-    logger.warn(
-      '[Parse Query API] 🔍 shouldExtractUpdate:',
-      shouldExtractUpdate,
-      'isUpdate:',
-      classification.isUpdate,
-      'isQuestion:',
-      isQuestion
-    );
-    if (shouldExtractUpdate) {
-      // Essayer d'extraire les données de mise à jour seulement si ce n'est pas une question
-      // extractUpdateData retournera null si ce n'est pas une mise à jour
-      const updateData = extractUpdateData(query, lowerQuery, filters, styles);
-      logger.warn(
-        '[Parse Query API] 🔍 extractUpdateData result:',
-        updateData ? 'has data' : 'null',
-        updateData
-          ? Object.keys(updateData).filter(
-              (k) => updateData[k as keyof typeof updateData] !== undefined
-            )
-          : ''
-      );
-      if (updateData) {
-        // Si on a des données de mise à jour valides, la requête est comprise
-        // Même si la classification initiale dit "understood: false", si on a réussi à extraire
-        // des données de mise à jour (newStatus, newProgress, newStyle, etc.), c'est une commande valide
-        const hasValidUpdateData =
-          updateData.newProgress !== undefined ||
-          updateData.newStatus !== undefined ||
-          updateData.newDeadline !== undefined ||
-          updateData.pushDeadlineBy !== undefined ||
-          updateData.newCollab !== undefined ||
-          updateData.newStyle !== undefined ||
-          updateData.newLabel !== undefined ||
-          updateData.newLabelFinal !== undefined ||
-          updateData.newNote !== undefined;
-
-        // Si on a des données de mise à jour valides, forcer understood à true
-        if (hasValidUpdateData) {
-          classification.understood = true;
-          classification.isConversationalQuestion = false;
-          logger.warn(
-            '[Parse Query API] ✅ Requête comprise grâce aux données de mise à jour extraites'
-          );
-        }
-
-        // Construire les filtres pour updateData (réutiliser ceux déjà détectés)
-        const updateFilters: Record<string, unknown> = {};
-
-        if (filters.minProgress !== undefined) {
-          updateFilters.minProgress = filters.minProgress;
-        }
-        if (filters.maxProgress !== undefined) {
-          updateFilters.maxProgress = filters.maxProgress;
-        }
-        if (filters.status) {
-          updateFilters.status = filters.status;
-        }
-        if (filters.hasDeadline !== undefined) {
-          updateFilters.hasDeadline = filters.hasDeadline;
-        }
-        if (filters.deadlineDate) {
-          updateFilters.deadlineDate = filters.deadlineDate;
-        }
-        if (filters.noProgress !== undefined) {
-          updateFilters.noProgress = filters.noProgress;
-        }
-        if (filters.collab) {
-          updateFilters.collab = filters.collab;
-        }
-        if (filters.style) {
-          updateFilters.style = filters.style;
-        }
-        if (filters.label) {
-          updateFilters.label = filters.label;
-        }
-        if (filters.labelFinal) {
-          updateFilters.labelFinal = filters.labelFinal;
-        }
-
-        return {
-          filters: updateFilters,
-          type: 'update',
-          understood: true,
-          lang: classification.lang,
-          updateData,
-          clarification: null,
-          isComplex: classification.isComplex,
-        };
-      }
-    }
-
-    // PRIORITÉ: Si c'est une commande de création, extraire les données de création
-    if (classification.isCreate && !classification.isUpdate) {
-      const createData = extractCreateData(query, lowerQuery, collabs, styles);
-      if (createData && createData.name) {
-        // Si on a réussi à extraire un nom, c'est une commande de création valide
-        logger.warn('[Parse Query API] ✅ Données de création extraites:', createData);
-        return {
-          filters: {},
-          type: 'create',
-          understood: true,
-          lang: classification.lang,
-          createData,
-          clarification: null,
-          isComplex: classification.isComplex,
-        };
-      }
-    }
+    const direct =
+      (isQuestion ? null : buildUpdateResult(query, lowerQuery, filters, styles, classification)) ??
+      buildCreateResult(query, lowerQuery, collabs, styles, classification);
+    if (direct) return direct;
 
     // Déterminer le type de retour
     // PRIORITÉ: Si c'est une commande de modification, le type est 'update' même si isList est aussi true
-    const type = classification.isUpdate
-      ? 'update'
-      : classification.isCount
-        ? 'count'
-        : classification.isList
-          ? 'list'
-          : classification.isCreate
-            ? 'create'
-            : 'search';
+    const type = resultType(classification);
 
-    // Générer le message de clarification si nécessaire
-    const clarification = classification.understood
-      ? null
-      : classification.lang === 'en'
-        ? "I didn't understand. Try: 'how many projects under 70%' or 'list my ghost prod'"
-        : "Je n'ai pas compris. Essaie: 'combien de projets sous les 70%' ou 'liste mes ghost prod'";
+    const clarification = clarificationFor(classification);
 
     const finalResult = {
       // Si c'est conversationnel et long, ne pas retourner de filtres (probablement des faux positifs)
@@ -260,11 +214,7 @@ export function parseQuery(
       lang: classification.lang,
       isConversational: classification.isConversationalQuestion,
       isComplex: classification.isComplex,
-      fieldsToShow: shouldIgnoreFilters
-        ? undefined
-        : fieldsToShow.length > 0
-          ? fieldsToShow
-          : undefined,
+      fieldsToShow: !shouldIgnoreFilters && fieldsToShow.length > 0 ? fieldsToShow : undefined,
       clarification,
     };
 

@@ -16,7 +16,6 @@ interface UseEventTicketsProps {
  */
 export const useEventTickets = ({
   formData,
-  setFormData,
   handleChange,
   handleCheckboxChange,
 }: UseEventTicketsProps) => {

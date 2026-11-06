@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
 import { defaultConfigs } from '@/config/defaults';
 import { logger } from '@/lib/logger';
@@ -91,13 +91,11 @@ type DefaultConfigs = {
 };
 
 // Endpoint pour réinitialiser les configurations
-export async function POST(req: NextRequest) {
+export async function POST() {
   try {
     // Vérifier que l'utilisateur est admin
     const { session, error: authError } = await requireAdmin({ nonAdminStatus: 401 });
     if (authError) return authError;
-
-    const updatePromises = [];
 
     // Pour chaque section de configuration
     for (const section in defaultConfigs) {

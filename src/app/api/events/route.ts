@@ -201,10 +201,10 @@ function generateRecurringDates(
 }
 
 // POST - Créer un nouvel événement
-export async function POST(request: Request): Promise<Response> {
+export async function POST(request: NextRequest): Promise<Response> {
   // Rate limiting (20 events/min)
   const { rateLimit } = await import('@/lib/api/rateLimiter');
-  const rateLimitResponse = await rateLimit(request as any, 20);
+  const rateLimitResponse = await rateLimit(request, 20);
   if (rateLimitResponse) {
     return rateLimitResponse;
   }

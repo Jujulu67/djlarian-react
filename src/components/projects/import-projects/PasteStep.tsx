@@ -1,7 +1,6 @@
 'use client';
 
 import { Upload } from 'lucide-react';
-import type { Dispatch, SetStateAction, RefObject, DragEvent, ChangeEvent } from 'react';
 
 import { Checkbox } from '@/components/ui/Checkbox';
 
@@ -41,7 +40,6 @@ export function PasteStep({
   handleParse,
   hasHeaders,
   isDragging,
-  isSpotifyCsv,
   pastedText,
   setColumnWidths,
   setDateFormat,
@@ -102,7 +100,7 @@ export function PasteStep({
                   name="dateFormat"
                   value="fr"
                   checked={dateFormat === 'fr'}
-                  onChange={(e) => setDateFormat('fr')}
+                  onChange={() => setDateFormat('fr')}
                   className="sr-only"
                 />
                 <div
@@ -126,7 +124,7 @@ export function PasteStep({
                   name="dateFormat"
                   value="en"
                   checked={dateFormat === 'en'}
-                  onChange={(e) => setDateFormat('en')}
+                  onChange={() => setDateFormat('en')}
                   className="sr-only"
                 />
                 <div

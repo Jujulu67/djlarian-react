@@ -2,6 +2,7 @@ import { emptyTrackForm } from '@/lib/utils/music-helpers';
 import { extractPlatformId } from '@/lib/utils/music-service';
 import type { Track, MusicPlatform } from '@/lib/utils/types';
 import type { DetectedRelease, PlatformSearchResult } from '@/lib/services/types';
+import { isValidImageId } from '@/lib/utils/generateImageId';
 
 /**
  * Crée les données de formulaire de base depuis une release détectée
@@ -95,13 +96,7 @@ export function prepareImageIdForApi(
   imageId: string | undefined,
   imageUrl: string | undefined
 ): { imageId?: string; thumbnailUrl?: string } {
-  const imageIdToSend =
-    imageId &&
-    /^[a-z0-9]+-[a-z0-9]+$|^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-      imageId
-    )
-      ? imageId
-      : undefined;
+  const imageIdToSend = imageId && isValidImageId(imageId) ? imageId : undefined;
 
   const thumbnailUrl = !imageIdToSend && imageUrl ? imageUrl : undefined;
 

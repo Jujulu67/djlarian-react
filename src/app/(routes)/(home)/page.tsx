@@ -37,7 +37,7 @@ export default async function HomePage() {
     : ['hero', 'releases', 'visualizer', 'events', 'stream'];
 
   // Fonction pour rendre chaque section
-  const renderSection = (sectionType: string, index: number) => {
+  const renderSection = (sectionType: string) => {
     switch (sectionType) {
       case 'hero':
         return isV3 ? (
@@ -147,7 +147,7 @@ export default async function HomePage() {
       <HomePageClient />
       <ClientUIComponents />
       <div className="scroll-snap-container" style={{ position: 'relative' }}>
-        {sectionOrder.map((section, index) => renderSection(section, index))}
+        {sectionOrder.map((section) => renderSection(section))}
       </div>
     </div>
   );

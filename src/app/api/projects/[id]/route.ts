@@ -27,6 +27,83 @@ type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
+const STRING_FIELDS = ['name', 'style', 'status', 'collab', 'label', 'labelFinal', 'note'];
+const STREAM_FIELDS = [
+  'streamsJ7',
+  'streamsJ14',
+  'streamsJ21',
+  'streamsJ28',
+  'streamsJ56',
+  'streamsJ84',
+  'streamsJ180',
+  'streamsJ365',
+];
+const MAX_INT32 = 2147483647;
+const INVALID_URL = Symbol('invalid-url');
+
+/** Entier saisi, ou null si la valeur est vide ou n'est pas un nombre. */
+function parseIntOrNull(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') return null;
+  const parsed = typeof value === 'number' ? value : parseInt(String(value), 10);
+  return isNaN(parsed) ? null : parsed;
+}
+
+/** Nombre de streams : positif et tenant dans un entier 32 bits. */
+function parseStreamValue(value: unknown): number | null {
+  const parsed = parseIntOrNull(value);
+  return parsed === null || parsed < 0 || parsed > MAX_INT32 ? null : parsed;
+}
+
+/** Avancement : de 0 à 100. */
+function parseProgressValue(value: unknown): number | null {
+  const parsed = parseIntOrNull(value);
+  return parsed === null || parsed < 0 || parsed > 100 ? null : parsed;
+}
+
+function parseStringField(value: unknown): unknown {
+  if (value === '') return null;
+  return typeof value === 'string' ? value.trim() : value;
+}
+
+/** Lien externe nettoyé, null si vide, INVALID_URL si l'URL n'est pas valide. */
+async function parseExternalLink(value: unknown): Promise<unknown> {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== 'string') return value;
+  const trimmed = value.trim();
+  if (trimmed === '') return null;
+  const { isValidUrl, sanitizeUrl } = await import('@/lib/utils/validateUrl');
+  return isValidUrl(trimmed, false) ? sanitizeUrl(trimmed) : INVALID_URL;
+}
+
+/** Ne garde que les champs présents dans la requête, chacun validé selon son type. */
+function buildUpdateData(body: Record<string, unknown>): Record<string, unknown> {
+  const parsers: Record<string, (value: unknown) => unknown> = {
+    order: parseIntOrNull,
+    progress: parseProgressValue,
+    releaseDate: (value) => (value ? new Date(value as string) : null),
+    deadline: (value) => (value ? new Date(value as string) : null),
+  };
+  for (const field of STRING_FIELDS) parsers[field] = parseStringField;
+  for (const field of STREAM_FIELDS) parsers[field] = parseStreamValue;
+
+  const updateData: Record<string, unknown> = {};
+  for (const [field, parse] of Object.entries(parsers)) {
+    if (field in body) updateData[field] = parse(body[field]);
+  }
+  return updateData;
+}
+
+/** Un projet TERMINE a toujours 100 % d'avancement, sauf si la requête en demande un autre. */
+function keepProgressConsistent(updateData: Record<string, unknown>, currentStatus: string | null) {
+  if ('status' in updateData) {
+    if (updateData.status === 'TERMINE') updateData.progress = 100;
+    return;
+  }
+  if (currentStatus === 'TERMINE' && !('progress' in updateData)) {
+    updateData.progress = 100;
+  }
+}
+
 // GET /api/projects/[id] - Récupère un projet spécifique
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
@@ -94,129 +171,14 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
     const body = await request.json();
 
-    // Construire les données de mise à jour dynamiquement
-    const updateData: Record<string, unknown> = {};
-
-    // Fonction helper pour parser les valeurs de streams avec validation
-    const parseStreamValue = (value: unknown): number | null => {
-      if (value === null || value === undefined || value === '') {
-        return null;
-      }
-      const parsed = typeof value === 'number' ? value : parseInt(String(value), 10);
-      if (isNaN(parsed) || parsed < 0) {
-        return null; // Rejeter les valeurs négatives ou invalides
-      }
-      // Limite de sécurité : max 2^31 - 1 (valeur max pour un entier 32 bits)
-      if (parsed > 2147483647) {
-        return null;
-      }
-      return parsed;
-    };
-
-    // Fonction helper pour parser et valider le progress (0-100)
-    const parseProgressValue = (value: unknown): number | null => {
-      if (value === null || value === undefined || value === '') {
-        return null;
-      }
-      const parsed = typeof value === 'number' ? value : parseInt(String(value), 10);
-      if (isNaN(parsed)) {
-        return null;
-      }
-      // Valider que le progress est entre 0 et 100
-      if (parsed < 0 || parsed > 100) {
-        return null;
-      }
-      return parsed;
-    };
-
-    const stringFields = ['name', 'style', 'status', 'collab', 'label', 'labelFinal', 'note'];
-    const intFields = [
-      'order',
-      'streamsJ7',
-      'streamsJ14',
-      'streamsJ21',
-      'streamsJ28',
-      'streamsJ56',
-      'streamsJ84',
-      'streamsJ180',
-      'streamsJ365',
-      'progress',
-    ];
-
-    for (const field of stringFields) {
-      if (field in body) {
-        const value = body[field];
-        updateData[field] = value === '' ? null : typeof value === 'string' ? value.trim() : value;
-      }
+    const externalLink = 'externalLink' in body ? await parseExternalLink(body.externalLink) : null;
+    if (externalLink === INVALID_URL) {
+      return createBadRequestResponse("L'URL externe fournie n'est pas valide");
     }
 
-    // Traiter externalLink séparément avec validation URL
-    if ('externalLink' in body) {
-      const value = body.externalLink;
-      if (value === '' || value === null || value === undefined) {
-        updateData.externalLink = null;
-      } else if (typeof value === 'string') {
-        const trimmed = value.trim();
-        if (trimmed === '') {
-          updateData.externalLink = null;
-        } else {
-          const { isValidUrl, sanitizeUrl } = await import('@/lib/utils/validateUrl');
-          if (!isValidUrl(trimmed, false)) {
-            return createBadRequestResponse("L'URL externe fournie n'est pas valide");
-          }
-          updateData.externalLink = sanitizeUrl(trimmed);
-        }
-      } else {
-        updateData.externalLink = value;
-      }
-    }
-
-    for (const field of intFields) {
-      if (field in body) {
-        const value = body[field];
-        if (field === 'order') {
-          // Pour order, utiliser la même logique mais avec validation
-          if (value === '' || value === null || value === undefined) {
-            updateData[field] = null;
-          } else {
-            const parsed = typeof value === 'number' ? value : parseInt(String(value), 10);
-            updateData[field] = isNaN(parsed) ? null : parsed;
-          }
-        } else if (field === 'progress') {
-          // Pour progress, utiliser la validation spécifique (0-100)
-          updateData[field] = parseProgressValue(value);
-        } else {
-          // Pour les streams, utiliser la validation stricte
-          updateData[field] = parseStreamValue(value);
-        }
-      }
-    }
-
-    if ('releaseDate' in body) {
-      updateData.releaseDate = body.releaseDate ? new Date(body.releaseDate) : null;
-    }
-
-    if ('deadline' in body) {
-      updateData.deadline = body.deadline ? new Date(body.deadline) : null;
-    }
-
-    // Si le statut est TERMINE, forcer progress à 100
-    if ('status' in updateData && updateData.status === 'TERMINE') {
-      updateData.progress = 100;
-    } else if (
-      'status' in updateData &&
-      existingProject.status === 'TERMINE' &&
-      updateData.status !== 'TERMINE'
-    ) {
-      // Si on passe de TERMINE à un autre statut, on ne force pas progress (l'utilisateur peut le modifier)
-      // Mais si progress n'est pas dans updateData, on ne le modifie pas
-    } else if (!('status' in updateData) && existingProject.status === 'TERMINE') {
-      // Si le projet est déjà TERMINE et qu'on modifie un autre champ, s'assurer que progress reste à 100
-      // Cela garantit la cohérence : un projet TERMINE doit toujours avoir progress = 100
-      if (!('progress' in updateData)) {
-        updateData.progress = 100;
-      }
-    }
+    const updateData = buildUpdateData(body);
+    if ('externalLink' in body) updateData.externalLink = externalLink;
+    keepProgressConsistent(updateData, existingProject.status);
 
     const project = await prisma.project.update({
       where: { id },

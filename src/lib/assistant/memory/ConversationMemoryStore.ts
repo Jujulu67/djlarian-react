@@ -19,6 +19,7 @@ import {
   isChatMessage,
 } from './Types';
 import { logger } from '@/lib/logger';
+import { inOrder, jsonArrayWithId, type TextPattern } from './linear-patterns';
 
 /** Estimation tokens par caractère (approximation pour Llama) */
 const CHARS_PER_TOKEN = 4;
@@ -34,12 +35,12 @@ const CHARS_PER_TOKEN = 4;
  * - Les messages de confirmation d'actions ("J'ai trouvé X projets...")
  * - Les listings/tableaux de données
  */
-const ACTION_OUTPUT_PATTERNS_ASSISTANT = [
+const ACTION_OUTPUT_PATTERNS_ASSISTANT: TextPattern[] = [
   // JSON arrays avec structure projet (pas juste ```json)
-  /\[[\s\S]*\{[\s\S]*"id"[\s\S]*"name"[\s\S]*\}[\s\S]*\]/,
-  /```json[\s\S]*"(id|projectId|affectedProjectIds)"[\s\S]*```/i,
+  inOrder(['[', '{', '"id"', '"name"', '}', ']']),
+  inOrder([/```json/i, /"(id|projectId|affectedProjectIds)"/i, '```']),
   // Résultats d'actions avec comptage
-  /\d+ projets? (mis à jour|supprimé|créé|listé|trouvé)/i,
+  /(?<!\d)\d+ projets? (mis à jour|supprimé|créé|listé|trouvé)/i,
   /J'ai (trouvé|mis|supprimé|créé) \d+ projet/i,
   /Ok\.\s*J'ai mis \d+ projet/i,
   // Champs techniques d'output d'actions (pas juste le mot)
@@ -48,14 +49,14 @@ const ACTION_OUTPUT_PATTERNS_ASSISTANT = [
   /"pendingAction"\s*:\s*\{/i,
   /"success"\s*:\s*(true|false),?\s*"(message|data)"/i,
   // Tableaux ASCII de listings avec structure
-  /\|[-=]+\|[\s\S]+\|[-=]+\|/,
-  /^\s*\|\s*ID\s*\|\s*Nom\s*\|/im,
+  inOrder([/\|[-=]+\|/, /\|[-=]+\|/], { gap: 1 }),
+  /^[ \t]*\|[ \t]*ID[ \t]*\|[ \t]*Nom[ \t]*\|/im,
 ];
 
 /** Patterns pour les messages user (éviter seulement les injections) */
-const USER_INJECTION_PATTERNS = [
+const USER_INJECTION_PATTERNS: TextPattern[] = [
   // Injection de résultats JSON purs
-  /^\s*\[\s*\{[\s\S]*"id"[\s\S]*\}\s*\]\s*$/,
+  jsonArrayWithId,
 ];
 
 export class ConversationMemoryStore {
@@ -243,10 +244,10 @@ export class ConversationMemoryStore {
   private isPolludedContent(content: string, role: MessageRole = 'assistant'): boolean {
     if (role === 'user') {
       // Pour les messages user, on filtre seulement les injections évidentes
-      return USER_INJECTION_PATTERNS.some((pattern: RegExp) => pattern.test(content));
+      return USER_INJECTION_PATTERNS.some((pattern) => pattern.test(content));
     }
     // Pour les messages assistant, filtrage strict
-    return ACTION_OUTPUT_PATTERNS_ASSISTANT.some((pattern: RegExp) => pattern.test(content));
+    return ACTION_OUTPUT_PATTERNS_ASSISTANT.some((pattern) => pattern.test(content));
   }
 
   private estimateTokens(content: string): number {

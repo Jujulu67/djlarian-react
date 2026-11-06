@@ -21,11 +21,7 @@ export function isAssistantDebugEnabled(): boolean {
   }
 
   // Vérifier variable d'environnement (côté serveur ou build)
-  if (process.env.ASSISTANT_DEBUG === 'true' || process.env.ASSISTANT_DEBUG === '1') {
-    return true;
-  }
-
-  return false;
+  return process.env.ASSISTANT_DEBUG === 'true' || process.env.ASSISTANT_DEBUG === '1';
 }
 
 /**

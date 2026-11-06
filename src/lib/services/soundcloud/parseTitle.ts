@@ -11,7 +11,7 @@ export function normalizeArtistName(name: string): string {
   // Capitalize first letter and remove trailing numbers if present
   const normalized = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
   // Remove trailing numbers (ex: larian67 -> Larian)
-  return normalized.replace(/\d+$/, '');
+  return normalized.replace(/(?<!\d)\d+$/, '');
 }
 
 /**
@@ -32,8 +32,8 @@ export function parseSoundCloudTitle(
   }
 
   const normalizedProfile = normalizeArtistName(profileName);
-  let parsedArtist = normalizedProfile;
-  let parsedTitle = title;
+  let parsedArtist: string;
+  let parsedTitle: string;
 
   // Detect remix terms (FLIP, REMIX, BOOTLEG, etc.)
   const remixPatterns = [

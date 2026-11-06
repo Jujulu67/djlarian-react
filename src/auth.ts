@@ -111,11 +111,6 @@ const customAdapter: Adapter = {
     // Récupérer l'utilisateur pour vérifier s'il faut mettre à jour l'image
     if (account.userId) {
       try {
-        const user = await prisma.user.findUnique({
-          where: { id: account.userId },
-          select: { image: true, name: true },
-        });
-
         // Mettre à jour l'image si elle n'existe pas ou si elle est différente
         // L'image du profil OAuth est disponible dans le token JWT, on la mettra à jour via le callback jwt
         // Pour l'instant, on stocke juste l'info que le compte est lié

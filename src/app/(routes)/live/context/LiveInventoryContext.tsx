@@ -2,7 +2,6 @@
 
 import { createContext, useContext, ReactNode } from 'react';
 import { useLiveInventory } from '../hooks/useLiveInventory';
-import type { LiveInventory, UpdateInventoryInput } from '@/types/live';
 
 type LiveInventoryContextType = ReturnType<typeof useLiveInventory>;
 

@@ -85,7 +85,7 @@ export function useHeaderScroll(setMounted: Dispatch<SetStateAction<boolean>>) {
     } catch (error) {
       logger.error('Error in Navigation mount effect:', error);
     }
-  }, []);
+  }, [setMounted]);
 
   return isScrolled;
 }
@@ -159,5 +159,12 @@ export function useClickOutsideMenus({
       document.addEventListener('click', handleClickOutside);
       return () => document.removeEventListener('click', handleClickOutside);
     }
-  }, [isUserMenuOpen, isMobileMenuOpen, isMobileUserMenuOpen]);
+  }, [
+    isUserMenuOpen,
+    isMobileMenuOpen,
+    isMobileUserMenuOpen,
+    setIsMobileMenuOpen,
+    setIsMobileUserMenuOpen,
+    setIsUserMenuOpen,
+  ]);
 }

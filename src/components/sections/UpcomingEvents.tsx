@@ -2,7 +2,6 @@
 
 import { motion } from 'framer-motion';
 import { ArrowRight, Calendar, CalendarX, Clock, MapPin } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
 
 import { Button } from '@/components/ui/Button';
@@ -16,18 +15,6 @@ export interface UpcomingEventsProps {
   title?: string;
   count?: number;
   events: Event[];
-}
-
-// Interface ajustée pour correspondre aux données réelles (type Event de types.ts)
-interface DisplayEvent {
-  id: string;
-  title: string;
-  date: string; // Renommé de startDate
-  location: string;
-  description: string;
-  imageId?: string | null;
-  ticketUrl?: string; // Renommé de tickets.buyUrl
-  isFeatured?: boolean;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -251,7 +238,7 @@ export default function UpcomingEvents({
           transition={{ duration: 0.6, delay: 0.4 }}
           className="mt-12 text-center"
         >
-          <a
+          <Link
             href="/events"
             className="inline-flex items-center gap-2 text-white hover:text-gray-300 transition-all duration-300 group text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-black rounded px-2"
             aria-label="View all events"
@@ -265,7 +252,7 @@ export default function UpcomingEvents({
             >
               →
             </motion.span>
-          </a>
+          </Link>
         </motion.div>
       </div>
     </section>

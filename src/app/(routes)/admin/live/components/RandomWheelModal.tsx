@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import ReactDOM from 'react-dom';
 import { X } from 'lucide-react';
 import { RandomWheel } from './RandomWheel';
@@ -26,36 +26,26 @@ export function RandomWheelModal({
   onClose,
   onSelectionComplete,
 }: RandomWheelModalProps) {
-  const [isSpinning, setIsSpinning] = useState(false);
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [spinFinished, setSpinFinished] = useState(false);
 
-  // Trouver l'index de la soumission sélectionnée
-  useEffect(() => {
-    if (selectedSubmissionId && submissions.length > 0) {
-      const index = submissions.findIndex((s) => s.id === selectedSubmissionId);
-      if (index !== -1) {
-        setSelectedIndex(index);
-      }
-    }
-  }, [selectedSubmissionId, submissions]);
+  // Index de la soumission sélectionnée (null si la modale est fermée)
+  const foundIndex =
+    isOpen && selectedSubmissionId
+      ? submissions.findIndex((s) => s.id === selectedSubmissionId)
+      : -1;
+  const selectedIndex = foundIndex === -1 ? null : foundIndex;
+  // La roue tourne dès qu'une soumission est sélectionnée, jusqu'à la fin de l'animation
+  const isSpinning = selectedIndex !== null && !spinFinished;
 
-  // Réinitialiser l'état quand la modale se ferme
-  useEffect(() => {
-    if (!isOpen) {
-      setIsSpinning(false);
-      setSelectedIndex(null);
-    }
-  }, [isOpen]);
-
-  // Démarrer le spin quand la modale s'ouvre
-  useEffect(() => {
-    if (isOpen && selectedIndex !== null && submissions.length > 0) {
-      setIsSpinning(true);
-    }
-  }, [isOpen, selectedIndex, submissions.length]);
+  // Réinitialiser quand la modale s'ouvre ou se ferme (ajustement pendant le rendu, sans effet)
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
+    setSpinFinished(false);
+  }
 
   const handleSpinComplete = () => {
-    setIsSpinning(false);
+    setSpinFinished(true);
 
     if (selectedSubmissionId) {
       // Attendre un peu avant de fermer pour voir le résultat

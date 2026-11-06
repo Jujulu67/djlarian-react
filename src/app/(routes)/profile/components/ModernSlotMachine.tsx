@@ -5,7 +5,6 @@ import { X, Coins, Gift, Info, Flame } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useSlotMachine } from '../hooks/useSlotMachine';
 import { useSlotMachineSounds } from '../hooks/useSlotMachineSounds';
-import { SymbolType } from '@/types/slot-machine';
 import ReactDOM from 'react-dom';
 import Image from 'next/image';
 import {

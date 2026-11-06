@@ -42,7 +42,6 @@ function ProfileContent() {
     loadOAuthAccounts,
   } = useOAuthAccounts();
   const {
-    badges: userBadges,
     unlockedBadges,
     lockedBadges,
     totalRegularBadges,
@@ -219,7 +218,7 @@ function ProfileContent() {
     reader.readAsDataURL(file);
   };
 
-  const handleCropComplete = async (croppedFile: File, previewUrl: string) => {
+  const handleCropComplete = async (croppedFile: File) => {
     if (!session?.user?.id) return;
 
     setIsUploadingAvatar(true);

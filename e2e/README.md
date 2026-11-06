@@ -39,9 +39,10 @@ Deux workers en local : le serveur de dev compile chaque page à la demande et s
 - Chaque page publique s'affiche sans erreur JavaScript.
 - Échap ferme la carte du casino ; la fermer renvoie un visiteur à l'accueil.
 
-À ajouter : création de projet, admin musique, live, boutique. Ces tests ne tournent pas encore
-en CI (il faudrait un service PostgreSQL dans le workflow) : voir
-[docs/DETTE-TECHNIQUE.md](../docs/DETTE-TECHNIQUE.md).
+À ajouter : création de projet, admin musique, live, boutique.
+
+En CI, le job « E2E (Playwright) » lance ces tests contre un service PostgreSQL jetable, et publie
+`playwright-report/` en artefact en cas d'échec.
 
 ## Dépannage
 

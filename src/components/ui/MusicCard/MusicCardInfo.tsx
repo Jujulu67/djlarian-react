@@ -14,30 +14,6 @@ interface MusicCardInfoProps {
 }
 
 /**
- * Transform track type to display label
- */
-const getTypeLabel = (type: string): string => {
-  switch (type) {
-    case 'single':
-      return 'Single';
-    case 'ep':
-      return 'EP';
-    case 'album':
-      return 'Album';
-    case 'remix':
-      return 'Remix';
-    case 'live':
-      return 'Live';
-    case 'djset':
-      return 'DJ Set';
-    case 'video':
-      return 'Video';
-    default:
-      return type;
-  }
-};
-
-/**
  * Component to display track information (title, date, badges)
  */
 export const MusicCardInfo: React.FC<MusicCardInfoProps> = ({ track, isPlayerVisible, footer }) => {

@@ -22,7 +22,6 @@ interface SubmissionActionsProps {
 
 export function SubmissionActions({
   activeSubmission,
-  description,
   draftId,
   handleDelete,
   handleDeleteSubmission,
@@ -33,7 +32,6 @@ export function SubmissionActions({
   setDescription,
   setIsEditing,
   setTitle,
-  title,
 }: SubmissionActionsProps) {
   return (
     <div className="flex items-center gap-3 pt-2">

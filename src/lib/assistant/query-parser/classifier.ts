@@ -38,7 +38,7 @@ export function classifyQuery(
 
   // Détecter si c'est une question sur l'assistant lui-même (pas sur les projets)
   const isMetaQuestion =
-    /(tu sais faire|tes capacit|tes possibilit|tes fonctionnalit|que peux[- ]?tu|what can you|qui es[- ]?tu|tu t['']?appelles|who are you|aide[- ]?moi|help me|comment [çc]a marche|how does it work)/i.test(
+    /(tu sais faire|tes capacit|tes possibilit|tes fonctionnalit|que peux[- ]?tu|what can you|qui es[- ]?tu|tu t['’]?appelles|who are you|aide[- ]?moi|help me|comment [çc]a marche|how does it work)/i.test(
       lowerQuery
     );
 
@@ -49,7 +49,7 @@ export function classifyQuery(
   // IMPORTANT: Ne pas confondre "combie" (faute de "combien") avec "modifie"
   // On vérifie que ce n'est pas "combie" avant de détecter comme update
   // IMPORTANT: Exclure "ajoute le projet" / "ajouter un projet" du pattern isUpdate (c'est une création)
-  const hasCombieTypo = /^combie|combie\s+de/i.test(lowerQuery);
+  const hasCombieTypo = /(?:^combie)|(?:combie\s+de)/i.test(lowerQuery);
   const isProjectCreation =
     /(?:ajoute|ajouter|ajout|créer|créé|creer|créa)\s+(?:le\s+)?(?:projet|project|un\s+projet|a\s+project)/i.test(
       lowerQuery
@@ -57,7 +57,7 @@ export function classifyQuery(
   let isUpdate =
     !hasCombieTypo &&
     !isProjectCreation &&
-    /(?:modifie|modifier|modifi|modif|modifs|modifiez|change|changer|chang|chg|changes|changez|mets|met|mt|mett|mettez|mettre|passe|passer|pass|pas[sz]|passes|passez|met\s+à\s+jour|mettre\s+à\s+jour|update|updat|set|déplace|déplacer|deplac|pousse|pousser|recul|reculer|retarde|retarder|décal|décaler|marque|marquer|marqu|mrq|marques|marquez|supprime|supprimer|supprim|retire|retirer|remove|delete|enlève|enlever|enleve|prévoit|prévoir|avance|avancer|^deadline\s+(?:à|a|pour)|(?:en\s+)?(?:collab|collaborateur)\s+avec\s+[A-Za-z0-9_\s]+\s+[àa]|ajoute\s+(?:une\s+)?note|ajouter\s+(?:une\s+)?note|note\s+pour|session\s+.*du\s+jour|^note\s+)/i.test(
+    /(?:modifie|modifier|modifi|modif|modifs|modifiez|change|changer|chang|chg|changes|changez|mets|met|mt|mett|mettez|mettre|passe|passer|pass|pas[sz]|passes|passez|met\s+à\s+jour|mettre\s+à\s+jour|update|updat|set|déplace|déplacer|deplac|pousse|pousser|recul|reculer|retarde|retarder|décal|décaler|marque|marquer|marqu|mrq|marques|marquez|supprime|supprimer|supprim|retire|retirer|remove|delete|enlève|enlever|enleve|prévoit|prévoir|avance|avancer|^deadline\s+(?:à|a|pour)|(?:en\s+)?(?:collab|collaborateur)\s+avec\s+[a-z0-9_\s]+\s+[àa]|ajoute\s+(?:une\s+)?note|ajouter\s+(?:une\s+)?note|note\s+pour|session\s+.*du\s+jour|^note\s+)/i.test(
       lowerQuery
     );
   let isCreate =
@@ -151,11 +151,11 @@ export function classifyQuery(
   // Détecter une demande explicite de "tous les projets" / "global" / "sans filtre"
   // IMPORTANT: Distinguer "tous les détails" (champs) de "tous les projets" (scope)
   const isAllProjectsRequested =
-    /(?:tous\s+les?\s+projets?|toutes?\s+les?\s+projets?|l['']?ensemble\s+des?\s+projets?|global|sans\s+filtre|aucun\s+filtre)/i.test(
+    /(?:tous\s+les?\s+projets?|toutes?\s+les?\s+projets?|l['’]?ensemble\s+des?\s+projets?|global|sans\s+filtre|aucun\s+filtre)/i.test(
       lowerQuery
     ) ||
     // "affiche tous les détails de tous les projets" -> isAllProjectsRequested = true
-    /(?:détails?|details?|infos?)\s+(?:de|des?|sur)\s+(?:tous\s+les?\s+projets?|toutes?\s+les?\s+projets?|l['']?ensemble)/i.test(
+    /(?:détails?|details?|infos?)\s+(?:de|des?|sur)\s+(?:tous\s+les?\s+projets?|toutes?\s+les?\s+projets?|l['’]?ensemble)/i.test(
       lowerQuery
     );
 
@@ -245,10 +245,10 @@ export function classifyQuery(
   // Si le message fait plus de 200 caractères, ne mentionne pas "projet" dans un contexte musical,
   // et contient des informations personnelles (âge, salaire, lieu, etc.), c'est conversationnel
   const hasPersonalInfo =
-    /j['']?ai\s+\d+\s+ans|j['']?ai\s+\d+\s+années|i\s+am\s+\d+|i\s+have\s+\d+\s+years/i.test(
+    /j['’]?ai\s+\d+\s+ans|j['’]?ai\s+\d+\s+années|i\s+am\s+\d+|i\s+have\s+\d+\s+years/i.test(
       lowerQuery
     ) ||
-    /je\s+vis\s+à|i\s+live\s+in|j['']?habite/i.test(lowerQuery) ||
+    /je\s+vis\s+à|i\s+live\s+in|j['’]?habite/i.test(lowerQuery) ||
     /je\s+travaille|i\s+work|mon\s+travail|my\s+job/i.test(lowerQuery) ||
     /je\s+gagne|i\s+earn|salaire|salary|€|\$/i.test(lowerQuery) ||
     /objectif|goal|but|souhaite|wish|want/i.test(lowerQuery) ||
@@ -296,7 +296,7 @@ export function classifyQuery(
         lowerQuery.trim()
       ) ||
         // Déclarations personnelles (j'aime, je pense...) sans verbe d'action projet
-        /^(?:j['']?aime|je\s+déteste|je\s+préfère|je\s+pense|je\s+crois|je\s+trouve|i\s+like|i\s+love|i\s+think)\s+/i.test(
+        /^(?:j['’]?aime|je\s+déteste|je\s+préfère|je\s+pense|je\s+crois|je\s+trouve|i\s+like|i\s+love|i\s+think)\s+/i.test(
           lowerQuery.trim()
         ) ||
         // Demandes de résumé/synthèse de conversation
@@ -327,27 +327,27 @@ export function classifyQuery(
           lowerQuery
         ) ||
         // Questions d'opinion : "t'en penses quoi?", "qu'est-ce que tu en penses?", "what do you think?"
-        /(?:t['']?en|tu\s+en|vous\s+en)\s+penses?\s+quoi/i.test(lowerQuery) ||
-        /(?:qu['']?est[- ]?ce\s+que\s+tu\s+en\s+penses?|what\s+do\s+you\s+think)/i.test(
+        /(?:t['’]?en|tu\s+en|vous\s+en)\s+penses?\s+quoi/i.test(lowerQuery) ||
+        /(?:qu['’]?est[- ]?ce\s+que\s+tu\s+en\s+penses?|what\s+do\s+you\s+think)/i.test(
           lowerQuery
         ) ||
         /(?:tu\s+penses?\s+quoi|you\s+think\s+what)/i.test(lowerQuery) ||
         // Commentaires/observations : "ça fait...", "c'est...", "that's..."
-        /^(?:ça\s+fait|c['']?est|that['']?s|it['']?s)\s+/i.test(lowerQuery.trim()) ||
+        /^(?:ça\s+fait|c['’]?est|that['’]?s|it['’]?s)\s+/i.test(lowerQuery.trim()) ||
         // "ça fait [adjectif] de projets" (commentaire, pas commande)
         /ça\s+fait\s+[^?]*\s+(?:de\s+)?(?:projets?|projects?)/i.test(lowerQuery) ||
         // Questions qui se terminent par "non?", "hein?", "tu trouves pas?", "tu trouves pas?"
-        /(?:non|hein|tu\s+trouves?\s+pas|you\s+think|n['']?est[- ]?ce\s+pas)\s*[?]?$/i.test(
+        /(?:non|hein|tu\s+trouves?\s+pas|you\s+think|n['’]?est[- ]?ce\s+pas)\s*[?]?$/i.test(
           lowerQuery.trim()
         ) ||
         // Questions rhétoriques ou conversationnelles même avec mots-clés
-        (/(?:t['']?en\s+penses?\s+quoi|qu['']?est[- ]?ce\s+que\s+tu\s+en\s+penses?|what\s+do\s+you\s+think|tu\s+penses?\s+quoi)\s*[?]?$/i.test(
+        (/(?:t['’]?en\s+penses?\s+quoi|qu['’]?est[- ]?ce\s+que\s+tu\s+en\s+penses?|what\s+do\s+you\s+think|tu\s+penses?\s+quoi)\s*[?]?$/i.test(
           lowerQuery
         ) &&
           !isCount &&
           Object.keys(filters).length === 0) ||
         // Questions ouvertes sans verbe d'action clair
-        (/^(?:qu['']?est[- ]?ce|que|quoi|comment|pourquoi|où|quand|qui)/i.test(lowerQuery.trim()) &&
+        (/^(?:qu['’]?est[- ]?ce|que|quoi|comment|pourquoi|où|quand|qui)/i.test(lowerQuery.trim()) &&
           !isCount &&
           !isList &&
           Object.keys(filters).length === 0) ||

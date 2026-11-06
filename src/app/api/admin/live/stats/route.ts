@@ -1,7 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
-
 import { requireAdmin } from '@/lib/api/requireAuth';
-import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import { createSuccessResponse, createUnauthorizedResponse } from '@/lib/api/responseHelpers';
 import { handleApiError } from '@/lib/api/errorHandler';
@@ -13,7 +10,7 @@ import { TicketSource, LiveItemType } from '@/types/live';
  * GET /api/admin/live/stats
  * Récupère les statistiques du pool (total tickets, nombre de soumissions)
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const { error: authError } = await requireAdmin({
       onAnonymous: () => createUnauthorizedResponse('Non autorisé'),

@@ -406,7 +406,11 @@ export function StreamsEvolutionChart({
                           strokeWidth={2}
                           dot={{ r: 4, fill: color }}
                           activeDot={{ r: 6, strokeWidth: 2, fill: color }}
-                          name={`${mapping.projectName}${mapping.style ? ` (${mapping.style})` : ''}`}
+                          name={
+                            mapping.style
+                              ? `${mapping.projectName} (${mapping.style})`
+                              : mapping.projectName
+                          }
                           connectNulls={false}
                           isAnimationActive={false}
                         />
@@ -432,7 +436,11 @@ export function StreamsEvolutionChart({
                             strokeWidth={2}
                             dot={{ r: 4, fill: color }}
                             activeDot={{ r: 6, strokeWidth: 2, fill: color }}
-                            name={`${mapping.projectName}${mapping.style ? ` (${mapping.style})` : ''}`}
+                            name={
+                              mapping.style
+                                ? `${mapping.projectName} (${mapping.style})`
+                                : mapping.projectName
+                            }
                             connectNulls={true}
                             isAnimationActive={false}
                           />
@@ -494,7 +502,9 @@ export function StreamsEvolutionChart({
                 {comparisonMode === 'two'
                   ? 'Sélectionnez 2 projets pour les comparer'
                   : getFilteredProjectsForComparison.length === 0
-                    ? `Aucun projet trouvé${comparisonYearFilter !== null ? ` pour l'année ${comparisonYearFilter}` : ''}`
+                    ? comparisonYearFilter === null
+                      ? 'Aucun projet trouvé'
+                      : `Aucun projet trouvé pour l'année ${comparisonYearFilter}`
                     : 'Aucune donnée disponible'}
               </div>
             )}

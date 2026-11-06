@@ -5,6 +5,7 @@
 import { NextRequest } from 'next/server';
 
 import { POST } from '../route';
+import * as random from '@/lib/utils/random';
 
 jest.mock('@/auth', () => ({
   auth: jest.fn(),
@@ -57,7 +58,7 @@ describe('POST /api/minigames/play', () => {
     prisma.userSlotMachineTokens.updateMany.mockResolvedValue({ count: 1 });
     prisma.userSlotMachineTokens.findUnique.mockResolvedValue({ tokens: 40 });
     prisma.liveItem.upsert.mockResolvedValue({ id: 'item-1' });
-    randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.99); // perdu
+    randomSpy = jest.spyOn(random, 'secureRandom').mockReturnValue(0.99); // perdu
   });
 
   afterEach(() => randomSpy.mockRestore());

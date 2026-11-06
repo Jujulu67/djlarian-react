@@ -3,7 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, User, Bell } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 
@@ -31,7 +31,6 @@ import { logger } from '@/lib/logger';
 const Navigation = () => {
   const { data: session, status } = useSession();
   const pathname = usePathname();
-  const router = useRouter();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   useEffect(() => {
     const open = () => setIsAuthModalOpen(true);

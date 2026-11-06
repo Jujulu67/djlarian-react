@@ -1,5 +1,3 @@
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
-
 export default function AdminLoading() {
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-black via-[#0c0117] to-black v2:bg-none v2:bg-transparent">

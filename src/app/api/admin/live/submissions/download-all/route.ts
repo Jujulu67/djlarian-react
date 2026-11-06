@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { isLiveAudioBlobUrl } from '@/lib/live/fileUrl';
 import { requireAdmin } from '@/lib/api/requireAuth';
 import { createUnauthorizedResponse, createErrorResponse } from '@/lib/api/responseHelpers';
@@ -6,13 +6,12 @@ import { handleApiError } from '@/lib/api/errorHandler';
 import prisma from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { ZipArchive } from 'archiver';
-import { Readable } from 'stream';
 
 /**
  * GET /api/admin/live/submissions/download-all
  * Télécharge toutes les soumissions dans un fichier ZIP
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const { error: authError } = await requireAdmin({
       onAnonymous: () => createUnauthorizedResponse('Non autorisé'),

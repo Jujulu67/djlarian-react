@@ -32,9 +32,8 @@ export const MusicCardControls: React.FC<MusicCardControlsProps> = ({
 
   if (isV2) {
     const isCurrentlyPlaying = isActive && isPlaying;
-    const label = isCurrentlyPlaying
-      ? `Mettre en pause${trackTitle ? ` « ${trackTitle} »` : ''}`
-      : `Écouter${trackTitle ? ` « ${trackTitle} »` : ''}`;
+    const quotedTitle = trackTitle ? ` « ${trackTitle} »` : '';
+    const label = (isCurrentlyPlaying ? 'Mettre en pause' : 'Écouter') + quotedTitle;
 
     // Vrai <button> : focusable, Entrée et Espace lancent la lecture nativement.
     // Visible en permanence au tactile, au survol / focus clavier sur desktop.

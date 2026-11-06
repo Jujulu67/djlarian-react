@@ -13,12 +13,13 @@ import {
 } from '@/lib/assistant/security/input-limits';
 import { redactPii, isDebugAllowed } from '@/lib/assistant/security/PiiRedactor';
 import { logger } from '@/lib/logger';
+import { randomToken } from '@/lib/utils/random';
 
 /**
  * Filtre et valide l'historique conversationnel
  * Ne garde que les messages valides (user/assistant avec contenu)
  */
-function filterConversationHistory(history: any[] | undefined): ConversationMessage[] {
+function filterConversationHistory(history: unknown): ConversationMessage[] {
   if (!history || !Array.isArray(history)) {
     return [];
   }
@@ -63,7 +64,7 @@ export async function POST(request: NextRequest) {
     if (authError) return authError;
   }
 
-  const requestId = `groq-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  const requestId = `groq-${Date.now()}-${randomToken(9)}`;
 
   try {
     const body = await request.json();
@@ -159,7 +160,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Assertion dev-only: vérifier l'identité sur "qui es-tu" / "who are you"
-    const isIdentityQuery = /qui\s+es\s*[-]?tu|who\s+are\s+you/i.test(message);
+    const isIdentityQuery = /qui\s+es\s*-?tu|who\s+are\s+you/i.test(message);
     if (isIdentityQuery && debugEnabled) {
       // On ne peut pas accéder directement au system prompt ici, mais on peut logger ce qu'on sait
       logger.warn(`[Groq API Identity Check] ${logPrefix} Question d'identité détectée`, {

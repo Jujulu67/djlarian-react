@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { logger } from '@/lib/logger';
 
 interface SpeedInsightsStatus {
   enabled: boolean;
@@ -18,37 +19,47 @@ export default function VercelSpeedInsightsDashboard() {
     loading: true,
   });
 
-  const fetchStatus = async () => {
-    setStatus((prev) => ({ ...prev, loading: true }));
+  // Lecture du statut ; l'état initial est déjà « en chargement »
+  const loadStatus = async (): Promise<SpeedInsightsStatus> => {
     try {
       // Récupérer l'URL du dashboard depuis l'API
       const response = await fetch('/api/admin/integrations/status');
       if (response.ok) {
         const data = await response.json();
-        setStatus({
-          enabled: data.vercel?.speedInsights?.enabled || true,
+        return {
+          enabled: data.vercel?.speedInsights?.enabled ?? true,
           dashboardUrl: data.vercel?.speedInsights?.dashboardUrl,
           loading: false,
-        });
+        };
       } else {
-        setStatus({
+        return {
           enabled: true,
           loading: false,
-        });
+        };
       }
     } catch (error) {
-      setStatus({
+      logger.warn('VercelSpeedInsightsDashboard.tsx', error);
+      return {
         enabled: true,
         loading: false,
-      });
+      };
     }
   };
 
-  useEffect(() => {
-    fetchStatus();
-  }, []);
+  const fetchStatus = () => {
+    setStatus((prev) => ({ ...prev, loading: true }));
+    return loadStatus().then(setStatus);
+  };
 
-  const enabled = true; // Toujours actif si intégré
+  useEffect(() => {
+    let alive = true;
+    loadStatus().then((next) => {
+      if (alive) setStatus(next);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   return (
     <Card className="glass border-purple-500/20 bg-transparent">

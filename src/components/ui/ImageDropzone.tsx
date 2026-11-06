@@ -131,6 +131,7 @@ const ImageDropzone: React.FC<ImageDropzoneProps> = ({
       ) : (
         <div
           className="border-2 border-dashed border-gray-600 rounded-lg p-6 text-center hover:border-purple-500 transition-colors cursor-pointer"
+          role="button"
           onClick={() => fileInputRef.current?.click()}
           tabIndex={0}
           aria-label={placeholderText}

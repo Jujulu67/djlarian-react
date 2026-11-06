@@ -1,10 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 
 import { requireAdmin } from '@/lib/api/requireAuth';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import { createSuccessResponse, createUnauthorizedResponse } from '@/lib/api/responseHelpers';
 import { handleApiError } from '@/lib/api/errorHandler';
+import { Prisma } from '@prisma/client';
 
 /**
  * GET /api/admin/live/submissions
@@ -21,7 +22,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status'); // Filtrer par status si fourni
 
-    const where: any = {
+    const where: Prisma.LiveSubmissionWhereInput = {
       isDraft: false, // Ne jamais inclure les drafts côté admin
     };
 

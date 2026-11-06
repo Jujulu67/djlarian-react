@@ -23,7 +23,7 @@ export function extractProjectNameFromFileName(fileName: string): string {
   let nameWithoutExt = fileName.replace(/\.(csv|CSV)$/, '');
 
   // Retirer les numéros entre parenthèses à la fin (ex: " (1)", " (2)")
-  nameWithoutExt = nameWithoutExt.replace(/\s*\(\d+\)\s*$/, '');
+  nameWithoutExt = nameWithoutExt.replace(/(?<!\s)\s*\(\d+\)\s*$/, '');
 
   // Retirer les suffixes communs (-timeline, -streams, etc.)
   const cleaned = nameWithoutExt

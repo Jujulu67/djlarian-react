@@ -102,7 +102,9 @@ export async function setActiveDatabaseTarget(
     // Mettre à jour le cache global
     global.__activeDatabaseTarget = target;
 
-    logger.info(`[DB TARGET] Cible DB changée vers: ${target}${userId ? ` (par ${userId})` : ''}`);
+    logger.info(
+      `[DB TARGET] Cible DB changée vers: ${target}` + (userId ? ` (par ${userId})` : '')
+    );
   } finally {
     // Libérer le mutex
     resolveMutex!();

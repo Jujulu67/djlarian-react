@@ -152,7 +152,7 @@ export function useSlotWinEffects({
         setWinIntensity('low');
       }
     }
-  }, [lastResult, isSpinning, playWinSound, playJackpotSound, scheduleEffectTimeout]);
+  }, [lastResult, isSpinning, playWinSound, playJackpotSound, scheduleEffectTimeout, wasHotStreak]);
 
   return {
     showWinAnimation,

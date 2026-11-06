@@ -148,6 +148,158 @@ export async function GET(
   }
 }
 
+type JsonBody = Awaited<ReturnType<NextRequest['json']>>;
+
+/** Champs simples de l'événement : seuls ceux présents dans la requête sont modifiés. */
+function buildEventUpdate(body: JsonBody): Prisma.EventUpdateInput {
+  const {
+    title,
+    description,
+    location,
+    address,
+    startDate,
+    endDate,
+    status,
+    isPublished,
+    featured,
+    imageId,
+    publishAt,
+  } = body;
+
+  const dataToUpdate: Prisma.EventUpdateInput = {};
+
+  if (title !== undefined) dataToUpdate.title = title;
+  if (description !== undefined) dataToUpdate.description = description;
+  if (location !== undefined) dataToUpdate.location = location;
+  if (address !== undefined) dataToUpdate.address = address;
+  if (startDate !== undefined) {
+    dataToUpdate.startDate = startDate ? new Date(startDate) : undefined;
+  }
+  if (endDate !== undefined) {
+    dataToUpdate.endDate = endDate ? new Date(endDate) : undefined;
+  }
+  if (status !== undefined) dataToUpdate.status = status;
+  if (isPublished !== undefined) dataToUpdate.isPublished = isPublished;
+  if (featured !== undefined) dataToUpdate.featured = featured;
+  if (publishAt !== undefined) dataToUpdate.publishAt = publishAt ? new Date(publishAt) : null;
+
+  if (imageId !== undefined) {
+    dataToUpdate.imageId = imageId;
+  }
+
+  return dataToUpdate;
+}
+
+/** Rattache l'événement à l'admin qui le modifie, si son compte existe. */
+async function connectEditor(dataToUpdate: Prisma.EventUpdateInput, userId: string): Promise<void> {
+  // Vérifier si l'utilisateur existe avant d'essayer d'établir la relation
+  try {
+    const userExists = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+
+    if (userExists) {
+      dataToUpdate.User = {
+        connect: { id: userId },
+      };
+    } else {
+      logger.debug(`Utilisateur avec ID ${userId} n'existe pas dans la base de données`);
+    }
+  } catch (error) {
+    logger.error("Erreur lors de la vérification de l'utilisateur:", error);
+    // On continue sans établir la relation utilisateur
+  }
+}
+
+async function applyTickets(
+  dataToUpdate: Prisma.EventUpdateInput,
+  id: string,
+  tickets: JsonBody
+): Promise<void> {
+  try {
+    // Vérifier si l'événement a déjà des tickets
+    const existingTickets = await prisma.ticketInfo.findUnique({
+      where: { eventId: id },
+    });
+
+    if (existingTickets) {
+      // Mettre à jour les tickets existants
+      dataToUpdate.TicketInfo = {
+        update: {
+          price: tickets.price !== undefined ? Number(tickets.price) : undefined,
+          currency: tickets.currency || undefined,
+          buyUrl: tickets.buyUrl || undefined,
+          quantity: tickets.quantity !== undefined ? Number(tickets.quantity) : undefined,
+          availableFrom: tickets.availableFrom ? new Date(tickets.availableFrom) : undefined,
+          availableTo: tickets.availableTo ? new Date(tickets.availableTo) : undefined,
+        },
+      };
+    } else {
+      // Créer de nouveaux tickets
+      dataToUpdate.TicketInfo = {
+        create: {
+          currency: (tickets.currency || 'EUR') as string,
+          ...(tickets.price !== undefined && { price: Number(tickets.price) }),
+          ...(tickets.buyUrl && { buyUrl: tickets.buyUrl as string }),
+          ...(tickets.quantity !== undefined && { quantity: Number(tickets.quantity) }),
+          ...(tickets.availableFrom && { availableFrom: new Date(tickets.availableFrom) }),
+          ...(tickets.availableTo && { availableTo: new Date(tickets.availableTo) }),
+        } as Prisma.TicketInfoCreateWithoutEventInput,
+      };
+    }
+  } catch (error) {
+    logger.error('Erreur lors de la mise à jour des tickets:', error);
+  }
+}
+
+async function applyRecurrence(
+  dataToUpdate: Prisma.EventUpdateInput,
+  id: string,
+  recurrence: JsonBody
+): Promise<void> {
+  try {
+    // Vérifier si l'événement a déjà une configuration de récurrence
+    const existingRecurrence = await prisma.recurrenceConfig.findUnique({
+      where: { eventId: id },
+    });
+
+    if (existingRecurrence) {
+      // Mettre à jour la configuration existante
+      dataToUpdate.RecurrenceConfig = {
+        update: {
+          frequency: recurrence.frequency || undefined,
+          day: recurrence.day !== undefined ? recurrence.day : undefined,
+          endDate: recurrence.endDate ? new Date(recurrence.endDate) : undefined,
+          excludedDates: recurrence.excludedDates || undefined,
+        },
+      };
+    } else if (recurrence.isRecurring) {
+      // Créer une nouvelle configuration de récurrence
+      dataToUpdate.RecurrenceConfig = {
+        create: {
+          frequency: recurrence.frequency || 'weekly',
+          day: recurrence.day || new Date().getDay(),
+          endDate: recurrence.endDate ? new Date(recurrence.endDate) : null,
+          excludedDates: recurrence.excludedDates || [],
+        },
+      };
+    }
+  } catch (error) {
+    logger.error('Erreur lors de la mise à jour de la récurrence:', error);
+  }
+}
+
+/** Noms de propriétés attendus par le client. */
+function formatUpdatedEvent<T extends object>(updatedEvent: T): Record<string, unknown> {
+  const { TicketInfo, RecurrenceConfig, User, ...event } = updatedEvent as T & {
+    TicketInfo?: unknown;
+    RecurrenceConfig?: unknown;
+    User?: unknown;
+  };
+  return { ...event, tickets: TicketInfo, recurrenceConfig: RecurrenceConfig, user: User };
+}
+
 // PATCH - Mettre à jour un événement existant
 export async function PATCH(
   request: NextRequest,
@@ -182,133 +334,10 @@ export async function PATCH(
     const body = await request.json();
     logger.debug(`Request body for PATCH ${id}:`, body);
 
-    const {
-      title,
-      description,
-      location,
-      address,
-      startDate,
-      endDate,
-      status,
-      isPublished,
-      featured,
-      tickets,
-      recurrence,
-      imageId,
-      publishAt,
-    } = body;
-
-    const dataToUpdate: Prisma.EventUpdateInput = {};
-
-    if (title !== undefined) dataToUpdate.title = title;
-    if (description !== undefined) dataToUpdate.description = description;
-    if (location !== undefined) dataToUpdate.location = location;
-    if (address !== undefined) dataToUpdate.address = address;
-    if (startDate !== undefined) {
-      dataToUpdate.startDate = startDate ? new Date(startDate) : undefined;
-    }
-    if (endDate !== undefined) {
-      dataToUpdate.endDate = endDate ? new Date(endDate) : undefined;
-    }
-    if (status !== undefined) dataToUpdate.status = status;
-    if (isPublished !== undefined) dataToUpdate.isPublished = isPublished;
-    if (featured !== undefined) dataToUpdate.featured = featured;
-    if (publishAt !== undefined) dataToUpdate.publishAt = publishAt ? new Date(publishAt) : null;
-
-    // Vérifier si l'utilisateur existe avant d'essayer d'établir la relation
-    try {
-      const userExists = await prisma.user.findUnique({
-        where: { id: session.user.id },
-        select: { id: true },
-      });
-
-      if (userExists) {
-        dataToUpdate.User = {
-          connect: { id: session.user.id },
-        };
-      } else {
-        logger.debug(`Utilisateur avec ID ${session.user.id} n'existe pas dans la base de données`);
-      }
-    } catch (error) {
-      logger.error("Erreur lors de la vérification de l'utilisateur:", error);
-      // On continue sans établir la relation utilisateur
-    }
-
-    if (imageId !== undefined) {
-      dataToUpdate.imageId = imageId;
-    }
-
-    // Mettre à jour les tickets si fournis
-    if (tickets) {
-      try {
-        // Vérifier si l'événement a déjà des tickets
-        const existingTickets = await prisma.ticketInfo.findUnique({
-          where: { eventId: id },
-        });
-
-        if (existingTickets) {
-          // Mettre à jour les tickets existants
-          dataToUpdate.TicketInfo = {
-            update: {
-              price: tickets.price !== undefined ? Number(tickets.price) : undefined,
-              currency: tickets.currency || undefined,
-              buyUrl: tickets.buyUrl || undefined,
-              quantity: tickets.quantity !== undefined ? Number(tickets.quantity) : undefined,
-              availableFrom: tickets.availableFrom ? new Date(tickets.availableFrom) : undefined,
-              availableTo: tickets.availableTo ? new Date(tickets.availableTo) : undefined,
-            },
-          };
-        } else {
-          // Créer de nouveaux tickets
-          dataToUpdate.TicketInfo = {
-            create: {
-              currency: (tickets.currency || 'EUR') as string,
-              ...(tickets.price !== undefined && { price: Number(tickets.price) }),
-              ...(tickets.buyUrl && { buyUrl: tickets.buyUrl as string }),
-              ...(tickets.quantity !== undefined && { quantity: Number(tickets.quantity) }),
-              ...(tickets.availableFrom && { availableFrom: new Date(tickets.availableFrom) }),
-              ...(tickets.availableTo && { availableTo: new Date(tickets.availableTo) }),
-            } as Prisma.TicketInfoCreateWithoutEventInput,
-          };
-        }
-      } catch (error) {
-        logger.error('Erreur lors de la mise à jour des tickets:', error);
-      }
-    }
-
-    // Mettre à jour les paramètres de récurrence si fournis
-    if (recurrence) {
-      try {
-        // Vérifier si l'événement a déjà une configuration de récurrence
-        const existingRecurrence = await prisma.recurrenceConfig.findUnique({
-          where: { eventId: id },
-        });
-
-        if (existingRecurrence) {
-          // Mettre à jour la configuration existante
-          dataToUpdate.RecurrenceConfig = {
-            update: {
-              frequency: recurrence.frequency || undefined,
-              day: recurrence.day !== undefined ? recurrence.day : undefined,
-              endDate: recurrence.endDate ? new Date(recurrence.endDate) : undefined,
-              excludedDates: recurrence.excludedDates || undefined,
-            },
-          };
-        } else if (recurrence.isRecurring) {
-          // Créer une nouvelle configuration de récurrence
-          dataToUpdate.RecurrenceConfig = {
-            create: {
-              frequency: recurrence.frequency || 'weekly',
-              day: recurrence.day || new Date().getDay(),
-              endDate: recurrence.endDate ? new Date(recurrence.endDate) : null,
-              excludedDates: recurrence.excludedDates || [],
-            },
-          };
-        }
-      } catch (error) {
-        logger.error('Erreur lors de la mise à jour de la récurrence:', error);
-      }
-    }
+    const dataToUpdate = buildEventUpdate(body);
+    await connectEditor(dataToUpdate, session.user.id);
+    if (body.tickets) await applyTickets(dataToUpdate, id, body.tickets);
+    if (body.recurrence) await applyRecurrence(dataToUpdate, id, body.recurrence);
 
     logger.debug(
       `Attempting prisma.event.update for ${id} with data:`,
@@ -332,26 +361,7 @@ export async function PATCH(
 
     logger.debug(`Event ${id} updated successfully.`);
 
-    // Formater l'événement pour correspondre à ce qu'attend le client
-    const formattedEvent: Record<string, unknown> = { ...updatedEvent };
-
-    // Renommer les propriétés s'ils existent
-    if ('TicketInfo' in updatedEvent) {
-      formattedEvent.tickets = updatedEvent.TicketInfo;
-      delete formattedEvent.TicketInfo;
-    }
-
-    if ('RecurrenceConfig' in updatedEvent) {
-      formattedEvent.recurrenceConfig = updatedEvent.RecurrenceConfig;
-      delete formattedEvent.RecurrenceConfig;
-    }
-
-    if ('User' in updatedEvent) {
-      formattedEvent.user = updatedEvent.User;
-      delete formattedEvent.User;
-    }
-
-    return createSuccessResponse(formattedEvent);
+    return createSuccessResponse(formatUpdatedEvent(updatedEvent));
   } catch (error) {
     return handleApiError(error, 'PATCH /api/events/[id]');
   }

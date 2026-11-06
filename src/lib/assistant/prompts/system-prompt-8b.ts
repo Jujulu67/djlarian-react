@@ -48,7 +48,7 @@ export function buildUserPrompt(
 
   // Détecter si c'est une question d'identité (doit toujours mentionner l'identité complète)
   const isIdentityQuestion =
-    /qui\s+es\s*[-]?tu|who\s+are\s+you|quel\s+est\s+ton\s+nom|what\s+is\s+your\s+name|ton\s+nom/i.test(
+    /qui\s+es\s*-?tu|who\s+are\s+you|quel\s+est\s+ton\s+nom|what\s+is\s+your\s+name|ton\s+nom/i.test(
       query
     );
 

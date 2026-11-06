@@ -11,6 +11,7 @@ import {
   type NotificationView,
   parseMetadata,
 } from '../notificationsUtils';
+import { onActivateKey } from '@/lib/a11y';
 
 interface ArchivedNotificationsSectionProps {
   notifications: Notification[];
@@ -35,8 +36,11 @@ export function ArchivedNotificationsSection({
   return (
     <div className="mt-6 sm:mt-8">
       <div
+        role="button"
+        tabIndex={0}
         className="flex items-center justify-between mb-3 sm:mb-4 gap-2 cursor-pointer hover:opacity-80 transition-opacity"
         onClick={() => setShowArchived(!showArchived)}
+        onKeyDown={onActivateKey(() => setShowArchived(!showArchived))}
       >
         <h2 className="text-lg sm:text-xl font-semibold text-white flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
           <Archive className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />

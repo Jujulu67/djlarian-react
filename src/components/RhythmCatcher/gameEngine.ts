@@ -103,8 +103,6 @@ export interface CollisionResult {
 }
 
 // Constantes pour les paramètres du jeu
-const PERFECT_WINDOW = 100;
-const GOOD_WINDOW = 180;
 const OK_WINDOW = 300;
 const CLICK_TOLERANCE = 15; // Un peu plus tolerant
 const BASE_POINTS = 100;
@@ -270,9 +268,7 @@ export function addPattern(
 
 // Création d'un PowerUp
 function spawnPowerUp(canvasWidth: number, mode: GameMode): PowerUp {
-  const types = Object.values(PowerUpType);
-
-  let type = PowerUpType.FIREBALL;
+  let type: PowerUpType;
   const rand = Math.random();
 
   if (mode === 'FREE') {
@@ -544,7 +540,6 @@ export function checkCollisions(
     const distanceFromCenter = Math.max(0, distance);
     const perfectZone = effectiveRadius * 0.4;
     const goodZone = effectiveRadius * 0.7;
-    const okZone = effectiveRadius * 1.0 + CLICK_TOLERANCE;
 
     let quality: HitQuality;
     let points: number;

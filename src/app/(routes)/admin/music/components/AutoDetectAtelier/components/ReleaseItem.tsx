@@ -1,6 +1,5 @@
 import { Check, ExternalLink, Plus } from 'lucide-react';
 import Image from 'next/image';
-import React from 'react';
 
 import { MUSIC_TYPES } from '@/lib/utils/music-helpers';
 import type { DetectedRelease } from '@/lib/services/types';
@@ -14,6 +13,7 @@ interface ReleaseItemProps {
 export function ReleaseItem({ release, isSelected, onToggle }: ReleaseItemProps) {
   return (
     <div
+      role="button"
       onClick={() => {
         if (!release.exists) onToggle(release.id);
       }}

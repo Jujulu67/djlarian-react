@@ -42,11 +42,6 @@ type YouTubeCacheData = {
   }>;
 };
 
-// Type pour les releases détectées (nouveau format)
-type YouTubeReleasesData = {
-  releases: DetectedRelease[];
-};
-
 // Fonction de cache simple en mémoire
 const cache: Record<string, { data: YouTubeCacheData; timestamp: number }> = {};
 const CACHE_TTL = 3600000; // 1 heure en millisecondes
@@ -186,6 +181,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
           releaseDateObj.setHours(0, 0, 0, 0);
           isScheduled = releaseDateObj > now;
         } catch (error) {
+          logger.warn('route.ts', error);
           releaseDateObj = now;
           isScheduled = false;
         }

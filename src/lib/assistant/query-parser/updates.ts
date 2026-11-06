@@ -137,280 +137,189 @@ export function extractUpdateData(
   return null;
 }
 
+type NoteData = { projectName: string; newNote: string };
+
+const CONVERSATIONAL_STARTERS = [
+  /^et\s+(pour|avec|sans|sur|dans|sous)/i,
+  /^pour\s+(les?|la|le|un|une|des?)/i,
+  /^finalement/i,
+  /^et\s+tu/i,
+  /^et\s+pour/i,
+];
+
+// Exemples : « Session magnetize du jour », « Note pour magnetize », « Ajoute une note à … »
+const NOTE_PATTERNS = [
+  // "Session [nom] du jour, [contenu]"
+  /session\s+([a-z0-9_]+(?:\s+[a-z0-9_]+)*)\s+du\s+jour[,\s]+(.+)/i,
+  // "Note pour [nom], [contenu]" ou "Note pour [nom]: [contenu]"
+  /note\s+pour\s+([a-z0-9_]+(?:\s+[a-z0-9_]+)*)[:,\s]+(.+)/i,
+  // "Ajoute une note au projet dont [nom], [contenu]" (pattern spécifique pour "dont" - PRIORITAIRE)
+  // Capture "dont [nom]" comme nom de projet complet
+  /ajoute\s+(?:une\s+)?note\s+au\s+projet\s+dont\s+([a-z0-9_]+(?:\s+[a-z0-9_]+)*)[:,\s]+(.+)/i,
+  // "Ajoute une note au projet [nom], [contenu]" (pattern général pour "au projet" sans "dont")
+  /ajoute\s+(?:une\s+)?note\s+au\s+projet\s+([a-z0-9_]+(?:\s+[a-z0-9_]+)*)[:,\s]+(.+)/i,
+  // "Ajoute une note à [nom], [contenu]" ou "Ajoute une note à [nom]: [contenu]"
+  /ajoute\s+(?:une\s+)?note\s+à\s+([a-z0-9_]+(?:\s+[a-z0-9_]+)*)[:,\s]+(.+)/i,
+  // "Ajoute une note pour [nom] disant [contenu]" (pattern spécifique pour "disant" - PRIORITAIRE)
+  /ajoute\s+(?:une\s+)?note\s+pour\s+([a-z0-9_]+(?:\s+[a-z0-9_]+)*)\s+disant\s+(?:que\s+)?(.+)/i,
+  // "Ajoute une note pour [nom] qui dit [contenu]" (pattern spécifique pour "qui dit" - PRIORITAIRE)
+  /ajoute\s+(?:une\s+)?note\s+pour\s+([a-z0-9_]+(?:\s+[a-z0-9_]+)*)\s+qui\s+dit\s+(?:que\s+)?(.+)/i,
+  // "Ajoute une note pour [nom], [contenu]" ou "Ajoute une note pour [nom]: [contenu]" (pattern général - EN DERNIER)
+  // Exclure les cas avec "qui dit" ou "disant" (gérés par les patterns spécifiques ci-dessus)
+  // Le pattern général ne doit matcher que si le nom est suivi d'une virgule ou deux-points (pas juste un espace)
+  /ajoute\s+(?:une\s+)?note\s+pour\s+([a-z0-9_]+(?:\s+[a-z0-9_]+)*)[:,\s]+(?!.*\s+(?:qui\s+dit|disant))(.+)/i,
+  // "Note [nom], [contenu]" (pattern plus simple)
+  /^note\s+([a-z0-9_]+(?:\s+[a-z0-9_]+)*)[:,\s]+(.+)/i,
+  // "[nom], [contenu]" (pattern direct - nom de projet suivi d'une virgule et du contenu)
+  // Exemple: "magnetize, aujourd'hui j'ai fait le break 2"
+  // Ce pattern doit être placé en dernier car il est très permissif
+  // On vérifie que le nom n'est pas un mot commun et qu'il y a du contenu après la virgule
+  /^([a-z0-9_]+(?:\s+[a-z0-9_]+)*)\s*,\s+(.+)/i,
+];
+/** Motif « au projet dont [nom] » : « dont » fait partie du nom. */
+const DONT_PATTERN_INDEX = 2;
+/** Dernier motif, « [nom], [contenu] » : très permissif, le nom doit être vérifié. */
+const DIRECT_PATTERN_INDEX = NOTE_PATTERNS.length - 1;
+
+const DIRECT_NAME_COMMON_WORDS = [
+  'session',
+  'note',
+  'projet',
+  'project',
+  'le',
+  'la',
+  'les',
+  'un',
+  'une',
+  'des',
+  'de',
+  'du',
+  'au',
+  'aux',
+  'pour',
+  'avec',
+  'sans',
+  'sous',
+  'sur',
+  'dans',
+  'par',
+  'jour',
+  'aujourd',
+  'hui',
+  'demain',
+  'hier',
+  'et',
+  'ou',
+  'mais',
+  'donc',
+  'car',
+  'pizzas',
+  'pizza',
+];
+const DIRECT_NAME_CONNECTOR_WORDS = [
+  'et',
+  'ou',
+  'mais',
+  'donc',
+  'car',
+  'pour',
+  'avec',
+  'sans',
+  'les',
+  'des',
+  'du',
+  'de',
+  'la',
+  'le',
+];
+const DIRECT_NAME_COMMON_PHRASES = [' du jour', 'session', 'note pour', ' pour ', 'pizza'];
+const DAY_NOTE_COMMON_WORDS = [
+  'session',
+  'note',
+  'projet',
+  'project',
+  'le',
+  'la',
+  'les',
+  'et',
+  'ou',
+  'pour',
+  'avec',
+  'sans',
+];
+const STARTS_WITH_CONNECTOR =
+  /^(et|ou|mais|donc|car|puis|alors|ensuite|après|avant|pendant|depuis|jusqu|vers|chez|sans|avec|pour|contre|selon|malgré|grâce)\s+/i;
+const STARTS_WITH_ARTICLE = /^(les?|des?|du|de|un|une)\s+[a-z]+/i;
+const DAY_NOTE_PATTERN = /^([a-z0-9_]+(?:\s+[a-z0-9_]+)*)\s+du\s+jour[,\s]+(.+)/i;
+
+/** Phrase conversationnelle, sauf si c'est explicitement un motif de note. */
+function isConversationalQuery(query: string): boolean {
+  return (
+    CONVERSATIONAL_STARTERS.some((pattern) => pattern.test(query)) &&
+    !/session\s+\w+\s+du\s+jour/i.test(query) &&
+    !/note\s+pour\s+\w+/i.test(query)
+  );
+}
+
+/** Le début d'un message « xxx, yyy » est-il vraiment un nom de projet ? */
+function isPlausibleDirectName(projectName: string): boolean {
+  const lowerName = projectName.toLowerCase();
+  const words = lowerName.split(/\s+/);
+  const connectorCount = words.filter((w) => DIRECT_NAME_CONNECTOR_WORDS.includes(w)).length;
+
+  const looksLikeSentence =
+    DIRECT_NAME_COMMON_WORDS.includes(lowerName) ||
+    STARTS_WITH_CONNECTOR.test(projectName) ||
+    (words.length > 2 && connectorCount / words.length > 0.3) ||
+    DIRECT_NAME_COMMON_PHRASES.some((phrase) => lowerName.includes(phrase)) ||
+    lowerName.startsWith('note ') ||
+    lowerName === 'finalement' ||
+    lowerName.startsWith('finalement ') ||
+    (STARTS_WITH_ARTICLE.test(projectName) && words.length <= 3);
+
+  return !looksLikeSentence && projectName.length <= 50;
+}
+
+function parseNoteMatch(match: RegExpMatchArray, patternIndex: number): NoteData | null {
+  const isDirect = patternIndex === DIRECT_PATTERN_INDEX;
+  const name = match[1].trim();
+  const projectName = patternIndex === DONT_PATTERN_INDEX ? `dont ${name}` : name;
+  // Les motifs généraux peuvent déborder sur « qui dit » ou « disant », gérés par d'autres motifs
+  if (projectName.includes('qui dit') || projectName.includes('disant')) return null;
+  if (isDirect && !isPlausibleDirectName(projectName)) return null;
+
+  const newNote = match[2]
+    .trim()
+    .replace(/^["']+|["']+$/g, '')
+    .trim();
+  const minLength = isDirect ? 3 : 2;
+  return projectName.length >= minLength && newNote.length > 0 ? { projectName, newNote } : null;
+}
+
+/** « magnetize du jour, j'ai refait le mix » */
+function parseDayNote(query: string): NoteData | null {
+  const match = query.match(DAY_NOTE_PATTERN);
+  if (!match?.[1] || !match[2]) return null;
+  const projectName = match[1].trim();
+  const newNote = match[2].trim();
+  const isProjectName =
+    projectName.length >= 2 &&
+    !DAY_NOTE_COMMON_WORDS.includes(projectName.toLowerCase()) &&
+    !STARTS_WITH_CONNECTOR.test(projectName);
+  return isProjectName && newNote.length > 0 ? { projectName, newNote } : null;
+}
+
 /**
  * Extrait les données d'ajout de note depuis une requête
  * Détecte les patterns comme "Session [nom] du jour", "Note pour [nom]", etc.
  */
-function extractNoteUpdateData(
-  query: string,
-  _lowerQuery: string
-): { projectName: string; newNote: string } | null {
-  // Vérification préalable : exclure les phrases conversationnelles évidentes
-  // Si la requête commence par des mots de liaison ou contient des patterns conversationnels,
-  // ne pas essayer d'extraire une note
-  const conversationalStarters = [
-    /^et\s+(pour|avec|sans|sur|dans|sous)/i,
-    /^pour\s+(les?|la|le|un|une|des?)/i,
-    /^finalement/i,
-    /^et\s+tu/i,
-    /^et\s+pour/i,
-  ];
+function extractNoteUpdateData(query: string, _lowerQuery: string): NoteData | null {
+  if (isConversationalQuery(query)) return null;
 
-  const isConversationalStarter = conversationalStarters.some((pattern) => pattern.test(query));
-  if (
-    isConversationalStarter &&
-    !query.match(/session\s+\w+\s+du\s+jour/i) &&
-    !query.match(/note\s+pour\s+\w+/i)
-  ) {
-    // C'est probablement une phrase conversationnelle, pas une note
-    // Sauf si c'est explicitement un pattern de note comme "Session X du jour" ou "Note pour X"
-    logger.warn(
-      '[Parse Query API] ⚠️ Phrase conversationnelle détectée, skip extraction de note:',
-      query
-    );
-    return null;
+  for (let i = 0; i < NOTE_PATTERNS.length; i++) {
+    const match = query.match(NOTE_PATTERNS[i]);
+    const note = match?.[1] && match[2] ? parseNoteMatch(match, i) : null;
+    if (note) return note;
   }
-
-  // Patterns pour détecter l'ajout de notes
-  // Exemples: "Session magnetize du jour", "Note pour magnetize", "Ajoute une note à magnetize", "magnetize, contenu"
-  const notePatterns = [
-    // "Session [nom] du jour, [contenu]"
-    /session\s+([a-z0-9_]+(?:\s+[a-z0-9_]+)*)\s+du\s+jour[,\s]+(.+)/i,
-    // "Note pour [nom], [contenu]" ou "Note pour [nom]: [contenu]"
-    /note\s+pour\s+([a-z0-9_]+(?:\s+[a-z0-9_]+)*)[:,\s]+(.+)/i,
-    // "Ajoute une note au projet dont [nom], [contenu]" (pattern spécifique pour "dont" - PRIORITAIRE)
-    // Capture "dont [nom]" comme nom de projet complet
-    /ajoute\s+(?:une\s+)?note\s+au\s+projet\s+dont\s+([a-z0-9_]+(?:\s+[a-z0-9_]+)*)[:,\s]+(.+)/i,
-    // "Ajoute une note au projet [nom], [contenu]" (pattern général pour "au projet" sans "dont")
-    /ajoute\s+(?:une\s+)?note\s+au\s+projet\s+([a-z0-9_]+(?:\s+[a-z0-9_]+)*)[:,\s]+(.+)/i,
-    // "Ajoute une note à [nom], [contenu]" ou "Ajoute une note à [nom]: [contenu]"
-    /ajoute\s+(?:une\s+)?note\s+à\s+([a-z0-9_]+(?:\s+[a-z0-9_]+)*)[:,\s]+(.+)/i,
-    // "Ajoute une note pour [nom] disant [contenu]" (pattern spécifique pour "disant" - PRIORITAIRE)
-    /ajoute\s+(?:une\s+)?note\s+pour\s+([a-z0-9_]+(?:\s+[a-z0-9_]+)*)\s+disant\s+(?:que\s+)?(.+)/i,
-    // "Ajoute une note pour [nom] qui dit [contenu]" (pattern spécifique pour "qui dit" - PRIORITAIRE)
-    /ajoute\s+(?:une\s+)?note\s+pour\s+([a-z0-9_]+(?:\s+[a-z0-9_]+)*)\s+qui\s+dit\s+(?:que\s+)?(.+)/i,
-    // "Ajoute une note pour [nom], [contenu]" ou "Ajoute une note pour [nom]: [contenu]" (pattern général - EN DERNIER)
-    // Exclure les cas avec "qui dit" ou "disant" (gérés par les patterns spécifiques ci-dessus)
-    // Le pattern général ne doit matcher que si le nom est suivi d'une virgule ou deux-points (pas juste un espace)
-    /ajoute\s+(?:une\s+)?note\s+pour\s+([a-z0-9_]+(?:\s+[a-z0-9_]+)*)[:,\s]+(?!.*\s+(?:qui\s+dit|disant))(.+)/i,
-    // "Note [nom], [contenu]" (pattern plus simple)
-    /^note\s+([a-z0-9_]+(?:\s+[a-z0-9_]+)*)[:,\s]+(.+)/i,
-    // "[nom], [contenu]" (pattern direct - nom de projet suivi d'une virgule et du contenu)
-    // Exemple: "magnetize, aujourd'hui j'ai fait le break 2"
-    // Ce pattern doit être placé en dernier car il est très permissif
-    // On vérifie que le nom n'est pas un mot commun et qu'il y a du contenu après la virgule
-    /^([a-z0-9_]+(?:\s+[a-z0-9_]+)*)\s*,\s+(.+)/i,
-  ];
-
-  for (let i = 0; i < notePatterns.length; i++) {
-    const pattern = notePatterns[i];
-    const match = query.match(pattern);
-    if (match && match[1] && match[2]) {
-      let projectName = match[1].trim();
-      let noteContent = match[2].trim();
-
-      // Si c'est le pattern avec "dont" (index 2), préfixer "dont " au nom du projet
-      // Le pattern à l'index 2 est: /ajoute\s+(?:une\s+)?note\s+au\s+projet\s+dont\s+([a-z0-9_]+(?:\s+[a-z0-9_]+)*)[:,\s]+(.+)/i
-      if (i === 2) {
-        projectName = `dont ${projectName}`;
-      }
-
-      // Ignorer si le nom du projet contient "qui dit" ou "disant" (géré par les patterns spécifiques)
-      // Cela peut arriver avec les patterns généraux qui sont trop permissifs
-      if (projectName.includes('qui dit') || projectName.includes('disant')) {
-        continue; // Ignorer ce match, continuer avec le pattern suivant
-      }
-
-      // Nettoyer les guillemets en début et fin de contenu
-      noteContent = noteContent.replace(/^["']+|["']+$/g, '').trim();
-
-      // Pour le dernier pattern (pattern direct "[nom], [contenu]"), vérifier que ce n'est pas un mot commun
-      if (i === notePatterns.length - 1) {
-        const commonWords = [
-          'session',
-          'note',
-          'projet',
-          'project',
-          'le',
-          'la',
-          'les',
-          'un',
-          'une',
-          'des',
-          'de',
-          'du',
-          'au',
-          'aux',
-          'pour',
-          'avec',
-          'sans',
-          'sous',
-          'sur',
-          'dans',
-          'par',
-          'jour',
-          'aujourd',
-          'hui',
-          'demain',
-          'hier',
-          'et',
-          'ou',
-          'mais',
-          'donc',
-          'car',
-          'pizzas',
-          'pizza',
-        ];
-        const lowerProjectName = projectName.toLowerCase();
-
-        // Vérifier si c'est un mot commun exact
-        if (commonWords.includes(lowerProjectName)) {
-          continue; // Ignorer ce match, ce n'est probablement pas un nom de projet
-        }
-
-        // Vérifier si le nom commence par des mots de liaison (phrases conversationnelles)
-        const startsWithConnector =
-          /^(et|ou|mais|donc|car|puis|alors|ensuite|après|avant|pendant|depuis|jusqu|vers|chez|sans|avec|pour|contre|selon|malgré|grâce)\s+/i.test(
-            projectName
-          );
-        if (startsWithConnector) {
-          continue; // Ignorer ce match, c'est probablement une phrase conversationnelle
-        }
-
-        // Vérifier si le nom contient plusieurs mots de liaison (probablement une phrase complète)
-        const connectorWords = [
-          'et',
-          'ou',
-          'mais',
-          'donc',
-          'car',
-          'pour',
-          'avec',
-          'sans',
-          'les',
-          'des',
-          'du',
-          'de',
-          'la',
-          'le',
-        ];
-        const words = lowerProjectName.split(/\s+/);
-        const connectorCount = words.filter((w) => connectorWords.includes(w)).length;
-        // Si plus de 30% des mots sont des mots de liaison, c'est probablement une phrase
-        if (words.length > 2 && connectorCount / words.length > 0.3) {
-          continue; // Ignorer ce match, trop de mots de liaison pour être un nom de projet
-        }
-
-        // Vérifier si le nom contient des mots communs (ex: "Session du jour", "a du jour")
-        // Un nom de projet ne devrait pas contenir "du jour", "Session", etc.
-        const containsCommonPhrases =
-          lowerProjectName.includes(' du jour') ||
-          lowerProjectName.includes('session') ||
-          lowerProjectName.includes('note pour') ||
-          lowerProjectName.startsWith('session ') ||
-          lowerProjectName.startsWith('note ') ||
-          lowerProjectName.includes(' pour les ') ||
-          lowerProjectName.includes(' pour la ') ||
-          lowerProjectName.includes(' pour le ') ||
-          lowerProjectName.includes(' pour ') ||
-          lowerProjectName.includes('pizzas') ||
-          lowerProjectName.includes('pizza') ||
-          lowerProjectName === 'finalement' ||
-          lowerProjectName.startsWith('finalement ');
-
-        if (containsCommonPhrases) {
-          continue; // Ignorer ce match
-        }
-
-        // Vérifier si le nom ressemble à une phrase conversationnelle (contient des articles + noms communs)
-        // Exemples: "les pizzas", "la musique", "le sport"
-        const looksLikeConversationalPhrase = /^(les?|des?|du|de|un|une)\s+[a-z]+/i.test(
-          projectName
-        );
-        if (looksLikeConversationalPhrase && words.length <= 3) {
-          // Si c'est court (<= 3 mots) et commence par un article, c'est probablement une phrase
-          continue; // Ignorer ce match
-        }
-
-        // Vérifier que le nom n'est pas trop long (probablement une phrase complète capturée par erreur)
-        // Un nom de projet raisonnable ne devrait pas dépasser 50 caractères
-        if (projectName.length > 50) {
-          continue; // Ignorer ce match, trop long pour être un nom de projet
-        }
-      }
-
-      // Nettoyer le contenu de la note (enlever les mots-clés inutiles au début)
-      const ignoredStartWords = ["j'ai", "j'", 'je', 'il', 'elle', 'on', 'nous'];
-      for (const word of ignoredStartWords) {
-        if (noteContent.toLowerCase().startsWith(word + ' ')) {
-          // Garder le mot mais continuer le nettoyage
-          break;
-        }
-      }
-
-      // Vérifier que le nom du projet n'est pas trop court (au moins 2 caractères)
-      // Pour le pattern direct, on exige au moins 3 caractères pour éviter les faux positifs
-      const minLength = i === notePatterns.length - 1 ? 3 : 2;
-      if (projectName.length >= minLength && noteContent.length > 0) {
-        logger.warn('[Parse Query API] ✅ Note détectée:', {
-          projectName,
-          noteContent: noteContent.substring(0, 50) + '...',
-          patternIndex: i,
-        });
-        return {
-          projectName,
-          newNote: noteContent,
-        };
-      }
-    }
-  }
-
-  // Pattern alternatif : détecter si la requête commence par un nom de projet
-  // suivi d'un contenu (ex: "magnetize du jour, j'ai refait le mix")
-  const directPattern = /^([a-z0-9_]+(?:\s+[a-z0-9_]+)*)\s+du\s+jour[,\s]+(.+)/i;
-  const directMatch = query.match(directPattern);
-  if (directMatch && directMatch[1] && directMatch[2]) {
-    const projectName = directMatch[1].trim();
-    const noteContent = directMatch[2].trim();
-
-    // Vérifier que ce n'est pas juste un mot commun
-    const commonWords = [
-      'session',
-      'note',
-      'projet',
-      'project',
-      'le',
-      'la',
-      'les',
-      'et',
-      'ou',
-      'pour',
-      'avec',
-      'sans',
-    ];
-
-    // Vérifier si le nom commence par des mots de liaison (phrases conversationnelles)
-    const startsWithConnector =
-      /^(et|ou|mais|donc|car|puis|alors|ensuite|après|avant|pendant|depuis|jusqu|vers|chez|sans|avec|pour|contre|selon|malgré|grâce)\s+/i.test(
-        projectName
-      );
-
-    if (
-      projectName.length >= 2 &&
-      noteContent.length > 0 &&
-      !commonWords.includes(projectName.toLowerCase()) &&
-      !startsWithConnector
-    ) {
-      logger.warn('[Parse Query API] ✅ Note détectée (pattern direct):', {
-        projectName,
-        noteContent: noteContent.substring(0, 50) + '...',
-      });
-      return {
-        projectName,
-        newNote: noteContent,
-      };
-    }
-  }
-
-  return null;
+  return parseDayNote(query);
 }

@@ -4,7 +4,6 @@ import { createUnauthorizedResponse, createSuccessResponse } from '@/lib/api/res
 import { handleApiError } from '@/lib/api/errorHandler';
 import prisma from '@/lib/prisma';
 import { logger } from '@/lib/logger';
-import { LiveItemType } from '@/types/live';
 
 /**
  * POST /api/admin/live/consume-queue-skip

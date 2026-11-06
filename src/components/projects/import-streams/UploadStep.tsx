@@ -1,7 +1,6 @@
 'use client';
 
 import { Upload } from 'lucide-react';
-import type { RefObject, DragEvent, ChangeEvent } from 'react';
 
 interface UploadStepProps {
   dropZoneRef: React.RefObject<HTMLDivElement | null>;
@@ -25,6 +24,7 @@ export function UploadStep({
   return (
     <div className="space-y-4">
       <div
+        role="presentation"
         ref={dropZoneRef}
         onDrop={handleDrop}
         onDragOver={handleDragOver}

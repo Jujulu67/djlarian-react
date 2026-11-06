@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import {
   UserPlus,
   UserMinus,
@@ -13,10 +14,10 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useEffectEvent } from 'react';
 import { toast } from 'sonner';
 
-import { useFriends, Friend, PendingRequest } from '@/hooks/useFriends';
+import { useFriends } from '@/hooks/useFriends';
 import { SendMessageModal } from './SendMessageModal';
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
 import {
@@ -79,10 +80,12 @@ export function FriendsList({ onSendMessage }: FriendsListProps) {
     }
   };
 
+  const loadUsersOnOpen = useEffectEvent(loadUsers);
+
   // Charger les utilisateurs au montage si la section est ouverte
   useEffect(() => {
-    if (showUserSearch && users.length === 0) {
-      loadUsers();
+    if (showUserSearch) {
+      loadUsersOnOpen();
     }
   }, [showUserSearch]);
 
@@ -217,6 +220,7 @@ export function FriendsList({ onSendMessage }: FriendsListProps) {
               <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar">
                 {filteredAvailableUsers.map((user) => (
                   <div
+                    role="presentation"
                     key={user.id}
                     className="flex items-center justify-between p-3 bg-gray-900/50 hover:bg-gray-900/70 border border-gray-700/30 rounded-lg transition-all group v2:bg-white/[0.03] v2:border-white/[0.08] v2:hover:bg-white/[0.05] v2:rounded-xl"
                     onClick={(e) => e.stopPropagation()}
@@ -280,11 +284,14 @@ export function FriendsList({ onSendMessage }: FriendsListProps) {
                 className="flex items-center justify-between p-4 bg-gray-800/50 border border-gray-700/50 rounded-lg v2:bg-white/[0.03] v2:border-white/[0.08] v2:rounded-2xl"
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="h-10 w-10 rounded-full bg-blue-900/30 flex items-center justify-center border border-blue-500/20 flex-shrink-0 v2:bg-none v2:bg-white/[0.06] v2:border-white/10">
+                  <div className="relative overflow-hidden h-10 w-10 rounded-full bg-blue-900/30 flex items-center justify-center border border-blue-500/20 flex-shrink-0 v2:bg-none v2:bg-white/[0.06] v2:border-white/10">
                     {request.user.image ? (
-                      <img
+                      <Image
                         src={request.user.image}
                         alt={request.user.name || ''}
+                        fill
+                        sizes="40px"
+                        unoptimized
                         className="h-full w-full object-cover rounded-full"
                       />
                     ) : (
@@ -358,11 +365,14 @@ export function FriendsList({ onSendMessage }: FriendsListProps) {
                 className="flex items-center justify-between p-4 bg-gray-800/50 border border-gray-700/50 rounded-lg v2:bg-white/[0.03] v2:border-white/[0.08] v2:rounded-2xl"
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="h-10 w-10 rounded-full bg-yellow-900/30 flex items-center justify-center border border-yellow-500/20 flex-shrink-0 v2:bg-none v2:bg-white/[0.06] v2:border-white/10">
+                  <div className="relative overflow-hidden h-10 w-10 rounded-full bg-yellow-900/30 flex items-center justify-center border border-yellow-500/20 flex-shrink-0 v2:bg-none v2:bg-white/[0.06] v2:border-white/10">
                     {request.user.image ? (
-                      <img
+                      <Image
                         src={request.user.image}
                         alt={request.user.name || ''}
+                        fill
+                        sizes="40px"
+                        unoptimized
                         className="h-full w-full object-cover rounded-full"
                       />
                     ) : (
@@ -407,11 +417,14 @@ export function FriendsList({ onSendMessage }: FriendsListProps) {
                 className="flex items-center justify-between p-4 bg-gray-800/50 border border-gray-700/50 rounded-lg hover:bg-gray-800/70 transition-colors v2:bg-white/[0.03] v2:border-white/[0.08] v2:rounded-2xl"
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="h-10 w-10 rounded-full bg-purple-900/30 flex items-center justify-center border border-purple-500/20 flex-shrink-0 v2:bg-none v2:bg-white/[0.06] v2:border-white/10">
+                  <div className="relative overflow-hidden h-10 w-10 rounded-full bg-purple-900/30 flex items-center justify-center border border-purple-500/20 flex-shrink-0 v2:bg-none v2:bg-white/[0.06] v2:border-white/10">
                     {friend.user.image ? (
-                      <img
+                      <Image
                         src={friend.user.image}
                         alt={friend.user.name || ''}
+                        fill
+                        sizes="40px"
+                        unoptimized
                         className="h-full w-full object-cover rounded-full"
                       />
                     ) : (

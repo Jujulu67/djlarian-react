@@ -24,7 +24,6 @@ export function SubmissionsFilters({
   const [search, setSearch] = useState(searchValue || searchParams.get('search') || '');
   const [status, setStatus] = useState(statusValue || searchParams.get('status') || '');
   const [showRolled, setShowRolled] = useState(searchParams.get('showRolled') !== 'false');
-  const [onlyActive, setOnlyActive] = useState(searchParams.get('onlyActive') === 'true');
 
   // Update URL with new params
   const updateSearchParams = useCallback(
@@ -57,13 +56,15 @@ export function SubmissionsFilters({
     [updateSearchParams]
   );
 
-  // Initialiser l'état local avec les valeurs issues de l'URL
-  useEffect(() => {
+  // Resynchroniser l'état local quand l'URL change (ajustement pendant le rendu, sans effet)
+  const paramsKey = searchParams.toString();
+  const [syncedParamsKey, setSyncedParamsKey] = useState(paramsKey);
+  if (paramsKey !== syncedParamsKey) {
+    setSyncedParamsKey(paramsKey);
     setSearch(searchParams.get('search') || '');
     setStatus(searchParams.get('status') || '');
     setShowRolled(searchParams.get('showRolled') !== 'false');
-    setOnlyActive(searchParams.get('onlyActive') === 'true');
-  }, [searchParams]);
+  }
 
   useEffect(() => {
     return () => {
@@ -92,18 +93,11 @@ export function SubmissionsFilters({
     updateSearchParams({ showRolled: checked ? null : 'false' }); // null supprime le param (par défaut true)
   };
 
-  const handleToggleOnlyActive = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const checked = e.target.checked;
-    setOnlyActive(checked);
-    updateSearchParams({ onlyActive: checked ? 'true' : null });
-  };
-
   // Reset all filters
   const handleReset = () => {
     setSearch('');
     setStatus('');
     setShowRolled(true);
-    setOnlyActive(false);
     router.push('/admin/live');
   };
 
@@ -149,18 +143,6 @@ export function SubmissionsFilters({
             />
             <span className="text-sm text-gray-400 group-hover:text-gray-200 transition-colors">
               Rolled
-            </span>
-          </label>
-
-          <label className="flex items-center gap-2 cursor-pointer group">
-            <input
-              type="checkbox"
-              checked={onlyActive}
-              onChange={handleToggleOnlyActive}
-              className="w-4 h-4 text-purple-600 rounded border-white/10 bg-white/5 focus:ring-purple-500/50"
-            />
-            <span className="text-sm text-gray-400 group-hover:text-gray-200 transition-colors">
-              Active
             </span>
           </label>
         </div>

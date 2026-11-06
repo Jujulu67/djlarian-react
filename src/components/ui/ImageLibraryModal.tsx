@@ -56,24 +56,34 @@ const getImageDate = (img: ImageMeta) => {
 };
 
 const ImageLibraryModal: React.FC<ImageLibraryModalProps> = ({ open, onClose, onSelect }) => {
-  const [images, setImages] = useState<ImageMeta[]>([]);
+  // null tant que la première liste n'est pas arrivée
+  const [images, setImages] = useState<ImageMeta[] | null>(null);
   const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(false);
+  const loading = images === null;
 
   useEffect(() => {
     if (!open) return;
-    setLoading(true);
     fetch('/api/images')
       .then((res) => res.json())
       .then((data) => {
         setImages(data.images.filter((img: ImageMeta) => img.name.includes('-ori.')));
       })
-      .finally(() => setLoading(false));
+      .catch((error) => {
+        logger.error('[BIBLIO] Chargement des images impossible', error);
+        setImages([]);
+      });
   }, [open]);
 
-  const filtered = images.filter((img) => img.name.toLowerCase().includes(search.toLowerCase()));
+  const filtered = (images ?? []).filter((img) =>
+    img.name.toLowerCase().includes(search.toLowerCase())
+  );
 
   if (!open) return null;
+
+  const selectImage = (img: (typeof filtered)[number]) => {
+    logger.debug('[BIBLIO] Image sélectionnée', img);
+    onSelect(img);
+  };
 
   return (
     <Modal maxWidth="max-w-3xl" onClose={onClose} showLoader={false}>
@@ -95,11 +105,9 @@ const ImageLibraryModal: React.FC<ImageLibraryModalProps> = ({ open, onClose, on
           {filtered.map((img) => (
             <div
               key={img.id}
+              role="button"
               className="cursor-pointer bg-gray-800 rounded-lg p-2 hover:ring-2 hover:ring-purple-500 transition"
-              onClick={() => {
-                logger.debug('[BIBLIO] Image sélectionnée', img);
-                onSelect(img);
-              }}
+              onClick={() => selectImage(img)}
               tabIndex={0}
               aria-label={`Sélectionner ${img.name}`}
               onKeyDown={(e) => {

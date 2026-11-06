@@ -1,3 +1,5 @@
+import { randomToken } from '@/lib/utils/random';
+
 /**
  * Types centraux pour l'architecture mémoire étanche
  *
@@ -205,5 +207,5 @@ export function isActionMessage(msg: Message): msg is ActionMessage {
 
 /** Génère un ID unique */
 export function generateId(): string {
-  return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  return `${Date.now()}-${randomToken(7)}`;
 }
