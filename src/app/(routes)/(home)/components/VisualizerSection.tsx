@@ -1,5 +1,6 @@
 'use client';
 
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Play, Square } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -34,31 +35,8 @@ interface VisualizerSectionProps {
   waveformAnimationReady: boolean;
 }
 
-export default function VisualizerSection({
-  title,
-  waveformAnimationReady,
-}: VisualizerSectionProps) {
-  const uiVersion = useUiVersion();
-  const isV2 = uiVersion !== 'legacy';
-  const isV3 = uiVersion === 'v3';
-  const [isSoundActive, setIsSoundActive] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const visualizerSectionRef = useRef<HTMLElement | null>(null);
-
-  // Détecter si on est sur mobile
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  const handleExperienceClick = () => {
-    setIsSoundActive((prev) => !prev);
-  };
-
+/** Pendant le jeu : curseur personnalisé et, sur mobile, page calée sur le canvas sans scroll. */
+function useGameViewportEffects(isSoundActive: boolean, isMobile: boolean): void {
   // Scroll automatique vers le canvas du jeu quand il est lancé (sur mobile uniquement)
   useEffect(() => {
     if (isSoundActive && isMobile) {
@@ -133,6 +111,24 @@ export default function VisualizerSection({
       };
     }
   }, [isMobile, isSoundActive]);
+}
+
+export default function VisualizerSection({
+  title,
+  waveformAnimationReady,
+}: VisualizerSectionProps) {
+  const uiVersion = useUiVersion();
+  const isV2 = uiVersion !== 'legacy';
+  const isV3 = uiVersion === 'v3';
+  const [isSoundActive, setIsSoundActive] = useState(false);
+  const isMobile = useMediaQuery('(max-width: 768px)');
+  const visualizerSectionRef = useRef<HTMLElement | null>(null);
+
+  const handleExperienceClick = () => {
+    setIsSoundActive((prev) => !prev);
+  };
+
+  useGameViewportEffects(isSoundActive, isMobile);
 
   return (
     <section

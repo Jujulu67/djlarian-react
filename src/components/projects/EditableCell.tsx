@@ -93,7 +93,15 @@ function convertCellValue(
 
 type EditableCellDisplayProps = Pick<
   EditableCellProps,
-  'value' | 'field' | 'type' | 'placeholder' | 'onSave' | 'disabled' | 'isCompact' | 'className'
+  | 'value'
+  | 'field'
+  | 'type'
+  | 'placeholder'
+  | 'onSave'
+  | 'disabled'
+  | 'isCompact'
+  | 'className'
+  | 'allowWrap'
 > & {
   isSaving: boolean;
   onStartEditing: () => void;

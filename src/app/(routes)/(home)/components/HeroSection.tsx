@@ -1,5 +1,6 @@
 'use client';
 
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import {
   motion,
   useMotionValue,
@@ -115,23 +116,13 @@ export default function HeroSection({ config }: HeroSectionProps) {
   const isV2 = useUiVersion() !== 'legacy';
   const reduceMotion = useReducedMotion() ?? false;
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isMobile, setIsMobile] = useState(false);
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const [waveformAnimationReady, setWaveformAnimationReady] = useState(false);
   const [videoLoaded, setVideoLoaded] = useState(false);
   const [videoFailed, setVideoFailed] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [readyForOtherAnimations, setReadyForOtherAnimations] = useState(false);
   const criticalDataLoaded = true; // Déjà chargé côté serveur
-
-  // Détecter si on est sur mobile
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   // Démarrer la vidéo uniquement après que l'animation de déploiement soit terminée
   useEffect(() => {
