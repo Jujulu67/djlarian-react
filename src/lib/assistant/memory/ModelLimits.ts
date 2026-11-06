@@ -5,23 +5,27 @@ import { logger } from '@/lib/logger';
  * O6: Limites modèle officielles (source: GroqCloud documentation)
  *
  * MODÈLES SUPPORTÉS:
- * - llama-3.1-8b-instant: context 131072, max output 131072
- * - llama-3.3-70b-versatile: context 131072, max output 32768
+ * - openai/gpt-oss-20b: context 131072, max output 65536
+ * - openai/gpt-oss-120b: context 131072, max output 65536
  *
  * RÈGLES:
  * - max_completion_tokens ne doit JAMAIS dépasser ModelMaxOutputTokens[modelId]
  * - reserveForResponse doit être borné intelligemment (min/max) selon le modèle
  */
 
+/** Modèles Groq de l'assistant : rapide par défaut, plus capable pour les requêtes complexes. */
+export const GROQ_FAST_MODEL = 'openai/gpt-oss-20b';
+export const GROQ_COMPLEX_MODEL = 'openai/gpt-oss-120b';
+
 /**
  * Limites de contexte par modèle (tokens d'entrée maximum)
  * Source: https://console.groq.com/docs/models
  */
 export const ModelContextTokens: Record<string, number> = {
-  // llama-3.1-8b-instant: 131,072 tokens de contexte
-  'llama-3.1-8b-instant': 131072,
-  // llama-3.3-70b-versatile: 131,072 tokens de contexte
-  'llama-3.3-70b-versatile': 131072,
+  // openai/gpt-oss-20b: 131,072 tokens de contexte
+  'openai/gpt-oss-20b': 131072,
+  // openai/gpt-oss-120b: 131,072 tokens de contexte
+  'openai/gpt-oss-120b': 131072,
 };
 
 /**
@@ -29,12 +33,12 @@ export const ModelContextTokens: Record<string, number> = {
  * ⚠️ CRITIQUE: Ces valeurs sont les maximums ABSOLUS de l'API
  *
  * Source: https://console.groq.com/docs/models
- * - llama-3.1-8b-instant: max output 131072 (illimité dans limite contexte)
- * - llama-3.3-70b-versatile: max output 32768 (limité!)
+ * - openai/gpt-oss-20b: max output 65536
+ * - openai/gpt-oss-120b: max output 65536
  */
 export const ModelMaxOutputTokens: Record<string, number> = {
-  'llama-3.1-8b-instant': 131072,
-  'llama-3.3-70b-versatile': 32768,
+  'openai/gpt-oss-20b': 65536,
+  'openai/gpt-oss-120b': 65536,
 };
 
 /**
@@ -56,14 +60,14 @@ interface ResponseReserveConfig {
 }
 
 const ModelResponseReserve: Record<string, ResponseReserveConfig> = {
-  'llama-3.1-8b-instant': {
+  'openai/gpt-oss-20b': {
     min: 256, // Réponse courte minimum
     max: 8192, // Réponse longue maximum (bien en dessous du max output)
     default: 1024, // Valeur par défaut
   },
-  'llama-3.3-70b-versatile': {
+  'openai/gpt-oss-120b': {
     min: 256,
-    max: 4096, // Plus conservateur car max output limité à 32768
+    max: 4096,
     default: 1024,
   },
 };

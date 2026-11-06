@@ -65,7 +65,7 @@ export function extractCreateData(
   // Essayer différents patterns pour trouver le nom
   const namePatterns = [
     // Pattern le plus spécifique en premier : "ajoute le projet X" ou "créer le projet X"
-    /(?:ajoute|ajouter|créer|créé|add|create)\s+(?:le\s+)?(?:projet\s+)?([a-z0-9_\s]+?)(?:\s+(?:en\s+collab|collab|avec|deadline|avancé|avance|progress|progression|il\s+est|c['’]?est|it\s+is|it['’]?s|status|statut)|$)/i,
+    /(?:ajoute|ajouter|créer|créez|créé|crée|creer|creez|cree|add|create)\s+(?:(?:le|un|une|mon|nouveau|the|a|new)\s+)*(?:projet\s+|project\s+)?([a-z0-9_\s]+?)(?:\s+(?:en\s+collab|collab|avec|deadline|avancé|avance|progress|progression|il\s+est|c['’]?est|it\s+is|it['’]?s|status|statut)|$)/i,
     // Pattern avec "projet" explicite
     /(?:projet|project)\s+([a-z0-9_\s]+?)(?:\s+(?:en\s+collab|collab|avec|deadline|avancé|avance|progress|progression|il\s+est|c['’]?est|it\s+is|it['’]?s|status|statut)|$)/i,
     // Pattern "nouveau projet X"
@@ -96,7 +96,7 @@ export function extractCreateData(
   // Si pas de nom trouvé, essayer un pattern simple (un seul mot après "ajoute le projet")
   if (!createData.name) {
     const simplePattern =
-      /(?:ajoute|ajouter|créer|créé|add|create)\s+(?:le\s+)?(?:projet\s+)?(\w+)(?:\s|$)/i;
+      /(?:ajoute|ajouter|créer|créez|créé|crée|creer|creez|cree|add|create)\s+(?:(?:le|un|une|mon|nouveau|the|a|new)\s+)*(?:projet\s+|project\s+)?(\w+)(?:\s|$)/i;
     const match = query.match(simplePattern);
     if (match && match[1]) {
       const potentialName = match[1].trim();

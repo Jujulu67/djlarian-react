@@ -31,7 +31,7 @@ describe('GroqPayloadBuilder - max_tokens Feature Flag (O7)', () => {
 
       // Need to re-import to pick up env change
       // Since we can't easily re-import, we'll check the payload structure
-      const builder = new GroqPayloadBuilder({ model: 'llama-3.1-8b-instant' });
+      const builder = new GroqPayloadBuilder({ model: 'openai/gpt-oss-20b' });
       const payload = builder.build(store, 'Test message');
 
       // The behavior depends on the module load time, but we can verify the structure
@@ -45,7 +45,7 @@ describe('GroqPayloadBuilder - max_tokens Feature Flag (O7)', () => {
 
     it('should include max_completion_tokens in payload', () => {
       const builder = new GroqPayloadBuilder({
-        model: 'llama-3.1-8b-instant',
+        model: 'openai/gpt-oss-20b',
         maxTokens: 1024,
       });
       const payload = builder.build(store, 'Test message');
@@ -54,21 +54,21 @@ describe('GroqPayloadBuilder - max_tokens Feature Flag (O7)', () => {
       expect(typeof payload.max_completion_tokens).toBe('number');
     });
 
-    it('should cap max_completion_tokens according to model limits for 70B', () => {
+    it('should cap max_completion_tokens according to model limits', () => {
       const builder = new GroqPayloadBuilder({
-        model: 'llama-3.3-70b-versatile',
-        maxTokens: 100000, // Exceeds 70B limit of 32768
+        model: 'openai/gpt-oss-120b',
+        maxTokens: 100000, // Exceeds the limit of 65536
       });
       const payload = builder.build(store, 'Test message');
 
-      // Should be capped to 32768
-      expect(payload.max_completion_tokens).toBe(32768);
+      // Should be capped to 65536
+      expect(payload.max_completion_tokens).toBe(65536);
     });
 
-    it('should not cap max_completion_tokens for 8B within limit', () => {
+    it('should not cap max_completion_tokens within limit', () => {
       const builder = new GroqPayloadBuilder({
-        model: 'llama-3.1-8b-instant',
-        maxTokens: 50000, // Within 8B limit of 131072
+        model: 'openai/gpt-oss-20b',
+        maxTokens: 50000, // Within the limit of 65536
       });
       const payload = builder.build(store, 'Test message');
 
@@ -79,11 +79,11 @@ describe('GroqPayloadBuilder - max_tokens Feature Flag (O7)', () => {
   describe('Payload structure validation', () => {
     it('should have required fields', () => {
       const builder = new GroqPayloadBuilder({
-        model: 'llama-3.1-8b-instant',
+        model: 'openai/gpt-oss-20b',
       });
       const payload = builder.build(store, 'Hello');
 
-      expect(payload.model).toBe('llama-3.1-8b-instant');
+      expect(payload.model).toBe('openai/gpt-oss-20b');
       expect(payload.messages).toBeDefined();
       expect(Array.isArray(payload.messages)).toBe(true);
       expect(payload.temperature).toBeDefined();
@@ -113,13 +113,13 @@ describe('GroqPayloadBuilder - max_tokens Feature Flag (O7)', () => {
   describe('buildClarificationPayload', () => {
     it('should cap max_completion_tokens according to model limits', () => {
       const builder = new GroqPayloadBuilder({
-        model: 'llama-3.3-70b-versatile',
+        model: 'openai/gpt-oss-120b',
         maxTokens: 100000, // Exceeds limit
       });
       const payload = builder.buildClarificationPayload(store, 'Clarify this');
 
-      // Should be capped to 32768
-      expect(payload.max_completion_tokens).toBe(32768);
+      // Should be capped to 65536
+      expect(payload.max_completion_tokens).toBe(65536);
     });
   });
 });

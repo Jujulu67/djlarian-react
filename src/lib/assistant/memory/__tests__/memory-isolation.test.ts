@@ -253,7 +253,7 @@ describe('T3: Groq Payload Validation', () => {
 
     // Payload invalide (contient du contenu pollué)
     const badPayload = {
-      model: 'llama-3.1-8b-instant',
+      model: 'openai/gpt-oss-20b',
       messages: [
         { role: 'system' as const, content: 'System prompt' },
         { role: 'user' as const, content: 'liste les projets' },
