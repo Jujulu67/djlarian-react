@@ -57,6 +57,292 @@ function parseRelativeDate(dateStr: string): string | null {
 }
 
 // POST /api/projects/batch-update - Met à jour plusieurs projets selon des critères
+interface PushDeadlineBy {
+  days?: number;
+  weeks?: number;
+  months?: number;
+}
+
+interface BatchUpdateBody {
+  /** IDs des projets à modifier (priorité sur les filtres) */
+  projectIds?: string[];
+  scopeSource?: string;
+  /** ID de corrélation pour tracer la requête */
+  requestId?: string;
+  /** ID de confirmation pour l'idempotency (évite les doubles mutations) */
+  confirmationId?: string;
+  /** ID projet → updatedAt attendu (ISO) pour la concurrence optimiste */
+  expectedUpdatedAtById?: Record<string, string>;
+  // Filtres pour identifier les projets à modifier
+  minProgress?: number;
+  maxProgress?: number;
+  status?: string;
+  hasDeadline?: boolean;
+  deadlineDate?: string;
+  noProgress?: boolean;
+  collab?: string;
+  style?: string;
+  label?: string;
+  labelFinal?: string;
+  // Nouvelles valeurs à appliquer
+  newProgress?: number | null;
+  newStatus?: string;
+  /** null supprime la deadline */
+  newDeadline?: string | null;
+  pushDeadlineBy?: PushDeadlineBy;
+  newCollab?: string | null;
+  newStyle?: string | null;
+  newLabel?: string | null;
+  newLabelFinal?: string | null;
+}
+
+/** Contexte commun aux étapes de la requête. */
+interface RequestContext {
+  body: BatchUpdateBody;
+  userId: string;
+  logPrefix: string;
+}
+
+const hasIds = (projectIds: BatchUpdateBody['projectIds']): projectIds is string[] =>
+  Array.isArray(projectIds) && projectIds.length > 0;
+
+/** Exécute une mutation, atomiquement avec l'entrée de confirmation s'il y en a une : si la
+ * mutation échoue, la confirmation est annulée et une nouvelle tentative reste possible. */
+function withConfirmation<T>(
+  { body, userId }: RequestContext,
+  mutate: (client: Prisma.TransactionClient) => Promise<T>
+): Promise<T> {
+  const { confirmationId } = body;
+  if (!confirmationId) return mutate(prisma);
+  return prisma.$transaction(async (tx) => {
+    await tx.assistantConfirmation.create({ data: { userId, confirmationId } });
+    return mutate(tx);
+  });
+}
+
+/** Réponse à renvoyer si cette confirmation a déjà été traitée (ou ne peut pas être vérifiée). */
+async function checkIdempotency({ body, userId, logPrefix }: RequestContext) {
+  const { confirmationId, requestId } = body;
+  if (!confirmationId) return null;
+
+  if (
+    !prisma.assistantConfirmation ||
+    typeof prisma.assistantConfirmation.findUnique !== 'function'
+  ) {
+    const errorMessage =
+      'Prisma client out of date: assistantConfirmation model not found. Run: prisma generate';
+    logger.error(`[Batch Update API] ${logPrefix} ❌ ${errorMessage}`, {
+      requestId,
+      confirmationId,
+      userId,
+    });
+    return NextResponse.json(
+      {
+        error: errorMessage,
+        details: 'The Prisma client needs to be regenerated. Please run: prisma generate',
+      },
+      { status: 500 }
+    );
+  }
+
+  const existing = await prisma.assistantConfirmation.findUnique({ where: { confirmationId } });
+  if (!existing) return null;
+
+  logger.warn(`[Batch Update API] ${logPrefix} 🔄 Idempotency: confirmationId déjà traité`, {
+    requestId,
+    confirmationId,
+    userId,
+    createdAt: existing.createdAt,
+  });
+  return createSuccessResponse(
+    { count: 0, duplicated: true, message: 'Cette confirmation a déjà été traitée.' },
+    200,
+    'Cette confirmation a déjà été traitée.'
+  );
+}
+
+/** Raison du conflit entre le updatedAt attendu et l'actuel, ou null s'ils concordent. */
+function findConflict(expected: string | undefined, current: Date | string | undefined) {
+  if (!current) return { reason: 'project_missing' };
+  const currentDate = current instanceof Date ? current : new Date(current);
+  if (!expected) return { reason: 'expectedUpdatedAt_missing', currentUpdatedAt: current };
+
+  const expectedTime = new Date(expected).getTime();
+  const currentTime = currentDate.getTime();
+  if (isNaN(expectedTime)) return { reason: 'expectedUpdatedAt_invalid', expected };
+  if (isNaN(currentTime)) return { reason: 'currentUpdatedAt_invalid', expected };
+
+  // Tolérance d'une seconde pour les arrondis de millisecondes
+  const timeDiff = Math.abs(expectedTime - currentTime);
+  return timeDiff > 1000 ? { reason: 'timestamp_mismatch', expected, timeDiff } : null;
+}
+
+/** Réponse 409 si un projet a changé depuis la confirmation (concurrence optimiste). */
+async function checkConcurrency({ body, userId, logPrefix }: RequestContext) {
+  const { projectIds, expectedUpdatedAtById, requestId, confirmationId } = body;
+  if (!hasIds(projectIds) || !expectedUpdatedAtById || typeof expectedUpdatedAtById !== 'object') {
+    return null;
+  }
+
+  const projects = await prisma.project.findMany({
+    where: { userId, id: { in: projectIds } },
+    select: { id: true, updatedAt: true },
+  });
+  const updatedAtById = new Map(projects.map((p) => [p.id, p.updatedAt]));
+
+  const conflicts = projectIds.flatMap((projectId) => {
+    const conflict = findConflict(expectedUpdatedAtById[projectId], updatedAtById.get(projectId));
+    return conflict ? [{ projectId, ...conflict }] : [];
+  });
+  if (conflicts.length === 0) return null;
+
+  const conflictProjectIds = conflicts.map((c) => c.projectId);
+  logger.warn(`[Batch Update API] ${logPrefix} ⚠️ Concurrency conflict détecté`, {
+    requestId,
+    confirmationId,
+    projectIdsCount: projectIds.length,
+    conflictCount: conflicts.length,
+    conflictDetails: conflicts.slice(0, 5),
+  });
+  return createConflictResponse('Some projects changed since confirmation. Please re-list.', {
+    conflictCount: conflicts.length,
+    conflictProjectIds,
+  });
+}
+
+function hasModification(body: BatchUpdateBody): boolean {
+  return [
+    body.newProgress,
+    body.newStatus,
+    body.newDeadline, // null est une valeur valide (suppression)
+    body.pushDeadlineBy,
+    body.newCollab,
+    body.newStyle,
+    body.newLabel,
+    body.newLabelFinal,
+  ].some((value) => value !== undefined);
+}
+
+function hasAnyFilter(body: BatchUpdateBody): boolean {
+  return Boolean(
+    body.minProgress !== undefined ||
+    body.maxProgress !== undefined ||
+    body.status ||
+    body.hasDeadline !== undefined ||
+    body.deadlineDate ||
+    body.noProgress !== undefined ||
+    body.collab ||
+    body.style ||
+    body.label ||
+    body.labelFinal
+  );
+}
+
+function progressFilter({ noProgress, minProgress, maxProgress }: BatchUpdateBody) {
+  // noProgress l'emporte sur les bornes
+  if (noProgress === true) return { progress: null };
+  if (minProgress === undefined && maxProgress === undefined) return {};
+  return {
+    progress: {
+      ...(minProgress !== undefined && { gte: minProgress }),
+      ...(maxProgress !== undefined && { lte: maxProgress }),
+    },
+  };
+}
+
+function deadlineFilter({ hasDeadline, deadlineDate }: BatchUpdateBody) {
+  // Une date précise et valide l'emporte sur hasDeadline
+  const date = deadlineDate ? new Date(deadlineDate) : null;
+  if (date && !isNaN(date.getTime())) return { deadline: date.toISOString().split('T')[0] };
+  if (hasDeadline === undefined) return {};
+  return { deadline: hasDeadline ? { not: null } : null };
+}
+
+/** Clause WHERE : les IDs ont la priorité absolue, sinon les filtres. */
+function buildWhere(body: BatchUpdateBody, userId: string): Prisma.ProjectWhereInput {
+  if (hasIds(body.projectIds)) return { userId, id: { in: body.projectIds } };
+  const { status, collab, style, label, labelFinal } = body;
+  return {
+    userId,
+    ...progressFilter(body),
+    ...deadlineFilter(body),
+    ...(status && { status }),
+    ...(collab && { collab }),
+    ...(style && { style }),
+    ...(label && { label }),
+    ...(labelFinal && { labelFinal }),
+  } as Prisma.ProjectWhereInput;
+}
+
+/** Deadline décalée ; les valeurs peuvent être négatives pour la reculer. */
+function shiftDeadline(deadline: Date | string, { days, weeks, months }: PushDeadlineBy): Date {
+  const shifted = new Date(deadline);
+  if (days !== undefined) shifted.setDate(shifted.getDate() + days);
+  if (weeks !== undefined) shifted.setDate(shifted.getDate() + weeks * 7);
+  if (months !== undefined) shifted.setMonth(shifted.getMonth() + months);
+  return shifted;
+}
+
+/** Chaque deadline se décale depuis sa propre valeur : mise à jour projet par projet. */
+async function pushDeadlines(
+  context: RequestContext,
+  where: Prisma.ProjectWhereInput,
+  pushBy: PushDeadlineBy
+) {
+  if (!pushBy.days && !pushBy.weeks && !pushBy.months) {
+    return createBadRequestResponse(
+      'pushDeadlineBy doit contenir au moins une valeur non-nulle pour days, weeks ou months.'
+    );
+  }
+
+  const projects = await prisma.project.findMany({
+    where,
+    select: { id: true, deadline: true },
+  });
+  // Les projets sans deadline sont ignorés
+  const withDeadline = projects.filter((project) => project.deadline);
+
+  const count = await withConfirmation(context, async (client) => {
+    for (const project of withDeadline) {
+      await client.project.update({
+        where: { id: project.id },
+        data: { deadline: shiftDeadline(project.deadline as Date, pushBy) },
+      });
+    }
+    return withDeadline.length;
+  });
+
+  invalidateProjectsCache(context.userId);
+  const message =
+    count > 0
+      ? `${count} deadline(s) décalée(s) avec succès.`
+      : 'Aucun projet avec deadline ne correspond aux critères.';
+  return createSuccessResponse({ count, message }, 200, message);
+}
+
+/** Date demandée (relative ou absolue), null pour une suppression, undefined si invalide. */
+function parseNewDeadline(newDeadline: string | null): Date | null | undefined {
+  if (newDeadline === null) return null;
+  const relative = parseRelativeDate(newDeadline);
+  if (relative) return new Date(relative);
+  const date = new Date(newDeadline);
+  return isNaN(date.getTime()) ? undefined : date;
+}
+
+/** Données de mise à jour, hors deadline. Un projet TERMINE passe forcément à 100 %. */
+function buildUpdateData(body: BatchUpdateBody): Prisma.ProjectUpdateManyMutationInput {
+  const { newProgress, newStatus, newCollab, newStyle, newLabel, newLabelFinal } = body;
+  return {
+    ...(newProgress !== undefined && { progress: newProgress }),
+    ...(newStatus && { status: newStatus }),
+    ...(newStatus === 'TERMINE' && { progress: 100 }),
+    ...(newCollab !== undefined && { collab: newCollab }),
+    ...(newStyle !== undefined && { style: newStyle }),
+    ...(newLabel !== undefined && { label: newLabel }),
+    ...(newLabelFinal !== undefined && { labelFinal: newLabelFinal }),
+  } as Prisma.ProjectUpdateManyMutationInput;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { session, error } = await requireAuth({
@@ -65,692 +351,60 @@ export async function POST(request: NextRequest) {
     });
     if (error) return error;
 
-    const body = await request.json();
-    const {
-      // IDs spécifiques des projets à modifier (priorité sur les filtres)
-      projectIds,
-      scopeSource,
-      // ID de corrélation pour tracer la requête
-      requestId,
-      // ID de confirmation pour l'idempotency (évite les doubles mutations)
-      confirmationId,
-      // Mapping ID projet → updatedAt attendu (ISO string) pour vérification concurrency optimiste
-      expectedUpdatedAtById,
-      // Filtres pour identifier les projets à modifier
-      minProgress,
-      maxProgress,
-      status,
-      hasDeadline,
-      deadlineDate,
-      noProgress,
-      collab,
-      style,
-      label,
-      labelFinal,
-      // Nouvelles valeurs à appliquer
-      newProgress,
-      newStatus,
-      newDeadline,
-      pushDeadlineBy,
-      newCollab,
-      newStyle,
-      newLabel,
-      newLabelFinal,
-    } = body;
-
-    // Préparer le préfixe de log
+    const body: BatchUpdateBody = await request.json();
+    const { projectIds, requestId, confirmationId, pushDeadlineBy, newDeadline } = body;
+    const userId = session.user.id;
     const logPrefix = requestId ? `[${requestId}]` : '';
+    const context: RequestContext = { body, userId, logPrefix };
 
-    // Vérifier l'idempotency si confirmationId est fourni
-    if (confirmationId) {
-      // Guard runtime: vérifier que le client Prisma est à jour
-      if (
-        !prisma.assistantConfirmation ||
-        typeof prisma.assistantConfirmation.findUnique !== 'function'
-      ) {
-        const errorMessage =
-          'Prisma client out of date: assistantConfirmation model not found. Run: prisma generate';
-        logger.error(`[Batch Update API] ${logPrefix} ❌ ${errorMessage}`, {
-          requestId,
-          confirmationId,
-          userId: session.user.id,
-          hasAssistantConfirmation: !!prisma.assistantConfirmation,
-          assistantConfirmationType: typeof prisma.assistantConfirmation,
-        });
-        return NextResponse.json(
-          {
-            error: errorMessage,
-            details: 'The Prisma client needs to be regenerated. Please run: prisma generate',
-          },
-          { status: 500 }
-        );
-      }
+    const rejection = (await checkIdempotency(context)) ?? (await checkConcurrency(context));
+    if (rejection) return rejection;
 
-      const existingConfirmation = await prisma.assistantConfirmation.findUnique({
-        where: { confirmationId },
-      });
-
-      if (existingConfirmation) {
-        // Confirmation déjà traitée : retourner 200 avec duplicated: true
-        logger.warn(`[Batch Update API] ${logPrefix} 🔄 Idempotency: confirmationId déjà vu`, {
-          requestId,
-          confirmationId,
-          userId: session.user.id,
-          createdAt: existingConfirmation.createdAt,
-        });
-
-        return createSuccessResponse(
-          {
-            count: 0,
-            duplicated: true,
-            message: 'Cette confirmation a déjà été traitée.',
-          },
-          200,
-          'Cette confirmation a déjà été traitée.'
-        );
-      }
-    }
-
-    // Vérifier la concurrency optimiste si projectIds ET expectedUpdatedAtById sont fournis
-    const conflictProjectIds: string[] = [];
-    if (
-      projectIds &&
-      Array.isArray(projectIds) &&
-      projectIds.length > 0 &&
-      expectedUpdatedAtById &&
-      typeof expectedUpdatedAtById === 'object'
-    ) {
-      // Charger les projets en base avec leur updatedAt
-      const currentProjects = await prisma.project.findMany({
-        where: {
-          userId: session.user.id,
-          id: { in: projectIds },
-        },
-        select: {
-          id: true,
-          updatedAt: true,
-        },
-      });
-
-      // Construire un map pour accès rapide
-      const currentProjectsMap = new Map(currentProjects.map((p) => [p.id, p.updatedAt]));
-
-      // Vérifier chaque ID attendu
-      const conflictDetails: Array<{
-        projectId: string;
-        reason: string;
-        expectedUpdatedAt?: string;
-        currentUpdatedAt?: Date | string;
-        timeDiff?: number;
-      }> = [];
-
-      for (const projectId of projectIds) {
-        const expectedUpdatedAt = expectedUpdatedAtById[projectId];
-        const currentUpdatedAt = currentProjectsMap.get(projectId);
-
-        // Conflit si:
-        // 1. Projet manquant en base
-        if (!currentUpdatedAt) {
-          conflictProjectIds.push(projectId);
-          conflictDetails.push({
-            projectId,
-            reason: 'project_missing',
-          });
-          continue;
-        }
-
-        // 2. expectedUpdatedAt manquant dans le mapping
-        if (!expectedUpdatedAt) {
-          conflictProjectIds.push(projectId);
-          conflictDetails.push({
-            projectId,
-            reason: 'expectedUpdatedAt_missing',
-            currentUpdatedAt: currentUpdatedAt.toISOString(),
-          });
-          continue;
-        }
-
-        // 3. Mismatch de timestamp (comparer en getTime() pour éviter différences de format)
-        // Convertir les deux en Date puis comparer les timestamps
-        const expectedDate = new Date(expectedUpdatedAt);
-        const currentDate =
-          currentUpdatedAt instanceof Date ? currentUpdatedAt : new Date(currentUpdatedAt);
-
-        // Vérifier que les dates sont valides
-        if (isNaN(expectedDate.getTime())) {
-          conflictProjectIds.push(projectId);
-          conflictDetails.push({
-            projectId,
-            reason: 'expectedUpdatedAt_invalid',
-            expectedUpdatedAt,
-            currentUpdatedAt: currentDate.toISOString(),
-          });
-          continue;
-        }
-
-        if (isNaN(currentDate.getTime())) {
-          conflictProjectIds.push(projectId);
-          conflictDetails.push({
-            projectId,
-            reason: 'currentUpdatedAt_invalid',
-            expectedUpdatedAt,
-            currentUpdatedAt: currentUpdatedAt.toString(),
-          });
-          continue;
-        }
-
-        // Comparer les timestamps (tolérance de 1 seconde pour les arrondis de millisecondes)
-        const expectedTime = expectedDate.getTime();
-        const currentTime = currentDate.getTime();
-        const timeDiff = Math.abs(expectedTime - currentTime);
-
-        // Conflit seulement si la différence est > 1 seconde (pas juste des millisecondes)
-        if (timeDiff > 1000) {
-          conflictProjectIds.push(projectId);
-          conflictDetails.push({
-            projectId,
-            reason: 'timestamp_mismatch',
-            expectedUpdatedAt,
-            currentUpdatedAt: currentDate.toISOString(),
-            timeDiff,
-          });
-        }
-      }
-
-      // Logs de debug détaillés pour chaque conflit
-      if (conflictProjectIds.length > 0) {
-        logger.warn(`[Batch Update API] ${logPrefix} ⚠️ Conflits détectés (détails)`, {
-          requestId,
-          confirmationId,
-          conflictCount: conflictProjectIds.length,
-          conflictDetails: conflictDetails.slice(0, 5), // Limiter à 5 pour éviter les logs trop longs
-        });
-      }
-
-      // Si conflits détectés, retourner 409
-      if (conflictProjectIds.length > 0) {
-        const logPrefix = requestId ? `[${requestId}]` : '';
-        logger.warn(`[Batch Update API] ${logPrefix} ⚠️ Concurrency conflict détecté`, {
-          requestId,
-          confirmationId,
-          projectIdsCount: projectIds.length,
-          conflictCount: conflictProjectIds.length,
-          conflictProjectIdsSample: conflictProjectIds.slice(0, 3),
-          conflictDetails: conflictDetails.slice(0, 5), // Inclure les détails dans le log principal
-        });
-
-        // Retourner 409 avec les détails du conflit
-        // Format: { error, details: { conflictCount, conflictProjectIds } }
-        // Le handler côté client lit depuis details ou directement depuis l'objet
-        return createConflictResponse('Some projects changed since confirmation. Please re-list.', {
-          conflictCount: conflictProjectIds.length,
-          conflictProjectIds: conflictProjectIds,
-        });
-      }
-    }
-
-    // Logs des inputs avec requestId
-    logger.warn(`[Batch Update API] ${logPrefix} 📥 Inputs reçus:`, {
-      requestId,
-      confirmationId,
-      projectIdsCount: projectIds?.length || 0,
-      scopeSource: scopeSource || 'filter-based',
-      filterSummary: {
-        minProgress,
-        maxProgress,
-        status,
-        hasDeadline,
-        noProgress,
-        collab,
-        style,
-        label,
-        labelFinal,
-      },
-      mutationSummary: {
-        newProgress,
-        newStatus,
-        newDeadline,
-        pushDeadlineBy,
-        newCollab,
-        newStyle,
-        newLabel,
-        newLabelFinal,
-      },
-    });
-
-    // Vérifier qu'il y a au moins une modification à faire
-    // null est une valeur valide pour newDeadline (indique la suppression)
-    const hasModification =
-      newProgress !== undefined ||
-      newStatus !== undefined ||
-      newDeadline !== undefined || // null est une valeur valide (suppression)
-      pushDeadlineBy !== undefined ||
-      newCollab !== undefined ||
-      newStyle !== undefined ||
-      newLabel !== undefined ||
-      newLabelFinal !== undefined;
-
-    if (!hasModification) {
+    if (!hasModification(body)) {
       return createBadRequestResponse(
         'Aucune modification spécifiée. Fournissez au moins newProgress, newStatus, newDeadline, pushDeadlineBy, newCollab, newStyle, newLabel ou newLabelFinal.'
       );
     }
 
-    // Construire la clause WHERE pour filtrer les projets
-    const whereClause: Prisma.ProjectWhereInput = {
-      userId: session.user.id,
-    };
-
-    // Règle de sécurité : si projectIds est fourni, utiliser les IDs (priorité absolue)
-    if (projectIds && Array.isArray(projectIds) && projectIds.length > 0) {
-      whereClause.id = { in: projectIds };
-      logger.warn(`[Batch Update API] ${logPrefix} 🎯 Utilisation des IDs (scope = IDs)`, {
-        requestId,
-        projectIdsCount: projectIds.length,
-        projectIdsSample: projectIds.slice(0, 3),
-      });
-    } else {
-      // Sinon, construire le where à partir des filtres
-      // Vérifier qu'il y a au moins un filtre non vide
-      const hasAnyFilter =
-        minProgress !== undefined ||
-        maxProgress !== undefined ||
-        status ||
-        hasDeadline !== undefined ||
-        deadlineDate ||
-        noProgress !== undefined ||
-        collab ||
-        style ||
-        label ||
-        labelFinal;
-
-      if (!hasAnyFilter) {
-        // Refuser les requêtes sans scope (pas d'IDs, pas de filtre)
-        logger.error(
-          `[Batch Update API] ${logPrefix} ❌ Refus: scope vide (pas d'ids, pas de filtre)`,
-          {
-            requestId,
-          }
-        );
-        return createBadRequestResponse(
-          "Refus: scope vide (pas d'ids, pas de filtre). Fournissez soit projectIds, soit au moins un filtre."
-        );
-      }
-
-      // Filtre pour les projets sans progression (doit être vérifié en premier)
-      if (noProgress === true) {
-        whereClause.progress = null;
-        logger.warn('[Batch Update API] 🔍 Filtre noProgress activé');
-      } else if (minProgress !== undefined || maxProgress !== undefined) {
-        // Filtres de progression (seulement si noProgress n'est pas activé)
-        whereClause.progress = {};
-        if (minProgress !== undefined) {
-          whereClause.progress.gte = minProgress;
-        }
-        if (maxProgress !== undefined) {
-          whereClause.progress.lte = maxProgress;
-        }
-        logger.warn('[Batch Update API] 🔍 Filtres de progression:', whereClause.progress);
-      }
-
-      // Filtre par statut
-      if (status) {
-        whereClause.status = status;
-        logger.warn('[Batch Update API] 🔍 Filtre statut:', status);
-      }
-
-      // Filtre par deadline
-      if (hasDeadline !== undefined) {
-        if (hasDeadline) {
-          whereClause.deadline = { not: null };
-        } else {
-          whereClause.deadline = null;
-        }
-      }
-
-      if (deadlineDate) {
-        const dateObj = new Date(deadlineDate);
-        if (!isNaN(dateObj.getTime())) {
-          whereClause.deadline = dateObj.toISOString().split('T')[0];
-        }
-      }
-
-      // Filtre par collaborateur
-      if (collab) {
-        whereClause.collab = collab;
-        logger.warn('[Batch Update API] 🔍 Filtre collaborateur:', collab);
-      }
-
-      // Filtre par style
-      if (style) {
-        whereClause.style = style;
-        logger.warn('[Batch Update API] 🔍 Filtre style:', style);
-      }
-
-      // Filtre par label
-      if (label) {
-        whereClause.label = label;
-        logger.warn('[Batch Update API] 🔍 Filtre label:', label);
-      }
-
-      // Filtre par label final
-      if (labelFinal) {
-        whereClause.labelFinal = labelFinal;
-        logger.warn('[Batch Update API] 🔍 Filtre labelFinal:', labelFinal);
-      }
-    }
-
-    // Construire les données de mise à jour
-    const updateData: Prisma.ProjectUpdateManyMutationInput = {};
-
-    if (newProgress !== undefined) {
-      updateData.progress = newProgress;
-    }
-
-    if (newStatus) {
-      updateData.status = newStatus;
-      // Si on passe à TERMINE, forcer progress à 100
-      if (newStatus === 'TERMINE') {
-        updateData.progress = 100;
-      }
-    }
-
-    // Gérer le décalage de deadlines (doit être fait avant la mise à jour en masse)
-    if (pushDeadlineBy !== undefined) {
-      // Pour décaler les deadlines, on doit récupérer chaque projet individuellement
-      // car chaque deadline doit être décalée de sa valeur actuelle
-      const { days, weeks, months } = pushDeadlineBy;
-
-      // Les valeurs peuvent être négatives (pour reculer les deadlines)
-      // Vérifier qu'au moins une valeur est définie et non-nulle
-      if (
-        (days === undefined || days === 0) &&
-        (weeks === undefined || weeks === 0) &&
-        (months === undefined || months === 0)
-      ) {
-        return createBadRequestResponse(
-          'pushDeadlineBy doit contenir au moins une valeur non-nulle pour days, weeks ou months.'
-        );
-      }
-
-      // Récupérer tous les projets correspondant aux critères
-      const projectsToUpdate = await prisma.project.findMany({
-        where: whereClause,
-        select: { id: true, deadline: true },
-      });
-
-      logger.warn(
-        `[Batch Update API] ${logPrefix} 📅 Décalage de deadlines: ${projectsToUpdate.length} projet(s) trouvé(s)`,
-        { requestId }
-      );
-
-      let updatedCount = 0;
-
-      // Utiliser une transaction si confirmationId est fourni (garantit l'atomicité)
-      if (confirmationId) {
-        // Guard runtime: vérifier que le client Prisma est à jour
-        if (
-          !prisma.assistantConfirmation ||
-          typeof prisma.assistantConfirmation.findUnique !== 'function'
-        ) {
-          const errorMessage =
-            'Prisma client out of date: assistantConfirmation model not found. Run: prisma generate';
-          logger.error(`[Batch Update API] ${logPrefix} ❌ ${errorMessage}`, {
-            requestId,
-            confirmationId,
-            userId: session.user.id,
-          });
-          return NextResponse.json(
-            {
-              error: errorMessage,
-              details: 'The Prisma client needs to be regenerated. Please run: prisma generate',
-            },
-            { status: 500 }
-          );
-        }
-
-        await prisma.$transaction(async (tx) => {
-          // Créer l'entrée de confirmation (sera rollback si l'update échoue)
-          await tx.assistantConfirmation.create({
-            data: {
-              userId: session.user.id,
-              confirmationId,
-            },
-          });
-
-          // Mettre à jour chaque projet dans la transaction
-          for (const project of projectsToUpdate) {
-            if (!project.deadline) {
-              // Ignorer les projets sans deadline
-              continue;
-            }
-
-            const currentDeadline = new Date(project.deadline);
-            const newDeadline = new Date(currentDeadline);
-
-            // Les valeurs peuvent être négatives (pour reculer les deadlines)
-            if (days !== undefined) {
-              newDeadline.setDate(newDeadline.getDate() + days);
-            }
-            if (weeks !== undefined) {
-              newDeadline.setDate(newDeadline.getDate() + weeks * 7);
-            }
-            if (months !== undefined) {
-              newDeadline.setMonth(newDeadline.getMonth() + months);
-            }
-
-            await tx.project.update({
-              where: { id: project.id },
-              data: { deadline: newDeadline },
-            });
-
-            updatedCount++;
-          }
-        });
-      } else {
-        // Pas de confirmationId: updates normaux sans transaction
-        for (const project of projectsToUpdate) {
-          if (!project.deadline) {
-            // Ignorer les projets sans deadline
-            continue;
-          }
-
-          const currentDeadline = new Date(project.deadline);
-          const newDeadline = new Date(currentDeadline);
-
-          // Les valeurs peuvent être négatives (pour reculer les deadlines)
-          if (days !== undefined) {
-            newDeadline.setDate(newDeadline.getDate() + days);
-          }
-          if (weeks !== undefined) {
-            newDeadline.setDate(newDeadline.getDate() + weeks * 7);
-          }
-          if (months !== undefined) {
-            newDeadline.setMonth(newDeadline.getMonth() + months);
-          }
-
-          await prisma.project.update({
-            where: { id: project.id },
-            data: { deadline: newDeadline },
-          });
-
-          updatedCount++;
-        }
-      }
-
-      logger.warn(`[Batch Update API] ${logPrefix} ✅ ${updatedCount} deadline(s) décalée(s)`, {
-        requestId,
-        confirmationId,
-      });
-
-      // Invalider le cache après modification
-      invalidateProjectsCache(session.user.id);
-
-      return createSuccessResponse(
-        {
-          count: updatedCount,
-          message:
-            updatedCount > 0
-              ? `${updatedCount} deadline(s) décalée(s) avec succès.`
-              : 'Aucun projet avec deadline ne correspond aux critères.',
-        },
-        200,
-        updatedCount > 0
-          ? `${updatedCount} deadline(s) décalée(s) avec succès.`
-          : 'Aucun projet avec deadline ne correspond aux critères.'
+    // Refuser les requêtes sans scope (pas d'IDs, pas de filtre)
+    if (!hasIds(projectIds) && !hasAnyFilter(body)) {
+      logger.error(`[Batch Update API] ${logPrefix} ❌ Refus: scope vide`, { requestId });
+      return createBadRequestResponse(
+        "Refus: scope vide (pas d'ids, pas de filtre). Fournissez soit projectIds, soit au moins un filtre."
       );
     }
 
+    const where = buildWhere(body, userId);
+    if (pushDeadlineBy !== undefined) return await pushDeadlines(context, where, pushDeadlineBy);
+
+    const data = buildUpdateData(body);
     if (newDeadline !== undefined) {
-      // null indique la suppression de la deadline
-      if (newDeadline === null) {
-        updateData.deadline = null;
-        logger.warn('[Batch Update API] 🗑️ Suppression de deadline demandée');
-      } else {
-        // Parser la date pour la définir
-        const parsedDate = parseRelativeDate(newDeadline);
-        if (parsedDate) {
-          updateData.deadline = new Date(parsedDate);
-        } else {
-          // Essayer de parser directement
-          const dateObj = new Date(newDeadline);
-          if (!isNaN(dateObj.getTime())) {
-            updateData.deadline = dateObj;
-          } else {
-            return createBadRequestResponse(
-              `Format de date invalide "${newDeadline}". Utilisez YYYY-MM-DD ou une date relative.`
-            );
-          }
-        }
-      }
-    }
-
-    if (newCollab !== undefined) {
-      updateData.collab = newCollab;
-    }
-
-    if (newStyle !== undefined) {
-      updateData.style = newStyle;
-    }
-
-    if (newLabel !== undefined) {
-      updateData.label = newLabel;
-    }
-
-    if (newLabelFinal !== undefined) {
-      updateData.labelFinal = newLabelFinal;
-    }
-
-    logger.warn(
-      `[Batch Update API] ${logPrefix} 🔍 Clause WHERE finale:`,
-      JSON.stringify(whereClause, null, 2),
-      {
-        requestId,
-      }
-    );
-    logger.warn(
-      `[Batch Update API] ${logPrefix} 📝 Données de mise à jour:`,
-      JSON.stringify(updateData, null, 2),
-      { requestId }
-    );
-
-    // Compter d'abord les projets qui correspondent aux critères
-    const countBefore = await prisma.project.count({
-      where: whereClause,
-    });
-    logger.warn(
-      `[Batch Update API] ${logPrefix} 📊 Nombre de projets correspondant aux critères:`,
-      countBefore,
-      {
-        requestId,
-      }
-    );
-    logger.warn(`[Batch Update API] ${logPrefix} 📊 Requête Prisma résumée:`, {
-      requestId,
-      where: projectIds
-        ? `id in [${projectIds.length} IDs]`
-        : Object.entries(whereClause)
-            .filter(([k]) => k !== 'userId')
-            .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
-            .join(', ') || 'userId only',
-      dataKeys: Object.keys(updateData),
-    });
-
-    // Exécuter la mise à jour dans une transaction si confirmationId est fourni
-    // Cela garantit que si l'update échoue, l'insert de confirmation est rollback
-    // et une retry pourra réessayer (au lieu de dire "duplicated" alors que rien n'a été appliqué)
-    let result: { count: number };
-
-    if (confirmationId) {
-      // Guard runtime: vérifier que le client Prisma est à jour
-      if (
-        !prisma.assistantConfirmation ||
-        typeof prisma.assistantConfirmation.findUnique !== 'function'
-      ) {
-        const errorMessage =
-          'Prisma client out of date: assistantConfirmation model not found. Run: prisma generate';
-        logger.error(`[Batch Update API] ${logPrefix} ❌ ${errorMessage}`, {
-          requestId,
-          confirmationId,
-          userId: session.user.id,
-        });
-        return NextResponse.json(
-          {
-            error: errorMessage,
-            details: 'The Prisma client needs to be regenerated. Please run: prisma generate',
-          },
-          { status: 500 }
+      const deadline = parseNewDeadline(newDeadline);
+      if (deadline === undefined) {
+        return createBadRequestResponse(
+          `Format de date invalide "${newDeadline}". Utilisez YYYY-MM-DD ou une date relative.`
         );
       }
-
-      // Transaction atomique: insert confirmation + update projets
-      result = await prisma.$transaction(async (tx) => {
-        // Créer l'entrée de confirmation (sera rollback si l'update échoue)
-        await tx.assistantConfirmation.create({
-          data: {
-            userId: session.user.id,
-            confirmationId,
-          },
-        });
-
-        // Exécuter la mise à jour
-        return await tx.project.updateMany({
-          where: whereClause,
-          data: updateData,
-        });
-      });
-    } else {
-      // Pas de confirmationId: update normal sans transaction
-      result = await prisma.project.updateMany({
-        where: whereClause,
-        data: updateData,
-      });
+      data.deadline = deadline;
     }
 
-    logger.warn(`[Batch Update API] ${logPrefix} ✅ Résultat:`, {
+    const result = await withConfirmation(context, (client) =>
+      client.project.updateMany({ where, data })
+    );
+
+    logger.debug(`[Batch Update API] ${logPrefix} ✅ Résultat:`, {
       requestId,
       confirmationId,
       countUpdated: result.count,
-      expectedCount: projectIds ? projectIds.length : countBefore,
-      match: projectIds ? result.count === projectIds.length : 'N/A (filter-based)',
+      dataKeys: Object.keys(data),
     });
 
-    // Invalider le cache après modification
-    invalidateProjectsCache(session.user.id);
-
-    return createSuccessResponse(
-      {
-        count: result.count,
-        message:
-          result.count > 0
-            ? `Mise à jour réussie pour ${result.count} projet(s).`
-            : 'Aucun projet ne correspond aux critères.',
-      },
-      200,
+    invalidateProjectsCache(userId);
+    const message =
       result.count > 0
         ? `Mise à jour réussie pour ${result.count} projet(s).`
-        : 'Aucun projet ne correspond aux critères.'
-    );
+        : 'Aucun projet ne correspond aux critères.';
+    return createSuccessResponse({ count: result.count, message }, 200, message);
   } catch (error) {
     return handleApiError(error, 'POST /api/projects/batch-update');
   }
