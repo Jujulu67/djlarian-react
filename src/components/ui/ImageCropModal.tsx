@@ -6,23 +6,23 @@ import { Button } from '@/components/ui';
 import Modal from '@/components/ui/Modal';
 
 /**
- * Taille de l'image produite : celle de la zone découpée (un 16:9 reste un 16:9).
+ * Taille de l'image produite : celle de la zone découpée, au format exact demandé
+ * (la hauteur suit la largeur, pour éviter un 1024×1023 dû aux arrondis en %).
  * Un recadrage rond prend le plus petit côté. La toile était carrée quel que soit
  * le format, ce qui étirait verticalement les images 16:9 des événements.
  */
 export function getCropCanvasSize(
   cropWidth: number,
   cropHeight: number,
-  circular = false
+  { circular = false, aspect }: { circular?: boolean; aspect?: number } = {}
 ): { width: number; height: number } {
   if (circular) {
     const size = Math.max(1, Math.round(Math.min(cropWidth, cropHeight)));
     return { width: size, height: size };
   }
-  return {
-    width: Math.max(1, Math.round(cropWidth)),
-    height: Math.max(1, Math.round(cropHeight)),
-  };
+  const width = Math.max(1, Math.round(cropWidth));
+  const height = aspect && aspect > 0 ? width / aspect : cropHeight;
+  return { width, height: Math.max(1, Math.round(height)) };
 }
 
 interface ImageCropModalProps {
@@ -101,7 +101,7 @@ const ImageCropModal: React.FC<ImageCropModalProps> = ({
       cropHeight = displayCrop.height;
     }
 
-    const { width, height } = getCropCanvasSize(cropWidth, cropHeight, circular);
+    const { width, height } = getCropCanvasSize(cropWidth, cropHeight, { circular, aspect });
     canvas.width = width;
     canvas.height = height;
 

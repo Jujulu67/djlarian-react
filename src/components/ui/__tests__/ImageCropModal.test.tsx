@@ -159,11 +159,19 @@ describe('getCropCanvasSize', () => {
     expect(getCropCanvasSize(1024, 576)).toEqual({ width: 1024, height: 576 });
   });
 
+  it('impose le format demandé malgré les arrondis', () => {
+    expect(getCropCanvasSize(1024, 1023, { aspect: 1 })).toEqual({ width: 1024, height: 1024 });
+    expect(getCropCanvasSize(1280, 721.4, { aspect: 16 / 9 })).toEqual({
+      width: 1280,
+      height: 720,
+    });
+  });
+
   it('arrondit les dimensions en pixels', () => {
     expect(getCropCanvasSize(1023.6, 575.8)).toEqual({ width: 1024, height: 576 });
   });
 
   it('prend le plus petit côté pour un recadrage rond', () => {
-    expect(getCropCanvasSize(800, 600, true)).toEqual({ width: 600, height: 600 });
+    expect(getCropCanvasSize(800, 600, { circular: true })).toEqual({ width: 600, height: 600 });
   });
 });
