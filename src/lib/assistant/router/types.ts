@@ -93,7 +93,12 @@ export interface PendingConfirmationAction {
   /** IDs des projets affectés (pour persistance précise quand scope = LastListedIds) */
   affectedProjectIds: string[];
   /** Source du scope utilisé (pour tracer l'origine et décider de la persistance) */
-  scopeSource: 'LastListedIds' | 'LastAppliedFilter' | 'AllProjects' | 'ExplicitFilter';
+  scopeSource:
+    | 'LastListedIds'
+    | 'LastAppliedFilter'
+    | 'AllProjects'
+    | 'ExplicitFilter'
+    | 'NamedProject';
   /** Champs à afficher dans l'UI (comme pour un listing) */
   fieldsToShow: string[];
   /** Message de description de l'action */

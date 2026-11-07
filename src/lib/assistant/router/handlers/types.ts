@@ -15,7 +15,12 @@ import type { ProjectCommandResult } from '../types';
  * Résultat de la détection de scope pour les mutations
  */
 export interface ScopeResult {
-  scopeSource: 'LastListedIds' | 'LastAppliedFilter' | 'AllProjects' | 'ExplicitFilter';
+  scopeSource:
+    | 'LastListedIds'
+    | 'LastAppliedFilter'
+    | 'AllProjects'
+    | 'ExplicitFilter'
+    | 'NamedProject';
   affectedProjects: Project[];
   effectiveFilters: QueryFilters;
 }

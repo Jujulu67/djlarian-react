@@ -24,7 +24,12 @@ export interface Message {
     updateData: UpdateData;
     affectedProjects: Project[];
     affectedProjectIds?: string[];
-    scopeSource?: 'LastListedIds' | 'LastAppliedFilter' | 'AllProjects' | 'ExplicitFilter';
+    scopeSource?:
+      | 'LastListedIds'
+      | 'LastAppliedFilter'
+      | 'AllProjects'
+      | 'ExplicitFilter'
+      | 'NamedProject';
     fieldsToShow?: string[];
     requestId?: string;
     previewDiff?: Array<{ id: string; name: string; changes: string[] }>;

@@ -11,6 +11,8 @@ import {
   type RouterContext,
 } from './types';
 import { extractUpdateData } from '../../query-parser/updates';
+import { detectFilters } from '../../query-parser/filters';
+import { findNamedProject } from '../named-project';
 import { debugLog, isAssistantDebugEnabled } from '../../utils/debug';
 import {
   applyProjectFilterAndSort,
@@ -26,7 +28,12 @@ import {
 } from '../action-helpers';
 import { logger } from '@/lib/logger';
 
-type ScopeSource = 'LastListedIds' | 'LastAppliedFilter' | 'AllProjects' | 'ExplicitFilter';
+type ScopeSource =
+  | 'LastListedIds'
+  | 'LastAppliedFilter'
+  | 'AllProjects'
+  | 'ExplicitFilter'
+  | 'NamedProject';
 type ExtractedUpdate = NonNullable<ReturnType<typeof extractUpdateData>>;
 
 function proposedMutationOf(updateData: ExtractedUpdate) {
@@ -163,10 +170,27 @@ export function handleUpdateCommand(
 ): ProjectCommandResult {
   logger.warn('[Router] ✏️ Routing vers Modification (avec confirmation)');
 
+  // Projet désigné par son nom : on l'analyse comme « le projet », sans les filtres
+  // que son nom ou « à 40% » auraient produits, et on ne vise que lui
+  const named = findNamedProject(userMessage, projects);
+  if (named.kind === 'ambiguous') {
+    return {
+      type: ProjectCommandType.GENERAL,
+      response: `${named.count} projets s'appellent « ${named.name} » : je ne sais pas lequel modifier. Renomme-les ou modifie-le depuis le tableau.`,
+      requestId,
+    };
+  }
+  const message = named.kind === 'found' ? named.rewrittenMessage : userMessage;
+  const lowerMessage = named.kind === 'found' ? message.toLowerCase() : lowerQuery;
+  const sourceFilters =
+    named.kind === 'found'
+      ? detectFilters(message, lowerMessage, availableCollabs, availableStyles).filters
+      : filters;
+
   // Passer une copie des filtres pour éviter les effets de bord (modification in-place)
   // Utiliser JSON.parse/stringify pour un deep clone sûr car filters peut contenir des objets
-  const filtersCopy = JSON.parse(JSON.stringify(filters)) as Record<string, unknown>;
-  const updateData = extractUpdateData(userMessage, lowerQuery, filtersCopy, availableStyles);
+  const filtersCopy = JSON.parse(JSON.stringify(sourceFilters)) as Record<string, unknown>;
+  const updateData = extractUpdateData(message, lowerMessage, filtersCopy, availableStyles);
 
   // Logs pour UPDATE (debug)
   debugLog('router', '📝 ExtractedUpdateData', {
@@ -192,7 +216,14 @@ export function handleUpdateCommand(
     };
   }
 
-  const scope = resolveScope(filters, projects, context, updateData);
+  const scope =
+    named.kind === 'found'
+      ? {
+          scopeSource: 'NamedProject' as const,
+          affectedProjects: [named.project],
+          effectiveFilters: { name: named.project.name } as QueryFilters,
+        }
+      : resolveScope(filters, projects, context, updateData);
   if (!scope) return scopeMissingResult(updateData, projects.length, requestId);
   const { scopeSource, effectiveFilters } = scope;
   let { affectedProjects } = scope;

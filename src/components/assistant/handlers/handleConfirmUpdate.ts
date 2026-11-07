@@ -106,10 +106,11 @@ function buildBatchPayload(
     payload.confirmationId = confirmationId;
   }
 
-  // Si scope = LastListedIds, utiliser les IDs au lieu des filtres
-  if (scopeSource === 'LastListedIds' && affectedProjectIds.length > 0) {
+  // Projets listés ou projet désigné par son nom : utiliser les IDs au lieu des filtres
+  const isIdScope = scopeSource === 'LastListedIds' || scopeSource === 'NamedProject';
+  if (isIdScope && affectedProjectIds.length > 0) {
     payload.projectIds = affectedProjectIds;
-    payload.scopeSource = 'LastListedIds';
+    payload.scopeSource = scopeSource;
     // Ajouter expectedUpdatedAtById pour vérification concurrency optimiste
     if (expectedUpdatedAtById && Object.keys(expectedUpdatedAtById).length > 0) {
       payload.expectedUpdatedAtById = expectedUpdatedAtById;
