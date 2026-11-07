@@ -44,7 +44,7 @@ export function PreviewStep({
   setOverwriteDuplicates,
   setStep,
   validRowsCount,
-}: PreviewStepProps) {
+}: Readonly<PreviewStepProps>) {
   return (
     <div className="flex-1 flex flex-col min-h-0 space-y-4">
       <div className="flex items-center justify-between flex-shrink-0">
@@ -81,7 +81,7 @@ export function PreviewStep({
                   {detectedColumns.length} mappées
                 </span>
                 {/* Ne pas afficher les colonnes non mappées si on a exactement 2 colonnes mappées (Nom Projet et Date Sortie) = CSV Spotify reformaté */}
-                {detectedColumns.filter((c) => !c.mapped).length > 0 &&
+                {detectedColumns.some((c) => !c.mapped) &&
                   !(
                     detectedColumns.filter((c) => c.mapped).length === 2 &&
                     detectedColumns.some((c) => c.mapped === 'Nom Projet') &&

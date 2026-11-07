@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { ChevronLeft } from 'lucide-react';
@@ -57,5 +57,3 @@ export default function AdminLivePage() {
     </div>
   );
 }
-
-import { Suspense } from 'react';

@@ -16,7 +16,7 @@ interface SentryTarget {
 
 /** Organisation et projet : variables d'environnement d'abord, sinon les IDs du DSN. */
 function resolveTarget(dsn: string): SentryTarget {
-  const match = dsn.match(DSN_PATTERN);
+  const match = DSN_PATTERN.exec(dsn);
   if (!match) {
     logger.warn("Format de DSN Sentry non standard, utilisation des variables d'environnement");
     return {

@@ -1,6 +1,5 @@
 import { NextRequest } from 'next/server';
-import { unstable_cache } from 'next/cache';
-import { revalidateTag } from 'next/cache';
+import { unstable_cache, revalidateTag } from 'next/cache';
 
 import { handleApiError } from '@/lib/api/errorHandler';
 import {

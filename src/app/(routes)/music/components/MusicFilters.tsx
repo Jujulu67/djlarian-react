@@ -33,7 +33,7 @@ export function MusicFilters({
   sortBy,
   setSortBy,
   resetAdditionalFilters,
-}: MusicFiltersState) {
+}: Readonly<MusicFiltersState>) {
   const isV2 = useUiVersion() !== 'legacy';
   const [showFilters, setShowFilters] = useState(false);
   const hasAdditionalFilters = !!platformFilter || !!featuredFilter || sortBy !== 'recent';
@@ -299,13 +299,13 @@ export function V2Select({
   value,
   onChange,
   options,
-}: {
+}: Readonly<{
   id: string;
   label: string;
   value: string;
   onChange: (value: string) => void;
   options: [string, string][];
-}) {
+}>) {
   return (
     <div>
       <label

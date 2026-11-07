@@ -42,7 +42,7 @@ const MAGNET_MAX_OFFSET = 6;
  * Titre du hero en v2 : chaque mot monte de 100 % à 0 dans un masque (overflow-hidden).
  * Le texte complet reste lisible par les lecteurs d'écran.
  */
-function MaskedTitle({ text, reduceMotion }: { text: string; reduceMotion: boolean }) {
+function MaskedTitle({ text, reduceMotion }: Readonly<{ text: string; reduceMotion: boolean }>) {
   const words = text.split(/\s+/).filter(Boolean);
 
   return (
@@ -78,7 +78,7 @@ function MaskedTitle({ text, reduceMotion }: { text: string; reduceMotion: boole
  * Léger effet magnétique (≤ 6 px) : souris uniquement (pointer: fine), désactivé si
  * l'utilisateur réduit les animations.
  */
-function Magnetic({ children, disabled }: { children: ReactNode; disabled: boolean }) {
+function Magnetic({ children, disabled }: Readonly<{ children: ReactNode; disabled: boolean }>) {
   const x = useMotionValue(0);
   const y = useMotionValue(0);
   const springX = useSpring(x, springs.snappy);
@@ -112,7 +112,7 @@ function Magnetic({ children, disabled }: { children: ReactNode; disabled: boole
   );
 }
 
-export default function HeroSection({ config }: HeroSectionProps) {
+export default function HeroSection({ config }: Readonly<HeroSectionProps>) {
   const isV2 = useUiVersion() !== 'legacy';
   const reduceMotion = useReducedMotion() ?? false;
   const containerRef = useRef<HTMLDivElement>(null);

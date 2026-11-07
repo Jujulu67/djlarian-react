@@ -129,7 +129,7 @@ export function parseSoundCloudTitle(
       const titleHasRemix = remixPatterns.some((p) => p.test(titlePart));
       if (titleHasRemix) {
         // Find remix term
-        const remixMatch = titlePart.match(/\b(FLIP|REMIX|BOOTLEG|EDIT|REWORK)\b/i);
+        const remixMatch = /\b(FLIP|REMIX|BOOTLEG|EDIT|REWORK)\b/i.exec(titlePart);
         if (remixMatch) {
           const remixTerm = remixMatch[1].toUpperCase();
           parsedArtist = `${artistPart} (${remixTerm})`;

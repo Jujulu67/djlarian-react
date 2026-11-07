@@ -45,13 +45,13 @@ export function extractStatusUpdate(
 
       // Pattern "X en Y"
       const XEnYPattern = new RegExp(
-        `(?:marque|marquer|marques|marquez|mets?|met|mettez|mettre|change|changer|changes|changez|modifie|modifier|modifiez|passe|passer|passes|passez)\\s+(?:les?\\s+)?(?:projets?\\s+)?(${pattern1WithBoundary})\\s+en\\s+(${pattern2WithBoundary})`,
+        String.raw`(?:marque|marquer|marques|marquez|mets?|met|mettez|mettre|change|changer|changes|changez|modifie|modifier|modifiez|passe|passer|passes|passez)\s+(?:les?\s+)?(?:projets?\s+)?(${pattern1WithBoundary})\s+en\s+(${pattern2WithBoundary})`,
         'i'
       );
 
       // Pattern "de X à Y"
       const deXaYPattern = new RegExp(
-        `(?:marque|marquer|marques|marquez|mets?|met|mettez|mettre|change|changer|changes|changez|modifie|modifier|modifiez|passe|passer|passes|passez)\\s+(?:les?\\s+)?(?:projets?\\s+)?de\\s+${pattern1Source}\\s+à\\s+${pattern2Source}(?:\\s|$)`,
+        String.raw`(?:marque|marquer|marques|marquez|mets?|met|mettez|mettre|change|changer|changes|changez|modifie|modifier|modifiez|passe|passer|passes|passez)\s+(?:les?\s+)?(?:projets?\s+)?de\s+${pattern1Source}\s+à\s+${pattern2Source}(?:\s|$)`,
         'i'
       );
 
@@ -125,7 +125,7 @@ function validateStatusMatch(
 ): boolean {
   if (XEnYPattern) {
     const match = cleanedQuery.match(XEnYPattern);
-    if (!match || !match[1] || !match[2]) return false;
+    if (!match?.[1] || !match[2]) return false;
 
     const match1Trimmed = match[1].trim().toLowerCase();
     const match2Trimmed = match[2].trim().toLowerCase();
@@ -157,11 +157,11 @@ function validateStatusMatch(
 
   if (deXaYPattern) {
     const patternWithCapture = new RegExp(
-      `(?:marque|marquer|marques|marquez|mets?|met|mettez|mettre|change|changer|changes|changez|modifie|modifier|modifiez|passe|passer|passes|passez)\\s+(?:les?\\s+)?(?:projets?\\s+)?de\\s+(${pattern1Source})\\s+à\\s+(${pattern2Source})(?:\\s|$)`,
+      String.raw`(?:marque|marquer|marques|marquez|mets?|met|mettez|mettre|change|changer|changes|changez|modifie|modifier|modifiez|passe|passer|passes|passez)\s+(?:les?\s+)?(?:projets?\s+)?de\s+(${pattern1Source})\s+à\s+(${pattern2Source})(?:\s|$)`,
       'i'
     );
     const match = cleanedQuery.match(patternWithCapture);
-    if (!match || !match[1] || !match[2]) return false;
+    if (!match?.[1] || !match[2]) return false;
 
     return pattern1.test(match[1]) && pattern2.test(match[2]);
   }
@@ -181,24 +181,25 @@ function extractSimpleStatusUpdate(
   for (const { pattern, status } of statusPatterns) {
     // Skip si déjà utilisé comme filtre et pas après "en" ou "à"
     if (filters.status === status && updateData.status === status) {
-      const statusAfterEnOrA = new RegExp(`(?:en|à|comme|as)\\s+${pattern.source}`, 'i').test(
-        cleanedQuery
-      );
+      const statusAfterEnOrA = new RegExp(
+        String.raw`(?:en|à|comme|as)\s+${pattern.source}`,
+        'i'
+      ).test(cleanedQuery);
       if (!statusAfterEnOrA) continue;
     }
 
     const updateVerbPatterns = [
       new RegExp(
-        `(?:marque|marquer|marques|marquez|mets?|met|mettez|mettre|change|changer|changes|changez|modifie|modifier|modifiez|passe|passer|passes|passez)\\s+(?:les?\\s+)?(?:projets?\\s+)?(?:en|à|comme|as)\\s+${pattern.source}`,
+        String.raw`(?:marque|marquer|marques|marquez|mets?|met|mettez|mettre|change|changer|changes|changez|modifie|modifier|modifiez|passe|passer|passes|passez)\s+(?:les?\s+)?(?:projets?\s+)?(?:en|à|comme|as)\s+${pattern.source}`,
         'i'
       ),
-      new RegExp(`(?:set|update|change|mark)\\s+(?:to|as)\\s+${pattern.source}`, 'i'),
+      new RegExp(String.raw`(?:set|update|change|mark)\s+(?:to|as)\s+${pattern.source}`, 'i'),
       new RegExp(
-        `(?:marque|marquer|marques|marquez|mets?|met|mettez|mettre|change|changer|changes|changez|modifie|modifier|modifiez|passe|passer|passes|passez)\\s+(?:les?\\s+)?(?:projets?\\s+)?(?:en|à)\\s+(${status.replace(/_/g, '[\\s_]').replace(/\s+/g, '[\\s_]+')})`,
+        String.raw`(?:marque|marquer|marques|marquez|mets?|met|mettez|mettre|change|changer|changes|changez|modifie|modifier|modifiez|passe|passer|passes|passez)\s+(?:les?\s+)?(?:projets?\s+)?(?:en|à)\s+(${status.replace(/_/g, '[\\s_]').replace(/\s+/g, '[\\s_]+')})`,
         'i'
       ),
       new RegExp(
-        `(?:marque|marquer|marques|marquez|mets?|met|mettez|mettre|change|changer|changes|changez|modifie|modifier|modifiez|passe|passer|passes|passez)\\s+(?:les?\\s+)?(?:projets?\\s+)?(?:en\\s+\\w+\\s+)?en\\s+${pattern.source}(?:\\s|$)`,
+        String.raw`(?:marque|marquer|marques|marquez|mets?|met|mettez|mettre|change|changer|changes|changez|modifie|modifier|modifiez|passe|passer|passes|passez)\s+(?:les?\s+)?(?:projets?\s+)?(?:en\s+\w+\s+)?en\s+${pattern.source}(?:\s|$)`,
         'i'
       ),
     ];

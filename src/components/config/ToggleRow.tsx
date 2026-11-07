@@ -7,14 +7,14 @@ export default function ToggleRow({
   onChange,
   className,
   disabled = false,
-}: {
+}: Readonly<{
   label: string;
   desc?: string;
   value: boolean;
   onChange: (v: boolean) => void;
   className?: string;
   disabled?: boolean;
-}) {
+}>) {
   return (
     <div
       className={`toggle-row flex items-center justify-between p-4 bg-purple-500/10 rounded-lg border border-purple-500/20 ${className} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}

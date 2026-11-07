@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { rateLimit } from '@/lib/api/rateLimiter';
 import { logger } from '@/lib/logger';
 
-const ALLOWED_LEVELS = ['debug', 'info', 'warn', 'error'];
+const ALLOWED_LEVELS = new Set(['debug', 'info', 'warn', 'error']);
 const MAX_MESSAGE_LENGTH = 2000;
 const MAX_ARGS_LENGTH = 4000;
 
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false }, { status: 400 });
     }
 
-    const safeLevel = ALLOWED_LEVELS.includes(level) ? level : 'info';
+    const safeLevel = ALLOWED_LEVELS.has(level) ? level : 'info';
     const safeArgs = args === undefined ? '' : JSON.stringify(args).slice(0, MAX_ARGS_LENGTH);
 
     // Format the log for the console

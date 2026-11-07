@@ -2,7 +2,7 @@
 // Plan gratuit : 5 GB de stockage, 100 GB de bande passante/mois
 // OPTIMISATION: Suppression des imports list() et head() pour éviter les Advanced Operations
 import { put, del } from '@vercel/blob';
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';

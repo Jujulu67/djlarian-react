@@ -11,7 +11,7 @@ interface ProfileStatsProps {
   isLoading: boolean;
 }
 
-export function ProfileStats({ stats, isLoading }: ProfileStatsProps) {
+export function ProfileStats({ stats, isLoading }: Readonly<ProfileStatsProps>) {
   const isV2 = useUiVersion() !== 'legacy';
   const spotlight = useSpotlight();
   const userStats = [

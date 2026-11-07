@@ -23,7 +23,7 @@ describe('arrayHelpers', () => {
       const arr: number[] | null = [1, 2, 3];
       if (isNotEmpty(arr)) {
         // TypeScript should know arr is number[] here
-        expect(arr.length).toBe(3);
+        expect(arr).toHaveLength(3);
       }
     });
   });

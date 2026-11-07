@@ -9,7 +9,7 @@ interface ConfigSidebarProps {
   handleSectionClick: (section: ConfigSection) => void;
 }
 
-export function ConfigSidebar({ activeSection, handleSectionClick }: ConfigSidebarProps) {
+export function ConfigSidebar({ activeSection, handleSectionClick }: Readonly<ConfigSidebarProps>) {
   return (
     <div className="col-span-12 lg:col-span-3">
       <div className="glass p-6 rounded-xl backdrop-blur-md border border-purple-500/20">

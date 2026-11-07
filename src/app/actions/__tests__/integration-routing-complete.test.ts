@@ -129,7 +129,7 @@ describe('🧪 TEST FINAL - Routing complet avec toutes les variantes (600+ phra
         expect(toolsArg?.getProjects).toBeDefined();
       } else {
         // Sinon, aucun outil (conversationnel correct)
-        expect(toolsKeys.length).toBe(0);
+        expect(toolsKeys).toHaveLength(0);
       }
     } else if (parseResult.type === 'list' || parseResult.type === 'count') {
       // Question : uniquement getProjects

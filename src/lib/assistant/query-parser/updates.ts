@@ -181,7 +181,7 @@ const DONT_PATTERN_INDEX = 2;
 /** Dernier motif, « [nom], [contenu] » : très permissif, le nom doit être vérifié. */
 const DIRECT_PATTERN_INDEX = NOTE_PATTERNS.length - 1;
 
-const DIRECT_NAME_COMMON_WORDS = [
+const DIRECT_NAME_COMMON_WORDS = new Set([
   'session',
   'note',
   'projet',
@@ -215,8 +215,8 @@ const DIRECT_NAME_COMMON_WORDS = [
   'car',
   'pizzas',
   'pizza',
-];
-const DIRECT_NAME_CONNECTOR_WORDS = [
+]);
+const DIRECT_NAME_CONNECTOR_WORDS = new Set([
   'et',
   'ou',
   'mais',
@@ -231,9 +231,9 @@ const DIRECT_NAME_CONNECTOR_WORDS = [
   'de',
   'la',
   'le',
-];
+]);
 const DIRECT_NAME_COMMON_PHRASES = [' du jour', 'session', 'note pour', ' pour ', 'pizza'];
-const DAY_NOTE_COMMON_WORDS = [
+const DAY_NOTE_COMMON_WORDS = new Set([
   'session',
   'note',
   'projet',
@@ -246,7 +246,7 @@ const DAY_NOTE_COMMON_WORDS = [
   'pour',
   'avec',
   'sans',
-];
+]);
 const STARTS_WITH_CONNECTOR =
   /^(et|ou|mais|donc|car|puis|alors|ensuite|après|avant|pendant|depuis|jusqu|vers|chez|sans|avec|pour|contre|selon|malgré|grâce)\s+/i;
 const STARTS_WITH_ARTICLE = /^(les?|des?|du|de|un|une)\s+[a-z]+/i;
@@ -265,10 +265,10 @@ function isConversationalQuery(query: string): boolean {
 function isPlausibleDirectName(projectName: string): boolean {
   const lowerName = projectName.toLowerCase();
   const words = lowerName.split(/\s+/);
-  const connectorCount = words.filter((w) => DIRECT_NAME_CONNECTOR_WORDS.includes(w)).length;
+  const connectorCount = words.filter((w) => DIRECT_NAME_CONNECTOR_WORDS.has(w)).length;
 
   const looksLikeSentence =
-    DIRECT_NAME_COMMON_WORDS.includes(lowerName) ||
+    DIRECT_NAME_COMMON_WORDS.has(lowerName) ||
     STARTS_WITH_CONNECTOR.test(projectName) ||
     (words.length > 2 && connectorCount / words.length > 0.3) ||
     DIRECT_NAME_COMMON_PHRASES.some((phrase) => lowerName.includes(phrase)) ||
@@ -305,13 +305,13 @@ function parseNoteMatch(match: RegExpMatchArray, patternIndex: number): NoteData
 
 /** « magnetize du jour, j'ai refait le mix » */
 function parseDayNote(query: string): NoteData | null {
-  const match = query.match(DAY_NOTE_PATTERN);
+  const match = DAY_NOTE_PATTERN.exec(query);
   if (!match?.[1] || !match[2]) return null;
   const projectName = match[1].trim();
   const newNote = match[2].trim();
   const isProjectName =
     projectName.length >= 2 &&
-    !DAY_NOTE_COMMON_WORDS.includes(projectName.toLowerCase()) &&
+    !DAY_NOTE_COMMON_WORDS.has(projectName.toLowerCase()) &&
     !STARTS_WITH_CONNECTOR.test(projectName);
   return isProjectName && newNote.length > 0 ? { projectName, newNote } : null;
 }

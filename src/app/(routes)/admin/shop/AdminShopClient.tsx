@@ -44,7 +44,7 @@ const DEFAULT_PRODUCTS: Product[] = [
   },
 ];
 
-export default function AdminShopClient({ initialSettings }: AdminShopClientProps) {
+export default function AdminShopClient({ initialSettings }: Readonly<AdminShopClientProps>) {
   const [shopEnabled, setShopEnabled] = useState(
     initialSettings.shopEnabled === 'true' || initialSettings.shopEnabled === undefined
   );

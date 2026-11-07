@@ -7,7 +7,7 @@ import { useUiVersion } from '@/hooks/useUiVersion';
 import { easeOutExpo } from '@/lib/motion';
 
 /** Transition d'entrée de page (UI v2) : fondu et légère montée */
-export default function RoutesTemplate({ children }: { children: ReactNode }) {
+export default function RoutesTemplate({ children }: Readonly<{ children: ReactNode }>) {
   const uiVersion = useUiVersion();
   if (uiVersion === 'legacy') return children;
 

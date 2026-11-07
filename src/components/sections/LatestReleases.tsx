@@ -1,8 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { AlertTriangle, ArrowRight } from 'lucide-react';
-import { Music } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Music } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -58,7 +57,7 @@ const V2_SECTION = 'relative py-16 md:py-24';
 const V2_CONTAINER = 'mx-auto max-w-[1180px] px-4';
 const V2_GRID = 'grid grid-cols-1 gap-5 sm:grid-cols-2 md:gap-6 lg:grid-cols-3';
 
-function ReleasesHeadingV2({ title }: { title: string }) {
+function ReleasesHeadingV2({ title }: Readonly<{ title: string }>) {
   return (
     <SectionHeading eyebrow="Dernières sorties" title={title}>
       <Link
@@ -86,7 +85,7 @@ function ReleaseCardV2({
   onOpen,
   onImageError,
   onImageLoad,
-}: {
+}: Readonly<{
   release: Track;
   index: number;
   hasLongTitle: boolean;
@@ -94,7 +93,7 @@ function ReleaseCardV2({
   onOpen: () => void;
   onImageError: () => void;
   onImageLoad: () => void;
-}) {
+}>) {
   const spotlight = useSpotlight<HTMLDivElement>();
 
   return (
@@ -204,7 +203,7 @@ function ReleaseCardV2({
   );
 }
 
-function ReleasesSkeletonV2({ title }: { title: string }) {
+function ReleasesSkeletonV2({ title }: Readonly<{ title: string }>) {
   return (
     <section className={V2_SECTION}>
       <div className={V2_CONTAINER}>
@@ -225,7 +224,7 @@ function ReleasesSkeletonV2({ title }: { title: string }) {
   );
 }
 
-function ReleasesMessageV2({ title, message }: { title: string; message: string }) {
+function ReleasesMessageV2({ title, message }: Readonly<{ title: string; message: string }>) {
   return (
     <section className={V2_SECTION}>
       <div className={V2_CONTAINER}>
@@ -254,7 +253,7 @@ export default function LatestReleases({
   count = 3,
   isFirstSection = false,
   initialReleases,
-}: LatestReleasesProps) {
+}: Readonly<LatestReleasesProps>) {
   const [releases, setReleases] = useState<Track[]>(initialReleases || []);
   const [isLoading, setIsLoading] = useState(!initialReleases);
   const [error, setError] = useState<string | null>(null);

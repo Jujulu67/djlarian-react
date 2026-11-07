@@ -7,7 +7,7 @@ type LiveInventoryContextType = ReturnType<typeof useLiveInventory>;
 
 const LiveInventoryContext = createContext<LiveInventoryContextType | null>(null);
 
-export function LiveInventoryProvider({ children }: { children: ReactNode }) {
+export function LiveInventoryProvider({ children }: Readonly<{ children: ReactNode }>) {
   const inventoryState = useLiveInventory();
 
   return (

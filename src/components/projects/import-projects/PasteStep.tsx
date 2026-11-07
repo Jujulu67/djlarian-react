@@ -47,7 +47,7 @@ export function PasteStep({
   setIsSpotifyCsv,
   setPastedText,
   textareaRef,
-}: PasteStepProps) {
+}: Readonly<PasteStepProps>) {
   return (
     <div className="flex-1 flex flex-col min-h-0">
       <div className="flex-shrink-0 mb-4">

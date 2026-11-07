@@ -210,7 +210,7 @@ describe('NT3: Token Budget with Last User Message', () => {
     const occurrences = payload.messages.filter((m) => m.content === currentInput);
 
     // ASSERTION NT3: Pas de duplication
-    expect(occurrences.length).toBe(1);
+    expect(occurrences).toHaveLength(1);
   });
 
   it('should preserve recent turns after trimming', () => {

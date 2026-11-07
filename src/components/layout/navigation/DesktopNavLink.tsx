@@ -13,7 +13,7 @@ interface DesktopNavLinkProps {
   isActive: boolean;
 }
 
-export function DesktopNavLink({ link, isActive }: DesktopNavLinkProps) {
+export function DesktopNavLink({ link, isActive }: Readonly<DesktopNavLinkProps>) {
   const uiVersion = useUiVersion();
   // v3 : libellés en français
   if (uiVersion === 'v3')
@@ -92,7 +92,7 @@ export function DesktopNavLink({ link, isActive }: DesktopNavLinkProps) {
 }
 
 /** UI v2 : lien sobre, pastille active partagée qui glisse d'un lien à l'autre */
-function DesktopNavLinkV2({ link, isActive }: DesktopNavLinkProps) {
+function DesktopNavLinkV2({ link, isActive }: Readonly<DesktopNavLinkProps>) {
   return (
     <Link
       href={link.href}

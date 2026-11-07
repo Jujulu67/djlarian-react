@@ -18,7 +18,13 @@ const ACTION_CLASS =
  * État vide de l'UI v3 : un mot en filigrane chromé qui occupe l'écran, puis le message
  * et une seule action dans un panneau de verre. Remplace les petites cartes perdues dans le vide.
  */
-export default function PosterState({ code, word, title, description, action }: PosterStateProps) {
+export default function PosterState({
+  code,
+  word,
+  title,
+  description,
+  action,
+}: Readonly<PosterStateProps>) {
   return (
     <section className="relative flex min-h-[calc(100svh-5rem)] items-center justify-center overflow-hidden px-4 py-16">
       <p

@@ -34,7 +34,7 @@ export function EventsFilters({
   handleStatusChange,
   showFilters,
   setShowFilters,
-}: EventsFiltersProps) {
+}: Readonly<EventsFiltersProps>) {
   const isV2 = useUiVersion() !== 'legacy';
 
   // v2 : recherche + chips de statut. Les « filtres additionnels » legacy (lieu, date, prix)

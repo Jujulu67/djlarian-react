@@ -21,7 +21,7 @@ export function handleCreateCommand(
 
   const createData = extractCreateData(userMessage, lowerQuery, availableCollabs, availableStyles);
 
-  if (!createData || !createData.name) {
+  if (!createData?.name) {
     return {
       type: ProjectCommandType.GENERAL,
       response: "Je n'ai pas pu extraire le nom du projet à créer. Pouvez-vous reformuler ?",

@@ -8,7 +8,7 @@ interface ResultStepProps {
   importResult: ImportResult;
 }
 
-export function ResultStep({ handleClose, importResult }: ResultStepProps) {
+export function ResultStep({ handleClose, importResult }: Readonly<ResultStepProps>) {
   return (
     <div className="flex-1 flex flex-col min-h-0 space-y-4">
       <div

@@ -157,7 +157,7 @@ describe('music-service', () => {
 
     it('should return exactly 11 tracks', () => {
       const tracks = getDemoTracks();
-      expect(tracks.length).toBe(11);
+      expect(tracks).toHaveLength(11);
     });
 
     it('should have tracks with various types', () => {

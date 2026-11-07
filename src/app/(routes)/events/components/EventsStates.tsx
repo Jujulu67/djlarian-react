@@ -101,7 +101,7 @@ export function EventsSuspenseFallback() {
   );
 }
 
-export function EventsErrorState({ error }: { error: string }) {
+export function EventsErrorState({ error }: Readonly<{ error: string }>) {
   const isV2 = useUiVersion() !== 'legacy';
 
   if (isV2) {
@@ -160,7 +160,7 @@ export function EventsEmptyState({
   searchTerm,
   selectedStatus,
   onClearSearch,
-}: EventsEmptyStateProps) {
+}: Readonly<EventsEmptyStateProps>) {
   const isV2 = useUiVersion() !== 'legacy';
 
   if (isV2) {

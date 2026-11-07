@@ -58,7 +58,7 @@ export const metadata: Metadata = {
   description: 'Official website of Larian',
 };
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const isProduction = process.env.NODE_ENV === 'production';
 
   // Initialiser le système Prisma avec hot swap (au premier chargement)

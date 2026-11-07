@@ -16,7 +16,7 @@ interface HeroSectionProps {
   shopSettings: ShopSettings;
 }
 
-export function HeroSection({ shopSettings }: HeroSectionProps) {
+export function HeroSection({ shopSettings }: Readonly<HeroSectionProps>) {
   const isV2 = useUiVersion() !== 'legacy';
 
   return (

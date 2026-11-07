@@ -33,7 +33,7 @@ import { useScrollToNewProject } from './hooks/useScrollToNewProject';
 import { logger } from '@/lib/logger';
 
 /** En-tête compact de l'espace Projets (UI v2) : surtitre, titre display, description */
-function ProjectsHeader({ description }: { description: string }) {
+function ProjectsHeader({ description }: Readonly<{ description: string }>) {
   return (
     <header className="mb-4 px-1 pt-2 pb-4 md:mb-6">
       <p className="mb-2 text-xs font-semibold uppercase tracking-[0.25em] text-brand">
@@ -555,8 +555,8 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
     // Optimistic update
     setProjects(reorderedProjects);
     setAllProjects((prev) => {
-      const reorderedIds = reorderedProjects.map((p) => p.id);
-      const remaining = prev.filter((p) => !reorderedIds.includes(p.id));
+      const reorderedIds = new Set(reorderedProjects.map((p) => p.id));
+      const remaining = prev.filter((p) => !reorderedIds.has(p.id));
       return [...reorderedProjects, ...remaining];
     });
 

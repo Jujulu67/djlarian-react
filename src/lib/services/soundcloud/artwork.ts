@@ -18,7 +18,7 @@ export function extractArtworkUrlFromScript(content: string): string | null {
     return null;
   }
 
-  const artworkMatch = content.match(/"artwork_url"\s*:\s*"([^"]+)"/);
+  const artworkMatch = /"artwork_url"\s*:\s*"([^"]+)"/.exec(content);
   if (artworkMatch && artworkMatch[1]) {
     return normalizeThumbnailUrl(artworkMatch[1]);
   }

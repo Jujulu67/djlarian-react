@@ -12,10 +12,10 @@ import { createPortal } from 'react-dom';
 export function SimpleTooltip({
   content,
   children,
-}: {
+}: Readonly<{
   content: string;
   children: React.ReactNode;
-}) {
+}>) {
   const [isVisible, setIsVisible] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0 });
   const triggerRef = useRef<HTMLDivElement>(null);

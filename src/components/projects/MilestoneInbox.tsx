@@ -128,7 +128,7 @@ function parseMetadata(metadata: string | null): NotificationMetadata | null {
   }
 }
 
-export function MilestoneInbox({ isOpen, onClose }: MilestoneInboxProps) {
+export function MilestoneInbox({ isOpen, onClose }: Readonly<MilestoneInboxProps>) {
   const router = useRouter();
   const inboxRef = useRef<HTMLDivElement>(null);
   const {

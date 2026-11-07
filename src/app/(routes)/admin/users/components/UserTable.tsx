@@ -29,7 +29,7 @@ interface UserTableProps {
 }
 
 // Composant pour afficher et gérer les comptes OAuth
-function OAuthAccountsCell({ user }: { user: UserData }) {
+function OAuthAccountsCell({ user }: Readonly<{ user: UserData }>) {
   const [unlinking, setUnlinking] = useState<string | null>(null);
 
   const handleUnlink = async (accountId: string, provider: string) => {

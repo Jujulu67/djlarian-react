@@ -30,7 +30,9 @@ async function getUserData(userId: string): Promise<User | null> {
   }
 }
 
-export default async function InterceptedEditUserPage({ params }: EditUserModalPageProps) {
+export default async function InterceptedEditUserPage({
+  params,
+}: Readonly<EditUserModalPageProps>) {
   const resolvedParams = await params;
   const user = await getUserData(resolvedParams.userId);
 

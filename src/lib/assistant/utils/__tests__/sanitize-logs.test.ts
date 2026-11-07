@@ -149,6 +149,8 @@ describe('sanitizeForLogs', () => {
       // Mais si un pattern 4-4-4-4 est détecté, il sera masqué (c'est acceptable)
       const input = 'Project ID: 1234567890123456';
       const result = sanitizeForLogs(input);
+      // Masqué comme une carte : préférable à l'exposition d'une vraie carte
+      expect(result).toBe('Project ID: [card-redacted]');
       // Ce cas est limite - on accepte que ce soit masqué pour la sécurité
       // Si c'est masqué, c'est OK car c'est mieux que d'exposer une vraie carte
     });
@@ -178,6 +180,9 @@ describe('sanitizeForLogs', () => {
       // On vérifie au minimum que les numéros ne sont pas en clair
       const input = 'Contact: 06 12 34 56 78';
       const result = sanitizeForLogs(input);
+      expect(result).toBe('Contact: [phone-redacted]');
+      expect(sanitizeForLogs('Tel 06.12.34.56.78')).toBe('Tel [phone-redacted]');
+      expect(sanitizeForLogs('Tel +33 6 12 34 56 78')).toBe('Tel [phone-redacted]');
       // Si le pattern ne matche pas, au moins vérifier que ce n'est pas exposé tel quel
       // (Dans ce cas, le format français avec espaces peut ne pas être détecté par le regex actuel)
       // On accepte que certains formats ne soient pas masqués si le regex ne les couvre pas
@@ -290,7 +295,7 @@ describe('sanitizeObjectForLogs', () => {
     const result = sanitizeObjectForLogs(obj);
     expect(result.id).toBe('project-123');
     expect(result.count).toBe(42);
-    expect(result.length).toBe(10);
+    expect(result).toHaveLength(10);
     expect(result.type).toBe('UPDATE');
     expect(result.status).toBe('TERMINE');
     expect(result.progress).toBe(50);

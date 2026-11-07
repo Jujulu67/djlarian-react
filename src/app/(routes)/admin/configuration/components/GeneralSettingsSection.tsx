@@ -15,7 +15,7 @@ interface GeneralSettingsSectionProps {
   ) => void;
 }
 
-export function GeneralSettingsSection({ general, update }: GeneralSettingsSectionProps) {
+export function GeneralSettingsSection({ general, update }: Readonly<GeneralSettingsSectionProps>) {
   return (
     <div className="p-6 relative z-10">
       <h2 className="text-2xl font-audiowide text-white mb-6 pb-2 border-b border-purple-500/20">

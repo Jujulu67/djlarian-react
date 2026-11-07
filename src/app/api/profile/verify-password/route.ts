@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    if (!user || !user.hashedPassword) {
+    if (!user?.hashedPassword) {
       return NextResponse.json({ error: 'Aucun mot de passe défini' }, { status: 400 });
     }
 

@@ -228,7 +228,7 @@ interface AuthProviderProps {
   session?: Session | null; // Session serveur passée depuis le layout pour éviter le délai initial
 }
 
-export default function AuthProvider({ children, session }: AuthProviderProps) {
+export default function AuthProvider({ children, session }: Readonly<AuthProviderProps>) {
   return (
     <ErrorBoundary>
       <SessionProvider

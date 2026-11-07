@@ -16,7 +16,7 @@ export function ProjectRowCells({
   handleUpdate,
   isCompact,
   project,
-}: ProjectRowCellsProps) {
+}: Readonly<ProjectRowCellsProps>) {
   return (
     <>
       {columns.map((col) => {

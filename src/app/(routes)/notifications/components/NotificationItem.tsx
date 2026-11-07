@@ -35,7 +35,7 @@ export function NotificationItem({
   onOpen,
   onArchive,
   onReply,
-}: NotificationItemProps) {
+}: Readonly<NotificationItemProps>) {
   const style = getNotificationStyle(notification.type);
   const metadata = parseMetadata(notification.metadata);
   const { Icon, iconColor, bgColor, borderColor } = getNotificationVisuals(notification, metadata);

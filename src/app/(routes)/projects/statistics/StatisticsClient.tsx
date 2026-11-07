@@ -171,7 +171,7 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
     }
 
     // Mode 'project'
-    if (!selectedProject || !selectedProject.streams) return [];
+    if (!selectedProject?.streams) return [];
     return selectedProject.streams
       .filter((s) => Number.isFinite(s.value) && s.value > 0)
       .map((s) => ({

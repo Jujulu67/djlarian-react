@@ -290,7 +290,7 @@ describe('useSlotMachine', () => {
       });
 
       expect(result.current.pendingReward).toBeNull();
-      expect(mockFetchWithAuth.mock.calls.length).toBe(callsBefore);
+      expect(mockFetchWithAuth.mock.calls).toHaveLength(callsBefore);
     });
   });
 

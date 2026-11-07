@@ -17,7 +17,7 @@ export function MobileUserMenuToggle({
   isMobileUserMenuOpen,
   session,
   setIsMobileUserMenuOpen,
-}: MobileUserMenuToggleProps) {
+}: Readonly<MobileUserMenuToggleProps>) {
   return (
     <button
       onClick={(e) => {

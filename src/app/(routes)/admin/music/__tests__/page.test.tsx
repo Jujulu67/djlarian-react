@@ -143,6 +143,8 @@ describe('AdminMusicPage', () => {
     render(<AdminMusicPage />);
 
     await user.click(screen.getByText('Collections'));
+    expect(screen.getByText('Gestion des collections à venir…')).toBeInTheDocument();
+    expect(screen.queryByText('TrackList Component')).not.toBeInTheDocument();
     // Since content is conditional, we can check if tracks form is hidden or collections content shown
     // But for now just verifying the click doesn't crash and updates state (implied)
   });
@@ -172,10 +174,15 @@ describe('AdminMusicPage', () => {
 
   it('should handle genre addition', async () => {
     const user = userEvent.setup();
+    (useTrackForm as jest.Mock).mockReturnValue({ ...mockTrackForm, genreInput: 'House' });
     render(<AdminMusicPage />);
 
     const addButton = screen.getByText('+');
     await user.click(addButton);
+    expect(mockTrackForm.setCurrentForm).toHaveBeenCalledWith(
+      expect.objectContaining({ genre: ['House'] })
+    );
+    expect(mockTrackForm.setGenreInput).toHaveBeenCalledWith('');
 
     // Verify logic in component (which calls hooks)
     // Actually the logic is inside the component using the hook state.

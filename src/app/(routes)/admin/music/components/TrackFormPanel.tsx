@@ -39,7 +39,7 @@ export function TrackFormPanel({
   handleReCrop,
   handleFileSelected,
   resetForm,
-}: TrackFormPanelProps) {
+}: Readonly<TrackFormPanelProps>) {
   return (
     <div>
       <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg border border-gray-700/50 p-6">

@@ -12,7 +12,7 @@ interface RouletteBallProps {
   onStop: () => void;
 }
 
-export function RouletteBall({ isSpinning, onStop }: RouletteBallProps) {
+export function RouletteBall({ isSpinning, onStop }: Readonly<RouletteBallProps>) {
   const [ballAngle, setBallAngle] = useState(0);
   const [ballRadius, setBallRadius] = useState(140);
   const [phase, setPhase] = useState<'idle' | 'fast' | 'slow' | 'bounce' | 'stopped'>('idle');
@@ -102,7 +102,7 @@ interface ScratchParticlesProps {
   particles: ScratchParticle[];
 }
 
-export function ScratchParticles({ particles }: ScratchParticlesProps) {
+export function ScratchParticles({ particles }: Readonly<ScratchParticlesProps>) {
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden z-30">
       <AnimatePresence>
@@ -143,7 +143,7 @@ interface BlockExplosionProps {
   isActive: boolean;
 }
 
-export function BlockExplosion({ x, y, color, count, isActive }: BlockExplosionProps) {
+export function BlockExplosion({ x, y, color, count, isActive }: Readonly<BlockExplosionProps>) {
   const [particles, setParticles] = useState<
     Array<{ id: number; angle: number; distance: number; size: number }>
   >([]);
@@ -204,7 +204,7 @@ interface FloatingScoreProps {
   combo?: number;
 }
 
-export function FloatingScore({ score, x, y, isVisible, combo = 1 }: FloatingScoreProps) {
+export function FloatingScore({ score, x, y, isVisible, combo = 1 }: Readonly<FloatingScoreProps>) {
   if (!isVisible) return null;
 
   const color =
@@ -240,7 +240,7 @@ interface ComboIndicatorProps {
   isVisible: boolean;
 }
 
-export function ComboIndicator({ combo, isVisible }: ComboIndicatorProps) {
+export function ComboIndicator({ combo, isVisible }: Readonly<ComboIndicatorProps>) {
   if (!isVisible || combo < 2) return null;
 
   const intensity =
@@ -282,7 +282,7 @@ export function CelebrationOverlay({
   message,
   subMessage,
   type,
-}: CelebrationOverlayProps) {
+}: Readonly<CelebrationOverlayProps>) {
   const [stars, setStars] = useState<Array<{ id: number; x: number; y: number; delay: number }>>(
     []
   );
@@ -382,7 +382,11 @@ interface ScratchSymbolProps {
   isWinning?: boolean;
 }
 
-export function ScratchSymbol({ symbol, isRevealed, isWinning = false }: ScratchSymbolProps) {
+export function ScratchSymbol({
+  symbol,
+  isRevealed,
+  isWinning = false,
+}: Readonly<ScratchSymbolProps>) {
   return (
     <motion.div
       initial={{ scale: 0 }}
@@ -406,7 +410,7 @@ interface ScreenShakeProps {
   children: React.ReactNode;
 }
 
-export function ScreenShake({ isActive, intensity = 5, children }: ScreenShakeProps) {
+export function ScreenShake({ isActive, intensity = 5, children }: Readonly<ScreenShakeProps>) {
   return (
     <motion.div
       animate={

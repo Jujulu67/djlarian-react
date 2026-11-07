@@ -34,7 +34,7 @@ export function ProjectTableToolbar({
   onStatistics,
   projectsCount,
   setIsAdding,
-}: ProjectTableToolbarProps) {
+}: Readonly<ProjectTableToolbarProps>) {
   return (
     <div className="flex items-center gap-3 flex-wrap justify-between">
       <AddProjectRow

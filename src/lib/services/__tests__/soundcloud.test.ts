@@ -151,7 +151,7 @@ describe('soundcloud service', () => {
 
     const result = await searchSoundCloudArtistTracks('test-artist', undefined, 50);
 
-    expect(result.length).toBe(50);
+    expect(result).toHaveLength(50);
   });
 
   it('should handle Vercel environment', async () => {
@@ -721,7 +721,7 @@ describe('soundcloud service', () => {
         });
 
       const result = await searchSoundCloudArtistTracks('test-artist');
-      expect(result.length).toBe(3);
+      expect(result).toHaveLength(3);
       // Should handle errors gracefully and continue processing
     });
   });

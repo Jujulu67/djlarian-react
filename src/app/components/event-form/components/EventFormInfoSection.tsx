@@ -22,7 +22,7 @@ export function EventFormInfoSection({
   setFormData,
   errors,
   handleChange,
-}: EventFormInfoSectionProps) {
+}: Readonly<EventFormInfoSectionProps>) {
   return (
     <div>
       <h3 className="text-xl font-semibold mb-4">Informations de l&apos;événement</h3>

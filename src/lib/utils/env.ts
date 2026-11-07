@@ -6,7 +6,7 @@
  * Checks if the current environment is a browser
  */
 export const isBrowser = (): boolean => {
-  return typeof window !== 'undefined' && window !== null && typeof window.document !== 'undefined';
+  return typeof window !== 'undefined' && window?.document !== undefined;
 };
 
 /**

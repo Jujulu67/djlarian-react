@@ -7,7 +7,7 @@ interface PayoutTableModalProps {
   setShowPayoutTable: Dispatch<SetStateAction<boolean>>;
 }
 
-export function PayoutTableModal({ setShowPayoutTable }: PayoutTableModalProps) {
+export function PayoutTableModal({ setShowPayoutTable }: Readonly<PayoutTableModalProps>) {
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       <div className="bg-gradient-to-b from-slate-800 to-slate-900 border border-yellow-500/30 rounded-2xl p-6 max-w-lg w-full shadow-2xl relative">

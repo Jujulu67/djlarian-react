@@ -281,10 +281,16 @@ export function formatTrackData(track: TrackWithRelations | null): Track | null 
   };
 
   if (track.TrackPlatform && Array.isArray(track.TrackPlatform)) {
-    const validPlatforms: MusicPlatform[] = ['spotify', 'youtube', 'soundcloud', 'apple', 'deezer'];
+    const validPlatforms: Set<MusicPlatform> = new Set([
+      'spotify',
+      'youtube',
+      'soundcloud',
+      'apple',
+      'deezer',
+    ]);
     track.TrackPlatform.forEach((p) => {
       const platform = p as { platform: string; url: string; embedId: string | null };
-      if (platform.platform && validPlatforms.includes(platform.platform as MusicPlatform)) {
+      if (platform.platform && validPlatforms.has(platform.platform as MusicPlatform)) {
         const platformKey = platform.platform as MusicPlatform;
         formattedTrack.platforms[platformKey] = {
           url: platform.url,

@@ -512,7 +512,7 @@ export function checkCollisions(
   const hitPatterns = state.patterns
     .filter((pattern) => {
       if (!pattern.active || pattern.wasHit) return false;
-      if (excludePatternIds && excludePatternIds.has(pattern.id)) return false;
+      if (excludePatternIds?.has(pattern.id)) return false;
       return true;
     })
     .map((pattern) => {

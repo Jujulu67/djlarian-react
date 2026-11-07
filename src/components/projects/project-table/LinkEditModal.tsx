@@ -15,7 +15,7 @@ export function LinkEditModal({
   linkValue,
   setEditingLinkId,
   setLinkValue,
-}: LinkEditModalProps) {
+}: Readonly<LinkEditModalProps>) {
   return (
     <div
       role="presentation"

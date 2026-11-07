@@ -235,7 +235,7 @@ describe('Router - LIST → "en détail" (anti-hallucination)', () => {
       expect(mockFetch).not.toHaveBeenCalled(); // Anti-hallucination
 
       if (detailResult.type === ProjectCommandType.LIST) {
-        expect(detailResult.projects.length).toBe(enCoursProjects.length);
+        expect(detailResult.projects).toHaveLength(enCoursProjects.length);
         expect(detailResult.displayMode).toBe('detailed');
         expect(detailResult.fieldsToShow.length).toBeGreaterThan(3);
       }

@@ -1,6 +1,6 @@
-import fs from 'fs';
+import fs from 'node:fs';
 import { isLiveAudioUrl } from '@/lib/live/fileUrl';
-import path from 'path';
+import path from 'node:path';
 
 import { uploadToBlob } from '@/lib/blob';
 import { logger } from '@/lib/logger';

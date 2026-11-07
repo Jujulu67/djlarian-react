@@ -21,7 +21,7 @@ export function ProfileBadges({
   totalBadges,
   unlockedSecretBadges = [],
   unlockedSecretCount = 0,
-}: ProfileBadgesProps) {
+}: Readonly<ProfileBadgesProps>) {
   const isV2 = useUiVersion() !== 'legacy';
   // En v2 : pas de mouvement en boucle sur les badges (sobriété)
   const bobbing = (delay: number) =>

@@ -20,7 +20,7 @@ export function UploadStep({
   handleDrop,
   handleFileInputChange,
   isDragging,
-}: UploadStepProps) {
+}: Readonly<UploadStepProps>) {
   return (
     <div className="space-y-4">
       <div

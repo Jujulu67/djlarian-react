@@ -23,7 +23,7 @@ export function TrackListPanel({
   successTrackId,
   editingTrack,
   handleEdit,
-}: TrackListPanelProps) {
+}: Readonly<TrackListPanelProps>) {
   return (
     <div className="lg:col-span-2">
       <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg border border-gray-700/50 p-4 sm:p-6">

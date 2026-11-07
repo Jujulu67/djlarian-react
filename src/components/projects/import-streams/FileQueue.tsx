@@ -17,7 +17,7 @@ export function FileQueue({
   filesData,
   handleGoToFile,
   validatedFiles,
-}: FileQueueProps) {
+}: Readonly<FileQueueProps>) {
   return (
     <div className="pt-4 border-t border-gray-700">
       <p className="text-xs text-gray-400 mb-3 font-medium">

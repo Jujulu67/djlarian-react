@@ -49,7 +49,7 @@ export function ProjectsToolbar({
   showStats,
   sortField,
   statusFilter,
-}: ProjectsToolbarProps) {
+}: Readonly<ProjectsToolbarProps>) {
   return (
     <div className="glass-modern rounded-2xl p-4 sm:p-6 v2:surface-1">
       <div className="flex flex-col gap-4">

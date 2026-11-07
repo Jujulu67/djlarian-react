@@ -22,7 +22,7 @@ export function StatisticsHeader({
   selectedYear,
   setSelectedYear,
   availableYears,
-}: StatisticsHeaderProps) {
+}: Readonly<StatisticsHeaderProps>) {
   return (
     <div className="flex items-center justify-between flex-wrap gap-4">
       <div>

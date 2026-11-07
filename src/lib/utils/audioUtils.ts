@@ -86,7 +86,7 @@ export const sendPlayerCommand = (
   command: PlayerCommand,
   value?: number
 ): void => {
-  if (!iframe || !iframe.contentWindow || !platform) {
+  if (!iframe?.contentWindow || !platform) {
     // logger.warn(`Cannot send command: Iframe for ${platform} not ready or accessible.`);
     return;
   }

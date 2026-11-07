@@ -4,7 +4,11 @@ interface EventsPaginationProps {
   paginate: (pageNumber: number) => void;
 }
 
-export function EventsPagination({ currentPage, totalPages, paginate }: EventsPaginationProps) {
+export function EventsPagination({
+  currentPage,
+  totalPages,
+  paginate,
+}: Readonly<EventsPaginationProps>) {
   return (
     <div
       className="mt-8 sm:mt-10 flex justify-center v2:mt-12"

@@ -78,8 +78,8 @@ export async function DELETE() {
     } else {
       // Nettoyage Local Storage
       try {
-        const fs = await import('fs');
-        const path = await import('path');
+        const fs = await import('node:fs');
+        const path = await import('node:path');
         const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'live-audio');
 
         if (fs.existsSync(uploadsDir)) {

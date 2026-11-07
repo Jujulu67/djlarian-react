@@ -335,7 +335,7 @@ export const ProjectNoteEditor = ({
       }
 
       // Listes de tâches
-      if (line.match(/^- \[([ x])\] /i)) {
+      if (/^- \[([ x])\] /i.exec(line)) {
         if (inList) {
           elements.push(
             <ul key={`list-${index}`} className="list-disc ml-6 my-2">
@@ -345,7 +345,7 @@ export const ProjectNoteEditor = ({
           currentList = [];
           inList = false;
         }
-        const match = line.match(/^- \[([ x])\] (.+)/i);
+        const match = /^- \[([ x])\] (.+)/i.exec(line);
         if (match) {
           const checked = match[1].toLowerCase() === 'x';
           const content = match[2];

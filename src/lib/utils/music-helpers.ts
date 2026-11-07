@@ -57,9 +57,9 @@ export function extractInfoFromTitle(title: string) {
 
   // BPM éventuel
   const bpmMatch =
-    cleanTitle.match(/\b(\d{2,3})\s*(?:bpm|BPM)\b/) ||
-    cleanTitle.match(/\[(\d{2,3})\]/) ||
-    cleanTitle.match(/\((\d{2,3})\s*(?:bpm|BPM)\)/);
+    /\b(\d{2,3})\s*(?:bpm|BPM)\b/.exec(cleanTitle) ||
+    /\[(\d{2,3})\]/.exec(cleanTitle) ||
+    /\((\d{2,3})\s*(?:bpm|BPM)\)/.exec(cleanTitle);
 
   if (bpmMatch?.[1]) {
     const detected = Number.parseInt(bpmMatch[1]);
@@ -108,7 +108,7 @@ export function extractInfoFromTitle(title: string) {
   ];
 
   genreKeywords.forEach((g) => {
-    const re = new RegExp(`\\b${g.replace(/\s+/g, '\\s+')}\\b`, 'i');
+    const re = new RegExp(String.raw`\b${g.replace(/\s+/g, '\\s+')}\b`, 'i');
     if (re.test(cleanTitle)) result.genres.push(g);
   });
 

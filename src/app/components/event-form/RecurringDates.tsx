@@ -13,7 +13,7 @@ interface RecurringDatesProps {
   setFormData: React.Dispatch<React.SetStateAction<EventFormData>>;
 }
 
-export function RecurringDates({ formData, setFormData }: RecurringDatesProps) {
+export function RecurringDates({ formData, setFormData }: Readonly<RecurringDatesProps>) {
   const inputBaseClass =
     'bg-gray-800/50 border border-gray-600 rounded-lg px-4 py-3 text-white w-full focus:outline-none focus:border-purple-500';
 

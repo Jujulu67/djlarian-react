@@ -175,7 +175,7 @@ export function useAdminLiveActions(
       a.download = `submissions_${new Date().toISOString().split('T')[0]}.zip`;
       document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
+      a.remove();
       window.URL.revokeObjectURL(url);
 
       toast.success('Téléchargement terminé !');

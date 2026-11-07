@@ -128,7 +128,7 @@ function extractStyleUpdate(
 
   // Pattern "de style X à Y"
   const filterToNewPattern = /(?:de|depuis)\s+style\s+([a-z0-9_\s]+)\s+à\s+([a-z0-9_\s]+)/i;
-  const filterMatch = cleanedQuery.match(filterToNewPattern);
+  const filterMatch = filterToNewPattern.exec(cleanedQuery);
 
   if (filterMatch) {
     const filterStyle = filterMatch[1].trim();
@@ -152,7 +152,7 @@ function extractStyleUpdate(
     /(?:mets?|met|change|changer|modifie|modifier|passe|passer)\s+(?:les?\s+)?(?:projets?\s+)?en\s+([a-z0-9_\s]+)(?:\s|$)/i,
   ];
 
-  const ignoredWords = [
+  const ignoredWords = new Set([
     'projets',
     'projet',
     'les',
@@ -172,7 +172,7 @@ function extractStyleUpdate(
     'pourcentage',
     'percent',
     'percentage',
-  ];
+  ]);
 
   for (const pattern of newStylePatterns) {
     const match = cleanedQuery.match(pattern);
@@ -202,7 +202,7 @@ function extractStyleUpdate(
         }
       }
 
-      if (ignoredWords.includes(lowerStyleName)) continue;
+      if (ignoredWords.has(lowerStyleName)) continue;
 
       // Ignorer si le nom contient "progression", "avancement", "progress", "%", etc.
       if (
@@ -230,7 +230,7 @@ function extractStyleUpdate(
         }
 
         // Si le styleName contient "prog" mais n'est pas exactement "progressive" ou "prog", ignorer
-        if (lowerStyleName.includes('prog') && !lowerStyleName.match(/^(progressive|prog)$/)) {
+        if (lowerStyleName.includes('prog') && !/^(progressive|prog)$/.exec(lowerStyleName)) {
           logger.warn(
             '[Parse Query API] ⚠️ Style "Progressive" détecté mais ignoré (faux positif):',
             styleName
@@ -256,7 +256,7 @@ function extractLabelUpdate(query: string, updateData: UpdateData): void {
     /(?:change|changer|modifie|modifier|passe|passer|mets?|met)\s+(?:le\s+)?label\s+cibl[ée]\s+(?:à|en|pour)?\s*([a-z0-9_\s]+)/i,
   ];
 
-  const ignoredWords = [
+  const ignoredWords = new Set([
     'projets',
     'projet',
     'les',
@@ -268,13 +268,13 @@ function extractLabelUpdate(query: string, updateData: UpdateData): void {
     'des',
     'ciblé',
     'ciblée',
-  ];
+  ]);
 
   for (const pattern of patterns) {
     const match = query.match(pattern);
     if (match && match[1]) {
       const labelName = match[1].trim();
-      if (!ignoredWords.includes(labelName.toLowerCase())) {
+      if (!ignoredWords.has(labelName.toLowerCase())) {
         updateData.newLabel = labelName;
         logger.warn('[Parse Query API] ✅ Nouveau label détecté:', labelName);
         return;
@@ -293,13 +293,24 @@ function extractLabelFinalUpdate(query: string, updateData: UpdateData): void {
     /sign[ée]\s+chez\s+([a-z0-9_\s]+)/i,
   ];
 
-  const ignoredWords = ['projets', 'projet', 'les', 'mes', 'de', 'en', 'le', 'la', 'des', 'final'];
+  const ignoredWords = new Set([
+    'projets',
+    'projet',
+    'les',
+    'mes',
+    'de',
+    'en',
+    'le',
+    'la',
+    'des',
+    'final',
+  ]);
 
   for (const pattern of patterns) {
     const match = query.match(pattern);
     if (match && match[1]) {
       const labelFinalName = match[1].trim();
-      if (!ignoredWords.includes(labelFinalName.toLowerCase())) {
+      if (!ignoredWords.has(labelFinalName.toLowerCase())) {
         updateData.newLabelFinal = labelFinalName;
         logger.warn('[Parse Query API] ✅ Nouveau label final détecté:', labelFinalName);
         return;

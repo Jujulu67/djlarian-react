@@ -61,7 +61,7 @@ export default function HistoryModal({
   onClose,
   onRevertChange,
   onApplySnapshot,
-}: HistoryModalProps) {
+}: Readonly<HistoryModalProps>) {
   const [activeTab, setActiveTab] = useState<'changes' | 'snapshots'>('changes');
   const [loading, setLoading] = useState(true);
   const [history, setHistory] = useState<ConfigHistoryItem[]>([]);

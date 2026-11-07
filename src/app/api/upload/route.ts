@@ -1,5 +1,5 @@
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -31,7 +31,7 @@ async function toWebP(image: Blob, label: string): Promise<Buffer> {
 
 /** Image originale à conserver : une image de 15 Mo au plus, sinon rien. */
 function isStorableOriginal(original: File | null): original is File {
-  if (!original || !original.type.startsWith('image/')) return false;
+  if (!original?.type.startsWith('image/')) return false;
   if (original.size <= MAX_ORIGINAL_SIZE) return true;
   logger.warn(`API UPLOAD - Fichier original trop volumineux: ${original.size} octets`);
   return false;

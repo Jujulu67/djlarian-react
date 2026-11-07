@@ -39,7 +39,7 @@ export function ProjectMobileCard({
   highlightedProjectId,
   persistentHighlight,
   expandedStreams,
-}: ProjectMobileCardProps) {
+}: Readonly<ProjectMobileCardProps>) {
   const isHighlighted = highlightedProjectId === project.id;
   const isPersistentGold = isHighlighted && persistentHighlight;
   const isStreamsExpanded = expandedStreams.has(project.id);

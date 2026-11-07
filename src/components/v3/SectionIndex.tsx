@@ -8,7 +8,12 @@ interface SectionIndexProps {
 }
 
 /** En-tête de section de l'accueil v3 : surtitre, titre chromé, lien en pilule de verre */
-export default function SectionIndex({ eyebrow, label, href, linkLabel }: SectionIndexProps) {
+export default function SectionIndex({
+  eyebrow,
+  label,
+  href,
+  linkLabel,
+}: Readonly<SectionIndexProps>) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-6">
       <div>

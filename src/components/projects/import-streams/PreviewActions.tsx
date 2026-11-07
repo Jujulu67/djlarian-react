@@ -18,7 +18,7 @@ export function PreviewActions({
   handleImport,
   isImporting,
   validatedFiles,
-}: PreviewActionsProps) {
+}: Readonly<PreviewActionsProps>) {
   return (
     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-gray-700">
       <p className="text-sm text-gray-400 text-center sm:text-left">

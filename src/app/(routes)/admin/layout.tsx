@@ -5,7 +5,7 @@ interface AdminLayoutProps {
   modal: React.ReactNode;
 }
 
-export default function AdminLayout({ children, modal }: AdminLayoutProps) {
+export default function AdminLayout({ children, modal }: Readonly<AdminLayoutProps>) {
   return (
     <>
       {children}

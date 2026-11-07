@@ -33,7 +33,7 @@ describe('gameEngine', () => {
     it('should create initial patterns', () => {
       const state = initializeGame(800, 400);
 
-      expect(state.patterns.length).toBe(3);
+      expect(state.patterns).toHaveLength(3);
       state.patterns.forEach((pattern) => {
         expect(pattern.active).toBe(true);
         expect(pattern.position.x).toBeGreaterThanOrEqual(0);
@@ -505,7 +505,7 @@ describe('gameEngine', () => {
 
         const updatedState = handleCollision(state, collisionResult);
 
-        expect(updatedState.powerUps.length).toBe(0);
+        expect(updatedState.powerUps).toHaveLength(0);
         expect(updatedState.patterns.every((p) => !p.active && p.wasHit)).toBe(true);
         // Score should increase by 500 (powerup points) + sum of pattern points (100 + 150 = 250)
         expect(updatedState.player.score).toBe(initialScore + 500 + 250);
@@ -537,7 +537,7 @@ describe('gameEngine', () => {
 
         expect(updatedState.activePowerUps.magnet).toBe(true);
         expect(updatedState.activePowerUps.magnetEndTime).toBeGreaterThan(Date.now());
-        expect(updatedState.powerUps.length).toBe(0);
+        expect(updatedState.powerUps).toHaveLength(0);
       });
 
       it('should handle SLOW_MO powerup - activate slow mo effect', () => {
@@ -1000,7 +1000,7 @@ describe('gameEngine', () => {
       const updatedState = updateGame(state, deltaTime, 800, 400, null);
 
       // Should not spawn more PowerUps
-      expect(updatedState.powerUps.length).toBe(2);
+      expect(updatedState.powerUps).toHaveLength(2);
 
       Math.random = originalRandom;
     });

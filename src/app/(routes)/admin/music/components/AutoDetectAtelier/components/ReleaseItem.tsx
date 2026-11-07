@@ -10,7 +10,7 @@ interface ReleaseItemProps {
   onToggle: (id: string) => void;
 }
 
-export function ReleaseItem({ release, isSelected, onToggle }: ReleaseItemProps) {
+export function ReleaseItem({ release, isSelected, onToggle }: Readonly<ReleaseItemProps>) {
   return (
     <div
       role="button"

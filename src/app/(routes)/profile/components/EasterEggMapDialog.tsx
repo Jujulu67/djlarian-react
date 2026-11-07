@@ -42,7 +42,7 @@ export function EasterEggMapDialog({ isOpen, onClose }: EasterEggMapDialogProps)
   // Generate particle positions once on mount using lazy state initialization
 
   const [particles] = useState(() =>
-    [...Array(20)].map((_, i) => ({
+    [...new Array(20)].map((_, i) => ({
       id: i,
       left: secureRandom() * 100,
       top: secureRandom() * 100,
@@ -53,7 +53,7 @@ export function EasterEggMapDialog({ isOpen, onClose }: EasterEggMapDialogProps)
   );
 
   const [glowParticles] = useState(() =>
-    [...Array(8)].map((_, i) => ({
+    [...new Array(8)].map((_, i) => ({
       id: i,
       left: 10 + secureRandom() * 80,
       top: 10 + secureRandom() * 80,
@@ -380,7 +380,7 @@ interface MapPointProps {
   isMystery?: boolean;
 }
 
-function MapPoint({ x, y, label, icon, onClick, delay, isMystery }: MapPointProps) {
+function MapPoint({ x, y, label, icon, onClick, delay, isMystery }: Readonly<MapPointProps>) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0, y: 50 }}

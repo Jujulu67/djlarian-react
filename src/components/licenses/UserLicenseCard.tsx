@@ -34,7 +34,7 @@ interface UserLicenseCardProps {
   userEmail?: string | null;
 }
 
-export function UserLicenseCard({ license, userEmail }: UserLicenseCardProps) {
+export function UserLicenseCard({ license, userEmail }: Readonly<UserLicenseCardProps>) {
   const [isDeactivating, setIsDeactivating] = useState<string | null>(null);
 
   const handleCopyKey = () => {

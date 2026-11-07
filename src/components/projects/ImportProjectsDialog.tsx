@@ -66,11 +66,10 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
             separator === ','
               ? parseCsvLine(headerLine, separator)
               : headerLine.split(separator).map((cell) => cell.trim());
-          const normalizedHeaders = headerCells.map((h) => h.trim().toLowerCase());
+          const normalizedHeaders = new Set(headerCells.map((h) => h.trim().toLowerCase()));
           detectedSpotifyCsv =
-            normalizedHeaders.includes('song') &&
-            (normalizedHeaders.includes('release_date') ||
-              normalizedHeaders.includes('release date'));
+            normalizedHeaders.has('song') &&
+            (normalizedHeaders.has('release_date') || normalizedHeaders.has('release date'));
         }
       }
 

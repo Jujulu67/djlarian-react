@@ -47,7 +47,7 @@ export function PlatformTabs({
   maxResults,
   onMaxResultsChange,
   onYoutubeFetch,
-}: PlatformTabsProps) {
+}: Readonly<PlatformTabsProps>) {
   const handleValueChange = (value: string) => {
     if (value === 'spotify' || value === 'youtube' || value === 'soundcloud') {
       onTabChange(value);

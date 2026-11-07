@@ -9,7 +9,7 @@ const AdminLiveSubmissionsContext = createContext<AdminLiveSubmissionsContextTyp
   undefined
 );
 
-export function AdminLiveSubmissionsProvider({ children }: { children: ReactNode }) {
+export function AdminLiveSubmissionsProvider({ children }: Readonly<{ children: ReactNode }>) {
   const submissionsData = useAdminLiveSubmissions();
 
   return (

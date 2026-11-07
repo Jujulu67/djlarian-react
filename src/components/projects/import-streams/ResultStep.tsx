@@ -9,7 +9,7 @@ interface ResultStepProps {
   importResult: ImportStreamsResult;
 }
 
-export function ResultStep({ handleClose, importResult }: ResultStepProps) {
+export function ResultStep({ handleClose, importResult }: Readonly<ResultStepProps>) {
   return (
     <div className="space-y-4">
       {importResult.success ? (

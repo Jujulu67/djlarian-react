@@ -122,7 +122,7 @@ describe('useTracks', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.filteredTracks.length).toBe(1);
+      expect(result.current.filteredTracks).toHaveLength(1);
       expect(result.current.filteredTracks[0].title).toBe('House Track');
     });
   });

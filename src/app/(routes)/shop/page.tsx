@@ -149,7 +149,7 @@ const COMPARISON_FEATURES = [
 // COMPONENTS
 // ============================================================================
 
-function ProductCard({ product }: { product: Product }) {
+function ProductCard({ product }: Readonly<{ product: Product }>) {
   const isPro = product.badge === 'PRO';
   const isDisabled = !product.ctaHref || product.ctaHref === '#';
   const router = useRouter();
@@ -345,7 +345,7 @@ function FeatureComparison() {
 // ============================================================================
 
 /** Carte produit v2 : toute la carte est un lien (clavier inclus), CTA purement visuel */
-function ProductCardV2({ product }: { product: Product }) {
+function ProductCardV2({ product }: Readonly<{ product: Product }>) {
   const isPro = product.badge === 'PRO';
   const spotlight = useSpotlight<HTMLAnchorElement>();
 
@@ -410,7 +410,7 @@ function ProductCardV2({ product }: { product: Product }) {
   );
 }
 
-function ComparisonCell({ value, isPro }: { value: boolean | string; isPro: boolean }) {
+function ComparisonCell({ value, isPro }: Readonly<{ value: boolean | string; isPro: boolean }>) {
   if (value === true) {
     return (
       <Check

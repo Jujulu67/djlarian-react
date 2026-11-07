@@ -13,7 +13,7 @@ export default function NumberInput({
   desc,
   className,
   disabled = false,
-}: {
+}: Readonly<{
   id: string;
   label: string;
   value: number;
@@ -25,7 +25,7 @@ export default function NumberInput({
   desc?: string; // Description optionnelle
   className?: string;
   disabled?: boolean;
-}) {
+}>) {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const numValue = e.target.value === '' ? (min ?? 0) : Number.parseInt(e.target.value, 10); // Gère le cas où le champ est vidé
     if (!Number.isNaN(numValue)) {

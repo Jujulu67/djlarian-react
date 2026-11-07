@@ -61,13 +61,15 @@ export function useImageGrouping() {
       if (!oriMap[oriSig]) oriMap[oriSig] = [];
       oriMap[oriSig].push(group);
     });
-    const duplicateOriSignatures = Object.entries(oriMap)
-      .filter(([_, groups]) => groups.length > 1)
-      .map(([signature]) => signature);
+    const duplicateOriSignatures = new Set(
+      Object.entries(oriMap)
+        .filter(([_, groups]) => groups.length > 1)
+        .map(([signature]) => signature)
+    );
     groupList.forEach((group) => {
       if (!group.ori) return;
       const oriSig = `${group.ori.size}`;
-      const isDuplicate = duplicateOriSignatures.includes(oriSig);
+      const isDuplicate = duplicateOriSignatures.has(oriSig);
       if (group.ori) group.ori.isDuplicate = isDuplicate;
       if (group.crop) group.crop.isDuplicate = isDuplicate;
     });

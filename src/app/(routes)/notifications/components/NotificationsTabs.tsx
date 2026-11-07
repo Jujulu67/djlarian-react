@@ -19,7 +19,7 @@ export function NotificationsTabs({
   onSelectView,
   otherCount,
   messagesCount,
-}: NotificationsTabsProps) {
+}: Readonly<NotificationsTabsProps>) {
   return (
     <div className="flex items-center gap-2 mb-4 sm:mb-6 flex-wrap">
       <button

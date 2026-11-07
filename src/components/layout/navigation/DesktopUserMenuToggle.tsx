@@ -17,7 +17,7 @@ export function DesktopUserMenuToggle({
   isUserMenuOpen,
   session,
   setIsUserMenuOpen,
-}: DesktopUserMenuToggleProps) {
+}: Readonly<DesktopUserMenuToggleProps>) {
   return (
     <button
       aria-label="Menu utilisateur"

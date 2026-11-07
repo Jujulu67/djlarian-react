@@ -33,7 +33,7 @@ export function MusicTrackGrid({
   featured = false,
   priorityIndex = -1,
   className,
-}: MusicTrackGridProps) {
+}: Readonly<MusicTrackGridProps>) {
   return (
     <div className={className}>
       {featured ? (

@@ -8,14 +8,20 @@ import { logger } from '@/lib/logger';
 import { randomToken } from '@/lib/utils/random';
 
 const MAX_FILE_SIZE = 128 * 1024 * 1024; // 128MB
-const ALLOWED_MIME_TYPES = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/wave'];
+const ALLOWED_MIME_TYPES = new Set([
+  'audio/mpeg',
+  'audio/mp3',
+  'audio/wav',
+  'audio/x-wav',
+  'audio/wave',
+]);
 
 /**
  * Valide un fichier audio (utilisable côté client)
  */
 export function validateAudioFile(file: File): { valid: boolean; error?: string } {
   // Vérifier le type MIME
-  if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+  if (!ALLOWED_MIME_TYPES.has(file.type)) {
     return {
       valid: false,
       error: 'Le fichier doit être au format MP3 ou WAV',

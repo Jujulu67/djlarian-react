@@ -36,7 +36,7 @@ interface HeroSignalProps {
  * qui respire au tempo de la dernière sortie, un oscilloscope qui réagit au pointeur,
  * et la dernière sortie jouable dans une carte en verre.
  */
-export default function HeroSignal({ config, latest }: HeroSignalProps) {
+export default function HeroSignal({ config, latest }: Readonly<HeroSignalProps>) {
   const ref = useRef<HTMLElement>(null);
   const reduceMotion = useReducedMotion() ?? false;
   const bpm = latest?.bpm && latest.bpm > 40 && latest.bpm < 220 ? latest.bpm : DEFAULT_BPM;

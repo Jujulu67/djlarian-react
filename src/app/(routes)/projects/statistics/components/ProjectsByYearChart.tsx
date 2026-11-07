@@ -38,7 +38,7 @@ export function ProjectsByYearChart({
   setHiddenStatuses,
   displayStats,
   initialProjects,
-}: ProjectsByYearChartProps) {
+}: Readonly<ProjectsByYearChartProps>) {
   const renderTotalLabel = createTotalLabelRenderer(hiddenStatuses);
   const renderTermineLabel = createSegmentLabelRenderer('TERMINE');
   const renderGhostProdLabel = createSegmentLabelRenderer('GHOST_PRODUCTION');

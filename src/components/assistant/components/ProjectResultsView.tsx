@@ -11,7 +11,7 @@ interface ProjectResultsViewProps {
   fieldsToShow: string[];
 }
 
-export function ProjectResultsView({ projects, fieldsToShow }: ProjectResultsViewProps) {
+export function ProjectResultsView({ projects, fieldsToShow }: Readonly<ProjectResultsViewProps>) {
   if (!projects.length) return null;
 
   // Mode ultra-compact si on affiche beaucoup de projets (plus de 5)

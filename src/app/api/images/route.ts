@@ -1,5 +1,5 @@
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -29,12 +29,12 @@ function listLocalFiles(): Array<{
 
   try {
     const files = fs.readdirSync(uploadsDir);
-    const imageExtensions = ['.webp', '.jpg', '.jpeg', '.png', '.gif']; // WebP en priorité
+    const imageExtensions = new Set(['.webp', '.jpg', '.jpeg', '.png', '.gif']); // WebP en priorité
 
     return files
       .filter((file) => {
         const ext = path.extname(file).toLowerCase();
-        return imageExtensions.includes(ext);
+        return imageExtensions.has(ext);
       })
       .map((file) => {
         const filePath = path.join(uploadsDir, file);
@@ -100,7 +100,7 @@ export async function GET() {
             // Format: uploads/{imageId}.webp ou uploads/{imageId}-ori.png
             const url = img.blobUrl;
             const urlParts = url.split('/');
-            const filename = urlParts[urlParts.length - 1] || `uploads/${img.imageId}.webp`;
+            const filename = urlParts.at(-1) || `uploads/${img.imageId}.webp`;
             const fullPath = filename.startsWith('uploads/') ? filename : `uploads/${filename}`;
 
             // Déterminer le type d'image basé sur le nom du fichier

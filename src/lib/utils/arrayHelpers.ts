@@ -36,7 +36,7 @@ export function first<T>(array: T[] | null | undefined): T | undefined {
  * @returns Last element or undefined
  */
 export function last<T>(array: T[] | null | undefined): T | undefined {
-  return isNotEmpty(array) ? array[array.length - 1] : undefined;
+  return isNotEmpty(array) ? array.at(-1) : undefined;
 }
 
 /**

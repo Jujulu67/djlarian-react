@@ -1044,7 +1044,7 @@ describe('Router - Mutations après LIST filtré (Matrice de tests)', () => {
       expect(pendingAction.affectedProjectIds).toEqual(limitedListedIds);
       expect(pendingAction.affectedProjectIds.length).toBeGreaterThan(0);
       // Les filtres doivent être vides (on utilise les IDs)
-      expect(Object.keys(pendingAction.filters).length).toBe(0);
+      expect(Object.keys(pendingAction.filters)).toHaveLength(0);
     });
 
     it('devrait avoir payload cohérent quand scopeSource === ExplicitFilter', async () => {

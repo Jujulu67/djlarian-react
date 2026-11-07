@@ -193,7 +193,7 @@ describe('Conversation Memory - Groq Context', () => {
       const result = prepareConversationContext(history);
 
       // Avec willHaveSummary = true (15 > 12), effectiveMaxRecent = 5
-      expect(result.recentMessages.length).toBe(5);
+      expect(result.recentMessages).toHaveLength(5);
     });
 
     it('extrait la mémoire factuelle des nombres', () => {

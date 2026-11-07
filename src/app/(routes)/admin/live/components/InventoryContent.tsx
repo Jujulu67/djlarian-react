@@ -21,7 +21,7 @@ interface InventoryContentProps {
   userName?: string;
 }
 
-export function InventoryContent({ userId, userName }: InventoryContentProps) {
+export function InventoryContent({ userId, userName }: Readonly<InventoryContentProps>) {
   const [inventory, setInventory] = useState<UserLiveItemWithRelations[]>([]);
   const [allItems, setAllItems] = useState<LiveItemWithRelations[]>([]);
   const [loading, setLoading] = useState(false);

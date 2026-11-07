@@ -30,7 +30,7 @@ import { RichTextRenderer } from './assistant/components/RichTextRenderer';
 import { isAssistantDebugEnabled } from '@/lib/assistant/utils/debug';
 import { generateNoteFromContent } from '@/lib/assistant/parsers/note-generator';
 
-export function ProjectAssistant({ projects }: ProjectAssistantProps) {
+export function ProjectAssistant({ projects }: Readonly<ProjectAssistantProps>) {
   const router = useRouter();
   const [isFullScreen, setIsFullScreen] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -264,11 +264,11 @@ function EmptyState({
   projectCount,
   uniqueCollabs,
   setInput,
-}: {
+}: Readonly<{
   projectCount: number;
   uniqueCollabs: string[];
   setInput: (input: string) => void;
-}) {
+}>) {
   return (
     <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-400">
       <div className="w-16 h-16 rounded-full bg-purple-500/10 flex items-center justify-center mb-4">
@@ -298,10 +298,10 @@ function EmptyState({
 function SuggestionButton({
   children,
   onClick,
-}: {
+}: Readonly<{
   children: React.ReactNode;
   onClick: () => void;
-}) {
+}>) {
   return (
     <button
       onClick={onClick}
@@ -349,7 +349,7 @@ function MessageBubble({
   setLocalProjects,
   localProjectsRef,
   setLastFilters,
-}: MessageBubbleProps) {
+}: Readonly<MessageBubbleProps>) {
   return (
     <div className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
       <div
@@ -435,7 +435,7 @@ function ScopeMissingWarning({
   setLocalProjects,
   localProjectsRef,
   setLastFilters,
-}: MessageBubbleProps) {
+}: Readonly<MessageBubbleProps>) {
   if (!msg.scopeConfirmation) return null;
 
   const { proposedMutation, totalProjectsCount } = msg.scopeConfirmation;
@@ -579,7 +579,7 @@ function ConfirmationButtons({
   setLocalProjects,
   localProjectsRef,
   setLastFilters,
-}: MessageBubbleProps) {
+}: Readonly<MessageBubbleProps>) {
   const updateConfirmation = msg.updateConfirmation;
   const isDevMode = isAssistantDebugEnabled();
 

@@ -61,28 +61,25 @@ export function buildUserPrompt(
   // ✅ IDENTITÉ MARTELÉE au début (priorité maximale)
   // Pour les questions d'identité, toujours mentionner l'identité complète
   if (isIdentityQuestion) {
-    parts.push("⚠️⚠️⚠️ QUESTION D'IDENTITÉ DÉTECTÉE ⚠️⚠️⚠️");
-    parts.push('IDENTITÉ: Tu es LARIAN BOT (assistant studio de gestion de projets musicaux).');
     parts.push(
-      'RÈGLE CRITIQUE: Réponds UNIQUEMENT avec cette phrase exacte : "Je suis LARIAN BOT, assistant studio de gestion de projets musicaux."'
-    );
-    parts.push('INTERDIT: Ne dis PAS "Salut", "Bonjour", ou autre salutation.');
-    parts.push('INTERDIT: Ne dis PAS "ton assistant pour tes X projets".');
-    parts.push('INTERDIT: Ne dis PAS "Demande-moi...".');
-    parts.push(
+      "⚠️⚠️⚠️ QUESTION D'IDENTITÉ DÉTECTÉE ⚠️⚠️⚠️",
+      'IDENTITÉ: Tu es LARIAN BOT (assistant studio de gestion de projets musicaux).',
+      'RÈGLE CRITIQUE: Réponds UNIQUEMENT avec cette phrase exacte : "Je suis LARIAN BOT, assistant studio de gestion de projets musicaux."',
+      'INTERDIT: Ne dis PAS "Salut", "Bonjour", ou autre salutation.',
+      'INTERDIT: Ne dis PAS "ton assistant pour tes X projets".',
+      'INTERDIT: Ne dis PAS "Demande-moi...".',
       'RÉPONSE EXACTE REQUISE: "Je suis LARIAN BOT, assistant studio de gestion de projets musicaux."'
     );
   } else if (isGeneralQuestion) {
     // Pour les questions générales (pas d'identité), ne pas marteler l'identité de façon restrictive
     parts.push(
-      '⚠️ QUESTION GÉNÉRALE DÉTECTÉE: Réponds DIRECTEMENT à la question sans mentionner ton identité, sans dire que tu ne peux pas aider, sans rediriger. Réponds simplement.'
+      '⚠️ QUESTION GÉNÉRALE DÉTECTÉE: Réponds DIRECTEMENT à la question sans mentionner ton identité, sans dire que tu ne peux pas aider, sans rediriger. Réponds simplement.',
+      'IDENTITÉ: Tu es LARIAN BOT. Tu peux répondre à toutes les questions.'
     );
-    parts.push('IDENTITÉ: Tu es LARIAN BOT. Tu peux répondre à toutes les questions.');
   } else {
     parts.push('IDENTITÉ: Tu es LARIAN BOT (assistant studio de gestion de projets musicaux).');
   }
-  parts.push('INTERDIT: ne dis jamais que tu es LLaMA, un modèle, ou un langage artificiel.');
-  parts.push('');
+  parts.push('INTERDIT: ne dis jamais que tu es LLaMA, un modèle, ou un langage artificiel.', '');
 
   // Signal premier tour pour éviter salutations répétées
   const firstTurn = isFirstAssistantTurn !== undefined ? isFirstAssistantTurn : false;
@@ -90,29 +87,28 @@ export function buildUserPrompt(
   if (firstTurn) {
     const userGreeted = /^(salut|bonjour|hello|hi|hey)/i.test(query.trim());
     if (userGreeted) {
-      parts.push("RÈGLE: Tu peux saluer UNIQUEMENT car FIRST_TURN=true ET l'utilisateur a salué.");
       parts.push(
-        'RÈGLE CRITIQUE: Utilise "tu" (informel). Dis "Comment puis-je t\'aider?" PAS "Comment puis-je vous aider?".'
+        "RÈGLE: Tu peux saluer UNIQUEMENT car FIRST_TURN=true ET l'utilisateur a salué.",
+        'RÈGLE CRITIQUE: Utilise "tu" (informel). Dis "Comment puis-je t\'aider?" PAS "Comment puis-je vous aider?".',
+        'RÈGLE: Réponds UNIQUEMENT en français. Ne mélange PAS les langues.'
       );
-      parts.push('RÈGLE: Réponds UNIQUEMENT en français. Ne mélange PAS les langues.');
     } else {
       parts.push("RÈGLE: Ne salue PAS (FIRST_TURN=true mais l'utilisateur n'a pas salué).");
     }
   } else {
-    parts.push('⚠️⚠️⚠️ FIRST_TURN=false ⚠️⚠️⚠️');
     parts.push(
-      "RÈGLE CRITIQUE: Ne salue JAMAIS (FIRST_TURN=false). Tu as déjà salué ou ce n'est pas le premier tour."
+      '⚠️⚠️⚠️ FIRST_TURN=false ⚠️⚠️⚠️',
+      "RÈGLE CRITIQUE: Ne salue JAMAIS (FIRST_TURN=false). Tu as déjà salué ou ce n'est pas le premier tour.",
+      'INTERDIT: Ne dis PAS "Salut", "Bonjour", "Hello", ou toute autre salutation.',
+      'INTERDIT: Ne dis PAS "Comment puis-je t\'aider" ou "Comment puis-je te aider".',
+      'RÈGLE: Réponds DIRECTEMENT à la question sans salutation.'
     );
-    parts.push('INTERDIT: Ne dis PAS "Salut", "Bonjour", "Hello", ou toute autre salutation.');
-    parts.push('INTERDIT: Ne dis PAS "Comment puis-je t\'aider" ou "Comment puis-je te aider".');
-    parts.push('RÈGLE: Réponds DIRECTEMENT à la question sans salutation.');
   }
-  parts.push('');
-
   parts.push(
-    "RÈGLE: N'invente jamais de fonctionnalités. Si on te demande ce que tu sais faire, décris uniquement les actions disponibles dans l'app (projets: list/create/update/note + confirmations + scope + sécurité)."
+    '',
+    "RÈGLE: N'invente jamais de fonctionnalités. Si on te demande ce que tu sais faire, décris uniquement les actions disponibles dans l'app (projets: list/create/update/note + confirmations + scope + sécurité).",
+    ''
   );
-  parts.push('');
 
   // Mode explicite
   parts.push(`MODE: ${mode}`);

@@ -22,7 +22,7 @@ interface AddUserFormProps {
 }
 
 // Ce composant contient uniquement le formulaire et sa logique
-export default function AddUserForm({ onSuccess, userToEdit }: AddUserFormProps) {
+export default function AddUserForm({ onSuccess, userToEdit }: Readonly<AddUserFormProps>) {
   const { data: session, update: updateSession } = useSession();
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');

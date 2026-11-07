@@ -75,7 +75,7 @@ export function ProfileHero({
   onResetAvatar,
   onShowFullscreenAvatar,
   fileInputRef,
-}: ProfileHeroProps) {
+}: Readonly<ProfileHeroProps>) {
   const isV2 = useUiVersion() !== 'legacy';
   const [showEasterEggMap, setShowEasterEggMap] = useState(false);
   const { trackCasinoDiscovery, isAuthenticated } = useGameStats();

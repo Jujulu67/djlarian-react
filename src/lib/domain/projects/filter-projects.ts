@@ -72,14 +72,14 @@ export function filterProjects(projects: Project[], filters: QueryFilters): Filt
 
     // Filtre par collaborateur
     if (filters.collab) {
-      if (!project.collab || !project.collab.toLowerCase().includes(filters.collab.toLowerCase())) {
+      if (!project.collab?.toLowerCase().includes(filters.collab.toLowerCase())) {
         return false;
       }
     }
 
     // Filtre par style
     if (filters.style) {
-      if (!project.style || !project.style.toLowerCase().includes(filters.style.toLowerCase())) {
+      if (!project.style?.toLowerCase().includes(filters.style.toLowerCase())) {
         return false;
       }
     }

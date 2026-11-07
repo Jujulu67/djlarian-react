@@ -35,7 +35,7 @@ export function useImageFusion() {
       const ignoredSet = new Set(ignoredIds);
 
       // 3. Déterminer les images à supprimer (tous les ids crop et ori sauf maître et ignorés)
-      const protectedIds = [
+      const protectedIds = new Set([
         ...(masterGroup.crop ? [masterGroup.crop.id] : []),
         ...(masterGroup.ori ? [masterGroup.ori.id] : []),
         ...fusionModal.family.groups
@@ -44,17 +44,17 @@ export function useImageFusion() {
             return id && ignoredSet.has(id);
           })
           .flatMap((g) => [g.crop?.id, g.ori?.id].filter(Boolean)),
-      ];
+      ]);
 
       const toDelete = fusionModal.family.groups
         .flatMap((g) => [g.crop?.id, g.ori?.id])
-        .filter((id): id is string => !!id && !protectedIds.includes(id));
+        .filter((id): id is string => !!id && !protectedIds.has(id));
 
       // 4. Mettre à jour les entités liées (hors ignorées)
       const extractBaseId = (id: string) => id.replace(/\.[a-zA-Z0-9]+$/, '');
       for (const group of fusionModal.family.groups) {
         const imageId = group.crop?.id || group.ori?.id;
-        if (!imageId || protectedIds.includes(imageId)) continue;
+        if (!imageId || protectedIds.has(imageId)) continue;
         if (group.linkedTo) {
           const newImageId = masterGroup.crop
             ? extractBaseId(masterGroup.crop.id)

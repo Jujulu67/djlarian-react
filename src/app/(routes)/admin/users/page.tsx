@@ -21,7 +21,7 @@ type PageProps = {
   }>;
 };
 
-async function AdminUsersContent({ searchParams }: PageProps) {
+async function AdminUsersContent({ searchParams }: Readonly<PageProps>) {
   const session = await auth();
 
   if (!session?.user?.role || session.user.role !== 'ADMIN') {
@@ -147,7 +147,7 @@ async function AdminUsersContent({ searchParams }: PageProps) {
 
 import { Suspense } from 'react';
 
-export default function AdminUsersPage(props: PageProps) {
+export default function AdminUsersPage(props: Readonly<PageProps>) {
   return (
     <Suspense
       fallback={

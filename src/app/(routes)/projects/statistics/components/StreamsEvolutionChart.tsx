@@ -57,7 +57,7 @@ export function StreamsEvolutionChart({
   getFilteredProjectsForComparison,
   comparisonProjectMapping,
   streamsChartData,
-}: StreamsEvolutionChartProps) {
+}: Readonly<StreamsEvolutionChartProps>) {
   return (
     <Card className="glass border border-purple-500/20 bg-black/30 backdrop-blur-md text-white">
       <CardHeader>
@@ -318,7 +318,7 @@ export function StreamsEvolutionChart({
                         color: '#fff',
                       }}
                       content={({ active, payload, label }) => {
-                        if (!active || !payload || !payload.length) return null;
+                        if (!active || !payload?.length) return null;
                         const projectMapping = comparisonProjectMapping;
                         const projectsToShow =
                           comparisonMode === 'all'

@@ -103,14 +103,14 @@ const ModernPagination = ({
 // Revenir au type standard pour searchParams
 export default async function AdminActivitiesPage({
   searchParams,
-}: {
+}: Readonly<{
   searchParams?: Promise<{
     // Rendre optionnel et objet standard
     type?: string;
     page?: string;
     limit?: string;
   }>;
-}) {
+}>) {
   const session = await auth();
 
   if (!session?.user?.role || session.user.role !== 'ADMIN') {

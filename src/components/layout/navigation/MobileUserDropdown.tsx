@@ -25,7 +25,7 @@ export function MobileUserDropdown({
   session,
   setIsMobileMenuOpen,
   setIsMobileUserMenuOpen,
-}: MobileUserDropdownProps) {
+}: Readonly<MobileUserDropdownProps>) {
   const isV2 = useUiVersion() !== 'legacy';
   return (
     <AnimatePresence>

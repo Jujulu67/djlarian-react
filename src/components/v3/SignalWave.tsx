@@ -20,7 +20,7 @@ function readToken(name: string, fallback: string) {
  * le pointeur pour « scratcher » le signal. Canvas 2D, en pause hors écran,
  * ligne immobile si prefers-reduced-motion.
  */
-export default function SignalWave({ bpm = 124, className }: SignalWaveProps) {
+export default function SignalWave({ bpm = 124, className }: Readonly<SignalWaveProps>) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {

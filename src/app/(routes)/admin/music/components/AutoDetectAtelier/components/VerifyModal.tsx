@@ -52,7 +52,7 @@ export function VerifyModal({
   spotifyOriginalData,
   onConfirm,
   onSkip,
-}: VerifyModalProps) {
+}: Readonly<VerifyModalProps>) {
   const [genreInput, setGenreInput] = useState('');
 
   if (!show || !currentRelease) return null;
