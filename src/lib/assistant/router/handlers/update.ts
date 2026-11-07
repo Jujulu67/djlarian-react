@@ -149,7 +149,7 @@ function buildExpectedUpdatedAt(projects: Project[]): Record<string, string> {
   const expected: Record<string, string> = {};
   for (const project of projects) {
     const date = project.updatedAt ? new Date(project.updatedAt) : null;
-    if (date && !isNaN(date.getTime())) expected[project.id] = date.toISOString();
+    if (date && !Number.isNaN(date.getTime())) expected[project.id] = date.toISOString();
   }
   return expected;
 }

@@ -120,7 +120,7 @@ export async function PUT(
           processedPublishAt = null; // Explicitement mis à null si string vide
         } else {
           const d = new Date(baseDataToUpdate.publishAt);
-          if (!isNaN(d.getTime())) {
+          if (!Number.isNaN(d.getTime())) {
             processedPublishAt = d; // Date valide
           } else {
             processedPublishAt = undefined; // Ignorer si invalide mais pas vide explicitement
@@ -134,7 +134,7 @@ export async function PUT(
     delete baseDataToUpdate.publishAt;
 
     if (baseDataToUpdate.bpm) {
-      baseDataToUpdate.bpm = parseInt(String(baseDataToUpdate.bpm), 10);
+      baseDataToUpdate.bpm = Number.parseInt(String(baseDataToUpdate.bpm), 10);
     } else if (baseDataToUpdate.hasOwnProperty('bpm') && baseDataToUpdate.bpm === null) {
       baseDataToUpdate.bpm = null; // Permettre de mettre bpm à null
     }

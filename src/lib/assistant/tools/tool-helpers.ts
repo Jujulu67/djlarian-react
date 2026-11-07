@@ -77,7 +77,7 @@ export function buildUpdateData(newDeadline?: string, newStatus?: string): Recor
     } else {
       // Essayer de parser directement
       const dateObj = new Date(newDeadline);
-      if (!isNaN(dateObj.getTime())) {
+      if (!Number.isNaN(dateObj.getTime())) {
         data.deadline = dateObj;
       } else {
         throw new Error(

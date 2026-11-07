@@ -185,11 +185,15 @@ function parseDate(value: string, dateFormat: 'fr' | 'en' = 'fr'): string | null
     const frMatch = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
     if (frMatch) {
       const [, day, month, year] = frMatch;
-      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      const date = new Date(
+        Number.parseInt(year),
+        Number.parseInt(month) - 1,
+        Number.parseInt(day)
+      );
       if (
-        !isNaN(date.getTime()) &&
-        date.getDate() === parseInt(day) &&
-        date.getMonth() === parseInt(month) - 1
+        !Number.isNaN(date.getTime()) &&
+        date.getDate() === Number.parseInt(day) &&
+        date.getMonth() === Number.parseInt(month) - 1
       ) {
         return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
       }
@@ -199,11 +203,15 @@ function parseDate(value: string, dateFormat: 'fr' | 'en' = 'fr'): string | null
     const enMatch = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
     if (enMatch) {
       const [, month, day, year] = enMatch;
-      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      const date = new Date(
+        Number.parseInt(year),
+        Number.parseInt(month) - 1,
+        Number.parseInt(day)
+      );
       if (
-        !isNaN(date.getTime()) &&
-        date.getDate() === parseInt(day) &&
-        date.getMonth() === parseInt(month) - 1
+        !Number.isNaN(date.getTime()) &&
+        date.getDate() === Number.parseInt(day) &&
+        date.getMonth() === Number.parseInt(month) - 1
       ) {
         return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
       }
@@ -212,7 +220,7 @@ function parseDate(value: string, dateFormat: 'fr' | 'en' = 'fr'): string | null
 
   // Essayer de parser avec Date (fallback)
   const date = new Date(trimmed);
-  if (!isNaN(date.getTime())) {
+  if (!Number.isNaN(date.getTime())) {
     // Formater en YYYY-MM-DD
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -231,9 +239,9 @@ function parseNumber(value: string): number | null {
 
   // Retirer les espaces et caractères non numériques (sauf le signe moins et le point)
   const cleaned = value.trim().replace(/[^\d.-]/g, '');
-  const num = parseFloat(cleaned);
+  const num = Number.parseFloat(cleaned);
 
-  return isNaN(num) ? null : Math.floor(num); // Arrondir à l'entier
+  return Number.isNaN(num) ? null : Math.floor(num); // Arrondir à l'entier
 }
 
 /**
@@ -303,7 +311,11 @@ function validateRow(row: ParsedProjectRow, _rowIndex: number): string[] {
 
   for (const field of streamFields) {
     const value = row[field];
-    if (value !== undefined && value !== null && (typeof value !== 'number' || isNaN(value))) {
+    if (
+      value !== undefined &&
+      value !== null &&
+      (typeof value !== 'number' || Number.isNaN(value))
+    ) {
       errors.push(`${field} doit être un nombre valide`);
     }
   }

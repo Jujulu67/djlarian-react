@@ -14,7 +14,7 @@ export function getMemberSince(createdAt?: string | Date | null): string | null 
   try {
     const date = typeof createdAt === 'string' ? new Date(createdAt) : createdAt;
     // Vérifier que la date est valide
-    if (isNaN(date.getTime())) {
+    if (Number.isNaN(date.getTime())) {
       return null;
     }
     return date.toLocaleDateString('fr-FR', {
@@ -39,7 +39,7 @@ export function getMemberMonths(createdAt?: string | Date | null): number {
   try {
     const created = typeof createdAt === 'string' ? new Date(createdAt) : createdAt;
     // Vérifier que la date est valide
-    if (isNaN(created.getTime())) {
+    if (Number.isNaN(created.getTime())) {
       return 0;
     }
     const now = new Date();

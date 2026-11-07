@@ -21,7 +21,7 @@ const formatDateForInput = (dateString: string | null | undefined): string => {
   try {
     const date = new Date(dateString);
     // Vérifier si la date est valide
-    if (isNaN(date.getTime())) {
+    if (Number.isNaN(date.getTime())) {
       return '';
     }
     // Format ISO avec timezone locale
@@ -287,7 +287,7 @@ function EventFormContent() {
     }
 
     if (formData.hasTickets) {
-      if (!formData.tickets?.price || parseFloat(String(formData.tickets.price)) <= 0) {
+      if (!formData.tickets?.price || Number.parseFloat(String(formData.tickets.price)) <= 0) {
         errors['tickets.price'] = 'Le prix du billet doit être supérieur à 0';
       }
       if (!formData.tickets?.buyUrl) {
@@ -374,13 +374,13 @@ function EventFormContent() {
           ? {
               price:
                 formData.tickets?.price !== undefined
-                  ? parseFloat(String(formData.tickets.price)) || 0
+                  ? Number.parseFloat(String(formData.tickets.price)) || 0
                   : 0,
               currency: formData.tickets?.currency || 'EUR',
               buyUrl: formData.tickets?.buyUrl || '',
               quantity:
                 formData.tickets?.quantity !== undefined
-                  ? parseInt(String(formData.tickets.quantity), 10) || 0
+                  ? Number.parseInt(String(formData.tickets.quantity), 10) || 0
                   : 0,
               availableFrom: localInputToIso(formData.tickets?.availableFrom),
               availableTo: localInputToIso(formData.tickets?.availableTo),

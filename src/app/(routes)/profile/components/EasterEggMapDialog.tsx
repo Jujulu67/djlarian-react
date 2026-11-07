@@ -179,7 +179,7 @@ export function EasterEggMapDialog({ isOpen, onClose }: EasterEggMapDialogProps)
                         max="1"
                         step="0.05"
                         value={volume}
-                        onChange={(e) => changeVolume(parseFloat(e.target.value))}
+                        onChange={(e) => changeVolume(Number.parseFloat(e.target.value))}
                         className="w-24 -rotate-90 origin-center accent-purple-500 cursor-pointer"
                         style={{ marginTop: '40px', marginBottom: '40px' }}
                       />

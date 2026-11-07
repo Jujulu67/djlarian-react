@@ -97,7 +97,7 @@ export class ActionParser {
     if (/terminé|done|completed/i.test(input)) params.status = 'done';
     if (/urgent|high/i.test(input)) params.priority = 'high';
     const limitMatch = input.match(/(?<!\d)(\d+)\s*(premiers?|derniers?)/i);
-    if (limitMatch) params.limit = parseInt(limitMatch[1], 10);
+    if (limitMatch) params.limit = Number.parseInt(limitMatch[1], 10);
     return params;
   }
 
@@ -106,7 +106,7 @@ export class ActionParser {
     const idMatch = input.match(/\b([a-f0-9]{8,})\b/i);
     if (idMatch) params.targetId = idMatch[1];
     const progressMatch = input.match(/(?<!\d)(\d+)\s*%/);
-    if (progressMatch) params.progress = parseInt(progressMatch[1], 10);
+    if (progressMatch) params.progress = Number.parseInt(progressMatch[1], 10);
     return params;
   }
 

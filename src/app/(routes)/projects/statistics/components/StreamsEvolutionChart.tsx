@@ -179,7 +179,7 @@ export function StreamsEvolutionChart({
                   <select
                     value={comparisonYearFilter || ''}
                     onChange={(e) => {
-                      const year = e.target.value ? parseInt(e.target.value, 10) : null;
+                      const year = e.target.value ? Number.parseInt(e.target.value, 10) : null;
                       setComparisonYearFilter(year !== null && Number.isFinite(year) ? year : null);
                     }}
                     className="px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"

@@ -70,8 +70,8 @@ const normalizeLabelValue = (val: string | null | undefined): string | null => {
 const TITLE_CASE_FIELDS = ['name', 'style', 'collab', 'labelFinal'];
 
 function parseIntOrNull(value: string): number | null {
-  const parsed = parseInt(value, 10);
-  return isNaN(parsed) ? null : parsed;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isNaN(parsed) ? null : parsed;
 }
 
 /** Valeur à enregistrer selon le type de cellule ; une saisie vide vaut null. */

@@ -63,8 +63,8 @@ export function parseRelativeDate(dateStr: string): string | null {
   // "dans X mois" / "in X months" / "dans X month"
   const dansMoisMatch = lowerDateStr.match(/dans\s+(\d+)\s+mois|in\s+(\d+)\s+months?/i);
   if (dansMoisMatch) {
-    const months = parseInt(dansMoisMatch[1] || dansMoisMatch[2], 10);
-    if (!isNaN(months) && months > 0) {
+    const months = Number.parseInt(dansMoisMatch[1] || dansMoisMatch[2], 10);
+    if (!Number.isNaN(months) && months > 0) {
       const futureDate = new Date(today);
       futureDate.setMonth(futureDate.getMonth() + months);
       return formatLocalDate(futureDate);
@@ -74,8 +74,8 @@ export function parseRelativeDate(dateStr: string): string | null {
   // "dans X jours" / "in X days" / "dans X day"
   const dansJoursMatch = lowerDateStr.match(/dans\s+(\d+)\s+jours?|in\s+(\d+)\s+days?/i);
   if (dansJoursMatch) {
-    const days = parseInt(dansJoursMatch[1] || dansJoursMatch[2], 10);
-    if (!isNaN(days) && days > 0) {
+    const days = Number.parseInt(dansJoursMatch[1] || dansJoursMatch[2], 10);
+    if (!Number.isNaN(days) && days > 0) {
       const futureDate = new Date(today);
       futureDate.setDate(futureDate.getDate() + days);
       return formatLocalDate(futureDate);
@@ -85,8 +85,8 @@ export function parseRelativeDate(dateStr: string): string | null {
   // "dans X semaines" / "in X weeks" / "dans X week"
   const dansSemainesMatch = lowerDateStr.match(/dans\s+(\d+)\s+semaines?|in\s+(\d+)\s+weeks?/i);
   if (dansSemainesMatch) {
-    const weeks = parseInt(dansSemainesMatch[1] || dansSemainesMatch[2], 10);
-    if (!isNaN(weeks) && weeks > 0) {
+    const weeks = Number.parseInt(dansSemainesMatch[1] || dansSemainesMatch[2], 10);
+    if (!Number.isNaN(weeks) && weeks > 0) {
       const futureDate = new Date(today);
       futureDate.setDate(futureDate.getDate() + weeks * 7);
       return formatLocalDate(futureDate);
@@ -178,9 +178,9 @@ export function parseRelativeDate(dateStr: string): string | null {
   // Support DD/MM/YYYY ou DD-MM-YYYY
   const frDateMatch = dateStr.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
   if (frDateMatch) {
-    const day = parseInt(frDateMatch[1], 10);
-    const month = parseInt(frDateMatch[2], 10);
-    const year = parseInt(frDateMatch[3], 10);
+    const day = Number.parseInt(frDateMatch[1], 10);
+    const month = Number.parseInt(frDateMatch[2], 10);
+    const year = Number.parseInt(frDateMatch[3], 10);
     const date = new Date(year, month - 1, day);
     // Vérification basique de validité
     if (date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day) {

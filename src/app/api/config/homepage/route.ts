@@ -39,7 +39,7 @@ export async function GET() {
           } else if (
             typedConfig.value !== null &&
             typedConfig.value !== '' &&
-            !isNaN(Number(typedConfig.value))
+            !Number.isNaN(Number(typedConfig.value))
           ) {
             value = Number(typedConfig.value);
           }

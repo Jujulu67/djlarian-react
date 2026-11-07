@@ -45,7 +45,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const url = new URL(req.url);
     const artistName = url.searchParams.get('artistName');
     const profileUrl = url.searchParams.get('profileUrl');
-    const maxResults = parseInt(url.searchParams.get('maxResults') || '100', 10);
+    const maxResults = Number.parseInt(url.searchParams.get('maxResults') || '100', 10);
 
     // Authentification (rôle admin relu en base)
     const { error: authError } = await requireDbAdmin();

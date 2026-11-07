@@ -96,7 +96,7 @@ export const useYouTubePlayer = ({
       if (videoId) {
         const savedTime = localStorage.getItem(`youtube-time-${videoId}`);
         if (savedTime) {
-          setCurrentTime(parseFloat(savedTime));
+          setCurrentTime(Number.parseFloat(savedTime));
         }
       }
     }

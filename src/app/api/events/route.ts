@@ -22,8 +22,8 @@ export async function GET(request: NextRequest): Promise<Response> {
     const startDateFilter = searchParams.get('startDate');
     const endDateFilter = searchParams.get('endDate');
     const isPublishedParam = searchParams.get('isPublished');
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
+    const page = Number.parseInt(searchParams.get('page') || '1');
+    const limit = Number.parseInt(searchParams.get('limit') || '10');
     const skip = (page - 1) * limit;
 
     // Préparer la condition de filtrage

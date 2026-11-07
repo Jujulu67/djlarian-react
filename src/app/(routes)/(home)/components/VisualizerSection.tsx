@@ -106,7 +106,7 @@ function useGameViewportEffects(isSoundActive: boolean, isMobile: boolean): void
         document.body.style.width = '';
         document.body.style.overflow = '';
         if (bodyTop) {
-          window.scrollTo(0, parseInt(bodyTop, 10) * -1);
+          window.scrollTo(0, Number.parseInt(bodyTop, 10) * -1);
         }
       };
     }

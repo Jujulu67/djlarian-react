@@ -68,9 +68,9 @@ interface TokenBudgetConfig {
  * Configurable via variables d'environnement.
  */
 const DEFAULT_TOKEN_BUDGET: TokenBudgetConfig = {
-  productSoftLimit: parseInt(process.env.GROQ_SOFT_LIMIT || '3000', 10),
-  productHardLimit: parseInt(process.env.GROQ_HARD_LIMIT || '8000', 10),
-  reserveForResponse: parseInt(process.env.GROQ_RESPONSE_RESERVE || '1024', 10),
+  productSoftLimit: Number.parseInt(process.env.GROQ_SOFT_LIMIT || '3000', 10),
+  productHardLimit: Number.parseInt(process.env.GROQ_HARD_LIMIT || '8000', 10),
+  reserveForResponse: Number.parseInt(process.env.GROQ_RESPONSE_RESERVE || '1024', 10),
 };
 
 /**

@@ -195,10 +195,10 @@ export function MysteryGameDialog({ isOpen, onClose, onTokenUpdate }: MysteryGam
 
     // Add score popup at center of group
     const centerR =
-      Array.from(toRemove).reduce((sum, key) => sum + parseInt(key.split(',')[0]), 0) /
+      Array.from(toRemove).reduce((sum, key) => sum + Number.parseInt(key.split(',')[0]), 0) /
       toRemove.size;
     const centerC =
-      Array.from(toRemove).reduce((sum, key) => sum + parseInt(key.split(',')[1]), 0) /
+      Array.from(toRemove).reduce((sum, key) => sum + Number.parseInt(key.split(',')[1]), 0) /
       toRemove.size;
 
     setScorePopups((prev) => [

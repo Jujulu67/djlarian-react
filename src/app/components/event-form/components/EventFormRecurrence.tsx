@@ -52,7 +52,7 @@ export function EventFormRecurrence({ formData, setFormData, errors }: EventForm
                   ...formData,
                   recurrence: {
                     ...formData.recurrence!,
-                    day: parseInt(e.target.value),
+                    day: Number.parseInt(e.target.value),
                   },
                 });
               }}

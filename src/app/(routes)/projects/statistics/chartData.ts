@@ -164,12 +164,12 @@ export function buildYearlyProgressionData(streamsEvolution: StreamsProject[]) {
     // Utiliser J84 comme référence (ou le dernier jalon disponible)
     const streamValues = project.streams
       .map((s) => s.value)
-      .filter((v) => typeof v === 'number' && !isNaN(v) && v >= 0);
+      .filter((v) => typeof v === 'number' && !Number.isNaN(v) && v >= 0);
 
     if (streamValues.length === 0) return; // Ignorer les projets sans données valides
 
     const maxStreams = Math.max(...streamValues, 0);
-    if (isNaN(maxStreams) || maxStreams < 0) return; // Ignorer les valeurs invalides
+    if (Number.isNaN(maxStreams) || maxStreams < 0) return; // Ignorer les valeurs invalides
 
     projectsByYearMap[yearKey].totalStreams += maxStreams;
     projectsByYearMap[yearKey].projectCount += 1;
@@ -177,20 +177,20 @@ export function buildYearlyProgressionData(streamsEvolution: StreamsProject[]) {
 
   // Calculer les moyennes
   Object.values(projectsByYearMap).forEach((data) => {
-    if (data.projectCount > 0 && !isNaN(data.totalStreams)) {
+    if (data.projectCount > 0 && !Number.isNaN(data.totalStreams)) {
       data.averageStreams = Math.round(data.totalStreams / data.projectCount);
     } else {
       data.averageStreams = 0;
     }
     // S'assurer que les valeurs ne sont pas NaN
-    if (isNaN(data.totalStreams)) data.totalStreams = 0;
-    if (isNaN(data.averageStreams)) data.averageStreams = 0;
-    if (isNaN(data.projectCount)) data.projectCount = 0;
+    if (Number.isNaN(data.totalStreams)) data.totalStreams = 0;
+    if (Number.isNaN(data.averageStreams)) data.averageStreams = 0;
+    if (Number.isNaN(data.projectCount)) data.projectCount = 0;
   });
 
   // Convertir en tableau et trier par année, filtrer les valeurs invalides
   return Object.values(projectsByYearMap)
-    .filter((data) => !isNaN(data.year) && data.projectCount > 0)
+    .filter((data) => !Number.isNaN(data.year) && data.projectCount > 0)
     .sort((a, b) => a.year - b.year)
     .map((data) => ({
       year: data.year.toString(),

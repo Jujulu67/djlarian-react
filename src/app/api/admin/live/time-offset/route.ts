@@ -21,7 +21,7 @@ export async function GET() {
       where: { key: 'timeOffsetMinutes' },
     });
 
-    const timeOffsetMinutes = setting ? parseInt(JSON.parse(setting.value) || '0', 10) : 0;
+    const timeOffsetMinutes = setting ? Number.parseInt(JSON.parse(setting.value) || '0', 10) : 0;
 
     return createSuccessResponse({ timeOffsetMinutes }, 200, 'Offset de temps récupéré');
   } catch (error) {
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     });
 
     const currentOffset = currentSetting
-      ? parseInt(JSON.parse(currentSetting.value) || '0', 10)
+      ? Number.parseInt(JSON.parse(currentSetting.value) || '0', 10)
       : 0;
 
     // Calculer le nouvel offset

@@ -8,5 +8,5 @@ export function localInputToIso(value: string | null | undefined): string | null
   if (!value) return null;
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/.test(value)) return value;
   const date = new Date(value);
-  return isNaN(date.getTime()) ? value : date.toISOString();
+  return Number.isNaN(date.getTime()) ? value : date.toISOString();
 }

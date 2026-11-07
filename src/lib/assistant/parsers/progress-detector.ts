@@ -25,7 +25,7 @@ export function detectProgressFromQuery(query: string): {
   for (const pattern of inferieurPatterns) {
     const match = lowerQuery.match(pattern);
     if (match) {
-      result.maxProgress = parseInt(match[1], 10);
+      result.maxProgress = Number.parseInt(match[1], 10);
       logger.warn(`[Assistant] Progression max détectée (inférieur à): ${result.maxProgress}%`);
       return result;
     }
@@ -41,7 +41,7 @@ export function detectProgressFromQuery(query: string): {
   for (const pattern of superieurPatterns) {
     const match = lowerQuery.match(pattern);
     if (match) {
-      result.minProgress = parseInt(match[1], 10);
+      result.minProgress = Number.parseInt(match[1], 10);
       logger.warn(`[Assistant] Progression min détectée (supérieur à): ${result.minProgress}%`);
       return result;
     }
@@ -66,8 +66,8 @@ export function detectProgressFromQuery(query: string): {
     if (match) {
       if (match[2]) {
         // Pattern "entre X et Y"
-        result.minProgress = parseInt(match[1], 10);
-        result.maxProgress = parseInt(match[2], 10);
+        result.minProgress = Number.parseInt(match[1], 10);
+        result.maxProgress = Number.parseInt(match[2], 10);
         logger.warn(
           `[Assistant] Progression détectée: ${result.minProgress}% - ${result.maxProgress}%`
         );
@@ -78,7 +78,7 @@ export function detectProgressFromQuery(query: string): {
         lowerQuery.includes('minimum')
       ) {
         // "plus de X%"
-        result.minProgress = parseInt(match[1], 10);
+        result.minProgress = Number.parseInt(match[1], 10);
         logger.warn(`[Assistant] Progression min détectée: ${result.minProgress}%`);
         return result;
       } else if (
@@ -87,12 +87,12 @@ export function detectProgressFromQuery(query: string): {
         lowerQuery.includes('maximum')
       ) {
         // "moins de X%"
-        result.maxProgress = parseInt(match[1], 10);
+        result.maxProgress = Number.parseInt(match[1], 10);
         logger.warn(`[Assistant] Progression max détectée: ${result.maxProgress}%`);
         return result;
       } else {
         // "à X%" ou "X%"
-        const value = parseInt(match[1], 10);
+        const value = Number.parseInt(match[1], 10);
         // Si on dit "fini à 100%" ou "terminé à 100%", c'est minProgress = 100
         if (lowerQuery.includes('fini') || lowerQuery.includes('terminé')) {
           result.minProgress = value;
@@ -118,7 +118,7 @@ export function detectProgressFromQuery(query: string): {
   for (const pattern of decimalPatterns) {
     const match = lowerQuery.match(pattern);
     if (match && match[1]) {
-      const decimalValue = parseFloat(match[1].replace(',', '.'));
+      const decimalValue = Number.parseFloat(match[1].replace(',', '.'));
       if (decimalValue > 0 && decimalValue <= 1) {
         const percentValue = Math.round(decimalValue * 100);
         result.minProgress = percentValue;

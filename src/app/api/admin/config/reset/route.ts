@@ -180,7 +180,7 @@ async function fetchCurrentConfigs() {
       let value: unknown = config.value;
       if (value === 'true' || value === 'false') {
         value = value === 'true';
-      } else if (!isNaN(Number(value)) && value !== '') {
+      } else if (!Number.isNaN(Number(value)) && value !== '') {
         value = Number(value);
       }
 

@@ -75,7 +75,7 @@ const RhythmCatcher: React.FC<RhythmCatcherProps> = ({ audioSrc, onClose }) => {
   useEffect(() => {
     // Charge depuis localStorage immédiatement
     if (typeof window !== 'undefined') {
-      const savedHighScore = parseInt(localStorage.getItem('highScore') || '0', 10);
+      const savedHighScore = Number.parseInt(localStorage.getItem('highScore') || '0', 10);
       if (savedHighScore > 0) {
         setGameState((prev) => ({
           ...prev,
@@ -411,7 +411,7 @@ const RhythmCatcher: React.FC<RhythmCatcherProps> = ({ audioSrc, onClose }) => {
     const currentScore = gameState.player.score;
     if (currentScore > 0) {
       if (typeof window !== 'undefined') {
-        const saved = parseInt(localStorage.getItem('highScore') || '0', 10);
+        const saved = Number.parseInt(localStorage.getItem('highScore') || '0', 10);
         if (currentScore > saved) localStorage.setItem('highScore', currentScore.toString());
       }
       saveHighScore(currentScore);

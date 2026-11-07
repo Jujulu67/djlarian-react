@@ -83,7 +83,7 @@ export function parseStreamsCsv(fileContent: string, fileName: string): StreamsC
     } else {
       // Essayer de parser d'autres formats
       const parsedDate = new Date(dateStr);
-      if (!isNaN(parsedDate.getTime())) {
+      if (!Number.isNaN(parsedDate.getTime())) {
         const year = parsedDate.getFullYear();
         const month = String(parsedDate.getMonth() + 1).padStart(2, '0');
         const day = String(parsedDate.getDate()).padStart(2, '0');
@@ -97,8 +97,8 @@ export function parseStreamsCsv(fileContent: string, fileName: string): StreamsC
     }
 
     // Parser les streams
-    const streamsValue = parseFloat(streamsStr.replace(/[^\d.-]/g, ''));
-    if (isNaN(streamsValue)) {
+    const streamsValue = Number.parseFloat(streamsStr.replace(/[^\d.-]/g, ''));
+    if (Number.isNaN(streamsValue)) {
       errors.push(`Ligne ${i + 1}: Nombre de streams invalide "${streamsStr}"`);
       continue;
     }

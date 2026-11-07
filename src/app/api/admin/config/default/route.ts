@@ -25,7 +25,7 @@ export async function GET() {
 
         if (value === 'true' || value === 'false') {
           processedConfig[section][key] = value === 'true';
-        } else if (!isNaN(Number(value)) && value !== '') {
+        } else if (!Number.isNaN(Number(value)) && value !== '') {
           processedConfig[section][key] = Number(value);
         } else {
           processedConfig[section][key] = value;

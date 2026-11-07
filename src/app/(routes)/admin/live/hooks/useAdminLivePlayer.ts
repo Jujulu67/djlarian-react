@@ -64,13 +64,13 @@ export function useAdminLivePlayer() {
       const handleTimeUpdate = () => {
         const time = audio.currentTime;
         setCurrentTime(time);
-        if (audio.duration && !isNaN(audio.duration)) {
+        if (audio.duration && !Number.isNaN(audio.duration)) {
           setDuration(audio.duration);
         }
       };
 
       const handleLoadedMetadata = () => {
-        if (audio.duration && !isNaN(audio.duration)) {
+        if (audio.duration && !Number.isNaN(audio.duration)) {
           setDuration(audio.duration);
         }
       };

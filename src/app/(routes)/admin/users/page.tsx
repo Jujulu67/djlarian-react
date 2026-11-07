@@ -39,8 +39,8 @@ async function AdminUsersContent({ searchParams }: PageProps) {
   const isVip = resolvedParams.isVip || '';
 
   // Pagination
-  const currentPage = parseInt(page, 10);
-  const limitNum = parseInt(limit, 10);
+  const currentPage = Number.parseInt(page, 10);
+  const limitNum = Number.parseInt(limit, 10);
   const skip = (currentPage - 1) * limitNum;
 
   // Construire la clause WHERE dynamiquement
