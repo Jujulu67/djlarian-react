@@ -10,7 +10,7 @@ import { ProjectCommandType, type ProjectCommandResult } from './types';
 export function isCapabilitiesQuestion(normalizedMessage: string): boolean {
   // Sécurité absolue: si on détecte des signaux de mutation, NE JAMAIS intercepter
   const hasMutationSignals =
-    /(\d+%|pourcent|progression|avancement|deadline|date\s*limite|échéance|statut|status|note|label|collab|style|collaborateur|termin[ée]|annul[ée]|en\s*cours)/i.test(
+    /(\d%|pourcent|progression|avancement|deadline|date\s*limite|échéance|statut|status|note|label|collab|style|collaborateur|termin[ée]|annul[ée]|en\s*cours)/i.test(
       normalizedMessage
     );
 

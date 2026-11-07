@@ -29,8 +29,10 @@ function extractTasks(content: string): string[] {
     if (match && match[1]) {
       // Séparer par virgule, "et", ou "puis"
       const taskText = match[1].trim();
+      // Espaces unifiés d'abord : le découpage n'a plus que des séparateurs fixes (Sonar S8786)
       const splitTasks = taskText
-        .split(/[,;]|\s+et\s+|\s+puis\s+/i)
+        .replace(/\s+/g, ' ')
+        .split(/[,;]| et | puis /i)
         .map((t) => t.trim())
         .filter((t) => t.length > 0);
 
@@ -43,22 +45,42 @@ function extractTasks(content: string): string[] {
 }
 
 /**
+ * Comme `text.replace(/libellé[:\s]+.+$/i, '')`, en temps linéaire (Sonar S8786) :
+ * coupe au premier libellé suivi d'au moins un caractère, sans retour à la ligne après.
+ */
+export function cutTaskTail(text: string, label: RegExp): string {
+  label.lastIndex = 0;
+  for (let m = label.exec(text); m; m = label.exec(text)) {
+    // [:\s]+ peut traverser des retours à la ligne, .+$ non : la suite non vide doit
+    // venir après le dernier retour à la ligne, précédé seulement de séparateurs
+    const rest = text.slice(m.index + m[0].length);
+    const lastNewline = rest.lastIndexOf('\n');
+    const matches =
+      lastNewline < 0
+        ? rest.length > 0
+        : rest.length > lastNewline + 1 && /^[:\s]*$/.test(rest.slice(0, lastNewline + 1));
+    if (matches) return text.slice(0, m.index);
+  }
+  return text;
+}
+
+/**
  * Nettoie le contenu principal en enlevant les parties de tâches
  */
 function cleanMainContent(content: string, _tasks: string[]): string {
   let cleaned = content;
 
-  // Enlever les patterns de tâches
-  const taskPatterns = [
-    /reste\s+à\s+faire[:\s]+.+$/i,
-    /à\s+faire[:\s]+.+$/i,
-    /reste[:\s]+.+$/i,
-    /prochaines?\s+étapes?[:\s]+.+$/i,
-    /todo[:\s]+.+$/i,
+  // Enlever les parties de tâches : « libellé[:\s]+suite » jusqu'à la fin du texte
+  const taskLabels = [
+    /reste\s+à\s+faire[:\s]/gi,
+    /à\s+faire[:\s]/gi,
+    /reste[:\s]/gi,
+    /prochaines?\s+étapes?[:\s]/gi,
+    /todo[:\s]/gi,
   ];
 
-  for (const pattern of taskPatterns) {
-    cleaned = cleaned.replace(pattern, '').trim();
+  for (const label of taskLabels) {
+    cleaned = cutTaskTail(cleaned, label).trim();
   }
 
   // Enlever les virgules en fin de phrase
