@@ -5,6 +5,26 @@ import 'react-image-crop/dist/ReactCrop.css';
 import { Button } from '@/components/ui';
 import Modal from '@/components/ui/Modal';
 
+/**
+ * Taille de l'image produite : celle de la zone découpée, au format exact demandé
+ * (la hauteur suit la largeur, pour éviter un 1024×1023 dû aux arrondis en %).
+ * Un recadrage rond prend le plus petit côté. La toile était carrée quel que soit
+ * le format, ce qui étirait verticalement les images 16:9 des événements.
+ */
+export function getCropCanvasSize(
+  cropWidth: number,
+  cropHeight: number,
+  { circular = false, aspect }: { circular?: boolean; aspect?: number } = {}
+): { width: number; height: number } {
+  if (circular) {
+    const size = Math.max(1, Math.round(Math.min(cropWidth, cropHeight)));
+    return { width: size, height: size };
+  }
+  const width = Math.max(1, Math.round(cropWidth));
+  const height = aspect && aspect > 0 ? width / aspect : cropHeight;
+  return { width, height: Math.max(1, Math.round(height)) };
+}
+
 interface ImageCropModalProps {
   imageToEdit: string | null;
   aspect: number;
@@ -81,20 +101,19 @@ const ImageCropModal: React.FC<ImageCropModalProps> = ({
       cropHeight = displayCrop.height;
     }
 
-    // Pour un crop rond, utiliser la plus petite dimension
-    const size = circular ? Math.min(cropWidth, cropHeight) : cropWidth;
-    canvas.width = size;
-    canvas.height = size;
+    const { width, height } = getCropCanvasSize(cropWidth, cropHeight, { circular, aspect });
+    canvas.width = width;
+    canvas.height = height;
 
     if (circular) {
       // Créer un masque circulaire
       ctx.beginPath();
-      ctx.arc(size / 2, size / 2, size / 2, 0, 2 * Math.PI);
+      ctx.arc(width / 2, height / 2, width / 2, 0, 2 * Math.PI);
       ctx.clip();
     }
 
     // Dessiner l'image croppée
-    ctx.drawImage(image, cropX, cropY, cropWidth, cropHeight, 0, 0, size, size);
+    ctx.drawImage(image, cropX, cropY, cropWidth, cropHeight, 0, 0, width, height);
 
     const previewUrl = canvas.toDataURL('image/jpeg', 0.95);
     canvas.toBlob(

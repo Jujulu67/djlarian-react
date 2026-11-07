@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import ImageCropModal from '../ImageCropModal';
+import ImageCropModal, { getCropCanvasSize } from '../ImageCropModal';
 
 // Mock react-image-crop
 let mockOnChange: ((crop: any) => void) | null = null;
@@ -151,5 +151,27 @@ describe('ImageCropModal', () => {
     );
 
     expect(screen.getByText(/16:9/i)).toBeInTheDocument();
+  });
+});
+
+describe('getCropCanvasSize', () => {
+  it('garde le format 16:9 de la zone découpée (pas de toile carrée)', () => {
+    expect(getCropCanvasSize(1024, 576)).toEqual({ width: 1024, height: 576 });
+  });
+
+  it('impose le format demandé malgré les arrondis', () => {
+    expect(getCropCanvasSize(1024, 1023, { aspect: 1 })).toEqual({ width: 1024, height: 1024 });
+    expect(getCropCanvasSize(1280, 721.4, { aspect: 16 / 9 })).toEqual({
+      width: 1280,
+      height: 720,
+    });
+  });
+
+  it('arrondit les dimensions en pixels', () => {
+    expect(getCropCanvasSize(1023.6, 575.8)).toEqual({ width: 1024, height: 576 });
+  });
+
+  it('prend le plus petit côté pour un recadrage rond', () => {
+    expect(getCropCanvasSize(800, 600, { circular: true })).toEqual({ width: 600, height: 600 });
   });
 });
