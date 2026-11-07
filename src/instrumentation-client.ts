@@ -10,6 +10,12 @@ Sentry.init({
   // Adjust this value in production, or use tracesSampler for greater control
   tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
 
+  // Comme par défaut (requêtes vers le site seulement), sauf /api/images/ : cette route
+  // redirige vers Vercel Blob, et les en-têtes sentry-trace/baggage y déclenchent un
+  // OPTIONS que Blob refuse (405). fetch() échouait, et le recadrage d'une image
+  // enregistrée ne s'ouvrait plus.
+  tracePropagationTargets: [/^\/(?!\/|api\/images\/)/],
+
   // Setting this option to true will print useful information to the console while you're setting up Sentry.
   debug: false,
 
