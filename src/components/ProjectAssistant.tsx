@@ -15,7 +15,7 @@
  */
 
 import { MAX_ASSISTANT_INPUT_LENGTH } from '@/lib/assistant/security/input-limits';
-import { useMemo, useState, useRef, useEffect } from 'react';
+import { useCallback, useMemo, useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sparkles, Send, X, Trash2, Maximize2, Minimize2 } from 'lucide-react';
 import type { Project } from '@/components/projects/types';
@@ -34,6 +34,11 @@ export function ProjectAssistant({ projects }: ProjectAssistantProps) {
   const router = useRouter();
   const [isFullScreen, setIsFullScreen] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  // Focus à l'ouverture du champ (au lieu d'autoFocus, Sonar S9379)
+  const setInputRef = useCallback((element: HTMLTextAreaElement | null) => {
+    inputRef.current = element;
+    element?.focus();
+  }, []);
 
   const {
     isOpen,
@@ -201,7 +206,7 @@ export function ProjectAssistant({ projects }: ProjectAssistantProps) {
           >
             <div className="relative flex items-end gap-2">
               <textarea
-                ref={inputRef}
+                ref={setInputRef}
                 maxLength={MAX_ASSISTANT_INPUT_LENGTH}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -235,7 +240,6 @@ export function ProjectAssistant({ projects }: ProjectAssistantProps) {
                 className="w-full pl-4 pr-12 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-slate-500 focus:outline-none focus:border-purple-500/50 focus:bg-white/10 transition-all text-sm resize-none custom-scrollbar min-h-[46px] max-h-[150px]"
                 rows={1}
                 style={{ height: 'auto', minHeight: '46px' }}
-                autoFocus
                 disabled={isLoading}
               />
               <button

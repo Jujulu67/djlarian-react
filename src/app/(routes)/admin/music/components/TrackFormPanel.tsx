@@ -172,7 +172,7 @@ export function TrackFormPanel({
                   className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-purple-600/30 text-purple-200"
                 >
                   {g}
-                  <button onClick={() => handleRemoveGenre(g)}>
+                  <button type="button" onClick={() => handleRemoveGenre(g)}>
                     <X className="w-3 h-3 ml-1" />
                   </button>
                 </span>

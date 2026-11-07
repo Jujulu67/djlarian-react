@@ -66,7 +66,7 @@ const mockImages: ImageMeta[] = [
 
 // En-mémoire storage (remplacer par DB plus tard)
 // Note: Cette mémoire est remise à zéro à chaque redéploiement ou redémarrage serveur
-export let images: ImageMeta[] = [...mockImages];
+export const images: ImageMeta[] = [...mockImages];
 
 // Fonction pour récupérer toutes les images
 export function getAllImages(): ImageMeta[] {
@@ -76,11 +76,14 @@ export function getAllImages(): ImageMeta[] {
 // Fonction pour supprimer une image
 export function removeImage(id: string): boolean {
   const initialLength = images.length;
-  images = images.filter((img) => img.id !== id);
+  // Mutation en place : les modules importateurs gardent la même référence
+  for (let i = images.length - 1; i >= 0; i--) {
+    if (images[i].id === id) images.splice(i, 1);
+  }
   return images.length < initialLength;
 }
 
 // Fonction pour réinitialiser au mock data
 export function resetImages(): void {
-  images = [...mockImages];
+  images.splice(0, images.length, ...mockImages);
 }
