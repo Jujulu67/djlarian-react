@@ -12,6 +12,7 @@ interface User {
   name?: string | null;
   role: string;
   isVip: boolean;
+  canHostPolls?: boolean;
 }
 
 interface AddUserModalProps {

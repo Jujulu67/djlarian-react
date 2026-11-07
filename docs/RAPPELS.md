@@ -72,6 +72,9 @@ comme compromises.
       _(facultatif)_ Pour y ajouter la couverture de tests : désactiver « Automatic Analysis »
       (Administration → Analysis Method), créer un jeton, puis `gh secret set SONAR_TOKEN` ;
       la CI prend alors le relais avec `sonar-project.properties`.
+- [ ] **Votes en live : donner le droit à ton ami** (après la mise en prod de feat/live-polls) :
+      Admin → Utilisateurs → modifier son compte → « Peut animer des votes en live ». Il anime
+      depuis `/vote/manage` ; les spectateurs votent sur `/vote/CODE`, overlay OBS sur `/vote/CODE/overlay`.
 - [ ] **Imposer la Content-Security-Policy** : elle est en place en mode `Report-Only` depuis le
       04/11/2026 (`src/lib/security/csp.ts`, rapports vers Sentry), et en prod depuis ce jour-là.
       Laisser tourner quelques jours, regarder les rapports CSP

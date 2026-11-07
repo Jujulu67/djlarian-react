@@ -1,6 +1,6 @@
 'use client';
 
-import { UserPlus, Loader2, Edit, Star } from 'lucide-react';
+import { UserPlus, Loader2, Edit, Star, Vote } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 
@@ -13,6 +13,7 @@ interface User {
   name?: string | null;
   role: string; // Le formulaire gère une string
   isVip: boolean;
+  canHostPolls?: boolean;
 }
 
 interface AddUserFormProps {
@@ -49,6 +50,36 @@ function renderSubmitContent(isLoading: boolean, isEditMode: boolean): React.JSX
   );
 }
 
+function ToggleSwitch({
+  id,
+  checked,
+  onChange,
+  children,
+}: Readonly<{
+  id: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  children: React.ReactNode;
+}>) {
+  return (
+    <div className="flex items-center mt-4">
+      <label htmlFor={id} className="inline-flex items-center cursor-pointer">
+        <div className="relative">
+          <input
+            id={id}
+            type="checkbox"
+            checked={checked}
+            onChange={(e) => onChange(e.target.checked)}
+            className="sr-only peer"
+          />
+          <div className="w-11 h-6 bg-gray-700 rounded-full peer peer-focus:ring-2 peer-focus:ring-purple-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+        </div>
+        <span className="ml-3 text-gray-300 flex items-center">{children}</span>
+      </label>
+    </div>
+  );
+}
+
 // Ce composant contient uniquement le formulaire et sa logique
 export default function AddUserForm({ onSuccess, userToEdit }: Readonly<AddUserFormProps>) {
   const { data: session, update: updateSession } = useSession();
@@ -57,6 +88,7 @@ export default function AddUserForm({ onSuccess, userToEdit }: Readonly<AddUserF
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('USER'); // Rôle par défaut
   const [isVip, setIsVip] = useState(false); // État pour le statut VIP
+  const [canHostPolls, setCanHostPolls] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -73,6 +105,7 @@ export default function AddUserForm({ onSuccess, userToEdit }: Readonly<AddUserF
       setName(userToEdit.name ?? '');
       setRole(userToEdit.role ?? 'USER'); // Le type local attend une string
       setIsVip(userToEdit.isVip);
+      setCanHostPolls(userToEdit.canHostPolls ?? false);
       setPassword('');
       setError(null); // Réinitialiser l'erreur
     }
@@ -84,6 +117,7 @@ export default function AddUserForm({ onSuccess, userToEdit }: Readonly<AddUserF
       setPassword('');
       setRole('USER');
       setIsVip(false);
+      setCanHostPolls(false);
       setError(null);
     }
   }, [userToEdit, isEditMode]);
@@ -143,11 +177,13 @@ export default function AddUserForm({ onSuccess, userToEdit }: Readonly<AddUserF
       role: string;
       password?: string;
       isVip?: boolean;
+      canHostPolls?: boolean;
     } = {
       email,
       name: name || null, // Envoyer null si le nom est vide
       role, // Envoyer la valeur actuelle de l'état `role` (string)
       isVip,
+      ...(isEditMode && { canHostPolls }),
     };
 
     // N'inclure le mot de passe que s'il est fourni (et en mode création, il est requis)
@@ -352,25 +388,24 @@ export default function AddUserForm({ onSuccess, userToEdit }: Readonly<AddUserF
       </fieldset>
       {/* Fin du remplacement */}
 
-      {/* Option VIP avec toggle switch moderne */}
-      <div className="flex items-center mt-4">
-        <label className="inline-flex items-center cursor-pointer">
-          <div className="relative">
-            <input
-              id={idFor('isVip-edit', 'isVip-add')}
-              type="checkbox"
-              checked={isVip}
-              onChange={(e) => setIsVip(e.target.checked)}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-gray-700 rounded-full peer peer-focus:ring-2 peer-focus:ring-purple-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-          </div>
-          <span className="ml-3 text-gray-300 flex items-center">
-            <Star className="h-4 w-4 text-amber-400 mr-1" />
-            Marquer comme VIP
-          </span>
-        </label>
-      </div>
+      <ToggleSwitch
+        id={idFor('isVip-edit', 'isVip-add')}
+        checked={isVip}
+        onChange={setIsVip}
+      >
+        <Star className="h-4 w-4 text-amber-400 mr-1" />
+        Marquer comme VIP
+      </ToggleSwitch>
+      {isEditMode && (
+        <ToggleSwitch
+          id={idFor('canHostPolls-edit', 'canHostPolls-add')}
+          checked={canHostPolls}
+          onChange={setCanHostPolls}
+        >
+          <Vote className="h-4 w-4 text-purple-400 mr-1" />
+          Peut animer des votes en live
+        </ToggleSwitch>
+      )}
 
       {error && (
         <p className="text-red-500 text-sm text-center bg-red-900/30 p-2 rounded-md">{error}</p>
