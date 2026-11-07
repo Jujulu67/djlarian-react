@@ -134,7 +134,7 @@ describe('ProjectsClient', () => {
     const projectFetchCalls = (global.fetch as jest.Mock).mock.calls.filter(
       (call) => call[0] && String(call[0]).includes('/api/projects?')
     );
-    expect(projectFetchCalls.length).toBe(0);
+    expect(projectFetchCalls).toHaveLength(0);
   });
 
   it('should display project counts in filter buttons', () => {

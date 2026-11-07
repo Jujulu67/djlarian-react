@@ -151,7 +151,7 @@ export async function searchSoundCloud(
 
           // Extraire l'embed ID depuis l'URL SoundCloud
           // Format: https://soundcloud.com/artist/track-title
-          const embedIdMatch = /soundcloud\.com\/([^\/]+)\/([^\/\?]+)/.exec(result.link);
+          const embedIdMatch = /soundcloud\.com\/([^/]+)\/([^/?]+)/.exec(result.link);
           const embedId = embedIdMatch ? `${embedIdMatch[1]}/${embedIdMatch[2]}` : undefined;
 
           logger.debug(`Recherche SoundCloud: lien trouvé avec l'artiste ${individualArtist}`);
@@ -187,7 +187,7 @@ export async function searchSoundCloud(
         const result = data.items[0];
 
         if (result.link.includes('soundcloud.com')) {
-          const embedIdMatch = /soundcloud\.com\/([^\/]+)\/([^\/\?]+)/.exec(result.link);
+          const embedIdMatch = /soundcloud\.com\/([^/]+)\/([^/?]+)/.exec(result.link);
           const embedId = embedIdMatch ? `${embedIdMatch[1]}/${embedIdMatch[2]}` : undefined;
 
           return {

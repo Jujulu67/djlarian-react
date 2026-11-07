@@ -1025,7 +1025,7 @@ describe('Router - Classification et Routing', () => {
         if (result.type === ProjectCommandType.UPDATE) {
           expect(result.pendingAction.affectedProjectIds).toEqual(['1']);
           expect(result.pendingAction.scopeSource).toBe('LastListedIds');
-          expect(result.pendingAction.affectedProjects.length).toBe(1);
+          expect(result.pendingAction.affectedProjects).toHaveLength(1);
           expect(result.pendingAction.affectedProjects[0].id).toBe('1');
         }
       });
@@ -1476,9 +1476,9 @@ describe('Router - Classification et Routing', () => {
         expect(allProjectsResult.type).toBe(ProjectCommandType.LIST);
         if (allProjectsResult.type === ProjectCommandType.LIST) {
           // Doit retourner TOUS les projets, pas seulement ceux du working set
-          expect(allProjectsResult.projects.length).toBe(2);
+          expect(allProjectsResult.projects).toHaveLength(2);
           expect(allProjectsResult.projects.map((p) => p.id)).toEqual(['1', '2']);
-          expect(allProjectsResult.listedProjectIds.length).toBe(2);
+          expect(allProjectsResult.listedProjectIds).toHaveLength(2);
         }
       });
     });
@@ -1529,9 +1529,9 @@ describe('Router - Classification et Routing', () => {
         expect(result.type).toBe(ProjectCommandType.LIST);
         if (result.type === ProjectCommandType.LIST) {
           // Doit retourner tous les projets (pas de crash)
-          expect(result.projects.length).toBe(2);
+          expect(result.projects).toHaveLength(2);
           expect(result.fieldsToShow.length).toBeGreaterThan(3);
-          expect(result.listedProjectIds.length).toBe(2);
+          expect(result.listedProjectIds).toHaveLength(2);
         }
       });
     });

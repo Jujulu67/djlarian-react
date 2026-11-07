@@ -120,7 +120,7 @@ describe('calculateStreamsMilestones', () => {
     // But the function checks if lastAvailableDate >= targetDate
     // If lastAvailableDate is 2024-01-08 and targetDate is 2024-01-08, it should work
     // However, if the function requires data AFTER the target date, it might be null
-    expect(milestones.streamsJ7 !== undefined).toBe(true);
+    expect(milestones.streamsJ7).toBeDefined();
   });
 
   it('should return null when last available date is before target', () => {

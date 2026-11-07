@@ -129,7 +129,7 @@ export class ActionParser {
     const params: Record<string, unknown> = {};
     const isoMatch = /\d{4}-\d{2}-\d{2}/.exec(input);
     if (isoMatch) params.deadline = isoMatch[0];
-    const euMatch = /(\d{1,2})[\/\.](\d{1,2})[\/\.](\d{2,4})/.exec(input);
+    const euMatch = /(\d{1,2})[/.](\d{1,2})[/.](\d{2,4})/.exec(input);
     if (euMatch) {
       const [, d, m, y] = euMatch;
       const year = y.length === 2 ? `20${y}` : y;

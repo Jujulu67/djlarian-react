@@ -514,7 +514,7 @@ describe("🧪 Tests d'intégration - Échelle réelle", () => {
       });
 
       const failures = results.filter((r) => !r.success);
-      expect(failures.length).toBe(0);
+      expect(failures).toHaveLength(0);
 
       // Vérifier que toutes les requêtes sont comprises ou correctement rejetées
       results.forEach(({ query, result }) => {

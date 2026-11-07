@@ -220,7 +220,7 @@ export async function scrapeSoundCloudTracksPage(profileName: string): Promise<S
         let trackUrl = href.startsWith('/') ? `https://soundcloud.com${href}` : href;
 
         // Vérifier que c'est bien une track de ce profil
-        const trackMatch = /soundcloud\.com\/([^\/]+)\/([^\/\?]+)/.exec(trackUrl);
+        const trackMatch = /soundcloud\.com\/([^/]+)\/([^/?]+)/.exec(trackUrl);
         if (!trackMatch || trackMatch[1] !== profileName) return;
 
         // Éviter les doublons

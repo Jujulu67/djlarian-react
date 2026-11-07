@@ -295,7 +295,7 @@ describe('sanitizeObjectForLogs', () => {
     const result = sanitizeObjectForLogs(obj);
     expect(result.id).toBe('project-123');
     expect(result.count).toBe(42);
-    expect(result.length).toBe(10);
+    expect(result).toHaveLength(10);
     expect(result.type).toBe('UPDATE');
     expect(result.status).toBe('TERMINE');
     expect(result.progress).toBe(50);

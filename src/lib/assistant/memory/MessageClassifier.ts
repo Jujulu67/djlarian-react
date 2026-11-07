@@ -138,7 +138,7 @@ const ACTION_VERBS_EN = [
 const STRUCTURED_PATTERNS = [
   /\b[a-f0-9]{8,}\b/i, // UUID-like IDs
   /\b\d{4}-\d{2}-\d{2}\b/, // Date ISO
-  /\b\d{1,2}[\/\.]\d{1,2}[\/\.]\d{2,4}\b/, // Date DD/MM/YYYY
+  /\b\d{1,2}[/.]\d{1,2}[/.]\d{2,4}\b/, // Date DD/MM/YYYY
   /\b\d+%\b/, // Pourcentages
   /\b(pending|in_progress|done|completed|todo|cancelled|blocked)\b/i, // Statuts connus
   /\b(low|medium|high|critical|urgent)\b/i, // Priorités

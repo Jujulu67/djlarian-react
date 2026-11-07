@@ -8,7 +8,7 @@
  * Ex: "soundcloud.com/larian" -> "larian"
  */
 export function extractProfileName(profileUrl: string): string | null {
-  const match = /soundcloud\.com\/([^\/\?]+)/.exec(profileUrl);
+  const match = /soundcloud\.com\/([^/?]+)/.exec(profileUrl);
   return match ? match[1] : null;
 }
 
@@ -17,6 +17,6 @@ export function extractProfileName(profileUrl: string): string | null {
  * Retourne null si l'URL ne correspond pas à ce format
  */
 export function parseTrackUrl(url: string): { profile: string; slug: string } | null {
-  const match = /soundcloud\.com\/([^\/]+)\/([^\/\?]+)/.exec(url);
+  const match = /soundcloud\.com\/([^/]+)\/([^/?]+)/.exec(url);
   return match ? { profile: match[1], slug: match[2] } : null;
 }

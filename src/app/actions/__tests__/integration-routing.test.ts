@@ -101,7 +101,7 @@ describe("🧪 Tests d'intégration - Routing complet", () => {
 
     if (expectedType === 'conversational') {
       // Conversationnel : aucun outil (undefined ou objet vide)
-      expect(toolsKeys.length).toBe(0);
+      expect(toolsKeys).toHaveLength(0);
     } else if (expectedType === 'question') {
       // Question : getProjects doit être présent
       // Note: updateProjects peut aussi être présent si la classification est ambiguë
@@ -335,7 +335,7 @@ describe("🧪 Tests d'intégration - Routing complet", () => {
           expect(toolsArg?.updateProjects || toolsArg?.getProjects).toBeDefined();
         } else {
           // Aucun outil - c'est détecté comme conversationnel
-          expect(Object.keys(toolsArg || {}).length).toBe(0);
+          expect(Object.keys(toolsArg || {})).toHaveLength(0);
         }
       } else {
         // Si exécution directe, vérifier que le résultat est valide
@@ -376,7 +376,7 @@ describe("🧪 Tests d'intégration - Routing complet", () => {
           expect(toolsArg?.getProjects).toBeDefined();
         } else {
           // Sinon, aucun outil (conversationnel)
-          expect(Object.keys(toolsArg || {}).length).toBe(0);
+          expect(Object.keys(toolsArg || {})).toHaveLength(0);
         }
       } else {
         // Si exécution directe, vérifier que le résultat est valide

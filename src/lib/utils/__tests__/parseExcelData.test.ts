@@ -10,7 +10,7 @@ describe('parseExcelData', () => {
 
     expect(result).toBeDefined();
     expect(Array.isArray(result)).toBe(true);
-    expect(result.length).toBe(1);
+    expect(result).toHaveLength(1);
     expect(result[0].name).toBe('Project 1');
     expect(result[0].style).toBe('Electronic');
     expect(result[0].status).toBe('EN_COURS');
@@ -32,7 +32,7 @@ describe('parseExcelData', () => {
     const tsvData = 'Nom Projet\tStyle\tStatut\nProject 1\tElectronic\tEN_COURS';
     const result = parseExcelData(tsvData);
 
-    expect(result.length).toBe(1);
+    expect(result).toHaveLength(1);
     expect(result[0].name).toBe('Project 1');
   });
 
@@ -40,7 +40,7 @@ describe('parseExcelData', () => {
     const csvData = 'Nom Projet,Style,Statut\nProject 1,Electronic,EN_COURS';
     const result = parseExcelData(csvData);
 
-    expect(result.length).toBe(1);
+    expect(result).toHaveLength(1);
     expect(result[0].name).toBe('Project 1');
   });
 
@@ -90,7 +90,7 @@ describe('parseExcelData', () => {
     const csvData = 'Project 1,Electronic,EN_COURS';
     const result = parseExcelData(csvData, false);
 
-    expect(result.length).toBe(1);
+    expect(result).toHaveLength(1);
     expect(result[0].name).toBe('Project 1');
   });
 
@@ -150,7 +150,7 @@ describe('parseExcelData', () => {
     const csvData = 'Nom Projet\nProject 1\nProject 2\nProject 3';
     const result = parseExcelData(csvData);
 
-    expect(result.length).toBe(3);
+    expect(result).toHaveLength(3);
     expect(result[0].name).toBe('Project 1');
     expect(result[1].name).toBe('Project 2');
     expect(result[2].name).toBe('Project 3');
@@ -326,7 +326,7 @@ describe('parseExcelData', () => {
     const csvData = 'Nom Projet\nProject 1\n\nProject 2';
     const result = parseExcelData(csvData);
 
-    expect(result.length).toBe(2);
+    expect(result).toHaveLength(2);
     expect(result[0].name).toBe('Project 1');
     expect(result[1].name).toBe('Project 2');
   });

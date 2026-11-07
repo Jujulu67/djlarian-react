@@ -86,7 +86,7 @@ describe('T1: Memory Isolation - Actions then Small Talk', () => {
 
     // ASSERTION: Seuls les messages chat sont présents
     const nonSystemMessages = payload.messages.filter((m: GroqMessage) => m.role !== 'system');
-    expect(nonSystemMessages.length).toBe(4); // 2 échanges de chat
+    expect(nonSystemMessages).toHaveLength(4); // 2 échanges de chat
 
     // Groq doit se souvenir des préférences small talk
     expect(nonSystemMessages.some((m) => m.content.includes('pizza'))).toBe(true);
@@ -244,7 +244,7 @@ describe('T3: Groq Payload Validation', () => {
     }
 
     // Vérifications
-    expect(payload.messages.length).toBe(5); // 1 system + 4 chat
+    expect(payload.messages).toHaveLength(5); // 1 system + 4 chat
     expect(payload.messages[0].role).toBe('system');
   });
 
