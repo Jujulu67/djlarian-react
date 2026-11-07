@@ -82,14 +82,14 @@ export function ProjectAssistant({ projects }: ProjectAssistantProps) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       // Call handleSubmit with a synthetic event
-      handleSubmit(e as unknown as React.FormEvent);
+      void handleSubmit(e as unknown as React.FormEvent);
       // Keep focus
       setTimeout(() => inputRef.current?.focus(), 10);
     }
   };
 
   const onFormSubmit = (e: React.FormEvent) => {
-    handleSubmit(e);
+    void handleSubmit(e);
     // Keep focus
     setTimeout(() => inputRef.current?.focus(), 10);
   };

@@ -159,7 +159,7 @@ export function FriendsList({ onSendMessage }: FriendsListProps) {
           onClick={() => {
             setShowUserSearch(!showUserSearch);
             if (!showUserSearch && users.length === 0) {
-              loadUsers();
+              void loadUsers();
             }
           }}
           className="w-full flex items-center justify-between p-4 hover:bg-gray-800/30 transition-colors"
@@ -241,7 +241,7 @@ export function FriendsList({ onSendMessage }: FriendsListProps) {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleAction(
+                        void handleAction(
                           () => sendRequest(user.id),
                           `request-${user.id}`,
                           "Demande d'ami envoyée"

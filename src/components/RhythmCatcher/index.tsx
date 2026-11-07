@@ -104,7 +104,7 @@ const RhythmCatcher: React.FC<RhythmCatcherProps> = ({ audioSrc, onClose }) => {
         // Silently ignore API errors, localStorage is the fallback
       }
     };
-    loadFromAPI();
+    void loadFromAPI();
   }, []);
 
   // État de l'audio

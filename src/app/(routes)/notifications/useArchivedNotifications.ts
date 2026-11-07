@@ -17,7 +17,7 @@ export function useArchivedNotifications() {
 
   useEffect(() => {
     let alive = true;
-    loadArchivedNotifications().then((archived) => {
+    void loadArchivedNotifications().then((archived) => {
       if (alive && archived) setArchivedNotifications(archived);
     });
     return () => {

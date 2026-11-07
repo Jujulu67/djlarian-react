@@ -40,7 +40,7 @@ export function LiveInventory() {
           onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => {
             if (event.key === 'Enter' || event.key === ' ') {
               event.preventDefault();
-              handleItemClick(item.itemId, isActivated);
+              void handleItemClick(item.itemId, isActivated);
             }
           },
         }

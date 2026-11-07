@@ -70,7 +70,7 @@ export default function TrackDetailView({ trackId, onClose }: TrackDetailViewPro
       }
     };
 
-    fetchTrackDetails();
+    void fetchTrackDetails();
   }, [trackId]);
 
   // Gérer la fermeture avec la touche Escape

@@ -84,7 +84,7 @@ export default function AdminEventsPage() {
       }
     };
 
-    fetchEvents();
+    void fetchEvents();
   }, []);
 
   // Filtrer les événements en fonction des critères de recherche et des filtres
@@ -525,7 +525,7 @@ export default function AdminEventsPage() {
                                 onClick={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
-                                  toggleFeaturedStatus(event.id, event.featured);
+                                  void toggleFeaturedStatus(event.id, event.featured);
                                 }}
                                 className={`p-2 rounded-lg transition-colors ${
                                   event.featured

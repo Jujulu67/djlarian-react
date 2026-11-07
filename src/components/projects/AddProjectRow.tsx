@@ -71,7 +71,7 @@ export const AddProjectRow = ({
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      handleSubmit();
+      void handleSubmit();
     } else if (e.key === 'Escape') {
       setName('');
       setIsAdding(false);

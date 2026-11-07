@@ -30,7 +30,7 @@ export default function DatabaseSwitch() {
       }
     };
 
-    fetchState();
+    void fetchState();
   }, []);
 
   const handleToggle = async (checked: boolean) => {

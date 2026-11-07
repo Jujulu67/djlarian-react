@@ -310,7 +310,7 @@ export const ReleaseCalendar = ({ projects, onUpdate }: ReleaseCalendarProps) =>
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
-                  handleSaveLink();
+                  void handleSaveLink();
                 } else if (e.key === 'Escape') {
                   setEditingLinkId(null);
                   setLinkValue('');

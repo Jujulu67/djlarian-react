@@ -52,7 +52,7 @@ export function useAssistantProjectSync({
         });
 
         // Rafraîchir les compteurs
-        fetchCounts();
+        void fetchCounts();
 
         // Si le projet a une releaseDate, vérifier les notifications
         if (project.releaseDate) {
@@ -233,11 +233,11 @@ export function useAssistantProjectSync({
       // car la note est complexe (template, tâches extraites, etc.) et difficile à mettre à jour localement
       // (la mise à jour est déjà enregistrée côté serveur quand cet événement arrive)
       if (updates.note) {
-        fetchProjects();
+        void fetchProjects();
       }
 
       // Rafraîchir les compteurs
-      fetchCounts();
+      void fetchCounts();
 
       // Déclencher l'animation pour le premier projet modifié (pas de scroll)
       if (projectIds.length > 0) {

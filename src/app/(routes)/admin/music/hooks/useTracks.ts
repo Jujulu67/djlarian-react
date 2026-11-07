@@ -45,7 +45,7 @@ export function useTracks() {
 
   useEffect(() => {
     if (status !== 'authenticated') return;
-    fetchTracks();
+    void fetchTracks();
   }, [status]);
 
   // Filter tracks

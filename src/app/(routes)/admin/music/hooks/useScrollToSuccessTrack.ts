@@ -17,7 +17,7 @@ export function useScrollToSuccessTrack(
     if (!successTrackId || !isInList) return;
 
     const controller = new AbortController();
-    waitForElement(`[data-track-id="${CSS.escape(successTrackId)}"]`, {
+    void waitForElement(`[data-track-id="${CSS.escape(successTrackId)}"]`, {
       signal: controller.signal,
     }).then((el) => {
       if (el) window.scrollTo({ top: 0, behavior: 'smooth' });

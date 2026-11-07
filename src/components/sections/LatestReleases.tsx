@@ -317,7 +317,7 @@ export default function LatestReleases({
     };
 
     // Démarrer le fetch immédiatement, même si isFirstSection
-    fetchTracks();
+    void fetchTracks();
 
     return () => {
       isMounted = false;

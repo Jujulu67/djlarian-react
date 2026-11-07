@@ -75,7 +75,7 @@ export function useReleaseImport({
       setSpotifyOriginalData({ genres: [] });
 
       // Enrichir les métadonnées et rechercher les autres plateformes en parallèle
-      Promise.all([
+      void Promise.all([
         enrichReleaseData(release),
         searchOtherPlatforms(release.artist, release.title),
       ]).then(
@@ -123,7 +123,7 @@ export function useReleaseImport({
       );
     } else if (showVerifyModal && verifyIndex >= selectedReleases.length) {
       setShowVerifyModal(false);
-      fetchTracks?.();
+      void fetchTracks?.();
       setReleases((prev) =>
         prev.map((r) => (selectedReleases.includes(r.id) ? { ...r, exists: true } : r))
       );

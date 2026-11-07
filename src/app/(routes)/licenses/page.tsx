@@ -168,7 +168,7 @@ export default function LicensesPage() {
     }
 
     if (status === 'authenticated') {
-      loadLicenses();
+      void loadLicenses();
     } else if (status === 'unauthenticated') {
       setIsLoading(false);
     }

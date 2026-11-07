@@ -160,7 +160,7 @@ function EditableCellDisplay({
           color: status.color,
         }))}
         onChange={(newValue) => {
-          onSave(field, newValue as ProjectStatus);
+          void onSave(field, newValue as ProjectStatus);
         }}
         isCompact={isCompact}
         className={className}
@@ -191,7 +191,7 @@ function EditableCellDisplay({
         value={normalizedValue || ''}
         options={labelOptions}
         onChange={(newValue) => {
-          onSave(field, newValue || null);
+          void onSave(field, newValue || null);
         }}
         placeholder="-"
         isCompact={isCompact}
@@ -328,7 +328,7 @@ export const EditableCell = ({
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      handleSave();
+      void handleSave();
     } else if (e.key === 'Escape') {
       setEditValue(value?.toString() ?? '');
       setIsEditing(false);
@@ -431,7 +431,7 @@ export const EditableCell = ({
         onKeyDown={(e) => {
           if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            handleSave();
+            void handleSave();
           } else if (e.key === 'Escape') {
             setEditValue(value?.toString() ?? '');
             setIsEditing(false);

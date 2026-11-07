@@ -37,7 +37,7 @@ export function LinkEditModal({
           autoFocus
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
-              handleSaveLink();
+              void handleSaveLink();
             } else if (e.key === 'Escape') {
               setEditingLinkId(null);
               setLinkValue('');

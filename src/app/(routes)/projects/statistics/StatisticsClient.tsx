@@ -63,7 +63,7 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
       }
     };
 
-    fetchStatistics();
+    void fetchStatistics();
   }, []);
 
   // Filtrer les statistiques selon l'année sélectionnée

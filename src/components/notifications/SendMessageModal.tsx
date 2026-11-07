@@ -45,7 +45,7 @@ export function SendMessageModal({
   // Charger la liste des utilisateurs au montage
   useEffect(() => {
     if (isOpen) {
-      loadUsers();
+      void loadUsers();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, isAdmin, friends]);

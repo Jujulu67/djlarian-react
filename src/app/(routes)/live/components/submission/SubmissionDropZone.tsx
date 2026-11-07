@@ -220,7 +220,7 @@ export function SubmissionDropZone({
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                handleDelete();
+                void handleDelete();
               }}
               className="p-2 hover:bg-red-500/20 rounded-lg transition-colors"
             >

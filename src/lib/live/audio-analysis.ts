@@ -44,7 +44,7 @@ export async function analyzeAudioFile(file: File): Promise<AudioAnalysisResult>
       } catch (error) {
         reject(new Error("Erreur lors de l'analyse du fichier audio", { cause: error }));
       } finally {
-        audioContext.close();
+        void audioContext.close();
       }
     };
 

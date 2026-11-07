@@ -116,7 +116,7 @@ export default function EventDetailsPage() {
     };
 
     if (eventId) {
-      fetchEvent();
+      void fetchEvent();
     }
   }, [eventId]);
 
@@ -540,7 +540,7 @@ export default function EventDetailsPage() {
                     {/* Bouton copier lien */}
                     <button
                       onClick={() => {
-                        navigator.clipboard.writeText(
+                        void navigator.clipboard.writeText(
                           `${window.location.origin}/events/${event.id}`
                         );
                         alert('Lien public copié dans le presse-papier !');

@@ -32,7 +32,7 @@ export function useProfileBadges(stats: UserStats, user: User) {
       }
     };
 
-    fetchGameStats();
+    void fetchGameStats();
   }, [isAuthenticated]);
 
   const memberMonths = useMemo(() => {

@@ -53,7 +53,7 @@ export default function VercelSpeedInsightsDashboard() {
 
   useEffect(() => {
     let alive = true;
-    loadStatus().then((next) => {
+    void loadStatus().then((next) => {
       if (alive) setStatus(next);
     });
     return () => {

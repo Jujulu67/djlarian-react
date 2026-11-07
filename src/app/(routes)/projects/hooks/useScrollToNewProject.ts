@@ -23,7 +23,7 @@ export function useScrollToNewProject({
     if (!lastCreatedProjectId) return;
 
     const controller = new AbortController();
-    waitForElement(`#project-${CSS.escape(lastCreatedProjectId)}`, {
+    void waitForElement(`#project-${CSS.escape(lastCreatedProjectId)}`, {
       signal: controller.signal,
     }).then((el) => el?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
 

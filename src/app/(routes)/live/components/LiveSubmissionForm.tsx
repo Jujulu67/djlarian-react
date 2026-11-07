@@ -101,7 +101,7 @@ export function LiveSubmissionForm() {
       }
     };
 
-    loadStorageMode();
+    void loadStorageMode();
 
     // Vérifier si les soumissions sont activées
     const checkTrackSubmissions = async () => {
@@ -121,12 +121,12 @@ export function LiveSubmissionForm() {
       }
     };
 
-    checkTrackSubmissions();
+    void checkTrackSubmissions();
 
     // Revérifier périodiquement et au retour sur l'onglet, mais jamais onglet masqué : chaque
     // appel interroge la base et consomme le quota gratuit de Vercel
     const refreshIfVisible = () => {
-      if (document.visibilityState === 'visible') checkTrackSubmissions();
+      if (document.visibilityState === 'visible') void checkTrackSubmissions();
     };
     const interval = setInterval(refreshIfVisible, SUBMISSIONS_STATUS_REFRESH_MS);
     document.addEventListener('visibilitychange', refreshIfVisible);
@@ -165,7 +165,7 @@ export function LiveSubmissionForm() {
           .then((blob) => {
             const file = new File([blob], submission.fileName, { type: blob.type });
             setSelectedFile(file);
-            analyzeAudioFile(file).then((analysis) => {
+            void analyzeAudioFile(file).then((analysis) => {
               setAudioAnalysis(analysis);
             });
 
@@ -771,7 +771,7 @@ export function LiveSubmissionForm() {
       }
     };
 
-    restoreDraft();
+    void restoreDraft();
   }, []); // Exécuter une seule fois au montage
 
   // Sauvegarder les données dans sessionStorage

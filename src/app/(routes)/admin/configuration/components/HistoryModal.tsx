@@ -74,7 +74,7 @@ export default function HistoryModal({
   // Récupérer l'historique et les snapshots
   useEffect(() => {
     if (isOpen) {
-      fetchHistoryData();
+      void fetchHistoryData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, activeTab]);
@@ -106,7 +106,7 @@ export default function HistoryModal({
     try {
       await onRevertChange(historyItem);
       // Actualiser l'historique après l'annulation
-      fetchHistoryData();
+      void fetchHistoryData();
     } catch (error) {
       logger.error("Erreur lors de l'annulation de la modification:", error);
     } finally {
@@ -131,7 +131,7 @@ export default function HistoryModal({
         }),
       });
       // Actualiser l'historique après le rétablissement
-      fetchHistoryData();
+      void fetchHistoryData();
       toast.success('Modification rétablie avec succès');
     } catch (error) {
       logger.error('Erreur lors du rétablissement de la modification:', error);
@@ -167,7 +167,7 @@ export default function HistoryModal({
       const res = await fetch('/api/admin/config/reset', { method: 'POST' });
       if (res.ok) {
         toast.success('Configuration réinitialisée avec succès !');
-        fetchHistoryData();
+        void fetchHistoryData();
       } else {
         const data = await res.json();
         toast.error(data.error || 'Erreur lors de la réinitialisation.');

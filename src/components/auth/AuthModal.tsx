@@ -60,7 +60,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     };
 
     if (isOpen) {
-      checkProviders();
+      void checkProviders();
     }
   }, [isOpen]);
 

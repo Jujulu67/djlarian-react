@@ -173,7 +173,7 @@ function EventFormContent() {
         setLoading(false);
       }
     };
-    fetchEvent();
+    void fetchEvent();
   }, [isEditMode, eventId]);
 
   // Gérer les changements de valeur dans le formulaire

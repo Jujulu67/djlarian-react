@@ -19,7 +19,7 @@ export function useOriginalImageCache(
     imageUpload.setCroppedImageBlob(null);
     // Ne charger l'image originale que si on est en mode édition
     if (trackForm.isEditing && trackForm.currentForm.imageId) {
-      (async () => {
+      void (async () => {
         const file = await fetchOriginalImage(trackForm.currentForm.imageId as string);
         if (file) {
           imageUpload.setOriginalImageFile(file);

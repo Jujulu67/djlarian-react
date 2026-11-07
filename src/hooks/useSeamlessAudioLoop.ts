@@ -193,7 +193,7 @@ export function useSeamlessAudioLoop({
       }
     };
 
-    preloadAll();
+    void preloadAll();
     return () => {
       mounted = false;
     };
@@ -386,7 +386,7 @@ export function useSeamlessAudioLoop({
         }
       };
 
-      loadAndStart();
+      void loadAndStart();
     },
     [basePath, resumeAudioContext, createSource, loadAndDecodeBuffer]
   );

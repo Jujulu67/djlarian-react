@@ -138,7 +138,7 @@ export const ProjectTable = ({
     const [removed] = reorderedProjects.splice(sourceIndex, 1);
     reorderedProjects.splice(destinationIndex, 0, removed);
 
-    onReorder(reorderedProjects);
+    void onReorder(reorderedProjects);
   };
 
   const handleUpdate = useCallback(
