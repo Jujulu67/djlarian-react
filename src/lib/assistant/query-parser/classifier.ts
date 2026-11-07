@@ -42,6 +42,15 @@ export function classifyQuery(
       lowerQuery
     );
 
+  // Demande de conseil (« donne-moi une idée », « conseille-moi ») : réponse de l'IA,
+  // même si « donne » ressemble à une demande de liste
+  const isAdviceRequest =
+    /(?:donn|propos|trouv|fil)\w*[-\s]+(?:moi\s+|nous\s+)?(?:une?|des|quelques|ton|votre|d['’]autres)\s+(?:idées?|conseils?|astuces?|avis|suggestions?|pistes?|recommandations?|tips?|stratégies?|méthodes?)\b/i.test(
+      lowerQuery
+    ) ||
+    /\b(?:conseill|recommand|sugg[èeé]r)\w*[-\s]+(?:moi|nous)\b/i.test(lowerQuery) ||
+    /\b(?:tu|vous)\s+(?:me|nous)\s+(?:conseill|recommand|sugg[èeé]r)/i.test(lowerQuery);
+
   // Détecter type de requête (FR + EN) - UPDATE et CREATE doivent être détectés AVANT count/list
   // Inclure aussi les patterns simples comme "deadline à X" qui sont des mises à jour
   // Inclure aussi "en collab avec X à Y" qui est une mise à jour
@@ -172,6 +181,7 @@ export function classifyQuery(
 
   const isList =
     !isNoteAdditionPattern && // Ne pas détecter comme liste si c'est un ajout de note
+    !isAdviceRequest &&
     // « crée un projet X avec collab Y » : le « avec » ne fait pas de cette commande une liste
     !(isCreate && !isUpdate && !hasExplicitListVerb && !hasQuestionWord) &&
     (hasExplicitListVerb ||
@@ -284,6 +294,7 @@ export function classifyQuery(
     // Si on demande les projets de l'assistant (pas de l'utilisateur), c'est TOUJOURS conversationnel
     // même si on a un verbe d'action (liste, montre, etc.) - PRIORITÉ ABSOLUE
     isQuestionAboutAssistantProjects ||
+    (isAdviceRequest && !isCreate && !isUpdate) ||
     // Si c'est un long message personnel, c'est conversationnel
     isLongPersonalMessage ||
     // Si on a un verbe d'action mais que ce n'est pas lié aux projets, c'est conversationnel
@@ -369,6 +380,7 @@ export function classifyQuery(
   const understood =
     (!isQuestionAboutAssistantProjects &&
       !isLongPersonalMessage &&
+      !(isAdviceRequest && isConversationalQuestion) &&
       Object.keys(filters).length > 0) ||
     ((isCount || isList || isCreate || isUpdate) && !isConversationalQuestion) ||
     (hasProjectMention && !isConversationalQuestion);
