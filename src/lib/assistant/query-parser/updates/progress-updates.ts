@@ -35,7 +35,7 @@ export function extractDeXaYProgress(
   updateData: UpdateData
 ): boolean {
   const deXaYPattern = /(?:de|depuis)\s+(\d+)\s*%\s+à\s+(\d+)(?:\s*%|$)/i;
-  const deXaYMatch = cleanedQuery.match(deXaYPattern);
+  const deXaYMatch = deXaYPattern.exec(cleanedQuery);
 
   if (deXaYMatch) {
     const filterValue = Number.parseInt(deXaYMatch[1], 10);

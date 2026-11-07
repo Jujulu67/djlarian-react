@@ -62,7 +62,7 @@ async function getTwitchAccessToken(userId: string): Promise<string | null> {
       },
     });
 
-    if (!account || !account.access_token) {
+    if (!account?.access_token) {
       return null;
     }
 

@@ -17,7 +17,7 @@ export const ProjectsByYearTooltip = ({
   projectsByYearDetails: StatisticsData['projectsByYearDetails'];
   projects: Project[];
 }) => {
-  if (!active || !payload || !payload.length) return null;
+  if (!active || !payload?.length) return null;
 
   const year = String(label || '');
   const yearData = payload[0]?.payload;

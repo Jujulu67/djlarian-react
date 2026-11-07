@@ -25,11 +25,11 @@ export const MusicCardVisualizer: React.FC<MusicCardVisualizerProps> = ({
   frequencyData = null,
   isRealAudio = false,
 }) => {
-  const [audioData, setAudioData] = useState<number[]>(Array(20).fill(20));
+  const [audioData, setAudioData] = useState<number[]>(new Array(20).fill(20));
   const [currentTime, setCurrentTime] = useState<number>(() => Date.now() / 1000);
   const animationFrameRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
-  const previousAudioDataRef = useRef<number[]>(Array(20).fill(20));
+  const previousAudioDataRef = useRef<number[]>(new Array(20).fill(20));
 
   // Mémoriser le mapping des fréquences (ne change que si la longueur des données change)
   const frequencyMapping = useMemo(() => {
@@ -45,7 +45,7 @@ export const MusicCardVisualizer: React.FC<MusicCardVisualizerProps> = ({
 
       // Réinitialiser les valeurs précédentes quand on passe de pause à play
       if (isPlaying && isRealAudio && frequencyData && frequencyData.length > 0) {
-        previousAudioDataRef.current = Array(20).fill(20);
+        previousAudioDataRef.current = new Array(20).fill(20);
       }
 
       let lastUpdateTime: number | null = null;
@@ -68,7 +68,7 @@ export const MusicCardVisualizer: React.FC<MusicCardVisualizerProps> = ({
 
         if (isPlaying && isRealAudio && frequencyData && frequencyData.length > 0) {
           // Utiliser les vraies données de fréquence
-          newData = Array(20)
+          newData = new Array(20)
             .fill(0)
             .map((_, index) =>
               calculateRealAudioBarValue(
@@ -80,14 +80,14 @@ export const MusicCardVisualizer: React.FC<MusicCardVisualizerProps> = ({
             );
         } else if (isPlaying) {
           // Simulation réaliste
-          newData = Array(20)
+          newData = new Array(20)
             .fill(0)
             .map((_, index) =>
               calculateSimulatedAudioBarValue(index, time, previousAudioDataRef.current)
             );
         } else {
           // Animation en pause
-          newData = Array(20)
+          newData = new Array(20)
             .fill(0)
             .map((_, index) =>
               calculatePauseAnimationBarValue(index, time, previousAudioDataRef.current)
@@ -108,7 +108,7 @@ export const MusicCardVisualizer: React.FC<MusicCardVisualizerProps> = ({
         }
       };
     } else {
-      const resetData = Array(20).fill(20);
+      const resetData = new Array(20).fill(20);
       previousAudioDataRef.current = resetData;
       setAudioData(resetData);
       if (animationFrameRef.current) {

@@ -10,18 +10,16 @@ export function calculateFrequencyMapping(totalBins: number) {
   const logMax = Math.log10(NYQUIST);
   const logRange = logMax - logMin;
 
-  return Array(20)
-    .fill(0)
-    .map((_, index) => {
-      const barStart = logMin + (logRange * index) / 20;
-      const barEnd = logMin + (logRange * (index + 1)) / 20;
-      const freqStart = Math.pow(10, barStart);
-      const freqEnd = Math.pow(10, barEnd);
-      const binStart = Math.floor((freqStart / NYQUIST) * totalBins);
-      const binEnd = Math.ceil((freqEnd / NYQUIST) * totalBins);
+  return new Array(20).fill(0).map((_, index) => {
+    const barStart = logMin + (logRange * index) / 20;
+    const barEnd = logMin + (logRange * (index + 1)) / 20;
+    const freqStart = Math.pow(10, barStart);
+    const freqEnd = Math.pow(10, barEnd);
+    const binStart = Math.floor((freqStart / NYQUIST) * totalBins);
+    const binEnd = Math.ceil((freqEnd / NYQUIST) * totalBins);
 
-      return { binStart, binEnd, index };
-    });
+    return { binStart, binEnd, index };
+  });
 }
 
 /**

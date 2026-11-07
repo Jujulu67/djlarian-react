@@ -47,7 +47,7 @@ export function RandomWheel({
     const totalWeight = weights.reduce((sum, w) => sum + w, 0);
     if (totalWeight === 0) {
       // Si pas de poids, diviser équitablement
-      return Array(numSegments).fill(360 / numSegments);
+      return new Array(numSegments).fill(360 / numSegments);
     }
 
     return weights.map((weight) => (weight / totalWeight) * 360);

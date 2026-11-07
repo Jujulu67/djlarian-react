@@ -202,7 +202,7 @@ export default function GestionImages({
     link.download = image.name;
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
+    link.remove();
   }, []);
 
   // Gestion de la fusion

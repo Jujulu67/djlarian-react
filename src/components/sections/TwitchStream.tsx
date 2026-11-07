@@ -406,7 +406,7 @@ const TwitchStream = () => {
               <div className="w-full h-full relative flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900/20 to-black overflow-hidden">
                 {/* Animated background particles - reduced on mobile for performance */}
                 <div className="absolute inset-0">
-                  {[...Array(isMobile ? 8 : 15)].map((_, i) => (
+                  {[...new Array(isMobile ? 8 : 15)].map((_, i) => (
                     <motion.div
                       key={i}
                       className="absolute w-1 h-1 md:w-1.5 md:h-1.5 bg-purple-400/20 rounded-full"

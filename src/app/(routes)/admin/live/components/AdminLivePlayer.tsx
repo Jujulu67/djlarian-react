@@ -299,7 +299,7 @@ export function AdminLivePlayer() {
                   a.download = selectedSubmission.fileName;
                   document.body.appendChild(a);
                   a.click();
-                  document.body.removeChild(a);
+                  a.remove();
                   window.URL.revokeObjectURL(url);
                 } catch (error) {
                   logger.error('Erreur lors du téléchargement:', error);

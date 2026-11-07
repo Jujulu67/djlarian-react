@@ -6,8 +6,8 @@ export type WinIntensity = 'low' | 'medium' | 'high' | 'jackpot';
 
 /** Near-miss: exactly 2 rare symbols among the 3 reels. */
 export function isNearMiss(symbols: SymbolType[]): boolean {
-  const rareSymbols = [SymbolType.SEVEN, SymbolType.STAR, SymbolType.BELL];
-  const rareCount = symbols.filter((s) => rareSymbols.includes(s)).length;
+  const rareSymbols = new Set([SymbolType.SEVEN, SymbolType.STAR, SymbolType.BELL]);
+  const rareCount = symbols.filter((s) => rareSymbols.has(s)).length;
   return rareCount === 2;
 }
 

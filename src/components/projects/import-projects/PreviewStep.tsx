@@ -81,7 +81,7 @@ export function PreviewStep({
                   {detectedColumns.length} mappées
                 </span>
                 {/* Ne pas afficher les colonnes non mappées si on a exactement 2 colonnes mappées (Nom Projet et Date Sortie) = CSV Spotify reformaté */}
-                {detectedColumns.filter((c) => !c.mapped).length > 0 &&
+                {detectedColumns.some((c) => !c.mapped) &&
                   !(
                     detectedColumns.filter((c) => c.mapped).length === 2 &&
                     detectedColumns.some((c) => c.mapped === 'Nom Projet') &&

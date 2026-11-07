@@ -157,7 +157,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           },
         });
 
-        if (!user || !user.hashedPassword) {
+        if (!user?.hashedPassword) {
           logger.warn('[Auth] authorize - Utilisateur non trouvé ou sans mot de passe');
           // Retourner null pour que NextAuth retourne CredentialsSignin
           return null;

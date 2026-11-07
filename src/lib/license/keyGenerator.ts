@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 
 /**
  * Génère une clé de licence au format LARIAN-XXXX-XXXX-XXXX

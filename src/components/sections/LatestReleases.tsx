@@ -1,8 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { AlertTriangle, ArrowRight } from 'lucide-react';
-import { Music } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Music } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';

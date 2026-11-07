@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    if (!user || !user.hashedPassword) {
+    if (!user?.hashedPassword) {
       logger.warn(
         '[API] /api/auth/signin-credentials - Utilisateur non trouvé ou sans mot de passe'
       );

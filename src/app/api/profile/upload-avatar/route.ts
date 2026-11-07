@@ -1,5 +1,5 @@
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
 
         // Supprimer l'ancienne photo de profil si elle existe (uniquement si c'est une image locale)
         const oldImage = session.user.image;
-        if (oldImage && oldImage.startsWith('/uploads/avatars/')) {
+        if (oldImage?.startsWith('/uploads/avatars/')) {
           const oldImagePath = path.join(process.cwd(), 'public', oldImage);
           if (fs.existsSync(oldImagePath)) {
             try {

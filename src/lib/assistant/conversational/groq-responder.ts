@@ -14,7 +14,7 @@
  */
 import 'server-only';
 import type { ConversationMessage } from './memory-manager';
-import { prepareConversationContext } from './memory-manager';
+import { prepareConversationContext, formatConversationContextForPrompt } from './memory-manager';
 import {
   SYSTEM_PROMPT_8B,
   buildUserPrompt,
@@ -23,7 +23,6 @@ import {
 import { SYSTEM_DISCIPLINE_PROMPT } from '../prompts/system-discipline-prompt';
 import { InferModeFromQuery } from './mode-inference';
 import { sanitizeForLogs } from '../utils/sanitize-logs';
-import { formatConversationContextForPrompt } from './memory-manager';
 import { capMaxCompletionTokens, GROQ_COMPLEX_MODEL, GROQ_FAST_MODEL } from '../memory/ModelLimits';
 import { sanitizeGroqMessages } from '../memory/SanitizeGroqMessages';
 import { logger } from '@/lib/logger';
@@ -91,7 +90,7 @@ async function callGroq({
   // O8: Cas spécial - questions d'identité (réponse hardcodée déjà gérée plus haut)
   // Pour les prompts trop longs, simplifier vers la question originale
   // NOTE: Ce n'est plus un "workaround" mais une optimisation documentée
-  const lastMessageLength = finalMessages[finalMessages.length - 1]?.content?.length || 0;
+  const lastMessageLength = finalMessages.at(-1)?.content?.length || 0;
   const MAX_USER_PROMPT_LENGTH = 800; // Limite produit pour éviter erreurs API
 
   if (lastMessageLength > MAX_USER_PROMPT_LENGTH) {

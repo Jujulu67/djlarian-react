@@ -171,7 +171,7 @@ export const ReleaseCalendar = ({ projects, onUpdate }: ReleaseCalendarProps) =>
                 <div className={`${quarter.color} rounded-lg px-3 py-2 border border-gray-700/50`}>
                   <h3 className="text-sm font-medium text-white text-center">
                     T{quarter.number} ({quarter.weeks[0]?.weekLabel} -{' '}
-                    {quarter.weeks[quarter.weeks.length - 1]?.weekLabel})
+                    {quarter.weeks.at(-1)?.weekLabel})
                   </h3>
                 </div>
 

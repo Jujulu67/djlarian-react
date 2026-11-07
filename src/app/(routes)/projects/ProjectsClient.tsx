@@ -555,8 +555,8 @@ export const ProjectsClient = ({ initialProjects }: ProjectsClientProps) => {
     // Optimistic update
     setProjects(reorderedProjects);
     setAllProjects((prev) => {
-      const reorderedIds = reorderedProjects.map((p) => p.id);
-      const remaining = prev.filter((p) => !reorderedIds.includes(p.id));
+      const reorderedIds = new Set(reorderedProjects.map((p) => p.id));
+      const remaining = prev.filter((p) => !reorderedIds.has(p.id));
       return [...reorderedProjects, ...remaining];
     });
 

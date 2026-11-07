@@ -16,11 +16,10 @@ import { isScheduledInFuture, publicTrackWhere } from '@/lib/music-publication';
 import prisma from '@/lib/prisma';
 import { isNotEmpty } from '@/lib/utils/arrayHelpers';
 import { convertToWebP, canConvertToWebP } from '@/lib/utils/convertToWebP';
-import { generateImageId } from '@/lib/utils/generateImageId';
+import { generateImageId, isValidImageId } from '@/lib/utils/generateImageId';
 import { saveImage } from '@/lib/utils/saveImage';
 import type { MusicType, MusicPlatform } from '@/lib/utils/types';
 import { NextRequest } from 'next/server';
-import { isValidImageId } from '@/lib/utils/generateImageId';
 
 /**
  * Music API endpoint - Vercel (Node.js runtime natif)

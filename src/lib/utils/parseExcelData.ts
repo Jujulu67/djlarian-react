@@ -182,7 +182,7 @@ function parseDate(value: string, dateFormat: 'fr' | 'en' = 'fr'): string | null
   // Parser selon le format spécifié
   if (dateFormat === 'fr') {
     // Format français : DD/MM/YYYY ou DD-MM-YYYY
-    const frMatch = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    const frMatch = /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/.exec(trimmed);
     if (frMatch) {
       const [, day, month, year] = frMatch;
       const date = new Date(
@@ -200,7 +200,7 @@ function parseDate(value: string, dateFormat: 'fr' | 'en' = 'fr'): string | null
     }
   } else {
     // Format anglais : MM/DD/YYYY ou MM-DD-YYYY
-    const enMatch = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    const enMatch = /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/.exec(trimmed);
     if (enMatch) {
       const [, month, day, year] = enMatch;
       const date = new Date(

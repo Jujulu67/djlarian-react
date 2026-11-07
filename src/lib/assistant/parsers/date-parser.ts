@@ -61,7 +61,7 @@ export function parseRelativeDate(dateStr: string): string | null {
   }
 
   // "dans X mois" / "in X months" / "dans X month"
-  const dansMoisMatch = lowerDateStr.match(/dans\s+(\d+)\s+mois|in\s+(\d+)\s+months?/i);
+  const dansMoisMatch = /dans\s+(\d+)\s+mois|in\s+(\d+)\s+months?/i.exec(lowerDateStr);
   if (dansMoisMatch) {
     const months = Number.parseInt(dansMoisMatch[1] || dansMoisMatch[2], 10);
     if (!Number.isNaN(months) && months > 0) {
@@ -72,7 +72,7 @@ export function parseRelativeDate(dateStr: string): string | null {
   }
 
   // "dans X jours" / "in X days" / "dans X day"
-  const dansJoursMatch = lowerDateStr.match(/dans\s+(\d+)\s+jours?|in\s+(\d+)\s+days?/i);
+  const dansJoursMatch = /dans\s+(\d+)\s+jours?|in\s+(\d+)\s+days?/i.exec(lowerDateStr);
   if (dansJoursMatch) {
     const days = Number.parseInt(dansJoursMatch[1] || dansJoursMatch[2], 10);
     if (!Number.isNaN(days) && days > 0) {
@@ -83,7 +83,7 @@ export function parseRelativeDate(dateStr: string): string | null {
   }
 
   // "dans X semaines" / "in X weeks" / "dans X week"
-  const dansSemainesMatch = lowerDateStr.match(/dans\s+(\d+)\s+semaines?|in\s+(\d+)\s+weeks?/i);
+  const dansSemainesMatch = /dans\s+(\d+)\s+semaines?|in\s+(\d+)\s+weeks?/i.exec(lowerDateStr);
   if (dansSemainesMatch) {
     const weeks = Number.parseInt(dansSemainesMatch[1] || dansSemainesMatch[2], 10);
     if (!Number.isNaN(weeks) && weeks > 0) {
@@ -156,7 +156,7 @@ export function parseRelativeDate(dateStr: string): string | null {
   };
 
   for (const [dayName, dayNumber] of Object.entries(dayNames)) {
-    const namedDayPattern = new RegExp(`${dayName}\\s*(?:prochain|next)?`, 'i');
+    const namedDayPattern = new RegExp(String.raw`${dayName}\s*(?:prochain|next)?`, 'i');
     if (namedDayPattern.test(lowerDateStr)) {
       const namedDay = new Date(today);
       const currentDay = namedDay.getDay();
@@ -176,7 +176,7 @@ export function parseRelativeDate(dateStr: string): string | null {
   }
 
   // Support DD/MM/YYYY ou DD-MM-YYYY
-  const frDateMatch = dateStr.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+  const frDateMatch = /^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/.exec(dateStr);
   if (frDateMatch) {
     const day = Number.parseInt(frDateMatch[1], 10);
     const month = Number.parseInt(frDateMatch[2], 10);

@@ -26,7 +26,7 @@ export function useActiveSection() {
   return { activeSection, handleSectionClick };
 }
 
-const VALID_SECTIONS: ConfigSection[] = [
+const VALID_SECTIONS: Set<ConfigSection> = new Set([
   'general',
   'appearance',
   'homepage',
@@ -34,10 +34,10 @@ const VALID_SECTIONS: ConfigSection[] = [
   'security',
   'api',
   'images',
-];
+]);
 
 function sectionFromUrl(): ConfigSection {
   const hash = window.location.hash.replace('#', '');
-  if (VALID_SECTIONS.includes(hash as ConfigSection)) return hash as ConfigSection;
+  if (VALID_SECTIONS.has(hash as ConfigSection)) return hash as ConfigSection;
   return window.location.pathname.endsWith('/images') ? 'images' : 'general';
 }

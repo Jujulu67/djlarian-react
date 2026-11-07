@@ -10,7 +10,7 @@ const SOUNDCLOUD_REGEX = /soundcloud\.com\/([a-zA-Z0-9_-]+)\/([a-zA-Z0-9_-]+)/;
  * Retourne null pour tout autre format (ID nu, /embed/, /shorts/…).
  */
 export const extractYoutubeId = (url: string): string | null => {
-  const match = url.match(YOUTUBE_REGEX);
+  const match = YOUTUBE_REGEX.exec(url);
   return match ? match[1] : null;
 };
 
@@ -20,14 +20,14 @@ export const extractYoutubeId = (url: string): string | null => {
 export const extractPlatformId = (url: string, platform: MusicPlatform): string | null => {
   switch (platform) {
     case 'spotify':
-      const spotifyMatch = url.match(SPOTIFY_REGEX);
+      const spotifyMatch = SPOTIFY_REGEX.exec(url);
       return spotifyMatch ? spotifyMatch[1] : null;
 
     case 'youtube':
       return extractYoutubeId(url);
 
     case 'soundcloud':
-      const soundcloudMatch = url.match(SOUNDCLOUD_REGEX);
+      const soundcloudMatch = SOUNDCLOUD_REGEX.exec(url);
       return soundcloudMatch ? `${soundcloudMatch[1]}/${soundcloudMatch[2]}` : null;
 
     default:

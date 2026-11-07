@@ -97,7 +97,7 @@ export function extractCreateData(
   if (!createData.name) {
     const simplePattern =
       /(?:ajoute|ajouter|créer|créez|créé|crée|creer|creez|cree|add|create)\s+(?:(?:le|un|une|mon|nouveau|the|a|new)\s+)*(?:projet\s+|project\s+)?(\w+)(?:\s|$)/i;
-    const match = query.match(simplePattern);
+    const match = simplePattern.exec(query);
     if (match && match[1]) {
       const potentialName = match[1].trim();
       const ignoredWords = ['le', 'la', 'les', 'un', 'une', 'projet', 'project', 'nouveau', 'new'];

@@ -23,8 +23,8 @@ async function fetchSpotifyThumbnail(spotifyUrl: string): Promise<string | null>
   try {
     // Extraire l'album ID depuis l'URL Spotify
     // Format: https://open.spotify.com/album/ALBUM_ID ou https://open.spotify.com/track/TRACK_ID
-    const albumMatch = spotifyUrl.match(/album\/([a-zA-Z0-9]+)/);
-    const trackMatch = spotifyUrl.match(/track\/([a-zA-Z0-9]+)/);
+    const albumMatch = /album\/([a-zA-Z0-9]+)/.exec(spotifyUrl);
+    const trackMatch = /track\/([a-zA-Z0-9]+)/.exec(spotifyUrl);
 
     if (!albumMatch && !trackMatch) {
       logger.debug(

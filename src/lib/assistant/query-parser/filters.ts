@@ -130,7 +130,7 @@ function isExactProgressFilter(
   // Utiliser le dictionnaire NLP pour les verbes de mise à jour
   const updateVerbsRegex = BuildAlternationRegexPart(UpdateVerbs);
   const isPrecededByUpdateVerb = new RegExp(
-    `(?:${updateVerbsRegex})(?:\\s+(?:les?|leur|leurs|projets?))?$`,
+    String.raw`(?:${updateVerbsRegex})(?:\s+(?:les?|leur|leurs|projets?))?$`,
     'i'
   ).test(textBefore);
 
@@ -140,7 +140,7 @@ function isExactProgressFilter(
   // Utiliser les synonymes de statut du dictionnaire
   const statusValues = Object.keys(StatusSynonyms).join('|');
   const isFollowedByUpdateParam = new RegExp(
-    `(?:en|à|avec|pour)\\s+(?:${statusValues}|collab|style)`,
+    String.raw`(?:en|à|avec|pour)\s+(?:${statusValues}|collab|style)`,
     'i'
   ).test(textAfter);
 
@@ -215,7 +215,7 @@ function detectProgressRange(lowerQuery: string, filters: Filters): void {
   }
 
   // Détecter "entre X et Y%"
-  const entreMatch = lowerQuery.match(/entre\s*(\d+)\s*(?:et|à)\s*(\d+)\s*%?/i);
+  const entreMatch = /entre\s*(\d+)\s*(?:et|à)\s*(\d+)\s*%?/i.exec(lowerQuery);
   if (entreMatch) {
     filters.minProgress = Number.parseInt(entreMatch[1], 10);
     filters.maxProgress = Number.parseInt(entreMatch[2], 10);
@@ -318,7 +318,7 @@ function detectExplicitStatus(query: string, lowerQuery: string, filters: Filter
 /** Le statut suit « à », « en » ou « comme » : c'est la nouvelle valeur, pas un filtre. */
 function isNewStatusValue(lowerQuery: string, pattern: RegExp): boolean {
   const match = lowerQuery.match(pattern);
-  if (!match || match.index === undefined) return false;
+  if (match?.index === undefined) return false;
   const statusIndex = match.index;
   const textBeforeStatus = lowerQuery.substring(0, statusIndex).trim();
   // Si le statut est précédé de "à", "en" ou "comme" (nouvelle valeur), ne pas l'utiliser comme filtre
@@ -361,7 +361,7 @@ function detectStatus(query: string, lowerQuery: string, filters: Filters): void
   }
 }
 
-const COLLAB_IGNORED_WORDS = [
+const COLLAB_IGNORED_WORDS = new Set([
   'projets',
   'projet',
   'les',
@@ -406,12 +406,12 @@ const COLLAB_IGNORED_WORDS = [
   'pase',
   'pass',
   'modifi',
-];
+]);
 
 /** Nom exact du collaborateur connu, ou le mot lui-même s'il n'est ni un mot clé ni trop court. */
 function resolveCollab(collabName: string, availableCollabs: string[]): string | null {
   const lowerName = collabName.toLowerCase();
-  if (COLLAB_IGNORED_WORDS.includes(lowerName)) return null;
+  if (COLLAB_IGNORED_WORDS.has(lowerName)) return null;
   const known = availableCollabs.find(
     (c) => c.toLowerCase().includes(lowerName) || lowerName.includes(c.toLowerCase())
   );

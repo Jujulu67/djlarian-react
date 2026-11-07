@@ -67,7 +67,7 @@ const normalizeLabelValue = (val: string | null | undefined): string | null => {
   );
 };
 
-const TITLE_CASE_FIELDS = ['name', 'style', 'collab', 'labelFinal'];
+const TITLE_CASE_FIELDS = new Set(['name', 'style', 'collab', 'labelFinal']);
 
 function parseIntOrNull(value: string): number | null {
   const parsed = Number.parseInt(value, 10);
@@ -87,7 +87,7 @@ function convertCellValue(
     return progress === null ? null : Math.max(0, Math.min(100, progress));
   }
   if (type === 'select' && field === 'label') return normalizeLabelValue(value);
-  if (type === 'text' && TITLE_CASE_FIELDS.includes(field)) return formatTitleCase(value);
+  if (type === 'text' && TITLE_CASE_FIELDS.has(field)) return formatTitleCase(value);
   return value;
 }
 

@@ -96,23 +96,23 @@ export class ActionParser {
     if (/en cours|in_progress/i.test(input)) params.status = 'in_progress';
     if (/terminé|done|completed/i.test(input)) params.status = 'done';
     if (/urgent|high/i.test(input)) params.priority = 'high';
-    const limitMatch = input.match(/(?<!\d)(\d+)\s*(premiers?|derniers?)/i);
+    const limitMatch = /(?<!\d)(\d+)\s*(premiers?|derniers?)/i.exec(input);
     if (limitMatch) params.limit = Number.parseInt(limitMatch[1], 10);
     return params;
   }
 
   private extractUpdateParams(input: string): Record<string, unknown> {
     const params: Record<string, unknown> = {};
-    const idMatch = input.match(/\b([a-f0-9]{8,})\b/i);
+    const idMatch = /\b([a-f0-9]{8,})\b/i.exec(input);
     if (idMatch) params.targetId = idMatch[1];
-    const progressMatch = input.match(/(?<!\d)(\d+)\s*%/);
+    const progressMatch = /(?<!\d)(\d+)\s*%/.exec(input);
     if (progressMatch) params.progress = Number.parseInt(progressMatch[1], 10);
     return params;
   }
 
   private extractDeleteParams(input: string): Record<string, unknown> {
     const params: Record<string, unknown> = {};
-    const idMatch = input.match(/\b([a-f0-9]{8,})\b/i);
+    const idMatch = /\b([a-f0-9]{8,})\b/i.exec(input);
     if (idMatch) params.targetId = idMatch[1];
     return params;
   }
@@ -127,9 +127,9 @@ export class ActionParser {
 
   private extractDeadlineParams(input: string): Record<string, unknown> {
     const params: Record<string, unknown> = {};
-    const isoMatch = input.match(/\d{4}-\d{2}-\d{2}/);
+    const isoMatch = /\d{4}-\d{2}-\d{2}/.exec(input);
     if (isoMatch) params.deadline = isoMatch[0];
-    const euMatch = input.match(/(\d{1,2})[\/\.](\d{1,2})[\/\.](\d{2,4})/);
+    const euMatch = /(\d{1,2})[\/\.](\d{1,2})[\/\.](\d{2,4})/.exec(input);
     if (euMatch) {
       const [, d, m, y] = euMatch;
       const year = y.length === 2 ? `20${y}` : y;

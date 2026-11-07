@@ -1,4 +1,4 @@
-import { timingSafeEqual } from 'crypto';
+import { timingSafeEqual } from 'node:crypto';
 
 import { NextResponse } from 'next/server';
 import type { Session } from 'next-auth';

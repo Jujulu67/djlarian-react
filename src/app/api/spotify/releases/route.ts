@@ -1,5 +1,4 @@
-import { NextResponse } from 'next/server';
-import { NextRequest } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 
 import { requireDbAdmin } from '@/lib/api/requireDbAdmin';
 import { logger } from '@/lib/logger';
@@ -130,7 +129,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       const artistString =
         allArtists.length > 0
           ? allArtists.length > 1
-            ? allArtists.slice(0, -1).join(', ') + ' & ' + allArtists[allArtists.length - 1]
+            ? allArtists.slice(0, -1).join(', ') + ' & ' + allArtists.at(-1)
             : allArtists[0]
           : 'Unknown';
 

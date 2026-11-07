@@ -318,7 +318,7 @@ export function StreamsEvolutionChart({
                         color: '#fff',
                       }}
                       content={({ active, payload, label }) => {
-                        if (!active || !payload || !payload.length) return null;
+                        if (!active || !payload?.length) return null;
                         const projectMapping = comparisonProjectMapping;
                         const projectsToShow =
                           comparisonMode === 'all'

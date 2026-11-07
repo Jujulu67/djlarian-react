@@ -67,18 +67,18 @@ export const useYouTubePlayer = ({
     if (!url) return null;
 
     // Case where URL is already an ID
-    if (url.match(/^[a-zA-Z0-9_-]{11}$/)) {
+    if (/^[a-zA-Z0-9_-]{11}$/.exec(url)) {
       return url;
     }
 
     // Standard formats: youtube.com/watch?v=ID or youtu.be/ID
-    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    const match = /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/.exec(url);
     if (match && match[1]) {
       return match[1];
     }
 
     // Alternative formats: youtube.com/embed/ID
-    const embedMatch = url.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/);
+    const embedMatch = /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/.exec(url);
     if (embedMatch && embedMatch[1]) {
       return embedMatch[1];
     }
@@ -207,7 +207,7 @@ export const useYouTubePlayer = ({
           const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
 
           // If we receive time data
-          if (data && data.info && typeof data.info.currentTime === 'number') {
+          if (data?.info && typeof data.info.currentTime === 'number') {
             setCurrentTime(data.info.currentTime);
             localStorage.setItem(
               `youtube-time-${youtubeVideoId}`,

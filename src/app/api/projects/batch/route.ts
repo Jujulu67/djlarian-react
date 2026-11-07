@@ -9,8 +9,7 @@ import {
 } from '@/lib/api/responseHelpers';
 import prisma from '@/lib/prisma';
 import { serializeProject } from '@/lib/utils/serializeProject';
-import { Project } from '@/components/projects/types';
-import { ProjectStatus } from '@/components/projects/types';
+import { Project, ProjectStatus } from '@/components/projects/types';
 import { requireAuth } from '@/lib/api/requireAuth';
 
 // Fonction helper pour invalider le cache des projets d'un utilisateur

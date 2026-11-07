@@ -7,8 +7,7 @@ import React from 'react';
 
 import { getImageUrl } from '@/lib/utils/getImageUrl';
 import { MUSIC_TYPES } from '@/lib/utils/music-helpers';
-import type { Track } from '@/lib/utils/types';
-import type { MusicPlatform } from '@/lib/utils/types';
+import type { Track, MusicPlatform } from '@/lib/utils/types';
 
 import { platformLabels, platformIcons } from '../constants';
 import { getTrackStatus } from '../utils/getTrackStatus';

@@ -188,7 +188,7 @@ const SMALL_TALK_KEYWORDS = [
 ];
 
 /** Confirmations */
-const CONFIRMATION_WORDS = [
+const CONFIRMATION_WORDS = new Set([
   'oui',
   'yes',
   'ok',
@@ -200,10 +200,10 @@ const CONFIRMATION_WORDS = [
   'ouais',
   'yep',
   'yup',
-];
+]);
 
 /** Annulations */
-const CANCELLATION_WORDS = ['non', 'no', 'annule', 'cancel', 'stop', 'arrête', 'abort'];
+const CANCELLATION_WORDS = new Set(['non', 'no', 'annule', 'cancel', 'stop', 'arrête', 'abort']);
 
 // ==========================================================================
 // Router Class
@@ -274,7 +274,7 @@ export class Router {
   private checkConfirmation(input: string): RouterResult | null {
     const words = input.toLowerCase().split(/\s+/);
 
-    if (words.some((w) => CONFIRMATION_WORDS.includes(w))) {
+    if (words.some((w) => CONFIRMATION_WORDS.has(w))) {
       return {
         decision: 'ACTION_COMMAND',
         confidence: 0.95,
@@ -283,7 +283,7 @@ export class Router {
       };
     }
 
-    if (words.some((w) => CANCELLATION_WORDS.includes(w))) {
+    if (words.some((w) => CANCELLATION_WORDS.has(w))) {
       return {
         decision: 'ACTION_COMMAND',
         confidence: 0.95,
@@ -317,7 +317,7 @@ export class Router {
     for (const verb of ACTION_VERBS_FR.sort((a, b) => b.length - a.length)) {
       if (lowerInput.includes(verb)) {
         // S'assurer que c'est au début ou après un espace/ponctuation
-        const regex = new RegExp(`(^|\\s|,|;|:)${this.escapeRegex(verb)}`, 'i');
+        const regex = new RegExp(String.raw`(^|\s|,|;|:)${this.escapeRegex(verb)}`, 'i');
         if (regex.test(lowerInput)) {
           return {
             decision: 'ACTION_COMMAND',
@@ -331,7 +331,7 @@ export class Router {
 
     // Vérifier les verbes anglais
     for (const verb of ACTION_VERBS_EN) {
-      const regex = new RegExp(`(^|\\s)${this.escapeRegex(verb)}(\\s|$)`, 'i');
+      const regex = new RegExp(String.raw`(^|\s)${this.escapeRegex(verb)}(\s|$)`, 'i');
       if (regex.test(lowerInput)) {
         return {
           decision: 'ACTION_COMMAND',

@@ -220,7 +220,7 @@ export async function scrapeSoundCloudTracksPage(profileName: string): Promise<S
         let trackUrl = href.startsWith('/') ? `https://soundcloud.com${href}` : href;
 
         // Vérifier que c'est bien une track de ce profil
-        const trackMatch = trackUrl.match(/soundcloud\.com\/([^\/]+)\/([^\/\?]+)/);
+        const trackMatch = /soundcloud\.com\/([^\/]+)\/([^\/\?]+)/.exec(trackUrl);
         if (!trackMatch || trackMatch[1] !== profileName) return;
 
         // Éviter les doublons
@@ -327,7 +327,7 @@ export async function scrapeSoundCloudTracksPage(profileName: string): Promise<S
                 title = titleMatch[1].trim();
               } else {
                 // Si pas de pattern, prendre tout après "Titre" ou tout le contenu
-                const simpleMatch = decoded.match(/Titre\s*[:\u00A0]\s*(.+)/i);
+                const simpleMatch = /Titre\s*[:\u00A0]\s*(.+)/i.exec(decoded);
                 if (simpleMatch && simpleMatch[1]) {
                   title = simpleMatch[1].split(/(?<!\s)\s+par\s+/i)[0].trim();
                 } else {
@@ -380,7 +380,7 @@ export async function scrapeSoundCloudTracksPage(profileName: string): Promise<S
             if (titleMatch && titleMatch[1]) {
               title = titleMatch[1].trim();
             } else {
-              const simpleMatch = decoded.match(/Titre\s*[:\u00A0]\s*(.+)/i);
+              const simpleMatch = /Titre\s*[:\u00A0]\s*(.+)/i.exec(decoded);
               if (simpleMatch && simpleMatch[1]) {
                 title = simpleMatch[1].split(/(?<!\s)\s+par\s+/i)[0].trim();
               } else {
@@ -414,7 +414,7 @@ export async function scrapeSoundCloudTracksPage(profileName: string): Promise<S
         const imageSpan = link.querySelector('span[style*="background-image"]');
         if (imageSpan) {
           const style = imageSpan.getAttribute('style') || '';
-          const imageMatch = style.match(/url\(["']?([^"')]+)["']?\)/i);
+          const imageMatch = /url\(["']?([^"')]+)["']?\)/i.exec(style);
           if (imageMatch && imageMatch[1]) {
             imageUrl = imageMatch[1]
               .replace(/\\/g, '')
@@ -519,7 +519,7 @@ export async function scrapeSoundCloudTracksPage(profileName: string): Promise<S
                 });
                 if (!releaseDate && titleAttr) {
                   // Essayer de parser le format "Posté le 1 août 2025"
-                  const dateMatch = titleAttr.match(/(\d{1,2})\s+(\w+)\s+(\d{4})/);
+                  const dateMatch = /(\d{1,2})\s+(\w+)\s+(\d{4})/.exec(titleAttr);
                   if (dateMatch) {
                     try {
                       // Essayer de parser avec la locale française
