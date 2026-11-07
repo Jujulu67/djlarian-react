@@ -24,6 +24,12 @@ export function sanitizeForLogs(text: string, maxLength: number = 200): string {
     sanitized = sanitized.substring(0, maxLength) + '...[truncated]';
   }
 
+  // Numéros français (avant les jetons, qui happent le format à points) : 06 12 34 56 78, 06.12.34.56.78, +33 6 12 34 56 78
+  sanitized = sanitized.replace(
+    /(?<!\d)(?:\+33[\s.-]?|0)[1-9](?:[\s.-]?\d{2}){4}(?!\d)/g,
+    '[phone-redacted]'
+  );
+
   // Masquer les emails
   sanitized = sanitized.replace(
     /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g,

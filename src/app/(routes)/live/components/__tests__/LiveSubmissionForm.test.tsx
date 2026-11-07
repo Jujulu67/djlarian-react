@@ -258,17 +258,16 @@ describe('LiveSubmissionForm', () => {
     // We can use the same trick as AdminLivePlayer or just find by role/class
     // In LiveSubmissionForm, the play button is in the player controls
     // It's the button with `bg-purple-500` usually
+    const play = jest
+      .spyOn(window.HTMLMediaElement.prototype, 'play')
+      .mockImplementation(() => Promise.resolve());
     const playButton = document.querySelector('button.bg-purple-500');
-
-    if (playButton) {
-      await act(async () => {
-        fireEvent.click(playButton);
-      });
-      // We can't easily test audio playback in jsdom without more complex mocking of HTMLMediaElement
-      // But we can check if state changed or if pause icon appears
-      // Since we didn't mock lucide-react in this file yet, we can't check for Pause icon easily by text
-      // But we can check if the button class changed or if it calls play on the ref
-    }
+    expect(playButton).not.toBeNull();
+    await act(async () => {
+      fireEvent.click(playButton as Element);
+    });
+    expect(play).toHaveBeenCalled();
+    play.mockRestore();
   });
 
   describe('rafraîchissement du statut des soumissions', () => {

@@ -112,5 +112,6 @@ describe('AdminLiveActions', () => {
     render(<AdminLiveActions />);
 
     const downloadButton = screen.getByRole('button', { name: /download all/i });
+    expect(downloadButton).toBeInTheDocument();
   });
 });

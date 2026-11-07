@@ -133,14 +133,7 @@ describe('SimpleMusicPlayer', () => {
     const image = screen.getByAltText('Test Track');
     fireEvent.error(image);
 
-    // Should fallback to music icon (implementation detail: check if Music icon is present or Image is gone)
-    // Since we mocked Image, we can check if the fallback logic is triggered.
-    // In the component, handleImageError sets imageError state to true.
-    // When imageError is true, it renders a div with Music icon instead of Image.
-    // We can check if the Image component is no longer in the document or if the fallback container is present.
-
-    // Re-querying might be needed if the DOM updated
-    // expect(screen.queryByAltText('Test Track')).not.toBeInTheDocument();
-    // Note: next/image mock might behave differently. Let's rely on the component logic.
+    // L'image en erreur est remplacée par l'icône de repli
+    expect(screen.queryByAltText('Test Track')).not.toBeInTheDocument();
   });
 });

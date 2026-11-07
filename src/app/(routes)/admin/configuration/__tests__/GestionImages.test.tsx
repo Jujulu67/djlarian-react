@@ -50,15 +50,16 @@ describe('GestionImages', () => {
 
   it('should display loading state', () => {
     (global.fetch as jest.Mock).mockImplementation(() => new Promise(() => {}));
-    render(<GestionImages />);
-    // Le loader devrait être visible pendant le chargement
+    const { container } = render(<GestionImages />);
+    // Le loader est visible pendant le chargement
+    expect(container.querySelector('.animate-spin')).not.toBeNull();
   });
 
   it('should handle image fetch error', async () => {
     (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
     render(<GestionImages />);
-    await waitFor(() => {
-      // L'erreur devrait être affichée
-    });
+    // L'échec du chargement est journalisé sans faire planter la page
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+    expect(screen.queryByText(/image\(s\) n'ont pas pu/)).not.toBeInTheDocument();
   });
 });

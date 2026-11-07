@@ -319,6 +319,10 @@ describe('detectFilters - Commandes canoniques (NLP Smoke Tests)', () => {
 
           throw new Error(errorParts.join('\n'));
         }
+        expect({ missingFilters, mismatchedFilters }).toEqual({
+          missingFilters: [],
+          mismatchedFilters: [],
+        });
 
         // Vérifier qu'il n'y a pas de filtres inattendus (optionnel, peut être assoupli si nécessaire)
         const unexpectedFilters = Object.keys(result.filters).filter(

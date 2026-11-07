@@ -422,9 +422,8 @@ describe('audioUtils', () => {
         writable: true,
       });
 
-      // @ts-expect-error - Testing unsupported command
-      sendPlayerCommand(iframe, 'youtube', 'unsupported');
-      // Should not throw, but may log error
+      expect(() => sendPlayerCommand(iframe, 'youtube', 'unsupported' as never)).not.toThrow();
+      expect(mockContentWindow.postMessage).not.toHaveBeenCalled();
     });
 
     it('should handle unsupported SoundCloud command', () => {
@@ -435,9 +434,8 @@ describe('audioUtils', () => {
         writable: true,
       });
 
-      // @ts-expect-error - Testing unsupported command
-      sendPlayerCommand(iframe, 'soundcloud', 'unsupported');
-      // Should not throw, but may log error
+      expect(() => sendPlayerCommand(iframe, 'soundcloud', 'unsupported' as never)).not.toThrow();
+      expect(mockContentWindow.postMessage).not.toHaveBeenCalled();
     });
 
     it('should handle YouTube setVolume with undefined value', () => {
