@@ -171,8 +171,16 @@ export function EventsFilters({
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Lieu</label>
-                <select className="bg-gray-900/70 text-white w-full px-4 py-2.5 rounded-xl border border-gray-700/70 focus:border-purple-500/70 focus:ring-1 focus:ring-purple-500/70 transition-all shadow-inner">
+                <label
+                  htmlFor="eventsfilters-lieu"
+                  className="block text-sm font-medium text-gray-300 mb-2"
+                >
+                  Lieu
+                </label>
+                <select
+                  id="eventsfilters-lieu"
+                  className="bg-gray-900/70 text-white w-full px-4 py-2.5 rounded-xl border border-gray-700/70 focus:border-purple-500/70 focus:ring-1 focus:ring-purple-500/70 transition-all shadow-inner"
+                >
                   <option value="">Tous les lieux</option>
                   <option value="Paris">Paris</option>
                   <option value="Lyon">Lyon</option>
@@ -181,8 +189,16 @@ export function EventsFilters({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Date</label>
-                <select className="bg-gray-900/70 text-white w-full px-4 py-2.5 rounded-xl border border-gray-700/70 focus:border-purple-500/70 focus:ring-1 focus:ring-purple-500/70 transition-all shadow-inner">
+                <label
+                  htmlFor="eventsfilters-date"
+                  className="block text-sm font-medium text-gray-300 mb-2"
+                >
+                  Date
+                </label>
+                <select
+                  id="eventsfilters-date"
+                  className="bg-gray-900/70 text-white w-full px-4 py-2.5 rounded-xl border border-gray-700/70 focus:border-purple-500/70 focus:ring-1 focus:ring-purple-500/70 transition-all shadow-inner"
+                >
                   <option value="">Toutes les dates</option>
                   <option value="this-week">Cette semaine</option>
                   <option value="this-month">Ce mois-ci</option>
@@ -191,8 +207,16 @@ export function EventsFilters({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Prix</label>
-                <select className="bg-gray-900/70 text-white w-full px-4 py-2.5 rounded-xl border border-gray-700/70 focus:border-purple-500/70 focus:ring-1 focus:ring-purple-500/70 transition-all shadow-inner">
+                <label
+                  htmlFor="eventsfilters-prix"
+                  className="block text-sm font-medium text-gray-300 mb-2"
+                >
+                  Prix
+                </label>
+                <select
+                  id="eventsfilters-prix"
+                  className="bg-gray-900/70 text-white w-full px-4 py-2.5 rounded-xl border border-gray-700/70 focus:border-purple-500/70 focus:ring-1 focus:ring-purple-500/70 transition-all shadow-inner"
+                >
                   <option value="">Tous les prix</option>
                   <option value="free">Gratuit</option>
                   <option value="paid">Payant</option>

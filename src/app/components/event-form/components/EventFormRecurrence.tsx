@@ -102,7 +102,7 @@ export function EventFormRecurrence({ formData, setFormData, errors }: EventForm
 
       {/* Section pour les dates exclues */}
       <div className="mt-6">
-        <label className={labelBaseClass}>Dates à exclure de la récurrence</label>
+        <p className={labelBaseClass}>Dates à exclure de la récurrence</p>
         <p className="text-gray-400 text-sm mb-3">
           Sélectionnez les dates spécifiques où l'événement ne doit pas avoir lieu.
         </p>

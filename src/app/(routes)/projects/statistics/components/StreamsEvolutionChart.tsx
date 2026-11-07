@@ -70,7 +70,7 @@ export function StreamsEvolutionChart({
         <div className="space-y-4">
           {/* Toggle mode global/projet/comparaison */}
           <div className="flex items-center gap-4">
-            <label className="text-sm text-gray-400">Mode d'affichage :</label>
+            <span className="text-sm text-gray-400">Mode d'affichage :</span>
             <div className="flex gap-2">
               <button
                 onClick={() => setViewMode('project')}
@@ -108,8 +108,14 @@ export function StreamsEvolutionChart({
           {/* Sélecteur de projet (uniquement en mode projet) */}
           {viewMode === 'project' && displayStats.streamsEvolution.length > 0 && (
             <div>
-              <label className="text-sm text-gray-400 mb-2 block">Sélectionner un projet :</label>
+              <label
+                htmlFor="streamsevolutionchart-selectionner-un-projet"
+                className="text-sm text-gray-400 mb-2 block"
+              >
+                Sélectionner un projet :
+              </label>
               <select
+                id="streamsevolutionchart-selectionner-un-projet"
                 value={selectedProjectId || ''}
                 onChange={(e) => setSelectedProjectId(e.target.value)}
                 className="w-full sm:w-auto px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -130,7 +136,7 @@ export function StreamsEvolutionChart({
             <div className="space-y-4">
               {/* Toggle entre 2 projets et tous les projets */}
               <div className="flex items-center gap-4">
-                <label className="text-sm text-gray-400">Type de comparaison :</label>
+                <span className="text-sm text-gray-400">Type de comparaison :</span>
                 <div className="flex gap-2">
                   <button
                     onClick={() => {
@@ -164,7 +170,7 @@ export function StreamsEvolutionChart({
 
               {/* Filtre par année */}
               <div className="flex items-center gap-4">
-                <label className="text-sm text-gray-400">Filtrer par année :</label>
+                <span className="text-sm text-gray-400">Filtrer par année :</span>
                 <div className="flex gap-2 items-center">
                   <button
                     onClick={() => setComparisonYearFilter(null)}
@@ -198,8 +204,14 @@ export function StreamsEvolutionChart({
               {comparisonMode === 'two' && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm text-gray-400 mb-2 block">Projet 1 :</label>
+                    <label
+                      htmlFor="streamsevolutionchart-projet-1"
+                      className="text-sm text-gray-400 mb-2 block"
+                    >
+                      Projet 1 :
+                    </label>
                     <select
+                      id="streamsevolutionchart-projet-1"
                       value={selectedProjectsForComparison[0] || ''}
                       onChange={(e) => {
                         const newSelection = [...selectedProjectsForComparison];
@@ -227,8 +239,14 @@ export function StreamsEvolutionChart({
                     </select>
                   </div>
                   <div>
-                    <label className="text-sm text-gray-400 mb-2 block">Projet 2 :</label>
+                    <label
+                      htmlFor="streamsevolutionchart-projet-2"
+                      className="text-sm text-gray-400 mb-2 block"
+                    >
+                      Projet 2 :
+                    </label>
                     <select
+                      id="streamsevolutionchart-projet-2"
                       value={selectedProjectsForComparison[1] || ''}
                       onChange={(e) => {
                         const newSelection = [...selectedProjectsForComparison];

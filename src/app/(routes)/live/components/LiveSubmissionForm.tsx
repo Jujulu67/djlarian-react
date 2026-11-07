@@ -876,10 +876,14 @@ export function LiveSubmissionForm() {
             {/* Inputs - Désactivés si soumis et pas en mode édition */}
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1 v2:mb-2 v2:text-white/80">
+                <label
+                  htmlFor="livesubmissionform-title"
+                  className="block text-sm font-medium text-gray-300 mb-1 v2:mb-2 v2:text-white/80"
+                >
                   Title
                 </label>
                 <input
+                  id="livesubmissionform-title"
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
@@ -894,10 +898,14 @@ export function LiveSubmissionForm() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1 v2:mb-2 v2:text-white/80">
+                <label
+                  htmlFor="livesubmissionform-description"
+                  className="block text-sm font-medium text-gray-300 mb-1 v2:mb-2 v2:text-white/80"
+                >
                   Description <span className="text-gray-500 text-xs">(Optional)</span>
                 </label>
                 <textarea
+                  id="livesubmissionform-description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Tell us about your track..."

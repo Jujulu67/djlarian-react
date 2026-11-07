@@ -112,11 +112,15 @@ export function ProfilePasswordModal({
               {/* Ancien mot de passe (si déjà défini) */}
               {hasPassword && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2 v2:text-white/70">
+                  <label
+                    htmlFor="profilepasswordmodal-mot-de-passe-actuel"
+                    className="block text-sm font-medium text-gray-300 mb-2 v2:text-white/70"
+                  >
                     Mot de passe actuel
                   </label>
                   <div className="relative">
                     <input
+                      id="profilepasswordmodal-mot-de-passe-actuel"
                       type={showPasswords.current ? 'text' : 'password'}
                       value={passwordData.currentPassword}
                       onChange={(e) =>
@@ -179,11 +183,15 @@ export function ProfilePasswordModal({
 
               {/* Confirmation du mot de passe */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2 v2:text-white/70">
+                <label
+                  htmlFor="profilepasswordmodal-confirmer-le-mot-de-passe"
+                  className="block text-sm font-medium text-gray-300 mb-2 v2:text-white/70"
+                >
                   Confirmer le mot de passe
                 </label>
                 <div className="relative">
                   <input
+                    id="profilepasswordmodal-confirmer-le-mot-de-passe"
                     type={showPasswords.confirm ? 'text' : 'password'}
                     value={passwordData.confirmPassword}
                     onChange={(e) =>

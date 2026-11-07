@@ -79,12 +79,13 @@ export function FileCard({
 
               {showCandidates && (
                 <div className="mb-4 space-y-2">
-                  <label className="block text-sm font-semibold text-gray-300 mb-3">
+                  <p className="block text-sm font-semibold text-gray-300 mb-3">
                     Sélectionner un projet:
-                  </label>
+                  </p>
                   <div className="space-y-2 max-h-[200px] overflow-y-auto">
                     {currentFile.candidates.map((candidate) => (
                       <label
+                        aria-label={candidate.project.name}
                         key={candidate.project.id}
                         className={`
                                     flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all

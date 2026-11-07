@@ -227,8 +227,14 @@ export function MusicFilters({
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Plateforme</label>
+                <label
+                  htmlFor="musicfilters-plateforme"
+                  className="block text-sm font-medium text-gray-300 mb-2"
+                >
+                  Plateforme
+                </label>
                 <select
+                  id="musicfilters-plateforme"
                   value={platformFilter}
                   onChange={(e) => setPlatformFilter(e.target.value)}
                   className="bg-gray-900/70 text-white w-full px-4 py-2.5 rounded-xl border border-gray-700/70 focus:border-purple-500/70 focus:ring-1 focus:ring-purple-500/70 transition-all shadow-inner"
@@ -243,8 +249,14 @@ export function MusicFilters({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">En vedette</label>
+                <label
+                  htmlFor="musicfilters-en-vedette"
+                  className="block text-sm font-medium text-gray-300 mb-2"
+                >
+                  En vedette
+                </label>
                 <select
+                  id="musicfilters-en-vedette"
                   value={featuredFilter}
                   onChange={(e) => setFeaturedFilter(e.target.value)}
                   className="bg-gray-900/70 text-white w-full px-4 py-2.5 rounded-xl border border-gray-700/70 focus:border-purple-500/70 focus:ring-1 focus:ring-purple-500/70 transition-all shadow-inner"
@@ -255,8 +267,14 @@ export function MusicFilters({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Trier par</label>
+                <label
+                  htmlFor="musicfilters-trier-par"
+                  className="block text-sm font-medium text-gray-300 mb-2"
+                >
+                  Trier par
+                </label>
                 <select
+                  id="musicfilters-trier-par"
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
                   className="bg-gray-900/70 text-white w-full px-4 py-2.5 rounded-xl border border-gray-700/70 focus:border-purple-500/70 focus:ring-1 focus:ring-purple-500/70 transition-all shadow-inner"

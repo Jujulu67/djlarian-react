@@ -223,8 +223,14 @@ export default function AdminShopClient({ initialSettings }: AdminShopClientProp
             <div className="grid gap-4">
               {/* Product Name */}
               <div>
-                <label className="text-gray-400 text-sm mb-2 block">Nom du produit</label>
+                <label
+                  htmlFor="adminshop-nom-du-produit"
+                  className="text-gray-400 text-sm mb-2 block"
+                >
+                  Nom du produit
+                </label>
                 <input
+                  id="adminshop-nom-du-produit"
                   type="text"
                   value={currentProduct.name}
                   onChange={(e) => updateProduct('name', e.target.value)}
@@ -234,10 +240,13 @@ export default function AdminShopClient({ initialSettings }: AdminShopClientProp
 
               {/* Product Price */}
               <div>
-                <label className="text-gray-400 text-sm mb-2 block">Prix (€)</label>
+                <label htmlFor="adminshop-prix" className="text-gray-400 text-sm mb-2 block">
+                  Prix (€)
+                </label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">€</span>
                   <input
+                    id="adminshop-prix"
                     type="number"
                     value={currentProduct.price}
                     onChange={(e) =>

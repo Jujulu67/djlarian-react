@@ -272,10 +272,14 @@ export function VerifyModal({
               <TabsContent value="info" className="space-y-4">
                 {/* Titre */}
                 <div>
-                  <label className="block text-gray-300 font-medium mb-1">
+                  <label
+                    htmlFor="verifymodal-titre"
+                    className="block text-gray-300 font-medium mb-1"
+                  >
                     Titre <span className="text-red-500">*</span>
                   </label>
                   <input
+                    id="verifymodal-titre"
                     value={verifyFormData.title}
                     onChange={(e) => onFormDataChange({ ...verifyFormData, title: e.target.value })}
                     className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-purple-500"
@@ -283,10 +287,14 @@ export function VerifyModal({
                 </div>
                 {/* Artiste */}
                 <div>
-                  <label className="block text-gray-300 font-medium mb-1">
+                  <label
+                    htmlFor="verifymodal-artiste-s"
+                    className="block text-gray-300 font-medium mb-1"
+                  >
                     Artiste(s) <span className="text-red-500">*</span>
                   </label>
                   <input
+                    id="verifymodal-artiste-s"
                     value={verifyFormData.artist}
                     onChange={(e) =>
                       onFormDataChange({ ...verifyFormData, artist: e.target.value })
@@ -297,10 +305,14 @@ export function VerifyModal({
                 {/* Type + Date */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-gray-300 font-medium mb-1">
+                    <label
+                      htmlFor="verifymodal-type"
+                      className="block text-gray-300 font-medium mb-1"
+                    >
                       Type <span className="text-red-500">*</span>
                     </label>
                     <select
+                      id="verifymodal-type"
                       value={verifyFormData.type}
                       onChange={(e) =>
                         onFormDataChange({
@@ -318,10 +330,14 @@ export function VerifyModal({
                     </select>
                   </div>
                   <div>
-                    <label className="block text-gray-300 font-medium mb-1">
+                    <label
+                      htmlFor="verifymodal-date"
+                      className="block text-gray-300 font-medium mb-1"
+                    >
                       Date <span className="text-red-500">*</span>
                     </label>
                     <DateTimeField
+                      id="verifymodal-date"
                       type="date"
                       value={verifyFormData.releaseDate}
                       onChange={(e) =>
@@ -333,9 +349,15 @@ export function VerifyModal({
                 </div>
                 {/* Genres */}
                 <div>
-                  <label className="block text-gray-300 font-medium mb-1">Genres</label>
+                  <label
+                    htmlFor="verifymodal-genres"
+                    className="block text-gray-300 font-medium mb-1"
+                  >
+                    Genres
+                  </label>
                   <div className="flex gap-2 mb-2">
                     <input
+                      id="verifymodal-genres"
                       value={genreInput}
                       onChange={(e) => setGenreInput(e.target.value)}
                       onKeyDown={(e) => {

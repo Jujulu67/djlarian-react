@@ -1,6 +1,8 @@
 import React from 'react';
 
 interface DateTimeFieldProps {
+  /** Pour relier un <label htmlFor>. */
+  id?: string;
   /** Requis si `onChange` s'appuie sur `e.target.name`. */
   name?: string;
   value: string;
@@ -13,6 +15,7 @@ interface DateTimeFieldProps {
 }
 
 export const DateTimeField: React.FC<DateTimeFieldProps> = ({
+  id,
   name,
   value,
   onChange,
@@ -87,6 +90,7 @@ export const DateTimeField: React.FC<DateTimeFieldProps> = ({
 
       <div className="datetime-field">
         <input
+          id={id}
           name={name}
           type={type}
           className={`bg-gray-800/50 border border-gray-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500 ${

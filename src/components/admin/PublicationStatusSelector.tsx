@@ -102,10 +102,14 @@ export const PublicationStatusSelector: React.FC<PublicationStatusSelectorProps>
             <span className="text-yellow-300 font-medium">Brouillon</span>
           </button>
           <div className="pt-2 border-t border-gray-700 mt-2">
-            <label className="block text-gray-300 text-sm mb-1 font-medium">
+            <label
+              htmlFor="publicationstatusselector-planifier-la-publication"
+              className="block text-gray-300 text-sm mb-1 font-medium"
+            >
               Planifier la publication
             </label>
             <DateTimeField
+              id="publicationstatusselector-planifier-la-publication"
               value={tempDate}
               onChange={(e) => setTempDate(e.target.value)}
               min={format(new Date(), "yyyy-MM-dd'T'HH:mm")}

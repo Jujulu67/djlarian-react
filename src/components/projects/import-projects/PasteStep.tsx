@@ -51,9 +51,9 @@ export function PasteStep({
   return (
     <div className="flex-1 flex flex-col min-h-0">
       <div className="flex-shrink-0 mb-4">
-        <label className="block text-sm font-medium text-gray-300 mb-2">
+        <p className="block text-sm font-medium text-gray-300 mb-2">
           Collez les données depuis Excel ou importez un fichier CSV
-        </label>
+        </p>
         <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3 mb-2">
           <p className="text-xs text-purple-300 font-medium mb-1">
             💡 Astuce : Inclure les en-têtes facilite le mapping automatique
@@ -92,7 +92,7 @@ export function PasteStep({
             label="La première ligne contient les en-têtes (recommandé)"
           />
           <div className="flex items-center gap-4 mt-3">
-            <label className="text-sm text-gray-300">Format de date :</label>
+            <span className="text-sm text-gray-300">Format de date :</span>
             <div className="flex gap-4">
               <label className="flex items-center gap-2 cursor-pointer group">
                 <input
