@@ -108,6 +108,7 @@ describe('useSoundCloudPlayer', () => {
     // Simulate ready message from SoundCloud - must match the source check
     act(() => {
       const event = new MessageEvent('message', {
+        origin: 'https://w.soundcloud.com',
         data: JSON.stringify({ method: 'ready' }),
         source: mockContentWindow as unknown as MessageEventSource,
       });
@@ -149,6 +150,7 @@ describe('useSoundCloudPlayer', () => {
     act(() => {
       window.dispatchEvent(
         new MessageEvent('message', {
+          origin: 'https://w.soundcloud.com',
           data: JSON.stringify({ method: 'ready' }),
           source: mockContentWindow as unknown as MessageEventSource,
         })
@@ -270,6 +272,7 @@ describe('useSoundCloudPlayer', () => {
     // Simulate ready message from SoundCloud
     act(() => {
       const event = new MessageEvent('message', {
+        origin: 'https://w.soundcloud.com',
         data: JSON.stringify({ method: 'ready' }),
         source: mockContentWindow as unknown as MessageEventSource,
       });

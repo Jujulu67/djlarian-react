@@ -18,7 +18,7 @@ export function getFieldOptions(projects: Project[], field: keyof FieldFilters):
     .map((p) => p[field] as string | null)
     .filter((v): v is string => v !== null && v !== '' && v.trim() !== '')
     .map((v) => v.trim());
-  return Array.from(new Set(values)).sort();
+  return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b, 'fr'));
 }
 
 export interface ProjectFilters {

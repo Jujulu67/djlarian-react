@@ -1,7 +1,12 @@
 /**
  * Tests for audioUtils
  */
-import { getInitialVolume, sendPlayerCommand, applyVolumeToAllPlayers } from '../audioUtils';
+import {
+  getIframeOrigin,
+  getInitialVolume,
+  sendPlayerCommand,
+  applyVolumeToAllPlayers,
+} from '../audioUtils';
 
 // Mock logger
 jest.mock('@/lib/logger', () => ({
@@ -124,7 +129,7 @@ describe('audioUtils', () => {
 
       expect(mockContentWindow.postMessage).toHaveBeenCalledWith(
         JSON.stringify({ event: 'command', func: 'playVideo', args: [] }),
-        '*'
+        window.location.origin
       );
     });
 
@@ -142,7 +147,7 @@ describe('audioUtils', () => {
 
       expect(mockContentWindow.postMessage).toHaveBeenCalledWith(
         JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }),
-        '*'
+        window.location.origin
       );
     });
 
@@ -160,7 +165,7 @@ describe('audioUtils', () => {
 
       expect(mockContentWindow.postMessage).toHaveBeenCalledWith(
         JSON.stringify({ event: 'command', func: 'setVolume', args: [50] }),
-        '*'
+        window.location.origin
       );
     });
 
@@ -189,7 +194,7 @@ describe('audioUtils', () => {
 
       expect(mockContentWindow.postMessage).toHaveBeenCalledWith(
         JSON.stringify({ event: 'command', func: 'seekTo', args: [30, true] }),
-        '*'
+        window.location.origin
       );
     });
 
@@ -207,7 +212,7 @@ describe('audioUtils', () => {
 
       expect(mockContentWindow.postMessage).toHaveBeenCalledWith(
         JSON.stringify({ event: 'command', func: 'setVolume', args: [50] }),
-        '*'
+        window.location.origin
       );
     });
 
@@ -225,7 +230,7 @@ describe('audioUtils', () => {
 
       expect(mockContentWindow.postMessage).toHaveBeenCalledWith(
         JSON.stringify({ method: 'setVolume', value: 70 }),
-        '*'
+        window.location.origin
       );
     });
 
@@ -243,7 +248,7 @@ describe('audioUtils', () => {
 
       expect(mockContentWindow.postMessage).toHaveBeenCalledWith(
         JSON.stringify({ method: 'seekTo', value: 45000 }),
-        '*'
+        window.location.origin
       );
     });
 
@@ -261,7 +266,7 @@ describe('audioUtils', () => {
 
       expect(mockContentWindow.postMessage).toHaveBeenCalledWith(
         JSON.stringify({ method: 'setVolume', value: 50 }),
-        '*'
+        window.location.origin
       );
     });
 
@@ -279,7 +284,7 @@ describe('audioUtils', () => {
 
       expect(mockContentWindow.postMessage).toHaveBeenCalledWith(
         JSON.stringify({ method: 'play' }),
-        '*'
+        window.location.origin
       );
     });
 
@@ -297,7 +302,7 @@ describe('audioUtils', () => {
 
       expect(mockContentWindow.postMessage).toHaveBeenCalledWith(
         JSON.stringify({ method: 'pause' }),
-        '*'
+        window.location.origin
       );
     });
 
@@ -447,8 +452,25 @@ describe('audioUtils', () => {
 
       expect(mockContentWindow.postMessage).toHaveBeenCalledWith(
         JSON.stringify({ event: 'command', func: 'setVolume', args: [50] }),
-        '*'
+        window.location.origin
       );
     });
+  });
+});
+
+describe('getIframeOrigin', () => {
+  it("vise l'origine du lecteur intégré, jamais « * »", () => {
+    const yt = document.createElement('iframe');
+    yt.src = 'https://www.youtube-nocookie.com/embed/abc?enablejsapi=1';
+    expect(getIframeOrigin(yt)).toBe('https://www.youtube-nocookie.com');
+    const sc = document.createElement('iframe');
+    sc.src = 'https://w.soundcloud.com/player/?url=x';
+    expect(getIframeOrigin(sc)).toBe('https://w.soundcloud.com');
+  });
+
+  it("n'envoie rien vers une iframe dont l'origine est opaque", () => {
+    const iframe = document.createElement('iframe');
+    iframe.src = 'data:text/html,hello';
+    expect(getIframeOrigin(iframe)).toBeNull();
   });
 });

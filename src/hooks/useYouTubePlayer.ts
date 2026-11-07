@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 
 import { logger } from '@/lib/logger';
 import {
+  getIframeOrigin,
   sendPlayerCommand,
   getInitialVolume,
   applyVolumeToAllPlayers,
@@ -186,10 +187,11 @@ export const useYouTubePlayer = ({
       // Check and save playback time every 5 seconds
       timeIntervalRef.current = setInterval(() => {
         try {
-          if (iframeRef.current && iframeRef.current.contentWindow) {
+          const targetOrigin = iframeRef.current && getIframeOrigin(iframeRef.current);
+          if (iframeRef.current?.contentWindow && targetOrigin) {
             iframeRef.current.contentWindow.postMessage(
               JSON.stringify({ event: 'command', func: 'getCurrentTime' }),
-              '*'
+              targetOrigin
             );
           }
         } catch (e) {
