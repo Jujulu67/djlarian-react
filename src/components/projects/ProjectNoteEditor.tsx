@@ -1,7 +1,7 @@
 'use client';
 
 import { Eye, Edit, Hash, Bold, Italic, List, Link as LinkIcon } from 'lucide-react';
-import { useState, useRef } from 'react';
+import { useCallback, useState, useRef } from 'react';
 import type React from 'react';
 
 interface ProjectNoteEditorProps {
@@ -125,6 +125,11 @@ export const ProjectNoteEditor = ({
     value && value.trim() ? 'preview' : 'edit'
   );
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // Focus à l'ouverture de l'éditeur (au lieu d'autoFocus, Sonar S9379)
+  const setTextareaRef = useCallback((element: HTMLTextAreaElement | null) => {
+    textareaRef.current = element;
+    element?.focus();
+  }, []);
 
   const insertText = (before: string, after: string = '', placeholder: string = '') => {
     if (!textareaRef.current) return;
@@ -548,12 +553,11 @@ export const ProjectNoteEditor = ({
       <div className="flex-1 overflow-hidden flex flex-col min-h-[60vh]">
         {viewMode === 'edit' ? (
           <textarea
-            ref={textareaRef}
+            ref={setTextareaRef}
             value={value}
             onChange={(e) => onChange(e.target.value)}
             placeholder="Ajoutez des informations pertinentes sur ce projet... Utilisez Markdown pour formater votre texte."
             className="w-full flex-1 min-h-[60vh] px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 font-mono text-sm resize-none"
-            autoFocus
             onKeyDown={handleKeyDown}
           />
         ) : (

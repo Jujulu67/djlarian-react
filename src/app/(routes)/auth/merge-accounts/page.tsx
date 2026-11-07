@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/Button';
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
 
+const PROVIDER_NAMES: Record<string, string> = { google: 'Google', twitch: 'Twitch' };
+
 interface AccountMergeData {
   existingAccount: {
     email: string;
@@ -337,7 +339,10 @@ function MergeAccountsContent() {
                   </div>
                 </label>
 
-                <label className="flex items-start gap-3 p-3 rounded-lg bg-gray-900/50 border border-gray-700/30 hover:bg-gray-900/70 transition-colors cursor-pointer v2:rounded-xl v2:bg-white/[0.02] v2:border-white/[0.06] v2:hover:bg-white/[0.05]">
+                <label
+                  aria-label={`Utiliser la photo du compte ${PROVIDER_NAMES[mergeData.oauthAccount.provider] ?? mergeData.oauthAccount.provider}`}
+                  className="flex items-start gap-3 p-3 rounded-lg bg-gray-900/50 border border-gray-700/30 hover:bg-gray-900/70 transition-colors cursor-pointer v2:rounded-xl v2:bg-white/[0.02] v2:border-white/[0.06] v2:hover:bg-white/[0.05]"
+                >
                   <input
                     type="checkbox"
                     checked={mergeOptions.useOAuthImage}
@@ -362,7 +367,10 @@ function MergeAccountsContent() {
                 </label>
 
                 {mergeData.existingAccount.hasPassword && (
-                  <label className="flex items-start gap-3 p-3 rounded-lg bg-gray-900/50 border border-gray-700/30 hover:bg-gray-900/70 transition-colors cursor-pointer v2:rounded-xl v2:bg-white/[0.02] v2:border-white/[0.06] v2:hover:bg-white/[0.05]">
+                  <label
+                    aria-label="Conserver le mot de passe du compte existant"
+                    className="flex items-start gap-3 p-3 rounded-lg bg-gray-900/50 border border-gray-700/30 hover:bg-gray-900/70 transition-colors cursor-pointer v2:rounded-xl v2:bg-white/[0.02] v2:border-white/[0.06] v2:hover:bg-white/[0.05]"
+                  >
                     <input
                       type="checkbox"
                       checked={mergeOptions.keepPassword}

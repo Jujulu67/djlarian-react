@@ -58,10 +58,11 @@ export function TrackFormPanel({
         <form onSubmit={handleSubmit}>
           {/* titre */}
           <div className="mb-4">
-            <label className="block text-gray-300 font-medium mb-2">
+            <label htmlFor="trackform-titre" className="block text-gray-300 font-medium mb-2">
               Titre <span className="text-red-500">*</span>
             </label>
             <input
+              id="trackform-titre"
               value={trackForm.currentForm.title}
               onChange={(e) =>
                 trackForm.setCurrentForm({
@@ -76,10 +77,11 @@ export function TrackFormPanel({
 
           {/* artiste */}
           <div className="mb-4">
-            <label className="block text-gray-300 font-medium mb-2">
+            <label htmlFor="trackform-artiste-s" className="block text-gray-300 font-medium mb-2">
               Artiste(s) <span className="text-red-500">*</span>
             </label>
             <input
+              id="trackform-artiste-s"
               value={trackForm.currentForm.artist}
               onChange={(e) =>
                 trackForm.setCurrentForm({
@@ -95,10 +97,11 @@ export function TrackFormPanel({
           {/* type + date */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-gray-300 font-medium mb-2">
+              <label htmlFor="trackform-type" className="block text-gray-300 font-medium mb-2">
                 Type <span className="text-red-500">*</span>
               </label>
               <select
+                id="trackform-type"
                 value={trackForm.currentForm.type}
                 onChange={(e) =>
                   trackForm.setCurrentForm({
@@ -116,10 +119,11 @@ export function TrackFormPanel({
               </select>
             </div>
             <div>
-              <label className="block text-gray-300 font-medium mb-2">
+              <label htmlFor="trackform-date" className="block text-gray-300 font-medium mb-2">
                 Date <span className="text-red-500">*</span>
               </label>
               <DateTimeField
+                id="trackform-date"
                 type="date"
                 value={trackForm.currentForm.releaseDate}
                 onChange={(e: ChangeEvent<HTMLInputElement>) =>
@@ -136,9 +140,12 @@ export function TrackFormPanel({
 
           {/* genres */}
           <div className="mt-4">
-            <label className="block text-gray-300 font-medium mb-2">Genres</label>
+            <label htmlFor="trackform-genres" className="block text-gray-300 font-medium mb-2">
+              Genres
+            </label>
             <div className="flex gap-2 mb-2">
               <input
+                id="trackform-genres"
                 value={trackForm.genreInput}
                 onChange={(e) => trackForm.setGenreInput(e.target.value)}
                 onKeyDown={(e) => {
@@ -165,7 +172,7 @@ export function TrackFormPanel({
                   className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-purple-600/30 text-purple-200"
                 >
                   {g}
-                  <button onClick={() => handleRemoveGenre(g)}>
+                  <button type="button" onClick={() => handleRemoveGenre(g)}>
                     <X className="w-3 h-3 ml-1" />
                   </button>
                 </span>
@@ -176,8 +183,11 @@ export function TrackFormPanel({
           {/* BPM + Clé musicale + featured */}
           <div className="grid grid-cols-3 gap-4 mt-4">
             <div>
-              <label className="block text-gray-300 font-medium mb-2">BPM</label>
+              <label htmlFor="trackform-bpm" className="block text-gray-300 font-medium mb-2">
+                BPM
+              </label>
               <input
+                id="trackform-bpm"
                 type="number"
                 value={trackForm.currentForm.bpm || ''}
                 onChange={(e) =>
@@ -191,8 +201,14 @@ export function TrackFormPanel({
               />
             </div>
             <div>
-              <label className="block text-gray-300 font-medium mb-2">Clé musicale</label>
+              <label
+                htmlFor="trackform-cle-musicale"
+                className="block text-gray-300 font-medium mb-2"
+              >
+                Clé musicale
+              </label>
               <input
+                id="trackform-cle-musicale"
                 type="text"
                 value={trackForm.currentForm.musicalKey || ''}
                 onChange={(e) =>
@@ -206,7 +222,7 @@ export function TrackFormPanel({
               />
             </div>
             <div>
-              <label className="block text-gray-300 font-medium mb-2">Mise en avant</label>
+              <span className="block text-gray-300 font-medium mb-2">Mise en avant</span>
               <button
                 type="button"
                 onClick={() =>
@@ -252,8 +268,11 @@ export function TrackFormPanel({
 
           {/* description */}
           <div className="mt-4">
-            <label className="block text-gray-300 font-medium mb-2">Description</label>
+            <label htmlFor="trackform-description" className="block text-gray-300 font-medium mb-2">
+              Description
+            </label>
             <textarea
+              id="trackform-description"
               value={trackForm.currentForm.description || ''}
               onChange={(e) =>
                 trackForm.setCurrentForm({

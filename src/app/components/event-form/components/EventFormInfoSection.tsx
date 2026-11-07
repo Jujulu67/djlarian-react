@@ -149,7 +149,7 @@ export function EventFormInfoSection({
       </div>
 
       <div className="mb-6">
-        <label className={labelBaseClass}>Statut de publication</label>
+        <p className={labelBaseClass}>Statut de publication</p>
         <PublicationStatusSelector
           isPublished={formData.isPublished}
           publishAt={formData.publishAt ?? undefined}

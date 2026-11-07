@@ -7,6 +7,7 @@ import { InventoryContent } from './InventoryContent';
 import { Search, User, Loader2 } from 'lucide-react';
 import { searchUsers } from '@/actions/inventory';
 import { logger } from '@/lib/logger';
+import { focusOnMount } from '@/lib/utils/focusOnMount';
 
 interface GlobalInventoryManagerProps {
   isOpen: boolean;
@@ -86,7 +87,7 @@ export function GlobalInventoryManager({ isOpen, onClose }: GlobalInventoryManag
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full h-full bg-black/20 border border-gray-800 rounded-lg pl-7 md:pl-8 pr-2 text-xs md:text-sm focus:outline-none focus:border-purple-500 transition-colors"
-                    autoFocus
+                    ref={focusOnMount}
                   />
                 </div>
 

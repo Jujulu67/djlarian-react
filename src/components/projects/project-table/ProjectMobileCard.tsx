@@ -170,9 +170,9 @@ export function ProjectMobileCard({
           <div className="grid grid-cols-2 gap-x-4 gap-y-3">
             {/* Style */}
             <div className="space-y-1">
-              <label className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">
+              <span className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">
                 Style
-              </label>
+              </span>
               <div className="text-sm text-gray-200">
                 <EditableCell
                   value={project.style}
@@ -186,9 +186,9 @@ export function ProjectMobileCard({
 
             {/* Collab */}
             <div className="space-y-1">
-              <label className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">
+              <span className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">
                 Collab
-              </label>
+              </span>
               <div className="text-sm text-gray-200">
                 <EditableCell
                   value={project.collab}
@@ -202,9 +202,9 @@ export function ProjectMobileCard({
 
             {/* Label */}
             <div className="space-y-1">
-              <label className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">
+              <span className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">
                 Label
-              </label>
+              </span>
               <div className="text-sm text-gray-200">
                 <EditableCell
                   value={project.label}
@@ -218,9 +218,9 @@ export function ProjectMobileCard({
 
             {/* Label Final */}
             <div className="space-y-1">
-              <label className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">
+              <span className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">
                 Label Final
-              </label>
+              </span>
               <div className="text-sm text-gray-200">
                 <EditableCell
                   value={project.labelFinal}

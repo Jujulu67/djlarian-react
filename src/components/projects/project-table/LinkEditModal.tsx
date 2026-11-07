@@ -1,6 +1,7 @@
 'use client';
 
 import type { Dispatch, SetStateAction } from 'react';
+import { focusOnMount } from '@/lib/utils/focusOnMount';
 
 interface LinkEditModalProps {
   handleSaveLink: () => Promise<void>;
@@ -34,7 +35,7 @@ export function LinkEditModal({
           onChange={(e) => setLinkValue(e.target.value)}
           placeholder="https://..."
           className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 mb-4"
-          autoFocus
+          ref={focusOnMount}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               void handleSaveLink();

@@ -57,7 +57,7 @@ export function SubmissionDropZone({
   return (
     <div className="relative">
       <div className="flex items-center gap-2 mb-2">
-        <label className="block text-sm font-medium text-gray-300">Audio File</label>
+        <span className="block text-sm font-medium text-gray-300">Audio File</span>
         <button
           type="button"
           onClick={(e) => {

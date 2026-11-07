@@ -186,10 +186,14 @@ export function ProjectsToolbar({
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Nom */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2 v2:text-white/70">
+                <label
+                  htmlFor="projectstoolbar-nom-projet"
+                  className="block text-sm font-medium text-gray-300 mb-2 v2:text-white/70"
+                >
                   Nom Projet
                 </label>
                 <select
+                  id="projectstoolbar-nom-projet"
                   value={fieldFilters.name}
                   onChange={(e) => handleFieldFilterChange('name', e.target.value)}
                   className="bg-gray-900/70 text-white w-full px-4 py-2.5 rounded-xl border border-gray-700/70 focus:border-purple-500/70 focus:ring-1 focus:ring-purple-500/70 transition-all shadow-inner text-sm v2:bg-white/[0.03] v2:border-white/10 v2:shadow-none v2:focus:border-brand/70 v2:focus:ring-4 v2:focus:ring-brand/15"
@@ -205,10 +209,14 @@ export function ProjectsToolbar({
 
               {/* Style */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2 v2:text-white/70">
+                <label
+                  htmlFor="projectstoolbar-style"
+                  className="block text-sm font-medium text-gray-300 mb-2 v2:text-white/70"
+                >
                   Style
                 </label>
                 <select
+                  id="projectstoolbar-style"
                   value={fieldFilters.style}
                   onChange={(e) => handleFieldFilterChange('style', e.target.value)}
                   className="bg-gray-900/70 text-white w-full px-4 py-2.5 rounded-xl border border-gray-700/70 focus:border-purple-500/70 focus:ring-1 focus:ring-purple-500/70 transition-all shadow-inner text-sm v2:bg-white/[0.03] v2:border-white/10 v2:shadow-none v2:focus:border-brand/70 v2:focus:ring-4 v2:focus:ring-brand/15"
@@ -224,10 +232,14 @@ export function ProjectsToolbar({
 
               {/* Collab */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2 v2:text-white/70">
+                <label
+                  htmlFor="projectstoolbar-collab"
+                  className="block text-sm font-medium text-gray-300 mb-2 v2:text-white/70"
+                >
                   Collab
                 </label>
                 <select
+                  id="projectstoolbar-collab"
                   value={fieldFilters.collab}
                   onChange={(e) => handleFieldFilterChange('collab', e.target.value)}
                   className="bg-gray-900/70 text-white w-full px-4 py-2.5 rounded-xl border border-gray-700/70 focus:border-purple-500/70 focus:ring-1 focus:ring-purple-500/70 transition-all shadow-inner text-sm v2:bg-white/[0.03] v2:border-white/10 v2:shadow-none v2:focus:border-brand/70 v2:focus:ring-4 v2:focus:ring-brand/15"
@@ -243,10 +255,14 @@ export function ProjectsToolbar({
 
               {/* Label */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2 v2:text-white/70">
+                <label
+                  htmlFor="projectstoolbar-label"
+                  className="block text-sm font-medium text-gray-300 mb-2 v2:text-white/70"
+                >
                   Label
                 </label>
                 <select
+                  id="projectstoolbar-label"
                   value={fieldFilters.label}
                   onChange={(e) => handleFieldFilterChange('label', e.target.value)}
                   className="bg-gray-900/70 text-white w-full px-4 py-2.5 rounded-xl border border-gray-700/70 focus:border-purple-500/70 focus:ring-1 focus:ring-purple-500/70 transition-all shadow-inner text-sm v2:bg-white/[0.03] v2:border-white/10 v2:shadow-none v2:focus:border-brand/70 v2:focus:ring-4 v2:focus:ring-brand/15"
@@ -262,10 +278,14 @@ export function ProjectsToolbar({
 
               {/* Label Final */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2 v2:text-white/70">
+                <label
+                  htmlFor="projectstoolbar-label-final"
+                  className="block text-sm font-medium text-gray-300 mb-2 v2:text-white/70"
+                >
                   Label Final
                 </label>
                 <select
+                  id="projectstoolbar-label-final"
                   value={fieldFilters.labelFinal}
                   onChange={(e) => handleFieldFilterChange('labelFinal', e.target.value)}
                   className="bg-gray-900/70 text-white w-full px-4 py-2.5 rounded-xl border border-gray-700/70 focus:border-purple-500/70 focus:ring-1 focus:ring-purple-500/70 transition-all shadow-inner text-sm v2:bg-white/[0.03] v2:border-white/10 v2:shadow-none v2:focus:border-brand/70 v2:focus:ring-4 v2:focus:ring-brand/15"
@@ -281,10 +301,14 @@ export function ProjectsToolbar({
 
               {/* Lien */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2 v2:text-white/70">
+                <label
+                  htmlFor="projectstoolbar-lien"
+                  className="block text-sm font-medium text-gray-300 mb-2 v2:text-white/70"
+                >
                   Lien
                 </label>
                 <select
+                  id="projectstoolbar-lien"
                   value={fieldFilters.externalLink}
                   onChange={(e) => handleFieldFilterChange('externalLink', e.target.value)}
                   className="bg-gray-900/70 text-white w-full px-4 py-2.5 rounded-xl border border-gray-700/70 focus:border-purple-500/70 focus:ring-1 focus:ring-purple-500/70 transition-all shadow-inner text-sm v2:bg-white/[0.03] v2:border-white/10 v2:shadow-none v2:focus:border-brand/70 v2:focus:ring-4 v2:focus:ring-brand/15"

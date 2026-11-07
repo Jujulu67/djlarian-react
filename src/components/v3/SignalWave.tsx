@@ -152,5 +152,5 @@ export default function SignalWave({ bpm = 124, className }: SignalWaveProps) {
     };
   }, [bpm]);
 
-  return <canvas ref={canvasRef} aria-hidden="true" className={className} />;
+  return <canvas ref={canvasRef} role="presentation" className={className} />;
 }
