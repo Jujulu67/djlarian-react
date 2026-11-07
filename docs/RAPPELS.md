@@ -66,12 +66,12 @@ comme compromises.
     `/api/license/*`, testée : 429 à la 21ᵉ). Le limiteur en mémoire reste en complément ;
   - licences : les signatures renvoyées (`active`, `invalid`…) ne contiennent ni date ni machine ;
     à vérifier côté plugin qu'une réponse ne peut pas être rejouée.
-- [ ] **Brancher SonarCloud** (tableau de bord de la dette, gratuit pour un dépôt public) :
-      sur https://sonarcloud.io, se connecter avec GitHub, importer `Jujulu67/djlarian-react`
-      (organisation `jujulu67`, clé `Jujulu67_djlarian-react`, déjà dans
-      `sonar-project.properties`), désactiver « Automatic Analysis » (l'analyse passe par la CI),
-      puis ajouter le jeton dans GitHub → Settings → Secrets → Actions sous le nom `SONAR_TOKEN`.
-      La CI l'utilise ensuite toute seule. État des lieux actuel : `docs/DETTE-TECHNIQUE.md`.
+- [x] **SonarCloud branché** (07/11/2026) : projet `Jujulu67_djlarian-react` dans l'organisation
+      `jujulu67-github`, analyse automatique à chaque push (réglages : `.sonarcloud.properties`).
+      Tableau de bord : https://sonarcloud.io/summary/overall?id=Jujulu67_djlarian-react.
+      _(facultatif)_ Pour y ajouter la couverture de tests : désactiver « Automatic Analysis »
+      (Administration → Analysis Method), créer un jeton, puis `gh secret set SONAR_TOKEN` ;
+      la CI prend alors le relais avec `sonar-project.properties`.
 - [ ] **Imposer la Content-Security-Policy** : elle est en place en mode `Report-Only` depuis le
       04/11/2026 (`src/lib/security/csp.ts`, rapports vers Sentry), et en prod depuis ce jour-là.
       Laisser tourner quelques jours, regarder les rapports CSP
