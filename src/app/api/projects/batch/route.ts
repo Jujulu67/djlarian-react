@@ -205,8 +205,8 @@ export async function POST(request: NextRequest) {
       if (value === null || value === undefined || value === '') {
         return null;
       }
-      const parsed = typeof value === 'number' ? value : parseInt(String(value), 10);
-      if (isNaN(parsed) || parsed < 0) {
+      const parsed = typeof value === 'number' ? value : Number.parseInt(String(value), 10);
+      if (Number.isNaN(parsed) || parsed < 0) {
         return null; // Rejeter les valeurs négatives ou invalides
       }
       // Limite de sécurité : max 2^31 - 1 (valeur max pour un entier 32 bits)

@@ -107,7 +107,7 @@ export function NotificationItem({
               }
               return;
             }
-            onOpen(notification);
+            void onOpen(notification);
           }}
           className="flex-1 min-w-0 text-left touch-manipulation focus:outline-none"
         >

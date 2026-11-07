@@ -66,7 +66,7 @@ export default function StatisticsPage() {
       setLoading(false);
     };
 
-    fetchData();
+    void fetchData();
   }, [activeView]); // Re-fetch quand activeView change
 
   const { usersCount, eventsCount, tracksCount, recentUsers, recentEvents, recentTracks } =

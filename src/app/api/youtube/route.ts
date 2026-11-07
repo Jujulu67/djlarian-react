@@ -65,7 +65,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const url = new URL(req.url);
     const searchQuery = url.searchParams.get('q') || '';
-    const maxResults = parseInt(url.searchParams.get('maxResults') || '100');
+    const maxResults = Number.parseInt(url.searchParams.get('maxResults') || '100');
 
     // Authentification (rôle admin relu en base)
     const { error: authError } = await requireDbAdmin();

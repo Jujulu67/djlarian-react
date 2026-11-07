@@ -98,7 +98,7 @@ export function useMusicCatalog() {
       }
     };
 
-    fetchTracks();
+    void fetchTracks();
   }, []);
 
   const changeItemsPerPage = (value: number) => {

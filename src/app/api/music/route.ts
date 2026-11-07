@@ -64,7 +64,7 @@ const musicPlatforms: [MusicPlatform, ...MusicPlatform[]] = [
 const trackCreateSchema = z.object({
   title: z.string().min(1, { message: 'Title is required' }),
   artist: z.string().min(1, { message: 'Artist is required' }),
-  releaseDate: z.string().refine((date) => !isNaN(new Date(date).getTime()), {
+  releaseDate: z.string().refine((date) => !Number.isNaN(new Date(date).getTime()), {
     message: 'Invalid date format for releaseDate',
   }),
   imageId: z.string().refine(isValidImageId, 'Identifiant d’image invalide').optional().nullable(), // Accepte le nouveau format court (timestamp-random) ou l'ancien UUID
@@ -196,7 +196,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       processedPublishAt = null; // Mettre à null si string vide
     } else {
       const d = new Date(data.publishAt);
-      if (!isNaN(d.getTime())) {
+      if (!Number.isNaN(d.getTime())) {
         processedPublishAt = d; // Utiliser la date valide
       }
       // Si invalide, on laisse processedPublishAt = undefined

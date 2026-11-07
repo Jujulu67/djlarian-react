@@ -121,7 +121,7 @@ export default function GestionImages({
         logger.error('Erreur lors du chargement initial:', err);
       }
     };
-    loadImages();
+    void loadImages();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

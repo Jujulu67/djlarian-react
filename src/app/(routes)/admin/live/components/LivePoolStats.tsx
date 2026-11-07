@@ -33,10 +33,10 @@ export function LivePoolStats() {
   };
 
   useEffect(() => {
-    loadStats();
+    void loadStats();
     // Rafraîchir toutes les 30 secondes
     const interval = setInterval(() => {
-      loadStats(true);
+      void loadStats(true);
     }, 30000);
 
     return () => clearInterval(interval);
@@ -44,7 +44,7 @@ export function LivePoolStats() {
 
   const handleRefresh = () => {
     setRefreshing(true);
-    loadStats(false);
+    void loadStats(false);
   };
 
   return (

@@ -150,8 +150,8 @@ function buildDelta(amount: number, unit: string): DeadlineDelta {
 /** Décalage demandé par un motif reconnu, ou null sans quantité ni unité exploitable. */
 function parseDeadlineDelta(match: RegExpMatchArray): DeadlineDelta | null {
   // Un nombre explicite (« de 2 semaines »), sinon un article (« un », « une ») ou rien : 1
-  const count = parseInt(match[1], 10);
-  const magnitude = match[1] && !isNaN(count) ? count : 1;
+  const count = Number.parseInt(match[1], 10);
+  const magnitude = match[1] && !Number.isNaN(count) ? count : 1;
   const amount = NEGATIVE_SHIFT_PATTERN.test(match[0]) ? -magnitude : magnitude;
   if (amount === 0) return null;
 

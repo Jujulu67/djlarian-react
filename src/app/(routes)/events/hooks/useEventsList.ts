@@ -44,7 +44,7 @@ export function useEventsList(selectedStatus: string) {
       }
     };
 
-    fetchEvents();
+    void fetchEvents();
   }, [selectedStatus]);
 
   return { events, loading, error };

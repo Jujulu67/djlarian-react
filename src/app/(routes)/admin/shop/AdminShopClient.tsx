@@ -69,7 +69,7 @@ export default function AdminShopClient({ initialSettings }: AdminShopClientProp
       {
         id: 'lariancrusher',
         name: initialSettings.productName || 'LarianCrusher',
-        price: parseInt(initialSettings.productPrice, 10) || 20,
+        price: Number.parseInt(initialSettings.productPrice, 10) || 20,
         stripeLink: initialSettings.stripePaymentLink || '',
         enabled: true,
       },
@@ -240,7 +240,9 @@ export default function AdminShopClient({ initialSettings }: AdminShopClientProp
                   <input
                     type="number"
                     value={currentProduct.price}
-                    onChange={(e) => updateProduct('price', parseInt(e.target.value, 10) || 0)}
+                    onChange={(e) =>
+                      updateProduct('price', Number.parseInt(e.target.value, 10) || 0)
+                    }
                     className="w-full bg-black/50 border border-purple-500/30 rounded-lg pl-8 pr-4 py-3 text-white focus:border-purple-500 focus:outline-none"
                     min="0"
                   />

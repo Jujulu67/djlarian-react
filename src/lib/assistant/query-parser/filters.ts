@@ -79,7 +79,7 @@ function isExactProgressFilter(
   exactMatch: RegExpMatchArray,
   patternIndex: number
 ): boolean {
-  const exactValue = parseInt(exactMatch[1], 10);
+  const exactValue = Number.parseInt(exactMatch[1], 10);
   const matchIndex = exactMatch.index || 0;
   const matchedText = exactMatch[0];
   const textAfter = query
@@ -175,8 +175,8 @@ function detectExactProgress(query: string, filters: Filters): void {
   for (let i = 0; i < exactProgressPatterns.length; i++) {
     const exactMatch = query.match(exactProgressPatterns[i]);
     if (!exactMatch) continue;
-    const exactValue = parseInt(exactMatch[1], 10);
-    if (isNaN(exactValue) || exactValue < 0 || exactValue > 100) continue;
+    const exactValue = Number.parseInt(exactMatch[1], 10);
+    if (Number.isNaN(exactValue) || exactValue < 0 || exactValue > 100) continue;
     if (isExactProgressFilter(query, exactMatch, i)) {
       filters.minProgress = exactValue;
       filters.maxProgress = exactValue;
@@ -195,7 +195,7 @@ function detectProgressRange(lowerQuery: string, filters: Filters): void {
   for (const pattern of maxPatterns) {
     const match = lowerQuery.match(pattern);
     if (match) {
-      filters.maxProgress = parseInt(match[1], 10);
+      filters.maxProgress = Number.parseInt(match[1], 10);
       break;
     }
   }
@@ -209,7 +209,7 @@ function detectProgressRange(lowerQuery: string, filters: Filters): void {
   for (const pattern of minPatternsCorrect) {
     const match = lowerQuery.match(pattern);
     if (match) {
-      filters.minProgress = parseInt(match[1], 10);
+      filters.minProgress = Number.parseInt(match[1], 10);
       break;
     }
   }
@@ -217,8 +217,8 @@ function detectProgressRange(lowerQuery: string, filters: Filters): void {
   // Détecter "entre X et Y%"
   const entreMatch = lowerQuery.match(/entre\s*(\d+)\s*(?:et|à)\s*(\d+)\s*%?/i);
   if (entreMatch) {
-    filters.minProgress = parseInt(entreMatch[1], 10);
-    filters.maxProgress = parseInt(entreMatch[2], 10);
+    filters.minProgress = Number.parseInt(entreMatch[1], 10);
+    filters.maxProgress = Number.parseInt(entreMatch[2], 10);
   }
 }
 

@@ -53,7 +53,7 @@ export default function VercelAnalyticsDashboard() {
 
   useEffect(() => {
     let alive = true;
-    loadStatus().then((next) => {
+    void loadStatus().then((next) => {
       if (alive) setStatus(next);
     });
     return () => {

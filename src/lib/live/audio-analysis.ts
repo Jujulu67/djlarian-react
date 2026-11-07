@@ -44,7 +44,7 @@ export async function analyzeAudioFile(file: File): Promise<AudioAnalysisResult>
       } catch (error) {
         reject(new Error("Erreur lors de l'analyse du fichier audio", { cause: error }));
       } finally {
-        audioContext.close();
+        void audioContext.close();
       }
     };
 
@@ -108,7 +108,7 @@ function generateSoundCloudWaveform(audioBuffer: AudioBuffer, samples: number = 
  * Formate la durée en MM:SS
  */
 export function formatDuration(seconds: number): string {
-  if (isNaN(seconds) || seconds < 0) return '0:00';
+  if (Number.isNaN(seconds) || seconds < 0) return '0:00';
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   return `${mins}:${secs.toString().padStart(2, '0')}`;

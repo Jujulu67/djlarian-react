@@ -465,7 +465,7 @@ export async function scrapeSoundCloudTracksPage(profileName: string): Promise<S
               if (datetime) {
                 try {
                   const date = new Date(datetime);
-                  if (!isNaN(date.getTime())) {
+                  if (!Number.isNaN(date.getTime())) {
                     releaseDate = date.toISOString().split('T')[0];
                   }
                 } catch (e) {
@@ -492,7 +492,7 @@ export async function scrapeSoundCloudTracksPage(profileName: string): Promise<S
                 if (!releaseDate && datetime) {
                   try {
                     const date = new Date(datetime);
-                    if (!isNaN(date.getTime())) {
+                    if (!Number.isNaN(date.getTime())) {
                       releaseDate = date.toISOString().split('T')[0];
                     }
                   } catch (e) {
@@ -524,7 +524,7 @@ export async function scrapeSoundCloudTracksPage(profileName: string): Promise<S
                       // Essayer de parser avec la locale française
                       const dateStr = titleAttr.replace(/Posté le\s+/i, '').trim();
                       const date = new Date(dateStr);
-                      if (!isNaN(date.getTime())) {
+                      if (!Number.isNaN(date.getTime())) {
                         releaseDate = date.toISOString().split('T')[0];
                       }
                     } catch (e) {
@@ -533,7 +533,7 @@ export async function scrapeSoundCloudTracksPage(profileName: string): Promise<S
                   } else {
                     try {
                       const date = new Date(titleAttr);
-                      if (!isNaN(date.getTime())) {
+                      if (!Number.isNaN(date.getTime())) {
                         releaseDate = date.toISOString().split('T')[0];
                       }
                     } catch (e) {
@@ -575,7 +575,7 @@ export async function scrapeSoundCloudTracksPage(profileName: string): Promise<S
                     if (dateStr) {
                       try {
                         const date = new Date(dateStr);
-                        if (!isNaN(date.getTime())) {
+                        if (!Number.isNaN(date.getTime())) {
                           releaseDate = date.toISOString().split('T')[0];
                         }
                       } catch (e) {
@@ -602,7 +602,7 @@ export async function scrapeSoundCloudTracksPage(profileName: string): Promise<S
               });
               try {
                 const date = new Date(dataDate);
-                if (!isNaN(date.getTime())) {
+                if (!Number.isNaN(date.getTime())) {
                   releaseDate = date.toISOString().split('T')[0];
                 }
               } catch (e) {

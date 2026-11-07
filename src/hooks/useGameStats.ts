@@ -17,7 +17,7 @@ export function useGameStats() {
       // Fallback to localStorage
       if (typeof window !== 'undefined') {
         const saved = localStorage.getItem('highScore');
-        return saved ? parseInt(saved, 10) : 0;
+        return saved ? Number.parseInt(saved, 10) : 0;
       }
       return 0;
     }
@@ -35,7 +35,7 @@ export function useGameStats() {
     // Fallback to localStorage on error
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('highScore');
-      return saved ? parseInt(saved, 10) : 0;
+      return saved ? Number.parseInt(saved, 10) : 0;
     }
     return 0;
   }, [isAuthenticated]);

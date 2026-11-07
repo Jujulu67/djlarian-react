@@ -80,7 +80,7 @@ const SimpleMusicPlayer: React.FC<SimpleMusicPlayerProps> = ({
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     try {
-      const newVolumeValue = parseInt(e.target.value);
+      const newVolumeValue = Number.parseInt(e.target.value);
       const newVolumeNormalized = newVolumeValue / 100;
       logger.debug(`Volume slider changed to ${newVolumeValue}%`);
 

@@ -94,7 +94,7 @@ export function EditingTrackCard({ editingTrack, tracks, handleEdit }: EditingTr
           <button
             onClick={(e) => {
               e.stopPropagation();
-              tracks.toggleFeatured(editingTrack.id, editingTrack.featured || false);
+              void tracks.toggleFeatured(editingTrack.id, editingTrack.featured || false);
             }}
             className={`p-2 rounded-lg ${
               editingTrack.featured
@@ -117,7 +117,7 @@ export function EditingTrackCard({ editingTrack, tracks, handleEdit }: EditingTr
           <button
             onClick={(e) => {
               e.stopPropagation();
-              tracks.deleteTrack(editingTrack.id);
+              void tracks.deleteTrack(editingTrack.id);
             }}
             className="p-2 text-gray-400 hover:text-red-500 hover:bg-gray-700 rounded-lg"
           >

@@ -29,7 +29,7 @@ export function useNotificationHighlight({
 
     // Les projets arrivent après un chargement réseau : laisser plus de temps que par défaut
     const controller = new AbortController();
-    waitForElement(`#project-${CSS.escape(highlightId)}`, {
+    void waitForElement(`#project-${CSS.escape(highlightId)}`, {
       timeoutMs: 10000,
       signal: controller.signal,
     }).then((el) => el?.scrollIntoView({ behavior: 'smooth', block: 'center' }));

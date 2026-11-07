@@ -37,7 +37,7 @@ export async function getHomepageConfig(): Promise<HomepageConfig> {
           } else if (
             typedConfig.value !== null &&
             typedConfig.value !== '' &&
-            !isNaN(Number(typedConfig.value))
+            !Number.isNaN(Number(typedConfig.value))
           ) {
             value = Number(typedConfig.value);
           }

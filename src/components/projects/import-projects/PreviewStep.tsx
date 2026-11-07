@@ -372,7 +372,7 @@ export function PreviewStep({
                         handleUpdateRow(
                           index,
                           'streamsJ7',
-                          e.target.value ? parseInt(e.target.value, 10) : null
+                          e.target.value ? Number.parseInt(e.target.value, 10) : null
                         )
                       }
                       className="w-full bg-gray-800/50 border border-purple-500/30 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500/50 tabular-nums"
@@ -388,7 +388,7 @@ export function PreviewStep({
                         handleUpdateRow(
                           index,
                           'streamsJ14',
-                          e.target.value ? parseInt(e.target.value, 10) : null
+                          e.target.value ? Number.parseInt(e.target.value, 10) : null
                         )
                       }
                       className="w-full bg-gray-800/50 border border-purple-500/30 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500/50 tabular-nums"
@@ -404,7 +404,7 @@ export function PreviewStep({
                         handleUpdateRow(
                           index,
                           'streamsJ21',
-                          e.target.value ? parseInt(e.target.value, 10) : null
+                          e.target.value ? Number.parseInt(e.target.value, 10) : null
                         )
                       }
                       className="w-full bg-gray-800/50 border border-purple-500/30 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500/50 tabular-nums"
@@ -420,7 +420,7 @@ export function PreviewStep({
                         handleUpdateRow(
                           index,
                           'streamsJ28',
-                          e.target.value ? parseInt(e.target.value, 10) : null
+                          e.target.value ? Number.parseInt(e.target.value, 10) : null
                         )
                       }
                       className="w-full bg-gray-800/50 border border-purple-500/30 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500/50 tabular-nums"
@@ -436,7 +436,7 @@ export function PreviewStep({
                         handleUpdateRow(
                           index,
                           'streamsJ56',
-                          e.target.value ? parseInt(e.target.value, 10) : null
+                          e.target.value ? Number.parseInt(e.target.value, 10) : null
                         )
                       }
                       className="w-full bg-gray-800/50 border border-purple-500/30 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500/50 tabular-nums"
@@ -452,7 +452,7 @@ export function PreviewStep({
                         handleUpdateRow(
                           index,
                           'streamsJ84',
-                          e.target.value ? parseInt(e.target.value, 10) : null
+                          e.target.value ? Number.parseInt(e.target.value, 10) : null
                         )
                       }
                       className="w-full bg-gray-800/50 border border-purple-500/30 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500/50 tabular-nums"

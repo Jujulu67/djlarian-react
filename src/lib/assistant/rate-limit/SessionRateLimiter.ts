@@ -24,10 +24,10 @@ import { logger } from '@/lib/logger';
 // ============================================================================
 
 /** Nombre max de requêtes par fenêtre */
-const RATE_LIMIT_MAX = parseInt(process.env.RATE_LIMIT_MAX || '20', 10);
+const RATE_LIMIT_MAX = Number.parseInt(process.env.RATE_LIMIT_MAX || '20', 10);
 
 /** Durée de la fenêtre en millisecondes (défaut: 1 minute) */
-const RATE_LIMIT_WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000', 10);
+const RATE_LIMIT_WINDOW_MS = Number.parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000', 10);
 
 /** Activer le rate limiting (peut être désactivé en dev) */
 const RATE_LIMIT_ENABLED = process.env.RATE_LIMIT_ENABLED !== 'false';

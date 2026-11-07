@@ -107,7 +107,7 @@ export function useEventImageCrop({
     }
     let isMounted = true;
     if (formData.imageId) {
-      (async () => {
+      void (async () => {
         logger.debug("[CROP] Préchargement de l'originale pour imageId:", formData.imageId);
         const url = await findOriginalImageUrl(formData.imageId as string);
         logger.debug('[CROP] URL originale trouvée (ou null):', url);

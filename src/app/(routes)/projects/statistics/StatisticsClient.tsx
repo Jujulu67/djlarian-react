@@ -63,7 +63,7 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
       }
     };
 
-    fetchStatistics();
+    void fetchStatistics();
   }, []);
 
   // Filtrer les statistiques selon l'année sélectionnée
@@ -82,7 +82,7 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
     if (!statistics?.projectsByYear) return [];
     return statistics.projectsByYear
       .map((p) => {
-        const year = parseInt(p.year, 10);
+        const year = Number.parseInt(p.year, 10);
         return Number.isFinite(year) ? year : null;
       })
       .filter((year): year is number => year !== null)

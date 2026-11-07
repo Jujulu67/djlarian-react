@@ -260,7 +260,7 @@ export const useAudioFrequencyCapture = ({
       }
     };
 
-    setupAudioCapture();
+    void setupAudioCapture();
 
     return () => {
       if (animationFrameRef.current) {

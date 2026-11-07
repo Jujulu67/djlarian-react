@@ -35,7 +35,7 @@ export function AdminLivePlayer() {
   const handleVolumeInput = useCallback(
     (e: React.FormEvent<HTMLInputElement>) => {
       const target = e.target as HTMLInputElement;
-      const newVolume = parseFloat(target.value);
+      const newVolume = Number.parseFloat(target.value);
       setDragVolume(newVolume);
 
       // Utiliser requestAnimationFrame pour des mises à jour fluides

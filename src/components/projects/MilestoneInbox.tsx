@@ -218,7 +218,7 @@ export function MilestoneInbox({ isOpen, onClose }: MilestoneInboxProps) {
     if (isOpen) {
       // Attendre un peu pour éviter les requêtes multiples
       const timeoutId = setTimeout(() => {
-        refresh();
+        void refresh();
       }, 100);
       return () => clearTimeout(timeoutId);
     }
@@ -230,7 +230,7 @@ export function MilestoneInbox({ isOpen, onClose }: MilestoneInboxProps) {
 
     const handleFocus = () => {
       // Rafraîchir quand on revient sur l'onglet et que la popup est ouverte
-      refresh();
+      void refresh();
     };
 
     window.addEventListener('focus', handleFocus);

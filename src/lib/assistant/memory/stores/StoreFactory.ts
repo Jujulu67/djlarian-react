@@ -24,10 +24,13 @@ import { logger } from '@/lib/logger';
 // ============================================================================
 
 /** TTL par défaut pour ConversationMemory (1 heure) */
-const DEFAULT_CONVERSATION_TTL_MS = parseInt(process.env.CONVERSATION_TTL_MS || '3600000', 10);
+const DEFAULT_CONVERSATION_TTL_MS = Number.parseInt(
+  process.env.CONVERSATION_TTL_MS || '3600000',
+  10
+);
 
 /** TTL par défaut pour ActionMemory (5 minutes) */
-const DEFAULT_ACTION_TTL_MS = parseInt(process.env.ACTION_TTL_MS || '300000', 10);
+const DEFAULT_ACTION_TTL_MS = Number.parseInt(process.env.ACTION_TTL_MS || '300000', 10);
 
 /** URL Redis (optionnel) */
 const REDIS_URL = process.env.REDIS_URL;

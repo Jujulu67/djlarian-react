@@ -27,8 +27,8 @@ export default function NumberInput({
   disabled?: boolean;
 }) {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const numValue = e.target.value === '' ? (min ?? 0) : parseInt(e.target.value, 10); // Gère le cas où le champ est vidé
-    if (!isNaN(numValue)) {
+    const numValue = e.target.value === '' ? (min ?? 0) : Number.parseInt(e.target.value, 10); // Gère le cas où le champ est vidé
+    if (!Number.isNaN(numValue)) {
       // Optionnel : Clamp la valeur si min/max sont définis
       const clampedValue = Math.max(min ?? -Infinity, Math.min(max ?? Infinity, numValue));
       onChange(clampedValue);

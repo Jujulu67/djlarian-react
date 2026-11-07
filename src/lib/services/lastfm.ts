@@ -119,7 +119,7 @@ export async function getTrackInfo(
     }
 
     if (data.track.duration) {
-      result.duration = parseInt(data.track.duration, 10);
+      result.duration = Number.parseInt(data.track.duration, 10);
     }
 
     return result;

@@ -50,9 +50,11 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId'); // Pour admin uniquement
     const all = searchParams.get('all') === 'true'; // Pour admin - voir tous les projets
     const includeUser = searchParams.get('includeUser') !== 'false'; // Par défaut true
-    const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!, 10) : undefined;
+    const limit = searchParams.get('limit')
+      ? Number.parseInt(searchParams.get('limit')!, 10)
+      : undefined;
     const offset = searchParams.get('offset')
-      ? parseInt(searchParams.get('offset')!, 10)
+      ? Number.parseInt(searchParams.get('offset')!, 10)
       : undefined;
 
     // Construire la clause WHERE
@@ -180,8 +182,8 @@ export async function POST(request: NextRequest) {
       if (value === null || value === undefined || value === '') {
         return null;
       }
-      const parsed = typeof value === 'number' ? value : parseInt(String(value), 10);
-      if (isNaN(parsed) || parsed < 0) {
+      const parsed = typeof value === 'number' ? value : Number.parseInt(String(value), 10);
+      if (Number.isNaN(parsed) || parsed < 0) {
         return null; // Rejeter les valeurs négatives ou invalides
       }
       // Limite de sécurité : max 2^31 - 1 (valeur max pour un entier 32 bits)

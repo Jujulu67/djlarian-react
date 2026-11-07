@@ -273,7 +273,7 @@ const TwitchStream = () => {
       }
     };
 
-    checkStreamStatus();
+    void checkStreamStatus();
     // Check every 60 seconds
     const interval = setInterval(checkStreamStatus, 60000);
     return () => clearInterval(interval);

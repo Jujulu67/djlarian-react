@@ -171,8 +171,8 @@ export function extractCreateData(
   for (const pattern of progressPatterns) {
     const match = query.match(pattern);
     if (match && match[1]) {
-      const progressValue = parseInt(match[1], 10);
-      if (!isNaN(progressValue) && progressValue >= 0 && progressValue <= 100) {
+      const progressValue = Number.parseInt(match[1], 10);
+      if (!Number.isNaN(progressValue) && progressValue >= 0 && progressValue <= 100) {
         createData.progress = progressValue;
         break;
       }

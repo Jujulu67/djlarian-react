@@ -93,7 +93,7 @@ export async function GET() {
       where: { key: 'timeOffsetMinutes' },
     });
     const timeOffsetMinutes = timeOffsetSetting
-      ? parseInt(JSON.parse(timeOffsetSetting.value) || '0', 10)
+      ? Number.parseInt(JSON.parse(timeOffsetSetting.value) || '0', 10)
       : 0;
 
     // Calculer le pourcentage basé sur le système de poids avec multiplier temporel

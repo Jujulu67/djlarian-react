@@ -38,13 +38,13 @@ export function UserLicenseCard({ license, userEmail }: UserLicenseCardProps) {
   const [isDeactivating, setIsDeactivating] = useState<string | null>(null);
 
   const handleCopyKey = () => {
-    navigator.clipboard.writeText(license.licenseKey);
+    void navigator.clipboard.writeText(license.licenseKey);
     toast.success('Clé de licence copiée !');
   };
 
   const handleCopyEmail = () => {
     if (userEmail) {
-      navigator.clipboard.writeText(userEmail);
+      void navigator.clipboard.writeText(userEmail);
       toast.success('Email copié !');
     }
   };

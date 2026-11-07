@@ -62,7 +62,7 @@ export function extractInfoFromTitle(title: string) {
     cleanTitle.match(/\((\d{2,3})\s*(?:bpm|BPM)\)/);
 
   if (bpmMatch?.[1]) {
-    const detected = parseInt(bpmMatch[1]);
+    const detected = Number.parseInt(bpmMatch[1]);
     if (detected >= 70 && detected <= 200) result.bpm = detected;
   }
 

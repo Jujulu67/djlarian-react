@@ -29,7 +29,7 @@ export async function GET() {
     settings.forEach((s) => {
       const key = s.key.replace('shop_', '');
       if (key === 'productPrice') {
-        settingsObj[key] = parseInt(s.value, 10) || 20;
+        settingsObj[key] = Number.parseInt(s.value, 10) || 20;
       } else if (key === 'shopEnabled') {
         settingsObj[key] = s.value === 'true';
       } else if (key === 'products') {

@@ -129,7 +129,11 @@ export async function GET(req: NextRequest) {
         let value: string | number | boolean | null = config.value;
         if (config.value === 'true' || config.value === 'false') {
           value = config.value === 'true';
-        } else if (config.value !== null && config.value !== '' && !isNaN(Number(config.value))) {
+        } else if (
+          config.value !== null &&
+          config.value !== '' &&
+          !Number.isNaN(Number(config.value))
+        ) {
           value = Number(config.value);
         }
         configObject[config.section][config.key] = value;

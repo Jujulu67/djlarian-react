@@ -56,7 +56,7 @@ export default function SentryDashboard() {
 
   useEffect(() => {
     let alive = true;
-    loadSentryStatus().then((next) => {
+    void loadSentryStatus().then((next) => {
       if (alive) setStatus(next);
     });
     return () => {

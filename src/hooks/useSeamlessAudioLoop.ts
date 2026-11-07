@@ -193,7 +193,7 @@ export function useSeamlessAudioLoop({
       }
     };
 
-    preloadAll();
+    void preloadAll();
     return () => {
       mounted = false;
     };
@@ -386,7 +386,7 @@ export function useSeamlessAudioLoop({
         }
       };
 
-      loadAndStart();
+      void loadAndStart();
     },
     [basePath, resumeAudioContext, createSource, loadAndDecodeBuffer]
   );
@@ -484,7 +484,7 @@ export function useSeamlessAudioLoop({
 
         // Create new source at the same relative position
         const startOffset = currentPosition * buffer.duration;
-        const safeStartOffset = isFinite(startOffset) ? startOffset : 0;
+        const safeStartOffset = Number.isFinite(startOffset) ? startOffset : 0;
 
         const newAudio = await createSource(buffer, safeStartOffset);
         const switchNow = ctx.currentTime;

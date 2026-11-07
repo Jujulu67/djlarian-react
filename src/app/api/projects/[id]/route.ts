@@ -44,8 +44,8 @@ const INVALID_URL = Symbol('invalid-url');
 /** Entier saisi, ou null si la valeur est vide ou n'est pas un nombre. */
 function parseIntOrNull(value: unknown): number | null {
   if (value === null || value === undefined || value === '') return null;
-  const parsed = typeof value === 'number' ? value : parseInt(String(value), 10);
-  return isNaN(parsed) ? null : parsed;
+  const parsed = typeof value === 'number' ? value : Number.parseInt(String(value), 10);
+  return Number.isNaN(parsed) ? null : parsed;
 }
 
 /** Nombre de streams : positif et tenant dans un entier 32 bits. */

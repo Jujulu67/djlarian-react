@@ -168,7 +168,7 @@ export default function EventDetailPage() {
     };
 
     if (eventId) {
-      fetchEvent();
+      void fetchEvent();
     }
   }, [eventId]); // L'effet ne dépend plus de virtualDate car nous utilisons directement dateParam
 
@@ -238,7 +238,7 @@ export default function EventDetailPage() {
         );
         break;
       case 'copy':
-        navigator.clipboard.writeText(eventUrl).then(() => {
+        void navigator.clipboard.writeText(eventUrl).then(() => {
           setCopySuccess(true);
           setTimeout(() => setCopySuccess(false), 2000);
         });

@@ -497,7 +497,7 @@ export function VerifyModal({
                       onChange={(e) =>
                         onFormDataChange({
                           ...verifyFormData,
-                          bpm: parseInt(e.target.value) || undefined,
+                          bpm: Number.parseInt(e.target.value) || undefined,
                         })
                       }
                       className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-purple-500"

@@ -169,8 +169,8 @@ function findConflict(expected: string | undefined, current: Date | string | und
 
   const expectedTime = new Date(expected).getTime();
   const currentTime = currentDate.getTime();
-  if (isNaN(expectedTime)) return { reason: 'expectedUpdatedAt_invalid', expected };
-  if (isNaN(currentTime)) return { reason: 'currentUpdatedAt_invalid', expected };
+  if (Number.isNaN(expectedTime)) return { reason: 'expectedUpdatedAt_invalid', expected };
+  if (Number.isNaN(currentTime)) return { reason: 'currentUpdatedAt_invalid', expected };
 
   // Tolérance d'une seconde pour les arrondis de millisecondes
   const timeDiff = Math.abs(expectedTime - currentTime);
@@ -253,7 +253,7 @@ function progressFilter({ noProgress, minProgress, maxProgress }: BatchUpdateBod
 function deadlineFilter({ hasDeadline, deadlineDate }: BatchUpdateBody) {
   // Une date précise et valide l'emporte sur hasDeadline
   const date = deadlineDate ? new Date(deadlineDate) : null;
-  if (date && !isNaN(date.getTime())) return { deadline: date.toISOString().split('T')[0] };
+  if (date && !Number.isNaN(date.getTime())) return { deadline: date.toISOString().split('T')[0] };
   if (hasDeadline === undefined) return {};
   return { deadline: hasDeadline ? { not: null } : null };
 }
@@ -326,7 +326,7 @@ function parseNewDeadline(newDeadline: string | null): Date | null | undefined {
   const relative = parseRelativeDate(newDeadline);
   if (relative) return new Date(relative);
   const date = new Date(newDeadline);
-  return isNaN(date.getTime()) ? undefined : date;
+  return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
 /** Données de mise à jour, hors deadline. Un projet TERMINE passe forcément à 100 %. */

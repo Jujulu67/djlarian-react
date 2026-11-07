@@ -28,7 +28,7 @@ export function useMapAmbientMusic(isOpen: boolean) {
     // Load volume preference
     const savedVolume = localStorage.getItem(STORAGE_KEY_VOLUME);
     if (savedVolume !== null) {
-      setVolume(parseFloat(savedVolume));
+      setVolume(Number.parseFloat(savedVolume));
     }
 
     // Create audio element

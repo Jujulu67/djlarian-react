@@ -125,8 +125,8 @@ export default async function AdminActivitiesPage({
   const currentPage = resolvedSearchParams?.page || '1';
   const currentLimit = resolvedSearchParams?.limit || '10';
 
-  const page = parseInt(currentPage, 10);
-  const limit = parseInt(currentLimit, 10);
+  const page = Number.parseInt(currentPage, 10);
+  const limit = Number.parseInt(currentLimit, 10);
   const skip = (page - 1) * limit;
 
   // --- Récupération des données --- (avec IDs pour les liens)

@@ -51,7 +51,7 @@ const getImageDate = (img: ImageMeta) => {
   const raw = img.date || img.lastModified || img.createdAt;
   if (!raw) return '';
   const d = new Date(raw);
-  if (isNaN(d.getTime())) return '';
+  if (Number.isNaN(d.getTime())) return '';
   return d.toLocaleDateString();
 };
 

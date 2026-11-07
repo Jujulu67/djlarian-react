@@ -241,7 +241,7 @@ export function PlatformTabs({
               <select
                 id="maxResults"
                 value={maxResults}
-                onChange={(e) => onMaxResultsChange(parseInt(e.target.value))}
+                onChange={(e) => onMaxResultsChange(Number.parseInt(e.target.value))}
                 className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white focus:ring-purple-500"
               >
                 <option value={10}>10 vidéos</option>

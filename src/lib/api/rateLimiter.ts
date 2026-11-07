@@ -45,7 +45,7 @@ async function getApiConfig() {
       if (config.key === 'apiEnabled') {
         apiConfig.apiEnabled = config.value === 'true';
       } else if (config.key === 'rateLimit') {
-        apiConfig.rateLimit = parseInt(config.value || '100', 10);
+        apiConfig.rateLimit = Number.parseInt(config.value || '100', 10);
       }
     });
 

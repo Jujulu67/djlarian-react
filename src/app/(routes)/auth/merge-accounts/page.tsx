@@ -76,7 +76,7 @@ function MergeAccountsContent() {
       }
     };
 
-    fetchMergeData();
+    void fetchMergeData();
   }, [searchParams, router]);
 
   const handleMerge = async () => {
@@ -406,7 +406,7 @@ function MergeAccountsContent() {
                     if (passwordError) setPasswordError(null);
                   }}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !merging) handleMerge();
+                    if (e.key === 'Enter' && !merging) void handleMerge();
                   }}
                   aria-invalid={passwordError ? true : undefined}
                   aria-describedby={passwordError ? 'merge-password-error' : undefined}
