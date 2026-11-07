@@ -3,6 +3,59 @@
  * Handles formats like "Youssou N'Dour - KIRIKOU (LARIAN FLIP)"
  */
 
+// Découpages en temps linéaire (sans regex à retour arrière, cf. Sonar S8786).
+// Ils renvoient les mêmes groupes que les anciennes regex.
+
+/** « Artiste - Titre (Remix) » : /^(.+?)\s*-\s*(.+?)\s*\(([^)]+)\)$/ */
+export function matchDashParen(title: string): [string, string, string] | null {
+  if (!title.endsWith(')')) return null;
+  const dash = title.indexOf('-', 1);
+  if (dash < 0) return null;
+  const previousClose = title.lastIndexOf(')', title.length - 2);
+  const firstTitleChar = title.slice(dash + 1).search(/\S/);
+  if (firstTitleChar < 0) return null;
+  const open = title.indexOf('(', Math.max(previousClose + 1, dash + 2 + firstTitleChar));
+  if (open < 0) return null;
+  const inner = title.slice(open + 1, -1);
+  if (!inner) return null;
+  return [title.slice(0, dash), title.slice(dash + 1, open), inner];
+}
+
+/** « Artiste - Titre » : /^(.+?)\s*-\s*(.+)$/ */
+export function matchDash(title: string): [string, string] | null {
+  const dash = title.indexOf('-', 1);
+  if (dash < 0 || dash === title.length - 1) return null;
+  return [title.slice(0, dash), title.slice(dash + 1)];
+}
+
+const TRAILING_REMIX = /\s(FLIP|REMIX|BOOTLEG|EDIT|REWORK)[)\]]$/i;
+
+/** « Titre (Artiste REMIX) » : /^(.+?)\s*[([](.+?)\s+(FLIP|…)[)\]]$/i */
+export function matchBracketRemix(title: string): [string, string, string] | null {
+  const end = TRAILING_REMIX.exec(title);
+  if (!end) return null;
+  const before = title.slice(0, end.index);
+  const open = before.slice(1).search(/[([]/) + 1;
+  if (open < 1) return null;
+  const artist = before.slice(open + 1);
+  if (!artist.trim()) return null;
+  return [title.slice(0, open), artist, end[1]];
+}
+
+/**
+ * « Titre : X par Y » → [_, X], comme /Titre\s*[:\u00A0]\s*(.+?)(?:\s+par\s+|$)/i
+ * mais en temps linéaire (Sonar S8786) : le texte vient d'une page récupérée.
+ */
+export function matchTitreField(text: string): [string, string] | null {
+  const label = /Titre[^\S\n]*[:\u00A0]/i.exec(text);
+  if (!label) return null;
+  const rest = text.slice(label.index + label[0].length).replace(/^\s+/, '');
+  const line = rest.split('\n', 1)[0];
+  const by = line.search(/\spar\s/i);
+  const title = (by < 0 ? line : line.slice(0, by)).trimEnd();
+  return title ? [label[0] + title, title] : null;
+}
+
 /**
  * Normalizes artist name (ex: "larian67" -> "Larian")
  */
@@ -46,12 +99,11 @@ export function parseSoundCloudTitle(
 
   // Pattern 1: "Artist - Title (REMIX TERM)"
   // Ex: "Youssou N'Dour - KIRIKOU (LARIAN FLIP)"
-  const pattern1 = /^(.+?)\s*-\s*(.+?)\s*\(([^)]+)\)$/i;
-  const match1 = title.match(pattern1);
+  const match1 = matchDashParen(title);
   if (match1) {
-    const artistPart = match1[1].trim();
-    const titlePart = match1[2].trim();
-    const remixPart = match1[3].trim();
+    const artistPart = match1[0].trim();
+    const titlePart = match1[1].trim();
+    const remixPart = match1[2].trim();
 
     // Check if remix part contains profile name or remix term
     const hasRemixTerm = remixPatterns.some((p) => p.test(remixPart));
@@ -68,11 +120,10 @@ export function parseSoundCloudTitle(
     }
   } else {
     // Pattern 2: "Artist - Title" (without parentheses)
-    const pattern2 = /^(.+?)\s*-\s*(.+)$/;
-    const match2 = title.match(pattern2);
+    const match2 = matchDash(title);
     if (match2) {
-      const artistPart = match2[1].trim();
-      const titlePart = match2[2].trim();
+      const artistPart = match2[0].trim();
+      const titlePart = match2[1].trim();
 
       // Check if title contains remix term
       const titleHasRemix = remixPatterns.some((p) => p.test(titlePart));
@@ -94,12 +145,11 @@ export function parseSoundCloudTitle(
       }
     } else {
       // Pattern 3: "Title (Artist REMIX)" or "Title [Artist REMIX]"
-      const pattern3 = /^(.+?)\s*[\(\[](.+?)\s+(FLIP|REMIX|BOOTLEG|EDIT|REWORK)[\)\]]$/i;
-      const match3 = title.match(pattern3);
+      const match3 = matchBracketRemix(title);
       if (match3) {
-        const titlePart = match3[1].trim();
-        const artistPart = match3[2].trim();
-        const remixTerm = match3[3].toUpperCase();
+        const titlePart = match3[0].trim();
+        const artistPart = match3[1].trim();
+        const remixTerm = match3[2].toUpperCase();
         parsedArtist = `${artistPart} (${remixTerm})`;
         parsedTitle = titlePart;
       } else {

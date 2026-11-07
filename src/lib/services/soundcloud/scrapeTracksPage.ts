@@ -9,6 +9,7 @@ import { jitter, sleep } from './humanBehavior';
 import { enrichTracksWithCoverArts } from './thumbnail';
 import { toSoundCloudTrack } from './trackMapper';
 import type { Browser, DebugData, HTTPRequest, SoundCloudTrack } from './types';
+import { matchTitreField } from './parseTitle';
 
 /**
  * Scrape la page /tracks d'un profil SoundCloud avec Puppeteer
@@ -321,7 +322,7 @@ export async function scrapeSoundCloudTracksPage(profileName: string): Promise<S
               });
               // Pattern pour extraire le titre depuis "Titre : ... par ..."
               // Le pattern doit gérer &nbsp; et les entités HTML
-              const titleMatch = decoded.match(/Titre\s*[:\u00A0]\s*(.+?)(?:\s+par\s+|$)/i);
+              const titleMatch = matchTitreField(decoded);
               if (titleMatch && titleMatch[1]) {
                 title = titleMatch[1].trim();
               } else {
@@ -375,7 +376,7 @@ export async function scrapeSoundCloudTracksPage(profileName: string): Promise<S
               text: decoded,
               innerHTML: '',
             });
-            const titleMatch = decoded.match(/Titre\s*[:\u00A0]\s*(.+?)(?:\s+par\s+|$)/i);
+            const titleMatch = matchTitreField(decoded);
             if (titleMatch && titleMatch[1]) {
               title = titleMatch[1].trim();
             } else {

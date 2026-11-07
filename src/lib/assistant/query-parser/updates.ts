@@ -280,6 +280,16 @@ function isPlausibleDirectName(projectName: string): boolean {
   return !looksLikeSentence && projectName.length <= 50;
 }
 
+/** Retire les guillemets en début et en fin (comme /^["']+|["']+$/g, en temps linéaire). */
+function stripQuotes(text: string): string {
+  const isQuote = (c: string | undefined) => c === '"' || c === "'";
+  let start = 0;
+  let end = text.length;
+  while (start < end && isQuote(text[start])) start++;
+  while (end > start && isQuote(text[end - 1])) end--;
+  return text.slice(start, end);
+}
+
 function parseNoteMatch(match: RegExpMatchArray, patternIndex: number): NoteData | null {
   const isDirect = patternIndex === DIRECT_PATTERN_INDEX;
   const name = match[1].trim();
@@ -288,10 +298,7 @@ function parseNoteMatch(match: RegExpMatchArray, patternIndex: number): NoteData
   if (projectName.includes('qui dit') || projectName.includes('disant')) return null;
   if (isDirect && !isPlausibleDirectName(projectName)) return null;
 
-  const newNote = match[2]
-    .trim()
-    .replace(/^["']+|["']+$/g, '')
-    .trim();
+  const newNote = stripQuotes(match[2].trim()).trim();
   const minLength = isDirect ? 3 : 2;
   return projectName.length >= minLength && newNote.length > 0 ? { projectName, newNote } : null;
 }
