@@ -13,6 +13,7 @@ import EventPreview from '@/app/components/EventPreview';
 import { logger } from '@/lib/logger';
 import { generateImageId } from '@/lib/utils/generateImageId';
 import { getImageUrl } from '@/lib/utils/getImageUrl';
+import { localInputToIso } from '@/lib/utils/localInputToIso';
 
 // Déplacer la fonction helper ici pour qu'elle soit accessible partout
 const formatDateForInput = (dateString: string | null | undefined): string => {
@@ -362,11 +363,11 @@ function EventFormContent() {
         description: formData.description,
         location: formData.location,
         address: addressValue,
-        startDate: formData.date ?? '',
-        endDate: formData.endDate || null,
+        startDate: localInputToIso(formData.date) ?? '',
+        endDate: localInputToIso(formData.endDate),
         status: formData.status,
         isPublished: formData.isPublished,
-        publishAt: formData.publishAt || null,
+        publishAt: localInputToIso(formData.publishAt),
         featured: formData.featured || false,
         imageId: imageId,
         tickets: formData.hasTickets
@@ -381,16 +382,18 @@ function EventFormContent() {
                 formData.tickets?.quantity !== undefined
                   ? parseInt(String(formData.tickets.quantity), 10) || 0
                   : 0,
-              availableFrom: formData.tickets?.availableFrom || null,
-              availableTo: formData.tickets?.availableTo || null,
+              availableFrom: localInputToIso(formData.tickets?.availableFrom),
+              availableTo: localInputToIso(formData.tickets?.availableTo),
             }
           : undefined,
-        recurrence: isEditMode
-          ? {
-              ...formData.recurrence,
-              isRecurring: !!formData.recurrence?.isRecurring,
-            }
-          : formData.recurrence,
+        recurrence:
+          isEditMode || formData.recurrence
+            ? {
+                ...formData.recurrence,
+                isRecurring: !!formData.recurrence?.isRecurring,
+                endDate: localInputToIso(formData.recurrence?.endDate),
+              }
+            : undefined,
       };
       // Protection anti-bug : supprimer tout champ id du payload lors d'un POST (création)
       if (!isEditMode && 'id' in dataToSend) {

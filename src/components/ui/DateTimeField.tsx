@@ -95,6 +95,9 @@ export const DateTimeField: React.FC<DateTimeFieldProps> = ({
           value={value || ''}
           onChange={onChange}
           min={min}
+          // Sans max, Chrome accepte des années à 6 chiffres et reste sur l'année :
+          // « 15122026 2100 » tapé d'une traite donnait l'année 202621 et une date vide
+          max={type === 'date' ? '9999-12-31' : '9999-12-31T23:59'}
           required={required}
           onClick={(e) => e.currentTarget.showPicker()}
         />
