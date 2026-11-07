@@ -7,7 +7,7 @@ import {
   UI_VERSION_PARAM,
 } from '@/lib/ui-version';
 
-export async function proxy(request: NextRequest) {
+export function proxy(request: NextRequest) {
   // `?ui=v2` ou `?ui=legacy` : mémoriser la version d'UI puis revenir sur l'URL propre
   const uiVersion = parseUiVersion(request.nextUrl.searchParams.get(UI_VERSION_PARAM));
   if (uiVersion) {

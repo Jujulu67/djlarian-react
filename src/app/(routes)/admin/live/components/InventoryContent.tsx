@@ -78,7 +78,7 @@ export function InventoryContent({ userId, userName }: Readonly<InventoryContent
     };
   }, [userId]);
 
-  const handleAddItem = async (itemId: string) => {
+  const handleAddItem = (itemId: string) => {
     // Trouver l'item dans allItems pour avoir les infos
     const item = allItems.find((i) => i.id === itemId);
     if (!item) return;
@@ -149,7 +149,7 @@ export function InventoryContent({ userId, userName }: Readonly<InventoryContent
     // Pas de .finally() car on ne désactive plus le bouton
   };
 
-  const handleRemoveItem = async (itemId: string) => {
+  const handleRemoveItem = (itemId: string) => {
     // Sauvegarder l'état actuel pour rollback
     const previousInventory = [...inventory];
     const userItem = inventory.find((i) => i.itemId === itemId);
@@ -204,7 +204,7 @@ export function InventoryContent({ userId, userName }: Readonly<InventoryContent
       });
   };
 
-  const handleActivateItem = async (userItemId: string) => {
+  const handleActivateItem = (userItemId: string) => {
     // Sauvegarder l'état actuel pour rollback
     const previousInventory = [...inventory];
     const userItem = inventory.find((i) => i.id === userItemId);
@@ -261,7 +261,7 @@ export function InventoryContent({ userId, userName }: Readonly<InventoryContent
       });
   };
 
-  const handleDeactivateItem = async (userItemId: string) => {
+  const handleDeactivateItem = (userItemId: string) => {
     // Sauvegarder l'état actuel pour rollback
     const previousInventory = [...inventory];
     const userItem = inventory.find((i) => i.id === userItemId);

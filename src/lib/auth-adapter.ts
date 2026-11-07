@@ -11,7 +11,7 @@ export function CustomPrismaAdapter(prisma: PrismaClient): Adapter {
 
   return {
     ...baseAdapter,
-    async getUserByEmail(email) {
+    getUserByEmail(email) {
       // Utiliser la méthode de base pour obtenir l'utilisateur par email
       if (!baseAdapter.getUserByEmail) {
         return null;

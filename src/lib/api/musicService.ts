@@ -30,7 +30,7 @@ export type UpdateTrackInput = {
 } & Partial<CreateTrackInput>;
 
 // Récupérer toutes les pistes musicales
-export async function getAllTracks() {
+export function getAllTracks() {
   return prisma.track.findMany({
     include: {
       TrackPlatform: true,
@@ -52,7 +52,7 @@ export async function getAllTracks() {
 }
 
 // Récupérer une piste par ID
-export async function getTrackById(id: string) {
+export function getTrackById(id: string) {
   return prisma.track.findUnique({
     where: { id },
     include: {
@@ -76,7 +76,7 @@ export async function getTrackById(id: string) {
 // Créer une nouvelle piste
 export async function createTrack(data: CreateTrackInput, userId?: string) {
   // Créer ou obtenir les genres
-  const genrePromises = data.genreNames.map(async (name) => {
+  const genrePromises = data.genreNames.map((name) => {
     const normalizedName = name.trim().toLowerCase();
     return prisma.genre.upsert({
       where: { name: normalizedName },
@@ -151,7 +151,7 @@ export async function updateTrack(data: UpdateTrackInput) {
   if (genreNames !== undefined) {
     await prisma.genresOnTracks.deleteMany({ where: { trackId: id } });
     if (isNotEmpty(genreNames)) {
-      const genrePromises = genreNames.map(async (name) => {
+      const genrePromises = genreNames.map((name) => {
         const normalizedName = name.trim().toLowerCase();
         return prisma.genre.upsert({
           where: { name: normalizedName },
@@ -234,7 +234,7 @@ export async function deleteTrack(id: string) {
 }
 
 // Récupérer tous les genres
-export async function getAllGenres() {
+export function getAllGenres() {
   return prisma.genre.findMany({
     orderBy: { name: 'asc' },
   });

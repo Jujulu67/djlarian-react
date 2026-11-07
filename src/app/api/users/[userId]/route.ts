@@ -186,7 +186,7 @@ export async function DELETE(
 }
 
 // Fonction helper pour gérer les autres méthodes
-async function handleUnsupportedMethod(request: Request) {
+function handleUnsupportedMethod(request: Request) {
   logger.debug(`Unsupported API Route ${request.method} ${request.url} - Méthode non autorisée`);
   if (request.method !== 'GET' && request.method !== 'POST' && request.method !== 'PATCH') {
     return NextResponse.json(

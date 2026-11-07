@@ -68,7 +68,7 @@ if (typeof window !== 'undefined') {
 
       // Créer une nouvelle requête et la mettre en cache
       const promise = originalFetch(...args)
-        .then(async (response) => {
+        .then((response) => {
           // Vérifier si la réponse est du HTML au lieu de JSON (erreur NextAuth)
           const contentType = response.headers.get('content-type');
           if (contentType && contentType.includes('text/html')) {

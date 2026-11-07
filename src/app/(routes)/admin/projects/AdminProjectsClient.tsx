@@ -144,20 +144,23 @@ export const AdminProjectsClient = ({ initialProjects, users }: AdminProjectsCli
     };
   }, [fetchCounts]);
 
-  const handleUpdate = async () => {
+  const handleUpdate = () => {
     // Admin ne peut pas modifier les projets des autres (géré côté API)
     // Mais on peut afficher une notification
     logger.debug('Admin view - modification non autorisée');
+    return Promise.resolve();
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     // Admin ne peut pas supprimer les projets des autres
     logger.debug('Admin view - suppression non autorisée');
+    return Promise.resolve();
   };
 
-  const handleCreate = async () => {
+  const handleCreate = () => {
     // Admin view ne permet pas la création
     logger.debug('Admin view - création non autorisée');
+    return Promise.resolve();
   };
 
   const filteredProjects = (Array.isArray(projects) ? projects : []).filter((p) => {

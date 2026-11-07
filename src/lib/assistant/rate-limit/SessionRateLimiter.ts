@@ -146,7 +146,7 @@ export class SessionRateLimiter {
   /**
    * Réinitialise le compteur pour une session (utile pour tests).
    */
-  async reset(sessionId: string, userId?: string): Promise<void> {
+  reset(sessionId: string, userId?: string): Promise<void> {
     const key = this.buildKey(sessionId, userId);
 
     if (this.useRedis) {
@@ -155,6 +155,7 @@ export class SessionRateLimiter {
     }
 
     rateLimitCache.delete(key);
+    return Promise.resolve();
   }
 
   /**
@@ -228,13 +229,13 @@ export class SessionRateLimiter {
     };
   }
 
-  private async checkRedis(key: string): Promise<RateLimitResult> {
+  private checkRedis(key: string): Promise<RateLimitResult> {
     // Pas encore de compteur Redis (INCR + EXPIRE) : repli sur la mémoire du processus
     // Pour l'instant, fallback sur memory avec warning
     if (process.env.NODE_ENV === 'development') {
       logger.warn('[SessionRateLimiter] Redis not yet implemented, using memory fallback');
     }
-    return this.checkMemory(key);
+    return Promise.resolve(this.checkMemory(key));
   }
 }
 
