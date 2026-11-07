@@ -17,8 +17,13 @@ ce fichier à jour quand un chantier avance.
 | Fonctions trop complexes            | 131 au-dessus du seuil de 15 | Le vrai chantier restant                |
 | Tests                               | 4 507 jest, 14 Playwright    | Jest gonflé par des tests de couverture |
 
-Note estimée : **8/10** (6 le 04/11/2026). C'est une estimation, pas une mesure : SonarCloud n'est pas
-encore branché. Effets React, dépendances de hooks, accessibilité clavier, `any`, regex à risque et code
+Note estimée : **8/10** (6 le 04/11/2026). Ce n'était qu'une estimation : la première mesure
+SonarCloud (07/11/2026, `src/` hors tests) donnait maintenabilité **A** (dette 0,4 %), mais sécurité **D**
+et fiabilité **D**. Corrigé le jour même (PR #55 à #58) : les 23 points de sécurité, les problèmes graves
+et 382 problèmes moyens de fiabilité. 30 regex du parseur de l'assistant sont « acceptées » (entrée
+bornée à 2 000 caractères, `redos.test.ts`) et 7 points de `globals.css` marqués faux positifs
+(`@utility` de Tailwind v4). Tableau de bord :
+https://sonarcloud.io/summary/overall?id=Jujulu67_djlarian-react. Effets React, dépendances de hooks, accessibilité clavier, `any`, regex à risque et code
 mort sont réglés, Playwright tourne en CI, et il ne reste que 3 fonctions au-dessus de 50 de complexité,
 laissées de côté pour des raisons précises (voir ci-dessous).
 
@@ -85,5 +90,7 @@ parseur reste utile à côté du modèle (Groq), qui sait déjà extraire filtre
 | `pnpm test:e2e`    | Playwright       | Parcours réels dans un navigateur (base locale) |
 
 En CI : knip (fichiers et dépendances) et madge bloquent ; SonarJS reste en avertissement.
-SonarCloud tourne dans le job « Tests » dès que le secret `SONAR_TOKEN` existe (voir
-`sonar-project.properties`).
+SonarCloud analyse automatiquement chaque push sur `main` et chaque PR (périmètre :
+`.sonarcloud.properties`). Pour y ajouter la couverture, passer à l'analyse par la CI : désactiver
+« Automatic Analysis », puis définir le secret `SONAR_TOKEN` ; le job « Tests » utilise alors
+`sonar-project.properties`.
