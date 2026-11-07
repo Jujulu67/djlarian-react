@@ -91,6 +91,7 @@ export function EventFormInfoSection({
           )}
         </label>
         <DateTimeField
+          name="date"
           value={formData.date || ''}
           onChange={handleChange}
           required
@@ -106,6 +107,7 @@ export function EventFormInfoSection({
             Date de fin
           </label>
           <DateTimeField
+            name="endDate"
             value={formData.endDate || ''}
             onChange={handleChange}
             error={!!errors.endDate}
