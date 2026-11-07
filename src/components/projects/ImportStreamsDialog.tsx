@@ -109,7 +109,7 @@ export const ImportStreamsDialog = ({
       setCurrentFileIndex(0);
 
       try {
-        const processedFiles = await Promise.all(fileArray.map(processFile));
+        const processedFiles = await Promise.all(fileArray.map((file) => processFile(file)));
         const validFiles = processedFiles.filter((f): f is FileImportData => f !== null);
         setFilesData(validFiles);
 

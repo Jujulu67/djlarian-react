@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { useMiniGame, GameResult } from '../hooks/useMiniGame';
 import { FloatingScore, CelebrationOverlay, ScreenShake } from './MiniGameEffects';
 import { ConfettiExplosion, CoinsRain } from './SlotMachineEffects';
+import { secureRandom } from '@/lib/utils/random';
 
 interface MysteryGameDialogProps {
   isOpen: boolean;
@@ -59,7 +60,7 @@ export function MysteryGameDialog({ isOpen, onClose, onTokenUpdate }: MysteryGam
     for (let i = 0; i < GRID_SIZE; i++) {
       const row = [];
       for (let j = 0; j < GRID_SIZE; j++) {
-        row.push(COLORS[Math.floor(Math.random() * COLORS.length)]);
+        row.push(COLORS[Math.floor(secureRandom() * COLORS.length)]);
       }
       newGrid.push(row);
     }

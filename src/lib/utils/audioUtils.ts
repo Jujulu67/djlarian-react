@@ -17,6 +17,20 @@ interface WindowWithAudio extends Window {
  * Retrieves the initial volume from localStorage, defaulting to 0.8 if not found or inaccessible.
  * Ensures the returned volume is within the valid range [0, 1].
  */
+/**
+ * Origine du lecteur intégré (YouTube, youtube-nocookie, SoundCloud), tirée de son `src`.
+ * postMessage vise cette origine plutôt que « * » : le message ne part pas si
+ * l'iframe a été redirigée ailleurs.
+ */
+export const getIframeOrigin = (iframe: HTMLIFrameElement): string | null => {
+  try {
+    const origin = new URL(iframe.src, window.location.href).origin;
+    return origin === 'null' ? null : origin;
+  } catch {
+    return null;
+  }
+};
+
 export const getInitialVolume = (): number => {
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
@@ -76,6 +90,8 @@ export const sendPlayerCommand = (
     // logger.warn(`Cannot send command: Iframe for ${platform} not ready or accessible.`);
     return;
   }
+  const targetOrigin = getIframeOrigin(iframe);
+  if (!targetOrigin) return;
 
   try {
     let message: string;
@@ -107,7 +123,7 @@ export const sendPlayerCommand = (
       logger.remote(
         `[CMD-YT] ${command}${value !== undefined ? ' (' + value + ')' : ''} to ${iframe.id || 'unknown'}`
       );
-      iframe.contentWindow.postMessage(message, '*');
+      iframe.contentWindow.postMessage(message, targetOrigin);
     } else if (platform === 'soundcloud') {
       let method: string;
       let methodValue: string | number | undefined = value;
@@ -135,7 +151,7 @@ export const sendPlayerCommand = (
       logger.remote(
         `[CMD-SC] ${command}${value !== undefined ? ' (' + value + ')' : ''} to ${iframe.id || 'unknown'}`
       );
-      iframe.contentWindow.postMessage(message, '*');
+      iframe.contentWindow.postMessage(message, targetOrigin);
     }
   } catch (error) {
     logger.remote(`[CMD-ERR] Error sending to ${platform}:`, error);

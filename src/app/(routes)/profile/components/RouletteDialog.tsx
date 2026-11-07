@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { useMiniGame, GameResult } from '../hooks/useMiniGame';
 import { CelebrationOverlay, RouletteBall } from './MiniGameEffects';
 import { ConfettiExplosion, CoinsRain } from './SlotMachineEffects';
+import { secureRandom } from '@/lib/utils/random';
 
 interface RouletteDialogProps {
   isOpen: boolean;
@@ -52,8 +53,8 @@ export function RouletteDialog({ isOpen, onClose, onTokenUpdate }: RouletteDialo
 
     // Calculate visual spin
     // More dramatic spin: 5-8 full rotations + random offset
-    const spins = 6 + Math.random() * 3;
-    const extraDegrees = Math.random() * 360;
+    const spins = 6 + secureRandom() * 3;
+    const extraDegrees = secureRandom() * 360;
     const newRotation = rotation + spins * 360 + extraDegrees;
     setRotation(newRotation);
 

@@ -164,6 +164,7 @@ export const useSoundCloudPlayer = ({
     const handleSoundcloudMessage = (event: MessageEvent) => {
       // Direct access check for faster filtering
       if (
+        event.origin !== 'https://w.soundcloud.com' ||
         !soundcloudIframeRef.current ||
         event.source !== soundcloudIframeRef.current.contentWindow
       ) {

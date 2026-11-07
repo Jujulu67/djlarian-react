@@ -492,7 +492,6 @@
   flex-direction: column !important;
   justify-content: flex-start;
   gap: 0.3rem;
-  flex-shrink: 0;
   overflow: visible;
   flex: 1;
   display: flex !important;
@@ -531,7 +530,6 @@
 }
 
 .mobileControlsArea .scorePanel .mainScore .highScore {
-  margin-bottom: 0;
   font-size: 0.75rem;
   padding: 0;
   display: inline-block;

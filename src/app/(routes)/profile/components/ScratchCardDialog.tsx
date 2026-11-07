@@ -7,6 +7,7 @@ import ReactDOM from 'react-dom';
 import { useMiniGame, GameResult } from '../hooks/useMiniGame';
 import { ScratchParticles, CelebrationOverlay, getRandomSymbols } from './MiniGameEffects';
 import { ConfettiExplosion, CoinsRain } from './SlotMachineEffects';
+import { secureRandom } from '@/lib/utils/random';
 
 interface ScratchCardDialogProps {
   isOpen: boolean;
@@ -103,12 +104,12 @@ export function ScratchCardDialog({ isOpen, onClose, onTokenUpdate }: ScratchCar
 
       // Add shimmer texture
       for (let i = 0; i < 100; i++) {
-        ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.05)';
+        ctx.fillStyle = secureRandom() > 0.5 ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.05)';
         ctx.fillRect(
-          Math.random() * canvas.offsetWidth,
-          Math.random() * canvas.offsetHeight,
-          Math.random() * 4 + 1,
-          Math.random() * 4 + 1
+          secureRandom() * canvas.offsetWidth,
+          secureRandom() * canvas.offsetHeight,
+          secureRandom() * 4 + 1,
+          secureRandom() * 4 + 1
         );
       }
 
@@ -133,8 +134,8 @@ export function ScratchCardDialog({ isOpen, onClose, onTokenUpdate }: ScratchCar
           id: particleIdCounter + i,
           x,
           y,
-          angle: Math.random() * Math.PI * 2,
-          color: colors[Math.floor(Math.random() * colors.length)],
+          angle: secureRandom() * Math.PI * 2,
+          color: colors[Math.floor(secureRandom() * colors.length)],
         });
       }
 

@@ -16,6 +16,7 @@ import { GameRulesModal } from './GameRulesModal';
 import { useSlotMachine } from '../hooks/useSlotMachine';
 import { useMiniGame } from '../hooks/useMiniGame';
 import { useMapAmbientMusic } from '../hooks/useMapAmbientMusic';
+import { secureRandom } from '@/lib/utils/random';
 
 interface EasterEggMapDialogProps {
   isOpen: boolean;
@@ -43,21 +44,21 @@ export function EasterEggMapDialog({ isOpen, onClose }: EasterEggMapDialogProps)
   const [particles] = useState(() =>
     [...Array(20)].map((_, i) => ({
       id: i,
-      left: Math.random() * 100,
-      top: Math.random() * 100,
-      xOffset: Math.random() * 20 - 10,
-      duration: 4 + Math.random() * 4,
-      delay: Math.random() * 4,
+      left: secureRandom() * 100,
+      top: secureRandom() * 100,
+      xOffset: secureRandom() * 20 - 10,
+      duration: 4 + secureRandom() * 4,
+      delay: secureRandom() * 4,
     }))
   );
 
   const [glowParticles] = useState(() =>
     [...Array(8)].map((_, i) => ({
       id: i,
-      left: 10 + Math.random() * 80,
-      top: 10 + Math.random() * 80,
-      duration: 6 + Math.random() * 4,
-      delay: Math.random() * 5,
+      left: 10 + secureRandom() * 80,
+      top: 10 + secureRandom() * 80,
+      duration: 6 + secureRandom() * 4,
+      delay: secureRandom() * 5,
     }))
   );
 
