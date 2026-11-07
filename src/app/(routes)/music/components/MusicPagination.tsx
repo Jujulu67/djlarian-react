@@ -4,7 +4,7 @@ interface PaginationProps {
   paginate: (pageNumber: number) => void;
 }
 
-export function MusicPagination({ currentPage, totalPages, paginate }: PaginationProps) {
+export function MusicPagination({ currentPage, totalPages, paginate }: Readonly<PaginationProps>) {
   return (
     <div
       className="mt-8 sm:mt-10 flex justify-center v2:mt-12"

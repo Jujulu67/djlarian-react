@@ -380,7 +380,7 @@ interface MapPointProps {
   isMystery?: boolean;
 }
 
-function MapPoint({ x, y, label, icon, onClick, delay, isMystery }: MapPointProps) {
+function MapPoint({ x, y, label, icon, onClick, delay, isMystery }: Readonly<MapPointProps>) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0, y: 50 }}

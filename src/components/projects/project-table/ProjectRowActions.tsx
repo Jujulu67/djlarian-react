@@ -25,7 +25,7 @@ export function ProjectRowActions({
   setEditingNoteId,
   setLinkValue,
   setNoteValue,
-}: ProjectRowActionsProps) {
+}: Readonly<ProjectRowActionsProps>) {
   return (
     <td
       className={`${isCompact ? 'px-0.5 py-0.5' : 'px-3 py-2'} border-l-2 border-gray-700/50`}

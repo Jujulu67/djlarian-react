@@ -101,7 +101,7 @@ const OPENCRUSHER_TECH = [
 // ============================================================================
 
 /** Carte de fonctionnalité v2 : surface-1 + projecteur, apparition gérée par le RevealGroup */
-function FeatureCardV2({ feature }: { feature: Feature }) {
+function FeatureCardV2({ feature }: Readonly<{ feature: Feature }>) {
   const spotlight = useSpotlight<HTMLDivElement>();
 
   return (
@@ -134,11 +134,11 @@ function SectionIntro({
   isV2,
   title,
   children,
-}: {
+}: Readonly<{
   isV2: boolean;
   title: string;
   children: ReactNode;
-}) {
+}>) {
   if (isV2) {
     return (
       <Reveal className="mb-12 text-center">
@@ -161,7 +161,7 @@ function SectionIntro({
   );
 }
 
-function FeatureCard({ feature, index }: { feature: Feature; index: number }) {
+function FeatureCard({ feature, index }: Readonly<{ feature: Feature; index: number }>) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 24 }}

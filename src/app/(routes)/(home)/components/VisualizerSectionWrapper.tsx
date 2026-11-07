@@ -11,6 +11,8 @@ interface VisualizerSectionWrapperProps {
   title: string;
 }
 
-export default function VisualizerSectionWrapper({ title }: VisualizerSectionWrapperProps) {
+export default function VisualizerSectionWrapper({
+  title,
+}: Readonly<VisualizerSectionWrapperProps>) {
   return <VisualizerSectionClient title={title} />;
 }

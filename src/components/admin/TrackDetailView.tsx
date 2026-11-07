@@ -40,7 +40,7 @@ interface TrackDetailViewProps {
   onClose?: () => void; // Optionnel pour fermer depuis l'intérieur
 }
 
-export default function TrackDetailView({ trackId, onClose }: TrackDetailViewProps) {
+export default function TrackDetailView({ trackId, onClose }: Readonly<TrackDetailViewProps>) {
   const [track, setTrack] = useState<Track | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

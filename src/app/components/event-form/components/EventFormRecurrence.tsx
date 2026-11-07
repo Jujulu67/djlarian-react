@@ -10,7 +10,11 @@ interface EventFormRecurrenceProps {
   errors: Record<string, string>;
 }
 
-export function EventFormRecurrence({ formData, setFormData, errors }: EventFormRecurrenceProps) {
+export function EventFormRecurrence({
+  formData,
+  setFormData,
+  errors,
+}: Readonly<EventFormRecurrenceProps>) {
   return (
     <div className="mb-6 pl-4 border-l-2 border-purple-500/30 pb-2">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">

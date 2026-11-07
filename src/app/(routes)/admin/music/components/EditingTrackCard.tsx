@@ -23,7 +23,11 @@ function getCoverCacheBust(updatedAt: Track['updatedAt'] | undefined): number {
 }
 
 /** Carte "En édition" affichée au-dessus de la liste des tracks. */
-export function EditingTrackCard({ editingTrack, tracks, handleEdit }: EditingTrackCardProps) {
+export function EditingTrackCard({
+  editingTrack,
+  tracks,
+  handleEdit,
+}: Readonly<EditingTrackCardProps>) {
   return (
     <div className="mb-6">
       <div

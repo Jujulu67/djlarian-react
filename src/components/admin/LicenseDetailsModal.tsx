@@ -50,7 +50,11 @@ interface LicenseDetailsModalProps {
   onClose: () => void;
 }
 
-export function LicenseDetailsModal({ license, isOpen, onClose }: LicenseDetailsModalProps) {
+export function LicenseDetailsModal({
+  license,
+  isOpen,
+  onClose,
+}: Readonly<LicenseDetailsModalProps>) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 

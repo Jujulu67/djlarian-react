@@ -46,7 +46,7 @@ export default function GestionImages({
   showHeader = true,
   showBackLink = true,
   isFullPage: _isFullPage = false,
-}: GestionImagesProps) {
+}: Readonly<GestionImagesProps>) {
   const [toast, setToast] = useState<string | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<GroupedImage | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ImageMeta | null>(null);

@@ -8,13 +8,13 @@ interface EventsSectionWrapperProps {
   count: number;
 }
 
-async function EventsSectionContent({ title, count }: EventsSectionWrapperProps) {
+async function EventsSectionContent({ title, count }: Readonly<EventsSectionWrapperProps>) {
   const events = await getUpcomingEvents(count);
 
   return <UpcomingEvents events={events} title={title} count={count} />;
 }
 
-export default function EventsSectionWrapper(props: EventsSectionWrapperProps) {
+export default function EventsSectionWrapper(props: Readonly<EventsSectionWrapperProps>) {
   return (
     <Suspense
       fallback={

@@ -32,7 +32,7 @@ export function NotificationsToolbar({
   unreadCount,
   onNewMessage,
   onMarkAllAsRead,
-}: NotificationsToolbarProps) {
+}: Readonly<NotificationsToolbarProps>) {
   return (
     <>
       {/* Actions */}

@@ -230,7 +230,7 @@ describe('LiveSubmissionForm', () => {
     expect(await screen.findByDisplayValue('dragged')).toBeInTheDocument();
   });
 
-  it('handles play/pause', async () => {
+  it("n'affiche pas de lecteur sans fichier local", async () => {
     (useLiveSubmissions as jest.Mock).mockReturnValue({
       submissions: [
         {
@@ -258,16 +258,8 @@ describe('LiveSubmissionForm', () => {
     // We can use the same trick as AdminLivePlayer or just find by role/class
     // In LiveSubmissionForm, the play button is in the player controls
     // It's the button with `bg-purple-500` usually
-    const play = jest
-      .spyOn(window.HTMLMediaElement.prototype, 'play')
-      .mockImplementation(() => Promise.resolve());
-    const playButton = document.querySelector('button.bg-purple-500');
-    expect(playButton).not.toBeNull();
-    await act(async () => {
-      fireEvent.click(playButton as Element);
-    });
-    expect(play).toHaveBeenCalled();
-    play.mockRestore();
+    // Soumission chargée depuis le serveur, sans fichier local : pas de lecteur
+    expect(screen.queryByRole('button', { name: /lecture|pause/i })).not.toBeInTheDocument();
   });
 
   describe('rafraîchissement du statut des soumissions', () => {

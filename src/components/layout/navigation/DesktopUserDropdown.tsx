@@ -20,7 +20,7 @@ export function DesktopUserDropdown({
   handleSignOut,
   isUserMenuOpen,
   session,
-}: DesktopUserDropdownProps) {
+}: Readonly<DesktopUserDropdownProps>) {
   const isV2 = useUiVersion() !== 'legacy';
   return (
     <AnimatePresence>

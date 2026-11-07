@@ -8,13 +8,13 @@ interface LatestReleasesWrapperProps {
   count: number;
 }
 
-async function LatestReleasesContent({ title, count }: LatestReleasesWrapperProps) {
+async function LatestReleasesContent({ title, count }: Readonly<LatestReleasesWrapperProps>) {
   const releases = await getLatestReleases(count);
 
   return <LatestReleases title={title} count={count} initialReleases={releases} />;
 }
 
-export default function LatestReleasesWrapper(props: LatestReleasesWrapperProps) {
+export default function LatestReleasesWrapper(props: Readonly<LatestReleasesWrapperProps>) {
   return (
     <Suspense
       fallback={

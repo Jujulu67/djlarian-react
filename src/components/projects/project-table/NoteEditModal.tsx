@@ -21,7 +21,7 @@ export function NoteEditModal({
   projects,
   setEditingNoteId,
   setNoteValue,
-}: NoteEditModalProps) {
+}: Readonly<NoteEditModalProps>) {
   return (
     <div
       role="presentation"

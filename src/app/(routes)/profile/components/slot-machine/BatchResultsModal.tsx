@@ -9,7 +9,10 @@ interface BatchResultsModalProps {
   setBatchResult: Dispatch<SetStateAction<BatchSpinResult | null>>;
 }
 
-export function BatchResultsModal({ batchResult, setBatchResult }: BatchResultsModalProps) {
+export function BatchResultsModal({
+  batchResult,
+  setBatchResult,
+}: Readonly<BatchResultsModalProps>) {
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       <div className="bg-gradient-to-b from-slate-800 to-slate-900 border border-purple-500/30 rounded-xl max-w-md w-full shadow-2xl relative flex flex-col max-h-[85vh]">

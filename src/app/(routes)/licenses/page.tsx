@@ -34,12 +34,12 @@ function EmptyStateV2({
   title,
   description,
   action,
-}: {
+}: Readonly<{
   icon: ReactNode;
   title: string;
   description: string;
   action: ReactNode;
-}) {
+}>) {
   return (
     <div className="surface-1 mx-auto flex w-full max-w-md flex-col items-center rounded-2xl px-6 py-12 text-center">
       <span className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-white/[0.04] text-white/70">
@@ -57,12 +57,12 @@ function LicensesPageV2({
   isLoading,
   licenses,
   userEmail,
-}: {
+}: Readonly<{
   status: 'loading' | 'authenticated' | 'unauthenticated';
   isLoading: boolean;
   licenses: UserLicense[];
   userEmail?: string | null;
-}) {
+}>) {
   if (status === 'loading' || isLoading) {
     return (
       <div className="flex min-h-[70vh] items-center justify-center" role="status">

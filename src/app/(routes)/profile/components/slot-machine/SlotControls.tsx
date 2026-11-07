@@ -29,7 +29,7 @@ export function SlotControls({
   status,
   toggleAutoSpin,
   winStreak,
-}: SlotControlsProps) {
+}: Readonly<SlotControlsProps>) {
   return (
     <div className="flex flex-col items-center gap-4">
       {/* Streak Display */}

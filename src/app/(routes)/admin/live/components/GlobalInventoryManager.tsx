@@ -21,7 +21,7 @@ interface SearchUser {
   image: string | null;
 }
 
-export function GlobalInventoryManager({ isOpen, onClose }: GlobalInventoryManagerProps) {
+export function GlobalInventoryManager({ isOpen, onClose }: Readonly<GlobalInventoryManagerProps>) {
   const [searchQuery, setSearchQuery] = useState('');
   const [users, setUsers] = useState<SearchUser[]>([]);
   const [loading, setLoading] = useState(false);

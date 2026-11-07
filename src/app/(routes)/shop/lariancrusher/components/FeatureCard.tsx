@@ -7,7 +7,7 @@ import { useUiVersion } from '@/hooks/useUiVersion';
 
 import type { Feature } from './types';
 
-export function FeatureCard({ feature, index }: { feature: Feature; index: number }) {
+export function FeatureCard({ feature, index }: Readonly<{ feature: Feature; index: number }>) {
   const [isExpanded, setIsExpanded] = useState(false);
   const isV2 = useUiVersion() !== 'legacy';
   const spotlight = useSpotlight<HTMLDivElement>();

@@ -17,7 +17,7 @@ export function MobileNavDropdown({
   isMobileMenuOpen,
   links,
   setIsMobileMenuOpen,
-}: MobileNavDropdownProps) {
+}: Readonly<MobileNavDropdownProps>) {
   const isV3 = useUiVersion() === 'v3';
   return (
     <AnimatePresence>

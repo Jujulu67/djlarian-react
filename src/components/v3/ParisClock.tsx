@@ -10,7 +10,7 @@ const formatter = new Intl.DateTimeFormat('fr-FR', {
 });
 
 /** Heure de Paris qui défile à la seconde, façon timecode */
-export default function ParisClock({ className }: { className?: string }) {
+export default function ParisClock({ className }: Readonly<{ className?: string }>) {
   // Rendu vide côté serveur : l'heure n'existe que dans le navigateur (pas d'écart d'hydratation)
   const [now, setNow] = useState<string | null>(null);
 

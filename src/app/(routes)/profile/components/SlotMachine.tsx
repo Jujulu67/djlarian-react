@@ -38,7 +38,7 @@ interface ReelProps {
   delay?: number;
 }
 
-function Reel({ symbol, isSpinning, delay = 0 }: ReelProps) {
+function Reel({ symbol, isSpinning, delay = 0 }: Readonly<ReelProps>) {
   const [displaySymbol, setDisplaySymbol] = useState<SymbolType | null>(symbol);
   const [spinKey, setSpinKey] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);

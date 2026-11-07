@@ -107,7 +107,7 @@ const PLAY_BADGE = (
   </div>
 );
 
-function EmptyStateV2({ title, description }: { title: string; description: string }) {
+function EmptyStateV2({ title, description }: Readonly<{ title: string; description: string }>) {
   return (
     <div className="surface-1 mx-auto flex max-w-md flex-col items-center rounded-2xl px-6 py-12 text-center">
       <span className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-white/[0.04]">
@@ -119,7 +119,7 @@ function EmptyStateV2({ title, description }: { title: string; description: stri
   );
 }
 
-function LightboxV2({ item, onClose }: { item: GalleryItem; onClose: () => void }) {
+function LightboxV2({ item, onClose }: Readonly<{ item: GalleryItem; onClose: () => void }>) {
   useEffect(() => {
     const onKey = (event: globalThis.KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
@@ -198,7 +198,7 @@ function GalleryV2({
   isLoadingInstagram,
   selectedItem,
   setSelectedItem,
-}: GalleryV2Props) {
+}: Readonly<GalleryV2Props>) {
   const tabs: { id: TabType; label: string }[] = [
     { id: 'gallery', label: 'Galerie' },
     { id: 'instagram', label: 'Instagram' },

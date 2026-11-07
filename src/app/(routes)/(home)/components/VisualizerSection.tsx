@@ -116,7 +116,7 @@ function useGameViewportEffects(isSoundActive: boolean, isMobile: boolean): void
 export default function VisualizerSection({
   title,
   waveformAnimationReady,
-}: VisualizerSectionProps) {
+}: Readonly<VisualizerSectionProps>) {
   const uiVersion = useUiVersion();
   const isV2 = uiVersion !== 'legacy';
   const isV3 = uiVersion === 'v3';

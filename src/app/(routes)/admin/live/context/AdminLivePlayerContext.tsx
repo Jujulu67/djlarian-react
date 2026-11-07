@@ -7,7 +7,7 @@ type AdminLivePlayerContextType = ReturnType<typeof useAdminLivePlayer>;
 
 const AdminLivePlayerContext = createContext<AdminLivePlayerContextType | null>(null);
 
-export function AdminLivePlayerProvider({ children }: { children: ReactNode }) {
+export function AdminLivePlayerProvider({ children }: Readonly<{ children: ReactNode }>) {
   const playerState = useAdminLivePlayer();
 
   return (

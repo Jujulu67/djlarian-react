@@ -34,7 +34,7 @@ export function RandomWheel({
   selectedIndex,
   isSpinning,
   onSpinComplete,
-}: RandomWheelProps) {
+}: Readonly<RandomWheelProps>) {
   const rotation = useMotionValue(0);
   const hasCompletedRef = useRef(false);
 

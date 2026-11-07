@@ -23,7 +23,7 @@ interface CreateLicenseModalProps {
   onClose: () => void;
 }
 
-export function CreateLicenseModal({ isOpen, onClose }: CreateLicenseModalProps) {
+export function CreateLicenseModal({ isOpen, onClose }: Readonly<CreateLicenseModalProps>) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');

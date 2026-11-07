@@ -22,11 +22,11 @@ function MilestoneGrid({
   items,
   milestones,
   gridClassName,
-}: {
+}: Readonly<{
   items: ReadonlyArray<{ key: keyof StreamsMilestones; label: string }>;
   milestones: StreamsMilestones;
   gridClassName: string;
-}) {
+}>) {
   return (
     <div className={gridClassName}>
       {items.map((milestone) => {
@@ -55,7 +55,7 @@ interface MilestonesPanelProps {
   milestones: StreamsMilestones;
 }
 
-export function MilestonesPanel({ milestones }: MilestonesPanelProps) {
+export function MilestonesPanel({ milestones }: Readonly<MilestonesPanelProps>) {
   return (
     <div className="mt-4 p-4 bg-gradient-to-br from-gray-900/80 to-gray-800/80 rounded-lg border border-gray-700/50">
       <p className="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">

@@ -14,7 +14,11 @@ interface OverviewCardProps {
   displayStats: StatisticsData;
 }
 
-export function OverviewCard({ yearViewMode, selectedYear, displayStats }: OverviewCardProps) {
+export function OverviewCard({
+  yearViewMode,
+  selectedYear,
+  displayStats,
+}: Readonly<OverviewCardProps>) {
   return (
     <Card className="glass border border-purple-500/20 bg-black/30 backdrop-blur-md text-white">
       <CardHeader>

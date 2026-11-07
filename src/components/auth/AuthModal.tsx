@@ -20,7 +20,7 @@ interface AvailableProviders {
   twitch: boolean;
 }
 
-export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
+export default function AuthModal({ isOpen, onClose }: Readonly<AuthModalProps>) {
   const isV2 = useUiVersion() !== 'legacy';
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');

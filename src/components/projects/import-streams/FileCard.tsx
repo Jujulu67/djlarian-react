@@ -20,7 +20,7 @@ export function FileCard({
   handleSelectProject,
   handleValidateAndContinue,
   isTransitioning,
-}: FileCardProps) {
+}: Readonly<FileCardProps>) {
   return (
     <div
       className={`bg-gradient-to-br from-gray-800/80 to-gray-900/80 rounded-xl p-5 md:p-6 border border-gray-700/50 shadow-lg transition-opacity duration-150 ${

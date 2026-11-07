@@ -22,7 +22,7 @@ export function Reel({
   isLastReel = false,
   onStop,
   isWinning = false,
-}: ReelProps) {
+}: Readonly<ReelProps>) {
   const [displaySymbol, setDisplaySymbol] = useState<SymbolType | null>(symbol);
   const [spinKey, setSpinKey] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);

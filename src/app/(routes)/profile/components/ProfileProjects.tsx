@@ -20,7 +20,7 @@ export function ProfileProjects({
   recentProjects,
   isLoading,
   userName,
-}: ProfileProjectsProps) {
+}: Readonly<ProfileProjectsProps>) {
   const isV2 = useUiVersion() !== 'legacy';
   const cardClass = isV2
     ? 'surface-1 rounded-2xl'

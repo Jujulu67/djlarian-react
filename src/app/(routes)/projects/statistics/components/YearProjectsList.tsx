@@ -13,7 +13,7 @@ interface YearProjectsListProps {
   selectedYear: number;
 }
 
-export function YearProjectsList({ statistics, selectedYear }: YearProjectsListProps) {
+export function YearProjectsList({ statistics, selectedYear }: Readonly<YearProjectsListProps>) {
   return (
     <Card className="glass border border-purple-500/20 bg-black/30 backdrop-blur-md text-white">
       <CardHeader>

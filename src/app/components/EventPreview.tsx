@@ -7,7 +7,7 @@ interface EventPreviewProps {
   event: EventFormData & { currentImage?: string };
 }
 
-export default function EventPreview({ event }: EventPreviewProps) {
+export default function EventPreview({ event }: Readonly<EventPreviewProps>) {
   // Utiliser l'image preview stockée dans formData, ou current image si disponible
   const imageToShow = event.currentImage || null;
 

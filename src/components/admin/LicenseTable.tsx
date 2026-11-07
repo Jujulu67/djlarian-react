@@ -56,7 +56,7 @@ interface LicenseTableProps {
   licenses: LicenseWithRelations[];
 }
 
-export function LicenseTable({ licenses }: LicenseTableProps) {
+export function LicenseTable({ licenses }: Readonly<LicenseTableProps>) {
   const router = useRouter();
   const [selectedLicense, setSelectedLicense] = useState<LicenseWithRelations | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);

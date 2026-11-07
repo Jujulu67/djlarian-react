@@ -44,7 +44,7 @@ export function PreviewStep({
   setOverwriteDuplicates,
   setStep,
   validRowsCount,
-}: PreviewStepProps) {
+}: Readonly<PreviewStepProps>) {
   return (
     <div className="flex-1 flex flex-col min-h-0 space-y-4">
       <div className="flex items-center justify-between flex-shrink-0">

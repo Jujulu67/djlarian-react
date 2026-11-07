@@ -7,7 +7,7 @@ interface SubmissionInfoModalProps {
   setShowInfoModal: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-export function SubmissionInfoModal({ setShowInfoModal }: SubmissionInfoModalProps) {
+export function SubmissionInfoModal({ setShowInfoModal }: Readonly<SubmissionInfoModalProps>) {
   return (
     <>
       {/* Overlay */}

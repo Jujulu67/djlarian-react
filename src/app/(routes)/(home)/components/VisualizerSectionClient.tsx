@@ -8,7 +8,7 @@ interface VisualizerSectionClientProps {
   title: string;
 }
 
-export default function VisualizerSectionClient({ title }: VisualizerSectionClientProps) {
+export default function VisualizerSectionClient({ title }: Readonly<VisualizerSectionClientProps>) {
   const [waveformAnimationReady, setWaveformAnimationReady] = useState(false);
 
   // Le waveform est prêt immédiatement car les données sont déjà chargées côté serveur

@@ -21,7 +21,7 @@ export function ReleaseFilters({
   showScheduledOnly,
   onShowScheduledOnlyChange,
   releases,
-}: ReleaseFiltersProps) {
+}: Readonly<ReleaseFiltersProps>) {
   if (!releases.length) return null;
 
   return (

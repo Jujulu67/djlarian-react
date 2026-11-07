@@ -21,7 +21,7 @@ export interface UpcomingEventsProps {
 /* UI v2                                                                      */
 /* -------------------------------------------------------------------------- */
 
-function EventCardV2({ event }: { event: Event }) {
+function EventCardV2({ event }: Readonly<{ event: Event }>) {
   const spotlight = useSpotlight<HTMLElement>();
   const date = new Date(event.date);
 
@@ -75,7 +75,7 @@ function EventCardV2({ event }: { event: Event }) {
   );
 }
 
-function UpcomingEventsV2({ title, events }: { title: string; events: Event[] }) {
+function UpcomingEventsV2({ title, events }: Readonly<{ title: string; events: Event[] }>) {
   return (
     <section className="relative py-16 md:py-24">
       <div className="mx-auto max-w-[1180px] px-4">
@@ -133,7 +133,7 @@ export default function UpcomingEvents({
   title = 'Upcoming Events',
   count = 4,
   events,
-}: UpcomingEventsProps) {
+}: Readonly<UpcomingEventsProps>) {
   // Filtrer les événements en fonction du nombre demandé
   const filteredEvents = events.slice(0, count);
   const isV2 = useUiVersion() !== 'legacy';

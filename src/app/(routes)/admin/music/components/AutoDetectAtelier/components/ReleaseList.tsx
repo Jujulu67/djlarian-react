@@ -20,7 +20,7 @@ export function ReleaseList({
   onToggleSelection,
   onStartImport,
   isSubmitting,
-}: ReleaseListProps) {
+}: Readonly<ReleaseListProps>) {
   if (!releases.length) return null;
 
   return (

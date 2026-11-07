@@ -40,7 +40,7 @@ export function ProfileOAuth({
   onLinkAccount,
   onUnlinkAccount,
   onOpenPasswordModal,
-}: ProfileOAuthProps) {
+}: Readonly<ProfileOAuthProps>) {
   const isV2 = useUiVersion() !== 'legacy';
   return (
     <motion.div

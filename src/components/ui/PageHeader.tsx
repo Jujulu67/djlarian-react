@@ -24,7 +24,7 @@ export function PageHeader({
   actions,
   align = 'left',
   className,
-}: PageHeaderProps) {
+}: Readonly<PageHeaderProps>) {
   const centered = align === 'center';
   return (
     <header
@@ -59,12 +59,12 @@ export function SectionHeading({
   title,
   className,
   children,
-}: {
+}: Readonly<{
   eyebrow?: string;
   title: ReactNode;
   className?: string;
   children?: ReactNode;
-}) {
+}>) {
   return (
     <div className={cn('mb-8 flex items-end justify-between gap-4 md:mb-10', className)}>
       <div>

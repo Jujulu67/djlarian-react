@@ -31,11 +31,11 @@ function SectionIntro({
   isV2,
   title,
   description,
-}: {
+}: Readonly<{
   isV2: boolean;
   title: string;
   description: ReactNode;
-}) {
+}>) {
   if (isV2) {
     return (
       <Reveal className="mb-12 text-center">

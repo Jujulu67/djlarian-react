@@ -70,11 +70,11 @@ function InfoRow({
   icon,
   label,
   children,
-}: {
+}: Readonly<{
   icon: ReactNode;
   label: string;
   children: ReactNode;
-}) {
+}>) {
   return (
     <div className="flex items-start gap-3">
       <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/[0.04] text-white/60 ring-1 ring-inset ring-white/10">
@@ -98,7 +98,7 @@ export function EventDetailV2({
   onToggleShare,
   onShare,
   copySuccess,
-}: EventDetailV2Props) {
+}: Readonly<EventDetailV2Props>) {
   const imageSrc = event.imageId ? getImageUrl(event.imageId) : null;
   const statusLabel = STATUS_LABEL[event.status] ?? 'À venir';
   const canBuy = !!event.tickets?.buyUrl && !isPast;

@@ -25,7 +25,7 @@ interface MusicPlayerProviderProps {
  * Provider for music player context
  * Reduces props drilling by providing player state and controls to all children
  */
-export function MusicPlayerProvider({ children, value }: MusicPlayerProviderProps) {
+export function MusicPlayerProvider({ children, value }: Readonly<MusicPlayerProviderProps>) {
   return <MusicPlayerContext.Provider value={value}>{children}</MusicPlayerContext.Provider>;
 }
 

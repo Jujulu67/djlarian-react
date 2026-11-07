@@ -10,7 +10,7 @@ interface StreamsMetricsProps {
   displayStats: StatisticsData;
 }
 
-export function StreamsMetrics({ displayStats }: StreamsMetricsProps) {
+export function StreamsMetrics({ displayStats }: Readonly<StreamsMetricsProps>) {
   return (
     <>
       <Card className="glass border border-blue-500/20 bg-black/30 backdrop-blur-md text-white">

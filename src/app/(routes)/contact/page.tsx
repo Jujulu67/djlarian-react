@@ -31,12 +31,12 @@ function ContactCardV2({
   title,
   description,
   email,
-}: {
+}: Readonly<{
   icon: ReactNode;
   title: string;
   description: string;
   email: string;
-}) {
+}>) {
   const spotlight = useSpotlight<HTMLAnchorElement>();
 
   return (

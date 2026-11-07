@@ -17,7 +17,7 @@ interface SubmissionsFiltersProps {
 export function SubmissionsFilters({
   searchValue = '',
   statusValue = '',
-}: SubmissionsFiltersProps) {
+}: Readonly<SubmissionsFiltersProps>) {
   const router = useRouter();
   const searchParams = useSearchParams();
 

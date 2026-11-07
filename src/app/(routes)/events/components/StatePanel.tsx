@@ -27,7 +27,7 @@ export function StatePanel({
   tone = 'neutral',
   spin = false,
   className,
-}: StatePanelProps) {
+}: Readonly<StatePanelProps>) {
   return (
     <div
       className={cn(

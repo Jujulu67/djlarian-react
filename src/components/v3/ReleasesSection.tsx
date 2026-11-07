@@ -11,7 +11,7 @@ import SectionIndex from './SectionIndex';
  * Sorties de l'accueil v3 : cartes en verre avec la pochette en grand,
  * artistes et métadonnées (BPM, tonalité, année). Un clic lance la lecture sur /music.
  */
-export default function ReleasesSection({ tracks }: { tracks: Track[] }) {
+export default function ReleasesSection({ tracks }: Readonly<{ tracks: Track[] }>) {
   if (tracks.length === 0) return null;
 
   return (

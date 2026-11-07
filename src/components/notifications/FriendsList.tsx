@@ -36,7 +36,7 @@ interface FriendsListProps {
   onSendMessage?: (userId: string) => void;
 }
 
-export function FriendsList({ onSendMessage }: FriendsListProps) {
+export function FriendsList({ onSendMessage }: Readonly<FriendsListProps>) {
   const {
     friends,
     pendingReceived,

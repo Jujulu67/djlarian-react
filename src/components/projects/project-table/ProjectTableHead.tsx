@@ -20,7 +20,7 @@ export function ProjectTableHead({
   onSort,
   sortDirection,
   sortField,
-}: ProjectTableHeadProps) {
+}: Readonly<ProjectTableHeadProps>) {
   return (
     <thead>
       <tr className="border-b border-white/10">

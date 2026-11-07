@@ -9,10 +9,10 @@ import { logger } from '@/lib/logger';
 export default function RouteError({
   error,
   reset,
-}: {
+}: Readonly<{
   error: Error & { digest?: string };
   reset: () => void;
-}) {
+}>) {
   useEffect(() => {
     logger.error('Erreur de rendu de page', error);
   }, [error]);

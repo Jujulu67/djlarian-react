@@ -9,7 +9,7 @@
  * - Liens (simplifiés)
  * - Sauts de ligne
  */
-export function RichTextRenderer({ content }: { content: string }) {
+export function RichTextRenderer({ content }: Readonly<{ content: string }>) {
   if (!content) return null;
 
   // Séparer par lignes pour traiter les listes
@@ -72,7 +72,7 @@ export function RichTextRenderer({ content }: { content: string }) {
 /**
  * Parse le gras et l'italique dans une ligne
  */
-function FormattedText({ text }: { text: string }) {
+function FormattedText({ text }: Readonly<{ text: string }>) {
   // Regex pour capturer **gras** et *italique*
   // On utilise un split avec capture pour garder les délimiteurs
   const parts = text.split(/(\*\*.*?\*\*|\*.*?\*)/g);

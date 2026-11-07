@@ -32,7 +32,7 @@ export function SubmissionActions({
   setDescription,
   setIsEditing,
   setTitle,
-}: SubmissionActionsProps) {
+}: Readonly<SubmissionActionsProps>) {
   return (
     <div className="flex items-center gap-3 pt-2">
       {activeSubmission ? (

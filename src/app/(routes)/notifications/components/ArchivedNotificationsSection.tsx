@@ -32,7 +32,7 @@ export function ArchivedNotificationsSection({
   setShowArchived,
   onUnarchive,
   onDelete,
-}: ArchivedNotificationsSectionProps) {
+}: Readonly<ArchivedNotificationsSectionProps>) {
   return (
     <div className="mt-6 sm:mt-8">
       <div

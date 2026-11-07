@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 
 import { cleanupAttributes } from '@/lib/utils/cleanupAttributes';
 
-export default function HydrationWrapper({ children }: { children: React.ReactNode }) {
+export default function HydrationWrapper({ children }: Readonly<{ children: React.ReactNode }>) {
   const [hasMounted, setHasMounted] = useState(false);
 
   useEffect(() => {

@@ -73,7 +73,7 @@ export function MusicLoadingState() {
   );
 }
 
-export function MusicErrorState({ error }: { error: string }) {
+export function MusicErrorState({ error }: Readonly<{ error: string }>) {
   const isV2 = useUiVersion() !== 'legacy';
 
   if (isV2) {
@@ -122,7 +122,11 @@ interface MusicEmptyStateProps {
   onClearSearch: () => void;
 }
 
-export function MusicEmptyState({ searchTerm, typeLabel, onClearSearch }: MusicEmptyStateProps) {
+export function MusicEmptyState({
+  searchTerm,
+  typeLabel,
+  onClearSearch,
+}: Readonly<MusicEmptyStateProps>) {
   const isV2 = useUiVersion() !== 'legacy';
 
   if (isV2) {

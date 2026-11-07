@@ -12,7 +12,7 @@ interface PurchaseSectionProps {
   shopSettings: ShopSettings;
 }
 
-export function PurchaseSection({ shopSettings }: PurchaseSectionProps) {
+export function PurchaseSection({ shopSettings }: Readonly<PurchaseSectionProps>) {
   const isV2 = useUiVersion() !== 'legacy';
   const purchaseHref = shopSettings.stripePaymentLink || '/licenses';
 

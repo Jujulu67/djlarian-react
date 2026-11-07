@@ -57,7 +57,7 @@ export function StreamsEvolutionChart({
   getFilteredProjectsForComparison,
   comparisonProjectMapping,
   streamsChartData,
-}: StreamsEvolutionChartProps) {
+}: Readonly<StreamsEvolutionChartProps>) {
   return (
     <Card className="glass border border-purple-500/20 bg-black/30 backdrop-blur-md text-white">
       <CardHeader>

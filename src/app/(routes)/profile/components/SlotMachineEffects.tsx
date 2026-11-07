@@ -24,7 +24,7 @@ const CONFETTI_COLORS = [
   '#BB8FCE',
 ];
 
-export function ConfettiExplosion({ isActive, intensity = 'medium' }: ConfettiProps) {
+export function ConfettiExplosion({ isActive, intensity = 'medium' }: Readonly<ConfettiProps>) {
   const [particles, setParticles] = useState<
     Array<{
       id: number;
@@ -105,7 +105,7 @@ interface StreakIndicatorProps {
   isOnFire: boolean;
 }
 
-export function StreakIndicator({ streak, isOnFire }: StreakIndicatorProps) {
+export function StreakIndicator({ streak, isOnFire }: Readonly<StreakIndicatorProps>) {
   if (streak < 2) return null;
 
   return (
@@ -152,7 +152,7 @@ interface MultiplierPopupProps {
   isVisible: boolean;
 }
 
-export function MultiplierPopup({ amount, isVisible }: MultiplierPopupProps) {
+export function MultiplierPopup({ amount, isVisible }: Readonly<MultiplierPopupProps>) {
   if (!isVisible || amount <= 0) return null;
 
   const size =
@@ -196,7 +196,7 @@ interface NearMissEffectProps {
   isActive: boolean;
 }
 
-export function NearMissEffect({ isActive }: NearMissEffectProps) {
+export function NearMissEffect({ isActive }: Readonly<NearMissEffectProps>) {
   if (!isActive) return null;
 
   return (
@@ -220,7 +220,7 @@ interface CoinsRainProps {
   count?: number;
 }
 
-export function CoinsRain({ isActive, count = 20 }: CoinsRainProps) {
+export function CoinsRain({ isActive, count = 20 }: Readonly<CoinsRainProps>) {
   const [coins, setCoins] = useState<Array<{ id: number; x: number; delay: number }>>([]);
 
   useEffect(() => {
@@ -271,7 +271,7 @@ interface GlowingBorderProps {
   intensity: 'low' | 'medium' | 'high' | 'jackpot';
 }
 
-export function GlowingBorder({ isWinning, intensity }: GlowingBorderProps) {
+export function GlowingBorder({ isWinning, intensity }: Readonly<GlowingBorderProps>) {
   if (!isWinning) return null;
 
   const glowColor =
@@ -307,7 +307,7 @@ interface HotStreakBackgroundProps {
   isActive: boolean;
 }
 
-export function HotStreakBackground({ isActive }: HotStreakBackgroundProps) {
+export function HotStreakBackground({ isActive }: Readonly<HotStreakBackgroundProps>) {
   if (!isActive) return null;
 
   return (
@@ -340,7 +340,7 @@ interface NearMissShakeProps {
   isActive: boolean;
 }
 
-export function NearMissShake({ isActive }: NearMissShakeProps) {
+export function NearMissShake({ isActive }: Readonly<NearMissShakeProps>) {
   if (!isActive) return null;
 
   return (
@@ -364,7 +364,7 @@ interface JackpotCounterProps {
   isVisible: boolean;
 }
 
-export function JackpotCounter({ amount, isVisible }: JackpotCounterProps) {
+export function JackpotCounter({ amount, isVisible }: Readonly<JackpotCounterProps>) {
   if (!isVisible) return null;
 
   return (
@@ -394,7 +394,7 @@ interface LuckySpinIntroProps {
   isActive: boolean;
 }
 
-export function LuckySpinIntro({ isActive }: LuckySpinIntroProps) {
+export function LuckySpinIntro({ isActive }: Readonly<LuckySpinIntroProps>) {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
@@ -429,7 +429,10 @@ interface ScreenFlashProps {
   color?: string;
 }
 
-export function ScreenFlash({ isActive, color = 'rgba(255,255,255,0.3)' }: ScreenFlashProps) {
+export function ScreenFlash({
+  isActive,
+  color = 'rgba(255,255,255,0.3)',
+}: Readonly<ScreenFlashProps>) {
   if (!isActive) return null;
 
   return (
@@ -451,7 +454,7 @@ interface BonusGameProps {
   onComplete: (multiplier: number) => void;
 }
 
-export function BonusGame({ isActive, onComplete }: BonusGameProps) {
+export function BonusGame({ isActive, onComplete }: Readonly<BonusGameProps>) {
   const [selectedBox, setSelectedBox] = useState<number | null>(null);
   const [revealed, setRevealed] = useState(false);
   // Memoize shuffled multipliers to avoid calling Math.random during render

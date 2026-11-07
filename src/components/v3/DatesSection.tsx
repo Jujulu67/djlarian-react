@@ -19,7 +19,7 @@ const whenFormatter = new Intl.DateTimeFormat('fr-FR', {
  * heure, lieu). Toute la ligne mène à l'événement ; le bouton « Billets » reste à part.
  * Sans date à venir, la section devient un appel au booking plutôt qu'un état vide.
  */
-export default function DatesSection({ events }: { events: Event[] }) {
+export default function DatesSection({ events }: Readonly<{ events: Event[] }>) {
   return (
     <section className="relative mx-auto max-w-[1180px] px-4 py-12 md:py-16">
       <SectionIndex eyebrow="Agenda" label="Dates" href="/events" linkLabel="Tout l'agenda" />

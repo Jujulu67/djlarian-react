@@ -20,7 +20,7 @@ interface AddUserModalProps {
 }
 
 // Ce composant assemble la Modale et le Formulaire
-export default function AddUserModal({ userToEdit }: AddUserModalProps) {
+export default function AddUserModal({ userToEdit }: Readonly<AddUserModalProps>) {
   // Accepter la prop
   const router = useRouter();
 

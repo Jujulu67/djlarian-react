@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react';
 import PosterState from '@/components/v3/PosterState';
 import { useUiVersion } from '@/hooks/useUiVersion';
 
-export default function ShopLayout({ children }: { children: React.ReactNode }) {
+export default function ShopLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const uiVersion = useUiVersion();
   const { data: session } = useSession();
   const [shopEnabled, setShopEnabled] = useState<boolean | null>(null);

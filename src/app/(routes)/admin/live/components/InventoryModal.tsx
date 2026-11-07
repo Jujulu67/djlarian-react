@@ -11,7 +11,7 @@ interface InventoryModalProps {
   trigger?: React.ReactNode;
 }
 
-export function InventoryModal({ userId, userName, trigger }: InventoryModalProps) {
+export function InventoryModal({ userId, userName, trigger }: Readonly<InventoryModalProps>) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (

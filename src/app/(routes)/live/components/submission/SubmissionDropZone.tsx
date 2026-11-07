@@ -46,7 +46,7 @@ export function SubmissionDropZone({
   isPlaying,
   selectedFile,
   setShowInfoModal,
-}: SubmissionDropZoneProps) {
+}: Readonly<SubmissionDropZoneProps>) {
   // Ne pas ouvrir le sélecteur si une track est déjà chargée ou soumise
   const openFilePicker = () => {
     if (!audioAnalysis && !activeSubmission) {
@@ -168,6 +168,7 @@ export function SubmissionDropZone({
                   type="button"
                   onClick={handlePlayPause}
                   disabled={!selectedFile}
+                  aria-label={isPlaying ? 'Pause' : 'Lecture'}
                   className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors flex-shrink-0 ${
                     selectedFile
                       ? 'bg-purple-500 hover:bg-purple-600 cursor-pointer'

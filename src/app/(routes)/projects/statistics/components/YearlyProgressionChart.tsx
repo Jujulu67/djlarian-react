@@ -20,7 +20,9 @@ interface YearlyProgressionChartProps {
   yearlyProgressionData: ReturnType<typeof buildYearlyProgressionData>;
 }
 
-export function YearlyProgressionChart({ yearlyProgressionData }: YearlyProgressionChartProps) {
+export function YearlyProgressionChart({
+  yearlyProgressionData,
+}: Readonly<YearlyProgressionChartProps>) {
   return (
     <Card className="glass border border-purple-500/20 bg-black/30 backdrop-blur-md text-white">
       <CardHeader>
