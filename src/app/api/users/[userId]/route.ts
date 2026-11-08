@@ -198,12 +198,12 @@ function handleUnsupportedMethod(request: Request) {
 }
 
 // Les exports pour GET, POST, PATCH
-export async function GET(request: Request) {
+export function GET(request: Request) {
   return handleUnsupportedMethod(request);
 }
-export async function POST(request: Request) {
+export function POST(request: Request) {
   return handleUnsupportedMethod(request);
 }
-export async function PATCH(request: Request) {
+export function PATCH(request: Request) {
   return handleUnsupportedMethod(request);
 }
