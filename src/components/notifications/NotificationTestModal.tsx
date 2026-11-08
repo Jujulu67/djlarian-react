@@ -9,7 +9,7 @@ import {
   AlertCircle,
   TrendingUp,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import ReactDOM from 'react-dom';
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
@@ -18,13 +18,23 @@ import { logger } from '@/lib/logger';
 interface NotificationTestModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: () => void;
+  onSuccess?: () => void | Promise<void>;
 }
 
 export function NotificationTestModal({ isOpen, onClose, onSuccess }: NotificationTestModalProps) {
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === 'ADMIN';
   const [isSendingTest, setIsSendingTest] = useState<string | null>(null);
+
+  // Fermer la modale avec Échap
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   // Ne pas afficher si l'utilisateur n'est pas admin
   if (!isAdmin) {
@@ -69,20 +79,15 @@ export function NotificationTestModal({ isOpen, onClose, onSuccess }: Notificati
       aria-labelledby="modal-title"
       role="dialog"
       aria-modal="true"
-      onClick={onClose}
-      onKeyDown={(e) => {
-        if (e.key === 'Escape') onClose();
-      }}
     >
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity v2:bg-black/55 v2:backdrop-blur-md"
-        aria-hidden="true"
+      <button
+        type="button"
+        tabIndex={-1}
+        aria-label="Fermer la modale"
+        className="absolute inset-0 cursor-default bg-black/60 backdrop-blur-sm transition-opacity v2:bg-black/55 v2:backdrop-blur-md"
+        onClick={onClose}
       />
-      <div
-        role="presentation"
-        className="relative transform overflow-hidden rounded-xl glass-modern backdrop-blur-xl w-full max-w-2xl text-left shadow-2xl transition-all sm:my-8 animate-fadeIn v2:surface-3 v2:rounded-3xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="relative transform overflow-hidden rounded-xl glass-modern backdrop-blur-xl w-full max-w-2xl text-left shadow-2xl transition-all sm:my-8 animate-fadeIn v2:surface-3 v2:rounded-3xl">
         <button
           onClick={onClose}
           className="absolute top-3 right-3 p-2 text-gray-400 hover:text-white bg-black/20 hover:bg-black/40 rounded-full transition-colors z-10 v2:bg-white/[0.06] v2:hover:bg-white/[0.12]"

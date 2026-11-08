@@ -5,7 +5,12 @@ import { X, Coins, Trophy, Sparkles } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import { useMiniGame, GameResult } from '../hooks/useMiniGame';
-import { ScratchParticles, CelebrationOverlay, getRandomSymbols } from './MiniGameEffects';
+import {
+  ScratchParticles,
+  CelebrationOverlay,
+  getLosingSymbols,
+  getWinningSymbols,
+} from './MiniGameEffects';
 import { ConfettiExplosion, CoinsRain } from './SlotMachineEffects';
 import { secureRandom } from '@/lib/utils/random';
 
@@ -40,7 +45,7 @@ export function ScratchCardDialog({ isOpen, onClose, onTokenUpdate }: ScratchCar
 
   const { play, isLoading } = useMiniGame(onTokenUpdate);
 
-  const allRevealed = revealedZones.every((r) => r);
+  const allRevealed = revealedZones.every(Boolean);
   const isWinning = symbols[0] === symbols[1] && symbols[1] === symbols[2] && symbols[0] !== '?';
 
   // Reset state when opening
@@ -73,7 +78,7 @@ export function ScratchCardDialog({ isOpen, onClose, onTokenUpdate }: ScratchCar
       setHasBoughtTicket(true);
 
       // Generate symbols based on result
-      const newSymbols = getRandomSymbols(result.isWin);
+      const newSymbols = result.isWin ? getWinningSymbols() : getLosingSymbols();
       setSymbols(newSymbols);
 
       // Initialize canvases

@@ -56,7 +56,7 @@ function assertValidMessages(messages: GroqMessage[]): void {
       throw new Error(`Invalid message role: ${msg.role}`);
     }
     if (typeof msg.content !== 'string') {
-      throw new Error(`Invalid message content type: ${typeof msg.content}`);
+      throw new TypeError(`Invalid message content type: ${typeof msg.content}`);
     }
   }
 }
@@ -182,9 +182,7 @@ export async function getConversationalResponse(
 
     // Utiliser isFirstAssistantTurn fourni, ou calculer si non fourni (fallback)
     const computedIsFirstAssistantTurn =
-      isFirstAssistantTurn !== undefined
-        ? isFirstAssistantTurn
-        : !conversationHistory || conversationHistory.length === 0;
+      isFirstAssistantTurn ?? (!conversationHistory || conversationHistory.length === 0);
 
     // Construire le prompt user dynamique (avec identité martelée au début)
     const userPrompt = buildUserPrompt(

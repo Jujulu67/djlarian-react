@@ -90,7 +90,7 @@ describe('findProjectCandidates', () => {
     expect(result.every((r) => r.score >= 50)).toBe(true);
   });
 
-  it('should handle empty search query', () => {
+  it('should always return an array for an empty search query', () => {
     // Empty search might match with some score, but likely filtered if score < 50
     const projects = [createMockProject('Test', 'test-1')];
     const result = findProjectCandidates('', projects);

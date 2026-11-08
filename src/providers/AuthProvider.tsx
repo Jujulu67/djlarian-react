@@ -198,12 +198,10 @@ if (typeof window !== 'undefined') {
       if (process.env.NODE_ENV === 'development') {
         // Retourner une promesse résolue avec une réponse factice pour éviter les erreurs
         // Pas d'appel réseau, pas de console.error
-        return Promise.resolve(
-          new Response(JSON.stringify({ success: true }), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
-          })
-        );
+        return new Response(JSON.stringify({ success: true }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
       }
 
       // En production: détecter la mauvaise config et logger une alerte (une seule fois)

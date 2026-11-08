@@ -130,7 +130,7 @@ export async function checkProjectMilestones(
         });
 
         // Vérifier si une notification avec ce milestoneType existe déjà
-        const existingNotification = existingNotifications.find((notif) => {
+        const alreadyNotified = existingNotifications.some((notif) => {
           if (!notif.metadata) return false;
           try {
             const meta = JSON.parse(notif.metadata);
@@ -140,7 +140,7 @@ export async function checkProjectMilestones(
           }
         });
 
-        if (existingNotification) {
+        if (alreadyNotified) {
           result.skipped++;
           continue;
         }

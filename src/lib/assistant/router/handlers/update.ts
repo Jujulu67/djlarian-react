@@ -163,11 +163,11 @@ export function handleUpdateCommand(
   filters: QueryFilters,
   projects: Project[],
   context: RouterContext,
-  availableCollabs: string[],
-  availableStyles: string[],
-  fieldsToShow?: string[],
-  requestId?: string
+  vocabulary: { availableCollabs: string[]; availableStyles: string[] },
+  options: { fieldsToShow?: string[]; requestId?: string } = {}
 ): ProjectCommandResult {
+  const { availableCollabs, availableStyles } = vocabulary;
+  const { fieldsToShow, requestId } = options;
   logger.warn('[Router] ✏️ Routing vers Modification (avec confirmation)');
 
   // Projet désigné par son nom : on l'analyse comme « le projet », sans les filtres

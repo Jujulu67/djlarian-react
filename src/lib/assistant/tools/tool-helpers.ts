@@ -80,7 +80,7 @@ export function buildUpdateData(newDeadline?: string, newStatus?: string): Recor
       if (!Number.isNaN(dateObj.getTime())) {
         data.deadline = dateObj;
       } else {
-        throw new Error(
+        throw new TypeError(
           `Format de date invalide "${newDeadline}". Utilisez YYYY-MM-DD ou une date relative.`
         );
       }

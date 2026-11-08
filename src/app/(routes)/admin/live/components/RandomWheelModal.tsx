@@ -14,7 +14,7 @@ interface RandomWheelModalProps {
   queueSkipFlags?: boolean[]; // Indique si chaque soumission a Queue Skip activé
   selectedSubmissionId: string | null;
   onClose: () => void;
-  onSelectionComplete: (submissionId: string) => void;
+  onSelectionComplete: (submissionId: string) => void | Promise<void>;
 }
 
 export function RandomWheelModal({

@@ -10,7 +10,7 @@ export default function AdminLoading() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {[...new Array(6)].map((_, i) => (
+          {Array.from({ length: 6 }, (_, i) => (
             <div
               key={i}
               className="glass rounded-xl backdrop-blur-md overflow-hidden relative border border-purple-500/20 animate-pulse v2:rounded-2xl v2:surface-1"
@@ -40,7 +40,7 @@ export default function AdminLoading() {
               <div className="h-4 bg-purple-500/10 rounded-lg w-24 v2:bg-white/[0.04]"></div>
             </div>
             <div className="space-y-3">
-              {[...new Array(3)].map((_, i) => (
+              {Array.from({ length: 3 }, (_, i) => (
                 <div
                   key={i}
                   className="bg-black/30 p-3 rounded-lg animate-pulse v2:rounded-xl v2:bg-white/[0.03]"

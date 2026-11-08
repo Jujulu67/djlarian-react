@@ -102,7 +102,7 @@ function TwitchStreamV2({
                   <div className="absolute left-4 top-4 z-20 flex items-center gap-2">
                     <span className="flex items-center gap-2 rounded-full bg-red-600 px-3 py-1.5 text-xs font-bold text-white">
                       <span className="h-1.5 w-1.5 rounded-full bg-white" aria-hidden="true" />
-                      LIVE
+                      {'LIVE'}
                     </span>
                     {streamStatus.stream?.viewer_count && (
                       <span className="rounded-full bg-black/50 px-3 py-1.5 text-xs font-medium text-white ring-1 ring-inset ring-white/15 backdrop-blur-md">
@@ -406,7 +406,7 @@ const TwitchStream = () => {
               <div className="w-full h-full relative flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900/20 to-black overflow-hidden">
                 {/* Animated background particles - reduced on mobile for performance */}
                 <div className="absolute inset-0">
-                  {[...new Array(isMobile ? 8 : 15)].map((_, i) => (
+                  {Array.from({ length: isMobile ? 8 : 15 }, (_, i) => (
                     <motion.div
                       key={i}
                       className="absolute w-1 h-1 md:w-1.5 md:h-1.5 bg-purple-400/20 rounded-full"

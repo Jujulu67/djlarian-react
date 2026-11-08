@@ -230,6 +230,6 @@ export function createValidGroqMessage(
   role: 'system' | 'user' | 'assistant',
   content: string
 ): ValidGroqMessage {
-  // JSON.parse(JSON.stringify()) garantit un objet pur
-  return JSON.parse(JSON.stringify({ role, content }));
+  // Littéral d'objet : un objet pur, sans prototype ni propriété héritée
+  return { role, content };
 }

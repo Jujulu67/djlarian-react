@@ -42,7 +42,7 @@ export const EventFormTickets: React.FC<EventFormTicketsProps> = ({
         <span className="flex items-center justify-center h-7 w-7 bg-purple-500/20 text-purple-400 rounded-lg mr-3 text-sm font-semibold">
           3
         </span>
-        Billetterie et mise en avant
+        {'Billetterie et mise en avant'}
       </h2>
 
       <div className="mb-6">

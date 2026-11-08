@@ -18,7 +18,7 @@ export function validateAndSanitizeQuery(query: unknown): string {
   }
 
   if (typeof query !== 'string') {
-    throw new Error('Query must be a string');
+    throw new TypeError('Query must be a string');
   }
 
   // Vérifier la longueur
@@ -69,7 +69,7 @@ export function validateConfig(
 ): { collabs: string[]; styles: string[] } {
   // Valider availableCollabs
   if (!Array.isArray(availableCollabs)) {
-    throw new Error('availableCollabs must be an array');
+    throw new TypeError('availableCollabs must be an array');
   }
 
   if (availableCollabs.length > MAX_COLLABS_COUNT) {
@@ -83,7 +83,7 @@ export function validateConfig(
 
   // Valider availableStyles
   if (!Array.isArray(availableStyles)) {
-    throw new Error('availableStyles must be an array');
+    throw new TypeError('availableStyles must be an array');
   }
 
   if (availableStyles.length > MAX_STYLES_COUNT) {
@@ -109,7 +109,7 @@ export function validateConversationHistory(
   }
 
   if (!Array.isArray(history)) {
-    throw new Error('conversationHistory must be an array');
+    throw new TypeError('conversationHistory must be an array');
   }
 
   if (history.length > MAX_CONVERSATION_HISTORY_LENGTH) {
@@ -144,7 +144,7 @@ export function validateLastFilters(filters: unknown): Record<string, unknown> |
   }
 
   if (typeof filters !== 'object' || Array.isArray(filters)) {
-    throw new Error('lastFilters must be an object');
+    throw new TypeError('lastFilters must be an object');
   }
 
   // Valider que les valeurs sont de types acceptables

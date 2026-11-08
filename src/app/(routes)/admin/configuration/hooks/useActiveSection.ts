@@ -8,12 +8,12 @@ import type { ConfigSection } from '@/types/config';
 export function useActiveSection() {
   const isClient = useIsClient();
   // Section choisie par un clic ; sinon celle de l'URL (lue côté client seulement)
-  const [chosenSection, setActiveSection] = useState<ConfigSection | null>(null);
+  const [chosenSection, setChosenSection] = useState<ConfigSection | null>(null);
   const activeSection = chosenSection ?? (isClient ? sectionFromUrl() : 'general');
 
   // Fonction utilitaire pour gérer l'ancre selon la section
   const handleSectionClick = (section: ConfigSection) => {
-    setActiveSection(section);
+    setChosenSection(section);
     if (typeof window !== 'undefined') {
       if (section === 'general') {
         window.history.replaceState(null, '', window.location.pathname);

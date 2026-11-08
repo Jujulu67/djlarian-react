@@ -23,8 +23,8 @@ function withLevel(level: string, message: unknown, args: unknown[]): unknown[] 
 }
 
 class Logger {
-  private isDevelopment = process.env.NODE_ENV === 'development';
-  private isProduction = process.env.NODE_ENV === 'production';
+  private readonly isDevelopment = process.env.NODE_ENV === 'development';
+  private readonly isProduction = process.env.NODE_ENV === 'production';
 
   /**
    * Log de débogage (uniquement en développement)

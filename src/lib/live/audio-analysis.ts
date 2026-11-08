@@ -14,46 +14,41 @@ export interface AudioAnalysisResult {
  * Analyse un fichier audio et génère une waveform style SoundCloud
  */
 export async function analyzeAudioFile(file: File): Promise<AudioAnalysisResult> {
-  return new Promise((resolve, reject) => {
-    const AudioContextClass =
-      window.AudioContext ||
-      (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!AudioContextClass) {
-      reject(new Error('AudioContext not supported'));
-      return;
-    }
-    const audioContext = new AudioContextClass();
-    const fileReader = new FileReader();
+  const AudioContextClass =
+    window.AudioContext ||
+    (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!AudioContextClass) {
+    throw new Error('AudioContext not supported');
+  }
+  const audioContext = new AudioContextClass();
 
-    fileReader.onload = async (e) => {
-      try {
-        const arrayBuffer = e.target?.result as ArrayBuffer;
-        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+  let arrayBuffer: ArrayBuffer;
+  try {
+    arrayBuffer = await file.arrayBuffer();
+  } catch {
+    void audioContext.close();
+    throw new Error('Erreur lors de la lecture du fichier');
+  }
 
-        // Extraire la durée
-        const duration = audioBuffer.duration;
+  try {
+    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
-        // Générer la waveform style SoundCloud (beaucoup plus de samples)
-        const waveform = generateSoundCloudWaveform(audioBuffer);
+    // Extraire la durée
+    const duration = audioBuffer.duration;
 
-        resolve({
-          waveform,
-          duration,
-          fileName: file.name,
-        });
-      } catch (error) {
-        reject(new Error("Erreur lors de l'analyse du fichier audio", { cause: error }));
-      } finally {
-        void audioContext.close();
-      }
+    // Générer la waveform style SoundCloud (beaucoup plus de samples)
+    const waveform = generateSoundCloudWaveform(audioBuffer);
+
+    return {
+      waveform,
+      duration,
+      fileName: file.name,
     };
-
-    fileReader.onerror = () => {
-      reject(new Error('Erreur lors de la lecture du fichier'));
-    };
-
-    fileReader.readAsArrayBuffer(file);
-  });
+  } catch (error) {
+    throw new Error("Erreur lors de l'analyse du fichier audio", { cause: error });
+  } finally {
+    void audioContext.close();
+  }
 }
 
 /**
@@ -80,8 +75,8 @@ function generateSoundCloudWaveform(audioBuffer: AudioBuffer, samples: number = 
 
     // 100% RMS - calculer la moyenne quadratique
     for (let j = start; j < end; j++) {
-      for (let c = 0; c < channelData.length; c++) {
-        const sample = channelData[c][j];
+      for (const channel of channelData) {
+        const sample = channel[j];
         sumSquares += sample * sample;
         count++;
       }
@@ -96,8 +91,8 @@ function generateSoundCloudWaveform(audioBuffer: AudioBuffer, samples: number = 
   // On multiplie par 250 pour avoir une bonne amplitude visuelle
   const waveform: number[] = [];
 
-  for (let i = 0; i < rmsValues.length; i++) {
-    const percentage = Math.max(1, rmsValues[i] * 250);
+  for (const rms of rmsValues) {
+    const percentage = Math.max(1, rms * 250);
     waveform.push(Math.min(100, percentage));
   }
 

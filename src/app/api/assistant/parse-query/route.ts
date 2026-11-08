@@ -139,8 +139,8 @@ export async function POST(request: NextRequest) {
             styleCount: availableStyles.length,
           },
           filteredHistory.length > 0 ? filteredHistory : undefined,
-          isComplex,
-          undefined // Pas de requestId dans ce chemin
+          isComplex
+          // Pas de requestId dans ce chemin
         );
       } else {
         // Fallback si pas de clé API

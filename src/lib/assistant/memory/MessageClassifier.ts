@@ -435,7 +435,7 @@ export class Router {
   }
 
   private escapeRegex(str: string): string {
-    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return str.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
   }
 
   private prefixToActionType(prefix: string): ActionType {
@@ -571,8 +571,6 @@ export class Router {
 let routerInstance: Router | null = null;
 
 export function getRouter(): Router {
-  if (!routerInstance) {
-    routerInstance = new Router();
-  }
+  routerInstance ??= new Router();
   return routerInstance;
 }

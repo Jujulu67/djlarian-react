@@ -263,8 +263,7 @@ export const UserTable = ({ users }: UserTableProps) => {
                       className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-amber-700/70 text-amber-100"
                       title="Utilisateur VIP"
                     >
-                      <span className="mr-1">⭐</span>
-                      VIP
+                      <span className="mr-1">⭐</span>VIP
                     </span>
                   )}
                 </div>

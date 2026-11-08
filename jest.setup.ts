@@ -9,6 +9,13 @@
 require('@testing-library/jest-dom');
 // Import jest-canvas-mock
 import 'jest-canvas-mock';
+import { deserialize, serialize } from 'node:v8';
+
+// jsdom n'expose pas structuredClone (disponible dans les navigateurs et Node) :
+// on fournit le clonage structuré de V8, même algorithme.
+if (typeof globalThis.structuredClone !== 'function') {
+  globalThis.structuredClone = <T>(value: T): T => deserialize(serialize(value));
+}
 
 // Mock uuid (needs to be mocked globally because Version 9+ is ESM only)
 jest.mock('uuid', () => ({

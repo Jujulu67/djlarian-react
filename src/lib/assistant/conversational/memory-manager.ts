@@ -236,23 +236,17 @@ export function formatConversationContextForPrompt(
 
   // FACTUAL MEMORY section (explicitly labeled, not merged with other sections)
   if (context.factualMemory) {
-    parts.push('FACTUAL MEMORY:');
-    parts.push(context.factualMemory);
-    parts.push('');
+    parts.push('FACTUAL MEMORY:', context.factualMemory, '');
   }
 
   // INTERPRETATIVE NOTES section (explicitly labeled, separate from factual memory)
   if (context.interpretativeNotes) {
-    parts.push('INTERPRETATIVE NOTES:');
-    parts.push(context.interpretativeNotes);
-    parts.push('');
+    parts.push('INTERPRETATIVE NOTES:', context.interpretativeNotes, '');
   }
 
   // Fallback to old summary format if new format not available (backward compatibility)
   if (context.summary && !context.factualMemory && !context.interpretativeNotes) {
-    parts.push('FACTUAL MEMORY:');
-    parts.push(context.summary);
-    parts.push('');
+    parts.push('FACTUAL MEMORY:', context.summary, '');
   }
 
   // RECENT EXCHANGE (max 6 messages when summary exists, handled upstream)

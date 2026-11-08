@@ -268,7 +268,7 @@ const RhythmCatcher: React.FC<RhythmCatcherProps> = ({ audioSrc, onClose }) => {
       if (!audio || !isAudioLoaded) return;
 
       setGameState((prev) => {
-        const shouldPlay = forceState !== undefined ? forceState : !prev.isActive;
+        const shouldPlay = forceState ?? !prev.isActive;
 
         if (shouldPlay) {
           audioContextRef.current?.resume();
@@ -363,7 +363,7 @@ const RhythmCatcher: React.FC<RhythmCatcherProps> = ({ audioSrc, onClose }) => {
 
       if (analyserRef.current) {
         const bufferLength = analyserRef.current.frequencyBinCount;
-        if (!frequencyData) frequencyData = new Uint8Array(bufferLength);
+        frequencyData ??= new Uint8Array(bufferLength);
         analyserRef.current.getByteFrequencyData(frequencyData as Uint8Array<ArrayBuffer>);
         audioData = new Float32Array(bufferLength);
         analyserRef.current.getFloatTimeDomainData(audioData as Float32Array<ArrayBuffer>);

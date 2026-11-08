@@ -113,7 +113,7 @@ export const sendPlayerCommand = (
           break;
         case 'seekTo':
           func = 'seekTo';
-          args = [value !== undefined ? value : 0, true];
+          args = [value ?? 0, true];
           break;
         default:
           logger.error(`Unsupported YouTube command: ${command}`);

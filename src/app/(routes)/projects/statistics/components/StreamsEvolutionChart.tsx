@@ -3,7 +3,7 @@
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { LineChart } from 'lucide-react';
-import type { Dispatch, SetStateAction } from 'react';
+import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import {
   CartesianGrid,
   Legend,
@@ -40,6 +40,89 @@ interface StreamsEvolutionChartProps {
   streamsChartData: StreamsChartData;
 }
 
+interface ComparisonPayloadEntry {
+  dataKey?: unknown;
+  value?: unknown;
+}
+
+interface ComparisonTooltipProps {
+  // Injectées par Recharts
+  active?: boolean;
+  payload?: ReadonlyArray<ComparisonPayloadEntry>;
+  label?: ReactNode;
+  projectsToShow: ProjectMapping[];
+}
+
+function ComparisonTooltip({
+  active,
+  payload,
+  label,
+  projectsToShow,
+}: Readonly<ComparisonTooltipProps>) {
+  if (!active || !payload?.length) return null;
+  if (projectsToShow.length === 0) return null;
+
+  return (
+    <div className="bg-gray-900/95 border border-gray-700 rounded-lg p-3 shadow-xl">
+      <div className="text-white font-semibold mb-2 text-center border-b border-gray-700 pb-2">
+        {label}
+      </div>
+      <div className="space-y-1">
+        {projectsToShow.map((mapping: ProjectMapping, index: number) => {
+          const data = payload.find((p) => p.dataKey === mapping.dataKey);
+          if (!data || data.value === null || data.value === undefined) return null;
+          const numValue = Number(data.value);
+          if (!Number.isFinite(numValue) || numValue < 0) return null;
+          const color = getColorForIndex(index, projectsToShow.length);
+          return (
+            <div
+              key={mapping.projectId}
+              className="flex items-center justify-between gap-3 text-sm"
+            >
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
+                <span className="text-white">
+                  {mapping.projectName}
+                  {mapping.style && <span className="text-gray-400 ml-1">({mapping.style})</span>}
+                </span>
+              </div>
+              <span className="text-white font-medium">{numValue.toLocaleString()} streams</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+interface ComparisonLegendProps {
+  // Injectée par Recharts
+  payload?: ReadonlyArray<unknown>;
+  projectsToShow: ProjectMapping[];
+}
+
+function ComparisonLegend({ payload, projectsToShow }: Readonly<ComparisonLegendProps>) {
+  if (!payload || payload.length === 0) return null;
+  if (projectsToShow.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-4 mt-4">
+      {projectsToShow.map((mapping: ProjectMapping, index: number) => {
+        const color = getColorForIndex(index, projectsToShow.length);
+        return (
+          <div key={mapping.projectId} className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded-full" style={{ backgroundColor: color }} />
+            <span className="text-sm text-gray-300">
+              {mapping.projectName}
+              {mapping.style && <span className="text-gray-500 ml-1">({mapping.style})</span>}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function StreamsEvolutionChart({
   selectedProjectId,
   setSelectedProjectId,
@@ -58,6 +141,13 @@ export function StreamsEvolutionChart({
   comparisonProjectMapping,
   streamsChartData,
 }: Readonly<StreamsEvolutionChartProps>) {
+  const comparisonProjectsToShow =
+    comparisonMode === 'all'
+      ? comparisonProjectMapping
+      : comparisonProjectMapping.filter((m: ProjectMapping) =>
+          selectedProjectsForComparison.includes(m.projectId)
+        );
+
   return (
     <Card className="glass border border-purple-500/20 bg-black/30 backdrop-blur-md text-white">
       <CardHeader>
@@ -317,98 +407,12 @@ export function StreamsEvolutionChart({
                         borderRadius: '8px',
                         color: '#fff',
                       }}
-                      content={({ active, payload, label }) => {
-                        if (!active || !payload?.length) return null;
-                        const projectMapping = comparisonProjectMapping;
-                        const projectsToShow =
-                          comparisonMode === 'all'
-                            ? projectMapping
-                            : projectMapping.filter((m: ProjectMapping) =>
-                                selectedProjectsForComparison.includes(m.projectId)
-                              );
-
-                        if (projectsToShow.length === 0) return null;
-
-                        return (
-                          <div className="bg-gray-900/95 border border-gray-700 rounded-lg p-3 shadow-xl">
-                            <div className="text-white font-semibold mb-2 text-center border-b border-gray-700 pb-2">
-                              {label}
-                            </div>
-                            <div className="space-y-1">
-                              {projectsToShow.map((mapping: ProjectMapping, index: number) => {
-                                const data = payload.find((p) => p.dataKey === mapping.dataKey);
-                                if (!data || data.value === null || data.value === undefined)
-                                  return null;
-                                const numValue = Number(data.value);
-                                if (!Number.isFinite(numValue) || numValue < 0) return null;
-                                const color = getColorForIndex(index, projectsToShow.length);
-                                return (
-                                  <div
-                                    key={mapping.projectId}
-                                    className="flex items-center justify-between gap-3 text-sm"
-                                  >
-                                    <div className="flex items-center gap-2">
-                                      <div
-                                        className="w-3 h-3 rounded-full"
-                                        style={{ backgroundColor: color }}
-                                      />
-                                      <span className="text-white">
-                                        {mapping.projectName}
-                                        {mapping.style && (
-                                          <span className="text-gray-400 ml-1">
-                                            ({mapping.style})
-                                          </span>
-                                        )}
-                                      </span>
-                                    </div>
-                                    <span className="text-white font-medium">
-                                      {numValue.toLocaleString()} streams
-                                    </span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        );
-                      }}
+                      content={<ComparisonTooltip projectsToShow={comparisonProjectsToShow} />}
                     />
                   )}
                   {viewMode === 'comparison' && (
                     <Legend
-                      content={({ payload }) => {
-                        if (!payload || payload.length === 0) return null;
-                        const projectMapping = comparisonProjectMapping;
-                        const projectsToShow =
-                          comparisonMode === 'all'
-                            ? projectMapping
-                            : projectMapping.filter((m: ProjectMapping) =>
-                                selectedProjectsForComparison.includes(m.projectId)
-                              );
-
-                        if (projectsToShow.length === 0) return null;
-
-                        return (
-                          <div className="flex flex-wrap items-center justify-center gap-4 mt-4">
-                            {projectsToShow.map((mapping: ProjectMapping, index: number) => {
-                              const color = getColorForIndex(index, projectsToShow.length);
-                              return (
-                                <div key={mapping.projectId} className="flex items-center gap-2">
-                                  <div
-                                    className="w-4 h-4 rounded-full"
-                                    style={{ backgroundColor: color }}
-                                  />
-                                  <span className="text-sm text-gray-300">
-                                    {mapping.projectName}
-                                    {mapping.style && (
-                                      <span className="text-gray-500 ml-1">({mapping.style})</span>
-                                    )}
-                                  </span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        );
-                      }}
+                      content={<ComparisonLegend projectsToShow={comparisonProjectsToShow} />}
                     />
                   )}
                   {viewMode === 'comparison' &&
@@ -472,9 +476,8 @@ export function StreamsEvolutionChart({
                         borderRadius: '8px',
                         color: '#fff',
                       }}
-                      formatter={(value: number | undefined) => {
-                        const v = value ?? 0;
-                        const numValue = Number.isFinite(v) && v >= 0 ? v : 0;
+                      formatter={(value: number = 0) => {
+                        const numValue = Number.isFinite(value) && value >= 0 ? value : 0;
                         return [
                           `${numValue.toLocaleString()} streams`,
                           viewMode === 'global' ? 'Total' : 'Streams',

@@ -440,7 +440,7 @@ function MergeAccountsContent() {
                 {merging ? (
                   <>
                     <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    Fusion en cours...
+                    {'Fusion en cours...'}
                   </>
                 ) : (
                   'Fusionner les comptes'

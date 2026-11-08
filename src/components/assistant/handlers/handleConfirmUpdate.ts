@@ -429,7 +429,7 @@ function applyUpdatesToProject(project: Project, updateData: UpdateData): Projec
 
   return {
     ...project,
-    progress: updateData.newProgress !== undefined ? updateData.newProgress : project.progress,
+    progress: updateData.newProgress ?? project.progress,
     status: (updateData.newStatus || project.status) as Project['status'],
     deadline: newDeadline,
     collab: updateData.newCollab || project.collab,

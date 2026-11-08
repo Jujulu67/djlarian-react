@@ -106,10 +106,10 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
   // Réinitialiser le projet sélectionné si nécessaire
   useEffect(() => {
     if (displayStats && displayStats.streamsEvolution.length > 0) {
-      const currentProject = displayStats.streamsEvolution.find(
+      const hasSelectedProject = displayStats.streamsEvolution.some(
         (p) => p.projectId === selectedProjectId
       );
-      if (!currentProject) {
+      if (!hasSelectedProject) {
         setSelectedProjectId(displayStats.streamsEvolution[0].projectId);
       }
     }

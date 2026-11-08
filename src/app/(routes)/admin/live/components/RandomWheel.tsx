@@ -57,8 +57,8 @@ export function RandomWheel({
   const cumulativeAngles = useMemo(() => {
     const angles: number[] = [0];
     let currentAngle = 0;
-    for (let i = 0; i < segmentAngles.length; i++) {
-      currentAngle += segmentAngles[i];
+    for (const segmentAngle of segmentAngles) {
+      currentAngle += segmentAngle;
       angles.push(currentAngle);
     }
     return angles;

@@ -58,9 +58,7 @@ export async function callGroqApi(
         requestId,
         isComplex: isComplex || false,
         isFirstAssistantTurn:
-          isFirstAssistantTurn !== undefined
-            ? isFirstAssistantTurn
-            : !conversationHistory || conversationHistory.length === 0,
+          isFirstAssistantTurn ?? (!conversationHistory || conversationHistory.length === 0),
       }),
     });
 

@@ -33,8 +33,7 @@ function update(
     filters,
     projects,
     {},
-    [],
-    styles
+    { availableCollabs: [], availableStyles: styles }
   );
   return { result, projects };
 }

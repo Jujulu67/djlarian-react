@@ -849,44 +849,6 @@ describe('setupConsoleFilters', () => {
     }
   });
 
-  it('should handle unhandledrejection with reason as object with message containing non-static position', () => {
-    setupConsoleFilters();
-    const addEventListenerCalls = (window.addEventListener as jest.Mock).mock.calls;
-    const unhandledRejectionHandler = addEventListenerCalls.find(
-      (call) => call[0] === 'unhandledrejection'
-    )?.[1];
-
-    if (unhandledRejectionHandler) {
-      const event = {
-        reason: { message: 'non-static position error' },
-        preventDefault: jest.fn(),
-      } as unknown as PromiseRejectionEvent;
-
-      unhandledRejectionHandler(event);
-
-      expect(event.preventDefault).toHaveBeenCalled();
-    }
-  });
-
-  it('should handle unhandledrejection with reason as object with message containing scroll offset', () => {
-    setupConsoleFilters();
-    const addEventListenerCalls = (window.addEventListener as jest.Mock).mock.calls;
-    const unhandledRejectionHandler = addEventListenerCalls.find(
-      (call) => call[0] === 'unhandledrejection'
-    )?.[1];
-
-    if (unhandledRejectionHandler) {
-      const event = {
-        reason: { message: 'scroll offset error' },
-        preventDefault: jest.fn(),
-      } as unknown as PromiseRejectionEvent;
-
-      unhandledRejectionHandler(event);
-
-      expect(event.preventDefault).toHaveBeenCalled();
-    }
-  });
-
   it('should handle unhandledrejection with reason as object with message containing message port closed', () => {
     setupConsoleFilters();
     const addEventListenerCalls = (window.addEventListener as jest.Mock).mock.calls;

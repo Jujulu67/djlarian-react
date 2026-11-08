@@ -451,27 +451,24 @@ export const ROULETTE_SECTIONS = [
 // ============================================
 export const SCRATCH_SYMBOLS = ['💎', '🍀', '⭐', '🎰', '👑', '💰'];
 
-export function getRandomSymbols(isWin: boolean): string[] {
-  if (isWin) {
-    // All 3 same for win
-    const symbol = SCRATCH_SYMBOLS[Math.floor(Math.random() * SCRATCH_SYMBOLS.length)];
-    return [symbol, symbol, symbol];
-  } else {
-    // Make sure at least 2 are different
-    const symbols = [];
-    const first = SCRATCH_SYMBOLS[Math.floor(Math.random() * SCRATCH_SYMBOLS.length)];
-    symbols.push(first);
+const pickSymbol = () => SCRATCH_SYMBOLS[Math.floor(Math.random() * SCRATCH_SYMBOLS.length)];
 
-    // Second - make it different
-    let second;
-    do {
-      second = SCRATCH_SYMBOLS[Math.floor(Math.random() * SCRATCH_SYMBOLS.length)];
-    } while (second === first);
-    symbols.push(second);
+/** All 3 same for win */
+export function getWinningSymbols(): string[] {
+  const symbol = pickSymbol();
+  return [symbol, symbol, symbol];
+}
 
-    // Third - random
-    symbols.push(SCRATCH_SYMBOLS[Math.floor(Math.random() * SCRATCH_SYMBOLS.length)]);
+/** Make sure at least 2 are different */
+export function getLosingSymbols(): string[] {
+  const first = pickSymbol();
 
-    return symbols;
-  }
+  // Second - make it different
+  let second;
+  do {
+    second = pickSymbol();
+  } while (second === first);
+
+  // Third - random
+  return [first, second, pickSymbol()];
 }

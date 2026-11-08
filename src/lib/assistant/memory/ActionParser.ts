@@ -15,7 +15,7 @@ interface ParsedAction {
 type ActionHandler = (action: ParsedAction, context: ActionContext) => Promise<ActionResult>;
 
 export class ActionParser {
-  private handlers: Map<ActionType, ActionHandler> = new Map();
+  private readonly handlers: Map<ActionType, ActionHandler> = new Map();
 
   registerHandler(type: ActionType, handler: ActionHandler): void {
     this.handlers.set(type, handler);

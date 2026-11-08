@@ -82,7 +82,7 @@ export function buildUserPrompt(
   parts.push('INTERDIT: ne dis jamais que tu es LLaMA, un modèle, ou un langage artificiel.', '');
 
   // Signal premier tour pour éviter salutations répétées
-  const firstTurn = isFirstAssistantTurn !== undefined ? isFirstAssistantTurn : false;
+  const firstTurn = isFirstAssistantTurn ?? false;
   parts.push(`FIRST_TURN: ${firstTurn}`);
   if (firstTurn) {
     const userGreeted = /^(salut|bonjour|hello|hi|hey)/i.test(query.trim());
@@ -111,13 +111,11 @@ export function buildUserPrompt(
   );
 
   // Mode explicite
-  parts.push(`MODE: ${mode}`);
-  parts.push('');
+  parts.push(`MODE: ${mode}`, '');
 
   // Contexte conversationnel (si disponible) - FACTUAL MEMORY / INTERPRETATIVE NOTES
   if (conversationContext) {
-    parts.push(conversationContext);
-    parts.push('');
+    parts.push(conversationContext, '');
   }
 
   // Instructions spécifiques au mode CHAT

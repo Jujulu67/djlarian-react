@@ -40,7 +40,7 @@ const NOTE_REQUEST = /\bnotes?\b|\bsession\b/i;
 
 const fold = (text: string) => text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 
-const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 
 export type NamedProjectResult =
   | { kind: 'none' }
@@ -75,7 +75,7 @@ export function findNamedProject(message: string, projects: Project[]): NamedPro
       .replace(/\s+/g, ' ');
     if (name.length < 3 || RESERVED_NAMES.has(name)) continue;
     const pattern = new RegExp(
-      String.raw`(?<![\p{L}\p{N}])${escapeRegExp(name).replace(/ /g, '\\s+')}(?![\p{L}\p{N}])`,
+      String.raw`(?<![\p{L}\p{N}])${escapeRegExp(name).replace(/ /g, String.raw`\s+`)}(?![\p{L}\p{N}])`,
       'u'
     );
     const match = pattern.exec(folded);

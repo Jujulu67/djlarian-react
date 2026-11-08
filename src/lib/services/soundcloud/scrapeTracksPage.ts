@@ -591,10 +591,8 @@ export async function scrapeSoundCloudTracksPage(profileName: string): Promise<S
 
           // 5. Chercher dans les attributs data-*
           if (!releaseDate) {
-            const dataDate =
-              soundBody.getAttribute('data-date') ||
-              soundBody.getAttribute('data-published') ||
-              soundBody.getAttribute('data-created');
+            const { dataset } = soundBody as HTMLElement;
+            const dataDate = dataset.date || dataset.published || dataset.created;
             if (dataDate) {
               allDateElements.push({
                 selector: 'data-* attributes',

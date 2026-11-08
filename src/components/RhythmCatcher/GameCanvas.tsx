@@ -9,7 +9,6 @@ interface GameCanvasProps {
   gameState: GameState;
   onCollision: (position: Point, time: number, actualPosition?: Point) => void;
   onCursorMove?: (position: Point) => void;
-  onHit?: (position: Point, quality: HitQuality) => void;
   // Use a callback to trigger effects from outside
   onHitRef?: React.MutableRefObject<
     | ((

@@ -466,7 +466,7 @@ export default function EventDetailsPage() {
                     <span className="w-6 h-6 bg-purple-500/20 rounded-full flex items-center justify-center">
                       <CalendarIcon className="w-3.5 h-3.5 text-purple-400" />
                     </span>
-                    À propos de cet événement
+                    {'À propos de cet événement'}
                   </h2>
                   <div className="text-gray-300 prose prose-invert max-w-none bg-gray-800/30 backdrop-blur-sm rounded-xl p-5 border border-gray-700/50">
                     {event.description.split('\n').map((paragraph, i) => (

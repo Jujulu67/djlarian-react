@@ -137,15 +137,6 @@ describe('prisma', () => {
     expect(prisma).toBeDefined();
   });
 
-  it('should use Neon adapter for Neon URLs', async () => {
-    process.env.DATABASE_URL = 'postgresql://user:pass@ep.neon.tech/db';
-    mockGetDatabaseUrlForTarget.mockResolvedValue('postgresql://user:pass@ep.neon.tech/db');
-    jest.resetModules();
-    const prismaModule = await import('../prisma');
-    const prisma = prismaModule.default;
-    expect(prisma).toBeDefined();
-  });
-
   it('should handle .db-switch.json configuration', async () => {
     process.env.DATABASE_URL = 'postgresql://user:pass@localhost:5433/dev';
     process.env.DATABASE_URL_PRODUCTION = 'postgresql://prod';

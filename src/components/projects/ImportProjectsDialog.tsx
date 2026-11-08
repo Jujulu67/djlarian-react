@@ -204,7 +204,7 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
             if (!updated.name || updated.name.trim() === '') {
               errors.push('Le nom du projet est requis');
             }
-            if (updated.status && !PROJECT_STATUSES.find((s) => s.value === updated.status)) {
+            if (updated.status && !PROJECT_STATUSES.some((s) => s.value === updated.status)) {
               errors.push(`Statut invalide`);
             }
             return { ...updated, errors: errors.length > 0 ? errors : undefined };
@@ -348,9 +348,7 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
   }, [onClose]);
 
   const readFileContent = useCallback((file: File) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const content = e.target?.result as string;
+    const handleContent = (content: string) => {
       if (content) {
         // Détecter si c'est un CSV Spotify (avec colonnes song, release_date, etc.)
         const lines = content.split('\n').filter((line) => line.trim());
@@ -425,10 +423,9 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
         }
       }
     };
-    reader.onerror = () => {
+    file.text().then(handleContent, () => {
       alert('Erreur lors de la lecture du fichier');
-    };
-    reader.readAsText(file);
+    });
   }, []);
 
   const handleFileSelect = useCallback(

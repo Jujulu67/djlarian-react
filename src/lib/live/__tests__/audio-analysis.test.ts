@@ -10,23 +10,17 @@ class MockAudioContext {
   close = mockClose;
 }
 
-class MockFileReader {
-  onload: ((e: { target: { result: ArrayBuffer } }) => void) | null = null;
-  onerror: (() => void) | null = null;
-  readAsArrayBuffer = jest.fn((file: File) => {
-    // Simulate successful read
-    setTimeout(() => {
-      if (this.onload) {
-        this.onload({ target: { result: new ArrayBuffer(8) } });
-      }
-    }, 0);
-  });
-}
+// jsdom ne fournit pas Blob#arrayBuffer() : on le simule
+const mockArrayBuffer = jest.fn(() => Promise.resolve(new ArrayBuffer(8)));
 
 describe('audio-analysis', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    global.FileReader = MockFileReader as any;
+    Object.defineProperty(Blob.prototype, 'arrayBuffer', {
+      value: mockArrayBuffer,
+      configurable: true,
+      writable: true,
+    });
     (global as any).AudioContext = MockAudioContext;
     (global as any).webkitAudioContext = undefined;
   });
@@ -77,6 +71,14 @@ describe('audio-analysis', () => {
       const result = await analyzeAudioFile(file);
 
       expect(result.duration).toBe(60);
+    });
+
+    it('should reject when the file cannot be read', async () => {
+      mockArrayBuffer.mockRejectedValueOnce(new Error('read failed'));
+
+      const file = new File(['audio'], 'test.mp3', { type: 'audio/mpeg' });
+      await expect(analyzeAudioFile(file)).rejects.toThrow('Erreur lors de la lecture du fichier');
+      expect(mockClose).toHaveBeenCalled();
     });
 
     it('should handle decodeAudioData error', async () => {

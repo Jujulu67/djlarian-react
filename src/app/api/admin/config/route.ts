@@ -225,11 +225,8 @@ export async function POST(req: NextRequest) {
                     createdBy: session.user.email || undefined,
                     description: 'Mise à jour manuelle',
                   },
-                })
-              );
-
-              // Mettre à jour la configuration
-              updatePromises.push(
+                }),
+                // Mettre à jour la configuration
                 prisma.siteConfig.update({
                   where: { id: existingConfig.id },
                   data: { value: stringValue },

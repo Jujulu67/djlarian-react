@@ -96,13 +96,11 @@ export async function fetchWithAuth(
           credentials: 'include',
         });
       }
-    } else {
+    } else if (isBrowser()) {
       // Si le refresh a échoué, la session est vraiment expirée
       // Déconnecter l'utilisateur pour éviter des 401 partout
-      if (isBrowser()) {
-        logger.warn("Session expirée, déconnexion de l'utilisateur");
-        signOut({ callbackUrl: '/' });
-      }
+      logger.warn("Session expirée, déconnexion de l'utilisateur");
+      signOut({ callbackUrl: '/' });
     }
   } else if (response.status === 401 && maxRetries === 0) {
     // Si on n'a plus de retries et qu'on a toujours une 401, déconnecter
