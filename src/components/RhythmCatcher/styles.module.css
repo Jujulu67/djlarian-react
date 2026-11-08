@@ -283,7 +283,12 @@
   background: radial-gradient(circle, #ff5e80, #ff3060);
   margin-right: 0.5rem;
   position: relative;
-  animation: pulse 2s infinite;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .instructionIcon {
+    animation: pulse 2s infinite;
+  }
 }
 
 @keyframes pulse {

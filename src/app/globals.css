@@ -401,8 +401,10 @@
   }
 }
 
-.animate-success-glow {
-  animation: success-glow 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+@media (prefers-reduced-motion: no-preference) {
+  .animate-success-glow {
+    animation: success-glow 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
 }
 
 /* ===== MODERN DESIGN 2025 EFFECTS ===== */
@@ -889,7 +891,12 @@
   width: 100%;
   height: 100%;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: left 0.5s;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .btn-modern::before {
+    transition: left 0.5s;
+  }
 }
 
 .btn-modern:hover::before {
@@ -1063,8 +1070,12 @@ html.homepage-scroll-snap {
   /* Proximity mode for smoother feel */
   scroll-padding-top: 4rem;
   /* Account for fixed header */
-  scroll-behavior: smooth;
-  /* Native smooth scroll */
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html.homepage-scroll-snap {
+    scroll-behavior: smooth; /* Native smooth scroll */
+  }
 }
 
 .scroll-snap-section {
@@ -1292,13 +1303,15 @@ header nav button.navMenuItem.navMenuItemWarning:hover {
 /* ===== PROJECT MOBILE CARDS STYLES ===== */
 
 /* Card hover effect on mobile */
-@media (max-width: 768px) {
+@media (max-width: 768px) and (prefers-reduced-motion: no-preference) {
   .project-card-mobile {
     transition:
       transform 0.2s ease-out,
       box-shadow 0.2s ease-out;
   }
+}
 
+@media (max-width: 768px) {
   .project-card-mobile:active {
     transform: scale(0.98);
   }
@@ -1384,6 +1397,12 @@ header nav button.navMenuItem.navMenuItemWarning:hover {
   .project-card-mobile button:active,
   .project-card-mobile [role='button']:active {
     transform: scale(0.95);
+  }
+}
+
+@media (max-width: 768px) and (prefers-reduced-motion: no-preference) {
+  .project-card-mobile button:active,
+  .project-card-mobile [role='button']:active {
     transition: transform 0.1s ease-out;
   }
 }
