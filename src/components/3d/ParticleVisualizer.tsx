@@ -78,7 +78,7 @@ class ParticleImpl implements Particle {
     if (isHovered) {
       const dx = this.x - mouseX;
       const dy = this.y - mouseY;
-      const distance = Math.sqrt(dx * dx + dy * dy);
+      const distance = Math.hypot(dx, dy);
       const maxDistance = 120;
 
       if (distance < maxDistance) {
@@ -96,7 +96,7 @@ class ParticleImpl implements Particle {
     this.speedY += (Math.random() - 0.5) * randomForce;
 
     const maxSpeed = isEffectActive ? 12 : 6;
-    const currentSpeed = Math.sqrt(this.speedX * this.speedX + this.speedY * this.speedY);
+    const currentSpeed = Math.hypot(this.speedX, this.speedY);
     if (currentSpeed > maxSpeed) {
       const scale = maxSpeed / currentSpeed;
       this.speedX *= scale;
@@ -130,7 +130,7 @@ class ParticleImpl implements Particle {
     }
 
     if (isEffectActive) {
-      const distance = Math.sqrt((this.x - mouseX) ** 2 + (this.y - mouseY) ** 2);
+      const distance = Math.hypot(this.x - mouseX, this.y - mouseY);
       const maxDistance = 200;
       const targetSize = this.baseSize * (1 + (1 - Math.min(distance, maxDistance) / maxDistance));
       this.size = this.size * 0.9 + targetSize * 0.1;
@@ -252,7 +252,7 @@ const ParticleVisualizer = () => {
         for (let j = i + 1; j < particlesRef.current.length; j++) {
           const dx = particlesRef.current[i].x - particlesRef.current[j].x;
           const dy = particlesRef.current[i].y - particlesRef.current[j].y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
+          const distance = Math.hypot(dx, dy);
           const maxDistance = isEffectActive ? 150 : 100;
 
           if (distance < maxDistance) {

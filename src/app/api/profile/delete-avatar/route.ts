@@ -41,18 +41,16 @@ export async function DELETE() {
         logger.warn('Erreur suppression avatar depuis Blob', error);
         // Continuer même si la suppression du blob échoue
       }
-    } else {
+    } else if (oldImage.startsWith('/uploads/avatars/')) {
       // Supprimer l'image locale
-      if (oldImage.startsWith('/uploads/avatars/')) {
-        const oldImagePath = path.join(process.cwd(), 'public', oldImage);
-        if (fs.existsSync(oldImagePath)) {
-          try {
-            fs.unlinkSync(oldImagePath);
-            logger.debug(`Avatar supprimé localement: ${oldImagePath}`);
-          } catch (error) {
-            logger.warn('Erreur suppression avatar locale', error);
-            // Continuer même si la suppression locale échoue
-          }
+      const oldImagePath = path.join(process.cwd(), 'public', oldImage);
+      if (fs.existsSync(oldImagePath)) {
+        try {
+          fs.unlinkSync(oldImagePath);
+          logger.debug(`Avatar supprimé localement: ${oldImagePath}`);
+        } catch (error) {
+          logger.warn('Erreur suppression avatar locale', error);
+          // Continuer même si la suppression locale échoue
         }
       }
     }

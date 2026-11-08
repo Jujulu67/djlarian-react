@@ -201,7 +201,7 @@ export async function PUT(request: NextRequest) {
           const t4 = Date.now();
           perf.logQuery(t3, t4, 'userLiveItem.findMany (queue skip check)');
 
-          const existingActivatedQueueSkip = otherQueueSkips.find((item) => {
+          const hasActivatedQueueSkip = otherQueueSkips.some((item) => {
             const itemType = item.LiveItem?.type || '';
             const itemName = item.LiveItem?.name?.toLowerCase() || '';
             return (
@@ -211,7 +211,7 @@ export async function PUT(request: NextRequest) {
             );
           });
 
-          if (existingActivatedQueueSkip) {
+          if (hasActivatedQueueSkip) {
             return NextResponse.json(
               {
                 error:

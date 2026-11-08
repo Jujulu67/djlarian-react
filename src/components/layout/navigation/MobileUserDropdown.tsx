@@ -12,7 +12,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import { useUiVersion } from '@/hooks/useUiVersion';
 
 interface MobileUserDropdownProps {
-  handleSignOut: () => void;
+  handleSignOut: () => void | Promise<void>;
   isMobileUserMenuOpen: boolean;
   session: Session;
   setIsMobileMenuOpen: Dispatch<SetStateAction<boolean>>;

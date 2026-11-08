@@ -374,7 +374,7 @@ export default function GalleryPage() {
   const [filter, setFilter] = useState<FilterType>('all');
   const [activeTab, setActiveTab] = useState<TabType>('gallery');
   // null tant que les posts n'ont pas été chargés (une seule fois, au premier passage sur l'onglet)
-  const [loadedInstagramPosts, setInstagramPosts] = useState<InstagramPost[] | null>(null);
+  const [loadedInstagramPosts, setLoadedInstagramPosts] = useState<InstagramPost[] | null>(null);
   const instagramPosts = loadedInstagramPosts ?? [];
   const isLoadingInstagram = activeTab === 'instagram' && loadedInstagramPosts === null;
 
@@ -382,10 +382,10 @@ export default function GalleryPage() {
     if (activeTab !== 'instagram' || loadedInstagramPosts !== null) return;
     fetch('/api/instagram/posts')
       .then((res) => res.json())
-      .then((data) => setInstagramPosts(data.posts ?? []))
+      .then((data) => setLoadedInstagramPosts(data.posts ?? []))
       .catch((error) => {
         logger.error('Error fetching Instagram posts:', error);
-        setInstagramPosts([]);
+        setLoadedInstagramPosts([]);
       });
   }, [activeTab, loadedInstagramPosts]);
 

@@ -142,7 +142,7 @@ export function createGetProjectsTool({
           projects: Array.from({ length: simulatedCount }, (_, i) => ({
             id: `test-${i + 1}`,
             name: `Projet test ${i + 1}`,
-            progress: minProgress !== undefined ? minProgress : Math.floor(Math.random() * 100),
+            progress: minProgress ?? Math.floor(Math.random() * 100),
             status: status || 'EN_COURS',
             deadline: parsedDeadline,
             collab: i % 2 === 0 ? `Collab ${i + 1}` : null,

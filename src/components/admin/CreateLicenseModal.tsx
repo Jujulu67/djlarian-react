@@ -193,8 +193,7 @@ export function CreateLicenseModal({ isOpen, onClose }: Readonly<CreateLicenseMo
 
             {isExistingUser && (
               <div className="text-xs text-green-400 mt-1 flex items-center">
-                <span className="w-2 h-2 bg-green-400 rounded-full mr-1"></span>
-                Utilisateur existant
+                <span className="w-2 h-2 bg-green-400 rounded-full mr-1"></span>Utilisateur existant
               </div>
             )}
           </div>

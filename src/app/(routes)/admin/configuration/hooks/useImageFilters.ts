@@ -13,7 +13,7 @@ export function useImageFilters(
   const [filter, setFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [sortOption, setSortOption] = useState<SortOption>('date-desc');
-  const [requestedPage, setCurrentPage] = useState(1);
+  const [requestedPage, setRequestedPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
   const [showDuplicatesState, setShowDuplicatesState] = useState(initialShowDuplicates);
 
@@ -83,7 +83,7 @@ export function useImageFilters(
     setSearchTerm('');
     setFilter('all');
     setSortOption('date-desc');
-    setCurrentPage(1);
+    setRequestedPage(1);
     setItemsPerPage(25);
     setShowDuplicatesState(false);
   };
@@ -96,7 +96,7 @@ export function useImageFilters(
     sortOption,
     setSortOption,
     currentPage,
-    setCurrentPage,
+    setCurrentPage: setRequestedPage,
     itemsPerPage,
     setItemsPerPage,
     filteredImages,

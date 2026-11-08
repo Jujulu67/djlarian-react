@@ -50,6 +50,7 @@ export const MusicCardPlayer: React.FC<MusicCardPlayerProps> = ({
       {isYouTube && videoId ? (
         <iframe
           id={`youtube-iframe-${track.id}`}
+          title={`Lecteur YouTube : ${track.title}`}
           src={`https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&start=${Math.floor(
             currentTime
           )}&modestbranding=1&rel=0&showinfo=0&color=white&playsinline=1&controls=1&origin=${encodeURIComponent(
@@ -68,6 +69,7 @@ export const MusicCardPlayer: React.FC<MusicCardPlayerProps> = ({
       ) : embedUrl ? (
         <iframe
           id={`soundcloud-iframe-${track.id}`}
+          title={`Lecteur SoundCloud : ${track.title}`}
           src={embedUrl}
           width="100%"
           height="100%"

@@ -48,7 +48,7 @@ export function useConfigSync(store: ConfigStore) {
       // Mettre à jour le store Zustand avec les données de l'API
       setAllConfigs(data);
       // Stocker la configuration chargée comme référence pour le diff
-      previousConfigs.current = JSON.parse(JSON.stringify(data)); // Copie profonde simple
+      previousConfigs.current = structuredClone(data); // Copie profonde simple
     } catch (e) {
       logger.error(
         'Erreur lors de la récupération des configurations:',
@@ -57,7 +57,7 @@ export function useConfigSync(store: ConfigStore) {
       logger.debug('Utilisation des valeurs par défaut (mode fallback)');
       // Utiliser les valeurs initiales du store en cas d'erreur
       resetConfigs();
-      previousConfigs.current = JSON.parse(JSON.stringify(initialConfigs)); // Utiliser les initiales comme ref
+      previousConfigs.current = structuredClone(initialConfigs); // Utiliser les initiales comme ref
 
       // Toujours afficher l'erreur pour le débogage, mais ne pas bloquer l'UI
       setError(
@@ -108,7 +108,7 @@ export function useConfigSync(store: ConfigStore) {
       }
 
       // Mettre à jour la référence pour le diff après une sauvegarde réussie
-      previousConfigs.current = JSON.parse(JSON.stringify(currentConfigs));
+      previousConfigs.current = structuredClone(currentConfigs);
 
       // La config est déjà à jour dans le store, pas besoin de setAllConfigs ici
       // Afficher une notification de succès

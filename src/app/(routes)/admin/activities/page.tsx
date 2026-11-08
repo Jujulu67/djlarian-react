@@ -411,7 +411,7 @@ export default async function AdminActivitiesPage({
                           textColorClass = 'text-pink-400';
                         }
 
-                        const ActivityContent = () => (
+                        const activityContent = (
                           <div className="flex items-center flex-grow min-w-0 mr-4">
                             <div className={`p-2 rounded-lg mr-4 flex-shrink-0 ${bgColorClass}`}>
                               <Icon className={`h-6 w-6 ${textColorClass}`} />
@@ -434,7 +434,7 @@ export default async function AdminActivitiesPage({
                             scroll={false}
                             className={`bg-black/40 p-4 rounded-lg flex items-center justify-between transition-colors duration-200 hover:bg-black/60 cursor-pointer`}
                           >
-                            <ActivityContent />
+                            {activityContent}
                             <span className="text-sm text-gray-500 flex-shrink-0 ml-auto pl-4">
                               {relativeDate}
                             </span>
@@ -444,7 +444,7 @@ export default async function AdminActivitiesPage({
                             key={activity.id}
                             className={`bg-black/40 p-4 rounded-lg flex items-center justify-between cursor-default`}
                           >
-                            <ActivityContent />
+                            {activityContent}
                             <span className="text-sm text-gray-500 flex-shrink-0 ml-auto pl-4">
                               {relativeDate}
                             </span>

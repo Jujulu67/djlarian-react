@@ -25,7 +25,7 @@ export function useRecentProjects() {
         // Trier par updatedAt desc pour avoir les plus récents
         const sorted = Array.isArray(projects)
           ? projects
-              .sort((a: RecentProject, b: RecentProject) => {
+              .toSorted((a: RecentProject, b: RecentProject) => {
                 const dateA = new Date(a.updatedAt || 0).getTime();
                 const dateB = new Date(b.updatedAt || 0).getTime();
                 return dateB - dateA;

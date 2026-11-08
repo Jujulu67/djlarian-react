@@ -92,8 +92,8 @@ export function InventoryContent({ userId, userName }: Readonly<InventoryContent
 
     // Optimistic update : mettre à jour l'UI immédiatement (sans flushSync pour ne pas bloquer)
     setInventory((prev) => {
-      const existingItem = prev.find((i) => i.itemId === itemId);
-      if (existingItem) {
+      const itemExists = prev.some((i) => i.itemId === itemId);
+      if (itemExists) {
         // Item existe déjà, incrémenter la quantité
         return prev.map((i) =>
           i.itemId === itemId ? { ...i, quantity: i.quantity + 1, updatedAt: new Date() } : i
@@ -152,8 +152,8 @@ export function InventoryContent({ userId, userName }: Readonly<InventoryContent
   const handleRemoveItem = (itemId: string) => {
     // Sauvegarder l'état actuel pour rollback
     const previousInventory = [...inventory];
-    const userItem = inventory.find((i) => i.itemId === itemId);
-    if (!userItem) return;
+    const ownsItem = inventory.some((i) => i.itemId === itemId);
+    if (!ownsItem) return;
 
     // Appeler queueAction IMMÉDIATEMENT (synchrone) pour permettre le batching
     const actionPromise = queueAction({ type: 'removeItem', userId, itemId, quantity: 1 });

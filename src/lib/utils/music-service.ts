@@ -19,16 +19,18 @@ export const extractYoutubeId = (url: string): string | null => {
  */
 export const extractPlatformId = (url: string, platform: MusicPlatform): string | null => {
   switch (platform) {
-    case 'spotify':
+    case 'spotify': {
       const spotifyMatch = SPOTIFY_REGEX.exec(url);
       return spotifyMatch ? spotifyMatch[1] : null;
+    }
 
     case 'youtube':
       return extractYoutubeId(url);
 
-    case 'soundcloud':
+    case 'soundcloud': {
       const soundcloudMatch = SOUNDCLOUD_REGEX.exec(url);
       return soundcloudMatch ? `${soundcloudMatch[1]}/${soundcloudMatch[2]}` : null;
+    }
 
     default:
       return null;

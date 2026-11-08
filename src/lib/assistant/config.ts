@@ -8,8 +8,8 @@
 import { createOpenAI } from '@ai-sdk/openai';
 
 /**
- * Configuration Groq pour les questions générales
- * @deprecated Utiliser directement createOpenAI dans groq-responder.ts avec apiKey explicite
+ * Configuration Groq pour les questions générales (utilisée par l'action serveur de l'assistant).
+ * Pour un appel avec une clé explicite, utiliser createOpenAI comme dans groq-responder.ts.
  */
 export const groq = createOpenAI({
   baseURL: 'https://api.groq.com/openai/v1',

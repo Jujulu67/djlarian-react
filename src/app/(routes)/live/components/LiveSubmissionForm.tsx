@@ -165,16 +165,15 @@ export function LiveSubmissionForm() {
           .then((blob) => {
             const file = new File([blob], submission.fileName, { type: blob.type });
             setSelectedFile(file);
-            void analyzeAudioFile(file).then((analysis) => {
-              setAudioAnalysis(analysis);
-            });
 
             // Préparer l'audio ref
             const audioUrl = URL.createObjectURL(file);
             if (audioRef.current) {
               audioRef.current.src = audioUrl;
             }
+            return analyzeAudioFile(file);
           })
+          .then((analysis) => setAudioAnalysis(analysis))
           .catch((err) => logger.error('Erreur chargement fichier soumis:', err));
       }
     } else {

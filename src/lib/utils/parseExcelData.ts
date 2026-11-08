@@ -284,7 +284,7 @@ function validateRow(row: ParsedProjectRow, _rowIndex: number): string[] {
     errors.push('Le nom du projet est requis');
   }
 
-  if (row.status && !PROJECT_STATUSES.find((s) => s.value === row.status)) {
+  if (row.status && !PROJECT_STATUSES.some((s) => s.value === row.status)) {
     errors.push(
       `Statut invalide: ${row.status}. Valeurs acceptées: ${PROJECT_STATUSES.map((s) => s.label).join(', ')}`
     );

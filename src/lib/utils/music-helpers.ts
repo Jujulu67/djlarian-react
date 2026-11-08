@@ -108,7 +108,7 @@ export function extractInfoFromTitle(title: string) {
   ];
 
   genreKeywords.forEach((g) => {
-    const re = new RegExp(String.raw`\b${g.replace(/\s+/g, '\\s+')}\b`, 'i');
+    const re = new RegExp(String.raw`\b${g.replace(/\s+/g, String.raw`\s+`)}\b`, 'i');
     if (re.test(cleanTitle)) result.genres.push(g);
   });
 

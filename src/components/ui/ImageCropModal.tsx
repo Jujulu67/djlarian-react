@@ -188,7 +188,7 @@ const ImageCropModal: React.FC<ImageCropModalProps> = ({
                 onLoad={handleImageLoad}
                 className="hidden"
               />
-              Chargement de l&apos;image...
+              {"Chargement de l'image..."}
             </div>
           )}
         </div>

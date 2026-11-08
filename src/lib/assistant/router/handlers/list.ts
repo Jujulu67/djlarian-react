@@ -22,11 +22,19 @@ export function handleListCommand(
   filters: QueryFilters,
   projects: Project[],
   context: RouterContext,
-  fieldsToShow?: string[],
-  requestId?: string,
-  isDetailsViewRequested: boolean = false,
-  isAllProjectsRequested: boolean = false
+  options: {
+    fieldsToShow?: string[];
+    requestId?: string;
+    isDetailsViewRequested?: boolean;
+    isAllProjectsRequested?: boolean;
+  } = {}
 ): ProjectCommandResult {
+  const {
+    fieldsToShow,
+    requestId,
+    isDetailsViewRequested = false,
+    isAllProjectsRequested = false,
+  } = options;
   logger.warn('[Router] 📋 Routing vers Listing (côté client)');
 
   // Détecter si un filtre explicite est présent

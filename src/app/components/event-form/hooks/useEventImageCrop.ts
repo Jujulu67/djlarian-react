@@ -30,7 +30,7 @@ export function useEventImageCrop({
   const [originalImageFile, setOriginalImageFile] = useState<File | null>(null);
   const [croppedImageFile, setCroppedImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>(imagePreviewProp ?? '');
-  const [loadedOriginalFile, setCachedOriginalFile] = useState<File | null>(null);
+  const [loadedOriginalFile, setLoadedOriginalFile] = useState<File | null>(null);
   const [pendingImageChange, setPendingImageChange] = useState(false);
   // Sans image et sans changement en attente, le cache est considéré comme vide
   const cachedOriginalFile = formData.imageId || pendingImageChange ? loadedOriginalFile : null;
@@ -118,14 +118,14 @@ export function useEventImageCrop({
           if (res.ok) {
             const blob = await res.blob();
             const file = new File([blob], `original.${ext}`, { type: blob.type });
-            setCachedOriginalFile(file);
+            setLoadedOriginalFile(file);
             logger.debug('[CROP] File originale préchargé:', file);
           } else {
-            setCachedOriginalFile(null);
+            setLoadedOriginalFile(null);
             logger.warn("[CROP] Impossible de fetch l'originale, fichier non trouvé");
           }
         } else if (isMounted) {
-          setCachedOriginalFile(null);
+          setLoadedOriginalFile(null);
           logger.warn('[CROP] Aucune URL originale trouvée');
         }
       })();
@@ -170,7 +170,7 @@ export function useEventImageCrop({
         if (res.ok) {
           const blob = await res.blob();
           const file = new File([blob], `original.${ext}`, { type: blob.type });
-          setCachedOriginalFile(file);
+          setLoadedOriginalFile(file);
           setOriginalImageFile(file);
           const reader = new FileReader();
           reader.onloadend = () => {
@@ -191,7 +191,7 @@ export function useEventImageCrop({
     setOriginalImageFile(null);
     setCroppedImageFile(null);
     setImagePreview('');
-    setCachedOriginalFile(null);
+    setLoadedOriginalFile(null);
     handleRemoveImage();
     logger.debug('[CROP] Image supprimée, cache vidé');
   };

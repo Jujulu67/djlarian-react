@@ -28,6 +28,6 @@ export interface ValidationResponse {
 
 export const LICENSE_TYPES: LicenseType[] = ['STANDARD', 'EDU', 'NFR', 'BETA', 'LIFETIME'];
 
-export function getLicenseTypeIndex(type: LicenseType | string): number {
+export function getLicenseTypeIndex(type: string): number {
   return LICENSE_TYPES.indexOf(type as LicenseType);
 }

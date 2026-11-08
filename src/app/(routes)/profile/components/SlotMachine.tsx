@@ -242,7 +242,7 @@ export function SlotMachine({ isOpen, onClose }: SlotMachineProps) {
                     >
                       🎉
                     </motion.div>
-                    {[...new Array(20)].map((_, i) => (
+                    {Array.from({ length: 20 }, (_, i) => (
                       <motion.div
                         key={i}
                         initial={{ opacity: 0, scale: 0 }}

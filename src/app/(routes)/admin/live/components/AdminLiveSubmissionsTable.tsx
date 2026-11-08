@@ -73,11 +73,12 @@ export function AdminLiveSubmissionsTable() {
       let comparison = 0;
 
       switch (sortField) {
-        case 'weight':
+        case 'weight': {
           const weightA = calculateSubmissionWeight(a);
           const weightB = calculateSubmissionWeight(b);
           comparison = weightA - weightB;
           break;
+        }
         case 'username':
           comparison = (a.User.name || '').localeCompare(b.User.name || '');
           break;

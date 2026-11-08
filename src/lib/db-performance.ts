@@ -22,8 +22,8 @@ interface PerformanceMetrics {
 }
 
 class DbPerformanceLogger {
-  private handlerName: string;
-  private enabled: boolean;
+  private readonly handlerName: string;
+  private readonly enabled: boolean;
 
   constructor(handlerName: string) {
     this.handlerName = handlerName;

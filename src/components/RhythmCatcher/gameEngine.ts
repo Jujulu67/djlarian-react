@@ -266,24 +266,26 @@ export function addPattern(
   };
 }
 
+/** FREE MODE: Pas de Life ni Shield */
+function pickFreeModePowerUp(rand: number): PowerUpType {
+  if (rand < 0.4) return PowerUpType.FIREBALL;
+  if (rand < 0.7) return PowerUpType.MAGNET;
+  return PowerUpType.SLOW_MO;
+}
+
+/** DEATH MODE: Tous les bonus */
+function pickDeathModePowerUp(rand: number): PowerUpType {
+  if (rand < 0.3) return PowerUpType.FIREBALL;
+  if (rand < 0.55) return PowerUpType.MAGNET;
+  if (rand < 0.7) return PowerUpType.SHIELD;
+  if (rand < 0.85) return PowerUpType.SLOW_MO;
+  return PowerUpType.LIFE;
+}
+
 // Création d'un PowerUp
 function spawnPowerUp(canvasWidth: number, mode: GameMode): PowerUp {
-  let type: PowerUpType;
   const rand = Math.random();
-
-  if (mode === 'FREE') {
-    // FREE MODE: Pas de Life ni Shield
-    if (rand < 0.4) type = PowerUpType.FIREBALL;
-    else if (rand < 0.7) type = PowerUpType.MAGNET;
-    else type = PowerUpType.SLOW_MO;
-  } else {
-    // DEATH MODE: Tous les bonus
-    if (rand < 0.3) type = PowerUpType.FIREBALL;
-    else if (rand < 0.55) type = PowerUpType.MAGNET;
-    else if (rand < 0.7) type = PowerUpType.SHIELD;
-    else if (rand < 0.85) type = PowerUpType.SLOW_MO;
-    else type = PowerUpType.LIFE;
-  }
+  const type = mode === 'FREE' ? pickFreeModePowerUp(rand) : pickDeathModePowerUp(rand);
 
   return {
     id: `powerup-${Date.now()}-${Math.random()}`,
@@ -407,7 +409,7 @@ export function updateGame(
       ) {
         const dx = cursorPosition.x - x;
         const dy = cursorPosition.y - y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
+        const dist = Math.hypot(dx, dy);
 
         // Rayon d'attraction
         if (dist < 400 && y > 0) {
@@ -586,7 +588,7 @@ export function handleCollision(state: GameState, collisionResult: CollisionResu
 
     // Apply Effect
     switch (collisionResult.powerUpType) {
-      case PowerUpType.FIREBALL:
+      case PowerUpType.FIREBALL: {
         // Détruit tous les patterns à l'écran et donne les points
         const activePatterns = updatedState.patterns.filter((p) => p.active);
         let fireballPoints = 0;
@@ -600,6 +602,7 @@ export function handleCollision(state: GameState, collisionResult: CollisionResu
           wasHit: true,
         }));
         break;
+      }
       case PowerUpType.MAGNET:
         updatedState.activePowerUps.magnet = true;
         updatedState.activePowerUps.magnetEndTime = Date.now() + 5000; // 5 secondes

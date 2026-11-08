@@ -3,13 +3,14 @@ import ImageCropModal from '@/components/ui/ImageCropModal';
 import ImageDropzone from '@/components/ui/ImageDropzone';
 
 import { EventFormTickets } from './EventForm/components/EventFormTickets';
-import { EventFormData, TicketInfo, RecurrenceConfig } from './EventForm/types';
+import type { EventFormData } from './EventForm/types';
 import { EventFormGlobalStyles } from './event-form/EventFormGlobalStyles';
 import { EventFormInfoSection } from './event-form/components/EventFormInfoSection';
 import { sectionHeaderClass, sectionNumberClass } from './event-form/eventFormStyles';
 import { useEventImageCrop } from './event-form/hooks/useEventImageCrop';
 
-export type { EventFormData, TicketInfo, RecurrenceConfig };
+export type { EventFormData };
+export type { TicketInfo, RecurrenceConfig } from './EventForm/types';
 
 type EventFormProps = {
   formData: EventFormData;
@@ -84,8 +85,7 @@ const EventForm: React.FC<EventFormProps> = ({
         {/* Section 2: Image */}
         <div className="space-y-6 pt-2">
           <h2 className={sectionHeaderClass}>
-            <span className={sectionNumberClass}>2</span>
-            Image de l'événement
+            <span className={sectionNumberClass}>2</span>Image de l'événement
           </h2>
 
           <div className="mb-6">

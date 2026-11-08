@@ -36,11 +36,11 @@ export function extractStatusUpdate(
       // Gérer GHOST_PRODUCTION spécialement pour éviter faux positifs
       const pattern1WithBoundary =
         status1 === 'GHOST_PRODUCTION'
-          ? `(?:ghost|gost)\\s+prod(?:uction)?|ghostprod`
+          ? String.raw`(?:ghost|gost)\s+prod(?:uction)?|ghostprod`
           : pattern1Source;
       const pattern2WithBoundary =
         status2 === 'GHOST_PRODUCTION'
-          ? `(?:ghost|gost)\\s+prod(?:uction)?|ghostprod`
+          ? String.raw`(?:ghost|gost)\s+prod(?:uction)?|ghostprod`
           : pattern2Source;
 
       // Pattern "X en Y"
@@ -63,12 +63,8 @@ export function extractStatusUpdate(
           cleanedQuery,
           XEnYMatch ? XEnYPattern : null,
           deXaYMatch ? deXaYPattern : null,
-          pattern1,
-          pattern2,
-          pattern1Source,
-          pattern2Source,
-          status1,
-          status2
+          { pattern: pattern1, source: pattern1Source, status: status1 },
+          { pattern: pattern2, source: pattern2Source, status: status2 }
         );
 
         if (isValid) {
@@ -109,6 +105,13 @@ export function extractStatusUpdate(
   return foundEnXenYPattern;
 }
 
+/** Un statut candidat : son motif compilé, la source du motif et le nom du statut */
+interface StatusCandidate {
+  pattern: RegExp;
+  source: string;
+  status: string;
+}
+
 /**
  * Valide qu'un match de statut est correct (pas un faux positif)
  */
@@ -116,13 +119,11 @@ function validateStatusMatch(
   cleanedQuery: string,
   XEnYPattern: RegExp | null,
   deXaYPattern: RegExp | null,
-  pattern1: RegExp,
-  pattern2: RegExp,
-  pattern1Source: string,
-  pattern2Source: string,
-  status1: string,
-  status2: string
+  first: StatusCandidate,
+  second: StatusCandidate
 ): boolean {
+  const { pattern: pattern1, source: pattern1Source, status: status1 } = first;
+  const { pattern: pattern2, source: pattern2Source, status: status2 } = second;
   if (XEnYPattern) {
     const match = cleanedQuery.match(XEnYPattern);
     if (!match?.[1] || !match[2]) return false;
@@ -195,7 +196,7 @@ function extractSimpleStatusUpdate(
       ),
       new RegExp(String.raw`(?:set|update|change|mark)\s+(?:to|as)\s+${pattern.source}`, 'i'),
       new RegExp(
-        String.raw`(?:marque|marquer|marques|marquez|mets?|met|mettez|mettre|change|changer|changes|changez|modifie|modifier|modifiez|passe|passer|passes|passez)\s+(?:les?\s+)?(?:projets?\s+)?(?:en|à)\s+(${status.replace(/_/g, '[\\s_]').replace(/\s+/g, '[\\s_]+')})`,
+        String.raw`(?:marque|marquer|marques|marquez|mets?|met|mettez|mettre|change|changer|changes|changez|modifie|modifier|modifiez|passe|passer|passes|passez)\s+(?:les?\s+)?(?:projets?\s+)?(?:en|à)\s+(${status.replace(/_/g, String.raw`[\s_]`).replace(/\s+/g, String.raw`[\s_]+`)})`,
         'i'
       ),
       new RegExp(

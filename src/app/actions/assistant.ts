@@ -393,7 +393,7 @@ export async function processProjectCommand(userInput: string) {
   let contextResolutionMessage: string | undefined;
 
   if (hasContextReference || isDetailsRequest) {
-    const resolution = await resolveContextReference(currentUserId, normalizedInput);
+    const resolution = resolveContextReference(currentUserId, normalizedInput);
     if (resolution.resolved) {
       filters = { ...resolution.filters, ...filters };
       contextResolutionMessage = resolution.message;

@@ -105,7 +105,7 @@ export async function getUpcomingEvents(limit: number = 3): Promise<Event[]> {
 
     // Trier par date et limiter
     return allEvents
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .toSorted((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
       .slice(0, limit);
   } catch (error) {
     logger.error('Erreur lors de la récupération des événements', error);

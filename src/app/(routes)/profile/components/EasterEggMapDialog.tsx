@@ -42,7 +42,7 @@ export function EasterEggMapDialog({ isOpen, onClose }: EasterEggMapDialogProps)
   // Generate particle positions once on mount using lazy state initialization
 
   const [particles] = useState(() =>
-    [...new Array(20)].map((_, i) => ({
+    Array.from({ length: 20 }, (_, i) => ({
       id: i,
       left: secureRandom() * 100,
       top: secureRandom() * 100,
@@ -53,7 +53,7 @@ export function EasterEggMapDialog({ isOpen, onClose }: EasterEggMapDialogProps)
   );
 
   const [glowParticles] = useState(() =>
-    [...new Array(8)].map((_, i) => ({
+    Array.from({ length: 8 }, (_, i) => ({
       id: i,
       left: 10 + secureRandom() * 80,
       top: 10 + secureRandom() * 80,

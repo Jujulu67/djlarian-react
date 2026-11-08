@@ -63,7 +63,7 @@ const normalizeLabelValue = (val: string | null | undefined): string | null => {
   // Chercher une correspondance (insensible à la casse)
   const lowerVal = normalized.toLowerCase();
   return (
-    valueMap[lowerVal] || (LABEL_OPTIONS.find((l) => l.value === normalized) ? normalized : null)
+    valueMap[lowerVal] || (LABEL_OPTIONS.some((l) => l.value === normalized) ? normalized : null)
   );
 };
 

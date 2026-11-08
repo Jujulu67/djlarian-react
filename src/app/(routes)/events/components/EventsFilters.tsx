@@ -166,7 +166,7 @@ export function EventsFilters({
               <span className="w-8 h-8 bg-purple-500/10 rounded-full flex items-center justify-center">
                 <Filter className="w-4 h-4 text-purple-400" />
               </span>
-              Filtres additionnels
+              {'Filtres additionnels'}
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

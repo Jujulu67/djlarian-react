@@ -78,9 +78,9 @@ export async function POST(req: NextRequest) {
     }
 
     // 6. Vérifier si déjà activé sur cette machine
-    const existingActivation = license.activations.find((a) => a.machineId === machine_id);
+    const isAlreadyActivated = license.activations.some((a) => a.machineId === machine_id);
 
-    if (existingActivation) {
+    if (isAlreadyActivated) {
       // Déjà activé - retourner succès avec les données
       const licenseData = buildLicenseData(license, machine_id);
       const encrypted = await encryptLicenseData(licenseData, machine_id);

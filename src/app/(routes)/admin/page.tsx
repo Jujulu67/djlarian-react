@@ -162,7 +162,7 @@ export default async function AdminPage() {
 
   // Trier les activités par date (plus récent en premier) et garder seulement les 5 plus récentes
   const sortedActivities = recentActivities
-    .sort((a, b) => b.date.getTime() - a.date.getTime())
+    .toSorted((a, b) => b.date.getTime() - a.date.getTime())
     .slice(0, 5);
 
   return (

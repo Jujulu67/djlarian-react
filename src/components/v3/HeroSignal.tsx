@@ -172,7 +172,7 @@ export default function HeroSignal({ config, latest }: Readonly<HeroSignalProps>
             <span className="min-w-0 flex-1">
               <span className="flex items-center gap-1.5 text-xs font-bold text-[rgb(var(--signal))]">
                 <span className="signal-pulse inline-block h-1.5 w-1.5 rounded-full bg-current" />
-                Dernière sortie
+                {'Dernière sortie'}
               </span>
               <span className="mt-1 block truncate text-display text-xl text-white">
                 {latest.title}

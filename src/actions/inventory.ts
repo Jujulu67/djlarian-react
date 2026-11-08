@@ -224,7 +224,7 @@ export async function activateItem(userItemId: string) {
           },
         });
 
-        const existingActivatedQueueSkip = otherQueueSkips.find((userItem) => {
+        const hasActivatedQueueSkip = otherQueueSkips.some((userItem) => {
           const itemType = userItem.LiveItem?.type || '';
           const itemName = userItem.LiveItem?.name?.toLowerCase() || '';
           return (
@@ -234,7 +234,7 @@ export async function activateItem(userItemId: string) {
           );
         });
 
-        if (existingActivatedQueueSkip) {
+        if (hasActivatedQueueSkip) {
           return {
             success: false,
             error:

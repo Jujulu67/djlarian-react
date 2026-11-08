@@ -152,16 +152,12 @@ export async function routeProjectCommand(
     // Détecter une demande explicite de "tous les projets"
     const isAllProjectsRequested = classification.isAllProjectsRequested;
 
-    return handleListCommand(
-      classification,
-      filters,
-      projects,
-      context,
+    return handleListCommand(classification, filters, projects, context, {
       fieldsToShow,
       requestId,
       isDetailsViewRequested,
-      isAllProjectsRequested
-    );
+      isAllProjectsRequested,
+    });
   }
 
   // ========================================
@@ -187,10 +183,8 @@ export async function routeProjectCommand(
       filters,
       projects,
       context,
-      availableCollabs,
-      availableStyles,
-      fieldsToShow,
-      requestId
+      { availableCollabs, availableStyles },
+      { fieldsToShow, requestId }
     );
   }
 
