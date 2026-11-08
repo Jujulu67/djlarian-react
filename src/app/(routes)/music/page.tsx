@@ -10,7 +10,7 @@ import { TrackAction } from '@/lib/utils/types';
 import { MusicFilters } from './components/MusicFilters';
 import { MusicHeader } from './components/MusicHeader';
 import { MusicListToolbar } from './components/MusicListToolbar';
-import { MusicPagination } from './components/MusicPagination';
+import { PublicPagination } from '@/components/ui/PublicPagination';
 import {
   MUSIC_CONTAINER_CLASS,
   MUSIC_PAGE_CLASS,
@@ -138,7 +138,7 @@ export default function MusicPage() {
 
               {/* Pagination */}
               {pagination.totalPages > 1 && (
-                <MusicPagination
+                <PublicPagination
                   currentPage={pagination.currentPage}
                   totalPages={pagination.totalPages}
                   paginate={pagination.setCurrentPage}

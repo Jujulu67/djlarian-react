@@ -1,14 +1,15 @@
-interface EventsPaginationProps {
+/** Pagination des pages publiques (musique, événements) */
+interface PublicPaginationProps {
   currentPage: number;
   totalPages: number;
   paginate: (pageNumber: number) => void;
 }
 
-export function EventsPagination({
+export function PublicPagination({
   currentPage,
   totalPages,
   paginate,
-}: Readonly<EventsPaginationProps>) {
+}: Readonly<PublicPaginationProps>) {
   return (
     <nav className="mt-8 sm:mt-10 flex justify-center v2:mt-12" aria-label="Pagination">
       <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2">
