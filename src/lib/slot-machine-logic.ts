@@ -53,103 +53,103 @@ export function getRandomSymbol(useBooster = false): SymbolType {
   return SymbolType.CHERRY; // Fallback
 }
 
-/**
- * Détermine la récompense basée sur les symboles
- */
-export function determineReward(symbols: [SymbolType, SymbolType, SymbolType]): {
+interface RewardOutcome {
   rewardType: RewardType | null;
   rewardAmount: number;
   isWin: boolean;
   message: string;
-} {
+}
+
+/** Jetons gagnés pour un triple (les jackpots 3x7 et 3x étoile sont traités à part). */
+const TRIPLE_TOKEN_REWARDS: Partial<Record<SymbolType, number>> = {
+  [SymbolType.BELL]: 200, // MEGA WIN
+  [SymbolType.PLUM]: 100, // Super win
+  [SymbolType.ORANGE]: 50, // Nice win
+  [SymbolType.LEMON]: 25, // Good win
+  [SymbolType.CHERRY]: 15, // Small win
+};
+
+/** Jetons gagnés pour une paire, selon le symbole. */
+const DOUBLE_TOKEN_REWARDS: Partial<Record<SymbolType, number>> = {
+  [SymbolType.SEVEN]: 50, // Exciting!
+  [SymbolType.STAR]: 30,
+  [SymbolType.BELL]: 15,
+  [SymbolType.PLUM]: 8,
+  [SymbolType.ORANGE]: 3, // Break even
+  [SymbolType.LEMON]: 2, // Small loss
+  [SymbolType.CHERRY]: 1, // Loss but still a "win"
+};
+
+function getTripleReward(symbol: SymbolType): RewardOutcome {
+  // JACKPOT ULTIME : 3x7
+  if (symbol === SymbolType.SEVEN) {
+    return {
+      rewardType: RewardType.QUEUE_SKIP,
+      rewardAmount: 1,
+      isWin: true,
+      message: '🎉 JACKPOT ULTIME ! Un Queue Skip !',
+    };
+  }
+
+  // MINI JACKPOT : 3xEtoile
+  if (symbol === SymbolType.STAR) {
+    return {
+      rewardType: RewardType.ETERNAL_TICKET,
+      rewardAmount: 1,
+      isWin: true,
+      message: '🎉 JACKPOT ! Un Ticket Éternel !',
+    };
+  }
+
+  // Récompenses en jetons pour les autres triples - GROS GAINS!
+  const rewardAmount = TRIPLE_TOKEN_REWARDS[symbol] ?? 0;
+  return {
+    rewardType: RewardType.TOKENS,
+    rewardAmount,
+    isWin: true,
+    message:
+      rewardAmount >= 100
+        ? `💰 MEGA WIN! +${rewardAmount} jetons!`
+        : `🎉 TRIPLE! +${rewardAmount} jetons!`,
+  };
+}
+
+function getDoubleMessage(rewardAmount: number): string {
+  // Message adapté - toujours positif!
+  if (rewardAmount >= 15) return `✨ Beau double! +${rewardAmount} jetons!`;
+  if (rewardAmount >= 8) return `✨ Double! +${rewardAmount} jetons!`;
+  if (rewardAmount >= 3) return `👍 +${rewardAmount} jetons`;
+  return `🍀 +${rewardAmount} jeton`;
+}
+
+function getDoubleReward(symbol: SymbolType): RewardOutcome {
+  const rewardAmount = DOUBLE_TOKEN_REWARDS[symbol] ?? 0;
+  return {
+    rewardType: RewardType.TOKENS,
+    rewardAmount,
+    isWin: true,
+    message: getDoubleMessage(rewardAmount),
+  };
+}
+
+/**
+ * Détermine la récompense basée sur les symboles
+ */
+export function determineReward(symbols: [SymbolType, SymbolType, SymbolType]): RewardOutcome {
   const [s1] = symbols;
   const counts: Record<string, number> = {};
   symbols.forEach((s) => (counts[s] = (counts[s] || 0) + 1));
 
-  let maxCount = 0;
-
-  for (const [, count] of Object.entries(counts)) {
-    if (count > maxCount) {
-      maxCount = count;
-    }
-  }
-
   // --- 3 IDENTIQUES (TRIPLE MATCH) ---
   if (counts[s1] === 3) {
-    // JACKPOT ULTIME : 3x7
-    if (s1 === SymbolType.SEVEN) {
-      return {
-        rewardType: RewardType.QUEUE_SKIP,
-        rewardAmount: 1,
-        isWin: true,
-        message: '🎉 JACKPOT ULTIME ! Un Queue Skip !',
-      };
-    }
-
-    // MINI JACKPOT : 3xEtoile
-    if (s1 === SymbolType.STAR) {
-      return {
-        rewardType: RewardType.ETERNAL_TICKET,
-        rewardAmount: 1,
-        isWin: true,
-        message: '🎉 JACKPOT ! Un Ticket Éternel !',
-      };
-    }
-
-    // Récompenses en jetons pour les autres triples - GROS GAINS!
-    let rewardAmount = 0;
-    if (s1 === SymbolType.BELL)
-      rewardAmount = 200; // MEGA WIN
-    else if (s1 === SymbolType.PLUM)
-      rewardAmount = 100; // Super win
-    else if (s1 === SymbolType.ORANGE)
-      rewardAmount = 50; // Nice win
-    else if (s1 === SymbolType.LEMON)
-      rewardAmount = 25; // Good win
-    else if (s1 === SymbolType.CHERRY) rewardAmount = 15; // Small win
-
-    return {
-      rewardType: RewardType.TOKENS,
-      rewardAmount,
-      isWin: true,
-      message:
-        rewardAmount >= 100
-          ? `💰 MEGA WIN! +${rewardAmount} jetons!`
-          : `🎉 TRIPLE! +${rewardAmount} jetons!`,
-    };
+    return getTripleReward(s1);
   }
 
   // --- 2 IDENTIQUES (DOUBLE MATCH) ---
   // On paye pour n'importe quelle paire, mais le montant dépend du symbole
   for (const [s, count] of Object.entries(counts)) {
     if (count === 2) {
-      const symbol = s as SymbolType;
-      let rewardAmount = 0;
-
-      if (symbol === SymbolType.SEVEN)
-        rewardAmount = 50; // Exciting!
-      else if (symbol === SymbolType.STAR) rewardAmount = 30;
-      else if (symbol === SymbolType.BELL) rewardAmount = 15;
-      else if (symbol === SymbolType.PLUM) rewardAmount = 8;
-      else if (symbol === SymbolType.ORANGE)
-        rewardAmount = 3; // Break even
-      else if (symbol === SymbolType.LEMON)
-        rewardAmount = 2; // Small loss
-      else if (symbol === SymbolType.CHERRY) rewardAmount = 1; // Loss but still a "win"
-
-      // Message adapté - toujours positif!
-      let msg = '';
-      if (rewardAmount >= 15) msg = `✨ Beau double! +${rewardAmount} jetons!`;
-      else if (rewardAmount >= 8) msg = `✨ Double! +${rewardAmount} jetons!`;
-      else if (rewardAmount >= 3) msg = `👍 +${rewardAmount} jetons`;
-      else msg = `🍀 +${rewardAmount} jeton`;
-
-      return {
-        rewardType: RewardType.TOKENS,
-        rewardAmount,
-        isWin: true,
-        message: msg,
-      };
+      return getDoubleReward(s as SymbolType);
     }
   }
 

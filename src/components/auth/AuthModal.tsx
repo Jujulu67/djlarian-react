@@ -20,6 +20,46 @@ interface AvailableProviders {
   twitch: boolean;
 }
 
+interface CredentialsSignInResult {
+  failed: boolean;
+  status: number;
+  error?: string;
+}
+
+/** Connexion par identifiants via l'API custom (failed si la réponse est en erreur). */
+async function postCredentialsSignIn(
+  email: string,
+  password: string
+): Promise<CredentialsSignInResult> {
+  const response = await fetch('/api/auth/signin-credentials', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email, password }),
+    credentials: 'include',
+  });
+
+  const data = await response.json().catch(() => ({}));
+  return {
+    failed: !response.ok || Boolean(data.error),
+    status: response.status,
+    error: data.error,
+  };
+}
+
+function getLoginErrorMessage(status: number, error?: string): string {
+  if (status === 429) return 'Trop de tentatives, réessayez dans une minute';
+  if (error === 'Configuration error') return 'Erreur de configuration serveur';
+  if (error) return error;
+  return 'Email ou mot de passe incorrect';
+}
+
+function getRegisterErrorMessage(status: number, error?: string): string {
+  if (status === 429) return 'Trop de tentatives, réessayez dans une minute';
+  return error || "Une erreur est survenue lors de l'inscription";
+}
+
 export default function AuthModal({ isOpen, onClose }: Readonly<AuthModalProps>) {
   const isV2 = useUiVersion() !== 'legacy';
   const [isLogin, setIsLogin] = useState(true);
@@ -79,30 +119,11 @@ export default function AuthModal({ isOpen, onClose }: Readonly<AuthModalProps>)
     try {
       if (isLogin) {
         // === CONNEXION via API custom ===
-        const response = await fetch('/api/auth/signin-credentials', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ email, password }),
-          credentials: 'include',
-        });
+        const loginResult = await postCredentialsSignIn(email, password);
 
-        const data = await response.json().catch(() => ({}));
-
-        if (!response.ok || data.error) {
-          let errorMessage = 'Email ou mot de passe incorrect';
-
-          if (response.status === 429) {
-            errorMessage = 'Trop de tentatives, réessayez dans une minute';
-          } else if (data.error === 'Configuration error') {
-            errorMessage = 'Erreur de configuration serveur';
-          } else if (data.error) {
-            errorMessage = data.error;
-          }
-
-          logger.error('[AuthModal] Erreur de connexion:', data.error);
-          toast.error(errorMessage);
+        if (loginResult.failed) {
+          logger.error('[AuthModal] Erreur de connexion:', loginResult.error);
+          toast.error(getLoginErrorMessage(loginResult.status, loginResult.error));
           setIsLoading(false);
           return;
         }
@@ -123,11 +144,7 @@ export default function AuthModal({ isOpen, onClose }: Readonly<AuthModalProps>)
 
         if (!response.ok) {
           logger.error('[AuthModal] Erreur inscription:', data.error);
-          toast.error(
-            response.status === 429
-              ? 'Trop de tentatives, réessayez dans une minute'
-              : data.error || "Une erreur est survenue lors de l'inscription"
-          );
+          toast.error(getRegisterErrorMessage(response.status, data.error));
           setIsLoading(false);
           return;
         }
@@ -135,19 +152,10 @@ export default function AuthModal({ isOpen, onClose }: Readonly<AuthModalProps>)
         // Inscription réussie, connexion automatique via API custom
         toast.success('Inscription réussie !');
 
-        const loginResponse = await fetch('/api/auth/signin-credentials', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ email, password }),
-          credentials: 'include',
-        });
+        const autoLoginResult = await postCredentialsSignIn(email, password);
 
-        const loginData = await loginResponse.json().catch(() => ({}));
-
-        if (!loginResponse.ok || loginData.error) {
-          logger.error('[AuthModal] Erreur connexion après inscription:', loginData.error);
+        if (autoLoginResult.failed) {
+          logger.error('[AuthModal] Erreur connexion après inscription:', autoLoginResult.error);
           toast.success('Veuillez vous connecter maintenant.');
           setIsLogin(true);
           setIsLoading(false);
@@ -192,6 +200,8 @@ export default function AuthModal({ isOpen, onClose }: Readonly<AuthModalProps>)
       logger.error('Erreur lors de la connexion OAuth', error);
     }
   };
+
+  const submitLabel = isLogin ? 'Se connecter' : "S'inscrire";
 
   if (!isOpen) return null;
 
@@ -363,10 +373,8 @@ export default function AuthModal({ isOpen, onClose }: Readonly<AuthModalProps>)
                   </svg>
                   {isLogin ? 'Connexion...' : 'Inscription...'}
                 </>
-              ) : isLogin ? (
-                'Se connecter'
               ) : (
-                "S'inscrire"
+                submitLabel
               )}
             </button>
           </form>

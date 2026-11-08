@@ -382,16 +382,19 @@ export function MilestoneInbox({ isOpen, onClose }: Readonly<MilestoneInboxProps
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="w-6 h-6 animate-spin text-purple-500 v2:text-white/50" />
                 </div>
-              ) : error ? (
+              ) : null}
+              {!isLoading && error ? (
                 <div className="p-6 text-center v2:py-12">
                   <p className="text-red-400 text-sm v2:text-red-300">{error}</p>
                 </div>
-              ) : notifications.length === 0 ? (
+              ) : null}
+              {!isLoading && !error && notifications.length === 0 ? (
                 <div className="p-6 text-center v2:py-12">
                   <Bell className="w-12 h-12 mx-auto mb-3 text-gray-500 v2:box-content v2:size-6 v2:rounded-full v2:bg-white/[0.04] v2:p-3.5 v2:text-white/50" />
                   <p className="text-gray-400 text-sm v2:text-white/60">Aucune notification</p>
                 </div>
-              ) : (
+              ) : null}
+              {!isLoading && !error && notifications.length > 0 ? (
                 <div className="divide-y divide-gray-700/50 v2:divide-white/[0.06]">
                   {notifications.map((notification) => {
                     const style = getNotificationStyle(notification.type);
@@ -625,7 +628,7 @@ export function MilestoneInbox({ isOpen, onClose }: Readonly<MilestoneInboxProps
                     );
                   })}
                 </div>
-              )}
+              ) : null}
             </div>
 
             {/* Footer */}

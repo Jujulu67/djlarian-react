@@ -160,6 +160,87 @@ export async function GET(req: NextRequest) {
   }
 }
 
+/** Vérifie que les tables de configuration existent et sont accessibles. */
+async function areConfigTablesReady(): Promise<boolean> {
+  try {
+    // Tenter de compter les entrées pour vérifier que la table existe et est accessible
+    await prisma.siteConfig.count();
+    await prisma.configHistory.count();
+    logger.debug('Tables prêtes pour la sauvegarde');
+    return true;
+  } catch (tableError) {
+    logger.error('Erreur lors de la vérification des tables:', tableError);
+    return false;
+  }
+}
+
+/** Convertit les valeurs en chaînes pour le stockage. */
+function toStoredValue(value: unknown): string {
+  return (
+    typeof value === 'boolean' || typeof value === 'number' ? value.toString() : value
+  ) as string;
+}
+
+/** Ajoute à `updatePromises` les écritures nécessaires pour une configuration. */
+async function queueSiteConfigUpdate(
+  section: string,
+  key: string,
+  value: unknown,
+  createdBy: string | undefined,
+  updatePromises: Promise<unknown>[]
+): Promise<void> {
+  const stringValue = toStoredValue(value);
+
+  try {
+    // Chercher si cette config existe déjà
+    const existingConfig = await prisma.siteConfig.findUnique({
+      where: {
+        section_key: {
+          section,
+          key,
+        },
+      },
+    });
+
+    if (!existingConfig) {
+      // Créer une nouvelle configuration
+      updatePromises.push(
+        prisma.siteConfig.create({
+          data: {
+            section,
+            key,
+            value: stringValue,
+          },
+        })
+      );
+      return;
+    }
+
+    // Ne mettre à jour que si la valeur a changé
+    if (existingConfig.value !== stringValue) {
+      updatePromises.push(
+        prisma.configHistory.create({
+          data: {
+            configId: existingConfig.id,
+            previousValue: existingConfig.value,
+            newValue: stringValue,
+            createdBy,
+            description: 'Mise à jour manuelle',
+          },
+        }),
+        // Mettre à jour la configuration
+        prisma.siteConfig.update({
+          where: { id: existingConfig.id },
+          data: { value: stringValue },
+        })
+      );
+    }
+  } catch (configError) {
+    logger.error(`Erreur lors du traitement de la config ${section}.${key}:`, configError);
+    // Continuer avec les autres configurations
+  }
+}
+
 // Sauvegarde les configurations
 export async function POST(req: NextRequest) {
   try {
@@ -167,88 +248,22 @@ export async function POST(req: NextRequest) {
     const { session, error: authError } = await requireAdmin({ nonAdminStatus: 401 });
     if (authError) return authError;
 
-    // Vérifier si les tables nécessaires existent et sont accessibles
-    let areTablesReady = true;
-    try {
-      // Tenter de compter les entrées pour vérifier que la table existe et est accessible
-      await prisma.siteConfig.count();
-      await prisma.configHistory.count();
-      if (areTablesReady) {
-        logger.debug('Tables prêtes pour la sauvegarde');
-      }
-    } catch (tableError) {
-      logger.error('Erreur lors de la vérification des tables:', tableError);
-      areTablesReady = false;
-    }
-
     // Si les tables ne sont pas prêtes, simuler un succès (pour le développement)
-    if (!areTablesReady) {
+    if (!(await areConfigTablesReady())) {
       logger.debug('Tables non prêtes, simulation de succès pour le développement');
       return NextResponse.json({ success: true, status: 'SIMULATED' }, { status: 200 });
     }
 
     const data = await req.json();
     const { configs, snapshot, snapshotName, snapshotDescription } = data;
+    const createdBy = session.user.email || undefined;
 
-    const updatePromises = [];
+    const updatePromises: Promise<unknown>[] = [];
 
     // Parcourir chaque section de configuration
     for (const section in configs) {
       for (const key in configs[section]) {
-        const value = configs[section][key];
-
-        // Convertir les valeurs en chaînes pour le stockage
-        const stringValue =
-          typeof value === 'boolean' || typeof value === 'number' ? value.toString() : value;
-
-        try {
-          // Chercher si cette config existe déjà
-          const existingConfig = await prisma.siteConfig.findUnique({
-            where: {
-              section_key: {
-                section,
-                key,
-              },
-            },
-          });
-
-          if (existingConfig) {
-            // Ne mettre à jour que si la valeur a changé
-            if (existingConfig.value !== stringValue) {
-              // Créer une entrée dans l'historique
-              updatePromises.push(
-                prisma.configHistory.create({
-                  data: {
-                    configId: existingConfig.id,
-                    previousValue: existingConfig.value,
-                    newValue: stringValue,
-                    createdBy: session.user.email || undefined,
-                    description: 'Mise à jour manuelle',
-                  },
-                }),
-                // Mettre à jour la configuration
-                prisma.siteConfig.update({
-                  where: { id: existingConfig.id },
-                  data: { value: stringValue },
-                })
-              );
-            }
-          } else {
-            // Créer une nouvelle configuration
-            updatePromises.push(
-              prisma.siteConfig.create({
-                data: {
-                  section,
-                  key,
-                  value: stringValue,
-                },
-              })
-            );
-          }
-        } catch (configError) {
-          logger.error(`Erreur lors du traitement de la config ${section}.${key}:`, configError);
-          // Continuer avec les autres configurations
-        }
+        await queueSiteConfigUpdate(section, key, configs[section][key], createdBy, updatePromises);
       }
     }
 
@@ -261,7 +276,7 @@ export async function POST(req: NextRequest) {
               name: snapshotName || `Snapshot ${new Date().toISOString()}`,
               description: snapshotDescription,
               data: configs,
-              createdBy: session.user.email || undefined,
+              createdBy,
             },
           })
         );

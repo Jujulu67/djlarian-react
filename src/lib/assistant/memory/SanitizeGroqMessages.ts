@@ -53,6 +53,80 @@ interface SanitizeOptions {
 const VALID_ROLES = new Set(['system', 'user', 'assistant']);
 
 /**
+ * Vérifie le rôle d'un message. Retourne false si le message doit être rejeté (mode strict).
+ */
+function checkRole(role: unknown, index: number, strict: boolean, result: SanitizeResult): boolean {
+  if (typeof role === 'string' && VALID_ROLES.has(role)) return true;
+
+  result.issues.push({
+    index,
+    field: 'role',
+    original: role,
+    action: strict ? 'rejected' : 'fixed',
+    description: `Invalid role "${role}", expected system|user|assistant`,
+  });
+  // En mode non-strict, interpréter au mieux
+  // Un rôle manquant ou invalide sur un message avec contenu → user par défaut
+  result.sanitized = true;
+  return !strict;
+}
+
+/**
+ * Convertit le content en string. Retourne null si le message doit être rejeté (mode strict).
+ */
+function sanitizeContent(
+  content: unknown,
+  index: number,
+  strict: boolean,
+  result: SanitizeResult
+): string | null {
+  if (typeof content === 'string') return content;
+
+  if (content === null || content === undefined) {
+    result.issues.push({
+      index,
+      field: 'content',
+      original: content,
+      action: strict ? 'rejected' : 'converted',
+      description: `Null/undefined content converted to empty string`,
+    });
+    result.sanitized = true;
+    return strict ? null : '';
+  }
+
+  if (typeof content === 'object') {
+    // Cas problématique: content est un objet (JSON, array, etc.)
+    result.issues.push({
+      index,
+      field: 'content',
+      original: typeof content,
+      action: strict ? 'rejected' : 'converted',
+      description: `Object content stringified: ${JSON.stringify(content).substring(0, 50)}...`,
+    });
+    result.sanitized = true;
+    if (strict) return null;
+
+    // Tenter de stringifier proprement
+    try {
+      return JSON.stringify(content);
+    } catch {
+      return String(content);
+    }
+  }
+
+  // Autre type primitif (number, boolean, etc.)
+  result.issues.push({
+    index,
+    field: 'content',
+    original: typeof content,
+    action: 'converted',
+    description: `Primitive ${typeof content} converted to string`,
+  });
+  result.sanitized = true;
+  return String(content);
+}
+
+/**
  * O8: Sanitize les messages pour l'API Groq
  *
  * Garantit que chaque message a:
@@ -96,80 +170,11 @@ export function sanitizeGroqMessages(
 
     // Valider le rôle
     const role = msgObj.role;
-    if (typeof role !== 'string' || !VALID_ROLES.has(role)) {
-      result.issues.push({
-        index: i,
-        field: 'role',
-        original: role,
-        action: strict ? 'rejected' : 'fixed',
-        description: `Invalid role "${role}", expected system|user|assistant`,
-      });
-
-      if (strict) {
-        result.sanitized = true;
-        continue;
-      }
-
-      // En mode non-strict, interpréter au mieux
-      // Un rôle manquant ou invalide sur un message avec contenu → user par défaut
-      result.sanitized = true;
-    }
+    if (!checkRole(role, i, strict, result)) continue;
 
     // Valider et convertir le content
-    const content = msgObj.content;
-    let sanitizedContent: string;
-
-    if (typeof content === 'string') {
-      sanitizedContent = content;
-    } else if (content === null || content === undefined) {
-      result.issues.push({
-        index: i,
-        field: 'content',
-        original: content,
-        action: strict ? 'rejected' : 'converted',
-        description: `Null/undefined content converted to empty string`,
-      });
-
-      if (strict) {
-        result.sanitized = true;
-        continue;
-      }
-      sanitizedContent = '';
-      result.sanitized = true;
-    } else if (typeof content === 'object') {
-      // Cas problématique: content est un objet (JSON, array, etc.)
-      result.issues.push({
-        index: i,
-        field: 'content',
-        original: typeof content,
-        action: strict ? 'rejected' : 'converted',
-        description: `Object content stringified: ${JSON.stringify(content).substring(0, 50)}...`,
-      });
-
-      if (strict) {
-        result.sanitized = true;
-        continue;
-      }
-
-      // Tenter de stringifier proprement
-      try {
-        sanitizedContent = JSON.stringify(content);
-      } catch {
-        sanitizedContent = String(content);
-      }
-      result.sanitized = true;
-    } else {
-      // Autre type primitif (number, boolean, etc.)
-      sanitizedContent = String(content);
-      result.issues.push({
-        index: i,
-        field: 'content',
-        original: typeof content,
-        action: 'converted',
-        description: `Primitive ${typeof content} converted to string`,
-      });
-      result.sanitized = true;
-    }
+    const sanitizedContent = sanitizeContent(msgObj.content, i, strict, result);
+    if (sanitizedContent === null) continue;
 
     // Créer le message sanitizé (objet pur, sans prototype)
     const validRole = (VALID_ROLES.has(role as string) ? role : 'user') as ValidGroqMessage['role'];

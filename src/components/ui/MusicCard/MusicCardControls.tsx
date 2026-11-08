@@ -15,56 +15,55 @@ interface MusicCardControlsProps {
 }
 
 /**
- * Component to display play/pause button overlay
+ * Bouton play/pause UI v2 (vrai <button>, focusable, Entrée et Espace natifs)
  */
-export const MusicCardControls: React.FC<MusicCardControlsProps> = ({
+function V2PlayButton({
   isActive,
   isPlaying,
-  isPlayerVisible,
   onPlayClick,
   trackTitle,
-}) => {
-  const isV2 = useUiVersion() !== 'legacy';
+}: Readonly<Omit<MusicCardControlsProps, 'isPlayerVisible'>>) {
+  const isCurrentlyPlaying = isActive && isPlaying;
+  const quotedTitle = trackTitle ? ` « ${trackTitle} »` : '';
+  const label = (isCurrentlyPlaying ? 'Mettre en pause' : 'Écouter') + quotedTitle;
 
-  if (isPlayerVisible) {
-    return null;
-  }
+  // Visible en permanence au tactile, au survol / focus clavier sur desktop.
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onPlayClick();
+      }}
+      aria-label={label}
+      aria-pressed={isCurrentlyPlaying}
+      className={cn(
+        'absolute bottom-3 right-3 z-10 flex h-12 w-12 items-center justify-center rounded-full',
+        'bg-white text-zinc-950 shadow-[0_8px_24px_-8px_rgb(0_0_0/0.6)]',
+        'transition-[opacity,translate,scale] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]',
+        'hover:scale-105 active:scale-[0.95]',
+        isCurrentlyPlaying
+          ? 'opacity-100'
+          : 'pointer-fine:translate-y-1 pointer-fine:opacity-0 pointer-fine:group-hover:translate-y-0 pointer-fine:group-hover:opacity-100 pointer-fine:focus-visible:translate-y-0 pointer-fine:focus-visible:opacity-100'
+      )}
+    >
+      {isCurrentlyPlaying ? (
+        <Pause className="h-5 w-5" fill="currentColor" strokeWidth={0} />
+      ) : (
+        <Play className="ml-0.5 h-5 w-5" fill="currentColor" strokeWidth={0} />
+      )}
+    </button>
+  );
+}
 
-  if (isV2) {
-    const isCurrentlyPlaying = isActive && isPlaying;
-    const quotedTitle = trackTitle ? ` « ${trackTitle} »` : '';
-    const label = (isCurrentlyPlaying ? 'Mettre en pause' : 'Écouter') + quotedTitle;
-
-    // Vrai <button> : focusable, Entrée et Espace lancent la lecture nativement.
-    // Visible en permanence au tactile, au survol / focus clavier sur desktop.
-    return (
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onPlayClick();
-        }}
-        aria-label={label}
-        aria-pressed={isCurrentlyPlaying}
-        className={cn(
-          'absolute bottom-3 right-3 z-10 flex h-12 w-12 items-center justify-center rounded-full',
-          'bg-white text-zinc-950 shadow-[0_8px_24px_-8px_rgb(0_0_0/0.6)]',
-          'transition-[opacity,translate,scale] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]',
-          'hover:scale-105 active:scale-[0.95]',
-          isCurrentlyPlaying
-            ? 'opacity-100'
-            : 'pointer-fine:translate-y-1 pointer-fine:opacity-0 pointer-fine:group-hover:translate-y-0 pointer-fine:group-hover:opacity-100 pointer-fine:focus-visible:translate-y-0 pointer-fine:focus-visible:opacity-100'
-        )}
-      >
-        {isCurrentlyPlaying ? (
-          <Pause className="h-5 w-5" fill="currentColor" strokeWidth={0} />
-        ) : (
-          <Play className="ml-0.5 h-5 w-5" fill="currentColor" strokeWidth={0} />
-        )}
-      </button>
-    );
-  }
-
+/**
+ * Overlay play/pause de la version legacy
+ */
+function LegacyPlayOverlay({
+  isActive,
+  isPlaying,
+  onPlayClick,
+}: Readonly<Omit<MusicCardControlsProps, 'isPlayerVisible' | 'trackTitle'>>) {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
@@ -106,4 +105,34 @@ export const MusicCardControls: React.FC<MusicCardControlsProps> = ({
       </motion.button>
     </div>
   );
+}
+
+/**
+ * Component to display play/pause button overlay
+ */
+export const MusicCardControls: React.FC<MusicCardControlsProps> = ({
+  isActive,
+  isPlaying,
+  isPlayerVisible,
+  onPlayClick,
+  trackTitle,
+}) => {
+  const isV2 = useUiVersion() !== 'legacy';
+
+  if (isPlayerVisible) {
+    return null;
+  }
+
+  if (isV2) {
+    return (
+      <V2PlayButton
+        isActive={isActive}
+        isPlaying={isPlaying}
+        onPlayClick={onPlayClick}
+        trackTitle={trackTitle}
+      />
+    );
+  }
+
+  return <LegacyPlayOverlay isActive={isActive} isPlaying={isPlaying} onPlayClick={onPlayClick} />;
 };

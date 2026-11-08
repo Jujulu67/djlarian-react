@@ -29,42 +29,39 @@ describe('SoundCloud Parser', () => {
   });
 
   describe('parseSoundCloudTitle', () => {
-    it('should parse "Artiste - Titre (REMIX TERM)" format', () => {
-      const result = parseSoundCloudTitle("Youssou N'Dour - KIRIKOU (LARIAN FLIP)", 'larian67');
-      expect(result.artist).toBe("Youssou N'Dour (LARIAN FLIP)");
-      expect(result.title).toBe('Kirikou');
-    });
-
-    it('should parse "Artiste - Titre" format without remix', () => {
-      const result = parseSoundCloudTitle('Artist Name - Song Title', 'larian67');
-      expect(result.artist).toBe('Artist Name');
-      expect(result.title).toBe('Song Title');
-    });
-
-    it('should parse "Artiste - Titre REMIX" format', () => {
-      const result = parseSoundCloudTitle('Artist - Song REMIX', 'larian67');
+    it.each([
+      [
+        'should parse "Artiste - Titre (REMIX TERM)" format',
+        "Youssou N'Dour - KIRIKOU (LARIAN FLIP)",
+        "Youssou N'Dour (LARIAN FLIP)",
+        'Kirikou',
+      ],
+      [
+        'should parse "Artiste - Titre" format without remix',
+        'Artist Name - Song Title',
+        'Artist Name',
+        'Song Title',
+      ],
       // Le pattern 2 extrait le préfixe avant REMIX si présent
-      expect(result.artist).toBe('Artist (REMIX)');
-      expect(result.title).toBe('Song');
-    });
-
-    it('should parse "Titre (Artiste REMIX)" format', () => {
-      const result = parseSoundCloudTitle('Song Title (Original Artist REMIX)', 'larian67');
-      expect(result.artist).toBe('Original Artist (REMIX)');
-      expect(result.title).toBe('Song Title');
-    });
-
-    it('should handle BOOTLEG term', () => {
-      const result = parseSoundCloudTitle('Artist - Song (BOOTLEG)', 'larian67');
-      expect(result.artist).toBe('Artist (BOOTLEG)');
-      expect(result.title).toBe('Song');
-    });
-
-    it('should handle EDIT term', () => {
-      const result = parseSoundCloudTitle('Artist - Song EDIT', 'larian67');
+      [
+        'should parse "Artiste - Titre REMIX" format',
+        'Artist - Song REMIX',
+        'Artist (REMIX)',
+        'Song',
+      ],
+      [
+        'should parse "Titre (Artiste REMIX)" format',
+        'Song Title (Original Artist REMIX)',
+        'Original Artist (REMIX)',
+        'Song Title',
+      ],
+      ['should handle BOOTLEG term', 'Artist - Song (BOOTLEG)', 'Artist (BOOTLEG)', 'Song'],
       // Le pattern 2 extrait le préfixe avant EDIT si présent
-      expect(result.artist).toBe('Artist (EDIT)');
-      expect(result.title).toBe('Song');
+      ['should handle EDIT term', 'Artist - Song EDIT', 'Artist (EDIT)', 'Song'],
+    ])('%s', (_title, input, artist, title) => {
+      const result = parseSoundCloudTitle(input, 'larian67');
+      expect(result.artist).toBe(artist);
+      expect(result.title).toBe(title);
     });
 
     it('should use profile name as artist when no pattern matches', () => {

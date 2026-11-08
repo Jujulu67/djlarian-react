@@ -20,6 +20,52 @@ interface AutoDetectAtelierProps {
   fetchTracks?: () => Promise<void>;
 }
 
+interface SoundCloudErrorBody {
+  error?: string;
+  message?: string;
+  details?: string;
+}
+
+const getSoundCloudHttpUserMessage = (
+  status: number,
+  data: SoundCloudErrorBody,
+  errorMessage: string
+): string => {
+  if (status === 503 && (data.error?.includes('Puppeteer') || data.error?.includes('Chromium'))) {
+    return `Puppeteer/Chromium non disponible: ${data.message || data.details || errorMessage}. Vérifiez la configuration sur Vercel (variable AWS_LAMBDA_JS_RUNTIME=nodejs22.x).`;
+  }
+  if (status === 500) {
+    return `Erreur serveur: ${errorMessage}. Vérifiez les logs pour plus de détails.`;
+  }
+  return errorMessage;
+};
+
+const getSoundCloudFetchErrorMessage = (err: unknown): string => {
+  if (!(err instanceof Error)) {
+    logger.error('[AUTO-DETECT] Erreur SoundCloud inconnue:', err);
+    return "Une erreur s'est produite lors de la récupération des tracks SoundCloud";
+  }
+  if (err.name === 'AbortError' || err.message.includes('aborted')) {
+    logger.error('[AUTO-DETECT] Timeout SoundCloud:', {
+      error: err.message,
+      duration: '120s',
+    });
+    return 'La requête a pris trop de temps (timeout après 2 minutes). Le scraping SoundCloud peut être lent. Réessayez ou vérifiez la configuration Puppeteer.';
+  }
+  if (err.message.includes('fetch')) {
+    logger.error('[AUTO-DETECT] Erreur réseau SoundCloud:', {
+      error: err.message,
+      stack: err.stack,
+    });
+    return 'Erreur réseau lors de la récupération des tracks. Vérifiez votre connexion.';
+  }
+  logger.error('[AUTO-DETECT] Erreur SoundCloud:', {
+    error: err.message,
+    stack: err.stack,
+  });
+  return `Erreur: ${err.message}`;
+};
+
 /* -------------------------------------------------------------------------- */
 
 const AutoDetectAtelier: React.FC<AutoDetectAtelierProps> = ({ fetchTracks }) => {
@@ -281,17 +327,7 @@ const AutoDetectAtelier: React.FC<AutoDetectAtelierProps> = ({ fetchTracks }) =>
         // Gérer les erreurs spécifiques
         const errorMessage =
           data.message || data.error || 'Impossible de récupérer les tracks SoundCloud';
-        let userMessage = errorMessage;
-
-        // Messages d'erreur spécifiques pour Puppeteer
-        if (
-          res.status === 503 &&
-          (data.error?.includes('Puppeteer') || data.error?.includes('Chromium'))
-        ) {
-          userMessage = `Puppeteer/Chromium non disponible: ${data.message || data.details || errorMessage}. Vérifiez la configuration sur Vercel (variable AWS_LAMBDA_JS_RUNTIME=nodejs22.x).`;
-        } else if (res.status === 500) {
-          userMessage = `Erreur serveur: ${errorMessage}. Vérifiez les logs pour plus de détails.`;
-        }
+        const userMessage = getSoundCloudHttpUserMessage(res.status, data, errorMessage);
 
         logger.error('[AUTO-DETECT] Erreur SoundCloud API:', {
           status: res.status,
@@ -303,32 +339,7 @@ const AutoDetectAtelier: React.FC<AutoDetectAtelierProps> = ({ fetchTracks }) =>
       }
     } catch (err) {
       // Gérer les erreurs de timeout et réseau
-      if (err instanceof Error) {
-        if (err.name === 'AbortError' || err.message.includes('aborted')) {
-          logger.error('[AUTO-DETECT] Timeout SoundCloud:', {
-            error: err.message,
-            duration: '120s',
-          });
-          setError(
-            'La requête a pris trop de temps (timeout après 2 minutes). Le scraping SoundCloud peut être lent. Réessayez ou vérifiez la configuration Puppeteer.'
-          );
-        } else if (err.message.includes('fetch')) {
-          logger.error('[AUTO-DETECT] Erreur réseau SoundCloud:', {
-            error: err.message,
-            stack: err.stack,
-          });
-          setError('Erreur réseau lors de la récupération des tracks. Vérifiez votre connexion.');
-        } else {
-          logger.error('[AUTO-DETECT] Erreur SoundCloud:', {
-            error: err.message,
-            stack: err.stack,
-          });
-          setError(`Erreur: ${err.message}`);
-        }
-      } else {
-        logger.error('[AUTO-DETECT] Erreur SoundCloud inconnue:', err);
-        setError("Une erreur s'est produite lors de la récupération des tracks SoundCloud");
-      }
+      setError(getSoundCloudFetchErrorMessage(err));
     } finally {
       clearTimeout(timeoutId);
       setIsLoadingReleases(false);

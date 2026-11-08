@@ -53,6 +53,25 @@ interface ProfileHeroProps {
   fileInputRef: React.RefObject<HTMLInputElement | null>;
 }
 
+function getImageUrl(image: string | null) {
+  if (!image) return null;
+  if (image.startsWith('http://') || image.startsWith('https://')) {
+    if (image.includes('googleusercontent.com')) {
+      return `/api/images/proxy?url=${encodeURIComponent(image)}`;
+    }
+    return image;
+  }
+  return image;
+}
+
+function getRoleLabel(role: string | undefined, isV2: boolean) {
+  const label = role === 'ADMIN' ? 'Administrateur' : 'Utilisateur';
+  if (isV2) {
+    return label;
+  }
+  return `${role === 'ADMIN' ? '👑' : '👤'} ${label}`;
+}
+
 export function ProfileHero({
   user,
   isEditing,
@@ -86,16 +105,6 @@ export function ProfileHero({
     if (isAuthenticated) {
       trackCasinoDiscovery();
     }
-  };
-
-  const getImageUrl = (image: string | null) => {
-    if (!image) return null;
-    if (image.startsWith('http://') || image.startsWith('https://')) {
-      return image.includes('googleusercontent.com')
-        ? `/api/images/proxy?url=${encodeURIComponent(image)}`
-        : image;
-    }
-    return image;
   };
 
   return (
@@ -341,9 +350,7 @@ export function ProfileHero({
                   <div className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-white/5 border border-white/10 v2:rounded-full v2:bg-white/[0.04]">
                     <User size={12} className="sm:w-3.5 sm:h-3.5 text-gray-400" />
                     <span className="text-xs sm:text-sm text-gray-300">
-                      {user.role === 'ADMIN'
-                        ? `${isV2 ? '' : '👑 '}Administrateur`
-                        : `${isV2 ? '' : '👤 '}Utilisateur`}
+                      {getRoleLabel(user.role, isV2)}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-white/5 border border-white/10 v2:rounded-full v2:bg-white/[0.04]">

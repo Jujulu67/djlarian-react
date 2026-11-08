@@ -618,7 +618,11 @@
     0 12px 40px 0 rgba(139, 92, 246, 0.2),
     inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
   transform: translateY(-2px);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    background 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Premium Easter Egg Glassmorphism (iOS Style) - Refined */
@@ -641,7 +645,10 @@
     inset 0 0 0 0.5px rgba(255, 255, 255, 0.2),
     /* Thinner feeling border */ inset 0 1px 1px rgba(255, 255, 255, 0.1),
     0 8px 32px rgba(0, 0, 0, 0.4);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
 }
 
@@ -691,7 +698,13 @@
     inset 0 0 0 1px rgba(255, 255, 255, 0.05);
   position: relative;
   /* Remove overflow: hidden to allow shadow/glow to breathe */
-  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+    border-radius 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 1;
 }
 
@@ -880,7 +893,11 @@
 .btn-modern {
   position: relative;
   overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition-property:
+    transform, box-shadow, border-color, background-color, color, --tw-gradient-from,
+    --tw-gradient-to;
+  transition-duration: 0.3s;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .btn-modern::before {
@@ -1116,6 +1133,25 @@ section {
 }
 
 /* Contrastes et couleurs de liens : réservé à l'UI legacy. En v2, ces règles hors couche ne doivent plus écraser les utilitaires Tailwind. */
+
+/* Purple link class for links that should have the purple color (e.g., in content, descriptions, etc.) */
+a.link-purple {
+  color: rgb(196, 181, 253);
+  /* purple-300 - better contrast */
+}
+
+a.link-purple:hover {
+  color: rgb(167, 139, 250);
+  /* purple-400 */
+}
+
+/* Admin button links should keep their white text color */
+a.admin-button-link,
+a.admin-button-link *,
+a.admin-button-link span {
+  color: rgb(255, 255, 255) !important;
+}
+
 :where(html:not([data-ui='v2'], [data-ui='v3'])) {
   /* Improved color contrasts for accessibility */
   .text-gray-300 {
@@ -1142,28 +1178,8 @@ section {
     ):not(.link-purple) {
     color: inherit;
   }
-}
 
-/* Purple link class for links that should have the purple color (e.g., in content, descriptions, etc.) */
-a.link-purple {
-  color: rgb(196, 181, 253);
-  /* purple-300 - better contrast */
-}
-
-a.link-purple:hover {
-  color: rgb(167, 139, 250);
-  /* purple-400 */
-}
-
-/* Admin button links should keep their white text color */
-a.admin-button-link,
-a.admin-button-link *,
-a.admin-button-link span {
-  color: rgb(255, 255, 255) !important;
-}
-
-/* Couleurs héritées des boutons et liens de nav : réservé à l'UI legacy. En v2, ces règles hors couche ne doivent plus écraser les utilitaires Tailwind. */
-:where(html:not([data-ui='v2'], [data-ui='v3'])) {
+  /* Couleurs héritées des boutons et liens de nav : réservé à l'UI legacy. En v2, ces règles hors couche ne doivent plus écraser les utilitaires Tailwind. */
   /* Ensure buttons and button-like elements don't inherit link colors */
   button,
   [role='button'],
@@ -1447,19 +1463,17 @@ header nav button.navMenuItem.navMenuItemWarning:hover {
   --purple-800: #6b21a8;
   --purple-900: #581c87;
   --purple-950: #3b0764;
+
+  /* Accent unique (canaux RGB pour l'opacité Tailwind : bg-brand/20) */
+  --brand: 139 92 246; /* #8b5cf6 */
+  --brand-indigo: 99 102 241; /* #6366f1 */
+  --brand-magenta: 217 70 239; /* #d946ef */
 }
 
 /* ==========================================================================
    UI v2 « Liquid Night » : tokens, typographie et surfaces de verre.
    Tout est scopé sous [data-ui='v2'] ; l'UI legacy n'est pas affectée.
    ========================================================================== */
-
-:root {
-  /* Accent unique (canaux RGB pour l'opacité Tailwind : bg-brand/20) */
-  --brand: 139 92 246; /* #8b5cf6 */
-  --brand-indigo: 99 102 241; /* #6366f1 */
-  --brand-magenta: 217 70 239; /* #d946ef */
-}
 
 :is([data-ui='v2'], [data-ui='v3']) {
   color-scheme: dark;
@@ -1475,6 +1489,47 @@ header nav button.navMenuItem.navMenuItemWarning:hover {
   --dur-base: 250ms;
   --dur-slow: 400ms;
   --dur-slower: 700ms;
+
+  /* --------------------------------------------------------------------------
+  Remaps globaux v2 : toute l'app adopte la palette et le verre v2
+  sans toucher aux composants (les classes legacy restent valides).
+  -------------------------------------------------------------------------- */
+  /* purple-* -> échelle violet : un seul accent, centré sur --brand (#8b5cf6) */
+  --purple-50: #f5f3ff;
+  --purple-100: #ede9fe;
+  --purple-200: #ddd6fe;
+  --purple-300: #c4b5fd;
+  --purple-400: #a78bfa;
+  --purple-500: #8b5cf6;
+  --purple-600: #7c3aed;
+  --purple-700: #6d28d9;
+  --purple-800: #5b21b6;
+  --purple-900: #4c1d95;
+  --purple-950: #2e1065;
+
+  /* gray-* (teinté bleu) -> zinc neutre, accordé au fond #09090b */
+  --color-gray-50: #fafafa;
+  --color-gray-100: #f4f4f5;
+  --color-gray-200: #e4e4e7;
+  --color-gray-300: #d4d4d8;
+  --color-gray-400: #a1a1aa;
+  --color-gray-500: #71717a;
+  --color-gray-600: #52525b;
+  --color-gray-700: #3f3f46;
+  --color-gray-800: #27272a;
+  --color-gray-900: #18181b;
+  --color-gray-950: #09090b;
+
+  /* Tokens shadcn alignés sur l'accent */
+  --ring: 258 90% 66%;
+
+  /* Barres de défilement discrètes */
+  scrollbar-color: rgb(255 255 255 / 0.15) transparent;
+
+  /* Toasts (sonner) en verre */
+  --toast-bg: rgb(9 9 11 / 0.72);
+  --toast-border: 1px solid rgb(255 255 255 / 0.1);
+  --toast-radius: 1rem;
 }
 
 :is([data-ui='v2'], [data-ui='v3']) body {
@@ -1546,41 +1601,6 @@ header nav button.navMenuItem.navMenuItemWarning:hover {
   line-height: var(--display-leading, 1.1);
 }
 
-/* --------------------------------------------------------------------------
-   Remaps globaux v2 : toute l'app adopte la palette et le verre v2
-   sans toucher aux composants (les classes legacy restent valides).
-   -------------------------------------------------------------------------- */
-:is([data-ui='v2'], [data-ui='v3']) {
-  /* purple-* -> échelle violet : un seul accent, centré sur --brand (#8b5cf6) */
-  --purple-50: #f5f3ff;
-  --purple-100: #ede9fe;
-  --purple-200: #ddd6fe;
-  --purple-300: #c4b5fd;
-  --purple-400: #a78bfa;
-  --purple-500: #8b5cf6;
-  --purple-600: #7c3aed;
-  --purple-700: #6d28d9;
-  --purple-800: #5b21b6;
-  --purple-900: #4c1d95;
-  --purple-950: #2e1065;
-
-  /* gray-* (teinté bleu) -> zinc neutre, accordé au fond #09090b */
-  --color-gray-50: #fafafa;
-  --color-gray-100: #f4f4f5;
-  --color-gray-200: #e4e4e7;
-  --color-gray-300: #d4d4d8;
-  --color-gray-400: #a1a1aa;
-  --color-gray-500: #71717a;
-  --color-gray-600: #52525b;
-  --color-gray-700: #3f3f46;
-  --color-gray-800: #27272a;
-  --color-gray-900: #18181b;
-  --color-gray-950: #09090b;
-
-  /* Tokens shadcn alignés sur l'accent */
-  --ring: 258 90% 66%;
-}
-
 /* Anciennes recettes de verre -> surfaces v2 */
 :is([data-ui='v2'], [data-ui='v3']) .glass,
 :is([data-ui='v2'], [data-ui='v3']) .glass-modern,
@@ -1612,11 +1632,6 @@ header nav button.navMenuItem.navMenuItemWarning:hover {
   :is(button, a, input, textarea, select, [tabindex]):focus-visible {
   outline: 2px solid rgb(var(--brand) / 0.9);
   outline-offset: 2px;
-}
-
-/* Barres de défilement discrètes */
-:is([data-ui='v2'], [data-ui='v3']) {
-  scrollbar-color: rgb(255 255 255 / 0.15) transparent;
 }
 
 /* Projecteur qui suit le curseur (piloté par useSpotlight : --spot-x, --spot-y, --spot-opacity) */
@@ -1681,13 +1696,6 @@ header nav button.navMenuItem.navMenuItemWarning:hover {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
-}
-
-/* Toasts (sonner) en verre */
-:is([data-ui='v2'], [data-ui='v3']) {
-  --toast-bg: rgb(9 9 11 / 0.72);
-  --toast-border: 1px solid rgb(255 255 255 / 0.1);
-  --toast-radius: 1rem;
 }
 
 :is([data-ui='v2'], [data-ui='v3']) [data-sonner-toast] {

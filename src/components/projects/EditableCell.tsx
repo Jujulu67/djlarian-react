@@ -108,150 +108,138 @@ type EditableCellDisplayProps = Pick<
 };
 
 /** Mode lecture : la présentation dépend du type de la cellule. */
-function EditableCellDisplay({
-  value,
-  field,
-  type,
-  placeholder,
-  onSave,
-  disabled,
-  isCompact,
-  className,
-  allowWrap,
-  isSaving,
-  onStartEditing,
-}: EditableCellDisplayProps) {
-  // Cas spécial pour les liens
-  if (type === 'link' && value) {
-    return (
-      <div className={`flex items-center gap-1 ${className}`}>
-        <button
-          onClick={() => onStartEditing()}
-          className="text-left text-purple-400 hover:text-purple-300 truncate max-w-[120px] transition-colors"
-          title={value.toString()}
-        >
-          Lien
-        </button>
-        <a
-          href={value.toString()}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-purple-400 hover:text-purple-300 transition-colors"
-          onClick={(e) => e.stopPropagation()}
-          aria-label={`Ouvrir le lien externe dans un nouvel onglet: ${value.toString()}`}
-        >
-          <ExternalLink size={14} aria-hidden="true" />
-        </a>
-      </div>
-    );
-  }
-
-  // Cas spécial pour le statut - afficher le badge cliquable qui ouvre directement le select
-  if (type === 'select' && field === 'status') {
-    const statusConfig = PROJECT_STATUSES.find((s) => s.value === value);
-    if (!statusConfig) return null;
-
-    return (
-      <GlassSelect
-        value={value?.toString() || ''}
-        options={PROJECT_STATUSES.map((status) => ({
-          value: status.value,
-          label: status.label,
-          color: status.color,
-        }))}
-        onChange={(newValue) => {
-          void onSave(field, newValue as ProjectStatus);
-        }}
-        isCompact={isCompact}
-        className={className}
-        disabled={isSaving}
-        currentColor={statusConfig.color}
-      />
-    );
-  }
-
-  // Cas spécial pour le label - afficher le badge cliquable qui ouvre directement le select
-  if (type === 'select' && field === 'label') {
-    const normalizedValue = normalizeLabelValue(value?.toString() || null);
-    const labelConfig = normalizedValue
-      ? LABEL_OPTIONS.find((l) => l.value === normalizedValue)
-      : null;
-
-    const labelOptions = [
-      { value: '', label: '-', color: undefined },
-      ...LABEL_OPTIONS.map((label) => ({
-        value: label.value,
-        label: label.label,
-        color: label.color,
-      })),
-    ];
-
-    return (
-      <GlassSelect
-        value={normalizedValue || ''}
-        options={labelOptions}
-        onChange={(newValue) => {
-          void onSave(field, newValue || null);
-        }}
-        placeholder="-"
-        isCompact={isCompact}
-        className={className}
-        disabled={isSaving}
-        currentColor={labelConfig?.color || 'blue'}
-      />
-    );
-  }
-
-  // Cas spécial pour les dates
-  if (type === 'date' && value) {
-    const date = new Date(value.toString());
-    const formatted = date.toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: '2-digit',
-    });
-    return (
+function renderLinkCell(props: EditableCellDisplayProps, value: string | number) {
+  const { className, onStartEditing } = props;
+  return (
+    <div className={`flex items-center gap-1 ${className}`}>
       <button
         onClick={() => onStartEditing()}
-        className={`text-left ${isCompact ? 'px-1 py-0.5 text-[10px]' : 'px-2 py-1 text-sm'} rounded hover:bg-white/5 transition-all cursor-pointer ${className}`}
+        className="text-left text-purple-400 hover:text-purple-300 truncate max-w-[120px] transition-colors"
+        title={value.toString()}
       >
-        {formatted}
+        Lien
       </button>
-    );
-  }
-
-  // Cas spécial pour les nombres
-  if (type === 'number' && value !== null && value !== undefined) {
-    const formatted = Number(value).toLocaleString('fr-FR');
-    return (
-      <button
-        onClick={() => onStartEditing()}
-        className={`text-left ${isCompact ? 'px-1 py-0.5 text-[10px]' : 'px-2 py-1 text-sm'} rounded hover:bg-white/5 transition-all cursor-pointer tabular-nums ${className}`}
+      <a
+        href={value.toString()}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-purple-400 hover:text-purple-300 transition-colors"
+        onClick={(e) => e.stopPropagation()}
+        aria-label={`Ouvrir le lien externe dans un nouvel onglet: ${value.toString()}`}
       >
-        {formatted}
-      </button>
-    );
-  }
+        <ExternalLink size={14} aria-hidden="true" />
+      </a>
+    </div>
+  );
+}
 
-  // Cas spécial pour le progress (pourcentage)
-  if (type === 'progress' && value !== null && value !== undefined) {
-    const formatted = `${Number(value)}%`;
-    return (
-      <button
-        onClick={() => !disabled && onStartEditing()}
-        disabled={disabled}
-        className={`text-left ${isCompact ? 'px-1 py-0.5 text-[10px]' : 'px-2 py-1 text-sm'} rounded transition-all tabular-nums ${
-          disabled
-            ? 'text-gray-500 cursor-not-allowed'
-            : 'hover:bg-white/5 cursor-pointer text-gray-300'
-        } ${className}`}
-      >
-        {formatted}
-      </button>
-    );
-  }
+function renderStatusCell(props: EditableCellDisplayProps) {
+  const { value, field, onSave, isCompact, className, isSaving } = props;
+  const statusConfig = PROJECT_STATUSES.find((s) => s.value === value);
+  if (!statusConfig) return null;
 
-  // Affichage par défaut
+  return (
+    <GlassSelect
+      value={value?.toString() || ''}
+      options={PROJECT_STATUSES.map((status) => ({
+        value: status.value,
+        label: status.label,
+        color: status.color,
+      }))}
+      onChange={(newValue) => {
+        void onSave(field, newValue as ProjectStatus);
+      }}
+      isCompact={isCompact}
+      className={className}
+      disabled={isSaving}
+      currentColor={statusConfig.color}
+    />
+  );
+}
+
+function renderLabelCell(props: EditableCellDisplayProps) {
+  const { value, field, onSave, isCompact, className, isSaving } = props;
+  const normalizedValue = normalizeLabelValue(value?.toString() || null);
+  const labelConfig = normalizedValue
+    ? LABEL_OPTIONS.find((l) => l.value === normalizedValue)
+    : null;
+
+  const labelOptions = [
+    { value: '', label: '-', color: undefined },
+    ...LABEL_OPTIONS.map((label) => ({
+      value: label.value,
+      label: label.label,
+      color: label.color,
+    })),
+  ];
+
+  return (
+    <GlassSelect
+      value={normalizedValue || ''}
+      options={labelOptions}
+      onChange={(newValue) => {
+        void onSave(field, newValue || null);
+      }}
+      placeholder="-"
+      isCompact={isCompact}
+      className={className}
+      disabled={isSaving}
+      currentColor={labelConfig?.color || 'blue'}
+    />
+  );
+}
+
+function renderDateCell(props: EditableCellDisplayProps, value: string | number) {
+  const { isCompact, className, onStartEditing } = props;
+  const date = new Date(value.toString());
+  const formatted = date.toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit',
+  });
+  return (
+    <button
+      onClick={() => onStartEditing()}
+      className={`text-left ${isCompact ? 'px-1 py-0.5 text-[10px]' : 'px-2 py-1 text-sm'} rounded hover:bg-white/5 transition-all cursor-pointer ${className}`}
+    >
+      {formatted}
+    </button>
+  );
+}
+
+function renderNumberCell(props: EditableCellDisplayProps, value: string | number) {
+  const { isCompact, className, onStartEditing } = props;
+  const formatted = Number(value).toLocaleString('fr-FR');
+  return (
+    <button
+      onClick={() => onStartEditing()}
+      className={`text-left ${isCompact ? 'px-1 py-0.5 text-[10px]' : 'px-2 py-1 text-sm'} rounded hover:bg-white/5 transition-all cursor-pointer tabular-nums ${className}`}
+    >
+      {formatted}
+    </button>
+  );
+}
+
+function renderProgressCell(props: EditableCellDisplayProps, value: string | number) {
+  const { disabled, isCompact, className, onStartEditing } = props;
+  const formatted = `${Number(value)}%`;
+  return (
+    <button
+      onClick={() => !disabled && onStartEditing()}
+      disabled={disabled}
+      className={`text-left ${isCompact ? 'px-1 py-0.5 text-[10px]' : 'px-2 py-1 text-sm'} rounded transition-all tabular-nums ${
+        disabled
+          ? 'text-gray-500 cursor-not-allowed'
+          : 'hover:bg-white/5 cursor-pointer text-gray-300'
+      } ${className}`}
+    >
+      {formatted}
+    </button>
+  );
+}
+
+function renderDefaultCell(props: EditableCellDisplayProps) {
+  const { value, placeholder, isCompact, className, allowWrap, onStartEditing } = props;
   return (
     <button
       onClick={() => onStartEditing()}
@@ -263,6 +251,21 @@ function EditableCellDisplay({
       {value?.toString() || placeholder}
     </button>
   );
+}
+
+function EditableCellDisplay(props: EditableCellDisplayProps) {
+  const { value, field, type } = props;
+  if (type === 'link' && value) return renderLinkCell(props, value);
+  if (type === 'select' && field === 'status') return renderStatusCell(props);
+  if (type === 'select' && field === 'label') return renderLabelCell(props);
+  if (type === 'date' && value) return renderDateCell(props, value);
+  if (type === 'number' && value !== null && value !== undefined) {
+    return renderNumberCell(props, value);
+  }
+  if (type === 'progress' && value !== null && value !== undefined) {
+    return renderProgressCell(props, value);
+  }
+  return renderDefaultCell(props);
 }
 
 export const EditableCell = ({

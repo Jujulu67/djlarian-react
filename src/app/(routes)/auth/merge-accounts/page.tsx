@@ -253,12 +253,7 @@ function MergeAccountsContent() {
                     <span className="text-green-400 font-bold">2</span>
                   </div>
                   <h3 className="text-lg font-semibold text-white">
-                    Compte{' '}
-                    {mergeData.oauthAccount.provider === 'google'
-                      ? 'Google'
-                      : mergeData.oauthAccount.provider === 'twitch'
-                        ? 'Twitch'
-                        : mergeData.oauthAccount.provider}
+                    Compte {getProviderLabel(mergeData.oauthAccount.provider)}
                   </h3>
                 </div>
                 <div className="space-y-4">
@@ -324,12 +319,7 @@ function MergeAccountsContent() {
                   />
                   <div className="flex-1">
                     <span className="text-white font-medium block">
-                      Utiliser le nom du compte{' '}
-                      {mergeData.oauthAccount.provider === 'google'
-                        ? 'Google'
-                        : mergeData.oauthAccount.provider === 'twitch'
-                          ? 'Twitch'
-                          : mergeData.oauthAccount.provider}
+                      Utiliser le nom du compte {getProviderLabel(mergeData.oauthAccount.provider)}
                     </span>
                     {mergeData.existingAccount.name && mergeData.oauthAccount.name && (
                       <span className="text-gray-400 text-sm mt-1 block">
@@ -354,11 +344,7 @@ function MergeAccountsContent() {
                   <div className="flex-1">
                     <span className="text-white font-medium block">
                       Utiliser la photo du compte{' '}
-                      {mergeData.oauthAccount.provider === 'google'
-                        ? 'Google'
-                        : mergeData.oauthAccount.provider === 'twitch'
-                          ? 'Twitch'
-                          : mergeData.oauthAccount.provider}
+                      {getProviderLabel(mergeData.oauthAccount.provider)}
                     </span>
                     <span className="text-gray-400 text-sm mt-1 block">
                       Mettre à jour votre photo de profil
@@ -452,6 +438,12 @@ function MergeAccountsContent() {
       </div>
     </div>
   );
+}
+
+function getProviderLabel(provider: string) {
+  if (provider === 'google') return 'Google';
+  if (provider === 'twitch') return 'Twitch';
+  return provider;
 }
 
 export default function MergeAccountsPage() {

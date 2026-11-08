@@ -18,6 +18,15 @@ interface SlotControlsProps {
   winStreak: number;
 }
 
+/** Couleur du message de résultat : rouge si perdu, doré si gros gain, vert sinon. */
+const getResultColorClass = (result: SpinResult): string => {
+  if (!result.isWin) return 'text-red-400/80';
+  if (result.rewardAmount >= 20) {
+    return 'text-yellow-400 drop-shadow-[0_0_15px_rgba(234,179,8,0.8)]';
+  }
+  return 'text-green-400 drop-shadow-[0_0_10px_rgba(74,222,128,0.5)]';
+};
+
 export function SlotControls({
   handleSpin,
   isAutoSpinning,
@@ -64,13 +73,7 @@ export function SlotControls({
           <motion.div
             initial={{ opacity: 0, scale: 0.5, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            className={`text-2xl font-bold flex items-center gap-2 ${
-              lastResult.isWin
-                ? lastResult.rewardAmount >= 20
-                  ? 'text-yellow-400 drop-shadow-[0_0_15px_rgba(234,179,8,0.8)]'
-                  : 'text-green-400 drop-shadow-[0_0_10px_rgba(74,222,128,0.5)]'
-                : 'text-red-400/80'
-            }`}
+            className={`text-2xl font-bold flex items-center gap-2 ${getResultColorClass(lastResult)}`}
           >
             <span>{lastResult.message}</span>
             {/* Show bonus indicator if hot streak was active */}

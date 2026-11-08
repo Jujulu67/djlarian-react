@@ -18,6 +18,32 @@ interface ImageDropzoneProps {
   onFileSelected?: (file: File) => void;
 }
 
+type LibraryImage = { id: string; url: string; name: string };
+
+/** Extensions testées pour retrouver l'image (chaîne vide : extension du chemin fourni) */
+const LIBRARY_IMAGE_EXTENSIONS = ['', '.png', '.jpg', '.jpeg', '.webp'];
+
+/** Télécharge une image de la bibliothèque en essayant plusieurs extensions */
+async function fetchLibraryImage(imgMeta: LibraryImage): Promise<File | null> {
+  const baseUrl = imgMeta.url;
+  for (const ext of LIBRARY_IMAGE_EXTENSIONS) {
+    let url = baseUrl;
+    if (ext && !baseUrl.endsWith(ext)) {
+      url = baseUrl.replace(/\.[a-zA-Z0-9]+$/, ext);
+    }
+    try {
+      const res = await fetch(url);
+      if (!res.ok) continue;
+      const blob = await res.blob();
+      if (!blob.type.startsWith('image/')) continue;
+      return new File([blob], imgMeta.name, { type: blob.type });
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
 const ImageDropzone: React.FC<ImageDropzoneProps> = ({
   label,
   imageUrl,
@@ -35,40 +61,9 @@ const ImageDropzone: React.FC<ImageDropzoneProps> = ({
   const [showLibrary, setShowLibrary] = useState(false);
 
   // Handler pour sélection depuis la bibliothèque
-  const handleSelectFromLibrary = async (imgMeta: { id: string; url: string; name: string }) => {
+  const handleSelectFromLibrary = async (imgMeta: LibraryImage) => {
     try {
-      const exts = [
-        '', // extension du chemin fourni
-        '.png',
-        '.jpg',
-        '.jpeg',
-        '.webp',
-      ];
-      let file: File | null = null;
-      const baseUrl = imgMeta.url;
-      for (const ext of exts) {
-        let url = baseUrl;
-        if (ext && !baseUrl.endsWith(ext)) {
-          url = baseUrl.replace(/\.[a-zA-Z0-9]+$/, ext);
-        }
-        try {
-          const res = await fetch(url);
-          if (!res.ok) continue;
-          const blob = await res.blob();
-          if (!blob.type.startsWith('image/')) continue;
-          let mimeType = blob.type;
-          if (!mimeType.startsWith('image/')) {
-            if (url.endsWith('.png')) mimeType = 'image/png';
-            else if (url.endsWith('.jpg') || url.endsWith('.jpeg')) mimeType = 'image/jpeg';
-            else if (url.endsWith('.webp')) mimeType = 'image/webp';
-            else mimeType = 'image/png';
-          }
-          file = new File([blob], imgMeta.name, { type: mimeType });
-          break;
-        } catch {
-          continue;
-        }
-      }
+      const file = await fetchLibraryImage(imgMeta);
       if (!file) return;
       if (typeof onFileSelected === 'function') {
         onFileSelected(file);

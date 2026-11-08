@@ -33,6 +33,150 @@ interface ImportProjectsDialogProps {
   }>;
 }
 
+// Détecte un CSV Spotify (colonnes song et release_date) à partir de la ligne d'en-tête
+function detectSpotifyCsvHeader(pastedText: string): boolean {
+  const lines = pastedText.split('\n').filter((line) => line.trim());
+  if (lines.length === 0) return false;
+  const headerLine = lines[0];
+  const separator = pastedText.includes('\t') ? '\t' : ',';
+  const headerCells =
+    separator === ','
+      ? parseCsvLine(headerLine, separator)
+      : headerLine.split(separator).map((cell) => cell.trim());
+  const normalizedHeaders = new Set(headerCells.map((h) => h.trim().toLowerCase()));
+  return (
+    normalizedHeaders.has('song') &&
+    (normalizedHeaders.has('release_date') || normalizedHeaders.has('release date'))
+  );
+}
+
+// Mapping exact des en-têtes connus vers les champs du projet
+const EXACT_HEADER_MAPPING: Record<string, string> = {
+  'nom projet': 'Nom Projet',
+  nom: 'Nom Projet',
+  name: 'Nom Projet',
+  song: 'Nom Projet', // CSV Spotify
+  style: 'Style',
+  statut: 'Statut',
+  status: 'Statut',
+  collab: 'Collab',
+  collaboration: 'Collab',
+  label: 'Label',
+  'label final': 'Label Final',
+  labelfinal: 'Label Final',
+  'date sortie': 'Date Sortie',
+  datesortie: 'Date Sortie',
+  release_date: 'Date Sortie', // CSV Spotify
+  'release date': 'Date Sortie', // CSV Spotify (avec espace)
+  date: 'Date Sortie',
+  lien: 'Lien',
+  link: 'Lien',
+};
+
+const STREAM_HEADER_PATTERNS = [
+  { pattern: /j7|streams?\s*j7/i, name: 'J7' },
+  { pattern: /j14|streams?\s*j14/i, name: 'J14' },
+  { pattern: /j21|streams?\s*j21/i, name: 'J21' },
+  { pattern: /j28|streams?\s*j28/i, name: 'J28' },
+  { pattern: /j56|streams?\s*j56/i, name: 'J56' },
+  { pattern: /j84|streams?\s*j84/i, name: 'J84' },
+];
+
+// Associe un en-tête de colonne au champ du projet (mapping exact puis flexible)
+function mapHeaderToField(header: string): string | null {
+  const normalized = header.trim().toLowerCase().replace(/\s+/g, ' ');
+
+  let mapped: string | null = EXACT_HEADER_MAPPING[normalized] || null;
+
+  // Matching flexible pour les dates
+  if (
+    !mapped &&
+    normalized.includes('date') &&
+    (normalized.includes('sortie') || normalized.includes('release'))
+  ) {
+    mapped = 'Date Sortie';
+  }
+
+  // Matching flexible pour les streams
+  if (!mapped) {
+    const match = STREAM_HEADER_PATTERNS.find(({ pattern }) => pattern.test(header));
+    if (match) mapped = match.name;
+  }
+
+  return mapped;
+}
+
+// Sépare les lignes à importer des doublons (dans le fichier ou en base, nom + statut)
+function splitDuplicateRows(
+  rows: ParsedProjectRow[],
+  existingProjects: Array<{ name: string; status: string }>,
+  overwriteDuplicates: boolean
+): {
+  uniqueRows: ParsedProjectRow[];
+  projectsToImport: ParsedProjectRow[];
+  duplicatesInFileCount: number;
+  duplicatesInDbCount: number;
+} {
+  // Exclure les doublons basés sur le nom + statut (case-insensitive, après formatage)
+  const seenKeys = new Set<string>();
+  const uniqueRows: ParsedProjectRow[] = [];
+  const rowsToOverwrite: ParsedProjectRow[] = [];
+  let duplicatesInFileCount = 0;
+  let duplicatesInDbCount = 0;
+
+  for (const row of rows) {
+    const normalizedName = row.name.trim().toLowerCase();
+    const rowStatus = row.status || 'EN_COURS';
+    const rowKey = `${normalizedName}|${rowStatus}`;
+
+    // Vérifier si c'est un doublon dans le fichier
+    if (seenKeys.has(rowKey)) {
+      duplicatesInFileCount++;
+      continue;
+    }
+
+    // Vérifier si c'est un doublon dans la base de données (nom + statut)
+    const isDuplicateInDb = existingProjects.some(
+      (p) => p.name === normalizedName && p.status === rowStatus
+    );
+
+    if (isDuplicateInDb) {
+      duplicatesInDbCount++;
+      if (overwriteDuplicates) {
+        // Si on veut écraser, ajouter à la liste des projets à mettre à jour
+        rowsToOverwrite.push(row);
+      }
+      continue;
+    }
+
+    seenKeys.add(rowKey);
+    uniqueRows.push(row);
+  }
+
+  const projectsToImport = overwriteDuplicates ? [...uniqueRows, ...rowsToOverwrite] : uniqueRows;
+  return { uniqueRows, projectsToImport, duplicatesInFileCount, duplicatesInDbCount };
+}
+
+// Message d'alerte lorsqu'il n'y a aucun projet à importer
+function buildNoProjectsMessage(
+  duplicatesInFileCount: number,
+  duplicatesInDbCount: number,
+  overwriteDuplicates: boolean
+): string {
+  let message = 'Aucun projet à importer.';
+  if (duplicatesInFileCount > 0 && duplicatesInDbCount > 0) {
+    message += `\n${duplicatesInFileCount} doublon(s) dans le fichier, ${duplicatesInDbCount} doublon(s) déjà en base de données.`;
+  } else if (duplicatesInFileCount > 0) {
+    message += `\n${duplicatesInFileCount} doublon(s) dans le fichier.`;
+  } else if (duplicatesInDbCount > 0) {
+    message += `\n${duplicatesInDbCount} projet(s) existent déjà en base de données.`;
+    if (!overwriteDuplicates) {
+      message += '\nActivez l\'option "Écraser les doublons" pour les mettre à jour.';
+    }
+  }
+  return message;
+}
+
 export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjectsDialogProps) => {
   const [step, setStep] = useState<DialogStep>('paste');
   const [pastedText, setPastedText] = useState('');
@@ -61,22 +205,7 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
 
     try {
       // Détecter si c'est un CSV Spotify (colonnes song et release_date)
-      let detectedSpotifyCsv = isSpotifyCsv;
-      if (!detectedSpotifyCsv && hasHeaders) {
-        const lines = pastedText.split('\n').filter((line) => line.trim());
-        if (lines.length > 0) {
-          const headerLine = lines[0];
-          const separator = pastedText.includes('\t') ? '\t' : ',';
-          const headerCells =
-            separator === ','
-              ? parseCsvLine(headerLine, separator)
-              : headerLine.split(separator).map((cell) => cell.trim());
-          const normalizedHeaders = new Set(headerCells.map((h) => h.trim().toLowerCase()));
-          detectedSpotifyCsv =
-            normalizedHeaders.has('song') &&
-            (normalizedHeaders.has('release_date') || normalizedHeaders.has('release date'));
-        }
-      }
+      const detectedSpotifyCsv = isSpotifyCsv || (hasHeaders && detectSpotifyCsvHeader(pastedText));
 
       const rows = parseExcelData(pastedText, hasHeaders, dateFormat);
 
@@ -120,68 +249,10 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
           const headerCells = parseCsvLine(headerLine, separator);
 
           // Mapping des colonnes détectées (utiliser la même logique que le parser)
-          const columns = headerCells.map((header) => {
-            // Utiliser la fonction findMappedField du parser
-            const normalized = header.trim().toLowerCase().replace(/\s+/g, ' ');
-
-            // Mapping exact
-            const exactMapping: Record<string, string> = {
-              'nom projet': 'Nom Projet',
-              nom: 'Nom Projet',
-              name: 'Nom Projet',
-              song: 'Nom Projet', // CSV Spotify
-              style: 'Style',
-              statut: 'Statut',
-              status: 'Statut',
-              collab: 'Collab',
-              collaboration: 'Collab',
-              label: 'Label',
-              'label final': 'Label Final',
-              labelfinal: 'Label Final',
-              'date sortie': 'Date Sortie',
-              datesortie: 'Date Sortie',
-              release_date: 'Date Sortie', // CSV Spotify
-              'release date': 'Date Sortie', // CSV Spotify (avec espace)
-              date: 'Date Sortie',
-              lien: 'Lien',
-              link: 'Lien',
-            };
-
-            let mapped: string | null = exactMapping[normalized] || null;
-
-            // Matching flexible pour les dates
-            if (
-              !mapped &&
-              normalized.includes('date') &&
-              (normalized.includes('sortie') || normalized.includes('release'))
-            ) {
-              mapped = 'Date Sortie';
-            }
-
-            // Matching flexible pour les streams
-            if (!mapped) {
-              const streamPatterns = [
-                { pattern: /j7|streams?\s*j7/i, name: 'J7' },
-                { pattern: /j14|streams?\s*j14/i, name: 'J14' },
-                { pattern: /j21|streams?\s*j21/i, name: 'J21' },
-                { pattern: /j28|streams?\s*j28/i, name: 'J28' },
-                { pattern: /j56|streams?\s*j56/i, name: 'J56' },
-                { pattern: /j84|streams?\s*j84/i, name: 'J84' },
-              ];
-
-              for (const { pattern, name } of streamPatterns) {
-                if (pattern.test(header)) {
-                  mapped = name;
-                  break;
-                }
-              }
-            }
-
-            return {
-              original: header,
-              mapped,
-            };
-          });
+          const columns = headerCells.map((header) => ({
+            original: header,
+            mapped: mapHeaderToField(header),
+          }));
 
           setDetectedColumns(columns);
         }
@@ -238,57 +309,13 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
       name: formatTitleCase(row.name.trim()),
     }));
 
-    // Exclure les doublons basés sur le nom + statut (case-insensitive, après formatage)
-    const seenKeys = new Set<string>();
-    const uniqueRows: ParsedProjectRow[] = [];
-    const rowsToOverwrite: ParsedProjectRow[] = [];
-    let duplicatesInFileCount = 0;
-    let duplicatesInDbCount = 0;
-
-    for (const row of formattedRows) {
-      const normalizedName = row.name.trim().toLowerCase();
-      const rowStatus = row.status || 'EN_COURS';
-      const rowKey = `${normalizedName}|${rowStatus}`;
-
-      // Vérifier si c'est un doublon dans le fichier
-      if (seenKeys.has(rowKey)) {
-        duplicatesInFileCount++;
-        continue;
-      }
-
-      // Vérifier si c'est un doublon dans la base de données (nom + statut)
-      const isDuplicateInDb = existingProjects.some(
-        (p) => p.name === normalizedName && p.status === rowStatus
-      );
-
-      if (isDuplicateInDb) {
-        duplicatesInDbCount++;
-        if (overwriteDuplicates) {
-          // Si on veut écraser, ajouter à la liste des projets à mettre à jour
-          rowsToOverwrite.push(row);
-        }
-        continue;
-      }
-
-      seenKeys.add(rowKey);
-      uniqueRows.push(row);
-    }
-
-    const projectsToImport = overwriteDuplicates ? [...uniqueRows, ...rowsToOverwrite] : uniqueRows;
+    const { uniqueRows, projectsToImport, duplicatesInFileCount, duplicatesInDbCount } =
+      splitDuplicateRows(formattedRows, existingProjects, overwriteDuplicates);
 
     if (projectsToImport.length === 0) {
-      let message = 'Aucun projet à importer.';
-      if (duplicatesInFileCount > 0 && duplicatesInDbCount > 0) {
-        message += `\n${duplicatesInFileCount} doublon(s) dans le fichier, ${duplicatesInDbCount} doublon(s) déjà en base de données.`;
-      } else if (duplicatesInFileCount > 0) {
-        message += `\n${duplicatesInFileCount} doublon(s) dans le fichier.`;
-      } else if (duplicatesInDbCount > 0) {
-        message += `\n${duplicatesInDbCount} projet(s) existent déjà en base de données.`;
-        if (!overwriteDuplicates) {
-          message += '\nActivez l\'option "Écraser les doublons" pour les mettre à jour.';
-        }
-      }
-      alert(message);
+      alert(
+        buildNoProjectsMessage(duplicatesInFileCount, duplicatesInDbCount, overwriteDuplicates)
+      );
       return;
     }
 

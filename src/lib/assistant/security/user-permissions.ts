@@ -22,38 +22,35 @@ export function createGetTargetUserId({
 }: UserPermissionsParams) {
   return async function getTargetUserId(query?: string): Promise<string> {
     // Essayer d'extraire un nom d'utilisateur de la requête
-    if (query) {
-      const extractedUserName = extractUserNameFromQuery(query);
-      if (extractedUserName) {
-        // Vérifier si l'utilisateur connecté est ADMIN
-        if (!isAdmin) {
-          // Si l'utilisateur n'est pas admin, vérifier si le nom mentionné correspond à l'utilisateur connecté
-          if (extractedUserName.toLowerCase() !== currentUserName?.toLowerCase()) {
-            // L'utilisateur essaie d'accéder aux projets d'un autre utilisateur sans être admin
-            // Forcer l'utilisation de son propre ID
-            logger.warn(
-              `[Assistant] Sécurité : Utilisateur non-admin (${currentUserName}) a tenté d'accéder aux projets de ${extractedUserName}. Accès refusé.`
-            );
-            return currentUserId; // Forcer l'utilisation de l'utilisateur connecté
-          }
-        }
-
-        // Si admin OU si le nom correspond à l'utilisateur connecté, chercher l'utilisateur
-        const targetUser = await findUserByName(extractedUserName);
-        if (targetUser) {
-          // Double vérification : si pas admin, s'assurer que c'est bien l'utilisateur connecté
-          if (!isAdmin && targetUser.id !== currentUserId) {
-            logger.warn(
-              `[Assistant] Sécurité : Tentative d'accès non autorisée aux projets de ${extractedUserName}.`
-            );
-            return currentUserId;
-          }
-          return targetUser.id;
-        }
-      }
+    const extractedUserName = query ? extractUserNameFromQuery(query) : null;
+    if (!extractedUserName) {
+      // Par défaut, utiliser l'utilisateur connecté
+      return currentUserId;
     }
 
-    // Par défaut, utiliser l'utilisateur connecté
-    return currentUserId;
+    // Vérifier si l'utilisateur connecté est ADMIN : sinon, seul son propre nom est autorisé
+    if (!isAdmin && extractedUserName.toLowerCase() !== currentUserName?.toLowerCase()) {
+      // L'utilisateur essaie d'accéder aux projets d'un autre utilisateur sans être admin
+      // Forcer l'utilisation de son propre ID
+      logger.warn(
+        `[Assistant] Sécurité : Utilisateur non-admin (${currentUserName}) a tenté d'accéder aux projets de ${extractedUserName}. Accès refusé.`
+      );
+      return currentUserId; // Forcer l'utilisation de l'utilisateur connecté
+    }
+
+    // Si admin OU si le nom correspond à l'utilisateur connecté, chercher l'utilisateur
+    const targetUser = await findUserByName(extractedUserName);
+    if (!targetUser) {
+      return currentUserId;
+    }
+
+    // Double vérification : si pas admin, s'assurer que c'est bien l'utilisateur connecté
+    if (!isAdmin && targetUser.id !== currentUserId) {
+      logger.warn(
+        `[Assistant] Sécurité : Tentative d'accès non autorisée aux projets de ${extractedUserName}.`
+      );
+      return currentUserId;
+    }
+    return targetUser.id;
   };
 }

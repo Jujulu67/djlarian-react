@@ -35,6 +35,40 @@ import { logger } from '@/lib/logger';
 // Re-export public pour maintenir l'API existante
 export { isScopingFilter } from './filter-helpers';
 
+type RouterClassification = ReturnType<typeof classifyQuery>;
+
+// Chemin de décision selon la classification (utilisé pour les logs)
+function getDecisionPath(classification: RouterClassification): string {
+  if (classification.isConversationalQuestion && !classification.hasActionVerb) {
+    return 'GENERAL';
+  }
+  if (classification.isList || classification.isCount) {
+    return 'LIST';
+  }
+  if (classification.isCreate && !classification.isUpdate) {
+    return 'CREATE';
+  }
+  if (classification.isUpdate) {
+    return 'UPDATE';
+  }
+  return 'GENERAL_FALLBACK';
+}
+
+// Intention "vue détails" : via la classification ou l'extraction des champs demandés
+function isDetailsViewRequested(
+  classification: RouterClassification,
+  fieldsToShow: string[]
+): boolean | undefined {
+  return (
+    classification.isDetailsViewRequested ||
+    (fieldsToShow &&
+      (fieldsToShow.includes('details') ||
+        (fieldsToShow.includes('status') &&
+          fieldsToShow.includes('progress') &&
+          fieldsToShow.includes('deadline'))))
+  );
+}
+
 /**
  * Route une requête utilisateur vers le bon handler
  *
@@ -87,18 +121,7 @@ export async function routeProjectCommand(
   });
 
   // Déterminer le chemin de décision
-  let decisionPath: string;
-  if (classification.isConversationalQuestion && !classification.hasActionVerb) {
-    decisionPath = 'GENERAL';
-  } else if (classification.isList || classification.isCount) {
-    decisionPath = 'LIST';
-  } else if (classification.isCreate && !classification.isUpdate) {
-    decisionPath = 'CREATE';
-  } else if (classification.isUpdate) {
-    decisionPath = 'UPDATE';
-  } else {
-    decisionPath = 'GENERAL_FALLBACK';
-  }
+  const decisionPath = getDecisionPath(classification);
 
   debugLog('router', '🎯 DecisionPath', { path: decisionPath });
 
@@ -141,13 +164,7 @@ export async function routeProjectCommand(
   // Ne traiter LIST que si ce n'est PAS un UPDATE (UPDATE a priorité)
   if ((classification.isList || classification.isCount) && !classification.isUpdate) {
     // Détecter une intention "vue détails" (via classification ou extraction fieldsToShow)
-    const isDetailsViewRequested =
-      classification.isDetailsViewRequested ||
-      (fieldsToShow &&
-        (fieldsToShow.includes('details') ||
-          (fieldsToShow.includes('status') &&
-            fieldsToShow.includes('progress') &&
-            fieldsToShow.includes('deadline'))));
+    const detailsViewRequested = isDetailsViewRequested(classification, fieldsToShow);
 
     // Détecter une demande explicite de "tous les projets"
     const isAllProjectsRequested = classification.isAllProjectsRequested;
@@ -155,7 +172,7 @@ export async function routeProjectCommand(
     return handleListCommand(classification, filters, projects, context, {
       fieldsToShow,
       requestId,
-      isDetailsViewRequested,
+      isDetailsViewRequested: detailsViewRequested,
       isAllProjectsRequested,
     });
   }

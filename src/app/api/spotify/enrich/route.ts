@@ -9,6 +9,48 @@ import {
   formatMusicalKey,
 } from '@/lib/services/spotify';
 
+/** Code d'erreur des audio features : APPROVAL_REQUIRED si Spotify refuse (403). */
+function getAudioFeaturesErrorCode(error: unknown): 'APPROVAL_REQUIRED' | undefined {
+  // Si erreur 403, c'est que l'application n'a pas été approuvée pour audio-features
+  // Depuis novembre 2024, Spotify requiert une approbation explicite
+  if (error instanceof Error && error.message.includes('403')) {
+    logger.warn(
+      "Audio features non disponibles (403): L'application nécessite une approbation Spotify. " +
+        'Voir: https://community.spotify.com/t5/Spotify-for-Developers/Request-to-Enable-Access-to-Audio-Features-and-Audio-Analysis/td-p/6966479'
+    );
+    return 'APPROVAL_REQUIRED';
+  }
+  logger.warn('Impossible de récupérer les audio features:', error);
+  return undefined;
+}
+
+/** Audio features et clé musicale du premier track de l'album. */
+async function getFirstTrackAudioInfo(albumId: string) {
+  const tracks = await getAlbumTracks(albumId);
+  // Vérifier que le track ID est valide avant d'appeler l'API
+  const firstTrackId = tracks[0]?.id;
+  if (!firstTrackId) {
+    return { audioFeatures: null, musicalKey: undefined, audioFeaturesError: undefined };
+  }
+
+  try {
+    const audioFeatures = await getTrackAudioFeatures(firstTrackId);
+    return {
+      audioFeatures,
+      musicalKey: audioFeatures
+        ? formatMusicalKey(audioFeatures.key, audioFeatures.mode)
+        : undefined,
+      audioFeaturesError: undefined,
+    };
+  } catch (error) {
+    return {
+      audioFeatures: null,
+      musicalKey: undefined,
+      audioFeaturesError: getAudioFeaturesErrorCode(error),
+    };
+  }
+}
+
 /**
  * POST /api/spotify/enrich
  * Récupère les détails enrichis d'une release Spotify (BPM, key, genres, description)
@@ -47,38 +89,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const albumGenres = await getAlbumGenres(finalAlbumId);
 
     // Récupérer les tracks de l'album pour obtenir le premier track et ses audio features
-    const tracks = await getAlbumTracks(finalAlbumId);
-    let audioFeatures = null;
-    let musicalKey: string | undefined = undefined;
-    let audioFeaturesError: string | undefined = undefined;
-
-    if (tracks.length > 0) {
-      // Prendre le premier track pour les audio features
-      const firstTrackId = tracks[0].id;
-
-      // Vérifier que le track ID est valide avant d'appeler l'API
-      if (firstTrackId && firstTrackId.length > 0) {
-        try {
-          audioFeatures = await getTrackAudioFeatures(firstTrackId);
-
-          if (audioFeatures) {
-            musicalKey = formatMusicalKey(audioFeatures.key, audioFeatures.mode);
-          }
-        } catch (error) {
-          // Si erreur 403, c'est que l'application n'a pas été approuvée pour audio-features
-          // Depuis novembre 2024, Spotify requiert une approbation explicite
-          if (error instanceof Error && error.message.includes('403')) {
-            audioFeaturesError = 'APPROVAL_REQUIRED';
-            logger.warn(
-              "Audio features non disponibles (403): L'application nécessite une approbation Spotify. " +
-                'Voir: https://community.spotify.com/t5/Spotify-for-Developers/Request-to-Enable-Access-to-Audio-Features-and-Audio-Analysis/td-p/6966479'
-            );
-          } else {
-            logger.warn('Impossible de récupérer les audio features:', error);
-          }
-        }
-      }
-    }
+    const { audioFeatures, musicalKey, audioFeaturesError } =
+      await getFirstTrackAudioInfo(finalAlbumId);
 
     return NextResponse.json({
       genres: albumGenres,

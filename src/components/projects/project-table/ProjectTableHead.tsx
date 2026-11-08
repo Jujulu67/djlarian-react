@@ -55,15 +55,9 @@ export function ProjectTableHead({
                 <span>{col.label}</span>
                 {onSort && (
                   <span className="text-purple-400 flex-shrink-0">
-                    {isSorted ? (
-                      sortDirection === 'asc' ? (
-                        <ArrowUp size={isCompact ? 9 : 14} />
-                      ) : (
-                        <ArrowDown size={isCompact ? 9 : 14} />
-                      )
-                    ) : (
-                      <ArrowUpDown size={isCompact ? 9 : 14} className="opacity-50" />
-                    )}
+                    {isSorted && sortDirection === 'asc' && <ArrowUp size={isCompact ? 9 : 14} />}
+                    {isSorted && sortDirection !== 'asc' && <ArrowDown size={isCompact ? 9 : 14} />}
+                    {!isSorted && <ArrowUpDown size={isCompact ? 9 : 14} className="opacity-50" />}
                   </span>
                 )}
               </div>

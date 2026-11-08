@@ -39,43 +39,35 @@ describe('/api/images/proxy', () => {
     expect(new Uint8Array(buffer)).toEqual(mockImageData);
   });
 
-  it('should return 400 if url is missing', async () => {
-    const request = new NextRequest('http://localhost/api/images/proxy', {
-      method: 'GET',
-    });
-
-    const response = await GET(request);
-    const data = await response.json();
-
-    expect(response.status).toBe(400);
-    expect(data.error).toBe('URL manquante');
-  });
-
-  it('should return 400 if url is invalid', async () => {
-    const request = new NextRequest('http://localhost/api/images/proxy?url=invalid-url', {
-      method: 'GET',
-    });
-
-    const response = await GET(request);
-    const data = await response.json();
-
-    expect(response.status).toBe(400);
-    expect(data.error).toBe('URL invalide');
-  });
-
-  it('should return 403 for unauthorized domain', async () => {
-    const request = new NextRequest(
+  it.each([
+    [
+      'should return 400 if url is missing',
+      'http://localhost/api/images/proxy',
+      400,
+      'URL manquante',
+    ],
+    [
+      'should return 400 if url is invalid',
+      'http://localhost/api/images/proxy?url=invalid-url',
+      400,
+      'URL invalide',
+    ],
+    [
+      'should return 403 for unauthorized domain',
       'http://localhost/api/images/proxy?url=https://evil.com/image.jpg',
-      {
-        method: 'GET',
-      }
-    );
+      403,
+      'Domaine non autorisé',
+    ],
+  ])('%s', async (_label, url, status, error) => {
+    const request = new NextRequest(url, {
+      method: 'GET',
+    });
 
     const response = await GET(request);
     const data = await response.json();
 
-    expect(response.status).toBe(403);
-    expect(data.error).toBe('Domaine non autorisé');
+    expect(response.status).toBe(status);
+    expect(data.error).toBe(error);
   });
 
   it('should handle fetch errors', async () => {

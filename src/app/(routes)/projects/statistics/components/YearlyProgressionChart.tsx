@@ -20,6 +20,12 @@ interface YearlyProgressionChartProps {
   yearlyProgressionData: ReturnType<typeof buildYearlyProgressionData>;
 }
 
+function getSeriesLabel(name: string | undefined): string | undefined {
+  if (name === 'totalStreams') return 'Total';
+  if (name === 'averageStreams') return 'Moyenne';
+  return name;
+}
+
 export function YearlyProgressionChart({
   yearlyProgressionData,
 }: Readonly<YearlyProgressionChartProps>) {
@@ -63,14 +69,7 @@ export function YearlyProgressionChart({
                   const v = value ?? 0;
                   const numValue = Number(v);
                   if (!Number.isFinite(numValue) || numValue < 0) {
-                    return [
-                      '0',
-                      name === 'totalStreams'
-                        ? 'Total'
-                        : name === 'averageStreams'
-                          ? 'Moyenne'
-                          : name,
-                    ];
+                    return ['0', getSeriesLabel(name)];
                   }
                   if (name === 'totalStreams') {
                     return [`${numValue.toLocaleString()} streams`, 'Total'];

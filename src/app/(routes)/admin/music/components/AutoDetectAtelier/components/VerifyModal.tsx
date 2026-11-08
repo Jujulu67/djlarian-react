@@ -35,6 +35,12 @@ interface VerifyModalProps {
   onSkip: () => void;
 }
 
+function getPrimaryLinkLabel(release: DetectedRelease): string {
+  if (release.spotifyUrl) return 'Voir sur Spotify';
+  if (release.soundcloudUrl) return 'Voir sur SoundCloud';
+  return 'Voir sur YouTube';
+}
+
 export function VerifyModal({
   show,
   onClose,
@@ -195,11 +201,7 @@ export function VerifyModal({
                 className="block w-full text-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm flex items-center justify-center gap-2 transition-colors"
               >
                 <ExternalLink className="w-4 h-4" />
-                {currentRelease.spotifyUrl
-                  ? 'Voir sur Spotify'
-                  : currentRelease.soundcloudUrl
-                    ? 'Voir sur SoundCloud'
-                    : 'Voir sur YouTube'}
+                {getPrimaryLinkLabel(currentRelease)}
               </a>
             )}
 

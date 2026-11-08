@@ -73,14 +73,22 @@ describe('getStorageConfig', () => {
       );
     });
 
-    it('should return true in development when switch is enabled and blob is configured', async () => {
+    it.each([
+      [
+        'should return true in development when switch is enabled and blob is configured',
+        'production',
+        true,
+      ],
+      ['should return false in development when switch is disabled', 'local', false],
+      ['should return false in development when target is local', 'local', false],
+    ] as const)('%s', async (_title, target, expected) => {
       process.env.NODE_ENV = 'development';
       process.env.BLOB_READ_WRITE_TOKEN = 'test-token';
-      mockGetActiveDatabaseTarget.mockResolvedValue('production');
+      mockGetActiveDatabaseTarget.mockResolvedValue(target);
 
       const result = await shouldUseBlobStorage();
 
-      expect(result).toBe(true);
+      expect(result).toBe(expected);
     });
 
     it('should return false in development when switch is enabled but blob is not configured', async () => {
@@ -94,26 +102,6 @@ describe('getStorageConfig', () => {
       expect(logger.warn).toHaveBeenCalledWith(
         expect.stringContaining('Switch production activé mais BLOB_READ_WRITE_TOKEN non configuré')
       );
-    });
-
-    it('should return false in development when switch is disabled', async () => {
-      process.env.NODE_ENV = 'development';
-      process.env.BLOB_READ_WRITE_TOKEN = 'test-token';
-      mockGetActiveDatabaseTarget.mockResolvedValue('local');
-
-      const result = await shouldUseBlobStorage();
-
-      expect(result).toBe(false);
-    });
-
-    it('should return false in development when target is local', async () => {
-      process.env.NODE_ENV = 'development';
-      process.env.BLOB_READ_WRITE_TOKEN = 'test-token';
-      mockGetActiveDatabaseTarget.mockResolvedValue('local');
-
-      const result = await shouldUseBlobStorage();
-
-      expect(result).toBe(false);
     });
 
     it('should handle errors gracefully', async () => {

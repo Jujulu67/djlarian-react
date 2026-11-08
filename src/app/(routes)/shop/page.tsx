@@ -261,13 +261,7 @@ function ProductCard({ product }: Readonly<{ product: Product }>) {
             className={`
               w-full flex items-center justify-center gap-2 py-3 px-6 rounded-xl font-semibold
               transition-all duration-300
-              ${
-                isDisabled
-                  ? 'border-2 border-white/20 text-gray-300 hover:border-white/40 hover:text-white cursor-not-allowed opacity-60'
-                  : isPro
-                    ? 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white glow-purple btn-modern'
-                    : 'border-2 border-white/20 text-gray-300 hover:border-white/40 hover:text-white'
-              }
+              ${getCtaVariantClass(isDisabled, isPro)}
             `}
             onClick={
               isDisabled
@@ -319,13 +313,12 @@ function FeatureComparison() {
               >
                 <td className="p-4 text-gray-300">{feature.name}</td>
                 <td className="p-4 text-center">
-                  {feature.free === true ? (
+                  {(feature.free === true && (
                     <Check className="w-5 h-5 text-green-500 mx-auto" />
-                  ) : feature.free === false ? (
-                    <X className="w-5 h-5 text-gray-600 mx-auto" />
-                  ) : (
-                    <span className="text-gray-400 text-sm">{feature.free}</span>
-                  )}
+                  )) ||
+                    (feature.free === false && <X className="w-5 h-5 text-gray-600 mx-auto" />) || (
+                      <span className="text-gray-400 text-sm">{feature.free}</span>
+                    )}
                 </td>
                 <td className="p-4 text-center">
                   {feature.pro === true ? (
@@ -525,6 +518,16 @@ function ShopPageV2() {
 // ============================================================================
 // MAIN PAGE
 // ============================================================================
+
+function getCtaVariantClass(isDisabled: boolean, isPro: boolean) {
+  if (isDisabled) {
+    return 'border-2 border-white/20 text-gray-300 hover:border-white/40 hover:text-white cursor-not-allowed opacity-60';
+  }
+  if (isPro) {
+    return 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white glow-purple btn-modern';
+  }
+  return 'border-2 border-white/20 text-gray-300 hover:border-white/40 hover:text-white';
+}
 
 export default function ShopPage() {
   const isV2 = useUiVersion() !== 'legacy';

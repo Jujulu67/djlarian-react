@@ -201,6 +201,12 @@ function OAuthAccountsCell({ user }: Readonly<{ user: UserData }>) {
   );
 }
 
+function getRoleBadgeClass(role: string | null): string {
+  if (role === 'ADMIN') return 'bg-purple-800/70 text-purple-100';
+  if (role === 'MODERATOR') return 'bg-blue-800/70 text-blue-100';
+  return 'bg-green-800/70 text-green-100';
+}
+
 export const UserTable = ({ users }: UserTableProps) => {
   return (
     <div className="bg-gray-800/50 rounded-lg shadow-xl overflow-hidden">
@@ -245,13 +251,7 @@ export const UserTable = ({ users }: UserTableProps) => {
               <td className="px-6 py-4 whitespace-nowrap">
                 <div className="flex items-center space-x-2">
                   <span
-                    className={`px-3 py-1 inline-flex items-center text-xs leading-5 font-semibold rounded-full ${
-                      user.role === 'ADMIN'
-                        ? 'bg-purple-800/70 text-purple-100'
-                        : user.role === 'MODERATOR'
-                          ? 'bg-blue-800/70 text-blue-100'
-                          : 'bg-green-800/70 text-green-100'
-                    }`}
+                    className={`px-3 py-1 inline-flex items-center text-xs leading-5 font-semibold rounded-full ${getRoleBadgeClass(user.role)}`}
                   >
                     {user.role === 'ADMIN' && <span className="mr-1">👑</span>}
                     {user.role === 'MODERATOR' && <span className="mr-1">🛡️</span>}

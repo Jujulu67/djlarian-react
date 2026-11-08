@@ -33,44 +33,20 @@ describe('cleanupAttributes', () => {
     expect(cleanup).toBeDefined();
   });
 
-  it('should remove bis_skin_checked attribute when added', (done) => {
+  it.each([
+    ['should remove bis_skin_checked attribute when added', 'bis_skin_checked'],
+    ['should remove bis_register attribute when added', 'bis_register'],
+    ['should remove __processed attribute when added', '__processed'],
+  ])('%s', (_title, attribute, done) => {
     const element = document.createElement('div');
-    element.setAttribute('bis_skin_checked', 'true');
+    element.setAttribute(attribute, 'true');
     document.body.appendChild(element);
 
     const cleanup = cleanupAttributes();
 
     // Wait a bit for observer to process
     setTimeout(() => {
-      expect(element.hasAttribute('bis_skin_checked')).toBe(false);
-      cleanup?.();
-      done();
-    }, 100);
-  });
-
-  it('should remove bis_register attribute when added', (done) => {
-    const element = document.createElement('div');
-    element.setAttribute('bis_register', 'true');
-    document.body.appendChild(element);
-
-    const cleanup = cleanupAttributes();
-
-    setTimeout(() => {
-      expect(element.hasAttribute('bis_register')).toBe(false);
-      cleanup?.();
-      done();
-    }, 100);
-  });
-
-  it('should remove __processed attribute when added', (done) => {
-    const element = document.createElement('div');
-    element.setAttribute('__processed', 'true');
-    document.body.appendChild(element);
-
-    const cleanup = cleanupAttributes();
-
-    setTimeout(() => {
-      expect(element.hasAttribute('__processed')).toBe(false);
+      expect(element.hasAttribute(attribute)).toBe(false);
       cleanup?.();
       done();
     }, 100);

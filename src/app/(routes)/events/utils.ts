@@ -59,63 +59,59 @@ export function buildEventsUrl(selectedStatus: string): string {
   return url;
 }
 
+/** Construit l'événement virtuel correspondant à une occurrence d'un événement maître. */
+function createVirtualOccurrence(masterEvent: Event, occurrence: Date): Event {
+  // Générer un ID spécial pour les occurrences virtuelles en utilisant un format clair
+  // Nous séparons l'ID et la date avec "___VIRTUAL___" pour éviter toute ambiguïté
+  const occurrenceDate = occurrence.toISOString();
+  return {
+    ...masterEvent,
+    id: `${masterEvent.id}___VIRTUAL___${occurrenceDate}`,
+    startDate: occurrenceDate,
+    // Calculer la date de fin si l'événement original en a une
+    endDate: masterEvent.endDate
+      ? calculateEndDate(occurrence, new Date(masterEvent.startDate), new Date(masterEvent.endDate))
+      : undefined,
+    isVirtualOccurrence: true,
+    virtualStartDate: occurrenceDate,
+    masterId: masterEvent.id,
+  };
+}
+
+/** Ajoute les occurrences futures (non exclues) d'un événement maître récurrent. */
+function appendVirtualOccurrences(allEvents: Event[], masterEvent: Event): void {
+  const recurrenceConfig = masterEvent.recurrenceConfig as RecurrenceConfig;
+  const occurrences = generateRecurringDatesForEvent(
+    masterEvent,
+    recurrenceConfig,
+    recurrenceConfig.excludedDates || []
+  );
+
+  for (const occurrence of occurrences) {
+    const virtualEvent = createVirtualOccurrence(masterEvent, occurrence);
+    logger.debug(`Generated virtual event ID: ${virtualEvent.id}`);
+
+    // Vérifier si cette occurrence est dans le futur
+    if (new Date(virtualEvent.startDate) >= new Date()) {
+      allEvents.push(virtualEvent);
+    }
+  }
+}
+
 // Générer des occurrences virtuelles pour les événements récurrents
 export function generateVirtualOccurrences(events: Event[]): Event[] {
   const allEvents: Event[] = [];
 
   for (const event of events) {
-    // Marquer l'événement maître comme récurrent pour l'affichage
-    if (event.isMasterEvent && event.recurrenceConfig) {
-      allEvents.push({
-        ...event,
-        // On préserve cette propriété pour le badge d'UI
-        isRecurringMaster: true,
-      });
+    const isRecurringMaster = Boolean(event.isMasterEvent && event.recurrenceConfig);
+
+    if (isRecurringMaster) {
+      // Marquer l'événement maître comme récurrent pour l'affichage (badge d'UI)
+      allEvents.push({ ...event, isRecurringMaster: true });
+      appendVirtualOccurrences(allEvents, event);
     } else {
       // Ajouter l'événement d'origine non-récurrent tel quel
       allEvents.push(event);
-    }
-
-    // Générer des occurrences virtuelles si c'est un événement maître avec une config de récurrence
-    if (event.isMasterEvent && event.recurrenceConfig) {
-      const masterEvent = event;
-      const recurrenceConfig = masterEvent.recurrenceConfig as RecurrenceConfig;
-      const occurrences = generateRecurringDatesForEvent(
-        masterEvent,
-        recurrenceConfig,
-        recurrenceConfig.excludedDates || []
-      );
-
-      // Ajouter chaque occurrence comme un événement virtuel
-      for (const occurrence of occurrences) {
-        // Générer un ID spécial pour les occurrences virtuelles en utilisant un format clair
-        // Nous séparons l'ID et la date avec "___VIRTUAL___" pour éviter toute ambiguïté
-        const occurrenceDate = occurrence.toISOString();
-        const virtualEventId = `${masterEvent.id}___VIRTUAL___${occurrenceDate}`;
-        logger.debug(`Generated virtual event ID: ${virtualEventId}`);
-
-        const virtualEvent: Event = {
-          ...masterEvent,
-          id: virtualEventId,
-          startDate: occurrenceDate,
-          // Calculer la date de fin si l'événement original en a une
-          endDate: masterEvent.endDate
-            ? calculateEndDate(
-                occurrence,
-                new Date(masterEvent.startDate),
-                new Date(masterEvent.endDate)
-              )
-            : undefined,
-          isVirtualOccurrence: true,
-          virtualStartDate: occurrenceDate,
-          masterId: masterEvent.id,
-        };
-
-        // Vérifier si cette occurrence est dans le futur et si la date n'est pas exclue
-        if (new Date(virtualEvent.startDate) >= new Date()) {
-          allEvents.push(virtualEvent);
-        }
-      }
     }
   }
 

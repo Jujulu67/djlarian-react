@@ -47,6 +47,12 @@ interface ProjectTableProps {
   defaultStatus?: ProjectStatus | 'ALL';
 }
 
+function getHighlightAnimationClass(isPersistentGold: boolean, isHighlighted: boolean): string {
+  if (isPersistentGold) return 'animate-highlight-gold';
+  if (isHighlighted) return 'animate-highlight-purple';
+  return '';
+}
+
 export const ProjectTable = ({
   projects,
   onUpdate,
@@ -291,13 +297,7 @@ export const ProjectTable = ({
                                   data-project-id={project.id}
                                   className={`group hover:bg-white/5 transition-colors ${
                                     snapshot.isDragging ? 'bg-purple-500/20' : ''
-                                  } ${
-                                    isPersistentGold
-                                      ? 'animate-highlight-gold'
-                                      : isHighlighted
-                                        ? 'animate-highlight-purple'
-                                        : ''
-                                  }`}
+                                  } ${getHighlightAnimationClass(isPersistentGold, isHighlighted)}`}
                                 >
                                   {/* Poignée de drag */}
                                   <td className={`${isCompact ? 'w-6 px-0.5' : 'w-10 px-2'} py-2`}>

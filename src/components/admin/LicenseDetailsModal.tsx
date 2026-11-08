@@ -160,25 +160,26 @@ export function LicenseDetailsModal({
           </div>
           <div className="flex flex-col items-end space-y-2">
             <div>
-              {license.revoked ? (
+              {(license.revoked && (
                 <Badge variant="destructive" className="bg-red-900/50 text-red-200 border-red-800">
                   RÉVOQUÉE
                 </Badge>
-              ) : license.expirationDate && new Date(license.expirationDate) < new Date() ? (
-                <Badge
-                  variant="secondary"
-                  className="bg-yellow-900/50 text-yellow-200 border-yellow-800"
-                >
-                  EXPIRÉE
-                </Badge>
-              ) : (
-                <Badge
-                  variant="default"
-                  className="bg-green-900/50 text-green-200 border-green-800"
-                >
-                  ACTIVE
-                </Badge>
-              )}
+              )) ||
+                (license.expirationDate && new Date(license.expirationDate) < new Date() && (
+                  <Badge
+                    variant="secondary"
+                    className="bg-yellow-900/50 text-yellow-200 border-yellow-800"
+                  >
+                    EXPIRÉE
+                  </Badge>
+                )) || (
+                  <Badge
+                    variant="default"
+                    className="bg-green-900/50 text-green-200 border-green-800"
+                  >
+                    ACTIVE
+                  </Badge>
+                )}
             </div>
             <span className="text-sm text-gray-500">
               Type: <strong className="text-gray-300">{license.licenseType}</strong>

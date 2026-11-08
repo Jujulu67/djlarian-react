@@ -67,6 +67,96 @@ export function normalizeArtistName(name: string): string {
   return normalized.replace(/(?<!\d)\d+$/, '');
 }
 
+// Termes de remix reconnus dans la partie entre parenthèses ou dans le titre
+const REMIX_TERM_PATTERNS = [
+  /\b(FLIP|flip)\b/i,
+  /\b(REMIX|remix)\b/i,
+  /\b(BOOTLEG|bootleg)\b/i,
+  /\b(EDIT|edit)\b/i,
+  /\b(REWORK|rework)\b/i,
+];
+
+type ParsedParts = { artist: string; title: string };
+
+// "Artiste - Titre (REMIX TERM)" : garde tout le contenu du remix (ex : "LARIAN FLIP")
+function parseDashParen(match: [string, string, string], profileName: string): ParsedParts {
+  const artistPart = match[0].trim();
+  const titlePart = match[1].trim();
+  const remixPart = match[2].trim();
+
+  // Check if remix part contains profile name or remix term
+  const hasRemixTerm = REMIX_TERM_PATTERNS.some((p) => p.test(remixPart));
+  const hasProfileName = remixPart.toLowerCase().includes(profileName.toLowerCase());
+
+  if (hasRemixTerm || hasProfileName) {
+    return { artist: `${artistPart} (${remixPart})`, title: titlePart };
+  }
+  // No remix, just artist - title (remix info)
+  return { artist: artistPart, title: titlePart };
+}
+
+// "Artiste - Titre" sans parenthèses : le terme de remix du titre passe dans l'artiste
+function parseDashPlain(match: [string, string]): ParsedParts {
+  const artistPart = match[0].trim();
+  const titlePart = match[1].trim();
+
+  // Check if title contains remix term
+  const titleHasRemix = REMIX_TERM_PATTERNS.some((p) => p.test(titlePart));
+  if (!titleHasRemix) {
+    return { artist: artistPart, title: titlePart };
+  }
+
+  const remixMatch = /\b(FLIP|REMIX|BOOTLEG|EDIT|REWORK)\b/i.exec(titlePart);
+  if (!remixMatch) {
+    return { artist: artistPart, title: titlePart };
+  }
+  const remixTerm = remixMatch[1].toUpperCase();
+  // Remove remix term from title
+  return {
+    artist: `${artistPart} (${remixTerm})`,
+    title: titlePart.replace(/\b(FLIP|REMIX|BOOTLEG|EDIT|REWORK)\b/gi, '').trim(),
+  };
+}
+
+// "Titre (Artiste REMIX)" ou "Titre [Artiste REMIX]"
+function parseBracketRemix(match: [string, string, string]): ParsedParts {
+  const titlePart = match[0].trim();
+  const artistPart = match[1].trim();
+  const remixTerm = match[2].toUpperCase();
+  return { artist: `${artistPart} (${remixTerm})`, title: titlePart };
+}
+
+// Choisit le motif reconnu ; sans motif, le titre tel quel et le profil comme artiste
+function parseRawTitle(title: string, profileName: string, normalizedProfile: string): ParsedParts {
+  // Pattern 1: "Artist - Title (REMIX TERM)"
+  // Ex: "Youssou N'Dour - KIRIKOU (LARIAN FLIP)"
+  const match1 = matchDashParen(title);
+  if (match1) return parseDashParen(match1, profileName);
+
+  // Pattern 2: "Artist - Title" (without parentheses)
+  const match2 = matchDash(title);
+  if (match2) return parseDashPlain(match2);
+
+  // Pattern 3: "Title (Artist REMIX)" or "Title [Artist REMIX]"
+  const match3 = matchBracketRemix(title);
+  if (match3) return parseBracketRemix(match3);
+
+  // No recognized pattern, use title as-is and profile as artist
+  return { artist: normalizedProfile, title };
+}
+
+// Capitalise le titre : chaque mot si tout est en majuscules, sinon la première lettre seulement
+function capitalizeTitle(title: string): string {
+  if (title === title.toUpperCase() && title.length > 1) {
+    return title
+      .toLowerCase()
+      .split(' ')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  }
+  return title.charAt(0).toUpperCase() + title.slice(1);
+}
+
 /**
  * Parse SoundCloud title to extract artist and title
  * Handles formats like "Youssou N'Dour - KIRIKOU (LARIAN FLIP)"
@@ -79,100 +169,16 @@ export function parseSoundCloudTitle(
   title: string,
   profileName: string
 ): { artist: string; title: string } {
+  const normalizedProfile = normalizeArtistName(profileName);
   if (!title) {
-    const normalizedProfile = normalizeArtistName(profileName);
     return { artist: normalizedProfile, title: '' };
   }
 
-  const normalizedProfile = normalizeArtistName(profileName);
-  let parsedArtist: string;
-  let parsedTitle: string;
-
-  // Detect remix terms (FLIP, REMIX, BOOTLEG, etc.)
-  const remixPatterns = [
-    /\b(FLIP|flip)\b/i,
-    /\b(REMIX|remix)\b/i,
-    /\b(BOOTLEG|bootleg)\b/i,
-    /\b(EDIT|edit)\b/i,
-    /\b(REWORK|rework)\b/i,
-  ];
-
-  // Pattern 1: "Artist - Title (REMIX TERM)"
-  // Ex: "Youssou N'Dour - KIRIKOU (LARIAN FLIP)"
-  const match1 = matchDashParen(title);
-  if (match1) {
-    const artistPart = match1[0].trim();
-    const titlePart = match1[1].trim();
-    const remixPart = match1[2].trim();
-
-    // Check if remix part contains profile name or remix term
-    const hasRemixTerm = remixPatterns.some((p) => p.test(remixPart));
-    const hasProfileName = remixPart.toLowerCase().includes(profileName.toLowerCase());
-
-    if (hasRemixTerm || hasProfileName) {
-      // Keep entire remix content (ex: "LARIAN FLIP" not just "FLIP")
-      parsedArtist = `${artistPart} (${remixPart})`;
-      parsedTitle = titlePart;
-    } else {
-      // No remix, just artist - title (remix info)
-      parsedArtist = artistPart;
-      parsedTitle = titlePart;
-    }
-  } else {
-    // Pattern 2: "Artist - Title" (without parentheses)
-    const match2 = matchDash(title);
-    if (match2) {
-      const artistPart = match2[0].trim();
-      const titlePart = match2[1].trim();
-
-      // Check if title contains remix term
-      const titleHasRemix = remixPatterns.some((p) => p.test(titlePart));
-      if (titleHasRemix) {
-        // Find remix term
-        const remixMatch = /\b(FLIP|REMIX|BOOTLEG|EDIT|REWORK)\b/i.exec(titlePart);
-        if (remixMatch) {
-          const remixTerm = remixMatch[1].toUpperCase();
-          parsedArtist = `${artistPart} (${remixTerm})`;
-          // Remove remix term from title
-          parsedTitle = titlePart.replace(/\b(FLIP|REMIX|BOOTLEG|EDIT|REWORK)\b/gi, '').trim();
-        } else {
-          parsedArtist = artistPart;
-          parsedTitle = titlePart;
-        }
-      } else {
-        parsedArtist = artistPart;
-        parsedTitle = titlePart;
-      }
-    } else {
-      // Pattern 3: "Title (Artist REMIX)" or "Title [Artist REMIX]"
-      const match3 = matchBracketRemix(title);
-      if (match3) {
-        const titlePart = match3[0].trim();
-        const artistPart = match3[1].trim();
-        const remixTerm = match3[2].toUpperCase();
-        parsedArtist = `${artistPart} (${remixTerm})`;
-        parsedTitle = titlePart;
-      } else {
-        // No recognized pattern, use title as-is and profile as artist
-        parsedTitle = title;
-        parsedArtist = normalizedProfile;
-      }
-    }
-  }
-
-  // Normalize title (capitalize first letter of each word if all uppercase)
-  if (parsedTitle === parsedTitle.toUpperCase() && parsedTitle.length > 1) {
-    parsedTitle = parsedTitle
-      .toLowerCase()
-      .split(' ')
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  } else {
-    // Capitalize only first letter
-    parsedTitle = parsedTitle.charAt(0).toUpperCase() + parsedTitle.slice(1);
-  }
-
-  return { artist: parsedArtist.trim(), title: parsedTitle.trim() };
+  const parsed = parseRawTitle(title, profileName, normalizedProfile);
+  return {
+    artist: parsed.artist.trim(),
+    title: capitalizeTitle(parsed.title).trim(),
+  };
 }
 
 /**

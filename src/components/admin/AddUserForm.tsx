@@ -21,6 +21,34 @@ interface AddUserFormProps {
   userToEdit?: User;
 }
 
+function getErrorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : 'Une erreur est survenue.';
+}
+
+// Contenu du bouton de soumission (chargement, modification ou création)
+function renderSubmitContent(isLoading: boolean, isEditMode: boolean): React.JSX.Element {
+  if (isLoading) {
+    return (
+      <>
+        <Loader2 className="animate-spin h-5 w-5 mr-2" />{' '}
+        {isEditMode ? 'Modification...' : 'Création...'}
+      </>
+    );
+  }
+  if (isEditMode) {
+    return (
+      <>
+        <Edit className="h-5 w-5 mr-2" /> Modifier l'Utilisateur
+      </>
+    );
+  }
+  return (
+    <>
+      <UserPlus className="h-5 w-5 mr-2" /> Ajouter l'Utilisateur
+    </>
+  );
+}
+
 // Ce composant contient uniquement le formulaire et sa logique
 export default function AddUserForm({ onSuccess, userToEdit }: Readonly<AddUserFormProps>) {
   const { data: session, update: updateSession } = useSession();
@@ -33,6 +61,10 @@ export default function AddUserForm({ onSuccess, userToEdit }: Readonly<AddUserF
   const [error, setError] = useState<string | null>(null);
 
   const isEditMode = Boolean(userToEdit); // Déterminer si on est en mode édition
+
+  // Identifiant d'un champ : suffixe avec l'id de l'utilisateur en mode édition
+  const idFor = (editPrefix: string, addId: string) =>
+    isEditMode ? `${editPrefix}-${userToEdit?.id}` : addId;
 
   // Pré-remplir le formulaire si userToEdit est fourni
   useEffect(() => {
@@ -55,6 +87,32 @@ export default function AddUserForm({ onSuccess, userToEdit }: Readonly<AddUserF
       setError(null);
     }
   }, [userToEdit, isEditMode]);
+
+  // Met à jour la session si c'est l'utilisateur connecté qui a été modifié
+  const syncSessionAfterEdit = async (data: {
+    name?: string;
+    email?: string;
+    role?: string;
+    isVip?: boolean;
+  }) => {
+    if (!(isEditMode && session?.user?.id === userToEdit?.id && session)) return;
+    try {
+      await updateSession({
+        ...session,
+        user: {
+          ...session.user,
+          name: data.name,
+          email: data.email,
+          role: data.role,
+          isVip: data.isVip,
+        },
+      });
+      logger.debug("Session mise à jour pour l'utilisateur connecté");
+    } catch (sessionError) {
+      logger.error('Erreur lors de la mise à jour de la session:', sessionError);
+      // Ne pas bloquer le succès de la mise à jour si la session échoue
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -105,6 +163,10 @@ export default function AddUserForm({ onSuccess, userToEdit }: Readonly<AddUserF
       return;
     }
 
+    const verbInfinitive = isEditMode ? 'modifier' : 'créer';
+    const verbPast = isEditMode ? 'modifié' : 'créé';
+    const actionLabel = isEditMode ? 'la modification' : "l'ajout";
+
     try {
       const response = await fetch(url, {
         // Utiliser l'URL et la méthode dynamiques
@@ -116,42 +178,19 @@ export default function AddUserForm({ onSuccess, userToEdit }: Readonly<AddUserF
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.error || `Impossible de ${isEditMode ? 'modifier' : 'créer'} l'utilisateur.`
-        );
+        throw new Error(data.error || `Impossible de ${verbInfinitive} l'utilisateur.`);
       }
 
       // Succès
-      logger.debug(`Utilisateur ${isEditMode ? 'modifié' : 'créé'}:`, data);
+      logger.debug(`Utilisateur ${verbPast}:`, data);
 
-      // Si c'est l'utilisateur connecté qui a été modifié, mettre à jour la session
-      if (isEditMode && session?.user?.id === userToEdit?.id && session) {
-        try {
-          await updateSession({
-            ...session,
-            user: {
-              ...session.user,
-              name: data.name,
-              email: data.email,
-              role: data.role,
-              isVip: data.isVip,
-            },
-          });
-          logger.debug("Session mise à jour pour l'utilisateur connecté");
-        } catch (sessionError) {
-          logger.error('Erreur lors de la mise à jour de la session:', sessionError);
-          // Ne pas bloquer le succès de la mise à jour si la session échoue
-        }
-      }
+      await syncSessionAfterEdit(data);
 
-      if (onSuccess) {
-        onSuccess(); // Appeler le callback (ex: pour fermer la modale et rafraîchir)
-      }
+      onSuccess?.(); // Appeler le callback (ex: pour fermer la modale et rafraîchir)
       // Idéalement, afficher un toast/notification de succès
     } catch (err: unknown) {
-      logger.error(`Erreur lors de ${isEditMode ? 'la modification' : "l'ajout"}:`, err);
-      const errorMessage = err instanceof Error ? err.message : 'Une erreur est survenue.';
-      setError(errorMessage);
+      logger.error(`Erreur lors de ${actionLabel}:`, err);
+      setError(getErrorMessage(err));
     } finally {
       setIsLoading(false);
     }
@@ -173,14 +212,14 @@ export default function AddUserForm({ onSuccess, userToEdit }: Readonly<AddUserF
       </h2>
       <div>
         <label
-          htmlFor={isEditMode ? `email-edit-${userToEdit?.id}` : 'email-add'}
+          htmlFor={idFor('email-edit', 'email-add')}
           className="block text-sm font-medium text-gray-300 mb-1"
         >
           Email <span className="text-red-500">*</span>
         </label>
         <input
           type="email"
-          id={isEditMode ? `email-edit-${userToEdit?.id}` : 'email-add'} // Utiliser ?. pour la sécurité
+          id={idFor('email-edit', 'email-add')} // Utiliser ?. pour la sécurité
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
@@ -192,14 +231,14 @@ export default function AddUserForm({ onSuccess, userToEdit }: Readonly<AddUserF
 
       <div>
         <label
-          htmlFor={isEditMode ? `name-edit-${userToEdit?.id}` : 'name-add'}
+          htmlFor={idFor('name-edit', 'name-add')}
           className="block text-sm font-medium text-gray-300 mb-1"
         >
           Nom (Optionnel)
         </label>
         <input
           type="text"
-          id={isEditMode ? `name-edit-${userToEdit?.id}` : 'name-add'} // Utiliser ?.
+          id={idFor('name-edit', 'name-add')} // Utiliser ?.
           value={name}
           onChange={(e) => setName(e.target.value)}
           className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -210,7 +249,7 @@ export default function AddUserForm({ onSuccess, userToEdit }: Readonly<AddUserF
 
       <div>
         <label
-          htmlFor={isEditMode ? `password-edit-${userToEdit?.id}` : 'password-add'}
+          htmlFor={idFor('password-edit', 'password-add')}
           className="block text-sm font-medium text-gray-300 mb-1"
         >
           {/* Label dynamique pour le mot de passe */}
@@ -220,7 +259,7 @@ export default function AddUserForm({ onSuccess, userToEdit }: Readonly<AddUserF
         </label>
         <input
           type="password"
-          id={isEditMode ? `password-edit-${userToEdit?.id}` : 'password-add'} // Utiliser ?.
+          id={idFor('password-edit', 'password-add')} // Utiliser ?.
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required={!isEditMode} // Requis seulement si PAS en mode édition
@@ -246,21 +285,19 @@ export default function AddUserForm({ onSuccess, userToEdit }: Readonly<AddUserF
           {/* Option Utilisateur */}
           <div>
             <input
-              id={isEditMode ? `role-user-edit-${userToEdit?.id}` : 'role-user-add'} // Utiliser ?.
+              id={idFor('role-user-edit', 'role-user-add')} // Utiliser ?.
               type="radio"
-              name={isEditMode ? `role-edit-${userToEdit?.id}` : 'role-add'} // Utiliser ?.
+              name={idFor('role-edit', 'role-add')} // Utiliser ?.
               value="USER"
               checked={role === 'USER'}
               onChange={(e) => setRole(e.target.value)}
               required
               className="peer sr-only" // Masque l'input radio mais le garde accessible
-              aria-labelledby={
-                isEditMode ? `role-user-label-edit-${userToEdit?.id}` : 'role-user-label-add'
-              } // Utiliser ?.
+              aria-labelledby={idFor('role-user-label-edit', 'role-user-label-add')} // Utiliser ?.
             />
             <label
-              id={isEditMode ? `role-user-label-edit-${userToEdit?.id}` : 'role-user-label-add'} // Utiliser ?.
-              htmlFor={isEditMode ? `role-user-edit-${userToEdit?.id}` : 'role-user-add'} // Utiliser ?.
+              id={idFor('role-user-label-edit', 'role-user-label-add')} // Utiliser ?.
+              htmlFor={idFor('role-user-edit', 'role-user-add')} // Utiliser ?.
               className="flex flex-col items-center justify-center rounded-md border border-gray-600 bg-gray-800 px-4 py-3 text-sm font-medium text-white shadow-sm cursor-pointer transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-gray-900 peer-checked:border-purple-500 peer-checked:bg-purple-900/30 peer-checked:ring-1 peer-checked:ring-purple-500"
             >
               <span className="text-lg">👤</span> {/* Icône simple */}
@@ -270,21 +307,19 @@ export default function AddUserForm({ onSuccess, userToEdit }: Readonly<AddUserF
           {/* Option Administrateur */}
           <div>
             <input
-              id={isEditMode ? `role-admin-edit-${userToEdit?.id}` : 'role-admin-add'} // Utiliser ?.
+              id={idFor('role-admin-edit', 'role-admin-add')} // Utiliser ?.
               type="radio"
-              name={isEditMode ? `role-edit-${userToEdit?.id}` : 'role-add'} // Utiliser ?.
+              name={idFor('role-edit', 'role-add')} // Utiliser ?.
               value="ADMIN"
               checked={role === 'ADMIN'}
               onChange={(e) => setRole(e.target.value)}
               required
               className="peer sr-only" // Masque l'input radio
-              aria-labelledby={
-                isEditMode ? `role-admin-label-edit-${userToEdit?.id}` : 'role-admin-label-add'
-              } // Utiliser ?.
+              aria-labelledby={idFor('role-admin-label-edit', 'role-admin-label-add')} // Utiliser ?.
             />
             <label
-              id={isEditMode ? `role-admin-label-edit-${userToEdit?.id}` : 'role-admin-label-add'} // Utiliser ?.
-              htmlFor={isEditMode ? `role-admin-edit-${userToEdit?.id}` : 'role-admin-add'} // Utiliser ?.
+              id={idFor('role-admin-label-edit', 'role-admin-label-add')} // Utiliser ?.
+              htmlFor={idFor('role-admin-edit', 'role-admin-add')} // Utiliser ?.
               className="flex flex-col items-center justify-center rounded-md border border-gray-600 bg-gray-800 px-4 py-3 text-sm font-medium text-white shadow-sm cursor-pointer transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-gray-900 peer-checked:border-purple-500 peer-checked:bg-purple-900/30 peer-checked:ring-1 peer-checked:ring-purple-500"
             >
               <span className="text-lg">👑</span> {/* Icône simple */}
@@ -294,27 +329,19 @@ export default function AddUserForm({ onSuccess, userToEdit }: Readonly<AddUserF
           {/* Option Modérateur (nouvelle) */}
           <div>
             <input
-              id={isEditMode ? `role-moderator-edit-${userToEdit?.id}` : 'role-moderator-add'} // Utiliser ?.
+              id={idFor('role-moderator-edit', 'role-moderator-add')} // Utiliser ?.
               type="radio"
-              name={isEditMode ? `role-edit-${userToEdit?.id}` : 'role-add'} // Utiliser ?.
+              name={idFor('role-edit', 'role-add')} // Utiliser ?.
               value="MODERATOR"
               checked={role === 'MODERATOR'}
               onChange={(e) => setRole(e.target.value)}
               required // Garder required car un rôle doit être choisi
               className="peer sr-only"
-              aria-labelledby={
-                isEditMode
-                  ? `role-moderator-label-edit-${userToEdit?.id}`
-                  : 'role-moderator-label-add'
-              } // Utiliser ?.
+              aria-labelledby={idFor('role-moderator-label-edit', 'role-moderator-label-add')} // Utiliser ?.
             />
             <label
-              id={
-                isEditMode
-                  ? `role-moderator-label-edit-${userToEdit?.id}`
-                  : 'role-moderator-label-add'
-              } // Utiliser ?.
-              htmlFor={isEditMode ? `role-moderator-edit-${userToEdit?.id}` : 'role-moderator-add'} // Utiliser ?.
+              id={idFor('role-moderator-label-edit', 'role-moderator-label-add')} // Utiliser ?.
+              htmlFor={idFor('role-moderator-edit', 'role-moderator-add')} // Utiliser ?.
               className="flex flex-col items-center justify-center rounded-md border border-gray-600 bg-gray-800 px-4 py-3 text-sm font-medium text-white shadow-sm cursor-pointer transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-gray-900 peer-checked:border-purple-500 peer-checked:bg-purple-900/30 peer-checked:ring-1 peer-checked:ring-purple-500"
             >
               <span className="text-lg">🛡️</span> {/* Icône Bouclier */}
@@ -330,7 +357,7 @@ export default function AddUserForm({ onSuccess, userToEdit }: Readonly<AddUserF
         <label className="inline-flex items-center cursor-pointer">
           <div className="relative">
             <input
-              id={isEditMode ? `isVip-edit-${userToEdit?.id}` : 'isVip-add'}
+              id={idFor('isVip-edit', 'isVip-add')}
               type="checkbox"
               checked={isVip}
               onChange={(e) => setIsVip(e.target.checked)}
@@ -355,20 +382,7 @@ export default function AddUserForm({ onSuccess, userToEdit }: Readonly<AddUserF
         className="w-full mt-6 py-2 px-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
       >
         {/* Texte et icône dynamiques pour le bouton */}
-        {isLoading ? (
-          <>
-            <Loader2 className="animate-spin h-5 w-5 mr-2" />{' '}
-            {isEditMode ? 'Modification...' : 'Création...'}
-          </>
-        ) : isEditMode ? (
-          <>
-            <Edit className="h-5 w-5 mr-2" /> Modifier l'Utilisateur
-          </>
-        ) : (
-          <>
-            <UserPlus className="h-5 w-5 mr-2" /> Ajouter l'Utilisateur
-          </>
-        )}
+        {renderSubmitContent(isLoading, isEditMode)}
       </button>
     </form>
   );

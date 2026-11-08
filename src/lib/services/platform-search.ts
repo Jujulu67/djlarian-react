@@ -79,6 +79,64 @@ function extractArtists(artistString: string): string[] {
     .filter((a) => a.length > 0);
 }
 
+type GoogleSearchData = { items?: Array<{ link: string; title: string }> };
+
+/** URL de recherche Google Custom Search (un seul résultat) */
+function buildGoogleSearchUrl(apiKey: string, cx: string, query: string): string {
+  return `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${cx}&q=${encodeURIComponent(query)}&num=1`;
+}
+
+/** Convertit un résultat Google en lien SoundCloud (embed ID : artiste/titre) */
+function toSoundCloudResult(item: { link: string; title: string }) {
+  // Extraire l'embed ID depuis l'URL SoundCloud
+  // Format: https://soundcloud.com/artist/track-title
+  const embedIdMatch = /soundcloud\.com\/([^/]+)\/([^/?]+)/.exec(item.link);
+  const embedId = embedIdMatch ? `${embedIdMatch[1]}/${embedIdMatch[2]}` : undefined;
+  return {
+    url: item.link,
+    embedId,
+    title: item.title,
+  };
+}
+
+/** Recherche SoundCloud pour un seul artiste ; null si rien de valable */
+async function searchSoundCloudForArtist(
+  individualArtist: string,
+  title: string,
+  apiKey: string,
+  cx: string
+): Promise<PlatformSearchResult['soundcloud'] | null> {
+  try {
+    // Recherche via Google avec site:soundcloud.com
+    const query = `site:soundcloud.com "${individualArtist}" "${title}"`;
+    const response = await fetch(buildGoogleSearchUrl(apiKey, cx, query));
+
+    if (!response.ok) {
+      logger.debug(`Recherche SoundCloud: erreur pour ${individualArtist} (${response.status})`);
+      return null; // Essayer le prochain artiste
+    }
+
+    const data = (await response.json()) as GoogleSearchData;
+    const result = data.items?.[0];
+    if (!result) return null;
+
+    // Vérifier que c'est bien une URL SoundCloud valide
+    if (!result.link.includes('soundcloud.com')) {
+      logger.debug(
+        `Recherche SoundCloud: résultat ne correspond pas à SoundCloud pour ${individualArtist}`
+      );
+      return null; // Essayer le prochain artiste
+    }
+
+    logger.debug(`Recherche SoundCloud: lien trouvé avec l'artiste ${individualArtist}`);
+    return toSoundCloudResult(result);
+  } catch (error) {
+    // Si une recherche échoue, continuer avec le prochain artiste
+    logger.debug(`Erreur lors de la recherche SoundCloud pour ${individualArtist}:`, error);
+    return null;
+  }
+}
+
 /**
  * Recherche une track sur SoundCloud
  *
@@ -111,91 +169,28 @@ export async function searchSoundCloud(
     }
 
     // Extraire tous les artistes (collaborateurs)
-    const artists = extractArtists(artist);
-
     // Essayer de rechercher avec chaque artiste individuellement
     // Cela augmente les chances de trouver un lien valide, surtout si la track est uploadée par un collaborateur
-    for (const individualArtist of artists) {
-      try {
-        // Recherche via Google avec site:soundcloud.com
-        const query = `site:soundcloud.com "${individualArtist}" "${title}"`;
-        const encodedQuery = encodeURIComponent(query);
-        const url = `https://www.googleapis.com/customsearch/v1?key=${googleApiKey}&cx=${googleCx}&q=${encodedQuery}&num=1`;
-
-        const response = await fetch(url);
-
-        if (!response.ok) {
-          logger.debug(
-            `Recherche SoundCloud: erreur pour ${individualArtist} (${response.status})`
-          );
-          continue; // Essayer le prochain artiste
-        }
-
-        const data = (await response.json()) as {
-          items?: Array<{
-            link: string;
-            title: string;
-          }>;
-        };
-
-        if (data.items && data.items.length > 0) {
-          const result = data.items[0];
-
-          // Vérifier que c'est bien une URL SoundCloud valide
-          if (!result.link.includes('soundcloud.com')) {
-            logger.debug(
-              `Recherche SoundCloud: résultat ne correspond pas à SoundCloud pour ${individualArtist}`
-            );
-            continue; // Essayer le prochain artiste
-          }
-
-          // Extraire l'embed ID depuis l'URL SoundCloud
-          // Format: https://soundcloud.com/artist/track-title
-          const embedIdMatch = /soundcloud\.com\/([^/]+)\/([^/?]+)/.exec(result.link);
-          const embedId = embedIdMatch ? `${embedIdMatch[1]}/${embedIdMatch[2]}` : undefined;
-
-          logger.debug(`Recherche SoundCloud: lien trouvé avec l'artiste ${individualArtist}`);
-          return {
-            url: result.link,
-            embedId,
-            title: result.title,
-          };
-        }
-      } catch (error) {
-        // Si une recherche échoue, continuer avec le prochain artiste
-        logger.debug(`Erreur lors de la recherche SoundCloud pour ${individualArtist}:`, error);
-        continue;
-      }
+    for (const individualArtist of extractArtists(artist)) {
+      const found = await searchSoundCloudForArtist(
+        individualArtist,
+        title,
+        googleApiKey,
+        googleCx
+      );
+      if (found) return found;
     }
 
     // Si aucune recherche individuelle n'a fonctionné, essayer avec tous les artistes ensemble
     const allArtistsQuery = `site:soundcloud.com "${artist}" "${title}"`;
-    const encodedQuery = encodeURIComponent(allArtistsQuery);
-    const url = `https://www.googleapis.com/customsearch/v1?key=${googleApiKey}&cx=${googleCx}&q=${encodedQuery}&num=1`;
-
-    const response = await fetch(url);
+    const response = await fetch(buildGoogleSearchUrl(googleApiKey, googleCx, allArtistsQuery));
 
     if (response.ok) {
-      const data = (await response.json()) as {
-        items?: Array<{
-          link: string;
-          title: string;
-        }>;
-      };
+      const data = (await response.json()) as GoogleSearchData;
+      const result = data.items?.[0];
 
-      if (data.items && data.items.length > 0) {
-        const result = data.items[0];
-
-        if (result.link.includes('soundcloud.com')) {
-          const embedIdMatch = /soundcloud\.com\/([^/]+)\/([^/?]+)/.exec(result.link);
-          const embedId = embedIdMatch ? `${embedIdMatch[1]}/${embedIdMatch[2]}` : undefined;
-
-          return {
-            url: result.link,
-            embedId,
-            title: result.title,
-          };
-        }
+      if (result && result.link.includes('soundcloud.com')) {
+        return toSoundCloudResult(result);
       }
     }
 

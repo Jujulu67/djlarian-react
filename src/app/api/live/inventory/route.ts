@@ -17,6 +17,189 @@ const updateInventorySchema = z.object({
 });
 
 /**
+ * Un item est un Queue Skip si son type ou son nom l'indique
+ */
+function isQueueSkipItem(type: string, name: string): boolean {
+  return (
+    type === 'SKIP_QUEUE' ||
+    name.toLowerCase().includes('skip queue') ||
+    name.toLowerCase().includes('queue skip')
+  );
+}
+
+/**
+ * Contexte partagé entre l'activation et la désactivation d'un item
+ */
+interface InventoryCallContext {
+  perf: ReturnType<typeof createDbPerformanceLogger>;
+  t0: number;
+  userId: string;
+  itemId: string;
+  userItem: {
+    id: string;
+    quantity: number;
+    activatedQuantity: number;
+    activatedAt: Date | null;
+  };
+  /** Durée de la requête de recherche de l'item (ms) */
+  findDuration: number;
+}
+
+/**
+ * Vérifie les règles des Queue Skip avant activation.
+ * Renvoie une réponse d'erreur si l'activation est interdite, sinon null.
+ */
+async function checkQueueSkipActivation(ctx: InventoryCallContext): Promise<NextResponse | null> {
+  const { perf, userId, userItem } = ctx;
+
+  // Si on essaie d'activer (activatedQuantity va passer de 0 à 1)
+  if (userItem.activatedQuantity === 0) {
+    // Vérifier qu'aucun autre Queue Skip n'a activatedQuantity > 0
+    const t3 = Date.now();
+    const otherQueueSkips = await prisma.userLiveItem.findMany({
+      where: {
+        userId,
+        id: { not: userItem.id },
+        activatedQuantity: { gt: 0 },
+      },
+      include: {
+        LiveItem: true,
+      },
+    });
+    const t4 = Date.now();
+    perf.logQuery(t3, t4, 'userLiveItem.findMany (queue skip check)');
+
+    const hasActivatedQueueSkip = otherQueueSkips.some((item) =>
+      isQueueSkipItem(item.LiveItem?.type || '', item.LiveItem?.name || '')
+    );
+
+    if (hasActivatedQueueSkip) {
+      return NextResponse.json(
+        {
+          error:
+            "Un Queue Skip est déjà activé. Désactivez-le d'abord avant d'en activer un autre.",
+        },
+        { status: 400 }
+      );
+    }
+  }
+
+  // Pour Skip_Queue, limiter activatedQuantity à 1 max
+  if (userItem.activatedQuantity >= 1) {
+    return NextResponse.json(
+      { error: 'Un seul Queue Skip peut être activé à la fois' },
+      { status: 400 }
+    );
+  }
+
+  return null;
+}
+
+/**
+ * Activation d'un item (incrémente activatedQuantity)
+ */
+async function handleActivate(ctx: InventoryCallContext, isQueueSkip: boolean) {
+  const { perf, t0, userId, itemId, userItem, findDuration } = ctx;
+
+  // Vérifier qu'on peut encore activer
+  if (userItem.activatedQuantity >= userItem.quantity) {
+    return NextResponse.json({ error: 'Tous les items sont déjà activés' }, { status: 400 });
+  }
+
+  if (isQueueSkip) {
+    const queueSkipError = await checkQueueSkipActivation(ctx);
+    if (queueSkipError) return queueSkipError;
+  }
+
+  const wasInactive = userItem.activatedQuantity === 0;
+  const newActivatedQuantity = userItem.activatedQuantity + 1;
+
+  const t5 = Date.now();
+  const updatedItem = await prisma.userLiveItem.update({
+    where: {
+      id: userItem.id,
+    },
+    data: {
+      activatedQuantity: newActivatedQuantity,
+      isActivated: newActivatedQuantity > 0, // Mettre à jour pour compatibilité
+      activatedAt: wasInactive ? new Date() : userItem.activatedAt,
+    },
+    include: {
+      LiveItem: true,
+    },
+  });
+  const t6 = Date.now();
+  perf.logQuery(t5, t6, 'userLiveItem.update (activate)');
+
+  logger.debug(
+    `[Live] Item ${itemId} activé (${newActivatedQuantity}/${userItem.quantity}) pour l'utilisateur ${userId}`
+  );
+
+  revalidatePath('/admin/live');
+
+  perf.end(t0, {
+    queryTime: findDuration + (t6 - t5),
+    query: 'findUnique + update (activate)',
+    operation: 'PUT /api/live/inventory (activate)',
+  });
+
+  return createSuccessResponse(
+    updatedItem,
+    200,
+    `Item activé avec succès (${newActivatedQuantity}/${userItem.quantity})`
+  );
+}
+
+/**
+ * Désactivation d'un item (décrémente activatedQuantity)
+ */
+async function handleDeactivate(ctx: InventoryCallContext) {
+  const { perf, t0, userId, itemId, userItem, findDuration } = ctx;
+
+  if (userItem.activatedQuantity <= 0) {
+    return NextResponse.json({ error: "Aucun item n'est activé" }, { status: 400 });
+  }
+
+  const newActivatedQuantity = userItem.activatedQuantity - 1;
+  const becomesInactive = newActivatedQuantity === 0;
+
+  const t7 = Date.now();
+  const updatedItem = await prisma.userLiveItem.update({
+    where: {
+      id: userItem.id,
+    },
+    data: {
+      activatedQuantity: newActivatedQuantity,
+      isActivated: newActivatedQuantity > 0, // Mettre à jour pour compatibilité
+      activatedAt: becomesInactive ? null : userItem.activatedAt,
+    },
+    include: {
+      LiveItem: true,
+    },
+  });
+  const t8 = Date.now();
+  perf.logQuery(t7, t8, 'userLiveItem.update (deactivate)');
+
+  logger.debug(
+    `[Live] Item ${itemId} désactivé (${newActivatedQuantity}/${userItem.quantity}) pour l'utilisateur ${userId}`
+  );
+
+  revalidatePath('/admin/live');
+
+  perf.end(t0, {
+    queryTime: findDuration + (t8 - t7),
+    query: 'findUnique + update (deactivate)',
+    operation: 'PUT /api/live/inventory (deactivate)',
+  });
+
+  return createSuccessResponse(
+    updatedItem,
+    200,
+    `Item désactivé avec succès (${newActivatedQuantity}/${userItem.quantity})`
+  );
+}
+
+/**
  * GET /api/live/inventory
  * Récupère l'inventaire complet de l'utilisateur
  */
@@ -160,10 +343,7 @@ export async function PUT(request: NextRequest) {
 
     const itemType = userItem.LiveItem?.type || '';
     const itemName = userItem.LiveItem?.name || '';
-    const isQueueSkip =
-      itemType === 'SKIP_QUEUE' ||
-      itemName.toLowerCase().includes('skip queue') ||
-      itemName.toLowerCase().includes('queue skip');
+    const isQueueSkip = isQueueSkipItem(itemType, itemName);
 
     logger.debug('[Live Inventory] Activation attempt:', {
       itemId,
@@ -175,143 +355,20 @@ export async function PUT(request: NextRequest) {
       quantity: userItem.quantity,
     });
 
-    // Logique d'activation
+    const ctx: InventoryCallContext = {
+      perf,
+      t0,
+      userId: session.user.id,
+      itemId,
+      userItem,
+      findDuration: t2 - t1,
+    };
+
+    // Logique d'activation / désactivation
     if (action === 'activate') {
-      // Vérifier qu'on peut encore activer
-      if (userItem.activatedQuantity >= userItem.quantity) {
-        return NextResponse.json({ error: 'Tous les items sont déjà activés' }, { status: 400 });
-      }
-
-      // Pour Skip_Queue: vérifier qu'aucun autre n'est activé
-      if (isQueueSkip) {
-        // Si on essaie d'activer (activatedQuantity va passer de 0 à 1)
-        if (userItem.activatedQuantity === 0) {
-          // Vérifier qu'aucun autre Queue Skip n'a activatedQuantity > 0
-          const t3 = Date.now();
-          const otherQueueSkips = await prisma.userLiveItem.findMany({
-            where: {
-              userId: session.user.id,
-              id: { not: userItem.id },
-              activatedQuantity: { gt: 0 },
-            },
-            include: {
-              LiveItem: true,
-            },
-          });
-          const t4 = Date.now();
-          perf.logQuery(t3, t4, 'userLiveItem.findMany (queue skip check)');
-
-          const hasActivatedQueueSkip = otherQueueSkips.some((item) => {
-            const itemType = item.LiveItem?.type || '';
-            const itemName = item.LiveItem?.name?.toLowerCase() || '';
-            return (
-              itemType === 'SKIP_QUEUE' ||
-              itemName.includes('skip queue') ||
-              itemName.includes('queue skip')
-            );
-          });
-
-          if (hasActivatedQueueSkip) {
-            return NextResponse.json(
-              {
-                error:
-                  "Un Queue Skip est déjà activé. Désactivez-le d'abord avant d'en activer un autre.",
-              },
-              { status: 400 }
-            );
-          }
-        }
-
-        // Pour Skip_Queue, limiter activatedQuantity à 1 max
-        if (userItem.activatedQuantity >= 1) {
-          return NextResponse.json(
-            { error: 'Un seul Queue Skip peut être activé à la fois' },
-            { status: 400 }
-          );
-        }
-      }
-
-      const wasInactive = userItem.activatedQuantity === 0;
-      const newActivatedQuantity = userItem.activatedQuantity + 1;
-
-      const t5 = Date.now();
-      const updatedItem = await prisma.userLiveItem.update({
-        where: {
-          id: userItem.id,
-        },
-        data: {
-          activatedQuantity: newActivatedQuantity,
-          isActivated: newActivatedQuantity > 0, // Mettre à jour pour compatibilité
-          activatedAt: wasInactive ? new Date() : userItem.activatedAt,
-        },
-        include: {
-          LiveItem: true,
-        },
-      });
-      const t6 = Date.now();
-      perf.logQuery(t5, t6, 'userLiveItem.update (activate)');
-
-      logger.debug(
-        `[Live] Item ${itemId} activé (${newActivatedQuantity}/${userItem.quantity}) pour l'utilisateur ${session.user.id}`
-      );
-
-      revalidatePath('/admin/live');
-
-      perf.end(t0, {
-        queryTime: t2 - t1 + (t6 - t5),
-        query: 'findUnique + update (activate)',
-        operation: 'PUT /api/live/inventory (activate)',
-      });
-
-      return createSuccessResponse(
-        updatedItem,
-        200,
-        `Item activé avec succès (${newActivatedQuantity}/${userItem.quantity})`
-      );
-    } else {
-      // Logique de désactivation
-      if (userItem.activatedQuantity <= 0) {
-        return NextResponse.json({ error: "Aucun item n'est activé" }, { status: 400 });
-      }
-
-      const newActivatedQuantity = userItem.activatedQuantity - 1;
-      const becomesInactive = newActivatedQuantity === 0;
-
-      const t7 = Date.now();
-      const updatedItem = await prisma.userLiveItem.update({
-        where: {
-          id: userItem.id,
-        },
-        data: {
-          activatedQuantity: newActivatedQuantity,
-          isActivated: newActivatedQuantity > 0, // Mettre à jour pour compatibilité
-          activatedAt: becomesInactive ? null : userItem.activatedAt,
-        },
-        include: {
-          LiveItem: true,
-        },
-      });
-      const t8 = Date.now();
-      perf.logQuery(t7, t8, 'userLiveItem.update (deactivate)');
-
-      logger.debug(
-        `[Live] Item ${itemId} désactivé (${newActivatedQuantity}/${userItem.quantity}) pour l'utilisateur ${session.user.id}`
-      );
-
-      revalidatePath('/admin/live');
-
-      perf.end(t0, {
-        queryTime: t2 - t1 + (t8 - t7),
-        query: 'findUnique + update (deactivate)',
-        operation: 'PUT /api/live/inventory (deactivate)',
-      });
-
-      return createSuccessResponse(
-        updatedItem,
-        200,
-        `Item désactivé avec succès (${newActivatedQuantity}/${userItem.quantity})`
-      );
+      return await handleActivate(ctx, isQueueSkip);
     }
+    return await handleDeactivate(ctx);
   } catch (error) {
     perf.end(t0, { metadata: { error: error instanceof Error ? error.message : String(error) } });
     return handleApiError(error, 'PUT /api/live/inventory');

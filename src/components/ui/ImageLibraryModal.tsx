@@ -98,34 +98,36 @@ const ImageLibraryModal: React.FC<ImageLibraryModalProps> = ({ open, onClose, on
       />
       {loading ? (
         <div className="text-center text-gray-400 py-8">Chargement...</div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center text-gray-400 py-8">Aucune image originale trouvée.</div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {filtered.map((img) => (
-            <button
-              type="button"
-              key={img.id}
-              className="block w-full text-left cursor-pointer bg-gray-800 rounded-lg p-2 hover:ring-2 hover:ring-purple-500 transition"
-              onClick={() => selectImage(img)}
-              aria-label={`Sélectionner ${img.name}`}
-            >
-              <Image
-                src={getImageUrlForModal(img) || '/placeholder-image.jpg'}
-                alt={img.name}
-                width={200}
-                height={128}
-                className="w-full h-32 object-cover rounded mb-2 bg-gray-700"
-                unoptimized
-              />
-              <div className="text-sm text-white truncate" title={img.name}>
-                {img.name}
-              </div>
-              <div className="text-xs text-gray-400">{(img.size / 1024).toFixed(1)} Ko</div>
-              <div className="text-xs text-gray-500">{getImageDate(img)}</div>
-            </button>
-          ))}
-        </div>
+        (filtered.length === 0 && (
+          <div className="text-center text-gray-400 py-8">Aucune image originale trouvée.</div>
+        )) || (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {filtered.map((img) => (
+              <button
+                type="button"
+                key={img.id}
+                className="block w-full text-left cursor-pointer bg-gray-800 rounded-lg p-2 hover:ring-2 hover:ring-purple-500 transition"
+                onClick={() => selectImage(img)}
+                aria-label={`Sélectionner ${img.name}`}
+              >
+                <Image
+                  src={getImageUrlForModal(img) || '/placeholder-image.jpg'}
+                  alt={img.name}
+                  width={200}
+                  height={128}
+                  className="w-full h-32 object-cover rounded mb-2 bg-gray-700"
+                  unoptimized
+                />
+                <div className="text-sm text-white truncate" title={img.name}>
+                  {img.name}
+                </div>
+                <div className="text-xs text-gray-400">{(img.size / 1024).toFixed(1)} Ko</div>
+                <div className="text-xs text-gray-500">{getImageDate(img)}</div>
+              </button>
+            ))}
+          </div>
+        )
       )}
     </Modal>
   );

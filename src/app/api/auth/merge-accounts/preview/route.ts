@@ -9,6 +9,19 @@ import { logger } from '@/lib/logger';
 /**
  * Route pour prévisualiser les données de fusion avant de confirmer
  */
+/**
+ * URL d'affichage de l'image du compte existant : les URL externes et les chemins locaux
+ * sont gardés tels quels, les autres identifiants passent par getImageUrl.
+ */
+function toDisplayImageUrl(image: string | null): string | null {
+  if (!image) return null;
+  if (image.startsWith('http://') || image.startsWith('https://')) return image;
+  // Chemin local, servi directement par Next.js
+  if (image.startsWith('/uploads/')) return image;
+  // Sinon, génère l'URL via /api/images/[imageId] (blob en prod, local en dev)
+  return getImageUrl(image) || image;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -71,13 +84,7 @@ export async function GET(request: NextRequest) {
     // Si c'est déjà une URL externe (http/https), on la garde telle quelle
     // Si c'est un chemin local (/uploads/...), on le garde tel quel (servi directement par Next.js)
     // Sinon, on utilise getImageUrl pour générer l'URL via /api/images/[imageId]
-    const existingUserImageUrl = existingUser.image
-      ? existingUser.image.startsWith('http://') || existingUser.image.startsWith('https://')
-        ? existingUser.image
-        : existingUser.image.startsWith('/uploads/')
-          ? existingUser.image // Chemin local, servi directement par Next.js
-          : getImageUrl(existingUser.image) || existingUser.image
-      : null;
+    const existingUserImageUrl = toDisplayImageUrl(existingUser.image);
 
     return NextResponse.json({
       existingAccount: {

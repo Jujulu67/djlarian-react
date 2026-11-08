@@ -154,6 +154,82 @@ function buildExpectedUpdatedAt(projects: Project[]): Record<string, string> {
   return expected;
 }
 
+type UpdateData = NonNullable<ReturnType<typeof extractUpdateData>>;
+
+function logExtractedUpdateData(
+  updateData: UpdateData | null,
+  filters: QueryFilters,
+  userMessage: string
+): void {
+  debugLog('router', '📝 ExtractedUpdateData', {
+    mutation: {
+      newStatus: updateData?.newStatus,
+      newProgress: updateData?.newProgress,
+      newDeadline: updateData?.newDeadline ? String(updateData.newDeadline) : undefined,
+      pushDeadlineBy: updateData?.pushDeadlineBy,
+      newCollab: updateData?.newCollab,
+      newStyle: updateData?.newStyle,
+      newNote: updateData?.newNote,
+    },
+    extractedFilter: summarizeFilter(filters),
+    hasDeadlineIntent: /deadline|date\s*limite/i.test(userMessage),
+  });
+}
+
+/** Périmètre de la modification : le projet désigné par son nom, sinon le scope habituel. */
+function resolveUpdateScope(
+  named: ReturnType<typeof findNamedProject>,
+  filters: QueryFilters,
+  projects: Project[],
+  context: RouterContext,
+  updateData: UpdateData
+): ReturnType<typeof resolveScope> {
+  if (named.kind === 'found') {
+    return {
+      scopeSource: 'NamedProject' as const,
+      affectedProjects: [named.project],
+      effectiveFilters: { name: named.project.name } as QueryFilters,
+    };
+  }
+  return resolveScope(filters, projects, context, updateData);
+}
+
+function logExpectedUpdatedAt(
+  affectedProjects: Project[],
+  expectedUpdatedAtById: Record<string, string>
+): void {
+  if (isAssistantDebugEnabled() && Object.keys(expectedUpdatedAtById).length > 0) {
+    debugLog('router', '🔍 expectedUpdatedAtById construit', {
+      totalProjects: affectedProjects.length,
+      projectsWithUpdatedAt: Object.keys(expectedUpdatedAtById).length,
+      sample: Object.entries(expectedUpdatedAtById)
+        .slice(0, 3)
+        .map(([id, updatedAt]) => ({
+          id,
+          updatedAt,
+          projectName: affectedProjects.find((p) => p.id === id)?.name,
+        })),
+    });
+  }
+}
+
+/** Pour une mutation de deadline, ne garde que les projets qui ont une deadline. */
+function keepProjectsWithDeadline(projects: Project[]): {
+  projects: Project[];
+  skippedCount: number;
+} {
+  const kept = projects.filter((p) => p.deadline !== null && p.deadline !== undefined);
+  const skippedCount = projects.length - kept.length;
+  if (skippedCount > 0) {
+    debugLog('router', '⏭️ SkippedNoDeadline', {
+      skippedCount,
+      beforeCount: projects.length,
+      afterCount: kept.length,
+    });
+  }
+  return { projects: kept, skippedCount };
+}
+
 /**
  * Gère la modification de projets (Update)
  */
@@ -192,20 +268,7 @@ export function handleUpdateCommand(
   const filtersCopy = JSON.parse(JSON.stringify(sourceFilters)) as Record<string, unknown>;
   const updateData = extractUpdateData(message, lowerMessage, filtersCopy, availableStyles);
 
-  // Logs pour UPDATE (debug)
-  debugLog('router', '📝 ExtractedUpdateData', {
-    mutation: {
-      newStatus: updateData?.newStatus,
-      newProgress: updateData?.newProgress,
-      newDeadline: updateData?.newDeadline ? String(updateData.newDeadline) : undefined,
-      pushDeadlineBy: updateData?.pushDeadlineBy,
-      newCollab: updateData?.newCollab,
-      newStyle: updateData?.newStyle,
-      newNote: updateData?.newNote,
-    },
-    extractedFilter: summarizeFilter(filters),
-    hasDeadlineIntent: /deadline|date\s*limite/i.test(userMessage),
-  });
+  logExtractedUpdateData(updateData, filters, userMessage);
 
   if (!updateData) {
     debugLog('router', '❌ UPDATE: extractUpdateData a retourné null');
@@ -216,14 +279,7 @@ export function handleUpdateCommand(
     };
   }
 
-  const scope =
-    named.kind === 'found'
-      ? {
-          scopeSource: 'NamedProject' as const,
-          affectedProjects: [named.project],
-          effectiveFilters: { name: named.project.name } as QueryFilters,
-        }
-      : resolveScope(filters, projects, context, updateData);
+  const scope = resolveUpdateScope(named, filters, projects, context, updateData);
   if (!scope) return scopeMissingResult(updateData, projects.length, requestId);
   const { scopeSource, effectiveFilters } = scope;
   let { affectedProjects } = scope;
@@ -241,18 +297,8 @@ export function handleUpdateCommand(
   const isDeadlineMutation = !!(updateData.pushDeadlineBy || updateData.newDeadline);
   let skippedNoDeadlineCount = 0;
   if (isDeadlineMutation) {
-    const beforeCount = affectedProjects.length;
-    affectedProjects = affectedProjects.filter(
-      (p) => p.deadline !== null && p.deadline !== undefined
-    );
-    skippedNoDeadlineCount = beforeCount - affectedProjects.length;
-    if (skippedNoDeadlineCount > 0) {
-      debugLog('router', '⏭️ SkippedNoDeadline', {
-        skippedCount: skippedNoDeadlineCount,
-        beforeCount,
-        afterCount: affectedProjects.length,
-      });
-    }
+    ({ projects: affectedProjects, skippedCount: skippedNoDeadlineCount } =
+      keepProjectsWithDeadline(affectedProjects));
   }
 
   // Si c'est un ajout de note à un projet spécifique (projectName + newNote),
@@ -299,20 +345,7 @@ export function handleUpdateCommand(
   // Seulement si on a des projets avec updatedAt valide
   const expectedUpdatedAtById = buildExpectedUpdatedAt(affectedProjects);
 
-  // Logs de debug pour la construction de expectedUpdatedAtById
-  if (isAssistantDebugEnabled() && Object.keys(expectedUpdatedAtById).length > 0) {
-    debugLog('router', '🔍 expectedUpdatedAtById construit', {
-      totalProjects: affectedProjects.length,
-      projectsWithUpdatedAt: Object.keys(expectedUpdatedAtById).length,
-      sample: Object.entries(expectedUpdatedAtById)
-        .slice(0, 3)
-        .map(([id, updatedAt]) => ({
-          id,
-          updatedAt,
-          projectName: affectedProjects.find((p) => p.id === id)?.name,
-        })),
-    });
-  }
+  logExpectedUpdatedAt(affectedProjects, expectedUpdatedAtById);
 
   const pendingAction: PendingConfirmationAction = {
     actionId: generateActionId(),

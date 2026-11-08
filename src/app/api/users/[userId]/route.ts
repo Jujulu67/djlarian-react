@@ -20,6 +20,76 @@ const updateUserSchema = z
   })
   .strict();
 
+type UserUpdateInput = {
+  email?: string;
+  name?: string | null;
+  password?: string;
+  role?: string;
+  isVip?: boolean;
+};
+
+// Construit les champs à mettre à jour (le mot de passe est haché à part)
+function buildUserFieldsUpdate({ email, name, role, isVip }: UserUpdateInput) {
+  const dataToUpdate: Partial<PrismaUser> = {};
+  if (email !== undefined) dataToUpdate.email = email;
+  if (name !== undefined) dataToUpdate.name = name;
+  if (role !== undefined) dataToUpdate.role = role;
+  if (isVip !== undefined) {
+    // isVip est un champ Prisma, utiliser un cast sécurisé
+    (dataToUpdate as PrismaUser & { isVip?: boolean }).isVip = isVip;
+  }
+  return dataToUpdate;
+}
+
+// Prépare les données de mise à jour, ou renvoie directement la réponse d'erreur
+async function prepareUserUpdate(
+  input: UserUpdateInput,
+  isAdmin: boolean,
+  userId: string
+): Promise<{ response: NextResponse } | { data: Partial<PrismaUser> }> {
+  const { email, name, password, role, isVip } = input;
+
+  // Seul un admin peut changer un rôle ou le statut VIP
+  if (!isAdmin && (role !== undefined || isVip !== undefined)) {
+    return { response: NextResponse.json({ error: 'Non autorisé' }, { status: 403 }) };
+  }
+
+  const dataToUpdate = buildUserFieldsUpdate({ email, name, role, isVip });
+  if (password) {
+    try {
+      // Assurez-vous que le champ dans Prisma s'appelle bien hashedPassword
+      const hashedPassword = await bcryptHash(password, 10);
+      dataToUpdate.hashedPassword = hashedPassword;
+      logger.debug(`PUT /api/users/${userId} - Hashage du mot de passe effectué.`);
+    } catch (hashError) {
+      logger.error(`PUT /api/users/${userId} - Erreur hashage mot de passe:`, hashError);
+      return {
+        response: NextResponse.json(
+          { error: 'Erreur interne lors de la préparation des données.' },
+          { status: 500 }
+        ),
+      };
+    }
+  }
+
+  if (Object.keys(dataToUpdate).length === 0) {
+    logger.debug(`PUT /api/users/${userId} - Aucune donnée à mettre à jour fournie.`);
+    return {
+      response: NextResponse.json(
+        { error: 'Aucune donnée à mettre à jour fournie.' },
+        { status: 400 }
+      ),
+    };
+  }
+
+  return { data: dataToUpdate };
+}
+
+function isEmailConflictError(error: unknown) {
+  const prismaError = error as { code?: string; meta?: { target?: string[] } };
+  return prismaError.code === 'P2002' && Boolean(prismaError.meta?.target?.includes('email'));
+}
+
 export async function PUT(request: Request, { params }: { params: Promise<{ userId: string }> }) {
   const resolvedParams = await params;
   logger.debug(`PUT /api/users/${resolvedParams.userId} - Requête reçue`);
@@ -55,40 +125,11 @@ export async function PUT(request: Request, { params }: { params: Promise<{ user
     );
   }
 
-  const { email, name, password, role, isVip } = validation.data;
-
-  // Seul un admin peut changer un rôle ou le statut VIP
-  if (!isAdmin && (role !== undefined || isVip !== undefined)) {
-    return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
+  const preparedUpdate = await prepareUserUpdate(validation.data, isAdmin, userId);
+  if ('response' in preparedUpdate) {
+    return preparedUpdate.response;
   }
-
-  const dataToUpdate: Partial<PrismaUser> = {};
-  if (email !== undefined) dataToUpdate.email = email;
-  if (name !== undefined) dataToUpdate.name = name;
-  if (role !== undefined) dataToUpdate.role = role;
-  if (isVip !== undefined) {
-    // isVip est un champ Prisma, utiliser un cast sécurisé
-    (dataToUpdate as PrismaUser & { isVip?: boolean }).isVip = isVip;
-  }
-  if (password) {
-    try {
-      // Assurez-vous que le champ dans Prisma s'appelle bien hashedPassword
-      const hashedPassword = await bcryptHash(password, 10);
-      dataToUpdate.hashedPassword = hashedPassword;
-      logger.debug(`PUT /api/users/${userId} - Hashage du mot de passe effectué.`);
-    } catch (hashError) {
-      logger.error(`PUT /api/users/${userId} - Erreur hashage mot de passe:`, hashError);
-      return NextResponse.json(
-        { error: 'Erreur interne lors de la préparation des données.' },
-        { status: 500 }
-      );
-    }
-  }
-
-  if (Object.keys(dataToUpdate).length === 0) {
-    logger.debug(`PUT /api/users/${userId} - Aucune donnée à mettre à jour fournie.`);
-    return NextResponse.json({ error: 'Aucune donnée à mettre à jour fournie.' }, { status: 400 });
-  }
+  const dataToUpdate = preparedUpdate.data;
 
   try {
     const existingUser = await prisma.user.findUnique({ where: { id: userId } });
@@ -107,8 +148,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ user
     return NextResponse.json(safeUser);
   } catch (error: unknown) {
     logger.error(`PUT /api/users/${userId} - Erreur Prisma update:`, error);
-    const prismaError = error as { code?: string; meta?: { target?: string[] } };
-    if (prismaError.code === 'P2002' && prismaError.meta?.target?.includes('email')) {
+    if (isEmailConflictError(error)) {
       return NextResponse.json(
         { error: 'Cet email est déjà utilisé par un autre compte.' },
         { status: 409 }

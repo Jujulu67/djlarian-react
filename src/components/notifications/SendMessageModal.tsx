@@ -52,7 +52,9 @@ export function SendMessageModal({
 
   // Pré-remplir les champs si c'est une réponse
   useEffect(() => {
-    if (isOpen && replyTo) {
+    if (!isOpen) return;
+
+    if (replyTo) {
       try {
         const metadata = replyTo.metadata ? JSON.parse(replyTo.metadata) : null;
         const senderId = metadata?.senderId;
@@ -63,17 +65,14 @@ export function SendMessageModal({
       } catch (err) {
         logger.error('Erreur lors du parsing des métadonnées:', err);
       }
-    } else if (isOpen && !replyTo) {
-      // Réinitialiser si ce n'est pas une réponse
-      // Utiliser initialUserId si fourni, sinon valeur par défaut
-      if (initialUserId) {
-        setSelectedUserId(initialUserId);
-      } else {
-        setSelectedUserId(isAdmin ? 'ALL' : '');
-      }
-      setTitle('');
-      setMessage('');
+      return;
     }
+
+    // Réinitialiser si ce n'est pas une réponse
+    // Utiliser initialUserId si fourni, sinon valeur par défaut
+    setSelectedUserId(initialUserId || (isAdmin ? 'ALL' : ''));
+    setTitle('');
+    setMessage('');
   }, [isOpen, replyTo, isAdmin, initialUserId]);
 
   // Filtrer les utilisateurs selon la recherche

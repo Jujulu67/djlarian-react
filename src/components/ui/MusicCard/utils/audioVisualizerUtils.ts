@@ -22,19 +22,8 @@ export function calculateFrequencyMapping(totalBins: number) {
   });
 }
 
-/**
- * Calcule la valeur d'une barre à partir des vraies données de fréquence
- */
-export function calculateRealAudioBarValue(
-  index: number,
-  frequencyData: Uint8Array,
-  previousAudioData: number[],
-  frequencyMapping: ReturnType<typeof calculateFrequencyMapping>
-): number {
-  const mapping = frequencyMapping[index];
-  if (!mapping) return 20;
-
-  const { binStart, binEnd } = mapping;
+/** Moyenne pondérée (gaussienne) des bins de fréquence d'une barre */
+function computeBandAverage(frequencyData: Uint8Array, binStart: number, binEnd: number): number {
   let weightedSum = 0;
   let weightSum = 0;
 
@@ -48,33 +37,63 @@ export function calculateRealAudioBarValue(
     weightSum += weight;
   }
 
-  const avg = weightSum > 0 ? weightedSum / weightSum : 0;
+  return weightSum > 0 ? weightedSum / weightSum : 0;
+}
+
+/** Amplification par bande (graves, médiums, aigus) */
+function getBandAmplification(index: number): number {
+  if (index < 7) return 1.5;
+  if (index < 14) return 1.3;
+  return 1.2;
+}
+
+/** Lissage graves : un changement fort suit plus vite la nouvelle valeur */
+function getBassSmoothing(change: number): number {
+  if (change > 20) return 0.5;
+  return change > 10 ? 0.6 : 0.7;
+}
+
+/** Lissage médiums */
+function getMidSmoothing(change: number): number {
+  if (change > 25) return 0.3;
+  return change > 15 ? 0.4 : 0.5;
+}
+
+/** Lissage aigus */
+function getHighSmoothing(change: number): number {
+  if (change > 30) return 0.15;
+  return change > 20 ? 0.2 : 0.3;
+}
+
+/** Lissage adaptatif selon la bande et l'amplitude du changement */
+function getAdaptiveSmoothing(index: number, change: number): number {
+  if (index < 7) return getBassSmoothing(change);
+  if (index < 14) return getMidSmoothing(change);
+  return getHighSmoothing(change);
+}
+
+/**
+ * Calcule la valeur d'une barre à partir des vraies données de fréquence
+ */
+export function calculateRealAudioBarValue(
+  index: number,
+  frequencyData: Uint8Array,
+  previousAudioData: number[],
+  frequencyMapping: ReturnType<typeof calculateFrequencyMapping>
+): number {
+  const mapping = frequencyMapping[index];
+  if (!mapping) return 20;
+
+  const avg = computeBandAverage(frequencyData, mapping.binStart, mapping.binEnd);
   let normalizedValue = (avg / 255) * 100;
   normalizedValue = Math.pow(normalizedValue / 100, 0.7) * 100;
 
-  // Amplification par bande
-  if (index < 7) {
-    normalizedValue *= 1.5;
-  } else if (index < 14) {
-    normalizedValue *= 1.3;
-  } else {
-    normalizedValue *= 1.2;
-  }
+  normalizedValue *= getBandAmplification(index);
 
   // Smoothing adaptatif
   const currentValue = previousAudioData[index] || 20;
-  let smoothing: number;
-
-  if (index < 7) {
-    const change = Math.abs(normalizedValue - currentValue);
-    smoothing = change > 20 ? 0.5 : change > 10 ? 0.6 : 0.7;
-  } else if (index < 14) {
-    const change = Math.abs(normalizedValue - currentValue);
-    smoothing = change > 25 ? 0.3 : change > 15 ? 0.4 : 0.5;
-  } else {
-    const change = Math.abs(normalizedValue - currentValue);
-    smoothing = change > 30 ? 0.15 : change > 20 ? 0.2 : 0.3;
-  }
+  const change = Math.abs(normalizedValue - currentValue);
+  const smoothing = getAdaptiveSmoothing(index, change);
 
   const smoothed = currentValue * smoothing + normalizedValue * (1 - smoothing);
   return Math.max(18, Math.min(92, smoothed));

@@ -136,6 +136,15 @@ export async function createTrack(data: CreateTrackInput, userId?: string) {
 }
 
 // Mettre à jour une piste existante
+/** Relation vers la collection : déconnexion si null, connexion si un id est fourni. */
+function buildMusicCollectionRelation(trackData: {
+  collectionId?: string | null;
+}): Prisma.TrackUpdateInput['MusicCollection'] {
+  if (!trackData.hasOwnProperty('collectionId')) return undefined;
+  if (trackData.collectionId === null) return { disconnect: true };
+  return { connect: { id: trackData.collectionId } };
+}
+
 export async function updateTrack(data: UpdateTrackInput) {
   const { id, genreNames, platforms, ...trackData } = data;
 
@@ -198,11 +207,7 @@ export async function updateTrack(data: UpdateTrackInput) {
       updatedAt: new Date(),
       ...(genreUpdates !== undefined && { GenresOnTracks: genreUpdates }),
       ...(platformUpdates !== undefined && { TrackPlatform: platformUpdates }),
-      MusicCollection: trackData.hasOwnProperty('collectionId')
-        ? trackData.collectionId === null
-          ? { disconnect: true }
-          : { connect: { id: trackData.collectionId } }
-        : undefined,
+      MusicCollection: buildMusicCollectionRelation(trackData),
     },
     include: {
       TrackPlatform: true,

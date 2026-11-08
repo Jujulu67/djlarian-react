@@ -35,6 +35,69 @@ function filterConversationHistory(history: unknown): ConversationMessage[] {
     }));
 }
 
+/** Nettoie la requête : espaces et guillemets simples/doubles en début/fin qui gênent la classification. */
+function cleanQuery(raw: string): string {
+  let query = raw.trim();
+  // Ex. : "\"et les terminés?\"" ou "et les terminés?\"" doit devenir "et les terminés?"
+  if (query.startsWith('"')) query = query.slice(1);
+  if (query.endsWith('"')) query = query.slice(0, -1);
+  if (query.startsWith("'")) query = query.slice(1);
+  if (query.endsWith("'")) query = query.slice(0, -1);
+  return query.trim();
+}
+
+/** Vrai si le parsing a détecté une note à ajouter (projectName et newNote renseignés). */
+function isNoteUpdate(result: ReturnType<typeof parseQuery>): boolean {
+  return Boolean(
+    result.updateData &&
+    'projectName' in result.updateData &&
+    'newNote' in result.updateData &&
+    Boolean((result.updateData as { projectName?: unknown }).projectName) &&
+    Boolean((result.updateData as { newNote?: unknown }).newNote)
+  );
+}
+
+/** Réponse conversationnelle (Groq) pour les questions non comprises, ou un message de repli sans clé API. */
+async function getContextualReply(
+  query: string,
+  result: ReturnType<typeof parseQuery>,
+  input: {
+    conversationHistory: unknown;
+    projectCount: number;
+    collabCount: number;
+    styleCount: number;
+  }
+): Promise<string> {
+  if (!process.env.GROQ_API_KEY) {
+    // Fallback si pas de clé API
+    return `Salut ! 🎵 Je suis l'assistant de tes projets musicaux. Demande-moi "combien de ghost prod j'ai" ou "liste mes projets terminés".`;
+  }
+
+  logger.warn('[Parse Query API] Question générale détectée, appel à Groq...');
+
+  // Filtrer et valider l'historique conversationnel
+  const filteredHistory = filterConversationHistory(input.conversationHistory);
+  logger.warn('[Parse Query API] Historique filtré:', {
+    originalLength: (input.conversationHistory as { length?: number } | null)?.length || 0,
+    filteredLength: filteredHistory.length,
+  });
+
+  // Utiliser isComplex du résultat parseQuery si disponible
+  const isComplex = result.isComplex || false;
+
+  return getConversationalResponse(
+    query,
+    {
+      projectCount: input.projectCount,
+      collabCount: input.collabCount,
+      styleCount: input.styleCount,
+    },
+    filteredHistory.length > 0 ? filteredHistory : undefined,
+    isComplex
+    // Pas de requestId dans ce chemin
+  );
+}
+
 export async function POST(request: NextRequest) {
   // Réservé aux utilisateurs connectés ou aux appels internes du serveur (quota Groq)
   if (!isInternalRequest(request)) {
@@ -53,26 +116,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: ASSISTANT_INPUT_TOO_LONG }, { status: 413 });
     }
 
-    // Nettoyer la requête: enlever les guillemets en début/fin qui peuvent causer des problèmes de classification
-    // Exemple: "\"et les terminés?\"" ou "et les terminés?\"" doit devenir "et les terminés?"
-    query = query.trim();
-    // Enlever les guillemets doubles au début
-    if (query.startsWith('"')) {
-      query = query.slice(1);
-    }
-    // Enlever les guillemets doubles à la fin
-    if (query.endsWith('"')) {
-      query = query.slice(0, -1);
-    }
-    // Enlever les guillemets simples au début
-    if (query.startsWith("'")) {
-      query = query.slice(1);
-    }
-    // Enlever les guillemets simples à la fin
-    if (query.endsWith("'")) {
-      query = query.slice(0, -1);
-    }
-    query = query.trim();
+    query = cleanQuery(query);
 
     const { availableCollabs = [], availableStyles = [], projectCount = 0 } = context || {};
 
@@ -100,13 +144,11 @@ export async function POST(request: NextRequest) {
     }
     // Debug pour les questions qui ne devraient pas parser
     // Exclure les cas où on a détecté une note (updateData avec projectName et newNote)
-    const hasNoteUpdate =
-      result.updateData &&
-      'projectName' in result.updateData &&
-      'newNote' in result.updateData &&
-      Boolean((result.updateData as { projectName?: unknown }).projectName) &&
-      Boolean((result.updateData as { newNote?: unknown }).newNote);
-    if (result.understood && !/projet|project/i.test(query.toLowerCase()) && !hasNoteUpdate) {
+    if (
+      result.understood &&
+      !/projet|project/i.test(query.toLowerCase()) &&
+      !isNoteUpdate(result)
+    ) {
       logger.warn(
         '[Parse Query API] ⚠️ Question non liée aux projets mais understood=true:',
         query
@@ -116,36 +158,12 @@ export async function POST(request: NextRequest) {
     // Si pas compris OU si c'est conversationnel -> appeler Groq
     // Même si understood=true, si isConversational=true, c'est une conversation, pas une commande projet
     if (!result.understood || result.isConversational) {
-      let contextResponse: string;
-
-      if (process.env.GROQ_API_KEY) {
-        logger.warn('[Parse Query API] Question générale détectée, appel à Groq...');
-
-        // Filtrer et valider l'historique conversationnel
-        const filteredHistory = filterConversationHistory(conversationHistory);
-        logger.warn('[Parse Query API] Historique filtré:', {
-          originalLength: conversationHistory?.length || 0,
-          filteredLength: filteredHistory.length,
-        });
-
-        // Utiliser isComplex du résultat parseQuery si disponible
-        const isComplex = result.isComplex || false;
-
-        contextResponse = await getConversationalResponse(
-          query,
-          {
-            projectCount,
-            collabCount: availableCollabs.length,
-            styleCount: availableStyles.length,
-          },
-          filteredHistory.length > 0 ? filteredHistory : undefined,
-          isComplex
-          // Pas de requestId dans ce chemin
-        );
-      } else {
-        // Fallback si pas de clé API
-        contextResponse = `Salut ! 🎵 Je suis l'assistant de tes projets musicaux. Demande-moi "combien de ghost prod j'ai" ou "liste mes projets terminés".`;
-      }
+      const contextResponse = await getContextualReply(query, result, {
+        conversationHistory,
+        projectCount,
+        collabCount: availableCollabs.length,
+        styleCount: availableStyles.length,
+      });
 
       logger.warn('[Parse Query API] Réponse Groq:', contextResponse);
 

@@ -26,6 +26,57 @@ function calculateBufferHash(buffer: Buffer): string {
 }
 
 /**
+ * Cherche en DB une URL Blob réutilisable (même hash). Renvoie null si l'upload est nécessaire
+ * ou si la vérification DB échoue (on continue alors avec l'upload).
+ */
+async function findReusableBlobUrl(
+  imageId: string,
+  isOriginal: boolean,
+  bufferHash: string,
+  bufferLength: number
+): Promise<string | null> {
+  try {
+    const existingImage = await prisma.image.findUnique({
+      where: { imageId },
+      select: {
+        blobUrl: true,
+        blobUrlOriginal: true,
+        size: true,
+        hash: true,
+        hashOriginal: true,
+      },
+    });
+
+    if (!existingImage) return null;
+
+    const existingUrl = isOriginal ? existingImage.blobUrlOriginal : existingImage.blobUrl;
+    const existingHash = isOriginal ? existingImage.hashOriginal : existingImage.hash;
+
+    // Vérifier si le hash correspond (vérification précise)
+    // Si le hash correspond, c'est exactement la même image, on peut réutiliser l'URL
+    if (existingUrl && existingHash === bufferHash) {
+      logger.debug(
+        `[BLOB] Image ${imageId} existe déjà dans la DB avec le même hash (${bufferHash.substring(0, 8)}...), réutilisation de l'URL existante (0 put() appelé)`
+      );
+      return existingUrl;
+    }
+
+    // Vérification de fallback: si la taille correspond mais pas le hash, c'est probablement une image différente
+    // On continue avec l'upload
+    if (existingUrl && existingImage.size === bufferLength && existingHash !== bufferHash) {
+      logger.debug(
+        `[BLOB] Image ${imageId} a la même taille mais un hash différent, upload nécessaire`
+      );
+    }
+    return null;
+  } catch (dbError) {
+    // Ne pas bloquer si la vérification DB échoue, continuer avec l'upload
+    logger.warn('[BLOB] Erreur lors de la vérification DB, continuation avec upload:', dbError);
+    return null;
+  }
+}
+
+/**
  * Upload un fichier vers Vercel Blob avec vérification pour éviter les uploads redondants
  * OPTIMISATION: Vérifie si l'image existe déjà dans la DB avec le même hash avant d'uploader
  * @param key - La clé du fichier dans Blob
@@ -51,43 +102,9 @@ export const uploadToBlobWithCheck = async (
 
   // OPTIMISATION: Vérifier si l'image existe déjà dans la DB avant d'uploader
   if (imageId) {
-    try {
-      const existingImage = await prisma.image.findUnique({
-        where: { imageId },
-        select: {
-          blobUrl: true,
-          blobUrlOriginal: true,
-          size: true,
-          hash: true,
-          hashOriginal: true,
-        },
-      });
-
-      if (existingImage) {
-        const existingUrl = isOriginal ? existingImage.blobUrlOriginal : existingImage.blobUrl;
-        const existingHash = isOriginal ? existingImage.hashOriginal : existingImage.hash;
-        const existingSize = existingImage.size;
-
-        // Vérifier si le hash correspond (vérification précise)
-        // Si le hash correspond, c'est exactement la même image, on peut réutiliser l'URL
-        if (existingUrl && existingHash === bufferHash) {
-          logger.debug(
-            `[BLOB] Image ${imageId} existe déjà dans la DB avec le même hash (${bufferHash.substring(0, 8)}...), réutilisation de l'URL existante (0 put() appelé)`
-          );
-          return { url: existingUrl, hash: bufferHash };
-        }
-
-        // Vérification de fallback: si la taille correspond mais pas le hash, c'est probablement une image différente
-        // On continue avec l'upload
-        if (existingUrl && existingSize === buffer.length && existingHash !== bufferHash) {
-          logger.debug(
-            `[BLOB] Image ${imageId} a la même taille mais un hash différent, upload nécessaire`
-          );
-        }
-      }
-    } catch (dbError) {
-      // Ne pas bloquer si la vérification DB échoue, continuer avec l'upload
-      logger.warn('[BLOB] Erreur lors de la vérification DB, continuation avec upload:', dbError);
+    const reusableUrl = await findReusableBlobUrl(imageId, isOriginal, bufferHash, buffer.length);
+    if (reusableUrl) {
+      return { url: reusableUrl, hash: bufferHash };
     }
   }
 

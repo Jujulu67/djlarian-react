@@ -18,6 +18,31 @@ const createLicenseSchema = z
     path: ['email'],
   });
 
+async function findOrCreateUserIdByEmail(email: string, createIfMissing: boolean) {
+  const user = await prisma.user.findUnique({
+    where: { email },
+  });
+  if (user) {
+    return user.id;
+  }
+  if (!createIfMissing) {
+    return undefined;
+  }
+
+  // Create the user automatically
+  // Since we don't have a password, we can create it without one (if allowed by schema)
+  // Or set a random temporary one.
+  // Schema has `hashedPassword String?`, so we can leave it null.
+  const newUser = await prisma.user.create({
+    data: {
+      email,
+      name: email.split('@')[0], // Default name from email part
+      role: 'USER',
+    },
+  });
+  return newUser.id;
+}
+
 export async function POST(req: Request) {
   try {
     const { error: authError } = await requireAdmin({
@@ -32,28 +57,12 @@ export async function POST(req: Request) {
     let targetUserId = validatedData.userId;
 
     if (!targetUserId && validatedData.email) {
-      const user = await prisma.user.findUnique({
-        where: { email: validatedData.email },
-      });
-      if (!user) {
-        if (validatedData.createIfMissing) {
-          // Create the user automatically
-          // Since we don't have a password, we can create it without one (if allowed by schema)
-          // Or set a random temporary one.
-          // Schema has `hashedPassword String?`, so we can leave it null.
-          const newUser = await prisma.user.create({
-            data: {
-              email: validatedData.email,
-              name: validatedData.email.split('@')[0], // Default name from email part
-              role: 'USER',
-            },
-          });
-          targetUserId = newUser.id;
-        } else {
-          return new NextResponse('User not found with this email', { status: 404 });
-        }
-      } else {
-        targetUserId = user.id;
+      targetUserId = await findOrCreateUserIdByEmail(
+        validatedData.email,
+        validatedData.createIfMissing
+      );
+      if (!targetUserId) {
+        return new NextResponse('User not found with this email', { status: 404 });
       }
     }
 

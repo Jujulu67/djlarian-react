@@ -25,6 +25,16 @@ interface Particle {
   draw: (ctx: CanvasRenderingContext2D) => void;
 }
 
+const EDGE_PADDING = 20;
+const EDGE_FORCE = 0.1;
+
+/** Force de rappel près d'un bord (positive vers l'intérieur ; 0 hors de la zone) */
+function edgePush(position: number, limit: number, padding: number, strength: number) {
+  if (position < padding) return strength * (1 - position / padding);
+  if (position > limit - padding) return -strength * (1 - (limit - position) / padding);
+  return 0;
+}
+
 class ParticleImpl implements Particle {
   x: number = 0;
   y: number = 0;
@@ -60,41 +70,50 @@ class ParticleImpl implements Particle {
     this.speedX *= this.inertia;
     this.speedY *= this.inertia;
 
-    const padding = 20;
-    const forceStrength = 0.1;
-
-    if (this.x < padding) {
-      this.speedX += forceStrength * (1 - this.x / padding);
-    } else if (this.x > canvasWidth - padding) {
-      this.speedX -= forceStrength * (1 - (canvasWidth - this.x) / padding);
-    }
-
-    if (this.y < padding) {
-      this.speedY += forceStrength * (1 - this.y / padding);
-    } else if (this.y > canvasHeight - padding) {
-      this.speedY -= forceStrength * (1 - (canvasHeight - this.y) / padding);
-    }
+    this.applyEdgeForces(canvasWidth, canvasHeight);
 
     if (isHovered) {
-      const dx = this.x - mouseX;
-      const dy = this.y - mouseY;
-      const distance = Math.hypot(dx, dy);
-      const maxDistance = 120;
-
-      if (distance < maxDistance) {
-        const force = (1 - distance / maxDistance) * (isEffectActive ? 4 : 1.5);
-        const directionX = distance === 0 ? 1 : dx / distance;
-        const directionY = distance === 0 ? 1 : dy / distance;
-
-        this.speedX += directionX * force * (isEffectActive ? 2 : 0.5);
-        this.speedY += directionY * force * (isEffectActive ? 2 : 0.5);
-      }
+      this.applyMouseForce(mouseX, mouseY, isEffectActive);
     }
 
     const randomForce = isEffectActive ? 0.4 : 0.1;
     this.speedX += (Math.random() - 0.5) * randomForce;
     this.speedY += (Math.random() - 0.5) * randomForce;
 
+    this.clampSpeed(isEffectActive);
+
+    this.x += this.speedX;
+    this.y += this.speedY;
+
+    this.bounceAtEdges(canvasWidth, canvasHeight);
+    this.updateSize(mouseX, mouseY, isEffectActive);
+  }
+
+  /** Repousse doucement la particule vers l'intérieur près des bords */
+  private applyEdgeForces(canvasWidth: number, canvasHeight: number) {
+    this.speedX += edgePush(this.x, canvasWidth, EDGE_PADDING, EDGE_FORCE);
+    this.speedY += edgePush(this.y, canvasHeight, EDGE_PADDING, EDGE_FORCE);
+  }
+
+  /** Attire / repousse la particule autour du curseur */
+  private applyMouseForce(mouseX: number, mouseY: number, isEffectActive: boolean) {
+    const dx = this.x - mouseX;
+    const dy = this.y - mouseY;
+    const distance = Math.hypot(dx, dy);
+    const maxDistance = 120;
+
+    if (distance < maxDistance) {
+      const force = (1 - distance / maxDistance) * (isEffectActive ? 4 : 1.5);
+      const directionX = distance === 0 ? 1 : dx / distance;
+      const directionY = distance === 0 ? 1 : dy / distance;
+
+      this.speedX += directionX * force * (isEffectActive ? 2 : 0.5);
+      this.speedY += directionY * force * (isEffectActive ? 2 : 0.5);
+    }
+  }
+
+  /** Borne la vitesse entre un minimum et un maximum */
+  private clampSpeed(isEffectActive: boolean) {
     const maxSpeed = isEffectActive ? 12 : 6;
     const currentSpeed = Math.hypot(this.speedX, this.speedY);
     if (currentSpeed > maxSpeed) {
@@ -109,10 +128,10 @@ class ParticleImpl implements Particle {
       this.speedX *= scale;
       this.speedY *= scale;
     }
+  }
 
-    this.x += this.speedX;
-    this.y += this.speedY;
-
+  /** Rebond sur les bords du canvas (vitesse amortie) */
+  private bounceAtEdges(canvasWidth: number, canvasHeight: number) {
     if (this.x > canvasWidth) {
       this.x = canvasWidth;
       this.speedX *= -0.5;
@@ -128,7 +147,10 @@ class ParticleImpl implements Particle {
       this.y = 0;
       this.speedY *= -0.5;
     }
+  }
 
+  /** Taille qui grossit près du curseur quand l'effet est actif */
+  private updateSize(mouseX: number, mouseY: number, isEffectActive: boolean) {
     if (isEffectActive) {
       const distance = Math.hypot(this.x - mouseX, this.y - mouseY);
       const maxDistance = 200;
@@ -144,6 +166,44 @@ class ParticleImpl implements Particle {
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
     ctx.fill();
+  }
+}
+
+const ACTIVE_LINK_RGB = ['167, 71, 254', '144, 58, 255', '129, 40, 237'];
+const IDLE_LINK_RGB = ['147, 51, 234', '124, 58, 237', '109, 40, 217'];
+
+/** Dégradé d'une ligne : trois couleurs du thème, à l'opacité donnée */
+function addLinkColorStops(gradient: CanvasGradient, rgb: string[], alpha: number) {
+  gradient.addColorStop(0, `rgba(${rgb[0]}, ${alpha})`);
+  gradient.addColorStop(0.5, `rgba(${rgb[1]}, ${alpha})`);
+  gradient.addColorStop(1, `rgba(${rgb[2]}, ${alpha})`);
+}
+
+/** Dessine les liens entre particules proches */
+function drawLinks(ctx: CanvasRenderingContext2D, particles: Particle[], isEffectActive: boolean) {
+  const maxDistance = isEffectActive ? 150 : 100;
+  const baseOpacity = isEffectActive ? 1 : 0.8;
+  const rgb = isEffectActive ? ACTIVE_LINK_RGB : IDLE_LINK_RGB;
+
+  for (let i = 0; i < particles.length; i++) {
+    for (let j = i + 1; j < particles.length; j++) {
+      const a = particles[i];
+      const b = particles[j];
+      const distance = Math.hypot(a.x - b.x, a.y - b.y);
+
+      if (distance < maxDistance) {
+        const opacity = Math.pow(1 - distance / maxDistance, 1.5);
+        const gradient = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
+        addLinkColorStops(gradient, rgb, opacity * baseOpacity);
+
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = isEffectActive ? 2 : 1.2;
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.stroke();
+      }
+    }
   }
 }
 
@@ -247,44 +307,7 @@ const ParticleVisualizer = () => {
         particle.draw(ctx);
       });
 
-      // Dessin des lignes avec dégradé de couleur
-      for (let i = 0; i < particlesRef.current.length; i++) {
-        for (let j = i + 1; j < particlesRef.current.length; j++) {
-          const dx = particlesRef.current[i].x - particlesRef.current[j].x;
-          const dy = particlesRef.current[i].y - particlesRef.current[j].y;
-          const distance = Math.hypot(dx, dy);
-          const maxDistance = isEffectActive ? 150 : 100;
-
-          if (distance < maxDistance) {
-            const opacity = Math.pow(1 - distance / maxDistance, 1.5);
-            const baseOpacity = isEffectActive ? 1 : 0.8;
-
-            const gradient = ctx.createLinearGradient(
-              particlesRef.current[i].x,
-              particlesRef.current[i].y,
-              particlesRef.current[j].x,
-              particlesRef.current[j].y
-            );
-
-            if (isEffectActive) {
-              gradient.addColorStop(0, `rgba(167, 71, 254, ${opacity * baseOpacity})`);
-              gradient.addColorStop(0.5, `rgba(144, 58, 255, ${opacity * baseOpacity})`);
-              gradient.addColorStop(1, `rgba(129, 40, 237, ${opacity * baseOpacity})`);
-            } else {
-              gradient.addColorStop(0, `rgba(147, 51, 234, ${opacity * baseOpacity})`);
-              gradient.addColorStop(0.5, `rgba(124, 58, 237, ${opacity * baseOpacity})`);
-              gradient.addColorStop(1, `rgba(109, 40, 217, ${opacity * baseOpacity})`);
-            }
-
-            ctx.strokeStyle = gradient;
-            ctx.lineWidth = isEffectActive ? 2 : 1.2;
-            ctx.beginPath();
-            ctx.moveTo(particlesRef.current[i].x, particlesRef.current[i].y);
-            ctx.lineTo(particlesRef.current[j].x, particlesRef.current[j].y);
-            ctx.stroke();
-          }
-        }
-      }
+      drawLinks(ctx, particlesRef.current, isEffectActive);
 
       animationFrameId = requestAnimationFrame(animate);
     };

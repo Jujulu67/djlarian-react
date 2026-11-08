@@ -1,6 +1,24 @@
 import { useCallback, useRef, useEffect } from 'react';
 import { fetchWithAuth } from '@/lib/api/fetchWithAuth';
 
+/** Une promesse en attente d'un résultat de batch. */
+type BatchSettler = {
+  resolve: (result: { success: boolean; error?: string }) => void;
+  reject: (error: Error) => void;
+};
+
+function resolveAll(queue: BatchSettler[]): void {
+  for (const settler of queue) {
+    settler.resolve({ success: true });
+  }
+}
+
+function rejectAll(queue: BatchSettler[], message: string): void {
+  for (const settler of queue) {
+    settler.reject(new Error(message));
+  }
+}
+
 /**
  * Hook générique pour gérer les actions batch avec debounce
  * Utilisé pour les actions d'inventaire (activate/deactivate/addItem/removeItem)
@@ -57,6 +75,16 @@ export function useBatchedActions<
     const currentQueue = [...queueRef.current];
     queueRef.current = [];
 
+    // Relancer un batch si de nouvelles actions sont arrivées entre-temps
+    const scheduleNextIfPending = () => {
+      if (queueRef.current.length > 0) {
+        timeoutRef.current = setTimeout(() => {
+          timeoutRef.current = null;
+          processBatch();
+        }, 50);
+      }
+    };
+
     // Extraire les actions
     const actions = currentQueue.map((queuedAction) => queuedAction.action);
 
@@ -67,17 +95,9 @@ export function useBatchedActions<
 
     if (batchActions.length === 0) {
       // Aucune action à envoyer (toutes annulées par l'optimisation), résoudre toutes les promesses comme succès
-      for (const promise of currentQueue) {
-        promise.resolve({ success: true });
-      }
+      resolveAll(currentQueue);
       isProcessingRef.current = false;
-      // Vérifier s'il y a de nouvelles actions en attente
-      if (queueRef.current.length > 0) {
-        timeoutRef.current = setTimeout(() => {
-          timeoutRef.current = null;
-          processBatch();
-        }, 50);
-      }
+      scheduleNextIfPending();
       return;
     }
 
@@ -94,46 +114,27 @@ export function useBatchedActions<
         const data = await response.json();
         const batchResult: TBatchResult = data.data;
 
-        // Résoudre les promesses avec les résultats
-        // Si toutes les actions ont réussi, résoudre toutes les promesses comme succès
-        const errorResults = batchResult.results.filter((r) => !r.success);
-        if (errorResults.length > 0) {
-          // Si certaines actions ont échoué, rejeter toutes les promesses avec la première erreur
-          const firstError = errorResults[0];
-          for (const promise of currentQueue) {
-            promise.reject(new Error(firstError.error || 'Erreur lors du traitement du batch'));
-          }
+        // Si certaines actions ont échoué, rejeter toutes les promesses avec la première erreur
+        // Sinon, toutes les actions ont réussi : résoudre toutes les promesses
+        const firstError = batchResult.results.find((r) => !r.success);
+        if (firstError) {
+          rejectAll(currentQueue, firstError.error || 'Erreur lors du traitement du batch');
         } else {
-          // Toutes les actions ont réussi
-          for (const promise of currentQueue) {
-            promise.resolve({ success: true });
-          }
+          resolveAll(currentQueue);
         }
       } else {
         const errorData = await response.json().catch(() => ({ error: 'Erreur inconnue' }));
-        const errorMessage = errorData.error || 'Erreur lors du traitement du batch';
-
         // Rejeter toutes les promesses avec l'erreur
-        for (const promise of currentQueue) {
-          promise.reject(new Error(errorMessage));
-        }
+        rejectAll(currentQueue, errorData.error || 'Erreur lors du traitement du batch');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Erreur de connexion';
       // Rejeter toutes les promesses avec l'erreur
-      for (const promise of currentQueue) {
-        promise.reject(new Error(errorMessage));
-      }
+      rejectAll(currentQueue, error instanceof Error ? error.message : 'Erreur de connexion');
     } finally {
       isProcessingRef.current = false;
 
       // Vérifier s'il y a de nouvelles actions en attente après le traitement
-      if (queueRef.current.length > 0) {
-        timeoutRef.current = setTimeout(() => {
-          timeoutRef.current = null;
-          processBatch();
-        }, 50);
-      }
+      scheduleNextIfPending();
     }
   }, [batchEndpoint, optimizeActions]);
 

@@ -74,18 +74,76 @@ type Event = {
   updatedAt?: string;
 };
 
-export default function EventDetailPage() {
-  const params = useParams();
-  const eventId = params.id as string;
-  const isV2 = useUiVersion() !== 'legacy';
+function getEventErrorMessage(status: number) {
+  if (status === 404) {
+    return 'Événement non trouvé';
+  }
+  if (status === 403) {
+    return "Vous n'avez pas accès à cet événement";
+  }
+  return 'Une erreur est survenue lors de la récupération des données';
+}
 
-  // Récupérer le paramètre de date depuis l'URL
+async function fetchEventDetail(eventId: string, actualVirtualDate: string | null): Promise<Event> {
+  // Construire l'URL de l'API avec le paramètre de date récupéré directement
+  let apiUrl = `/api/events/${eventId}`;
+  if (actualVirtualDate) {
+    apiUrl += `?date=${encodeURIComponent(actualVirtualDate)}`;
+    logger.debug(`Fetching event with virtual date parameter: ${actualVirtualDate}`);
+  } else {
+    logger.debug(`Fetching event without virtual date parameter`);
+  }
 
+  const response = await fetch(apiUrl);
+
+  if (!response.ok) {
+    throw new Error(getEventErrorMessage(response.status));
+  }
+
+  const responseData = await response.json();
+  // L'API retourne {data: {...}} via createSuccessResponse
+  const data = responseData.data || responseData;
+
+  // Vérifier l'état des dates avant et après
+  logger.debug(
+    `Dates avant traitement - startDate: ${data.startDate}, virtualStartDate: ${data.virtualStartDate}`
+  );
+
+  // Si c'est un événement virtuel, on s'assure que la date est correctement utilisée
+  if (data.isVirtualOccurrence && data.virtualStartDate) {
+    logger.debug(`Événement virtuel avec date spécifique: ${data.virtualStartDate}`);
+    // Forcer la date principale à être la date virtuelle
+    data.startDate = data.virtualStartDate;
+    logger.debug(`Date après remplacement: ${data.startDate}`);
+  }
+
+  return data;
+}
+
+function getEventColorClass(status: string) {
+  if (status === 'UPCOMING') {
+    return 'text-blue-400';
+  }
+  if (status === 'COMPLETED') {
+    return 'text-green-400';
+  }
+  return 'text-red-400';
+}
+
+function getEventStatusText(status: string) {
+  if (status === 'UPCOMING') {
+    return 'À venir';
+  }
+  if (status === 'COMPLETED') {
+    return 'Terminé';
+  }
+  return 'Annulé';
+}
+
+function useEventDetail(eventId: string) {
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showShareOptions, setShowShareOptions] = useState(false);
-  const [copySuccess, setCopySuccess] = useState(false);
 
   // Utiliser une référence pour suivre si un appel API est déjà en cours
   const isApiCallInProgress = useRef(false);
@@ -114,43 +172,7 @@ export default function EventDetailPage() {
         isApiCallInProgress.current = true;
         setLoading(true);
 
-        // Construire l'URL de l'API avec le paramètre de date récupéré directement
-        let apiUrl = `/api/events/${eventId}`;
-        if (actualVirtualDate) {
-          apiUrl += `?date=${encodeURIComponent(actualVirtualDate)}`;
-          logger.debug(`Fetching event with virtual date parameter: ${actualVirtualDate}`);
-        } else {
-          logger.debug(`Fetching event without virtual date parameter`);
-        }
-
-        const response = await fetch(apiUrl);
-
-        if (!response.ok) {
-          if (response.status === 404) {
-            throw new Error('Événement non trouvé');
-          } else if (response.status === 403) {
-            throw new Error("Vous n'avez pas accès à cet événement");
-          } else {
-            throw new Error('Une erreur est survenue lors de la récupération des données');
-          }
-        }
-
-        const responseData = await response.json();
-        // L'API retourne {data: {...}} via createSuccessResponse
-        const data = responseData.data || responseData;
-
-        // Vérifier l'état des dates avant et après
-        logger.debug(
-          `Dates avant traitement - startDate: ${data.startDate}, virtualStartDate: ${data.virtualStartDate}`
-        );
-
-        // Si c'est un événement virtuel, on s'assure que la date est correctement utilisée
-        if (data.isVirtualOccurrence && data.virtualStartDate) {
-          logger.debug(`Événement virtuel avec date spécifique: ${data.virtualStartDate}`);
-          // Forcer la date principale à être la date virtuelle
-          data.startDate = data.virtualStartDate;
-          logger.debug(`Date après remplacement: ${data.startDate}`);
-        }
+        const data = await fetchEventDetail(eventId, actualVirtualDate);
 
         setEvent(data);
         logger.debug('Événement final chargé:', {
@@ -172,53 +194,241 @@ export default function EventDetailPage() {
     }
   }, [eventId]); // L'effet ne dépend plus de virtualDate car nous utilisons directement dateParam
 
-  const formatEventDate = (event: Event) => {
-    // Utiliser startDate ou virtualStartDate selon ce qui est disponible
-    const dateString = event.startDate || event.virtualStartDate;
+  return { event, loading, error };
+}
 
-    if (!dateString) {
-      logger.warn('Événement sans date pour formatEventDate:', event);
-      return 'Date non disponible';
-    }
+function formatEventDate(event: Event) {
+  // Utiliser startDate ou virtualStartDate selon ce qui est disponible
+  const dateString = event.startDate || event.virtualStartDate;
 
-    logger.debug(
-      `Formatting date from: ${dateString} (isVirtual: ${!!event.isVirtualOccurrence}, virtualDate: ${event.virtualStartDate})`
+  if (!dateString) {
+    logger.warn('Événement sans date pour formatEventDate:', event);
+    return 'Date non disponible';
+  }
+
+  logger.debug(
+    `Formatting date from: ${dateString} (isVirtual: ${!!event.isVirtualOccurrence}, virtualDate: ${event.virtualStartDate})`
+  );
+
+  try {
+    const date = parseISO(dateString);
+    return format(date, "EEEE d MMMM yyyy 'à' HH'h'mm", { locale: fr });
+  } catch (error) {
+    logger.error('Erreur lors du formatage de la date:', error, dateString);
+    return 'Date invalide';
+  }
+}
+
+function getStatusColor(status: string) {
+  switch (status) {
+    case 'UPCOMING':
+      return 'bg-blue-500';
+    case 'CANCELLED':
+      return 'bg-red-500';
+    case 'COMPLETED':
+      return 'bg-gray-500';
+    default:
+      return 'bg-blue-500';
+  }
+}
+
+function getStatusLabel(status: string) {
+  switch (status) {
+    case 'UPCOMING':
+      return 'À venir';
+    case 'CANCELLED':
+      return 'Annulé';
+    case 'COMPLETED':
+      return 'Terminé';
+    default:
+      return 'À venir';
+  }
+}
+
+function formatDate(dateString: string | undefined) {
+  if (!dateString) {
+    logger.warn('formatDate called with undefined dateString');
+    return 'Date non disponible';
+  }
+  logger.debug(`formatDate called with: ${dateString}`);
+  try {
+    return format(parseISO(dateString), 'dd MMMM yyyy à HH:mm', { locale: fr });
+  } catch (error) {
+    logger.error('Erreur lors du formatage de la date:', error, dateString);
+    return 'Date invalide';
+  }
+}
+
+function renderV2State(title: string, description: string, tone: 'neutral' | 'error') {
+  return (
+    <div className={EVENT_DETAIL_PAGE_CLASS}>
+      <div className={EVENT_DETAIL_CONTAINER_CLASS}>
+        <div className="mb-10">
+          <BackToEventsLink />
+        </div>
+        <StatePanel
+          icon={AlertCircle}
+          tone={tone}
+          title={title}
+          description={description}
+          action={
+            <Button asChild variant="outline">
+              <Link href="/events">
+                <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                Retour aux événements
+              </Link>
+            </Button>
+          }
+        />
+      </div>
+    </div>
+  );
+}
+
+function EventLoadingState() {
+  // Rendu à l'hydratation : les deux versions sont dans le DOM, le CSS (`v2:`) choisit
+  return (
+    <>
+      <div
+        className={`hidden v2:block ${EVENT_DETAIL_PAGE_CLASS}`}
+        role="status"
+        aria-label="Chargement de l'événement"
+      >
+        <div className={EVENT_DETAIL_CONTAINER_CLASS} aria-hidden="true">
+          <div className="mb-6 h-4 w-40 animate-pulse rounded-full bg-white/[0.04]" />
+          <div className="aspect-[4/3] animate-pulse rounded-[2rem] bg-white/[0.04] sm:aspect-[16/9] lg:aspect-[21/9]" />
+          <div className="mt-8 h-10 w-2/3 animate-pulse rounded-full bg-white/[0.04] md:mt-12" />
+          <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <div className="h-56 animate-pulse rounded-2xl bg-white/[0.04] lg:col-span-2" />
+            <div className="h-56 animate-pulse rounded-2xl bg-white/[0.04]" />
+          </div>
+        </div>
+      </div>
+      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-8 pt-32 v2:hidden">
+        <div className="container mx-auto">
+          <div className="flex justify-center items-center min-h-[40vh]">
+            <div className="animate-pulse flex flex-col items-center">
+              <Loader2 className="w-12 h-12 text-purple-500 mb-4 animate-spin" />
+              <h2 className="text-2xl font-semibold text-white">Chargement de l'événement...</h2>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function EventErrorState({ error, isV2 }: { error: string; isV2: boolean }) {
+  if (isV2) {
+    const notFound = error === 'Événement non trouvé';
+    return renderV2State(
+      notFound ? 'Événement introuvable' : 'Une erreur est survenue',
+      notFound ? "Cet événement n'existe pas ou a été supprimé." : error,
+      notFound ? 'neutral' : 'error'
     );
+  }
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-8 pt-32">
+      <div className="container mx-auto">
+        <div className="flex justify-center items-center min-h-[40vh]">
+          <div className="bg-red-500/10 border border-red-500/50 p-8 rounded-lg text-center max-w-lg">
+            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-semibold text-white mb-2">
+              {error === 'Événement non trouvé'
+                ? 'Événement non trouvé'
+                : 'Une erreur est survenue'}
+            </h2>
+            <p className="text-gray-300 mb-6">
+              {error === 'Événement non trouvé'
+                ? "L'événement que vous recherchez n'existe pas ou a été supprimé."
+                : error}
+            </p>
+            <Link
+              href="/events"
+              className="px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors inline-flex items-center gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Retour aux événements
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-    try {
-      const date = parseISO(dateString);
-      return format(date, "EEEE d MMMM yyyy 'à' HH'h'mm", { locale: fr });
-    } catch (error) {
-      logger.error('Erreur lors du formatage de la date:', error, dateString);
-      return 'Date invalide';
-    }
-  };
+function EventUnavailableState({ isV2 }: { isV2: boolean }) {
+  if (isV2) {
+    return renderV2State(
+      'Événement indisponible',
+      "Cet événement n'est pas disponible pour le moment.",
+      'neutral'
+    );
+  }
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-8 pt-32">
+      <div className="container mx-auto">
+        <div className="flex justify-center items-center min-h-[40vh]">
+          <div className="bg-gray-800/30 backdrop-blur-sm rounded-lg p-8 text-center max-w-lg">
+            <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-semibold text-white mb-2">Événement non disponible</h2>
+            <p className="text-gray-300 mb-6">
+              Désolé, cet événement n'est pas disponible pour le moment.
+            </p>
+            <Link
+              href="/events"
+              className="px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors inline-flex items-center gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Retour aux événements
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'UPCOMING':
-        return 'bg-blue-500';
-      case 'CANCELLED':
-        return 'bg-red-500';
-      case 'COMPLETED':
-        return 'bg-gray-500';
-      default:
-        return 'bg-blue-500';
-    }
-  };
+function EventDataErrorState({ isV2 }: { isV2: boolean }) {
+  if (isV2) {
+    return renderV2State(
+      'Erreur de données',
+      "Cet événement n'a pas de date valide. Veuillez contacter l'administrateur.",
+      'error'
+    );
+  }
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-8 pt-32">
+      <div className="container mx-auto">
+        <div className="flex justify-center items-center min-h-[40vh]">
+          <div className="bg-red-500/10 border border-red-500/50 p-8 rounded-lg text-center max-w-lg">
+            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-semibold text-white mb-2">Erreur de données</h2>
+            <p className="text-gray-300 mb-6">
+              Cet événement n'a pas de date valide. Veuillez contacter l'administrateur.
+            </p>
+            <Link
+              href="/events"
+              className="px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors inline-flex items-center gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Retour aux événements
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'UPCOMING':
-        return 'À venir';
-      case 'CANCELLED':
-        return 'Annulé';
-      case 'COMPLETED':
-        return 'Terminé';
-      default:
-        return 'À venir';
-    }
-  };
+export default function EventDetailPage() {
+  const params = useParams();
+  const eventId = params.id as string;
+  const isV2 = useUiVersion() !== 'legacy';
+  const { event, loading, error } = useEventDetail(eventId);
+
+  const [showShareOptions, setShowShareOptions] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
 
   const handleShare = (platform: string) => {
     const eventUrl = window.location.href;
@@ -248,150 +458,16 @@ export default function EventDetailPage() {
     setShowShareOptions(false);
   };
 
-  // Formater la date
-  const formatDate = (dateString: string | undefined) => {
-    if (!dateString) {
-      logger.warn('formatDate called with undefined dateString');
-      return 'Date non disponible';
-    }
-    logger.debug(`formatDate called with: ${dateString}`);
-    try {
-      return format(parseISO(dateString), 'dd MMMM yyyy à HH:mm', { locale: fr });
-    } catch (error) {
-      logger.error('Erreur lors du formatage de la date:', error, dateString);
-      return 'Date invalide';
-    }
-  };
-
-  const renderV2State = (title: string, description: string, tone: 'neutral' | 'error') => (
-    <div className={EVENT_DETAIL_PAGE_CLASS}>
-      <div className={EVENT_DETAIL_CONTAINER_CLASS}>
-        <div className="mb-10">
-          <BackToEventsLink />
-        </div>
-        <StatePanel
-          icon={AlertCircle}
-          tone={tone}
-          title={title}
-          description={description}
-          action={
-            <Button asChild variant="outline">
-              <Link href="/events">
-                <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-                Retour aux événements
-              </Link>
-            </Button>
-          }
-        />
-      </div>
-    </div>
-  );
-
-  // Afficher un état de chargement
   if (loading) {
-    // Rendu à l'hydratation : les deux versions sont dans le DOM, le CSS (`v2:`) choisit
-    return (
-      <>
-        <div
-          className={`hidden v2:block ${EVENT_DETAIL_PAGE_CLASS}`}
-          role="status"
-          aria-label="Chargement de l'événement"
-        >
-          <div className={EVENT_DETAIL_CONTAINER_CLASS} aria-hidden="true">
-            <div className="mb-6 h-4 w-40 animate-pulse rounded-full bg-white/[0.04]" />
-            <div className="aspect-[4/3] animate-pulse rounded-[2rem] bg-white/[0.04] sm:aspect-[16/9] lg:aspect-[21/9]" />
-            <div className="mt-8 h-10 w-2/3 animate-pulse rounded-full bg-white/[0.04] md:mt-12" />
-            <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
-              <div className="h-56 animate-pulse rounded-2xl bg-white/[0.04] lg:col-span-2" />
-              <div className="h-56 animate-pulse rounded-2xl bg-white/[0.04]" />
-            </div>
-          </div>
-        </div>
-        <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-8 pt-32 v2:hidden">
-          <div className="container mx-auto">
-            <div className="flex justify-center items-center min-h-[40vh]">
-              <div className="animate-pulse flex flex-col items-center">
-                <Loader2 className="w-12 h-12 text-purple-500 mb-4 animate-spin" />
-                <h2 className="text-2xl font-semibold text-white">Chargement de l'événement...</h2>
-              </div>
-            </div>
-          </div>
-        </div>
-      </>
-    );
+    return <EventLoadingState />;
   }
 
-  // Afficher un message d'erreur
   if (error) {
-    if (isV2) {
-      const notFound = error === 'Événement non trouvé';
-      return renderV2State(
-        notFound ? 'Événement introuvable' : 'Une erreur est survenue',
-        notFound ? "Cet événement n'existe pas ou a été supprimé." : error,
-        notFound ? 'neutral' : 'error'
-      );
-    }
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-8 pt-32">
-        <div className="container mx-auto">
-          <div className="flex justify-center items-center min-h-[40vh]">
-            <div className="bg-red-500/10 border border-red-500/50 p-8 rounded-lg text-center max-w-lg">
-              <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-              <h2 className="text-2xl font-semibold text-white mb-2">
-                {error === 'Événement non trouvé'
-                  ? 'Événement non trouvé'
-                  : 'Une erreur est survenue'}
-              </h2>
-              <p className="text-gray-300 mb-6">
-                {error === 'Événement non trouvé'
-                  ? "L'événement que vous recherchez n'existe pas ou a été supprimé."
-                  : error}
-              </p>
-              <Link
-                href="/events"
-                className="px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors inline-flex items-center gap-2"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Retour aux événements
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <EventErrorState error={error} isV2={isV2} />;
   }
 
-  // Si l'événement n'est pas trouvé
   if (!event) {
-    if (isV2) {
-      return renderV2State(
-        'Événement indisponible',
-        "Cet événement n'est pas disponible pour le moment.",
-        'neutral'
-      );
-    }
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-8 pt-32">
-        <div className="container mx-auto">
-          <div className="flex justify-center items-center min-h-[40vh]">
-            <div className="bg-gray-800/30 backdrop-blur-sm rounded-lg p-8 text-center max-w-lg">
-              <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
-              <h2 className="text-2xl font-semibold text-white mb-2">Événement non disponible</h2>
-              <p className="text-gray-300 mb-6">
-                Désolé, cet événement n'est pas disponible pour le moment.
-              </p>
-              <Link
-                href="/events"
-                className="px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors inline-flex items-center gap-2"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Retour aux événements
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <EventUnavailableState isV2={isV2} />;
   }
 
   // Vérifier que la date existe avant d'appeler parseISO
@@ -404,35 +480,7 @@ export default function EventDetailPage() {
       virtualStartDate: event.virtualStartDate,
       isVirtualOccurrence: event.isVirtualOccurrence,
     });
-    if (isV2) {
-      return renderV2State(
-        'Erreur de données',
-        "Cet événement n'a pas de date valide. Veuillez contacter l'administrateur.",
-        'error'
-      );
-    }
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black p-8 pt-32">
-        <div className="container mx-auto">
-          <div className="flex justify-center items-center min-h-[40vh]">
-            <div className="bg-red-500/10 border border-red-500/50 p-8 rounded-lg text-center max-w-lg">
-              <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-              <h2 className="text-2xl font-semibold text-white mb-2">Erreur de données</h2>
-              <p className="text-gray-300 mb-6">
-                Cet événement n'a pas de date valide. Veuillez contacter l'administrateur.
-              </p>
-              <Link
-                href="/events"
-                className="px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors inline-flex items-center gap-2"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Retour aux événements
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <EventDataErrorState isV2={isV2} />;
   }
 
   const isEventPast = isPast(parseISO(eventDate));
@@ -636,20 +684,8 @@ export default function EventDetailPage() {
                   <div className="mb-6">
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-gray-300">Statut</span>
-                      <span
-                        className={`font-medium ${
-                          event.status === 'UPCOMING'
-                            ? 'text-blue-400'
-                            : event.status === 'COMPLETED'
-                              ? 'text-green-400'
-                              : 'text-red-400'
-                        }`}
-                      >
-                        {event.status === 'UPCOMING'
-                          ? 'À venir'
-                          : event.status === 'COMPLETED'
-                            ? 'Terminé'
-                            : 'Annulé'}
+                      <span className={`font-medium ${getEventColorClass(event.status)}`}>
+                        {getEventStatusText(event.status)}
                       </span>
                     </div>
                   </div>

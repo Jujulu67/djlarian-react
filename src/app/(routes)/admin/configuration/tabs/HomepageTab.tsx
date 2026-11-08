@@ -12,6 +12,31 @@ import { Textarea } from '@/components/ui/textarea';
 import { useConfigs } from '@/stores/useConfigs';
 import type { HomepageConfig } from '@/types/config';
 
+type ToggleState = 'hero' | 'on' | 'off';
+
+const TOGGLE_CLASSES: Record<ToggleState, string> = {
+  hero: 'bg-blue-500/20 text-blue-300 cursor-default',
+  on: 'bg-green-500/20 text-green-300 hover:bg-green-500/40',
+  off: 'bg-red-500/20 text-red-300 hover:bg-red-500/40',
+};
+
+const TOGGLE_LABELS: Record<ToggleState, string> = {
+  hero: 'Toujours actif',
+  on: 'Actif',
+  off: 'Inactif',
+};
+
+const TOGGLE_ARIA_ACTIONS: Record<ToggleState, string> = {
+  hero: 'Toujours actif',
+  on: 'Désactiver',
+  off: 'Activer',
+};
+
+const getToggleState = (section: string, isEnabled: unknown): ToggleState => {
+  if (section === 'hero') return 'hero';
+  return isEnabled ? 'on' : 'off';
+};
+
 const HomepageTab = (): React.JSX.Element => {
   const { homepage, update } = useConfigs();
 
@@ -417,6 +442,7 @@ const HomepageTab = (): React.JSX.Element => {
                         const isEnabled =
                           section === 'hero' ||
                           homepage[`${section}Enabled` as keyof HomepageConfig];
+                        const toggleState = getToggleState(section, isEnabled);
 
                         return (
                           <Draggable key={section} draggableId={section} index={index}>
@@ -458,21 +484,11 @@ const HomepageTab = (): React.JSX.Element => {
                                       update('homepage', prop, !homepage[prop]);
                                     }
                                   }}
-                                  className={`ml-auto px-2 py-1 text-xs rounded-full cursor-pointer ${
-                                    section === 'hero'
-                                      ? 'bg-blue-500/20 text-blue-300 cursor-default'
-                                      : isEnabled
-                                        ? 'bg-green-500/20 text-green-300 hover:bg-green-500/40'
-                                        : 'bg-red-500/20 text-red-300 hover:bg-red-500/40'
-                                  }`}
+                                  className={`ml-auto px-2 py-1 text-xs rounded-full cursor-pointer ${TOGGLE_CLASSES[toggleState]}`}
                                   disabled={section === 'hero'}
-                                  aria-label={`${section === 'hero' ? 'Toujours actif' : isEnabled ? 'Désactiver' : 'Activer'} ${name}`}
+                                  aria-label={`${TOGGLE_ARIA_ACTIONS[toggleState]} ${name}`}
                                 >
-                                  {section === 'hero'
-                                    ? 'Toujours actif'
-                                    : isEnabled
-                                      ? 'Actif'
-                                      : 'Inactif'}
+                                  {TOGGLE_LABELS[toggleState]}
                                 </button>
                               </div>
                             )}

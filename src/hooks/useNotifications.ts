@@ -73,6 +73,72 @@ interface UseNotificationsReturn {
 /**
  * Hook générique pour gérer les notifications
  */
+/** Paramètres de la liste des notifications (50 maximum) */
+function buildNotificationsQuery(unreadOnly: boolean, type: NotificationType | undefined) {
+  const params = new URLSearchParams();
+  if (unreadOnly) {
+    params.set('unreadOnly', 'true');
+  }
+  if (type) {
+    params.set('type', type);
+  }
+  params.set('limit', '50');
+  return params;
+}
+
+/**
+ * Si le compteur a augmenté, émettre un événement pour synchroniser les autres instances.
+ * On le fait dans un setTimeout pour éviter les warnings React
+ * « Cannot update a component while rendering a different component ».
+ */
+function notifyUnreadIncrease(newUnreadCount: number, prevCount: number) {
+  if (typeof window !== 'undefined' && newUnreadCount > prevCount) {
+    setTimeout(() => {
+      window.dispatchEvent(
+        new CustomEvent('notifications-updated', {
+          detail: { unreadCount: newUnreadCount, previousCount: prevCount },
+        })
+      );
+    }, 0);
+  }
+}
+
+/** Vrai pour une Date (ou un objet exposant toISOString) */
+function hasToIsoString(value: unknown): value is Date {
+  return !!value && typeof value === 'object' && 'toISOString' in value;
+}
+
+/** Date de création normalisée en chaîne ISO (maintenant si absente) */
+function normalizeCreatedAt(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (hasToIsoString(value)) return value.toISOString();
+  return new Date().toISOString();
+}
+
+/** Date de lecture normalisée en chaîne ISO, ou null */
+function normalizeReadAt(value: unknown): string | null {
+  if (value && typeof value === 'string') return value;
+  if (hasToIsoString(value)) return value.toISOString();
+  return null;
+}
+
+/** Valide et normalise une notification reçue de l'API */
+function normalizeNotification(notif: unknown): Notification {
+  const notification = notif as Partial<Notification> & {
+    createdAt?: string | Date;
+    readAt?: string | Date | null;
+    isArchived?: boolean;
+    deletedAt?: string | null;
+  };
+  return {
+    ...notification,
+    isArchived: notification.isArchived ?? false,
+    deletedAt: notification.deletedAt ?? null,
+    createdAt: normalizeCreatedAt(notification.createdAt),
+    readAt: normalizeReadAt(notification.readAt),
+  } as Notification;
+}
+
 export function useNotifications(
   options: {
     unreadOnly?: boolean;
@@ -126,15 +192,7 @@ export function useNotifications(
         setIsLoading(true);
         setError(null);
 
-        const params = new URLSearchParams();
-        if (unreadOnly) {
-          params.set('unreadOnly', 'true');
-        }
-        if (type) {
-          params.set('type', type);
-        }
-        params.set('limit', '50');
-
+        const params = buildNotificationsQuery(unreadOnly, type);
         const response = await fetchWithAuth(`/api/notifications?${params.toString()}`);
 
         if (!response.ok) {
@@ -160,54 +218,13 @@ export function useNotifications(
         }
 
         // Valider et normaliser les notifications
-        const notificationsList = (result.notifications || []).map((notif: unknown) => {
-          const notification = notif as Partial<Notification> & {
-            createdAt?: string | Date;
-            readAt?: string | Date | null;
-            isArchived?: boolean;
-            deletedAt?: string | null;
-          };
-          const createdAtValue =
-            typeof notification.createdAt === 'string'
-              ? notification.createdAt
-              : notification.createdAt &&
-                  typeof notification.createdAt === 'object' &&
-                  'toISOString' in notification.createdAt
-                ? (notification.createdAt as Date).toISOString()
-                : new Date().toISOString();
-          const readAtValue =
-            notification.readAt && typeof notification.readAt === 'string'
-              ? notification.readAt
-              : notification.readAt &&
-                  typeof notification.readAt === 'object' &&
-                  'toISOString' in notification.readAt
-                ? (notification.readAt as Date).toISOString()
-                : null;
-          return {
-            ...notification,
-            isArchived: notification.isArchived ?? false,
-            deletedAt: notification.deletedAt ?? null,
-            createdAt: createdAtValue,
-            readAt: readAtValue,
-          } as Notification;
-        });
+        const notificationsList = (result.notifications || []).map(normalizeNotification);
 
         const newUnreadCount = result.unreadCount || 0;
 
         // Détecter si de nouvelles notifications non lues sont arrivées
         setUnreadCount((prevCount) => {
-          // Si le compteur a augmenté, émettre un événement pour synchroniser les autres instances.
-          // On le fait dans un setTimeout pour éviter les warnings React
-          // « Cannot update a component while rendering a different component ».
-          if (typeof window !== 'undefined' && newUnreadCount > prevCount) {
-            setTimeout(() => {
-              window.dispatchEvent(
-                new CustomEvent('notifications-updated', {
-                  detail: { unreadCount: newUnreadCount, previousCount: prevCount },
-                })
-              );
-            }, 0);
-          }
+          notifyUnreadIncrease(newUnreadCount, prevCount);
           return newUnreadCount;
         });
 

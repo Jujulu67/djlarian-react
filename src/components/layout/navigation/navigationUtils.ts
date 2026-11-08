@@ -19,9 +19,9 @@ export function hasArcadeAccess(
 
 /** Source de l'avatar (desktop et mobile) : les images Google passent par le proxy. */
 export function getAvatarSrc(image: string): string {
-  return image.startsWith('http://') || image.startsWith('https://')
-    ? image.includes('googleusercontent.com')
-      ? `/api/images/proxy?url=${encodeURIComponent(image)}`
-      : image
-    : image;
+  const isHttpUrl = image.startsWith('http://') || image.startsWith('https://');
+  if (isHttpUrl && image.includes('googleusercontent.com')) {
+    return `/api/images/proxy?url=${encodeURIComponent(image)}`;
+  }
+  return image;
 }

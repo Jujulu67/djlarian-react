@@ -7,6 +7,12 @@ interface EventPreviewProps {
   event: EventFormData & { currentImage?: string };
 }
 
+function getEventBadgeLabel(status?: string) {
+  if (status === 'UPCOMING') return 'À venir';
+  if (status === 'COMPLETED') return 'Terminé';
+  return 'Annulé';
+}
+
 export default function EventPreview({ event }: Readonly<EventPreviewProps>) {
   // Utiliser l'image preview stockée dans formData, ou current image si disponible
   const imageToShow = event.currentImage || null;
@@ -31,11 +37,7 @@ export default function EventPreview({ event }: Readonly<EventPreviewProps>) {
         <div className="absolute top-4 left-4 flex gap-2">
           <span className="bg-blue-500/80 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
             <Clock className="w-3 h-3" />
-            {event.status === 'UPCOMING'
-              ? 'À venir'
-              : event.status === 'COMPLETED'
-                ? 'Terminé'
-                : 'Annulé'}
+            {getEventBadgeLabel(event.status)}
           </span>
 
           {event.recurrence?.isRecurring && (

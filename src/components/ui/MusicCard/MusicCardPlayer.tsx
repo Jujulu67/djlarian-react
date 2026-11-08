@@ -36,6 +36,7 @@ export const MusicCardPlayer: React.FC<MusicCardPlayerProps> = ({
   }
 
   const isYouTube = platform === 'youtube';
+  const showYouTubePlayer = isYouTube && Boolean(videoId);
   const bgColor = isYouTube
     ? 'bg-purple-600/70 hover:bg-purple-700/90'
     : 'bg-orange-500/70 hover:bg-orange-600/90';
@@ -47,7 +48,7 @@ export const MusicCardPlayer: React.FC<MusicCardPlayerProps> = ({
       }`}
       style={{ position: 'relative', zIndex: 10 }}
     >
-      {isYouTube && videoId ? (
+      {showYouTubePlayer && (
         <iframe
           id={`youtube-iframe-${track.id}`}
           title={`Lecteur YouTube : ${track.title}`}
@@ -66,7 +67,8 @@ export const MusicCardPlayer: React.FC<MusicCardPlayerProps> = ({
           ref={iframeRef}
           onLoad={onLoad}
         />
-      ) : embedUrl ? (
+      )}
+      {!showYouTubePlayer && Boolean(embedUrl) && (
         <iframe
           id={`soundcloud-iframe-${track.id}`}
           title={`Lecteur SoundCloud : ${track.title}`}
@@ -80,7 +82,7 @@ export const MusicCardPlayer: React.FC<MusicCardPlayerProps> = ({
           ref={iframeRef}
           onLoad={onLoad}
         />
-      ) : null}
+      )}
 
       <div className="absolute top-0 right-0" style={{ zIndex: 1000 }}>
         <button

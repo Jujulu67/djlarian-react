@@ -8,6 +8,13 @@ interface UseLiveSubmissionsOptions {
   useBlobStorage?: boolean;
 }
 
+function appendSubmissionFields(formData: FormData, title: string, description?: string) {
+  formData.append('title', title);
+  if (description) {
+    formData.append('description', description);
+  }
+}
+
 export function useLiveSubmissions(options?: UseLiveSubmissionsOptions) {
   const { data: session } = useSession();
   const [submissions, setSubmissions] = useState<LiveSubmission[]>([]);
@@ -35,6 +42,20 @@ export function useLiveSubmissions(options?: UseLiveSubmissionsOptions) {
     }
   }, []);
 
+  const handleSubmissionResponse = useCallback(
+    async (response: Response, errorFallback: string) => {
+      if (response.ok) {
+        const data = await response.json();
+        await loadSubmissions();
+        return { success: true, data: data.data };
+      }
+      const errorData = await response.json();
+      setError(errorData.error || errorFallback);
+      return { success: false, error: errorData.error };
+    },
+    [loadSubmissions]
+  );
+
   const submitFile = useCallback(
     async (input: CreateSubmissionInput) => {
       try {
@@ -45,25 +66,14 @@ export function useLiveSubmissions(options?: UseLiveSubmissionsOptions) {
         if (input.draftId) {
           const formData = new FormData();
           formData.append('draftId', input.draftId);
-          formData.append('title', input.title);
-          if (input.description) {
-            formData.append('description', input.description);
-          }
+          appendSubmissionFields(formData, input.title, input.description);
 
           const response = await fetchWithAuth('/api/live/submissions', {
             method: 'POST',
             body: formData,
           });
 
-          if (response.ok) {
-            const data = await response.json();
-            await loadSubmissions();
-            return { success: true, data: data.data };
-          } else {
-            const errorData = await response.json();
-            setError(errorData.error || 'Erreur lors de la soumission');
-            return { success: false, error: errorData.error };
-          }
+          return await handleSubmissionResponse(response, 'Erreur lors de la soumission');
         }
 
         // Sinon, uploader le fichier et créer la soumission
@@ -81,25 +91,14 @@ export function useLiveSubmissions(options?: UseLiveSubmissionsOptions) {
         if (options?.useBlobStorage === false) {
           const formData = new FormData();
           formData.append('file', input.file);
-          formData.append('title', input.title);
-          if (input.description) {
-            formData.append('description', input.description);
-          }
+          appendSubmissionFields(formData, input.title, input.description);
 
           const response = await fetchWithAuth('/api/live/submissions', {
             method: 'POST',
             body: formData,
           });
 
-          if (response.ok) {
-            const data = await response.json();
-            await loadSubmissions();
-            return { success: true, data: data.data };
-          } else {
-            const errorData = await response.json();
-            setError(errorData.error || 'Erreur lors de la soumission');
-            return { success: false, error: errorData.error };
-          }
+          return await handleSubmissionResponse(response, 'Erreur lors de la soumission');
         }
 
         // Sinon, uploader directement vers Blob puis créer la soumission
@@ -127,15 +126,7 @@ export function useLiveSubmissions(options?: UseLiveSubmissionsOptions) {
           }),
         });
 
-        if (response.ok) {
-          const data = await response.json();
-          await loadSubmissions();
-          return { success: true, data: data.data };
-        } else {
-          const errorData = await response.json();
-          setError(errorData.error || 'Erreur lors de la soumission');
-          return { success: false, error: errorData.error };
-        }
+        return await handleSubmissionResponse(response, 'Erreur lors de la soumission');
       } catch (err) {
         setError('Erreur de connexion');
         logger.error('[Live] Erreur soumission:', err);
@@ -144,7 +135,7 @@ export function useLiveSubmissions(options?: UseLiveSubmissionsOptions) {
         setIsSubmitting(false);
       }
     },
-    [loadSubmissions, options?.useBlobStorage, session?.user?.id]
+    [handleSubmissionResponse, options?.useBlobStorage, session?.user?.id]
   );
 
   const updateSubmission = useCallback(

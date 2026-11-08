@@ -5,6 +5,13 @@ import { useRouter } from 'next/navigation';
 import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
 
+/** Classes du conteneur de contenu (plein écran, ou padding avec défilement optionnel). */
+const getContentClass = (fullscreenContent: boolean, noScroll: boolean): string => {
+  if (fullscreenContent) return 'w-full h-full p-0 m-0';
+  const scrollClass = noScroll ? 'overflow-y-auto md:overflow-hidden' : 'overflow-y-auto';
+  return `p-6 md:p-8 lg:p-10 max-h-[80vh] ${scrollClass}`;
+};
+
 interface ModalProps {
   children: React.ReactNode;
   maxWidth?: string; // ex: 'max-w-md', 'max-w-lg', etc.
@@ -129,20 +136,9 @@ export default function Modal({
         >
           <X className="w-5 h-5" />
         </button>
-        <div
-          className={
-            fullscreenContent
-              ? 'w-full h-full p-0 m-0'
-              : `p-6 md:p-8 lg:p-10 max-h-[80vh] ${noScroll ? 'overflow-y-auto md:overflow-hidden' : 'overflow-y-auto'}`
-          }
-        >
-          {isReady ? (
-            showLoader ? (
-              <div className="animate-fadeIn">{children}</div>
-            ) : (
-              children
-            )
-          ) : null}
+        <div className={getContentClass(fullscreenContent, noScroll)}>
+          {isReady && showLoader && <div className="animate-fadeIn">{children}</div>}
+          {isReady && !showLoader && children}
         </div>
       </div>
     </div>

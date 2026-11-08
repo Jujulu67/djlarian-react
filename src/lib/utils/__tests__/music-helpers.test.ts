@@ -20,18 +20,12 @@ describe('music-helpers', () => {
   });
 
   describe('extractInfoFromTitle', () => {
-    it('should extract BPM from title', () => {
-      const result = extractInfoFromTitle('Track Name 128 BPM');
-      expect(result.bpm).toBe(128);
-    });
-
-    it('should extract BPM from brackets', () => {
-      const result = extractInfoFromTitle('Track Name [128]');
-      expect(result.bpm).toBe(128);
-    });
-
-    it('should extract BPM from parentheses', () => {
-      const result = extractInfoFromTitle('Track Name (128 BPM)');
+    it.each([
+      ['should extract BPM from title', 'Track Name 128 BPM'],
+      ['should extract BPM from brackets', 'Track Name [128]'],
+      ['should extract BPM from parentheses', 'Track Name (128 BPM)'],
+    ])('%s', (_title, input) => {
+      const result = extractInfoFromTitle(input);
       expect(result.bpm).toBe(128);
     });
 

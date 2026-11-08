@@ -10,7 +10,34 @@ interface ReleaseItemProps {
   onToggle: (id: string) => void;
 }
 
+type ReleaseState = 'exists' | 'selected' | 'idle';
+
+const getReleaseState = (release: DetectedRelease, isSelected: boolean): ReleaseState => {
+  if (release.exists) return 'exists';
+  return isSelected ? 'selected' : 'idle';
+};
+
+const ARIA_LABELS: Record<ReleaseState, (title: string) => string> = {
+  exists: (title) => `Release déjà importée : ${title}`,
+  selected: (title) => `Désélectionner : ${title}`,
+  idle: (title) => `Sélectionner : ${title}`,
+};
+
+const CLASS_NAMES: Record<ReleaseState, string> = {
+  exists: 'bg-green-900/10 border-green-500/20 text-green-400',
+  selected: 'bg-purple-900/20 border-purple-500/40 shadow-[0_0_15px_rgba(147,51,234,0.1)]',
+  idle: 'bg-gray-800/20 border-gray-700/30 text-muted-foreground hover:bg-gray-800/30',
+};
+
+const getLinkTitle = (release: DetectedRelease): string => {
+  if (release.spotifyUrl) return 'Voir sur Spotify';
+  if (release.soundcloudUrl) return 'Voir sur SoundCloud';
+  return 'Voir sur YouTube';
+};
+
 export function ReleaseItem({ release, isSelected, onToggle }: Readonly<ReleaseItemProps>) {
+  const state = getReleaseState(release, isSelected);
+
   return (
     <div
       role="button"
@@ -24,20 +51,8 @@ export function ReleaseItem({ release, isSelected, onToggle }: Readonly<ReleaseI
         }
       }}
       tabIndex={0}
-      aria-label={
-        release.exists
-          ? `Release déjà importée : ${release.title}`
-          : isSelected
-            ? `Désélectionner : ${release.title}`
-            : `Sélectionner : ${release.title}`
-      }
-      className={`flex items-center gap-4 p-4 rounded-lg border transition-all ${
-        release.exists
-          ? 'bg-green-900/10 border-green-500/20 text-green-400'
-          : isSelected
-            ? 'bg-purple-900/20 border-purple-500/40 shadow-[0_0_15px_rgba(147,51,234,0.1)]'
-            : 'bg-gray-800/20 border-gray-700/30 text-muted-foreground hover:bg-gray-800/30'
-      }
+      aria-label={ARIA_LABELS[state](release.title)}
+      className={`flex items-center gap-4 p-4 rounded-lg border transition-all ${CLASS_NAMES[state]}
         cursor-pointer
         hover:ring-1 hover:ring-purple-500/50`}
     >
@@ -97,13 +112,7 @@ export function ReleaseItem({ release, isSelected, onToggle }: Readonly<ReleaseI
           target="_blank"
           rel="noopener noreferrer"
           className="p-2 text-muted-foreground hover:text-white hover:bg-gray-700 rounded-lg flex-shrink-0"
-          title={
-            release.spotifyUrl
-              ? 'Voir sur Spotify'
-              : release.soundcloudUrl
-                ? 'Voir sur SoundCloud'
-                : 'Voir sur YouTube'
-          }
+          title={getLinkTitle(release)}
           onClick={(e) => e.stopPropagation()}
         >
           <ExternalLink className="w-5 h-5" />

@@ -42,6 +42,42 @@ interface LeaderboardData {
   global: GlobalStats;
 }
 
+type CasinoTab = 'winners' | 'richest' | 'active';
+
+const getRankClass = (index: number): string => {
+  if (index === 0) return 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30';
+  if (index === 1) return 'bg-gray-400/20 text-gray-400';
+  if (index === 2) return 'bg-amber-700/20 text-amber-600';
+  return 'bg-white/5 text-gray-500';
+};
+
+const CASINO_TAB_TITLES: Record<CasinoTab, string> = {
+  winners: 'Top 10 Vainqueurs (Total)',
+  richest: 'Top 10 Fortunes (Actuel)',
+  active: 'Top 10 Joueurs (Spins)',
+};
+
+const CASINO_TAB_METRIC_LABELS: Record<CasinoTab, string> = {
+  winners: 'Wins',
+  richest: 'Jetons',
+  active: 'Spins',
+};
+
+const getCasinoList = (
+  data: LeaderboardData | null,
+  tab: CasinoTab
+): CasinoLeaderboard[] | undefined => {
+  if (tab === 'winners') return data?.casino;
+  if (tab === 'richest') return data?.richest;
+  return data?.mostActive;
+};
+
+const getCasinoMetricValue = (player: CasinoLeaderboard, tab: CasinoTab): number => {
+  if (tab === 'winners') return player.totalWins;
+  if (tab === 'richest') return player.tokens;
+  return player.totalSpins;
+};
+
 export default function GamesPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -218,15 +254,7 @@ export default function GamesPage() {
                   >
                     <div className="flex items-center gap-3">
                       <div
-                        className={`w-8 h-8 flex items-center justify-center rounded-lg font-bold ${
-                          index === 0
-                            ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-                            : index === 1
-                              ? 'bg-gray-400/20 text-gray-400'
-                              : index === 2
-                                ? 'bg-amber-700/20 text-amber-600'
-                                : 'bg-white/5 text-gray-500'
-                        }`}
+                        className={`w-8 h-8 flex items-center justify-center rounded-lg font-bold ${getRankClass(index)}`}
                       >
                         {index + 1}
                       </div>
@@ -330,33 +358,16 @@ export default function GamesPage() {
 
               <div className="space-y-4">
                 <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4 v2:text-xs v2:tracking-[0.2em] v2:text-white/50">
-                  {activeTab === 'winners'
-                    ? 'Top 10 Vainqueurs (Total)'
-                    : activeTab === 'richest'
-                      ? 'Top 10 Fortunes (Actuel)'
-                      : 'Top 10 Joueurs (Spins)'}
+                  {CASINO_TAB_TITLES[activeTab]}
                 </h3>
-                {(activeTab === 'winners'
-                  ? data?.casino
-                  : activeTab === 'richest'
-                    ? data?.richest
-                    : data?.mostActive
-                )?.map((player, index) => (
+                {getCasinoList(data, activeTab)?.map((player, index) => (
                   <div
                     key={player.id}
                     className="flex items-center justify-between p-3 rounded-xl bg-black/20 border border-white/5 hover:bg-white/5 transition-colors v2:bg-white/[0.02] v2:border-white/[0.06] v2:hover:bg-white/[0.04]"
                   >
                     <div className="flex items-center gap-3">
                       <div
-                        className={`w-8 h-8 flex items-center justify-center rounded-lg font-bold ${
-                          index === 0
-                            ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-                            : index === 1
-                              ? 'bg-gray-400/20 text-gray-400'
-                              : index === 2
-                                ? 'bg-amber-700/20 text-amber-600'
-                                : 'bg-white/5 text-gray-500'
-                        }`}
+                        className={`w-8 h-8 flex items-center justify-center rounded-lg font-bold ${getRankClass(index)}`}
                       >
                         {index + 1}
                       </div>
@@ -387,18 +398,10 @@ export default function GamesPage() {
                     </div>
                     <div className="text-right">
                       <span className="font-audiowide text-amber-400 block">
-                        {activeTab === 'winners'
-                          ? player.totalWins.toLocaleString()
-                          : activeTab === 'richest'
-                            ? player.tokens.toLocaleString()
-                            : player.totalSpins.toLocaleString()}
+                        {getCasinoMetricValue(player, activeTab).toLocaleString()}
                       </span>
                       <span className="text-[10px] text-gray-500">
-                        {activeTab === 'winners'
-                          ? 'Wins'
-                          : activeTab === 'richest'
-                            ? 'Jetons'
-                            : 'Spins'}
+                        {CASINO_TAB_METRIC_LABELS[activeTab]}
                       </span>
                     </div>
                   </div>

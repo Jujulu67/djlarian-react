@@ -160,6 +160,11 @@ export const GlassSelect = ({
     }
   }, [isOpen, options, isCompact]);
 
+  let triggerWidth = 'auto';
+  if (!isCompact && badgeWidth) {
+    triggerWidth = `${badgeWidth}px`;
+  }
+
   return (
     <div ref={selectRef} className="relative inline-block">
       <button
@@ -174,8 +179,8 @@ export const GlassSelect = ({
         } ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}
         style={{
           paddingRight: isCompact ? '1rem' : '1.75rem',
-          minWidth: isCompact ? 'auto' : badgeWidth ? `${badgeWidth}px` : 'auto',
-          width: isCompact ? 'auto' : badgeWidth ? `${badgeWidth}px` : 'auto',
+          minWidth: triggerWidth,
+          width: triggerWidth,
         }}
       >
         <span className="whitespace-nowrap">{selectedOption?.label || placeholder}</span>

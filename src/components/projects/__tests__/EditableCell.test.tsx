@@ -155,48 +155,22 @@ describe('EditableCell', () => {
     expect(screen.getByText('50%')).toBeInTheDocument();
   });
 
-  it('should enter edit mode for progress and save', async () => {
+  it.each([
+    ['should enter edit mode for progress and save', '75', 75],
+    ['should clamp progress value between 0 and 100', '150', 100],
+    ['should handle negative progress value', '-10', 0],
+  ])('%s', async (_title, inputValue, expected) => {
     render(<EditableCell value={50} field="progress" type="progress" onSave={mockOnSave} />);
 
     const button = screen.getByText('50%');
     fireEvent.click(button);
 
     const input = screen.getByDisplayValue('50');
-    fireEvent.change(input, { target: { value: '75' } });
+    fireEvent.change(input, { target: { value: inputValue } });
     fireEvent.blur(input);
 
     await waitFor(() => {
-      expect(mockOnSave).toHaveBeenCalledWith('progress', 75);
-    });
-  });
-
-  it('should clamp progress value between 0 and 100', async () => {
-    render(<EditableCell value={50} field="progress" type="progress" onSave={mockOnSave} />);
-
-    const button = screen.getByText('50%');
-    fireEvent.click(button);
-
-    const input = screen.getByDisplayValue('50');
-    fireEvent.change(input, { target: { value: '150' } });
-    fireEvent.blur(input);
-
-    await waitFor(() => {
-      expect(mockOnSave).toHaveBeenCalledWith('progress', 100);
-    });
-  });
-
-  it('should handle negative progress value', async () => {
-    render(<EditableCell value={50} field="progress" type="progress" onSave={mockOnSave} />);
-
-    const button = screen.getByText('50%');
-    fireEvent.click(button);
-
-    const input = screen.getByDisplayValue('50');
-    fireEvent.change(input, { target: { value: '-10' } });
-    fireEvent.blur(input);
-
-    await waitFor(() => {
-      expect(mockOnSave).toHaveBeenCalledWith('progress', 0);
+      expect(mockOnSave).toHaveBeenCalledWith('progress', expected);
     });
   });
 
@@ -282,63 +256,59 @@ describe('EditableCell', () => {
     });
   });
 
-  it('should format title case for name field', async () => {
-    render(<EditableCell value="test project" field="name" type="text" onSave={mockOnSave} />);
+  it.each([
+    [
+      'should format title case for name field',
+      'test project',
+      'name',
+      'NEW PROJECT NAME',
+      'New Project Name',
+    ],
+    ['should format title case for style field', 'pop', 'style', 'ROCK MUSIC', 'Rock Music'],
+    [
+      'should format title case for collab field',
+      'artist',
+      'collab',
+      'FEATURED ARTIST',
+      'Featured Artist',
+    ],
+    [
+      'should not format title case for other text fields',
+      'test',
+      'other',
+      'UPPERCASE TEXT',
+      'UPPERCASE TEXT',
+    ],
+    ['should handle empty string as null', 'Test', 'name', '   ', null],
+    [
+      'should format title case for labelFinal field',
+      'label',
+      'labelFinal',
+      'NEW LABEL',
+      'New Label',
+    ],
+    ['should handle labelFinal formatting', 'label', 'labelFinal', 'FINAL LABEL', 'Final Label'],
+    ['should handle formatTitleCase with empty string', 'test', 'name', '   ', null],
+    ['should handle formatTitleCase with single word', 'test', 'name', 'WORD', 'Word'],
+    [
+      'should handle formatTitleCase with multiple spaces',
+      'test',
+      'name',
+      'WORD1  WORD2   WORD3',
+      'Word1 Word2 Word3',
+    ],
+  ])('%s', async (_title, value, field, newValue, expected) => {
+    render(<EditableCell value={value} field={field} type="text" onSave={mockOnSave} />);
 
-    const button = screen.getByText('test project');
+    const button = screen.getByText(value);
     fireEvent.click(button);
 
-    const input = screen.getByDisplayValue('test project');
-    fireEvent.change(input, { target: { value: 'NEW PROJECT NAME' } });
+    const input = screen.getByDisplayValue(value);
+    fireEvent.change(input, { target: { value: newValue } });
     fireEvent.blur(input);
 
     await waitFor(() => {
-      expect(mockOnSave).toHaveBeenCalledWith('name', 'New Project Name');
-    });
-  });
-
-  it('should format title case for style field', async () => {
-    render(<EditableCell value="pop" field="style" type="text" onSave={mockOnSave} />);
-
-    const button = screen.getByText('pop');
-    fireEvent.click(button);
-
-    const input = screen.getByDisplayValue('pop');
-    fireEvent.change(input, { target: { value: 'ROCK MUSIC' } });
-    fireEvent.blur(input);
-
-    await waitFor(() => {
-      expect(mockOnSave).toHaveBeenCalledWith('style', 'Rock Music');
-    });
-  });
-
-  it('should format title case for collab field', async () => {
-    render(<EditableCell value="artist" field="collab" type="text" onSave={mockOnSave} />);
-
-    const button = screen.getByText('artist');
-    fireEvent.click(button);
-
-    const input = screen.getByDisplayValue('artist');
-    fireEvent.change(input, { target: { value: 'FEATURED ARTIST' } });
-    fireEvent.blur(input);
-
-    await waitFor(() => {
-      expect(mockOnSave).toHaveBeenCalledWith('collab', 'Featured Artist');
-    });
-  });
-
-  it('should not format title case for other text fields', async () => {
-    render(<EditableCell value="test" field="other" type="text" onSave={mockOnSave} />);
-
-    const button = screen.getByText('test');
-    fireEvent.click(button);
-
-    const input = screen.getByDisplayValue('test');
-    fireEvent.change(input, { target: { value: 'UPPERCASE TEXT' } });
-    fireEvent.blur(input);
-
-    await waitFor(() => {
-      expect(mockOnSave).toHaveBeenCalledWith('other', 'UPPERCASE TEXT');
+      expect(mockOnSave).toHaveBeenCalledWith(field, expected);
     });
   });
 
@@ -429,21 +399,6 @@ describe('EditableCell', () => {
     });
   });
 
-  it('should handle empty string as null', async () => {
-    render(<EditableCell value="Test" field="name" type="text" onSave={mockOnSave} />);
-
-    const button = screen.getByText('Test');
-    fireEvent.click(button);
-
-    const input = screen.getByDisplayValue('Test');
-    fireEvent.change(input, { target: { value: '   ' } });
-    fireEvent.blur(input);
-
-    await waitFor(() => {
-      expect(mockOnSave).toHaveBeenCalledWith('name', null);
-    });
-  });
-
   it('should restore original value on error', async () => {
     const failingOnSave = jest.fn().mockRejectedValue(new Error('Save failed'));
     render(<EditableCell value="Original" field="name" type="text" onSave={failingOnSave} />);
@@ -458,21 +413,6 @@ describe('EditableCell', () => {
     await waitFor(() => {
       expect(failingOnSave).toHaveBeenCalled();
       expect(input).toHaveValue('Original');
-    });
-  });
-
-  it('should format title case for labelFinal field', async () => {
-    render(<EditableCell value="label" field="labelFinal" type="text" onSave={mockOnSave} />);
-
-    const button = screen.getByText('label');
-    fireEvent.click(button);
-
-    const input = screen.getByDisplayValue('label');
-    fireEvent.change(input, { target: { value: 'NEW LABEL' } });
-    fireEvent.blur(input);
-
-    await waitFor(() => {
-      expect(mockOnSave).toHaveBeenCalledWith('labelFinal', 'New Label');
     });
   });
 
@@ -647,87 +587,18 @@ describe('EditableCell', () => {
     expect(screen.getByText(/-/)).toBeInTheDocument();
   });
 
-  it('should handle labelFinal formatting', async () => {
-    render(<EditableCell value="label" field="labelFinal" type="text" onSave={mockOnSave} />);
+  it.each([
+    ['EN_COURS value', 'en cours', 'En cours', 'EN_COURS'],
+    ['REFUSE value', 'refusé', 'Refusé', 'REFUSE'],
+  ])('should handle label normalization with %s', async (_title, value, label, expected) => {
+    render(<EditableCell value={value} field="label" type="select" onSave={mockOnSave} />);
 
-    const button = screen.getByText('label');
-    fireEvent.click(button);
-
-    const input = screen.getByDisplayValue('label');
-    fireEvent.change(input, { target: { value: 'FINAL LABEL' } });
-    fireEvent.blur(input);
-
-    await waitFor(() => {
-      expect(mockOnSave).toHaveBeenCalledWith('labelFinal', 'Final Label');
-    });
-  });
-
-  it('should handle label normalization with EN_COURS value', async () => {
-    render(<EditableCell value="en cours" field="label" type="select" onSave={mockOnSave} />);
-
-    // Click on a different option first to trigger onChange, then back to "En cours" to test normalization
-    await selectGlassSelectOption('En cours', 'Accepté');
-    await selectGlassSelectOption('Accepté', 'En cours');
+    // Click on a different option first to trigger onChange, then back to the same option to test normalization
+    await selectGlassSelectOption(label, 'Accepté');
+    await selectGlassSelectOption('Accepté', label);
 
     await waitFor(() => {
-      expect(mockOnSave).toHaveBeenCalledWith('label', 'EN_COURS');
-    });
-  });
-
-  it('should handle label normalization with REFUSE value', async () => {
-    render(<EditableCell value="refusé" field="label" type="select" onSave={mockOnSave} />);
-
-    // Click on a different option first, then back to "Refusé" to trigger onChange
-    await selectGlassSelectOption('Refusé', 'Accepté');
-    await selectGlassSelectOption('Accepté', 'Refusé');
-
-    await waitFor(() => {
-      expect(mockOnSave).toHaveBeenCalledWith('label', 'REFUSE');
-    });
-  });
-
-  it('should handle formatTitleCase with empty string', async () => {
-    render(<EditableCell value="test" field="name" type="text" onSave={mockOnSave} />);
-
-    const button = screen.getByText('test');
-    fireEvent.click(button);
-
-    const input = screen.getByDisplayValue('test');
-    fireEvent.change(input, { target: { value: '   ' } });
-    fireEvent.blur(input);
-
-    await waitFor(() => {
-      expect(mockOnSave).toHaveBeenCalledWith('name', null);
-    });
-  });
-
-  it('should handle formatTitleCase with single word', async () => {
-    render(<EditableCell value="test" field="name" type="text" onSave={mockOnSave} />);
-
-    const button = screen.getByText('test');
-    fireEvent.click(button);
-
-    const input = screen.getByDisplayValue('test');
-    fireEvent.change(input, { target: { value: 'WORD' } });
-    fireEvent.blur(input);
-
-    await waitFor(() => {
-      expect(mockOnSave).toHaveBeenCalledWith('name', 'Word');
-    });
-  });
-
-  it('should handle formatTitleCase with multiple spaces', async () => {
-    render(<EditableCell value="test" field="name" type="text" onSave={mockOnSave} />);
-
-    const button = screen.getByText('test');
-    fireEvent.click(button);
-
-    const input = screen.getByDisplayValue('test');
-    fireEvent.change(input, { target: { value: 'WORD1  WORD2   WORD3' } });
-    fireEvent.blur(input);
-
-    await waitFor(() => {
-      expect(mockOnSave).toHaveBeenCalledWith('name', 'Word1 Word2 Word3');
+      expect(mockOnSave).toHaveBeenCalledWith('label', expected);
     });
   });
 

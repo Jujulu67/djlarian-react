@@ -28,6 +28,71 @@ const updateSubmissionSchema = z
     }
   );
 
+type SubmissionUpdateFields = z.infer<typeof updateSubmissionSchema>;
+
+/** Dépingle toutes les autres soumissions (une seule épinglée à la fois). */
+async function unpinOtherSubmissions(id: string): Promise<void> {
+  await prisma.liveSubmission.updateMany({
+    where: {
+      id: { not: id }, // Toutes sauf celle qu'on est en train de pinner
+      isPinned: true,
+    },
+    data: {
+      isPinned: false,
+    },
+  });
+}
+
+/** Construit les données de mise à jour à partir des champs demandés. */
+async function buildUpdateData(
+  id: string,
+  existingSubmission: { isRolled: boolean },
+  fields: SubmissionUpdateFields
+): Promise<Prisma.LiveSubmissionUpdateInput> {
+  const { status, isRolled, isPinned } = fields;
+  const updateData: Prisma.LiveSubmissionUpdateInput = {
+    updatedAt: new Date(),
+  };
+
+  if (status !== undefined) {
+    updateData.status = status;
+  }
+
+  if (isRolled !== undefined) {
+    updateData.isRolled = isRolled;
+  }
+
+  if (isPinned !== undefined) {
+    updateData.isPinned = isPinned;
+
+    // Si on pinne une soumission, dépinner toutes les autres automatiquement
+    // ET marquer comme rolled si ce n'est pas déjà fait
+    if (isPinned) {
+      await unpinOtherSubmissions(id);
+
+      if (isRolled === undefined && !existingSubmission.isRolled) {
+        updateData.isRolled = true;
+      }
+    }
+  }
+
+  return updateData;
+}
+
+/** Message de succès selon le champ modifié (priorité : statut, rolled, épinglage). */
+function getUpdateMessage(
+  status: string | undefined,
+  isRolled: boolean | undefined,
+  isPinned: boolean | undefined
+): string {
+  if (status) {
+    return `Soumission ${status === LiveSubmissionStatus.APPROVED ? 'approuvée' : 'rejetée'} avec succès`;
+  }
+  if (isRolled !== undefined) return 'Statut rolled mis à jour';
+  if (isPinned !== undefined) return `Soumission ${isPinned ? 'épinglée' : 'désépinglée'}`;
+  return 'Soumission mise à jour';
+}
+
 /**
  * PATCH /api/admin/live/submissions/[id]
  * Met à jour le statut d'une soumission (approuver/rejeter)
@@ -88,42 +153,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return createBadRequestResponse("Impossible de modifier le statut d'un draft");
     }
 
-    // Construire les données de mise à jour
-    const updateData: Prisma.LiveSubmissionUpdateInput = {
-      updatedAt: new Date(),
-    };
-
-    if (status !== undefined) {
-      updateData.status = status;
-    }
-
-    if (isRolled !== undefined) {
-      updateData.isRolled = isRolled;
-    }
-
-    if (isPinned !== undefined) {
-      updateData.isPinned = isPinned;
-
-      // Si on pinne une soumission, dépinner toutes les autres automatiquement
-      // ET marquer comme rolled si ce n'est pas déjà fait
-      if (isPinned) {
-        // Dépinner toutes les autres
-        await prisma.liveSubmission.updateMany({
-          where: {
-            id: { not: id }, // Toutes sauf celle qu'on est en train de pinner
-            isPinned: true,
-          },
-          data: {
-            isPinned: false,
-          },
-        });
-
-        // Marquer comme rolled si ce n'est pas déjà fait
-        if (isRolled === undefined && !existingSubmission.isRolled) {
-          updateData.isRolled = true;
-        }
-      }
-    }
+    const updateData = await buildUpdateData(id, existingSubmission, {
+      status,
+      isRolled,
+      isPinned,
+    });
 
     // Mettre à jour la soumission
     const updatedSubmission = await prisma.liveSubmission.update({
@@ -141,13 +175,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       },
     });
 
-    const updateMessage = status
-      ? `Soumission ${status === LiveSubmissionStatus.APPROVED ? 'approuvée' : 'rejetée'} avec succès`
-      : isRolled !== undefined
-        ? `Statut rolled mis à jour`
-        : isPinned !== undefined
-          ? `Soumission ${isPinned ? 'épinglée' : 'désépinglée'}`
-          : 'Soumission mise à jour';
+    const updateMessage = getUpdateMessage(status, isRolled, isPinned);
 
     logger.debug(`[Admin Live] Soumission ${id} mise à jour:`, updateData);
 

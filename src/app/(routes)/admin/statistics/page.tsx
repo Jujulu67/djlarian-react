@@ -23,6 +23,8 @@ type Period = 'daily' | 'weekly' | 'monthly';
 
 const VERCEL_PROJECT_URL = 'https://vercel.com/larians-projects-a2dc5026/djlarian-react';
 
+const PERIOD_SHORT_LABELS: Record<Period, string> = { daily: '24h', weekly: '7j', monthly: '30j' };
+
 export default function StatisticsPage() {
   const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState<Period>('daily');
@@ -141,9 +143,7 @@ export default function StatisticsPage() {
                 <p className={`flex items-center text-xs mt-2 ${getGrowthColor(recentUsers)}`}>
                   {getGrowthIcon(recentUsers)}
                   <span>{recentUsers} nouveaux</span>
-                  <span className="text-gray-500 ml-1">
-                    ({activeView === 'daily' ? '24h' : activeView === 'weekly' ? '7j' : '30j'})
-                  </span>
+                  <span className="text-gray-500 ml-1">({PERIOD_SHORT_LABELS[activeView]})</span>
                 </p>
               </div>
               <div className="bg-purple-500/20 p-3 rounded-lg">
@@ -162,9 +162,7 @@ export default function StatisticsPage() {
                 <p className={`flex items-center text-xs mt-2 ${getGrowthColor(recentEvents)}`}>
                   {getGrowthIcon(recentEvents)}
                   <span>{recentEvents} nouveaux</span>
-                  <span className="text-gray-500 ml-1">
-                    ({activeView === 'daily' ? '24h' : activeView === 'weekly' ? '7j' : '30j'})
-                  </span>
+                  <span className="text-gray-500 ml-1">({PERIOD_SHORT_LABELS[activeView]})</span>
                 </p>
               </div>
               <div className="bg-blue-500/20 p-3 rounded-lg">
@@ -183,9 +181,7 @@ export default function StatisticsPage() {
                 <p className={`flex items-center text-xs mt-2 ${getGrowthColor(recentTracks)}`}>
                   {getGrowthIcon(recentTracks)}
                   <span>{recentTracks} nouveaux</span>
-                  <span className="text-gray-500 ml-1">
-                    ({activeView === 'daily' ? '24h' : activeView === 'weekly' ? '7j' : '30j'})
-                  </span>
+                  <span className="text-gray-500 ml-1">({PERIOD_SHORT_LABELS[activeView]})</span>
                 </p>
               </div>
               <div className="bg-indigo-500/20 p-3 rounded-lg">

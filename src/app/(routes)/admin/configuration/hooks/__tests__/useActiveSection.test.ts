@@ -19,22 +19,18 @@ describe('useActiveSection', () => {
     expect(result.current.activeSection).toBe('general');
   });
 
-  it('reads a valid section from the initial hash', () => {
-    window.history.replaceState(null, '', '/admin/configuration#security');
+  it.each([
+    ['reads a valid section from the initial hash', '/admin/configuration#security', 'security'],
+    ['ignores an unknown hash', '/admin/configuration#inconnu', 'general'],
+    [
+      'selects the images section when the pathname ends with /images',
+      '/admin/configuration/images',
+      'images',
+    ],
+  ])('%s', (_label, url, expectedSection) => {
+    window.history.replaceState(null, '', url);
     const { result } = renderHook(() => useActiveSection());
-    expect(result.current.activeSection).toBe('security');
-  });
-
-  it('ignores an unknown hash', () => {
-    window.history.replaceState(null, '', '/admin/configuration#inconnu');
-    const { result } = renderHook(() => useActiveSection());
-    expect(result.current.activeSection).toBe('general');
-  });
-
-  it('selects the images section when the pathname ends with /images', () => {
-    window.history.replaceState(null, '', '/admin/configuration/images');
-    const { result } = renderHook(() => useActiveSection());
-    expect(result.current.activeSection).toBe('images');
+    expect(result.current.activeSection).toBe(expectedSection);
   });
 
   it('sets the hash when selecting a non-general section', () => {

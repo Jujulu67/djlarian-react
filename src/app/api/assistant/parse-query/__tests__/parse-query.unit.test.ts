@@ -18,8 +18,14 @@ jest.mock('ai', () => ({
 
 // Import parseQuery après les mocks
 jest.mock('@/lib/api/requireAuth', () => ({
-  requireAuth: jest.fn(async () => ({ session: { user: { id: 'u1', role: 'ADMIN' } }, error: null })),
-  requireAdmin: jest.fn(async () => ({ session: { user: { id: 'u1', role: 'ADMIN' } }, error: null })),
+  requireAuth: jest.fn(async () => ({
+    session: { user: { id: 'u1', role: 'ADMIN' } },
+    error: null,
+  })),
+  requireAdmin: jest.fn(async () => ({
+    session: { user: { id: 'u1', role: 'ADMIN' } },
+    error: null,
+  })),
   isInternalRequest: jest.fn(() => false),
 }));
 
@@ -153,48 +159,16 @@ describe('parseQuery - Tests unitaires des patterns', () => {
       expect(result.updateData?.pushDeadlineBy?.weeks).toBeUndefined();
     });
 
-    it('devrait détecter "avance les deadlines d\'une semaine"', () => {
-      const result = parseQuery(
-        "avance les deadlines d'une semaine",
-        availableCollabs,
-        availableStyles
-      );
+    it.each([
+      ["avance les deadlines d'une semaine", 'weeks', 1],
+      ['prévoit les deadlines de 2 mois', 'months', 2],
+      ["déplace les deadlines d'une semaine", 'weeks', 1],
+      ['retarde les deadlines de 3 semaines', 'weeks', 3],
+    ] as const)('devrait détecter "%s"', (query, unit, value) => {
+      const result = parseQuery(query, availableCollabs, availableStyles);
 
       expect(result.understood).toBe(true);
-      expect(result.updateData?.pushDeadlineBy?.weeks).toBe(1);
-    });
-
-    it('devrait détecter "prévoit les deadlines de 2 mois"', () => {
-      const result = parseQuery(
-        'prévoit les deadlines de 2 mois',
-        availableCollabs,
-        availableStyles
-      );
-
-      expect(result.understood).toBe(true);
-      expect(result.updateData?.pushDeadlineBy?.months).toBe(2);
-    });
-
-    it('devrait détecter "déplace les deadlines d\'une semaine"', () => {
-      const result = parseQuery(
-        "déplace les deadlines d'une semaine",
-        availableCollabs,
-        availableStyles
-      );
-
-      expect(result.understood).toBe(true);
-      expect(result.updateData?.pushDeadlineBy?.weeks).toBe(1);
-    });
-
-    it('devrait détecter "retarde les deadlines de 3 semaines"', () => {
-      const result = parseQuery(
-        'retarde les deadlines de 3 semaines',
-        availableCollabs,
-        availableStyles
-      );
-
-      expect(result.understood).toBe(true);
-      expect(result.updateData?.pushDeadlineBy?.weeks).toBe(3);
+      expect(result.updateData?.pushDeadlineBy?.[unit]).toBe(value);
     });
   });
 
@@ -335,26 +309,12 @@ describe('parseQuery - Tests unitaires des patterns', () => {
       );
     });
 
-    it('devrait détecter "enlève les deadlines"', () => {
-      const result = parseQuery('enlève les deadlines', availableCollabs, availableStyles);
-
-      expect(result.understood).toBe(true);
-      expect(result.updateData?.newDeadline).toBeNull();
-    });
-
-    it('devrait détecter "retire les deadlines des projets"', () => {
-      const result = parseQuery(
-        'retire les deadlines des projets',
-        availableCollabs,
-        availableStyles
-      );
-
-      expect(result.understood).toBe(true);
-      expect(result.updateData?.newDeadline).toBeNull();
-    });
-
-    it('devrait détecter "delete deadlines" (anglais)', () => {
-      const result = parseQuery('delete deadlines', availableCollabs, availableStyles);
+    it.each([
+      ['enlève les deadlines', 'enlève les deadlines'],
+      ['retire les deadlines des projets', 'retire les deadlines des projets'],
+      ['delete deadlines (anglais)', 'delete deadlines'],
+    ])('devrait détecter "%s"', (_label, query) => {
+      const result = parseQuery(query, availableCollabs, availableStyles);
 
       expect(result.understood).toBe(true);
       expect(result.updateData?.newDeadline).toBeNull();
@@ -419,29 +379,15 @@ describe('parseQuery - Tests unitaires des patterns', () => {
 
   // Tests pour les filtres de collaborateur
   describe('Filtres de collaborateur', () => {
-    it('devrait détecter "projets avec TOTO" comme filtre', () => {
-      const result = parseQuery('liste les projets avec TOTO', availableCollabs, availableStyles);
+    it.each([
+      ['projets avec TOTO', 'liste les projets avec TOTO', 'TOTO'],
+      ['projets en collab avec Daft Punk', 'projets en collab avec Daft Punk', 'Daft Punk'],
+      ['projets feat Skrillex', 'projets feat Skrillex', 'Skrillex'],
+    ])('devrait détecter "%s" comme filtre', (_label, query, collab) => {
+      const result = parseQuery(query, availableCollabs, availableStyles);
 
       expect(result.understood).toBe(true);
-      expect(result.filters.collab).toBe('TOTO');
-    });
-
-    it('devrait détecter "projets en collab avec Daft Punk" comme filtre', () => {
-      const result = parseQuery(
-        'projets en collab avec Daft Punk',
-        availableCollabs,
-        availableStyles
-      );
-
-      expect(result.understood).toBe(true);
-      expect(result.filters.collab).toBe('Daft Punk');
-    });
-
-    it('devrait détecter "projets feat Skrillex" comme filtre', () => {
-      const result = parseQuery('projets feat Skrillex', availableCollabs, availableStyles);
-
-      expect(result.understood).toBe(true);
-      expect(result.filters.collab).toBe('Skrillex');
+      expect(result.filters.collab).toBe(collab);
     });
   });
 

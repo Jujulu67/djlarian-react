@@ -140,6 +140,11 @@ async function refreshTwitchToken(userId: string, refreshToken: string): Promise
 /**
  * Récupère l'ID du broadcaster Twitch depuis les variables d'environnement
  */
+function getSubscriptionTier(tier: string): number | null {
+  const tiers: Record<string, number> = { '1000': 1, '2000': 2, '3000': 3 };
+  return Object.prototype.hasOwnProperty.call(tiers, tier) ? tiers[tier] : null;
+}
+
 function getBroadcasterId(): string | null {
   return process.env.TWITCH_BROADCASTER_ID || null;
 }
@@ -240,14 +245,7 @@ export async function checkTwitchSubscription(userId: string): Promise<TwitchSub
     }
 
     const subscription = subData.data[0];
-    const tier =
-      subscription.tier === '1000'
-        ? 1
-        : subscription.tier === '2000'
-          ? 2
-          : subscription.tier === '3000'
-            ? 3
-            : null;
+    const tier = getSubscriptionTier(subscription.tier);
 
     return {
       isSubscribed: true,

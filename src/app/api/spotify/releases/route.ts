@@ -14,6 +14,12 @@ import type { DetectedRelease } from '@/lib/services/types';
 const cache: Record<string, { data: DetectedRelease[]; timestamp: number }> = {};
 const CACHE_TTL = 3600000; // 1 heure
 
+function formatArtistString(allArtists: string[]): string {
+  if (allArtists.length === 0) return 'Unknown';
+  if (allArtists.length === 1) return allArtists[0];
+  return allArtists.slice(0, -1).join(', ') + ' & ' + allArtists.at(-1);
+}
+
 function getCachedData(key: string): DetectedRelease[] | null {
   const cachedItem = cache[key];
   if (cachedItem && Date.now() - cachedItem.timestamp < CACHE_TTL) {
@@ -126,12 +132,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
       // Joindre tous les artistes collaborateurs (séparés par ", " ou " & " pour le dernier)
       const allArtists = album.artists.map((a) => a.name).filter(Boolean);
-      const artistString =
-        allArtists.length > 0
-          ? allArtists.length > 1
-            ? allArtists.slice(0, -1).join(', ') + ' & ' + allArtists.at(-1)
-            : allArtists[0]
-          : 'Unknown';
+      const artistString = formatArtistString(allArtists);
 
       // Déterminer si la release est dans le futur
       // Gérer les différents niveaux de précision (year, month, day)

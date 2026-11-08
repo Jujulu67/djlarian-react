@@ -13,6 +13,26 @@ import { requireAuth } from '@/lib/api/requireAuth';
 export const maxDuration = 60; // 60 secondes max pour l'upload
 export const runtime = 'nodejs'; // Utiliser Node.js runtime (nécessaire pour les gros fichiers)
 
+// Id du dernier brouillon de l'utilisateur, ou null (une erreur de recherche n'est pas bloquante)
+async function findLatestDraftId(userId: string): Promise<string | null> {
+  try {
+    const existingDraft = await prisma.liveSubmission.findFirst({
+      where: {
+        userId,
+        isDraft: true,
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+    });
+    return existingDraft ? existingDraft.id : null;
+  } catch (error) {
+    logger.error('[Live Draft] Erreur lors de la recherche du draft existant:', error);
+    // Continuer sans draft existant
+    return null;
+  }
+}
+
 /**
  * POST /api/live/submissions/draft
  * Crée ou met à jour un draft de soumission
@@ -57,23 +77,7 @@ export async function POST(request: NextRequest) {
     // Si pas de draftId fourni, chercher un draft existant pour cet utilisateur
     let existingDraftId = draftId;
     if (!existingDraftId) {
-      try {
-        const existingDraft = await prisma.liveSubmission.findFirst({
-          where: {
-            userId: session.user.id,
-            isDraft: true,
-          },
-          orderBy: {
-            updatedAt: 'desc',
-          },
-        });
-        if (existingDraft) {
-          existingDraftId = existingDraft.id;
-        }
-      } catch (error) {
-        logger.error('[Live Draft] Erreur lors de la recherche du draft existant:', error);
-        // Continuer sans draft existant
-      }
+      existingDraftId = await findLatestDraftId(session.user.id);
     }
 
     // Si un draft existe, supprimer l'ancien fichier

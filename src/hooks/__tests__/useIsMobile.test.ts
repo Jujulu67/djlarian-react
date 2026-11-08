@@ -29,40 +29,20 @@ describe('useIsMobile', () => {
     window.removeEventListener = originalRemoveEventListener;
   });
 
-  it('should return false for desktop width (> 768)', () => {
+  it.each([
+    ['should return false for desktop width (> 768)', 1024, false],
+    ['should return true for mobile width (<= 768)', 768, true],
+    ['should return true for small mobile width (< 768)', 375, true],
+  ])('%s', (_label, width, expected) => {
     Object.defineProperty(window, 'innerWidth', {
       writable: true,
       configurable: true,
-      value: 1024,
+      value: width,
     });
 
     const { result } = renderHook(() => useIsMobile());
 
-    expect(result.current).toBe(false);
-  });
-
-  it('should return true for mobile width (<= 768)', () => {
-    Object.defineProperty(window, 'innerWidth', {
-      writable: true,
-      configurable: true,
-      value: 768,
-    });
-
-    const { result } = renderHook(() => useIsMobile());
-
-    expect(result.current).toBe(true);
-  });
-
-  it('should return true for small mobile width (< 768)', () => {
-    Object.defineProperty(window, 'innerWidth', {
-      writable: true,
-      configurable: true,
-      value: 375,
-    });
-
-    const { result } = renderHook(() => useIsMobile());
-
-    expect(result.current).toBe(true);
+    expect(result.current).toBe(expected);
   });
 
   it('should add resize event listener on mount', () => {

@@ -14,6 +14,95 @@ export type AdminLiveActionsState = {
   genreBlend: boolean;
 };
 
+// Le gagnant possède-t-il le Queue Skip ?
+function winnerHasQueueSkip(
+  submission: SubmissionWithUser | undefined,
+  queueSkipId: string | null
+): boolean {
+  return (
+    submission?.User?.UserLiveItem?.some((item) => {
+      if (!item.LiveItem) return false;
+
+      // Comparer avec l'ID si disponible, sinon avec le type
+      if (queueSkipId) {
+        return item.LiveItem.id === queueSkipId || item.itemId === queueSkipId;
+      }
+
+      // Fallback: comparer le type
+      return String(item.LiveItem.type) === String(LiveItemType.QUEUE_SKIP);
+    }) ?? false
+  );
+}
+
+// Extrait le message d'erreur d'une réponse en échec de l'API
+async function readConsumeErrorMessage(response: Response): Promise<string> {
+  try {
+    const errorData = await response.json();
+    return errorData.error || errorData.message || JSON.stringify(errorData);
+  } catch (parseError) {
+    logger.warn("Réponse d'erreur illisible", parseError);
+    return `Erreur ${response.status}: ${response.statusText}`;
+  }
+}
+
+// Consomme le Queue Skip du gagnant et affiche le toast correspondant
+async function consumeWinnerQueueSkip(userId: string, queueSkipId: string) {
+  try {
+    const consumeResponse = await fetch('/api/admin/live/consume-queue-skip', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId,
+        itemId: queueSkipId,
+      }),
+    });
+
+    if (consumeResponse.ok) {
+      toast.success('Soumission sélectionnée et pinée ! Queue Skip consommé.');
+      return;
+    }
+
+    const errorMessage = await readConsumeErrorMessage(consumeResponse);
+    logger.error('Erreur lors de la consommation du Queue Skip:', {
+      status: consumeResponse.status,
+      statusText: consumeResponse.statusText,
+      error: errorMessage,
+    });
+    toast.success('Soumission sélectionnée et pinée ! (Erreur consommation Queue Skip)');
+  } catch (error) {
+    logger.error('Erreur lors de la consommation du Queue Skip:', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    toast.success('Soumission sélectionnée et pinée ! (Erreur consommation Queue Skip)');
+  }
+}
+
+// Après le pin : consomme le Queue Skip si le gagnant en possède un, puis confirme
+async function confirmWinnerPin(
+  selectedSubmission: SubmissionWithUser | undefined,
+  queueSkipId: string | null,
+  hasQueueSkip: boolean
+) {
+  const winnerId = selectedSubmission?.User?.id;
+  if (!hasQueueSkip || !winnerId || !queueSkipId) {
+    toast.success('Soumission sélectionnée et pinée !');
+    return;
+  }
+
+  // Trouver le UserLiveItem à supprimer
+  const queueSkipUserItem = selectedSubmission?.User?.UserLiveItem?.find(
+    (item) => item.LiveItem?.id === queueSkipId || item.itemId === queueSkipId
+  );
+
+  if (!queueSkipUserItem) {
+    toast.success('Soumission sélectionnée et pinée !');
+    return;
+  }
+
+  await consumeWinnerQueueSkip(winnerId, queueSkipId);
+}
+
 export function useAdminLiveActions(
   submissions: SubmissionWithUser[] = [],
   updateSubmissionRolled?: (id: string, isRolled: boolean) => Promise<boolean>,
@@ -419,17 +508,7 @@ export function useAdminLiveActions(
         // Note: L'API filtre déjà pour ne retourner que les items activés
         // Utiliser l'ID de Queue Skip depuis le state
         const currentQueueSkipId = queueSkipItemId;
-        const hasQueueSkip = selectedSubmission?.User?.UserLiveItem?.some((item) => {
-          if (!item.LiveItem) return false;
-
-          // Comparer avec l'ID si disponible, sinon avec le type
-          if (currentQueueSkipId) {
-            return item.LiveItem.id === currentQueueSkipId || item.itemId === currentQueueSkipId;
-          }
-
-          // Fallback: comparer le type
-          return String(item.LiveItem.type) === String(LiveItemType.QUEUE_SKIP);
-        });
+        const hasQueueSkip = winnerHasQueueSkip(selectedSubmission, currentQueueSkipId);
 
         // Pinner la soumission sélectionnée et la marquer comme rolled
         // L'API dépinnera automatiquement les autres
@@ -440,62 +519,7 @@ export function useAdminLiveActions(
           ]);
 
           if (pinSuccess && rolledSuccess) {
-            // Si le gagnant a Queue Skip, le consommer
-            if (hasQueueSkip && selectedSubmission?.User?.id && currentQueueSkipId) {
-              try {
-                // Trouver le UserLiveItem à supprimer
-                const queueSkipUserItem = selectedSubmission.User.UserLiveItem?.find(
-                  (item) =>
-                    item.LiveItem?.id === currentQueueSkipId || item.itemId === currentQueueSkipId
-                );
-
-                if (queueSkipUserItem) {
-                  const consumeResponse = await fetch('/api/admin/live/consume-queue-skip', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      userId: selectedSubmission.User.id,
-                      itemId: currentQueueSkipId,
-                    }),
-                  });
-
-                  if (consumeResponse.ok) {
-                    toast.success('Soumission sélectionnée et pinée ! Queue Skip consommé.');
-                  } else {
-                    // Essayer de parser l'erreur
-                    let errorMessage = 'Erreur inconnue';
-                    try {
-                      const errorData = await consumeResponse.json();
-                      errorMessage =
-                        errorData.error || errorData.message || JSON.stringify(errorData);
-                    } catch (parseError) {
-                      logger.warn("Réponse d'erreur illisible", parseError);
-                      errorMessage = `Erreur ${consumeResponse.status}: ${consumeResponse.statusText}`;
-                    }
-                    logger.error('Erreur lors de la consommation du Queue Skip:', {
-                      status: consumeResponse.status,
-                      statusText: consumeResponse.statusText,
-                      error: errorMessage,
-                    });
-                    toast.success(
-                      'Soumission sélectionnée et pinée ! (Erreur consommation Queue Skip)'
-                    );
-                  }
-                } else {
-                  toast.success('Soumission sélectionnée et pinée !');
-                }
-              } catch (error) {
-                logger.error('Erreur lors de la consommation du Queue Skip:', {
-                  error: error instanceof Error ? error.message : String(error),
-                  stack: error instanceof Error ? error.stack : undefined,
-                });
-                toast.success(
-                  'Soumission sélectionnée et pinée ! (Erreur consommation Queue Skip)'
-                );
-              }
-            } else {
-              toast.success('Soumission sélectionnée et pinée !');
-            }
+            await confirmWinnerPin(selectedSubmission, currentQueueSkipId, hasQueueSkip);
 
             // Rafraîchir immédiatement pour mettre à jour l'état
             if (fetchSubmissions) {

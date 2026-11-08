@@ -294,72 +294,75 @@ function GalleryV2({
             </RevealGroup>
           ))}
 
-        {activeTab === 'instagram' &&
-          (isLoadingInstagram ? (
-            <div
-              className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6 lg:grid-cols-3"
-              aria-busy="true"
-              aria-label="Chargement des posts Instagram"
-            >
-              {Array.from({ length: 6 }).map((_, idx) => (
-                <div key={idx} className="aspect-square animate-pulse rounded-xl bg-white/[0.04]" />
-              ))}
-            </div>
-          ) : instagramPosts.length === 0 ? (
-            <EmptyStateV2
-              title="Aucun post Instagram disponible"
-              description="Les posts Instagram seront affichés ici une fois configurés."
-            />
-          ) : (
-            <RevealGroup className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6 lg:grid-cols-3">
-              {instagramPosts.map((post) => (
-                <RevealItem key={post.id}>
-                  <a
-                    href={post.permalink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={`Voir le post Instagram du ${formatInstagramDate(post.timestamp)}`}
-                    className={TILE_CLASS}
-                  >
-                    <Image
-                      src={
-                        post.mediaType === 'VIDEO'
-                          ? post.thumbnailUrl || post.mediaUrl
-                          : post.mediaUrl
-                      }
-                      alt={post.caption || 'Post Instagram'}
-                      width={800}
-                      height={800}
-                      className={TILE_IMAGE_CLASS}
-                    />
-                    {TILE_VEIL}
-                    {post.mediaType === 'VIDEO' && PLAY_BADGE}
-                    <div className="pointer-events-none absolute left-3 right-3 top-3 flex items-center justify-between">
-                      {post.mediaType === 'CAROUSEL_ALBUM' ? (
-                        <span className="flex items-center gap-1 rounded-full bg-black/50 px-2.5 py-1 text-xs text-white/90 backdrop-blur-md">
-                          <Layers className="h-3.5 w-3.5" aria-hidden="true" />
-                          Carousel
-                        </span>
-                      ) : (
-                        <span />
-                      )}
-                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white/90 backdrop-blur-md">
-                        <FaInstagram className="h-3.5 w-3.5" aria-hidden="true" />
+        {activeTab === 'instagram' && isLoadingInstagram && (
+          <div
+            className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6 lg:grid-cols-3"
+            aria-busy="true"
+            aria-label="Chargement des posts Instagram"
+          >
+            {Array.from({ length: 6 }).map((_, idx) => (
+              <div key={idx} className="aspect-square animate-pulse rounded-xl bg-white/[0.04]" />
+            ))}
+          </div>
+        )}
+
+        {activeTab === 'instagram' && !isLoadingInstagram && instagramPosts.length === 0 && (
+          <EmptyStateV2
+            title="Aucun post Instagram disponible"
+            description="Les posts Instagram seront affichés ici une fois configurés."
+          />
+        )}
+
+        {activeTab === 'instagram' && !isLoadingInstagram && instagramPosts.length > 0 && (
+          <RevealGroup className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6 lg:grid-cols-3">
+            {instagramPosts.map((post) => (
+              <RevealItem key={post.id}>
+                <a
+                  href={post.permalink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Voir le post Instagram du ${formatInstagramDate(post.timestamp)}`}
+                  className={TILE_CLASS}
+                >
+                  <Image
+                    src={
+                      post.mediaType === 'VIDEO'
+                        ? post.thumbnailUrl || post.mediaUrl
+                        : post.mediaUrl
+                    }
+                    alt={post.caption || 'Post Instagram'}
+                    width={800}
+                    height={800}
+                    className={TILE_IMAGE_CLASS}
+                  />
+                  {TILE_VEIL}
+                  {post.mediaType === 'VIDEO' && PLAY_BADGE}
+                  <div className="pointer-events-none absolute left-3 right-3 top-3 flex items-center justify-between">
+                    {post.mediaType === 'CAROUSEL_ALBUM' ? (
+                      <span className="flex items-center gap-1 rounded-full bg-black/50 px-2.5 py-1 text-xs text-white/90 backdrop-blur-md">
+                        <Layers className="h-3.5 w-3.5" aria-hidden="true" />
+                        Carousel
                       </span>
-                    </div>
-                    <div className="absolute inset-x-0 bottom-0 p-4 md:p-5">
-                      {post.caption && (
-                        <p className="mb-2 line-clamp-2 text-sm text-white/85">
-                          {truncateCaption(post.caption)}
-                        </p>
-                      )}
-                      <p className="text-xs text-white/50">{formatInstagramDate(post.timestamp)}</p>
-                    </div>
-                  </a>
-                </RevealItem>
-              ))}
-            </RevealGroup>
-          ))}
+                    ) : (
+                      <span />
+                    )}
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white/90 backdrop-blur-md">
+                      <FaInstagram className="h-3.5 w-3.5" aria-hidden="true" />
+                    </span>
+                  </div>
+                  <div className="absolute inset-x-0 bottom-0 p-4 md:p-5">
+                    {post.caption && (
+                      <p className="mb-2 line-clamp-2 text-sm text-white/85">
+                        {truncateCaption(post.caption)}
+                      </p>
+                    )}
+                    <p className="text-xs text-white/50">{formatInstagramDate(post.timestamp)}</p>
+                  </div>
+                </a>
+              </RevealItem>
+            ))}
+          </RevealGroup>
+        )}
 
         {selectedItem && 'title' in selectedItem && (
           <LightboxV2 item={selectedItem} onClose={() => setSelectedItem(null)} />
@@ -560,13 +563,14 @@ export default function GalleryPage() {
 
         {activeTab === 'instagram' && (
           <>
-            {isLoadingInstagram ? (
+            {isLoadingInstagram && (
               <div className="flex justify-center items-center py-24">
                 <div className="text-purple-400 font-montserrat">
                   Chargement des posts Instagram...
                 </div>
               </div>
-            ) : instagramPosts.length === 0 ? (
+            )}
+            {!isLoadingInstagram && instagramPosts.length === 0 && (
               <div className="flex justify-center items-center py-24">
                 <div className="text-gray-400 font-montserrat text-center">
                   <p className="mb-2">Aucun post Instagram disponible</p>
@@ -575,7 +579,8 @@ export default function GalleryPage() {
                   </p>
                 </div>
               </div>
-            ) : (
+            )}
+            {!isLoadingInstagram && instagramPosts.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {instagramPosts.map((post, index) => (
                   <motion.div

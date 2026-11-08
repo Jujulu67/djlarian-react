@@ -11,6 +11,30 @@ import prisma from '@/lib/prisma';
 /** Tentatives de fusion par minute et par IP (le mot de passe y est vérifié). */
 const MERGE_RATE_LIMIT = 5;
 
+/** Vrai si aucun mot de passe n'est requis, ou si le mot de passe fourni correspond. */
+async function isPasswordAccepted(
+  password: unknown,
+  hashedPassword: string | null
+): Promise<boolean> {
+  if (!hashedPassword) return true;
+  return (
+    typeof password === 'string' &&
+    password.length > 0 &&
+    (await bcryptCompare(password, hashedPassword))
+  );
+}
+
+/** Champs du compte existant à mettre à jour avec les données OAuth choisies. */
+function buildUserUpdateData(
+  options: { useOAuthName?: boolean; useOAuthImage?: boolean },
+  payload: { name?: string; image?: string }
+): { name?: string; image?: string } {
+  const updateData: { name?: string; image?: string } = {};
+  if (options.useOAuthName && payload.name) updateData.name = payload.name;
+  if (options.useOAuthImage && payload.image) updateData.image = payload.image;
+  return updateData;
+}
+
 /**
  * Route pour fusionner les comptes après confirmation utilisateur
  */
@@ -93,30 +117,14 @@ export async function POST(request: NextRequest) {
     // Compte protégé par mot de passe : prouver qu'on en est le propriétaire. Sans cette
     // vérification, quelqu'un qui a créé un compte avec l'email d'une victime garderait
     // l'accès par mot de passe une fois la connexion OAuth de la victime fusionnée.
-    if (existingUser.hashedPassword) {
-      const passwordOk =
-        typeof password === 'string' &&
-        password.length > 0 &&
-        (await bcryptCompare(password, existingUser.hashedPassword));
-      if (!passwordOk) {
-        logger.warn('[API] merge accounts - Mot de passe absent ou incorrect');
-        return NextResponse.json({ error: 'Mot de passe incorrect' }, { status: 403 });
-      }
+    const passwordOk = await isPasswordAccepted(password, existingUser.hashedPassword);
+    if (!passwordOk) {
+      logger.warn('[API] merge accounts - Mot de passe absent ou incorrect');
+      return NextResponse.json({ error: 'Mot de passe incorrect' }, { status: 403 });
     }
 
     // Préparer les données de mise à jour
-    const updateData: {
-      name?: string;
-      image?: string;
-    } = {};
-
-    if (options.useOAuthName && payload.name) {
-      updateData.name = payload.name;
-    }
-
-    if (options.useOAuthImage && payload.image) {
-      updateData.image = payload.image;
-    }
+    const updateData = buildUserUpdateData(options, payload);
 
     // Fusionner les comptes dans une transaction
     await prisma.$transaction(async (tx) => {

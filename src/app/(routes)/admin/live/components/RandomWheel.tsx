@@ -204,18 +204,19 @@ export function RandomWheel({
             const isSelected = selectedIndex === index && !isSpinning;
             const hasQueueSkip = queueSkipFlags[index] || false;
 
+            let segmentStroke = getSegmentBorderColor(index);
+            if (hasQueueSkip) {
+              segmentStroke = 'rgba(251, 191, 36, 0.8)'; // Doré pour Queue Skip
+            } else if (isSelected) {
+              segmentStroke = 'rgba(139, 92, 246, 0.8)';
+            }
+
             return (
               <g key={submission.id}>
                 <path
                   d={createSegmentPath(index, wheelRadius)}
                   fill={getSegmentColor(index)}
-                  stroke={
-                    hasQueueSkip
-                      ? 'rgba(251, 191, 36, 0.8)' // Doré pour Queue Skip
-                      : isSelected
-                        ? 'rgba(139, 92, 246, 0.8)'
-                        : getSegmentBorderColor(index)
-                  }
+                  stroke={segmentStroke}
                   strokeWidth={hasQueueSkip || isSelected ? 3 : 1}
                   className="transition-all duration-300"
                   style={{
@@ -252,11 +253,21 @@ export function RandomWheel({
                   const textRotation = (segmentCenterAngle * 180) / Math.PI;
 
                   // Couleur dorée pour Queue Skip
-                  const textColor = hasQueueSkip
-                    ? '#fbbf24' // Doré
-                    : isSelected
-                      ? '#c084fc'
-                      : 'white';
+                  let textColor = 'white';
+                  if (hasQueueSkip) {
+                    textColor = '#fbbf24'; // Doré
+                  } else if (isSelected) {
+                    textColor = '#c084fc';
+                  }
+
+                  let textShadow = '0 2px 4px rgba(0, 0, 0, 0.7)';
+                  if (hasQueueSkip) {
+                    textShadow =
+                      '0 2px 8px rgba(251, 191, 36, 0.9), 0 0 16px rgba(251, 191, 36, 0.7), 0 0 24px rgba(251, 191, 36, 0.5)';
+                  } else if (isSelected) {
+                    textShadow =
+                      '0 2px 8px rgba(139, 92, 246, 0.8), 0 0 12px rgba(139, 92, 246, 0.6)';
+                  }
 
                   return (
                     <text
@@ -270,11 +281,7 @@ export function RandomWheel({
                       fontWeight={hasQueueSkip || isSelected ? 'bold' : 'normal'}
                       className="pointer-events-none select-none"
                       style={{
-                        textShadow: hasQueueSkip
-                          ? '0 2px 8px rgba(251, 191, 36, 0.9), 0 0 16px rgba(251, 191, 36, 0.7), 0 0 24px rgba(251, 191, 36, 0.5)'
-                          : isSelected
-                            ? '0 2px 8px rgba(139, 92, 246, 0.8), 0 0 12px rgba(139, 92, 246, 0.6)'
-                            : '0 2px 4px rgba(0, 0, 0, 0.7)',
+                        textShadow,
                         filter: hasQueueSkip
                           ? 'drop-shadow(0 0 4px rgba(251, 191, 36, 0.8))'
                           : undefined,

@@ -123,6 +123,20 @@ function ComparisonLegend({ payload, projectsToShow }: Readonly<ComparisonLegend
   );
 }
 
+function getComparisonEmptyMessage(
+  comparisonMode: ComparisonMode,
+  filteredProjectsCount: number,
+  comparisonYearFilter: number | null
+): string {
+  if (comparisonMode === 'two') return 'Sélectionnez 2 projets pour les comparer';
+  if (filteredProjectsCount === 0) {
+    return comparisonYearFilter === null
+      ? 'Aucun projet trouvé'
+      : `Aucun projet trouvé pour l'année ${comparisonYearFilter}`;
+  }
+  return 'Aucune donnée disponible';
+}
+
 export function StreamsEvolutionChart({
   selectedProjectId,
   setSelectedProjectId,
@@ -520,13 +534,11 @@ export function StreamsEvolutionChart({
             streamsChartData.length === 0 &&
             displayStats.streamsEvolution.length > 0 && (
               <div className="text-center text-gray-400 py-8">
-                {comparisonMode === 'two'
-                  ? 'Sélectionnez 2 projets pour les comparer'
-                  : getFilteredProjectsForComparison.length === 0
-                    ? comparisonYearFilter === null
-                      ? 'Aucun projet trouvé'
-                      : `Aucun projet trouvé pour l'année ${comparisonYearFilter}`
-                    : 'Aucune donnée disponible'}
+                {getComparisonEmptyMessage(
+                  comparisonMode,
+                  getFilteredProjectsForComparison.length,
+                  comparisonYearFilter
+                )}
               </div>
             )}
         </div>

@@ -3,70 +3,151 @@ import prisma from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { NextResponse } from 'next/server';
 
+type ReleaseAsset = {
+  name: string;
+  url: string;
+  size: number;
+  content_type?: string;
+  browser_download_url: string;
+};
+
+type DownloadParams = {
+  licenseId: string | null;
+  email: string | null;
+  licenseKey: string | null;
+  os: string | null;
+};
+
+type LicenseAuth =
+  | { error: NextResponse; license?: never }
+  | { error?: never; license: { revoked: boolean } };
+
+/** Paramètres de la requête ; un POST peut les remplacer par son corps JSON */
+async function readParams(req: Request): Promise<DownloadParams> {
+  const { searchParams } = new URL(req.url);
+
+  const params: DownloadParams = {
+    licenseId: searchParams.get('id'),
+    email: searchParams.get('email'),
+    licenseKey: searchParams.get('licenseKey'),
+    os: searchParams.get('os'), // 'mac' or 'windows'
+  };
+
+  if (req.method === 'POST') {
+    try {
+      const body = await req.json();
+      if (body.id) params.licenseId = body.id;
+      if (body.email) params.email = body.email;
+      if (body.licenseKey) params.licenseKey = body.licenseKey;
+      if (body.os) params.os = body.os;
+    } catch (e) {
+      // Ignore JSON parse errors
+    }
+  }
+
+  return params;
+}
+
+/** Vérifie la licence : email + clé (app desktop) ou session + id (interface web) */
+async function authorizeLicense({
+  licenseId,
+  email,
+  licenseKey,
+}: Pick<DownloadParams, 'licenseId' | 'email' | 'licenseKey'>): Promise<LicenseAuth> {
+  if (email && licenseKey) {
+    // Auth via email + licenseKey (Desktop App flow)
+    const license = await prisma.license.findUnique({
+      where: {
+        licenseKey: licenseKey,
+      },
+      include: {
+        user: true,
+      },
+    });
+
+    if (!license || license.user.email?.toLowerCase() !== email.toLowerCase()) {
+      return { error: new NextResponse('Invalid email or license key', { status: 401 }) };
+    }
+    return { license };
+  }
+
+  if (licenseId) {
+    // Auth via session + licenseId (Web UI flow)
+    const { session, error: authError } = await requireAuth({
+      onAnonymous: () => new NextResponse('Unauthorized', { status: 401 }),
+    });
+    if (authError) return { error: authError };
+
+    const license = await prisma.license.findUnique({
+      where: {
+        id: licenseId,
+        userId: session.user.id, // Ensure owner
+      },
+    });
+
+    if (!license) {
+      return { error: new NextResponse('License not found', { status: 404 }) };
+    }
+    return { license };
+  }
+
+  return { error: new NextResponse('Missing authentication parameters', { status: 400 }) };
+}
+
+/** Installeur correspondant à l'OS : .pkg/.dmg/mac ou .exe/.msi/win (hors « standalone ») */
+function findInstallerAsset(assets: ReleaseAsset[], os: string) {
+  const findByExtension = (extension: string) =>
+    assets.find((a: ReleaseAsset) => a.name.toLowerCase().endsWith(extension));
+  const findByKeyword = (keyword: string) =>
+    assets.find((a: ReleaseAsset) => {
+      const lowerName = a.name.toLowerCase();
+      return lowerName.includes(keyword) && !lowerName.includes('standalone');
+    });
+
+  if (os === 'mac') {
+    return findByExtension('.pkg') || findByExtension('.dmg') || findByKeyword('mac');
+  }
+  if (os === 'windows') {
+    return findByExtension('.exe') || findByExtension('.msi') || findByKeyword('win');
+  }
+  return undefined;
+}
+
+/**
+ * Récupère l'URL signée de l'asset GitHub.
+ * Redirection manuelle : l'en-tête Authorization ne doit pas suivre la redirection (S3/Azure).
+ */
+async function fetchSignedAssetUrl(asset: ReleaseAsset, token: string): Promise<string | null> {
+  const assetRes = await fetch(asset.url, {
+    headers: {
+      Authorization: `token ${token}`,
+      Accept: 'application/octet-stream',
+    },
+    redirect: 'manual',
+  });
+
+  const downloadUrl = assetRes.status === 302 ? assetRes.headers.get('location') : null;
+  if (!downloadUrl) {
+    logger.error(
+      `Failed to get redirect URL from GitHub: ${assetRes.status} ${assetRes.statusText}`
+    );
+  }
+  return downloadUrl;
+}
+
 async function handleDownloadRequest(req: Request) {
   try {
-    const { searchParams } = new URL(req.url);
-
-    let licenseId = searchParams.get('id');
-    let email = searchParams.get('email');
-    let licenseKey = searchParams.get('licenseKey');
-    let os = searchParams.get('os'); // 'mac' or 'windows'
-
-    if (req.method === 'POST') {
-      try {
-        const body = await req.json();
-        if (body.id) licenseId = body.id;
-        if (body.email) email = body.email;
-        if (body.licenseKey) licenseKey = body.licenseKey;
-        if (body.os) os = body.os;
-      } catch (e) {
-        // Ignore JSON parse errors
-      }
-    }
+    const { licenseId, email, licenseKey, os } = await readParams(req);
 
     if (!os) {
       return new NextResponse('Missing os parameter', { status: 400 });
     }
 
-    let license;
-
     // 1. Verify license
-    if (email && licenseKey) {
-      // Auth via email + licenseKey (Desktop App flow)
-      license = await prisma.license.findUnique({
-        where: {
-          licenseKey: licenseKey,
-        },
-        include: {
-          user: true,
-        },
-      });
+    const auth = await authorizeLicense({ licenseId, email, licenseKey });
+    if (auth.error) return auth.error;
 
-      if (!license || license.user.email?.toLowerCase() !== email.toLowerCase()) {
-        return new NextResponse('Invalid email or license key', { status: 401 });
-      }
-    } else if (licenseId) {
-      // Auth via session + licenseId (Web UI flow)
-      const { session, error: authError } = await requireAuth({
-        onAnonymous: () => new NextResponse('Unauthorized', { status: 401 }),
-      });
-      if (authError) return authError;
-
-      license = await prisma.license.findUnique({
-        where: {
-          id: licenseId,
-          userId: session.user.id, // Ensure owner
-        },
-      });
-
-      if (!license) {
-        return new NextResponse('License not found', { status: 404 });
-      }
-    } else {
-      return new NextResponse('Missing authentication parameters', { status: 400 });
-    }
-
-    if (license.revoked) {
+    if (auth.license.revoked) {
       return new NextResponse('License revoked', { status: 403 });
     }
 
@@ -97,53 +178,18 @@ async function handleDownloadRequest(req: Request) {
 
     // Find asset based on OS
     // Expecting filenames like: LarianCrusher-Mac.pkg, LarianCrusher-Win.exe, etc.
-    let asset;
     const assets: ReleaseAsset[] = release.assets || [];
-
-    if (os === 'mac') {
-      asset =
-        assets.find((a: ReleaseAsset) => a.name.toLowerCase().endsWith('.pkg')) ||
-        assets.find((a: ReleaseAsset) => a.name.toLowerCase().endsWith('.dmg')) ||
-        assets.find((a: ReleaseAsset) => {
-          const lowerName = a.name.toLowerCase();
-          return lowerName.includes('mac') && !lowerName.includes('standalone');
-        });
-    } else if (os === 'windows') {
-      asset =
-        assets.find((a: ReleaseAsset) => a.name.toLowerCase().endsWith('.exe')) ||
-        assets.find((a: ReleaseAsset) => a.name.toLowerCase().endsWith('.msi')) ||
-        assets.find((a: ReleaseAsset) => {
-          const lowerName = a.name.toLowerCase();
-          return lowerName.includes('win') && !lowerName.includes('standalone');
-        });
-    }
+    const asset = findInstallerAsset(assets, os);
 
     if (!asset) {
       return new NextResponse(`No installer found for ${os}`, { status: 404 });
     }
 
     // 3. Get the asset from GitHub
-    // We use manual redirect handling to ensure the Authorization header
-    // is NOT sent to the redirect destination (S3/Azure), which often causes 403s.
     // This allows us to capture the temporary signed URL generated by GitHub's Release API.
-    const assetRes = await fetch(asset.url, {
-      headers: {
-        Authorization: `token ${token}`,
-        Accept: 'application/octet-stream',
-      },
-      redirect: 'manual',
-    });
-
-    let downloadUrl: string | null = null;
-
-    if (assetRes.status === 302) {
-      downloadUrl = assetRes.headers.get('location');
-    }
+    const downloadUrl = await fetchSignedAssetUrl(asset, token);
 
     if (!downloadUrl) {
-      logger.error(
-        `Failed to get redirect URL from GitHub: ${assetRes.status} ${assetRes.statusText}`
-      );
       return new NextResponse(`Failed to resolve installer URL from GitHub`, { status: 502 });
     }
 
@@ -191,14 +237,6 @@ async function handleDownloadRequest(req: Request) {
     return new NextResponse('Internal error', { status: 500 });
   }
 }
-
-type ReleaseAsset = {
-  name: string;
-  url: string;
-  size: number;
-  content_type?: string;
-  browser_download_url: string;
-};
 
 export async function GET(req: Request) {
   return handleDownloadRequest(req);

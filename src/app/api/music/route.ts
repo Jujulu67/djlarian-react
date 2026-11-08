@@ -154,6 +154,192 @@ export async function GET(): Promise<Response> {
   }
 }
 
+type PrismaTxClient = Omit<
+  typeof prisma,
+  '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
+>;
+type TrackPayload = Omit<CreateTrackInput, 'publishAt'>;
+
+/** Traitement de publishAt : null si vide ou nul, date si valide, undefined si invalide. */
+function parsePublishAt(data: CreateTrackInput): Date | undefined | null {
+  if (data.hasOwnProperty('publishAt') && typeof data.publishAt === 'string') {
+    if (data.publishAt.trim() === '') return null; // Mettre à null si string vide
+    const d = new Date(data.publishAt);
+    // Date valide : on l'utilise ; sinon undefined
+    return Number.isNaN(d.getTime()) ? undefined : d;
+  }
+  if (
+    data.hasOwnProperty('publishAt') &&
+    (data.publishAt === null || data.publishAt === undefined)
+  ) {
+    return null;
+  }
+  return undefined;
+}
+
+/** Récupère l'URL d'une miniature à partir des plateformes (Spotify, SoundCloud, YouTube). */
+async function findThumbnailFromPlatforms(
+  platforms: NonNullable<TrackPayload['platforms']>
+): Promise<string | undefined> {
+  try {
+    const platformUrls = platforms.reduce(
+      (acc, p) => {
+        if (p.platform === 'spotify') acc.spotify = p.url;
+        else if (p.platform === 'soundcloud') acc.soundcloud = p.url;
+        else if (p.platform === 'youtube') acc.youtube = p.url;
+        return acc;
+      },
+      {} as { spotify?: string; soundcloud?: string; youtube?: string }
+    );
+
+    const { fetchThumbnailFromPlatforms } = await import('@/lib/utils/fetchThumbnailFromPlatforms');
+    const thumbnailResult = await fetchThumbnailFromPlatforms(platformUrls);
+
+    if (thumbnailResult) {
+      logger.debug(
+        `API MUSIC - Image trouvée depuis ${thumbnailResult.source}: ${thumbnailResult.url}`
+      );
+      return thumbnailResult.url;
+    }
+    return undefined;
+  } catch (err) {
+    logger.warn('API MUSIC - Erreur récupération image depuis plateformes:', err);
+    // On continue, on essaiera thumbnailUrl si fourni
+    return undefined;
+  }
+}
+
+/** Télécharge la miniature, la convertit en WebP si possible et la sauvegarde. Renvoie l'id sauvegardé. */
+async function downloadAndSaveThumbnail(thumbnailUrl: string): Promise<string | null> {
+  try {
+    const imageId = generateImageId();
+    const response = await fetch(thumbnailUrl);
+    if (!response.ok) throw new Error('Thumbnail fetch failed');
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer) as Buffer;
+
+    // Convertir en WebP si possible
+    let webpBuffer = buffer;
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
+    if (canConvertToWebP(contentType)) {
+      try {
+        webpBuffer = await convertToWebP(buffer);
+        logger.debug('API MUSIC - Thumbnail converti en WebP');
+      } catch (error) {
+        logger.warn('API MUSIC - Erreur conversion WebP, utilisation originale', error);
+      }
+    }
+
+    // Sauvegarder l'image (locale ou Blob) via la fonction utilitaire partagée
+    const savedImageId = await saveImage(imageId, webpBuffer, webpBuffer);
+    if (savedImageId) {
+      logger.debug(`API MUSIC - Image sauvegardée avec succès: ${savedImageId}`);
+      return savedImageId;
+    }
+    logger.warn("API MUSIC - Échec de la sauvegarde de l'image, continuation sans image");
+    return null;
+  } catch (err) {
+    logger.error('API MUSIC - Erreur import thumbnail', err);
+    // On continue sans image si erreur
+    return null;
+  }
+}
+
+/** Lien vers l'utilisateur créateur, seulement s'il existe encore en base. */
+async function buildUserConnect(userId: string): Promise<{ User?: { connect: { id: string } } }> {
+  try {
+    const userExists = await prisma.user.findFirst({
+      where: { id: userId },
+      select: { id: true },
+    });
+    if (userExists) {
+      return { User: { connect: { id: userId } } };
+    }
+  } catch (userError) {
+    logger.error('Erreur vérification utilisateur', userError);
+  }
+  return {};
+}
+
+/** Crée la piste (genres, plateformes, créateur) puis la relit avec ses relations. */
+async function createTrackInTransaction(
+  tx: PrismaTxClient,
+  data: TrackPayload,
+  userId: string,
+  processedPublishAt: Date | undefined | null
+) {
+  // Handle optional genreNames
+  const genres = isNotEmpty(data.genreNames)
+    ? await Promise.all(
+        data.genreNames.map((name: string) => {
+          const normalizedName = name.trim().toLowerCase();
+          return tx.genre.upsert({
+            where: { name: normalizedName },
+            update: {},
+            create: {
+              id: uuidv4(),
+              name: normalizedName,
+              updatedAt: new Date(),
+            },
+          });
+        })
+      )
+    : [];
+
+  const userConnect = await buildUserConnect(userId);
+
+  // Handle optional genres connection
+  const genresToConnect = isNotEmpty(genres)
+    ? genres.map((genre) => ({
+        Genre: { connect: { id: genre.id } },
+      }))
+    : undefined;
+
+  // Handle optional platforms creation
+  const platformsToCreate = isNotEmpty(data.platforms)
+    ? data.platforms.map((platform) => ({
+        id: uuidv4(),
+        platform: platform.platform,
+        url: platform.url,
+        embedId: platform.embedId,
+        updatedAt: new Date(),
+      }))
+    : undefined;
+
+  const newTrack = await tx.track.create({
+    data: {
+      id: uuidv4(),
+      title: data.title,
+      artist: data.artist,
+      releaseDate: new Date(data.releaseDate),
+      imageId: data.imageId,
+      bpm: data.bpm,
+      musicalKey: data.musicalKey,
+      description: data.description,
+      type: data.type,
+      featured: data.featured || false,
+      // Publication programmée plus tard : le morceau reste caché jusqu'à publishAt
+      isPublished: !isScheduledInFuture(processedPublishAt),
+      ...(processedPublishAt !== undefined && { publishAt: processedPublishAt }),
+      updatedAt: new Date(),
+      ...userConnect,
+      MusicCollection: data.collectionId ? { connect: { id: data.collectionId } } : undefined,
+      ...(platformsToCreate && { TrackPlatform: { create: platformsToCreate } }),
+      ...(genresToConnect && { GenresOnTracks: { create: genresToConnect } }),
+    },
+  });
+
+  return tx.track.findUniqueOrThrow({
+    where: { id: newTrack.id },
+    include: {
+      TrackPlatform: true,
+      GenresOnTracks: { include: { Genre: true } },
+      MusicCollection: true,
+      User: { select: { id: true, name: true } },
+    },
+  });
+}
+
 // POST /api/music - Créer une nouvelle piste
 export async function POST(request: NextRequest): Promise<Response> {
   // Rate limiting
@@ -187,190 +373,30 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
 
   const data: CreateTrackInput = validationResult.data;
-
-  // Traitement de publishAt
-  let processedPublishAt: Date | undefined | null = undefined;
-  if (data.hasOwnProperty('publishAt') && typeof data.publishAt === 'string') {
-    if (data.publishAt.trim() === '') {
-      processedPublishAt = null; // Mettre à null si string vide
-    } else {
-      const d = new Date(data.publishAt);
-      if (!Number.isNaN(d.getTime())) {
-        processedPublishAt = d; // Utiliser la date valide
-      }
-      // Si invalide, on laisse processedPublishAt = undefined
-    }
-  } else if (
-    data.hasOwnProperty('publishAt') &&
-    (data.publishAt === null || data.publishAt === undefined)
-  ) {
-    processedPublishAt = null;
-  }
+  const processedPublishAt = parsePublishAt(data);
 
   // Supprimer publishAt du DTO Zod car il est traité et sera passé séparément à Prisma
-
   const { publishAt, ...dataForPrisma } = data;
 
-  let imageId = dataForPrisma.imageId;
-
   // Si pas d'imageId mais qu'on a des plateformes, essayer de récupérer l'image depuis les plateformes
-  if (!imageId && !dataForPrisma.thumbnailUrl && dataForPrisma.platforms) {
-    try {
-      const platforms = dataForPrisma.platforms.reduce(
-        (acc, p) => {
-          if (p.platform === 'spotify') acc.spotify = p.url;
-          else if (p.platform === 'soundcloud') acc.soundcloud = p.url;
-          else if (p.platform === 'youtube') acc.youtube = p.url;
-          return acc;
-        },
-        {} as { spotify?: string; soundcloud?: string; youtube?: string }
-      );
-
-      const { fetchThumbnailFromPlatforms } =
-        await import('@/lib/utils/fetchThumbnailFromPlatforms');
-      const thumbnailResult = await fetchThumbnailFromPlatforms(platforms);
-
-      if (thumbnailResult) {
-        dataForPrisma.thumbnailUrl = thumbnailResult.url;
-        logger.debug(
-          `API MUSIC - Image trouvée depuis ${thumbnailResult.source}: ${thumbnailResult.url}`
-        );
-      }
-    } catch (err) {
-      logger.warn('API MUSIC - Erreur récupération image depuis plateformes:', err);
-      // On continue, on essaiera thumbnailUrl si fourni
+  if (!dataForPrisma.imageId && !dataForPrisma.thumbnailUrl && dataForPrisma.platforms) {
+    const thumbnailUrl = await findThumbnailFromPlatforms(dataForPrisma.platforms);
+    if (thumbnailUrl) {
+      dataForPrisma.thumbnailUrl = thumbnailUrl;
     }
   }
 
   // Si on a une thumbnailUrl (fournie ou récupérée depuis les plateformes), la télécharger et sauvegarder
-  if (!imageId && dataForPrisma.thumbnailUrl) {
-    try {
-      imageId = generateImageId();
-      const response = await fetch(dataForPrisma.thumbnailUrl);
-      if (!response.ok) throw new Error('Thumbnail fetch failed');
-      const arrayBuffer = await response.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer) as Buffer;
-
-      // Convertir en WebP si possible
-      let webpBuffer = buffer;
-      const contentType = response.headers.get('content-type') || 'image/jpeg';
-      if (canConvertToWebP(contentType)) {
-        try {
-          webpBuffer = await convertToWebP(buffer);
-          logger.debug('API MUSIC - Thumbnail converti en WebP');
-        } catch (error) {
-          logger.warn('API MUSIC - Erreur conversion WebP, utilisation originale', error);
-        }
-      }
-
-      // Sauvegarder l'image (locale ou Blob) via la fonction utilitaire partagée
-      const savedImageId = await saveImage(imageId, webpBuffer, webpBuffer);
-      if (savedImageId) {
-        dataForPrisma.imageId = savedImageId;
-        logger.debug(`API MUSIC - Image sauvegardée avec succès: ${savedImageId}`);
-      } else {
-        logger.warn("API MUSIC - Échec de la sauvegarde de l'image, continuation sans image");
-      }
-    } catch (err) {
-      logger.error('API MUSIC - Erreur import thumbnail', err);
-      // On continue sans image si erreur
+  if (!dataForPrisma.imageId && dataForPrisma.thumbnailUrl) {
+    const savedImageId = await downloadAndSaveThumbnail(dataForPrisma.thumbnailUrl);
+    if (savedImageId) {
+      dataForPrisma.imageId = savedImageId;
     }
   }
 
   try {
-    const track = await prisma.$transaction(
-      async (
-        tx: Omit<
-          typeof prisma,
-          '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
-        >
-      ) => {
-        // Handle optional genreNames
-        const genres = isNotEmpty(dataForPrisma.genreNames)
-          ? await Promise.all(
-              dataForPrisma.genreNames.map((name: string) => {
-                const normalizedName = name.trim().toLowerCase();
-                return tx.genre.upsert({
-                  where: { name: normalizedName },
-                  update: {},
-                  create: {
-                    id: uuidv4(),
-                    name: normalizedName,
-                    updatedAt: new Date(),
-                  },
-                });
-              })
-            )
-          : [];
-
-        let userConnect = {};
-        try {
-          const userExists = await prisma.user.findFirst({
-            where: { id: session.user.id },
-            select: { id: true },
-          });
-          if (userExists) {
-            userConnect = { User: { connect: { id: session.user.id } } };
-          }
-        } catch (userError) {
-          logger.error('Erreur vérification utilisateur', userError);
-        }
-
-        // Handle optional genres connection
-        const genresToConnect = isNotEmpty(genres)
-          ? genres.map((genre) => ({
-              Genre: { connect: { id: genre.id } },
-            }))
-          : undefined;
-
-        // Handle optional platforms creation
-        const platformsToCreate = isNotEmpty(dataForPrisma.platforms)
-          ? dataForPrisma.platforms.map((platform) => ({
-              id: uuidv4(),
-              platform: platform.platform,
-              url: platform.url,
-              embedId: platform.embedId,
-              updatedAt: new Date(),
-            }))
-          : undefined;
-
-        const newTrack = await tx.track.create({
-          data: {
-            id: uuidv4(),
-            title: dataForPrisma.title,
-            artist: dataForPrisma.artist,
-            releaseDate: new Date(dataForPrisma.releaseDate),
-            imageId: dataForPrisma.imageId,
-            bpm: dataForPrisma.bpm,
-            musicalKey: dataForPrisma.musicalKey,
-            description: dataForPrisma.description,
-            type: dataForPrisma.type,
-            featured: dataForPrisma.featured || false,
-            // Publication programmée plus tard : le morceau reste caché jusqu'à publishAt
-            isPublished: !isScheduledInFuture(processedPublishAt),
-            ...(processedPublishAt !== undefined && { publishAt: processedPublishAt }),
-            updatedAt: new Date(),
-            ...userConnect,
-            MusicCollection: dataForPrisma.collectionId
-              ? { connect: { id: dataForPrisma.collectionId } }
-              : undefined,
-            ...(platformsToCreate && { TrackPlatform: { create: platformsToCreate } }),
-            ...(genresToConnect && { GenresOnTracks: { create: genresToConnect } }),
-          },
-        });
-
-        const fullTrack = await tx.track.findUniqueOrThrow({
-          where: { id: newTrack.id },
-          include: {
-            TrackPlatform: true,
-            GenresOnTracks: { include: { Genre: true } },
-            MusicCollection: true,
-            User: { select: { id: true, name: true } },
-          },
-        });
-
-        return fullTrack;
-      }
+    const track = await prisma.$transaction((tx: PrismaTxClient) =>
+      createTrackInTransaction(tx, dataForPrisma, session.user.id, processedPublishAt)
     );
 
     // Envoyer un webhook pour la création

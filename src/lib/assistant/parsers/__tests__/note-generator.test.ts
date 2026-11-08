@@ -62,40 +62,16 @@ describe('Génération de notes - Template Évolution', () => {
       expect(note).toContain('label');
     });
 
-    it('devrait extraire les tâches depuis "reste: X, Y"', () => {
-      const content = 'test, reste: mix, mastering';
-      const note = generateNoteFromContent(content);
-
-      expect(note).toContain('mix');
-      expect(note).toContain('mastering');
-    });
-
-    it('devrait extraire les tâches depuis "prochaines étapes: X, Y"', () => {
-      const content = 'test, prochaines étapes: mix, mastering';
-      const note = generateNoteFromContent(content);
-
-      expect(note).toContain('mix');
-      expect(note).toContain('mastering');
-    });
-
-    it('devrait extraire les tâches depuis "todo: X, Y"', () => {
-      const content = 'test, todo: mix, mastering';
-      const note = generateNoteFromContent(content);
-
-      expect(note).toContain('mix');
-      expect(note).toContain('mastering');
-    });
-
-    it('devrait extraire les tâches séparées par "et"', () => {
-      const content = 'test, reste à faire mix et mastering';
-      const note = generateNoteFromContent(content);
-
-      expect(note).toContain('mix');
-      expect(note).toContain('mastering');
-    });
-
-    it('devrait extraire les tâches séparées par "puis"', () => {
-      const content = 'test, reste à faire mix puis mastering';
+    it.each([
+      ['devrait extraire les tâches depuis "reste: X, Y"', 'test, reste: mix, mastering'],
+      [
+        'devrait extraire les tâches depuis "prochaines étapes: X, Y"',
+        'test, prochaines étapes: mix, mastering',
+      ],
+      ['devrait extraire les tâches depuis "todo: X, Y"', 'test, todo: mix, mastering'],
+      ['devrait extraire les tâches séparées par "et"', 'test, reste à faire mix et mastering'],
+      ['devrait extraire les tâches séparées par "puis"', 'test, reste à faire mix puis mastering'],
+    ])('%s', (_title, content) => {
       const note = generateNoteFromContent(content);
 
       expect(note).toContain('mix');
@@ -150,32 +126,26 @@ describe('Génération de notes - Template Évolution', () => {
       expect(note).toContain('### Évolution');
     });
 
-    it('devrait gérer un contenu avec emojis', () => {
-      const content = "🎵 j'ai fini! 🎉 reste à faire: mix 🎶";
+    it.each([
+      [
+        'devrait gérer un contenu avec emojis',
+        "🎵 j'ai fini! 🎉 reste à faire: mix 🎶",
+        ['🎵', '🎉', 'mix', '🎶'],
+      ],
+      [
+        'devrait gérer un contenu avec caractères spéciaux',
+        'test @#$%^&*(), reste à faire: mix',
+        ['@#$%^&*()', 'mix'],
+      ],
+      [
+        'devrait gérer un contenu avec sauts de ligne',
+        'ligne1\nligne2\nligne3, reste à faire: mix',
+        ['ligne1', 'ligne2', 'ligne3', 'mix'],
+      ],
+    ])('%s', (_title, content, expectedTexts) => {
       const note = generateNoteFromContent(content);
 
-      expect(note).toContain('🎵');
-      expect(note).toContain('🎉');
-      expect(note).toContain('mix');
-      expect(note).toContain('🎶');
-    });
-
-    it('devrait gérer un contenu avec caractères spéciaux', () => {
-      const content = 'test @#$%^&*(), reste à faire: mix';
-      const note = generateNoteFromContent(content);
-
-      expect(note).toContain('@#$%^&*()');
-      expect(note).toContain('mix');
-    });
-
-    it('devrait gérer un contenu avec sauts de ligne', () => {
-      const content = 'ligne1\nligne2\nligne3, reste à faire: mix';
-      const note = generateNoteFromContent(content);
-
-      expect(note).toContain('ligne1');
-      expect(note).toContain('ligne2');
-      expect(note).toContain('ligne3');
-      expect(note).toContain('mix');
+      expectedTexts.forEach((text) => expect(note).toContain(text));
     });
 
     it('devrait gérer plusieurs patterns de tâches (prendre le premier)', () => {
@@ -296,29 +266,26 @@ describe('Génération de notes - Template Évolution', () => {
   });
 
   describe('Extraction de tâches complexes', () => {
-    it('devrait gérer des tâches avec descriptions longues', () => {
-      const content =
-        'test, reste à faire: améliorer le mastering de la piste principale, envoyer le projet au label';
+    it.each([
+      [
+        'devrait gérer des tâches avec descriptions longues',
+        'test, reste à faire: améliorer le mastering de la piste principale, envoyer le projet au label',
+        ['améliorer le mastering de la piste principale', 'envoyer le projet au label'],
+      ],
+      [
+        'devrait gérer des tâches avec ponctuation',
+        'test, reste à faire: mix (urgent!), mastering?',
+        ['mix (urgent!)', 'mastering?'],
+      ],
+      [
+        'devrait gérer des tâches avec chiffres',
+        'test, reste à faire: mix version 2, mastering 3.0',
+        ['mix version 2', 'mastering 3.0'],
+      ],
+    ])('%s', (_title, content, expectedTexts) => {
       const note = generateNoteFromContent(content);
 
-      expect(note).toContain('améliorer le mastering de la piste principale');
-      expect(note).toContain('envoyer le projet au label');
-    });
-
-    it('devrait gérer des tâches avec ponctuation', () => {
-      const content = 'test, reste à faire: mix (urgent!), mastering?';
-      const note = generateNoteFromContent(content);
-
-      expect(note).toContain('mix (urgent!)');
-      expect(note).toContain('mastering?');
-    });
-
-    it('devrait gérer des tâches avec chiffres', () => {
-      const content = 'test, reste à faire: mix version 2, mastering 3.0';
-      const note = generateNoteFromContent(content);
-
-      expect(note).toContain('mix version 2');
-      expect(note).toContain('mastering 3.0');
+      expectedTexts.forEach((text) => expect(note).toContain(text));
     });
   });
 });

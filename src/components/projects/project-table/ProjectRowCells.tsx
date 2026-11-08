@@ -17,6 +17,45 @@ export function ProjectRowCells({
   isCompact,
   project,
 }: Readonly<ProjectRowCellsProps>) {
+  const renderCellContent = (col: ColumnConfig, allowWrap: boolean) => {
+    if (col.key === 'status') {
+      return (
+        <EditableCell
+          value={project.status}
+          field="status"
+          type="select"
+          onSave={(field, value) => handleUpdate(project.id, field, value)}
+          isCompact={isCompact}
+        />
+      );
+    }
+    if (col.key === 'progress' && project.status === 'TERMINE') {
+      return (
+        <EditableCell
+          value={100}
+          field="progress"
+          type="progress"
+          onSave={(field, value) => handleUpdate(project.id, field, value)}
+          placeholder="-"
+          allowWrap={allowWrap}
+          isCompact={isCompact}
+          disabled={true}
+        />
+      );
+    }
+    return (
+      <EditableCell
+        value={getCellValue(project, col.key)}
+        field={col.key}
+        type={col.type}
+        onSave={(field, value) => handleUpdate(project.id, field, value)}
+        placeholder="-"
+        allowWrap={allowWrap}
+        isCompact={isCompact}
+      />
+    );
+  };
+
   return (
     <>
       {columns.map((col) => {
@@ -34,36 +73,7 @@ export function ProjectRowCells({
               maxWidth: col.width,
             }}
           >
-            {col.key === 'status' ? (
-              <EditableCell
-                value={project.status}
-                field="status"
-                type="select"
-                onSave={(field, value) => handleUpdate(project.id, field, value)}
-                isCompact={isCompact}
-              />
-            ) : col.key === 'progress' && project.status === 'TERMINE' ? (
-              <EditableCell
-                value={100}
-                field="progress"
-                type="progress"
-                onSave={(field, value) => handleUpdate(project.id, field, value)}
-                placeholder="-"
-                allowWrap={allowWrap}
-                isCompact={isCompact}
-                disabled={true}
-              />
-            ) : (
-              <EditableCell
-                value={getCellValue(project, col.key)}
-                field={col.key}
-                type={col.type}
-                onSave={(field, value) => handleUpdate(project.id, field, value)}
-                placeholder="-"
-                allowWrap={allowWrap}
-                isCompact={isCompact}
-              />
-            )}
+            {renderCellContent(col, allowWrap)}
           </td>
         );
       })}

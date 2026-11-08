@@ -24,6 +24,17 @@ import prisma from '@/lib/prisma';
 // Métadonnées de cache pour améliorer les performances
 export const revalidate = 60; // Revalider toutes les 60 secondes
 
+function formatAdminCount(count: number): string {
+  if (count > 0) return `${count} admin${count > 1 ? 's' : ''}`;
+  return 'Aucune donnée';
+}
+
+function getActivityColors(type: string): { bg: string; icon: string } {
+  if (type === 'event') return { bg: 'bg-purple-500/20', icon: 'text-purple-400' };
+  if (type === 'track') return { bg: 'bg-blue-500/20', icon: 'text-blue-400' };
+  return { bg: 'bg-pink-500/20', icon: 'text-pink-400' };
+}
+
 export default async function AdminPage() {
   const session = await auth();
 
@@ -500,9 +511,7 @@ export default async function AdminPage() {
                   </span>
                 </Link>
                 <span className="text-xs text-teal-300/70 flex items-center v2:text-white/50">
-                  {adminCount > 0
-                    ? `${adminCount} admin${adminCount > 1 ? 's' : ''}`
-                    : 'Aucune donnée'}
+                  {formatAdminCount(adminCount)}
                 </span>
               </div>
             </div>
@@ -626,22 +635,10 @@ export default async function AdminPage() {
                     >
                       <div className="flex items-center">
                         <div
-                          className={`${
-                            activity.type === 'event'
-                              ? 'bg-purple-500/20'
-                              : activity.type === 'track'
-                                ? 'bg-blue-500/20'
-                                : 'bg-pink-500/20'
-                          } p-2 rounded-lg mr-3 v2:rounded-xl v2:bg-white/[0.06]`}
+                          className={`${getActivityColors(activity.type).bg} p-2 rounded-lg mr-3 v2:rounded-xl v2:bg-white/[0.06]`}
                         >
                           <activity.icon
-                            className={`h-5 w-5 v2:text-brand ${
-                              activity.type === 'event'
-                                ? 'text-purple-400'
-                                : activity.type === 'track'
-                                  ? 'text-blue-400'
-                                  : 'text-pink-400'
-                            }`}
+                            className={`h-5 w-5 v2:text-brand ${getActivityColors(activity.type).icon}`}
                           />
                         </div>
                         <div>

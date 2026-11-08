@@ -11,6 +11,121 @@ import { toSoundCloudTrack } from './trackMapper';
 import type { Browser, DebugData, HTTPRequest, SoundCloudTrack } from './types';
 import { matchTitreField } from './parseTitle';
 
+type ScrapePage = Awaited<ReturnType<Browser['newPage']>>;
+
+// Bloque les ressources inutiles, configure User-Agent, headers, viewport
+async function configureScrapePage(page: ScrapePage): Promise<void> {
+  // Bloquer les ressources inutiles pour accélérer le chargement
+  await page.setRequestInterception(true);
+  page.on('request', (req: HTTPRequest) => {
+    const resourceType = req.resourceType();
+    // Bloquer les images, fonts, media, et autres ressources non essentielles
+    if (['image', 'font', 'media', 'websocket'].includes(resourceType)) {
+      req.abort();
+    } else {
+      req.continue();
+    }
+  });
+
+  // Configurer le User-Agent
+  await page.setUserAgent(
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+  );
+
+  // Configurer les headers supplémentaires pour paraître plus humain
+  await page.setExtraHTTPHeaders?.({
+    'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7',
+    Referer: 'https://www.google.com/',
+  });
+
+  // Configurer un viewport réaliste
+  await page.setViewport?.({
+    width: jitter(1280, 100),
+    height: jitter(720, 100),
+    deviceScaleFactor: 1,
+  });
+
+  // Petit délai aléatoire avant la navigation
+  await sleep(jitter(500, 1000));
+}
+
+// Attend (sans échouer) l'apparition des éléments de tracks dans le DOM
+async function waitForTrackElements(page: ScrapePage): Promise<void> {
+  // Attendre que les éléments de tracks soient présents (timeout réduit)
+  logger.debug(`[SOUNDCLOUD] Attente du chargement des tracks...`);
+  try {
+    await page.waitForSelector(
+      '.soundList_item, .soundBadge, .soundBadgeList__item, .sound__coverArt, .sound_coverArt',
+      {
+        timeout: 3000, // Réduit à 3 secondes
+        visible: false, // Plus rapide, on n'a pas besoin que ce soit visible
+      }
+    );
+    logger.debug(`[SOUNDCLOUD] Éléments de tracks détectés dans le DOM`);
+  } catch (error) {
+    logger.warn('scrapeTracksPage.ts', error);
+    logger.debug(`[SOUNDCLOUD] Timeout en attendant les éléments, mais on continue quand même...`);
+  }
+}
+
+// Défile la page pour charger toutes les tracks (lazy loading) et renvoie le nombre de tracks vues
+async function scrollToLoadAllTracks(page: ScrapePage): Promise<number> {
+  // Scroller la page pour charger toutes les tracks (lazy loading) - version optimisée
+  logger.debug(`[SOUNDCLOUD] Défilement de la page pour charger toutes les tracks...`);
+  let previousTrackCount = 0;
+  let scrollAttempts = 0;
+  const maxScrollAttempts = 15; // Augmenté pour être sûr de tout charger
+
+  while (scrollAttempts < maxScrollAttempts) {
+    // Compter les tracks actuellement visibles
+    const currentTrackCount = await page.evaluate(() => {
+      return document.querySelectorAll(
+        '.sound_coverArt, .sound__coverArt, .soundBadge, .soundBadgeList__item'
+      ).length;
+    });
+
+    logger.debug(
+      `[SOUNDCLOUD] Scroll ${scrollAttempts + 1}/${maxScrollAttempts}: ${currentTrackCount} tracks trouvées`
+    );
+
+    // Si le nombre de tracks n'a pas changé après 1 scroll, arrêter (plus agressif)
+    if (currentTrackCount === previousTrackCount && scrollAttempts > 1) {
+      logger.debug(`[SOUNDCLOUD] Nombre de tracks stable (${currentTrackCount}), arrêt du scroll`);
+      break;
+    }
+
+    previousTrackCount = currentTrackCount;
+
+    // Scroller vers le bas de la page de manière plus agressive
+    await page.evaluate(() => {
+      window.scrollTo(0, document.body.scrollHeight);
+    });
+
+    // Attendre un peu (200ms à 600ms) pour simuler une lecture humaine
+    await sleep(jitter(200, 400));
+
+    // Attendre que de nouveaux éléments soient chargés avec timeout très court
+    try {
+      await page.waitForFunction(
+        (prevCount: number) => {
+          const currentCount = document.querySelectorAll(
+            '.sound_coverArt, .sound__coverArt, .soundBadge, .soundBadgeList__item'
+          ).length;
+          return currentCount > prevCount;
+        },
+        { timeout: 1000, polling: 100 }, // Un peu plus de temps pour laisser le contenu charger
+        previousTrackCount
+      );
+    } catch {
+      // Si aucun nouvel élément n'est chargé, continuer quand même
+    }
+
+    scrollAttempts++;
+  }
+
+  return previousTrackCount;
+}
+
 /**
  * Scrape la page /tracks d'un profil SoundCloud avec Puppeteer
  * Optimisé pour charger toutes les tracks via lazy loading
@@ -57,38 +172,7 @@ export async function scrapeSoundCloudTracksPage(profileName: string): Promise<S
     browser = await puppeteerInstance.launch(launchOptions);
     const page = await browser.newPage();
 
-    // Bloquer les ressources inutiles pour accélérer le chargement
-    await page.setRequestInterception(true);
-    page.on('request', (req: HTTPRequest) => {
-      const resourceType = req.resourceType();
-      // Bloquer les images, fonts, media, et autres ressources non essentielles
-      if (['image', 'font', 'media', 'websocket'].includes(resourceType)) {
-        req.abort();
-      } else {
-        req.continue();
-      }
-    });
-
-    // Configurer le User-Agent
-    await page.setUserAgent(
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-    );
-
-    // Configurer les headers supplémentaires pour paraître plus humain
-    await page.setExtraHTTPHeaders?.({
-      'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7',
-      Referer: 'https://www.google.com/',
-    });
-
-    // Configurer un viewport réaliste
-    await page.setViewport?.({
-      width: jitter(1280, 100),
-      height: jitter(720, 100),
-      deviceScaleFactor: 1,
-    });
-
-    // Petit délai aléatoire avant la navigation
-    await sleep(jitter(500, 1000));
+    await configureScrapePage(page);
 
     // Charger la page avec domcontentloaded (plus rapide que networkidle2)
     logger.debug(`[SOUNDCLOUD] Chargement de la page avec Puppeteer...`);
@@ -97,81 +181,11 @@ export async function scrapeSoundCloudTracksPage(profileName: string): Promise<S
       timeout: 10000, // Réduit à 10 secondes
     });
 
-    // Attendre que les éléments de tracks soient présents (timeout réduit)
-    logger.debug(`[SOUNDCLOUD] Attente du chargement des tracks...`);
-    try {
-      await page.waitForSelector(
-        '.soundList_item, .soundBadge, .soundBadgeList__item, .sound__coverArt, .sound_coverArt',
-        {
-          timeout: 3000, // Réduit à 3 secondes
-          visible: false, // Plus rapide, on n'a pas besoin que ce soit visible
-        }
-      );
-      logger.debug(`[SOUNDCLOUD] Éléments de tracks détectés dans le DOM`);
-    } catch (error) {
-      logger.warn('scrapeTracksPage.ts', error);
-      logger.debug(
-        `[SOUNDCLOUD] Timeout en attendant les éléments, mais on continue quand même...`
-      );
-    }
+    await waitForTrackElements(page);
 
-    // Scroller la page pour charger toutes les tracks (lazy loading) - version optimisée
-    logger.debug(`[SOUNDCLOUD] Défilement de la page pour charger toutes les tracks...`);
-    let previousTrackCount = 0;
-    let scrollAttempts = 0;
-    const maxScrollAttempts = 15; // Augmenté pour être sûr de tout charger
-
-    while (scrollAttempts < maxScrollAttempts) {
-      // Compter les tracks actuellement visibles
-      const currentTrackCount = await page.evaluate(() => {
-        return document.querySelectorAll(
-          '.sound_coverArt, .sound__coverArt, .soundBadge, .soundBadgeList__item'
-        ).length;
-      });
-
-      logger.debug(
-        `[SOUNDCLOUD] Scroll ${scrollAttempts + 1}/${maxScrollAttempts}: ${currentTrackCount} tracks trouvées`
-      );
-
-      // Si le nombre de tracks n'a pas changé après 1 scroll, arrêter (plus agressif)
-      if (currentTrackCount === previousTrackCount && scrollAttempts > 1) {
-        logger.debug(
-          `[SOUNDCLOUD] Nombre de tracks stable (${currentTrackCount}), arrêt du scroll`
-        );
-        break;
-      }
-
-      previousTrackCount = currentTrackCount;
-
-      // Scroller vers le bas de la page de manière plus agressive
-      await page.evaluate(() => {
-        window.scrollTo(0, document.body.scrollHeight);
-      });
-
-      // Attendre un peu (200ms à 600ms) pour simuler une lecture humaine
-      await sleep(jitter(200, 400));
-
-      // Attendre que de nouveaux éléments soient chargés avec timeout très court
-      try {
-        await page.waitForFunction(
-          (prevCount: number) => {
-            const currentCount = document.querySelectorAll(
-              '.sound_coverArt, .sound__coverArt, .soundBadge, .soundBadgeList__item'
-            ).length;
-            return currentCount > prevCount;
-          },
-          { timeout: 1000, polling: 100 }, // Un peu plus de temps pour laisser le contenu charger
-          previousTrackCount
-        );
-      } catch {
-        // Si aucun nouvel élément n'est chargé, continuer quand même
-      }
-
-      scrollAttempts++;
-    }
-
+    const scrolledTrackCount = await scrollToLoadAllTracks(page);
     logger.debug(
-      `[SOUNDCLOUD] Scroll terminé. ${previousTrackCount} tracks trouvées après défilement`
+      `[SOUNDCLOUD] Scroll terminé. ${scrolledTrackCount} tracks trouvées après défilement`
     );
 
     // Pas besoin d'attendre, on extrait directement

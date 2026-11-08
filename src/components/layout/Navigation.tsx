@@ -184,7 +184,7 @@ const Navigation = () => {
 
             {/* Logique d'affichage conditionnel basée sur le statut de la session */}
             <AnimatePresence mode="wait">
-              {status === 'loading' ? (
+              {status === 'loading' && (
                 // Placeholder pendant le chargement
                 <motion.div
                   key="loading"
@@ -193,7 +193,8 @@ const Navigation = () => {
                   transition={{ duration: 0.2 }}
                   className="w-[120px] h-[40px] animate-pulse bg-gray-800/50 rounded-full"
                 />
-              ) : session && !isSigningOut ? (
+              )}
+              {status !== 'loading' && session && !isSigningOut && (
                 <>
                   {/* Icône de notifications */}
                   <motion.div
@@ -253,7 +254,8 @@ const Navigation = () => {
                     />
                   </motion.div>
                 </>
-              ) : (
+              )}
+              {status !== 'loading' && !(session && !isSigningOut) && (
                 <motion.div
                   key="login-button"
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -316,7 +318,7 @@ const Navigation = () => {
             )}
             {/* Bouton d'authentification mobile */}
             <AnimatePresence mode="wait">
-              {status === 'loading' ? (
+              {status === 'loading' && (
                 <motion.div
                   key="loading-mobile"
                   initial={{ opacity: 1 }}
@@ -324,7 +326,8 @@ const Navigation = () => {
                   transition={{ duration: 0.2 }}
                   className="w-10 h-10 animate-pulse bg-gray-800/50 rounded-full"
                 />
-              ) : session && !isSigningOut ? (
+              )}
+              {status !== 'loading' && session && !isSigningOut && (
                 <motion.div
                   key="user-profile-mobile"
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -346,7 +349,8 @@ const Navigation = () => {
                     setIsMobileUserMenuOpen={setIsMobileUserMenuOpen}
                   />
                 </motion.div>
-              ) : (
+              )}
+              {status !== 'loading' && !(session && !isSigningOut) && (
                 <motion.div
                   key="login-button-mobile"
                   initial={{ opacity: 0, scale: 0.95 }}

@@ -1,4 +1,5 @@
 import type { Account, NextAuthConfig, Session, User } from 'next-auth';
+import type { JWT } from 'next-auth/jwt';
 import Google from 'next-auth/providers/google';
 import Twitch from 'next-auth/providers/twitch';
 import { logger } from '@/lib/logger';
@@ -93,6 +94,156 @@ async function createMergeToken(
   return mergeToken;
 }
 
+const ROLE_REFRESH_MS = 5 * 60 * 1000;
+
+// Relit le compte en base (déclenché par update(...)) : seuls les champs de la base sont repris
+async function reloadTokenFromDb(token: JWT): Promise<JWT> {
+  // Les données envoyées par le client (update(...)) ne sont jamais reprises : elles
+  // permettraient de se donner un rôle ou l'id d'un autre compte. On relit le compte en base.
+  const userId = (token.id ?? token.sub) as string | undefined;
+  if (!userId) return token;
+  const prismaModule = await import('@/lib/prisma');
+  const dbUser = await prismaModule.default.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      image: true,
+      role: true,
+      isVip: true,
+      createdAt: true,
+      gameHighScore: true,
+      hasDiscoveredCasino: true,
+    },
+  });
+  if (!dbUser) return token;
+  return { ...token, ...dbUser } as JWT;
+}
+
+// Recopie les informations du compte (première connexion via authorize) dans le jeton
+function copyUserToToken(token: JWT, user: User) {
+  token.role = user.role;
+  token.id = user.id;
+  token.image = user.image;
+  token.name = user.name;
+  token.email = user.email;
+
+  // Ajouter createdAt et isVip si disponibles
+  const userWithExtras = user as { createdAt?: string | Date; isVip?: boolean };
+  if (userWithExtras.createdAt) {
+    token.createdAt = userWithExtras.createdAt;
+  }
+  if (userWithExtras.isVip !== undefined) {
+    token.isVip = userWithExtras.isVip;
+  }
+
+  const userWithGameStats = user as { gameHighScore?: number; hasDiscoveredCasino?: boolean };
+  if (userWithGameStats.gameHighScore !== undefined) {
+    token.gameHighScore = userWithGameStats.gameHighScore;
+  }
+  if (userWithGameStats.hasDiscoveredCasino !== undefined) {
+    token.hasDiscoveredCasino = userWithGameStats.hasDiscoveredCasino;
+  }
+}
+
+// Relit le rôle en base. Renvoie false si le compte n'existe plus.
+async function refreshRoleFromDb(token: JWT): Promise<boolean> {
+  try {
+    const prismaModule = await import('@/lib/prisma');
+    const dbUser = await prismaModule.default.user.findUnique({
+      where: { id: token.id as string },
+      select: { role: true, isVip: true },
+    });
+    if (!dbUser) return false;
+    token.role = dbUser.role as string;
+    token.isVip = dbUser.isVip;
+    token.roleCheckedAt = Date.now();
+  } catch (error) {
+    // Base indisponible : on garde le jeton tel quel et on réessaiera
+    logger.error('[AuthConfig] jwt - Relecture du rôle impossible:', error);
+  }
+  return true;
+}
+
+// Image de la session : celle du jeton, sinon celle de la base
+async function hydrateSessionImage(session: Session, token: JWT, userId: string) {
+  // Récupérer l'image depuis le token si disponible (priorité au token qui est mis à jour via updateSession)
+  if (token.image) {
+    session.user.image = token.image as string;
+    return;
+  }
+  if (!userId) return;
+  // Si l'image n'est pas dans le token, la récupérer depuis la base de données
+  try {
+    const prismaModule = await import('@/lib/prisma');
+    const prisma = prismaModule.default;
+    if (prisma) {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { image: true },
+      });
+      if (user?.image) {
+        session.user.image = user.image;
+      }
+    }
+  } catch (error) {
+    logger.error('[AuthConfig] Erreur récupération image depuis DB:', error);
+  }
+}
+
+// createdAt et isVip : ceux du jeton, sinon ceux de la base
+async function hydrateSessionProfile(session: Session, token: JWT, userId: string) {
+  if (token.createdAt) {
+    session.user.createdAt = token.createdAt as string | Date;
+    return;
+  }
+  if (!userId) return;
+  // Si createdAt n'est pas dans le token, le récupérer depuis la base de données
+  try {
+    const prismaModule = await import('@/lib/prisma');
+    const prisma = prismaModule.default;
+    if (prisma) {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { createdAt: true, isVip: true },
+      });
+      if (user?.createdAt) {
+        session.user.createdAt = user.createdAt;
+      }
+      if (user?.isVip !== undefined) {
+        session.user.isVip = user.isVip;
+      }
+    }
+  } catch (error) {
+    logger.error('[AuthConfig] Erreur récupération createdAt/isVip depuis DB:', error);
+  }
+}
+
+// Stats de jeu manquantes dans la session : relues en base (utilisateurs existants)
+async function hydrateSessionGameStats(session: Session, userId: string) {
+  if (!userId) return;
+  if (session.user.gameHighScore !== undefined && session.user.hasDiscoveredCasino !== undefined) {
+    return;
+  }
+  try {
+    const prismaModule = await import('@/lib/prisma');
+    const prisma = prismaModule.default;
+    if (prisma) {
+      const userStats = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { gameHighScore: true, hasDiscoveredCasino: true },
+      });
+      if (userStats) {
+        session.user.gameHighScore = userStats.gameHighScore;
+        session.user.hasDiscoveredCasino = userStats.hasDiscoveredCasino;
+      }
+    }
+  } catch (error) {
+    logger.error('[AuthConfig] Erreur récupération game stats depuis DB:', error);
+  }
+}
+
 export const authConfig = {
   providers,
   callbacks: {
@@ -163,53 +314,12 @@ export const authConfig = {
 
     async jwt({ token, user, trigger }) {
       if (trigger === 'update') {
-        // Les données envoyées par le client (update(...)) ne sont jamais reprises : elles
-        // permettraient de se donner un rôle ou l'id d'un autre compte. On relit le compte en base.
-        const userId = (token.id ?? token.sub) as string | undefined;
-        if (!userId) return token;
-        const prismaModule = await import('@/lib/prisma');
-        const dbUser = await prismaModule.default.user.findUnique({
-          where: { id: userId },
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
-            role: true,
-            isVip: true,
-            createdAt: true,
-            gameHighScore: true,
-            hasDiscoveredCasino: true,
-          },
-        });
-        if (!dbUser) return token;
-        return { ...token, ...dbUser };
+        return reloadTokenFromDb(token);
       }
 
       // Si user est présent (première connexion via authorize)
       if (user) {
-        token.role = user.role;
-        token.id = user.id;
-        token.image = user.image;
-        token.name = user.name;
-        token.email = user.email;
-
-        // Ajouter createdAt et isVip si disponibles
-        const userWithExtras = user as { createdAt?: string | Date; isVip?: boolean };
-        if (userWithExtras.createdAt) {
-          token.createdAt = userWithExtras.createdAt;
-        }
-        if (userWithExtras.isVip !== undefined) {
-          token.isVip = userWithExtras.isVip;
-        }
-
-        const userWithGameStats = user as { gameHighScore?: number; hasDiscoveredCasino?: boolean };
-        if (userWithGameStats.gameHighScore !== undefined) {
-          token.gameHighScore = userWithGameStats.gameHighScore;
-        }
-        if (userWithGameStats.hasDiscoveredCasino !== undefined) {
-          token.hasDiscoveredCasino = userWithGameStats.hasDiscoveredCasino;
-        }
+        copyUserToToken(token, user);
       }
 
       // Si token.id est manquant mais sub est présent (JWT manuel)
@@ -220,25 +330,12 @@ export const authConfig = {
 
       // Relire le rôle en base toutes les 5 minutes : un changement de rôle (ou la suppression
       // du compte) s'applique sans attendre l'expiration de la session (30 jours).
-      const ROLE_REFRESH_MS = 5 * 60 * 1000;
       const checkedAt = typeof token.roleCheckedAt === 'number' ? token.roleCheckedAt : 0;
       if (user) {
         token.roleCheckedAt = Date.now();
       } else if (token.id && Date.now() - checkedAt > ROLE_REFRESH_MS) {
-        try {
-          const prismaModule = await import('@/lib/prisma');
-          const dbUser = await prismaModule.default.user.findUnique({
-            where: { id: token.id as string },
-            select: { role: true, isVip: true },
-          });
-          if (!dbUser) return null;
-          token.role = dbUser.role;
-          token.isVip = dbUser.isVip;
-          token.roleCheckedAt = Date.now();
-        } catch (error) {
-          // Base indisponible : on garde le jeton tel quel et on réessaiera
-          logger.error('[AuthConfig] jwt - Relecture du rôle impossible:', error);
-        }
+        const accountExists = await refreshRoleFromDb(token);
+        if (!accountExists) return null;
       }
 
       return token;
@@ -271,12 +368,6 @@ export const authConfig = {
           return session;
         }
 
-        // À ce point, on sait que session et session.user existent
-        // Mais on vérifie encore une fois par sécurité
-        if (!session.user) {
-          return session;
-        }
-
         // Utiliser token.id ou token.sub comme ID utilisateur
         const userId = (token.id as string) || (token.sub as string) || '';
 
@@ -289,28 +380,7 @@ export const authConfig = {
           session.user.role = token.role as string;
         }
 
-        // Récupérer l'image depuis le token si disponible (priorité au token qui est mis à jour via updateSession)
-        if (token.image) {
-          const imageUrl = token.image as string;
-          session.user.image = imageUrl;
-        } else if (userId) {
-          // Si l'image n'est pas dans le token, la récupérer depuis la base de données
-          try {
-            const prismaModule = await import('@/lib/prisma');
-            const prisma = prismaModule.default;
-            if (prisma) {
-              const user = await prisma.user.findUnique({
-                where: { id: userId },
-                select: { image: true },
-              });
-              if (user?.image) {
-                session.user.image = user.image;
-              }
-            }
-          } catch (error) {
-            logger.error('[AuthConfig] Erreur récupération image depuis DB:', error);
-          }
-        }
+        await hydrateSessionImage(session, token, userId);
 
         // Récupérer le nom et l'email depuis le token si disponibles
         if (token.name) {
@@ -320,30 +390,7 @@ export const authConfig = {
           session.user.email = token.email as string;
         }
 
-        // Récupérer createdAt et isVip depuis le token si disponibles
-        if (token.createdAt) {
-          session.user.createdAt = token.createdAt as string | Date;
-        } else if (userId) {
-          // Si createdAt n'est pas dans le token, le récupérer depuis la base de données
-          try {
-            const prismaModule = await import('@/lib/prisma');
-            const prisma = prismaModule.default;
-            if (prisma) {
-              const user = await prisma.user.findUnique({
-                where: { id: userId },
-                select: { createdAt: true, isVip: true },
-              });
-              if (user?.createdAt) {
-                session.user.createdAt = user.createdAt;
-              }
-              if (user?.isVip !== undefined) {
-                session.user.isVip = user.isVip;
-              }
-            }
-          } catch (error) {
-            logger.error('[AuthConfig] Erreur récupération createdAt/isVip depuis DB:', error);
-          }
-        }
+        await hydrateSessionProfile(session, token, userId);
 
         // Récupérer les stats de jeu depuis le token
         if (token.gameHighScore !== undefined) {
@@ -354,28 +401,7 @@ export const authConfig = {
         }
 
         // Si pas dans le token, fetch depuis DB (pour les utilisateurs existants)
-        if (
-          userId &&
-          (session.user.gameHighScore === undefined ||
-            session.user.hasDiscoveredCasino === undefined)
-        ) {
-          try {
-            const prismaModule = await import('@/lib/prisma');
-            const prisma = prismaModule.default;
-            if (prisma) {
-              const userStats = await prisma.user.findUnique({
-                where: { id: userId },
-                select: { gameHighScore: true, hasDiscoveredCasino: true },
-              });
-              if (userStats) {
-                session.user.gameHighScore = userStats.gameHighScore;
-                session.user.hasDiscoveredCasino = userStats.hasDiscoveredCasino;
-              }
-            }
-          } catch (error) {
-            logger.error('[AuthConfig] Erreur récupération game stats depuis DB:', error);
-          }
-        }
+        await hydrateSessionGameStats(session, userId);
 
         // Récupérer isVip depuis le token si disponible
         if (token.isVip !== undefined) {

@@ -49,6 +49,44 @@ export const STYLE_VARIATIONS: Record<string, string[]> = {
  * PRIORITÉ 1: Chercher d'abord les variations (plus spécifiques et précises)
  * Cela permet de détecter "drum and bass" même si "Drum and Bass" n'est pas encore dans availableStyles
  */
+/**
+ * Associe une variation trouvée au style canonique : préfère le style disponible qui correspond,
+ * sinon renvoie le style canonique lui-même (il sera peut-être créé ou ignoré si non valide).
+ */
+function resolveCanonicalStyle(
+  canonicalStyle: string,
+  variation: string,
+  availableStyles: string[]
+): { style: string; matchedText: string } {
+  const canonicalLower = canonicalStyle.toLowerCase();
+
+  // D'abord, chercher le style canonique exact
+  const exactMatch = availableStyles.find((s) => s.toLowerCase() === canonicalLower);
+  if (exactMatch) {
+    return { style: exactMatch, matchedText: variation };
+  }
+
+  // Sinon, chercher un style qui contient le nom canonique ou vice versa
+  const partialMatch = availableStyles.find((s) => {
+    const styleLower = s.toLowerCase();
+    return (
+      styleLower === canonicalLower ||
+      styleLower.includes(canonicalLower) ||
+      canonicalLower.includes(styleLower)
+    );
+  });
+  if (partialMatch) {
+    return { style: partialMatch, matchedText: variation };
+  }
+
+  return { style: canonicalStyle, matchedText: variation };
+}
+
+/**
+ * Trouve un style à partir d'une chaîne
+ * PRIORITÉ 1: Chercher d'abord les variations (plus spécifiques et précises)
+ * Cela permet de détecter "drum and bass" même si "Drum and Bass" n'est pas encore dans availableStyles
+ */
 export function findStyleFromString(
   text: string,
   availableStyles: string[]
@@ -60,33 +98,10 @@ export function findStyleFromString(
   for (const [canonicalStyle, variations] of Object.entries(STYLE_VARIATIONS)) {
     // Trier les variations par longueur (les plus longues en premier) pour prioriser les matches exacts
     const sortedVariations = [...variations].sort((a, b) => b.length - a.length);
+    const variation = sortedVariations.find((v) => lowerText.includes(v));
 
-    for (const variation of sortedVariations) {
-      if (lowerText.includes(variation)) {
-        // Si on trouve une variation, chercher le style correspondant dans availableStyles
-        // D'abord, chercher le style canonique exact
-        const exactMatch = availableStyles.find(
-          (s) => s.toLowerCase() === canonicalStyle.toLowerCase()
-        );
-        if (exactMatch) {
-          return { style: exactMatch, matchedText: variation };
-        }
-
-        // Sinon, chercher un style qui contient le nom canonique ou vice versa
-        const partialMatch = availableStyles.find(
-          (s) =>
-            s.toLowerCase() === canonicalStyle.toLowerCase() ||
-            s.toLowerCase().includes(canonicalStyle.toLowerCase()) ||
-            canonicalStyle.toLowerCase().includes(s.toLowerCase())
-        );
-        if (partialMatch) {
-          return { style: partialMatch, matchedText: variation };
-        }
-
-        // Si aucun match dans availableStyles, retourner quand même le style canonique
-        // (il sera peut-être créé ou sera ignoré si non valide)
-        return { style: canonicalStyle, matchedText: variation };
-      }
+    if (variation) {
+      return resolveCanonicalStyle(canonicalStyle, variation, availableStyles);
     }
   }
 

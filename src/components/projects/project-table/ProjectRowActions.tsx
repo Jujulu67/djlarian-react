@@ -1,7 +1,7 @@
 'use client';
 
 import { ExternalLink, FileText, Pencil, Trash2 } from 'lucide-react';
-import type { Dispatch, SetStateAction } from 'react';
+import type { Dispatch, MouseEvent as ReactMouseEvent, SetStateAction } from 'react';
 
 import { Project } from '../types';
 
@@ -16,6 +16,40 @@ interface ProjectRowActionsProps {
   setNoteValue: Dispatch<SetStateAction<string>>;
 }
 
+function getLinkButtonProps(externalLink: string | null | undefined, name: string) {
+  if (externalLink) {
+    return {
+      className: 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10',
+      title: `Clic: Ouvrir le lien\n${externalLink}`,
+      ariaLabel: `Ouvrir le lien externe pour ${name}`,
+    };
+  }
+  return {
+    className: 'text-gray-400 hover:text-gray-300 hover:bg-gray-500/10',
+    title: 'Ajouter un lien',
+    ariaLabel: `Ajouter un lien pour ${name}`,
+  };
+}
+
+function getNoteButtonProps(note: string | null | undefined, name: string) {
+  if (note) {
+    return {
+      className: 'text-blue-400 hover:text-blue-300 hover:bg-blue-500/10',
+      title: `Note: ${note.substring(0, 50)}${getNoteEllipsis(note)}`,
+      ariaLabel: `Voir/modifier la note pour ${name}`,
+    };
+  }
+  return {
+    className: 'text-gray-400 hover:text-gray-300 hover:bg-gray-500/10',
+    title: 'Ajouter une note',
+    ariaLabel: `Ajouter une note pour ${name}`,
+  };
+}
+
+function getNoteEllipsis(note: string) {
+  return note.length > 50 ? '...' : '';
+}
+
 export function ProjectRowActions({
   deletingId,
   handleDelete,
@@ -26,6 +60,21 @@ export function ProjectRowActions({
   setLinkValue,
   setNoteValue,
 }: Readonly<ProjectRowActionsProps>) {
+  const linkProps = getLinkButtonProps(project.externalLink, project.name);
+  const noteProps = getNoteButtonProps(project.note, project.name);
+
+  const handleLinkButtonClick = (e: ReactMouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    if (project.externalLink) {
+      // Si lien présent, ouvrir directement
+      window.open(project.externalLink, '_blank', 'noopener,noreferrer');
+    } else {
+      // Sinon, ouvrir la modale pour ajouter un lien
+      setEditingLinkId(project.id);
+      setLinkValue('');
+    }
+  };
+
   return (
     <td
       className={`${isCompact ? 'px-0.5 py-0.5' : 'px-3 py-2'} border-l-2 border-gray-700/50`}
@@ -38,32 +87,10 @@ export function ProjectRowActions({
       <div className="flex items-center gap-2">
         <div className="relative group/link">
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              if (project.externalLink) {
-                // Si lien présent, ouvrir directement
-                window.open(project.externalLink, '_blank', 'noopener,noreferrer');
-              } else {
-                // Sinon, ouvrir la modale pour ajouter un lien
-                setEditingLinkId(project.id);
-                setLinkValue('');
-              }
-            }}
-            className={`${isCompact ? 'p-0.5' : 'p-1.5'} rounded transition-all ${
-              project.externalLink
-                ? 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10'
-                : 'text-gray-400 hover:text-gray-300 hover:bg-gray-500/10'
-            }`}
-            title={
-              project.externalLink
-                ? `Clic: Ouvrir le lien\n${project.externalLink}`
-                : 'Ajouter un lien'
-            }
-            aria-label={
-              project.externalLink
-                ? `Ouvrir le lien externe pour ${project.name}`
-                : `Ajouter un lien pour ${project.name}`
-            }
+            onClick={handleLinkButtonClick}
+            className={`${isCompact ? 'p-0.5' : 'p-1.5'} rounded transition-all ${linkProps.className}`}
+            title={linkProps.title}
+            aria-label={linkProps.ariaLabel}
           >
             <ExternalLink size={isCompact ? 10 : 16} aria-hidden="true" />
           </button>
@@ -89,21 +116,9 @@ export function ProjectRowActions({
             setEditingNoteId(project.id);
             setNoteValue(project.note || '');
           }}
-          className={`${isCompact ? 'p-0.5' : 'p-1.5'} rounded transition-all ${
-            project.note
-              ? 'text-blue-400 hover:text-blue-300 hover:bg-blue-500/10'
-              : 'text-gray-400 hover:text-gray-300 hover:bg-gray-500/10'
-          }`}
-          title={
-            project.note
-              ? `Note: ${project.note.substring(0, 50)}${project.note.length > 50 ? '...' : ''}`
-              : 'Ajouter une note'
-          }
-          aria-label={
-            project.note
-              ? `Voir/modifier la note pour ${project.name}`
-              : `Ajouter une note pour ${project.name}`
-          }
+          className={`${isCompact ? 'p-0.5' : 'p-1.5'} rounded transition-all ${noteProps.className}`}
+          title={noteProps.title}
+          aria-label={noteProps.ariaLabel}
         >
           <FileText size={isCompact ? 10 : 16} aria-hidden="true" />
         </button>

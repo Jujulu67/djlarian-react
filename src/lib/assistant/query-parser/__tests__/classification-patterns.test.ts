@@ -388,43 +388,14 @@ describe('Classification des patterns - Batterie de tests', () => {
       expect(classification.understood).toBe(false);
     });
 
-    it('devrait détecter "et nos projets alors?" comme conversationnel', () => {
-      const lowerQuery = 'et nos projets alors?'.toLowerCase();
-      const { filters } = detectFilters(
-        'et nos projets alors?',
-        lowerQuery,
-        availableCollabs,
-        availableStyles
-      );
-      const classification = classifyQuery('et nos projets alors?', lowerQuery, filters);
-
-      expect(classification.isConversationalQuestion).toBe(true);
-      expect(classification.understood).toBe(false);
-    });
-
-    it('devrait détecter "t\'en penses quoi de cette liste?" comme conversationnel', () => {
-      const lowerQuery = "t'en penses quoi de cette liste?".toLowerCase();
-      const { filters } = detectFilters(
-        "t'en penses quoi de cette liste?",
-        lowerQuery,
-        availableCollabs,
-        availableStyles
-      );
-      const classification = classifyQuery("t'en penses quoi de cette liste?", lowerQuery, filters);
-
-      expect(classification.isConversationalQuestion).toBe(true);
-      expect(classification.understood).toBe(false);
-    });
-
-    it('devrait détecter "qu\'est-ce que tu en penses?" comme conversationnel', () => {
-      const lowerQuery = "qu'est-ce que tu en penses?".toLowerCase();
-      const { filters } = detectFilters(
-        "qu'est-ce que tu en penses?",
-        lowerQuery,
-        availableCollabs,
-        availableStyles
-      );
-      const classification = classifyQuery("qu'est-ce que tu en penses?", lowerQuery, filters);
+    it.each([
+      ['et nos projets alors?', 'et nos projets alors?'],
+      ["t'en penses quoi de cette liste?", "t'en penses quoi de cette liste?"],
+      ["qu'est-ce que tu en penses?", "qu'est-ce que tu en penses?"],
+    ])('devrait détecter "%s" comme conversationnel', (_title, query) => {
+      const lowerQuery = query.toLowerCase();
+      const { filters } = detectFilters(query, lowerQuery, availableCollabs, availableStyles);
+      const classification = classifyQuery(query, lowerQuery, filters);
 
       expect(classification.isConversationalQuestion).toBe(true);
       expect(classification.understood).toBe(false);

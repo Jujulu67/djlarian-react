@@ -21,6 +21,12 @@ interface ImageCardProps {
   onDelete: (image: ImageMeta) => void;
 }
 
+function getImageTypeBadgeVariant(type: string): 'default' | 'secondary' | 'ghost' {
+  if (type === 'Couverture') return 'default';
+  if (type === 'Événement') return 'secondary';
+  return 'ghost';
+}
+
 export const ImageCard = ({
   group,
   isSelected,
@@ -124,16 +130,7 @@ export const ImageCard = ({
         </h3>
         <div className="flex flex-wrap gap-2 items-center text-xs mb-2">
           {image.type !== 'Autre' && (
-            <Badge
-              variant={
-                image.type === 'Couverture'
-                  ? 'default'
-                  : image.type === 'Événement'
-                    ? 'secondary'
-                    : 'ghost'
-              }
-              size="sm"
-            >
+            <Badge variant={getImageTypeBadgeVariant(image.type)} size="sm">
               {image.type}
             </Badge>
           )}

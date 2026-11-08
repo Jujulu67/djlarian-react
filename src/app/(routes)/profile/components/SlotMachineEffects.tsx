@@ -24,6 +24,14 @@ const CONFETTI_COLORS = [
   '#BB8FCE',
 ];
 
+/** Nombre de confettis selon l'intensité */
+function getConfettiCount(intensity: NonNullable<ConfettiProps['intensity']>) {
+  if (intensity === 'jackpot') return 100;
+  if (intensity === 'high') return 60;
+  if (intensity === 'medium') return 40;
+  return 20;
+}
+
 export function ConfettiExplosion({ isActive, intensity = 'medium' }: Readonly<ConfettiProps>) {
   const [particles, setParticles] = useState<
     Array<{
@@ -39,14 +47,7 @@ export function ConfettiExplosion({ isActive, intensity = 'medium' }: Readonly<C
 
   useEffect(() => {
     if (isActive) {
-      const count =
-        intensity === 'jackpot'
-          ? 100
-          : intensity === 'high'
-            ? 60
-            : intensity === 'medium'
-              ? 40
-              : 20;
+      const count = getConfettiCount(intensity);
       const newParticles = Array.from({ length: count }, (_, i) => ({
         id: i,
         x: Math.random() * 100,
@@ -152,19 +153,27 @@ interface MultiplierPopupProps {
   isVisible: boolean;
 }
 
+/** Taille du texte du multiplicateur */
+function getMultiplierSize(amount: number) {
+  if (amount >= 100) return 'text-8xl';
+  if (amount >= 50) return 'text-7xl';
+  if (amount >= 20) return 'text-6xl';
+  return 'text-5xl';
+}
+
+/** Dégradé du texte du multiplicateur */
+function getMultiplierColor(amount: number) {
+  if (amount >= 100) return 'from-yellow-400 via-orange-500 to-red-500';
+  if (amount >= 50) return 'from-purple-400 via-pink-500 to-red-500';
+  if (amount >= 20) return 'from-green-400 via-emerald-500 to-teal-500';
+  return 'from-blue-400 via-cyan-500 to-teal-500';
+}
+
 export function MultiplierPopup({ amount, isVisible }: Readonly<MultiplierPopupProps>) {
   if (!isVisible || amount <= 0) return null;
 
-  const size =
-    amount >= 100 ? 'text-8xl' : amount >= 50 ? 'text-7xl' : amount >= 20 ? 'text-6xl' : 'text-5xl';
-  const color =
-    amount >= 100
-      ? 'from-yellow-400 via-orange-500 to-red-500'
-      : amount >= 50
-        ? 'from-purple-400 via-pink-500 to-red-500'
-        : amount >= 20
-          ? 'from-green-400 via-emerald-500 to-teal-500'
-          : 'from-blue-400 via-cyan-500 to-teal-500';
+  const size = getMultiplierSize(amount);
+  const color = getMultiplierColor(amount);
 
   return (
     <motion.div
@@ -271,17 +280,18 @@ interface GlowingBorderProps {
   intensity: 'low' | 'medium' | 'high' | 'jackpot';
 }
 
+/** Couleur de la bordure lumineuse selon l'intensité */
+function getGlowColor(intensity: GlowingBorderProps['intensity']) {
+  if (intensity === 'jackpot') return 'rgba(255,215,0,0.8)';
+  if (intensity === 'high') return 'rgba(168,85,247,0.6)';
+  if (intensity === 'medium') return 'rgba(74,222,128,0.5)';
+  return 'rgba(59,130,246,0.4)';
+}
+
 export function GlowingBorder({ isWinning, intensity }: Readonly<GlowingBorderProps>) {
   if (!isWinning) return null;
 
-  const glowColor =
-    intensity === 'jackpot'
-      ? 'rgba(255,215,0,0.8)'
-      : intensity === 'high'
-        ? 'rgba(168,85,247,0.6)'
-        : intensity === 'medium'
-          ? 'rgba(74,222,128,0.5)'
-          : 'rgba(59,130,246,0.4)';
+  const glowColor = getGlowColor(intensity);
 
   return (
     <motion.div
@@ -454,6 +464,14 @@ interface BonusGameProps {
   onComplete: (multiplier: number) => void;
 }
 
+/** Classe d'une boîte du bonus : choisie, mise de côté après le choix, ou neutre */
+function getBonusBoxClassName(isSelected: boolean, isDimmed: boolean) {
+  if (isSelected)
+    return 'bg-gradient-to-br from-yellow-400 to-orange-500 shadow-lg shadow-yellow-500/50';
+  if (isDimmed) return 'bg-slate-700';
+  return 'bg-gradient-to-br from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 cursor-pointer shadow-lg';
+}
+
 export function BonusGame({ isActive, onComplete }: Readonly<BonusGameProps>) {
   const [selectedBox, setSelectedBox] = useState<number | null>(null);
   const [revealed, setRevealed] = useState(false);
@@ -507,13 +525,7 @@ export function BonusGame({ isActive, onComplete }: Readonly<BonusGameProps>) {
             className={`
                             w-24 h-24 rounded-xl text-4xl flex items-center justify-center
                             transition-all duration-300
-                            ${
-                              selectedBox === i
-                                ? 'bg-gradient-to-br from-yellow-400 to-orange-500 shadow-lg shadow-yellow-500/50'
-                                : selectedBox !== null && revealed
-                                  ? 'bg-slate-700'
-                                  : 'bg-gradient-to-br from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 cursor-pointer shadow-lg'
-                            }
+                            ${getBonusBoxClassName(selectedBox === i, selectedBox !== null && revealed)}
                         `}
           >
             {revealed ? (

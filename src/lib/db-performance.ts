@@ -90,34 +90,44 @@ class DbPerformanceLogger {
     };
 
     if (this.enabled) {
-      // Log structuré pour faciliter l'analyse
-      const parts: string[] = [];
-      if (connectTime !== undefined) {
-        parts.push(`connect: ${connectTime}ms`);
-      }
-      if (queryTime !== undefined) {
-        parts.push(`query: ${queryTime}ms`);
-      }
-      parts.push(`total: ${totalTime}ms`);
-
-      const queryInfo = options?.query ? ` [${options.query}]` : '';
-      logger.debug(`[DB Perf] ${this.handlerName}${queryInfo} - ${parts.join(', ')}`);
-
-      // Avertissement si le temps total est suspect (> 1000ms)
-      if (totalTime > 1000) {
-        logger.warn(`[DB Perf] ⚠️ ${this.handlerName} est lent: ${totalTime}ms (seuil: 1000ms)`);
-      }
-
-      // Avertissement si la query est rapide mais le handler total est lent
-      // Cela indique un problème de cold start Vercel
-      if (queryTime !== undefined && queryTime < 100 && totalTime > 500) {
-        logger.warn(
-          `[DB Perf] ⚠️ ${this.handlerName}: query rapide (${queryTime}ms) mais handler lent (${totalTime}ms) - possible cold start Vercel`
-        );
-      }
+      this.logEndMetrics(totalTime, connectTime, queryTime, options?.query);
     }
 
     return metrics;
+  }
+
+  /** Log structuré des métriques de fin de handler, avec avertissements de lenteur. */
+  private logEndMetrics(
+    totalTime: number,
+    connectTime?: number,
+    queryTime?: number,
+    query?: string
+  ): void {
+    // Log structuré pour faciliter l'analyse
+    const parts: string[] = [];
+    if (connectTime !== undefined) {
+      parts.push(`connect: ${connectTime}ms`);
+    }
+    if (queryTime !== undefined) {
+      parts.push(`query: ${queryTime}ms`);
+    }
+    parts.push(`total: ${totalTime}ms`);
+
+    const queryInfo = query ? ` [${query}]` : '';
+    logger.debug(`[DB Perf] ${this.handlerName}${queryInfo} - ${parts.join(', ')}`);
+
+    // Avertissement si le temps total est suspect (> 1000ms)
+    if (totalTime > 1000) {
+      logger.warn(`[DB Perf] ⚠️ ${this.handlerName} est lent: ${totalTime}ms (seuil: 1000ms)`);
+    }
+
+    // Avertissement si la query est rapide mais le handler total est lent
+    // Cela indique un problème de cold start Vercel
+    if (queryTime !== undefined && queryTime < 100 && totalTime > 500) {
+      logger.warn(
+        `[DB Perf] ⚠️ ${this.handlerName}: query rapide (${queryTime}ms) mais handler lent (${totalTime}ms) - possible cold start Vercel`
+      );
+    }
   }
 
   /**

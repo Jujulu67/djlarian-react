@@ -26,6 +26,12 @@ import { addGenreToList, removeGenreFromList } from './utils/genreList';
 import { updatePlatformUrl } from './utils/platformUpdate';
 import { buildPlatformsArray, buildTrackRequestBody } from './utils/trackPayload';
 
+function getTabLabel(tab: string) {
+  if (tab === 'tracks') return 'Morceaux';
+  if (tab === 'collections') return 'Collections';
+  return 'Auto-détection';
+}
+
 export default function AdminMusicPage() {
   const router = useRouter();
 
@@ -326,11 +332,7 @@ export default function AdminMusicPage() {
               }`}
               onClick={() => setActiveTab(tab)}
             >
-              {tab === 'tracks'
-                ? 'Morceaux'
-                : tab === 'collections'
-                  ? 'Collections'
-                  : 'Auto-détection'}
+              {getTabLabel(tab)}
             </button>
           ))}
         </div>

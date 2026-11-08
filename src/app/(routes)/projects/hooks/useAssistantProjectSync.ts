@@ -21,6 +21,71 @@ interface UseAssistantProjectSyncParams {
   statusFilter: ProjectStatus | 'ALL';
 }
 
+type ProjectUpdates = {
+  progress?: number;
+  status?: string;
+  deadline?: string | null;
+  pushDeadlineBy?: { days?: number; weeks?: number; months?: number };
+  collab?: string;
+  style?: string;
+  label?: string;
+  labelFinal?: string;
+  note?: boolean;
+};
+
+/** Applique les mises à jour reçues de l'assistant à un projet (renvoie une copie). */
+function applyProjectUpdates(project: Project, updates: ProjectUpdates): Project {
+  const updated = { ...project };
+  if (updates.progress !== undefined) {
+    updated.progress = updates.progress;
+  }
+  if (updates.status) {
+    updated.status = updates.status as ProjectStatus;
+    // Si on passe à TERMINE, forcer progress à 100
+    if (updates.status === 'TERMINE') {
+      updated.progress = 100;
+    }
+  }
+  // Gérer pushDeadlineBy (décalage relatif)
+  if (updates.pushDeadlineBy && project.deadline) {
+    updated.deadline = shiftDeadline(project.deadline, updates.pushDeadlineBy);
+  } else if (updates.deadline !== undefined) {
+    // Gérer deadline absolue (ou null pour suppression)
+    updated.deadline = updates.deadline;
+  }
+  if (updates.collab !== undefined) {
+    updated.collab = updates.collab;
+  }
+  if (updates.style !== undefined) {
+    updated.style = updates.style;
+  }
+  if (updates.label !== undefined) {
+    updated.label = updates.label;
+  }
+  if (updates.labelFinal !== undefined) {
+    updated.labelFinal = updates.labelFinal;
+  }
+  updated.updatedAt = new Date().toISOString();
+  return updated;
+}
+
+function shiftDeadline(
+  deadline: string,
+  push: NonNullable<ProjectUpdates['pushDeadlineBy']>
+): string {
+  const updatedDeadline = new Date(new Date(deadline));
+  if (push.days !== undefined) {
+    updatedDeadline.setDate(updatedDeadline.getDate() + push.days);
+  }
+  if (push.weeks !== undefined) {
+    updatedDeadline.setDate(updatedDeadline.getDate() + push.weeks * 7);
+  }
+  if (push.months !== undefined) {
+    updatedDeadline.setMonth(updatedDeadline.getMonth() + push.months);
+  }
+  return updatedDeadline.toISOString().split('T')[0];
+}
+
 export function useAssistantProjectSync({
   setHighlightedFromNotification,
   setLastCreatedProjectId,
@@ -116,117 +181,15 @@ export function useAssistantProjectSync({
 
       // Mettre à jour les projets dans la liste avec les nouvelles valeurs
       setAllProjects((prev) =>
-        prev.map((project) => {
-          if (projectIds.includes(project.id)) {
-            const updated = { ...project };
-            if (updates.progress !== undefined) {
-              updated.progress = updates.progress;
-            }
-            if (updates.status) {
-              updated.status = updates.status as ProjectStatus;
-              // Si on passe à TERMINE, forcer progress à 100
-              if (updates.status === 'TERMINE') {
-                updated.progress = 100;
-              }
-            }
-            // Gérer pushDeadlineBy (décalage relatif)
-            if (updates.pushDeadlineBy && project.deadline) {
-              const currentDeadline = new Date(project.deadline);
-              const updatedDeadline = new Date(currentDeadline);
-
-              if (updates.pushDeadlineBy.days !== undefined) {
-                updatedDeadline.setDate(updatedDeadline.getDate() + updates.pushDeadlineBy.days);
-              }
-              if (updates.pushDeadlineBy.weeks !== undefined) {
-                updatedDeadline.setDate(
-                  updatedDeadline.getDate() + updates.pushDeadlineBy.weeks * 7
-                );
-              }
-              if (updates.pushDeadlineBy.months !== undefined) {
-                updatedDeadline.setMonth(
-                  updatedDeadline.getMonth() + updates.pushDeadlineBy.months
-                );
-              }
-
-              updated.deadline = updatedDeadline.toISOString().split('T')[0];
-            } else if (updates.deadline !== undefined) {
-              // Gérer deadline absolue (ou null pour suppression)
-              updated.deadline = updates.deadline;
-            }
-            if (updates.collab !== undefined) {
-              updated.collab = updates.collab;
-            }
-            if (updates.style !== undefined) {
-              updated.style = updates.style;
-            }
-            if (updates.label !== undefined) {
-              updated.label = updates.label;
-            }
-            if (updates.labelFinal !== undefined) {
-              updated.labelFinal = updates.labelFinal;
-            }
-            updated.updatedAt = new Date().toISOString();
-            return updated;
-          }
-          return project;
-        })
+        prev.map((project) =>
+          projectIds.includes(project.id) ? applyProjectUpdates(project, updates) : project
+        )
       );
 
       setProjects((prev) =>
-        prev.map((project) => {
-          if (projectIds.includes(project.id)) {
-            const updated = { ...project };
-            if (updates.progress !== undefined) {
-              updated.progress = updates.progress;
-            }
-            if (updates.status) {
-              updated.status = updates.status as ProjectStatus;
-              // Si on passe à TERMINE, forcer progress à 100
-              if (updates.status === 'TERMINE') {
-                updated.progress = 100;
-              }
-            }
-            // Gérer pushDeadlineBy (décalage relatif)
-            if (updates.pushDeadlineBy && project.deadline) {
-              const currentDeadline = new Date(project.deadline);
-              const updatedDeadline = new Date(currentDeadline);
-
-              if (updates.pushDeadlineBy.days !== undefined) {
-                updatedDeadline.setDate(updatedDeadline.getDate() + updates.pushDeadlineBy.days);
-              }
-              if (updates.pushDeadlineBy.weeks !== undefined) {
-                updatedDeadline.setDate(
-                  updatedDeadline.getDate() + updates.pushDeadlineBy.weeks * 7
-                );
-              }
-              if (updates.pushDeadlineBy.months !== undefined) {
-                updatedDeadline.setMonth(
-                  updatedDeadline.getMonth() + updates.pushDeadlineBy.months
-                );
-              }
-
-              updated.deadline = updatedDeadline.toISOString().split('T')[0];
-            } else if (updates.deadline !== undefined) {
-              // Gérer deadline absolue (ou null pour suppression)
-              updated.deadline = updates.deadline;
-            }
-            if (updates.collab !== undefined) {
-              updated.collab = updates.collab;
-            }
-            if (updates.style !== undefined) {
-              updated.style = updates.style;
-            }
-            if (updates.label !== undefined) {
-              updated.label = updates.label;
-            }
-            if (updates.labelFinal !== undefined) {
-              updated.labelFinal = updates.labelFinal;
-            }
-            updated.updatedAt = new Date().toISOString();
-            return updated;
-          }
-          return project;
-        })
+        prev.map((project) =>
+          projectIds.includes(project.id) ? applyProjectUpdates(project, updates) : project
+        )
       );
 
       // Si une note a été ajoutée, recharger les projets depuis le serveur

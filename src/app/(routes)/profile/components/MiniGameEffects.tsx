@@ -196,6 +196,38 @@ export function BlockExplosion({ x, y, color, count, isActive }: Readonly<BlockE
 // ============================================
 // FLOATING SCORE POPUP
 // ============================================
+type CelebrationType = 'win' | 'jackpot' | 'bonus';
+
+function getComboGradient(combo: number) {
+  if (combo >= 3) {
+    return 'from-yellow-400 to-orange-500';
+  }
+  if (combo >= 2) {
+    return 'from-purple-400 to-pink-500';
+  }
+  return 'from-green-400 to-emerald-500';
+}
+
+function getCelebrationGradient(type: CelebrationType) {
+  if (type === 'jackpot') {
+    return 'from-yellow-500/90 via-orange-500/90 to-red-500/90';
+  }
+  if (type === 'bonus') {
+    return 'from-purple-500/90 to-pink-500/90';
+  }
+  return 'from-green-500/90 to-emerald-500/90';
+}
+
+function getCelebrationIcon(type: CelebrationType) {
+  if (type === 'jackpot') {
+    return '🏆';
+  }
+  if (type === 'bonus') {
+    return '🎁';
+  }
+  return '🎉';
+}
+
 interface FloatingScoreProps {
   score: number;
   x: number;
@@ -207,12 +239,7 @@ interface FloatingScoreProps {
 export function FloatingScore({ score, x, y, isVisible, combo = 1 }: Readonly<FloatingScoreProps>) {
   if (!isVisible) return null;
 
-  const color =
-    combo >= 3
-      ? 'from-yellow-400 to-orange-500'
-      : combo >= 2
-        ? 'from-purple-400 to-pink-500'
-        : 'from-green-400 to-emerald-500';
+  const color = getComboGradient(combo);
 
   return (
     <motion.div
@@ -303,12 +330,8 @@ export function CelebrationOverlay({
 
   if (!isVisible) return null;
 
-  const bgColor =
-    type === 'jackpot'
-      ? 'from-yellow-500/90 via-orange-500/90 to-red-500/90'
-      : type === 'bonus'
-        ? 'from-purple-500/90 to-pink-500/90'
-        : 'from-green-500/90 to-emerald-500/90';
+  const bgColor = getCelebrationGradient(type);
+  const celebrationIcon = getCelebrationIcon(type);
 
   return (
     <motion.div
@@ -354,7 +377,7 @@ export function CelebrationOverlay({
             transition={{ duration: 0.6, repeat: Infinity }}
             className="text-4xl"
           >
-            {type === 'jackpot' ? '🏆' : type === 'bonus' ? '🎁' : '🎉'}
+            {celebrationIcon}
           </motion.div>
           <div className="text-center">
             <div className="text-2xl font-black text-white drop-shadow-lg">{message}</div>
@@ -365,7 +388,7 @@ export function CelebrationOverlay({
             transition={{ duration: 0.6, repeat: Infinity }}
             className="text-4xl"
           >
-            {type === 'jackpot' ? '🏆' : type === 'bonus' ? '🎁' : '🎉'}
+            {celebrationIcon}
           </motion.div>
         </motion.div>
       </div>

@@ -29,6 +29,12 @@ interface PreviewStepProps {
   validRowsCount: number;
 }
 
+function getImportRowClass(hasErrors?: boolean, isDuplicate?: boolean) {
+  if (hasErrors) return 'bg-red-500/10 border-l-4 border-red-500';
+  if (isDuplicate) return 'bg-yellow-500/10 border-l-4 border-yellow-500';
+  return 'hover:bg-white/5';
+}
+
 export function PreviewStep({
   detectedColumns,
   duplicatesInfo,
@@ -239,18 +245,9 @@ export function PreviewStep({
               );
               const isDuplicate = isDuplicateInFile || isDuplicateInDb;
               return (
-                <tr
-                  key={index}
-                  className={`${
-                    hasErrors
-                      ? 'bg-red-500/10 border-l-4 border-red-500'
-                      : isDuplicate
-                        ? 'bg-yellow-500/10 border-l-4 border-yellow-500'
-                        : 'hover:bg-white/5'
-                  }`}
-                >
+                <tr key={index} className={getImportRowClass(hasErrors, isDuplicate)}>
                   <td className="px-2 py-2" style={{ width: '45px' }}>
-                    {hasErrors ? (
+                    {(hasErrors && (
                       <div className="group relative">
                         <AlertCircle size={16} className="text-red-400 cursor-help" />
                         <div className="absolute left-0 top-6 z-20 hidden group-hover:block bg-gray-900 border border-red-500/50 rounded-lg p-2 shadow-lg min-w-[200px]">
@@ -261,27 +258,26 @@ export function PreviewStep({
                           </div>
                         </div>
                       </div>
-                    ) : isDuplicate ? (
-                      <div className="group relative">
-                        <AlertCircle size={16} className="text-yellow-400 cursor-help" />
-                        <div className="absolute left-0 top-6 z-20 hidden group-hover:block bg-gray-900 border border-yellow-500/50 rounded-lg p-2 shadow-lg min-w-[250px]">
-                          <div className="text-xs text-yellow-400 space-y-1">
-                            <div className="font-semibold mb-1">Doublon détecté</div>
-                            {isDuplicateInFile && (
-                              <div>• Doublon dans le fichier (même nom + statut)</div>
-                            )}
-                            {isDuplicateInDb && <div>• Existe déjà en base de données</div>}
-                            <div className="text-gray-400 mt-1 text-xs">
-                              Statut:{' '}
-                              {PROJECT_STATUSES.find((s) => s.value === rowStatus)?.label ||
-                                rowStatus}
+                    )) ||
+                      (isDuplicate && (
+                        <div className="group relative">
+                          <AlertCircle size={16} className="text-yellow-400 cursor-help" />
+                          <div className="absolute left-0 top-6 z-20 hidden group-hover:block bg-gray-900 border border-yellow-500/50 rounded-lg p-2 shadow-lg min-w-[250px]">
+                            <div className="text-xs text-yellow-400 space-y-1">
+                              <div className="font-semibold mb-1">Doublon détecté</div>
+                              {isDuplicateInFile && (
+                                <div>• Doublon dans le fichier (même nom + statut)</div>
+                              )}
+                              {isDuplicateInDb && <div>• Existe déjà en base de données</div>}
+                              <div className="text-gray-400 mt-1 text-xs">
+                                Statut:{' '}
+                                {PROJECT_STATUSES.find((s) => s.value === rowStatus)?.label ||
+                                  rowStatus}
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ) : (
-                      <Check size={16} className="text-green-400" />
-                    )}
+                      )) || <Check size={16} className="text-green-400" />}
                   </td>
                   <td className="px-2 py-2">
                     <input
