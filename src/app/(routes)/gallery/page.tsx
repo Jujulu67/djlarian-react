@@ -237,7 +237,7 @@ function GalleryV2({
           {activeTab === 'gallery' && (
             <>
               <span className="hidden h-5 w-px bg-white/10 sm:block" aria-hidden="true" />
-              <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrer par type">
+              <fieldset className="flex min-w-0 flex-wrap gap-2" aria-label="Filtrer par type">
                 {filters.map((option) => (
                   <button
                     key={option.id}
@@ -249,7 +249,7 @@ function GalleryV2({
                     {option.label}
                   </button>
                 ))}
-              </div>
+              </fieldset>
             </>
           )}
         </div>

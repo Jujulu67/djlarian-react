@@ -61,18 +61,12 @@ export const FusionModal = ({
                 tabIndex={-1}
                 aria-label={`Carte image ${image.name}`}
               >
-                <div
-                  role="button"
-                  tabIndex={isIgnored ? -1 : 0}
+                <button
+                  type="button"
+                  disabled={isIgnored}
                   className={`w-full flex flex-col items-center cursor-pointer ${isIgnored ? 'pointer-events-none' : ''}`}
                   onClick={() => {
                     if (!isIgnored) setSelectedMasterId(image.id);
-                  }}
-                  onKeyDown={(e) => {
-                    if (!isIgnored && (e.key === 'Enter' || e.key === ' ')) {
-                      setSelectedMasterId(image.id);
-                      e.preventDefault();
-                    }
                   }}
                   aria-label={`Sélectionner comme maître ${image.name}`}
                 >
@@ -100,7 +94,7 @@ export const FusionModal = ({
                       Maître
                     </div>
                   )}
-                </div>
+                </button>
                 <div className="mt-3 flex justify-center w-full">
                   <Checkbox
                     checked={isIgnored}

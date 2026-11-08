@@ -58,7 +58,7 @@ export function EventsFilters({
         </div>
 
         <div className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0">
-          <div className="flex min-w-max gap-2" role="group" aria-label="Statut de l'événement">
+          <fieldset className="flex min-w-max gap-2" aria-label="Statut de l'événement">
             {STATUS_FILTERS.map(({ value, label }) => {
               const active = selectedStatus === value;
               return (
@@ -73,7 +73,7 @@ export function EventsFilters({
                 </button>
               );
             })}
-          </div>
+          </fieldset>
         </div>
       </div>
     );

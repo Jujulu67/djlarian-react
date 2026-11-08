@@ -10,7 +10,7 @@ import { EventsContactCta } from './components/EventsContactCta';
 import { EventsFilters } from './components/EventsFilters';
 import { EventsHeader } from './components/EventsHeader';
 import { EventsListToolbar } from './components/EventsListToolbar';
-import { EventsPagination } from './components/EventsPagination';
+import { PublicPagination } from '@/components/ui/PublicPagination';
 import {
   EVENTS_CONTAINER_CLASS,
   EVENTS_PAGE_CLASS,
@@ -103,7 +103,7 @@ function EventsContent() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <EventsPagination
+              <PublicPagination
                 currentPage={currentPage}
                 totalPages={totalPages}
                 paginate={paginate}

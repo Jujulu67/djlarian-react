@@ -76,7 +76,7 @@ export function MusicFilters({
         </div>
 
         <div className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0">
-          <div className="flex min-w-max gap-2" role="group" aria-label="Type de morceau">
+          <fieldset className="flex min-w-max gap-2" aria-label="Type de morceau">
             {MUSIC_TYPES.map((type) => {
               const active = selectedType === type.value;
               return (
@@ -91,7 +91,7 @@ export function MusicFilters({
                 </button>
               );
             })}
-          </div>
+          </fieldset>
         </div>
 
         {showFilters && (

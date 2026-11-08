@@ -117,8 +117,8 @@ function FeatureCardV2({ feature }: Readonly<{ feature: Feature }>) {
 
       {feature.details && feature.details.length > 0 && (
         <ul className="mt-auto space-y-2 text-sm text-white/70">
-          {feature.details.map((detail, idx) => (
-            <li key={idx} className="flex items-start gap-2">
+          {feature.details.map((detail) => (
+            <li key={detail} className="flex items-start gap-2">
               <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand/80" />
               <span>{detail}</span>
             </li>
@@ -178,8 +178,8 @@ function FeatureCard({ feature, index }: Readonly<{ feature: Feature; index: num
 
       {feature.details && feature.details.length > 0 && (
         <ul className="mt-auto space-y-2 text-sm text-gray-300">
-          {feature.details.map((detail, idx) => (
-            <li key={idx} className="flex items-start gap-2">
+          {feature.details.map((detail) => (
+            <li key={detail} className="flex items-start gap-2">
               <span className="mt-1 h-1.5 w-1.5 rounded-full bg-purple-400/80" />
               <span>{detail}</span>
             </li>
@@ -237,9 +237,9 @@ function TechSection() {
         </div>
 
         <div className="md:w-1/2 grid sm:grid-cols-2 gap-4">
-          {OPENCRUSHER_TECH.map((item, idx) => (
+          {OPENCRUSHER_TECH.map((item) => (
             <div
-              key={idx}
+              key={item.label}
               className={`p-4 rounded-xl transition-all duration-300 ${
                 item.highlight
                   ? 'bg-gradient-to-br from-purple-500/10 to-blue-500/10 border border-purple-500/30 v2:bg-none v2:bg-brand/[0.06] v2:border-brand/20'
@@ -398,7 +398,7 @@ export default function OpenCrusherPage() {
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {OPENCRUSHER_FEATURES.map((feature, idx) => (
-                <FeatureCard key={idx} feature={feature} index={idx} />
+                <FeatureCard key={feature.title} feature={feature} index={idx} />
               ))}
             </div>
           )}

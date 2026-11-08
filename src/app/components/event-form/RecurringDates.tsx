@@ -41,9 +41,9 @@ export function RecurringDates({ formData, setFormData }: Readonly<RecurringDate
         <div className="mb-4">
           <h4 className="text-gray-300 text-sm font-medium mb-2">Dates exclues:</h4>
           <div className="flex flex-wrap gap-2">
-            {formData.recurrence.excludedDates.map((date, index) => (
+            {formData.recurrence.excludedDates.map((date) => (
               <div
-                key={index}
+                key={date}
                 className="bg-gray-700/50 rounded-lg px-3 py-1.5 flex items-center gap-2 text-sm"
               >
                 <Calendar className="w-4 h-4 text-purple-400" />
@@ -83,8 +83,8 @@ export function RecurringDates({ formData, setFormData }: Readonly<RecurringDate
             disabled={futureOccurrences.length === 0}
           >
             <option value="">Sélectionner une date à exclure</option>
-            {futureOccurrences.map((occurrence, index) => (
-              <option key={index} value={occurrence.value}>
+            {futureOccurrences.map((occurrence) => (
+              <option key={occurrence.value} value={occurrence.value}>
                 {occurrence.label}
               </option>
             ))}

@@ -221,7 +221,7 @@ function ProductCard({ product }: Readonly<{ product: Product }>) {
         <div className="space-y-3 mb-8">
           {product.features.map((feature, idx) => (
             <motion.div
-              key={idx}
+              key={feature.title}
               initial={{ opacity: 0, x: -10 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
@@ -312,8 +312,11 @@ function FeatureComparison() {
             </tr>
           </thead>
           <tbody>
-            {COMPARISON_FEATURES.map((feature, idx) => (
-              <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+            {COMPARISON_FEATURES.map((feature) => (
+              <tr
+                key={feature.name}
+                className="border-b border-white/5 hover:bg-white/5 transition-colors"
+              >
                 <td className="p-4 text-gray-300">{feature.name}</td>
                 <td className="p-4 text-center">
                   {feature.free === true ? (

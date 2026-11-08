@@ -1,16 +1,17 @@
-interface PaginationProps {
+/** Pagination des pages publiques (musique, événements) */
+interface PublicPaginationProps {
   currentPage: number;
   totalPages: number;
   paginate: (pageNumber: number) => void;
 }
 
-export function MusicPagination({ currentPage, totalPages, paginate }: Readonly<PaginationProps>) {
+export function PublicPagination({
+  currentPage,
+  totalPages,
+  paginate,
+}: Readonly<PublicPaginationProps>) {
   return (
-    <div
-      className="mt-8 sm:mt-10 flex justify-center v2:mt-12"
-      role="navigation"
-      aria-label="Pagination"
-    >
+    <nav className="mt-8 sm:mt-10 flex justify-center v2:mt-12" aria-label="Pagination">
       <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2">
         {/* Bouton précédent */}
         <button
@@ -78,6 +79,6 @@ export function MusicPagination({ currentPage, totalPages, paginate }: Readonly<
           Suivant
         </button>
       </div>
-    </div>
+    </nav>
   );
 }

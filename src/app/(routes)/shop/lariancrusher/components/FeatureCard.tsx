@@ -68,9 +68,9 @@ export function FeatureCard({ feature, index }: Readonly<{ feature: Feature; ind
             className="overflow-hidden"
           >
             <ul className="mt-4 space-y-2">
-              {feature.details.map((detail, idx) => (
+              {feature.details.map((detail) => (
                 <li
-                  key={idx}
+                  key={detail}
                   className="flex items-start gap-2 text-sm text-gray-300 v2:text-white/70"
                 >
                   <Check className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />

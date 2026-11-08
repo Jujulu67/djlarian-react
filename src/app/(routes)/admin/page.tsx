@@ -619,9 +619,9 @@ export default async function AdminPage() {
 
               <div className="space-y-3">
                 {sortedActivities.length > 0 ? (
-                  sortedActivities.map((activity, index) => (
+                  sortedActivities.map((activity) => (
                     <div
-                      key={index}
+                      key={activity.type}
                       className="bg-black/30 p-3 rounded-lg flex items-center justify-between v2:rounded-xl v2:bg-white/[0.03]"
                     >
                       <div className="flex items-center">

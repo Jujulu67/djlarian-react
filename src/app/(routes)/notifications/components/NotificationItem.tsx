@@ -12,7 +12,6 @@ import {
   parseMetadata,
 } from '../notificationsUtils';
 import { logger } from '@/lib/logger';
-import { onActivateKey } from '@/lib/a11y';
 
 interface NotificationItemProps {
   notification: Notification;
@@ -244,19 +243,15 @@ export function NotificationItem({
 
       {/* Afficher les réponses en thread (collapse/expand) */}
       {hasReplies && notification.replies && (
-        <div
-          role="button"
-          tabIndex={0}
+        <button
+          type="button"
           aria-expanded={isThreadExpanded}
           onClick={(e) => {
             e.stopPropagation();
             onToggleThread(notification.id);
           }}
-          onKeyDown={(e) => {
-            e.stopPropagation();
-            onActivateKey(() => onToggleThread(notification.id))(e);
-          }}
           className="mt-2 flex items-center gap-2 text-xs text-gray-500 cursor-pointer hover:text-gray-400 transition-colors"
+          onKeyDown={(e) => e.stopPropagation()}
         >
           <span>
             {notification.replies.length}{' '}
@@ -265,7 +260,7 @@ export function NotificationItem({
           {!isThreadExpanded && (
             <span className="text-purple-400 hover:text-purple-300 underline">Afficher</span>
           )}
-        </div>
+        </button>
       )}
       {hasReplies && isThreadExpanded && notification.replies && (
         <div className="mt-4 ml-4 sm:ml-6 md:ml-8 pl-4 sm:pl-6 border-l-2 border-gray-700/50 space-y-3">

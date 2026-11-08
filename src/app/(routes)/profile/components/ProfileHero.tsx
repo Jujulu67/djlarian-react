@@ -189,18 +189,11 @@ export function ProfileHero({
             >
               {user.image ? (
                 <>
-                  <div
-                    className="relative w-24 h-24 sm:w-32 sm:h-32 rounded-full overflow-hidden shadow-lg shadow-purple-500/30 cursor-pointer v2:shadow-none v2:ring-1 v2:ring-white/15"
-                    role="button"
-                    tabIndex={0}
+                  <button
+                    type="button"
+                    className="block relative w-24 h-24 sm:w-32 sm:h-32 rounded-full overflow-hidden shadow-lg shadow-purple-500/30 cursor-pointer v2:shadow-none v2:ring-1 v2:ring-white/15"
                     aria-label="Voir la photo de profil en grand"
                     onClick={() => onShowFullscreenAvatar(true)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        onShowFullscreenAvatar(true);
-                      }
-                    }}
                   >
                     <Image
                       src={getImageUrl(user.image) || ''}
@@ -211,7 +204,7 @@ export function ProfileHero({
                       unoptimized
                       key={user.image}
                     />
-                  </div>
+                  </button>
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.95 }}

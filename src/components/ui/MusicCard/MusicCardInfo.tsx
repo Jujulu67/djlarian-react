@@ -72,9 +72,9 @@ export const MusicCardInfo: React.FC<MusicCardInfoProps> = ({ track, isPlayerVis
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {track.genre.map((genre, index) => (
+          {track.genre.map((genre) => (
             <span
-              key={index}
+              key={genre}
               className="text-xs px-2 py-1 rounded-full bg-gray-700/50 text-gray-300 order-3"
             >
               {genre}
