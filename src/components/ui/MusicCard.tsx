@@ -337,14 +337,12 @@ const MusicCardComponent: React.FC<MusicCardProps> = ({
 
         {/* Normal image - visible when no player is active */}
         {!isPlayerVisible && (
-          <>
-            <MusicCardImage
-              track={track}
-              imageError={imageError}
-              onImageError={() => setImageError(true)}
-              priority={priority}
-            />
-          </>
+          <MusicCardImage
+            track={track}
+            imageError={imageError}
+            onImageError={() => setImageError(true)}
+            priority={priority}
+          />
         )}
 
         {/* Dark overlay for better badge visibility - hidden when player is active */}

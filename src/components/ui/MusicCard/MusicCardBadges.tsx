@@ -60,24 +60,22 @@ export const MusicCardBadges: React.FC<MusicCardBadgesProps> = ({ track, isPlaye
   }
 
   return (
-    <>
-      <div className="absolute top-4 left-4 flex items-center gap-2">
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-600 text-purple-100 shadow-lg">
-          <Music className="w-3 h-3 mr-1" />
-          {getTypeLabel(track.type)}
+    <div className="absolute top-4 left-4 flex items-center gap-2">
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-600 text-purple-100 shadow-lg">
+        <Music className="w-3 h-3 mr-1" />
+        {getTypeLabel(track.type)}
+      </span>
+      {track.featured && (
+        <span className="relative flex h-5 w-5" aria-hidden="true">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-300 opacity-75"></span>
+          <Star
+            className="relative inline-flex h-5 w-5 text-yellow-400"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+          />
         </span>
-        {track.featured && (
-          <span className="relative flex h-5 w-5" aria-hidden="true">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-300 opacity-75"></span>
-            <Star
-              className="relative inline-flex h-5 w-5 text-yellow-400"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-            />
-          </span>
-        )}
-      </div>
-    </>
+      )}
+    </div>
   );
 };

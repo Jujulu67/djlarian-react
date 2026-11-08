@@ -284,16 +284,12 @@ export function ScratchCardDialog({ isOpen, onClose, onTokenUpdate }: ScratchCar
                   {isLoading ? (
                     <span className="animate-pulse">Achat en cours...</span>
                   ) : (
-                    <>
-                      <div className="flex flex-col items-start">
-                        <span className="text-lg leading-none font-audiowide">
-                          Acheter un ticket
-                        </span>
-                        <span className="text-xs opacity-70 font-normal flex items-center gap-1">
-                          <Coins size={12} /> 10 jetons
-                        </span>
-                      </div>
-                    </>
+                    <div className="flex flex-col items-start">
+                      <span className="text-lg leading-none font-audiowide">Acheter un ticket</span>
+                      <span className="text-xs opacity-70 font-normal flex items-center gap-1">
+                        <Coins size={12} /> 10 jetons
+                      </span>
+                    </div>
                   )}
                 </motion.button>
               </motion.div>

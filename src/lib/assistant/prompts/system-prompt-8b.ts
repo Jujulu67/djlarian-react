@@ -107,11 +107,11 @@ export function buildUserPrompt(
   parts.push(
     '',
     "RÈGLE: N'invente jamais de fonctionnalités. Si on te demande ce que tu sais faire, décris uniquement les actions disponibles dans l'app (projets: list/create/update/note + confirmations + scope + sécurité).",
+    '',
+    // Mode explicite
+    `MODE: ${mode}`,
     ''
   );
-
-  // Mode explicite
-  parts.push(`MODE: ${mode}`, '');
 
   // Contexte conversationnel (si disponible) - FACTUAL MEMORY / INTERPRETATIVE NOTES
   if (conversationContext) {
