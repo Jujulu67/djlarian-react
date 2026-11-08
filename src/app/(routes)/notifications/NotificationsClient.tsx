@@ -38,39 +38,35 @@ function NotificationsEmptyState({
   onShowAll: () => void;
 }>) {
   return (
-    <>
-      <div className="p-8 sm:p-12 text-center">
-        {activeView === 'messages' ? (
-          <>
-            <MessageSquare className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-gray-500 v2:box-content v2:size-6 sm:v2:size-6 v2:rounded-full v2:bg-white/[0.04] v2:p-4 v2:text-white/50" />
-            <p className="text-gray-400 text-base sm:text-lg mb-2 v2:text-white/60">
-              Aucun message
-            </p>
+    <div className="p-8 sm:p-12 text-center">
+      {activeView === 'messages' ? (
+        <>
+          <MessageSquare className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-gray-500 v2:box-content v2:size-6 sm:v2:size-6 v2:rounded-full v2:bg-white/[0.04] v2:p-4 v2:text-white/50" />
+          <p className="text-gray-400 text-base sm:text-lg mb-2 v2:text-white/60">Aucun message</p>
+          <button
+            onClick={onNewMessage}
+            className="mt-3 sm:mt-4 px-3 sm:px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded-lg text-blue-300 text-xs sm:text-sm font-medium transition-colors touch-manipulation v2:rounded-xl v2:border-transparent v2:bg-gradient-to-b v2:from-brand v2:to-purple-600 v2:text-white v2:shadow-[inset_0_1px_0_rgb(255_255_255/0.22)] v2:hover:brightness-110"
+          >
+            Envoyer un message
+          </button>
+        </>
+      ) : (
+        <>
+          <Bell className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-gray-500 v2:box-content v2:size-6 sm:v2:size-6 v2:rounded-full v2:bg-white/[0.04] v2:p-4 v2:text-white/50" />
+          <p className="text-gray-400 text-base sm:text-lg mb-2 v2:text-white/60">
+            {filter === 'unread' ? 'Aucune notification non lue' : 'Aucune notification'}
+          </p>
+          {filter !== 'all' && (
             <button
-              onClick={onNewMessage}
-              className="mt-3 sm:mt-4 px-3 sm:px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded-lg text-blue-300 text-xs sm:text-sm font-medium transition-colors touch-manipulation v2:rounded-xl v2:border-transparent v2:bg-gradient-to-b v2:from-brand v2:to-purple-600 v2:text-white v2:shadow-[inset_0_1px_0_rgb(255_255_255/0.22)] v2:hover:brightness-110"
+              onClick={onShowAll}
+              className="mt-3 sm:mt-4 px-3 sm:px-4 py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded-lg text-purple-300 text-xs sm:text-sm font-medium transition-colors touch-manipulation v2:rounded-xl v2:border-transparent v2:bg-white/[0.04] v2:ring-1 v2:ring-inset v2:ring-white/10 v2:text-white/80 v2:hover:bg-white/[0.08] v2:hover:text-white"
             >
-              Envoyer un message
+              Voir toutes les notifications
             </button>
-          </>
-        ) : (
-          <>
-            <Bell className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-gray-500 v2:box-content v2:size-6 sm:v2:size-6 v2:rounded-full v2:bg-white/[0.04] v2:p-4 v2:text-white/50" />
-            <p className="text-gray-400 text-base sm:text-lg mb-2 v2:text-white/60">
-              {filter === 'unread' ? 'Aucune notification non lue' : 'Aucune notification'}
-            </p>
-            {filter !== 'all' && (
-              <button
-                onClick={onShowAll}
-                className="mt-3 sm:mt-4 px-3 sm:px-4 py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded-lg text-purple-300 text-xs sm:text-sm font-medium transition-colors touch-manipulation v2:rounded-xl v2:border-transparent v2:bg-white/[0.04] v2:ring-1 v2:ring-inset v2:ring-white/10 v2:text-white/80 v2:hover:bg-white/[0.08] v2:hover:text-white"
-              >
-                Voir toutes les notifications
-              </button>
-            )}
-          </>
-        )}
-      </div>
-    </>
+          )}
+        </>
+      )}
+    </div>
   );
 }
 

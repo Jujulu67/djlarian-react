@@ -318,7 +318,7 @@ function EventLoadingState() {
   );
 }
 
-function EventErrorState({ error, isV2 }: { error: string; isV2: boolean }) {
+function EventErrorState({ error, isV2 }: Readonly<{ error: string; isV2: boolean }>) {
   if (isV2) {
     const notFound = error === 'Événement non trouvé';
     return renderV2State(
@@ -357,7 +357,7 @@ function EventErrorState({ error, isV2 }: { error: string; isV2: boolean }) {
   );
 }
 
-function EventUnavailableState({ isV2 }: { isV2: boolean }) {
+function EventUnavailableState({ isV2 }: Readonly<{ isV2: boolean }>) {
   if (isV2) {
     return renderV2State(
       'Événement indisponible',
@@ -389,7 +389,7 @@ function EventUnavailableState({ isV2 }: { isV2: boolean }) {
   );
 }
 
-function EventDataErrorState({ isV2 }: { isV2: boolean }) {
+function EventDataErrorState({ isV2 }: Readonly<{ isV2: boolean }>) {
   if (isV2) {
     return renderV2State(
       'Erreur de données',

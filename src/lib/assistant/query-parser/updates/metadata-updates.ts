@@ -23,7 +23,7 @@ export function extractMetadataUpdate(
 }
 
 /** Mots qui ne peuvent pas être un nom de collaborateur (pattern « avec X à Y »). */
-const COLLAB_PAIR_IGNORED_WORDS = [
+const COLLAB_PAIR_IGNORED_WORDS = new Set([
   'projets',
   'projet',
   'les',
@@ -34,10 +34,10 @@ const COLLAB_PAIR_IGNORED_WORDS = [
   'la',
   'des',
   'avec',
-];
+]);
 
 /** Mots qui ne peuvent pas être un nom de collaborateur (patterns simples). */
-const COLLAB_SIMPLE_IGNORED_WORDS = [
+const COLLAB_SIMPLE_IGNORED_WORDS = new Set([
   'projets',
   'projet',
   'les',
@@ -47,7 +47,7 @@ const COLLAB_SIMPLE_IGNORED_WORDS = [
   'le',
   'la',
   'avec',
-];
+]);
 
 /** Retire les espaces et le préfixe « avec » éventuel d'un nom de collaborateur. */
 function stripLeadingAvec(value: string): string {
@@ -74,7 +74,7 @@ function extractCollabPairUpdate(
       const filterCollab = match[1].trim();
       const newCollab = stripLeadingAvec(match[2]);
 
-      if (!COLLAB_PAIR_IGNORED_WORDS.includes(newCollab.toLowerCase()) && newCollab.length > 0) {
+      if (!COLLAB_PAIR_IGNORED_WORDS.has(newCollab.toLowerCase()) && newCollab.length > 0) {
         filters.collab = filterCollab;
         updateData.newCollab = newCollab;
         logger.warn(
@@ -104,10 +104,7 @@ function extractSimpleCollabUpdate(query: string, updateData: UpdateData): boole
     const match = pattern.exec(query);
     if (match?.[1]) {
       const collabName = stripLeadingAvec(match[1]);
-      if (
-        !COLLAB_SIMPLE_IGNORED_WORDS.includes(collabName.toLowerCase()) &&
-        collabName.length > 0
-      ) {
+      if (!COLLAB_SIMPLE_IGNORED_WORDS.has(collabName.toLowerCase()) && collabName.length > 0) {
         updateData.newCollab = collabName;
         logger.warn('[Parse Query API] ✅ Nouveau collaborateur détecté:', collabName);
         return true;

@@ -189,7 +189,7 @@ export async function searchSoundCloud(
       const data = (await response.json()) as GoogleSearchData;
       const result = data.items?.[0];
 
-      if (result && result.link.includes('soundcloud.com')) {
+      if (result?.link.includes('soundcloud.com')) {
         return toSoundCloudResult(result);
       }
     }

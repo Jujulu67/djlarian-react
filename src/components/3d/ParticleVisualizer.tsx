@@ -86,7 +86,11 @@ class ParticleImpl implements Particle {
     this.y += this.speedY;
 
     this.bounceAtEdges(canvasWidth, canvasHeight);
-    this.updateSize(mouseX, mouseY, isEffectActive);
+    if (isEffectActive) {
+      this.growNearCursor(mouseX, mouseY);
+    } else {
+      this.shrinkToBaseSize();
+    }
   }
 
   /** Repousse doucement la particule vers l'intérieur près des bords */
@@ -150,15 +154,16 @@ class ParticleImpl implements Particle {
   }
 
   /** Taille qui grossit près du curseur quand l'effet est actif */
-  private updateSize(mouseX: number, mouseY: number, isEffectActive: boolean) {
-    if (isEffectActive) {
-      const distance = Math.hypot(this.x - mouseX, this.y - mouseY);
-      const maxDistance = 200;
-      const targetSize = this.baseSize * (1 + (1 - Math.min(distance, maxDistance) / maxDistance));
-      this.size = this.size * 0.9 + targetSize * 0.1;
-    } else {
-      this.size = this.size * 0.95 + this.baseSize * 0.05;
-    }
+  private growNearCursor(mouseX: number, mouseY: number) {
+    const distance = Math.hypot(this.x - mouseX, this.y - mouseY);
+    const maxDistance = 200;
+    const targetSize = this.baseSize * (1 + (1 - Math.min(distance, maxDistance) / maxDistance));
+    this.size = this.size * 0.9 + targetSize * 0.1;
+  }
+
+  /** Retour progressif à la taille de base */
+  private shrinkToBaseSize() {
+    this.size = this.size * 0.95 + this.baseSize * 0.05;
   }
 
   draw(ctx: CanvasRenderingContext2D) {

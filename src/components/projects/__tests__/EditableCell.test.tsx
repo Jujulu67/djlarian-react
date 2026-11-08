@@ -904,48 +904,22 @@ describe('EditableCell', () => {
     });
   });
 
-  it('should handle progress type with valid number in range', async () => {
+  it.each([
+    ['75', 75],
+    ['0', 0],
+    ['100', 100],
+  ])('should save a valid progress value (%s)', async (typed, expected) => {
     render(<EditableCell value={50} field="progress" type="progress" onSave={mockOnSave} />);
 
     const button = screen.getByText('50%');
     fireEvent.click(button);
 
     const input = screen.getByDisplayValue('50');
-    fireEvent.change(input, { target: { value: '75' } });
+    fireEvent.change(input, { target: { value: typed } });
     fireEvent.blur(input);
 
     await waitFor(() => {
-      expect(mockOnSave).toHaveBeenCalledWith('progress', 75);
-    });
-  });
-
-  it('should handle progress type with number at boundary 0', async () => {
-    render(<EditableCell value={50} field="progress" type="progress" onSave={mockOnSave} />);
-
-    const button = screen.getByText('50%');
-    fireEvent.click(button);
-
-    const input = screen.getByDisplayValue('50');
-    fireEvent.change(input, { target: { value: '0' } });
-    fireEvent.blur(input);
-
-    await waitFor(() => {
-      expect(mockOnSave).toHaveBeenCalledWith('progress', 0);
-    });
-  });
-
-  it('should handle progress type with number at boundary 100', async () => {
-    render(<EditableCell value={50} field="progress" type="progress" onSave={mockOnSave} />);
-
-    const button = screen.getByText('50%');
-    fireEvent.click(button);
-
-    const input = screen.getByDisplayValue('50');
-    fireEvent.change(input, { target: { value: '100' } });
-    fireEvent.blur(input);
-
-    await waitFor(() => {
-      expect(mockOnSave).toHaveBeenCalledWith('progress', 100);
+      expect(mockOnSave).toHaveBeenCalledWith('progress', expected);
     });
   });
 

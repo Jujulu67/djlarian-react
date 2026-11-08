@@ -342,14 +342,19 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition:
-    background 0.2s,
-    transform 0.2s;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
   pointer-events: auto; /* Assure que les clics fonctionnent */
   touch-action: manipulation; /* Améliore la réactivité sur mobile */
   -webkit-tap-highlight-color: transparent; /* Supprime le highlight sur mobile */
   z-index: 10001; /* Above controls container */
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .controlButton {
+    transition:
+      background 0.2s,
+      transform 0.2s;
+  }
 }
 
 /* Taille uniforme sur mobile pour tous les boutons */
@@ -645,10 +650,16 @@
   touch-action: manipulation !important; /* Improve touch responsiveness */
   z-index: 1001 !important; /* Higher z-index than controls container */
   position: relative; /* Ensure z-index works */
-  transition:
-    background 0.2s,
-    transform 0.2s,
-    border-color 0.2s !important; /* Smooth transitions */
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .mobileControlsArea .controlButton,
+  .mobileControlsArea .mobileAudioButton {
+    transition:
+      background 0.2s,
+      transform 0.2s,
+      border-color 0.2s !important; /* Smooth transitions */
+  }
 }
 
 .mobileControlsArea .controlButton:hover,

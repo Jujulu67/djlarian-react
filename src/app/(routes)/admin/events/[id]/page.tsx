@@ -140,7 +140,7 @@ async function patchEventData(eventId: string, body: Record<string, unknown>) {
   return result.data;
 }
 
-function EventStatusRows({ event }: { event: Event }) {
+function EventStatusRows({ event }: Readonly<{ event: Event }>) {
   return (
     <>
       <div className="flex justify-between items-center">

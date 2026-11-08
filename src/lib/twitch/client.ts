@@ -142,7 +142,7 @@ async function refreshTwitchToken(userId: string, refreshToken: string): Promise
  */
 function getSubscriptionTier(tier: string): number | null {
   const tiers: Record<string, number> = { '1000': 1, '2000': 2, '3000': 3 };
-  return Object.prototype.hasOwnProperty.call(tiers, tier) ? tiers[tier] : null;
+  return Object.hasOwn(tiers, tier) ? tiers[tier] : null;
 }
 
 function getBroadcasterId(): string | null {

@@ -5,7 +5,17 @@ import { parseRelativeDate } from '../parsers/date-parser';
 import { findStyleFromString } from '../parsers/style-matcher';
 import { logger } from '@/lib/logger';
 
-const IGNORED_NAME_WORDS = ['le', 'la', 'les', 'un', 'une', 'projet', 'project', 'nouveau', 'new'];
+const IGNORED_NAME_WORDS = new Set([
+  'le',
+  'la',
+  'les',
+  'un',
+  'une',
+  'projet',
+  'project',
+  'nouveau',
+  'new',
+]);
 
 export interface CreateData {
   name: string;
@@ -73,7 +83,7 @@ function extractName(query: string): string {
     if (match?.[1]) {
       const potentialName = match[1].trim();
       // Vérifier que ce n'est pas un mot-clé ignoré
-      if (potentialName && !IGNORED_NAME_WORDS.includes(potentialName.toLowerCase())) {
+      if (potentialName && !IGNORED_NAME_WORDS.has(potentialName.toLowerCase())) {
         logger.warn('[Parse Query API] ✅ Nom extrait avec pattern:', pattern, '→', potentialName);
         return potentialName;
       }
@@ -86,7 +96,7 @@ function extractName(query: string): string {
   const simpleMatch = simplePattern.exec(query);
   if (simpleMatch?.[1]) {
     const potentialName = simpleMatch[1].trim();
-    if (!IGNORED_NAME_WORDS.includes(potentialName.toLowerCase())) {
+    if (!IGNORED_NAME_WORDS.has(potentialName.toLowerCase())) {
       logger.warn('[Parse Query API] ✅ Nom extrait avec pattern simple →', potentialName);
       return potentialName;
     }
@@ -99,7 +109,7 @@ function extractName(query: string): string {
  * Extrait le collaborateur (undefined si non trouvé)
  */
 function extractCollab(query: string, availableCollabs: string[]): string | undefined {
-  const ignoredWords = [
+  const ignoredWords = new Set([
     'projets',
     'projet',
     'les',
@@ -113,12 +123,12 @@ function extractCollab(query: string, availableCollabs: string[]): string | unde
     'quels',
     'ai',
     'j',
-  ];
+  ]);
   for (const pattern of collabPatterns) {
     const match = pattern.exec(query);
     if (match?.[1]) {
       const collabName = match[1].trim();
-      if (!ignoredWords.includes(collabName.toLowerCase())) {
+      if (!ignoredWords.has(collabName.toLowerCase())) {
         const matchedCollab = availableCollabs.find(
           (c) =>
             c.toLowerCase().includes(collabName.toLowerCase()) ||

@@ -210,12 +210,12 @@ if (typeof window !== 'undefined') {
     const url = extractUrl(args);
 
     // Si c'est une requête vers /api/auth/session
-    if (url && url.includes('/api/auth/session')) {
+    if (url?.includes('/api/auth/session')) {
       return handleSessionRequest(args, originalFetch);
     }
 
     // Intercepter les erreurs 401 sur toutes les requêtes API (hors /api/auth/session)
-    if (url && url.includes('/api/')) {
+    if (url?.includes('/api/')) {
       return handleApiRequest(args, originalFetch);
     }
 
@@ -225,7 +225,7 @@ if (typeof window !== 'undefined') {
     }
 
     // Intercepter les appels de télémétrie /ingest pour éviter ERR_CONNECTION_REFUSED en dev
-    const isIngestCall = url && url.includes('/ingest/');
+    const isIngestCall = url?.includes('/ingest/');
     const isLocalhost = url && (url.includes('127.0.0.1') || url.includes('localhost'));
 
     if (isIngestCall && isLocalhost) {

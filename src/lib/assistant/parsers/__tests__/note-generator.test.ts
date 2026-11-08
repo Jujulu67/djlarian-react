@@ -167,31 +167,24 @@ describe('Génération de notes - Template Évolution', () => {
       expect(note).not.toMatch(/   mix   /);
     });
 
-    it('devrait gérer des tâches vides (après nettoyage)', () => {
-      const content = 'test, reste à faire: , , ';
+    it.each([
+      [
+        'tâches vides (après nettoyage)',
+        'test, reste à faire: , , ',
+        ['test', '### Prochaines étapes'],
+      ],
+      [
+        'seulement des tâches',
+        'reste à faire: mix, mastering',
+        ['mix', 'mastering', '### Évolution'],
+      ],
+      ['tâches en majuscules', 'test, RESTE À FAIRE: MIX, MASTERING', ['MIX', 'MASTERING']],
+    ])('devrait gérer un contenu avec %s', (_label, content, expected) => {
       const note = generateNoteFromContent(content);
 
-      // Devrait quand même générer une note valide
-      expect(note).toContain('test');
-      expect(note).toContain('### Prochaines étapes');
-    });
-
-    it('devrait gérer un contenu avec seulement des tâches (sans contenu principal)', () => {
-      const content = 'reste à faire: mix, mastering';
-      const note = generateNoteFromContent(content);
-
-      expect(note).toContain('mix');
-      expect(note).toContain('mastering');
-      expect(note).toContain('### Évolution');
-      // Le contenu principal pourrait être vide ou minimal
-    });
-
-    it('devrait gérer un contenu avec tâches en majuscules', () => {
-      const content = 'test, RESTE À FAIRE: MIX, MASTERING';
-      const note = generateNoteFromContent(content);
-
-      expect(note).toContain('MIX');
-      expect(note).toContain('MASTERING');
+      for (const part of expected) {
+        expect(note).toContain(part);
+      }
     });
 
     it('devrait gérer un contenu avec tâches mélangées majuscules/minuscules', () => {
