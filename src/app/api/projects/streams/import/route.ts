@@ -45,6 +45,89 @@ interface ImportResult {
   errors?: Array<{ fileName: string; error: string }>;
 }
 
+// Notifications de jalons et de releases en approche (sans faire échouer l'import)
+async function notifyProjectMilestones(projectId: string, userId: string): Promise<void> {
+  // Vérifier et créer les notifications de jalons pour ce projet
+  try {
+    await checkProjectMilestones(projectId, userId);
+  } catch (notificationError) {
+    // Ne pas faire échouer l'import si la vérification de notifications échoue
+    logger.error('Erreur lors de la vérification des notifications:', notificationError);
+  }
+
+  // Vérifier et créer les notifications de releases en approche
+  try {
+    const { checkProjectUpcomingRelease } = await import('@/lib/utils/checkUpcomingReleases');
+    await checkProjectUpcomingRelease(projectId, userId);
+  } catch (notificationError) {
+    // Ne pas faire échouer l'import si la vérification de notifications échoue
+    logger.error('Erreur lors de la vérification des releases en approche:', notificationError);
+  }
+}
+
+// Importe les streams d'un projet et met à jour le résultat global
+async function processStreamImport(
+  importData: ImportStreamsRequest,
+  userId: string,
+  result: ImportResult
+): Promise<void> {
+  try {
+    // Vérifier que le projet existe et appartient à l'utilisateur
+    const project = await prisma.project.findFirst({
+      where: {
+        id: importData.projectId,
+        userId,
+      },
+    });
+
+    if (!project) {
+      result.failed++;
+      result.errors?.push({
+        fileName: importData.projectId,
+        error: 'Projet non trouvé ou non autorisé',
+      });
+      return;
+    }
+
+    // Vérifier que le projet a une date de release
+    if (!project.releaseDate) {
+      result.failed++;
+      result.errors?.push({
+        fileName: project.name,
+        error: "Le projet n'a pas de date de release",
+      });
+      return;
+    }
+
+    // Mettre à jour les streams
+    await prisma.project.update({
+      where: {
+        id: importData.projectId,
+      },
+      data: {
+        streamsJ7: importData.milestones.streamsJ7,
+        streamsJ14: importData.milestones.streamsJ14,
+        streamsJ21: importData.milestones.streamsJ21,
+        streamsJ28: importData.milestones.streamsJ28,
+        streamsJ56: importData.milestones.streamsJ56,
+        streamsJ84: importData.milestones.streamsJ84,
+        streamsJ180: importData.milestones.streamsJ180,
+        streamsJ365: importData.milestones.streamsJ365,
+      },
+    });
+
+    await notifyProjectMilestones(importData.projectId, userId);
+
+    result.updated++;
+  } catch (error) {
+    result.failed++;
+    result.errors?.push({
+      fileName: importData.projectId,
+      error: error instanceof Error ? error.message : 'Erreur inconnue',
+    });
+  }
+}
+
 // POST /api/projects/streams/import - Importe les streams pour plusieurs projets
 export async function POST(request: NextRequest) {
   try {
@@ -86,79 +169,7 @@ export async function POST(request: NextRequest) {
 
     // Traiter chaque import dans une transaction
     for (const importData of imports) {
-      try {
-        // Vérifier que le projet existe et appartient à l'utilisateur
-        const project = await prisma.project.findFirst({
-          where: {
-            id: importData.projectId,
-            userId: session.user.id,
-          },
-        });
-
-        if (!project) {
-          result.failed++;
-          result.errors?.push({
-            fileName: importData.projectId,
-            error: 'Projet non trouvé ou non autorisé',
-          });
-          continue;
-        }
-
-        // Vérifier que le projet a une date de release
-        if (!project.releaseDate) {
-          result.failed++;
-          result.errors?.push({
-            fileName: project.name,
-            error: "Le projet n'a pas de date de release",
-          });
-          continue;
-        }
-
-        // Mettre à jour les streams
-        await prisma.project.update({
-          where: {
-            id: importData.projectId,
-          },
-          data: {
-            streamsJ7: importData.milestones.streamsJ7,
-            streamsJ14: importData.milestones.streamsJ14,
-            streamsJ21: importData.milestones.streamsJ21,
-            streamsJ28: importData.milestones.streamsJ28,
-            streamsJ56: importData.milestones.streamsJ56,
-            streamsJ84: importData.milestones.streamsJ84,
-            streamsJ180: importData.milestones.streamsJ180,
-            streamsJ365: importData.milestones.streamsJ365,
-          },
-        });
-
-        // Vérifier et créer les notifications de jalons pour ce projet
-        try {
-          await checkProjectMilestones(importData.projectId, session.user.id);
-        } catch (notificationError) {
-          // Ne pas faire échouer l'import si la vérification de notifications échoue
-          logger.error('Erreur lors de la vérification des notifications:', notificationError);
-        }
-
-        // Vérifier et créer les notifications de releases en approche
-        try {
-          const { checkProjectUpcomingRelease } = await import('@/lib/utils/checkUpcomingReleases');
-          await checkProjectUpcomingRelease(importData.projectId, session.user.id);
-        } catch (notificationError) {
-          // Ne pas faire échouer l'import si la vérification de notifications échoue
-          logger.error(
-            'Erreur lors de la vérification des releases en approche:',
-            notificationError
-          );
-        }
-
-        result.updated++;
-      } catch (error) {
-        result.failed++;
-        result.errors?.push({
-          fileName: importData.projectId,
-          error: error instanceof Error ? error.message : 'Erreur inconnue',
-        });
-      }
+      await processStreamImport(importData, session.user.id, result);
     }
 
     // Invalider le cache

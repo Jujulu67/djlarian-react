@@ -28,6 +28,151 @@ interface ScratchParticle {
   color: string;
 }
 
+interface ScratchZoneProps {
+  index: number;
+  canvasRef: React.Ref<HTMLCanvasElement>;
+  isRevealed: boolean;
+  isWinning: boolean;
+  symbol: string;
+  isCanvasReady: boolean;
+  onScratch: (e: React.MouseEvent<HTMLCanvasElement>) => void;
+}
+
+// Une zone à gratter : symbole dessous, canvas au-dessus, couverture et animation de révélation
+function ScratchZone({
+  index,
+  canvasRef,
+  isRevealed,
+  isWinning,
+  symbol,
+  isCanvasReady,
+  onScratch,
+}: Readonly<ScratchZoneProps>) {
+  return (
+    <motion.div
+      initial={{ scale: 0, rotate: -10 }}
+      animate={{ scale: 1, rotate: 0 }}
+      transition={{ delay: index * 0.1 }}
+      className="relative w-24 h-24 md:w-28 md:h-28"
+    >
+      {/* Symbol underneath */}
+      <div
+        className={`absolute inset-0 bg-white rounded-xl flex items-center justify-center shadow-inner transition-all duration-300 ${
+          isRevealed && isWinning ? 'ring-4 ring-green-400 shadow-lg shadow-green-400/50' : ''
+        }`}
+      >
+        <motion.span
+          initial={{ scale: 0 }}
+          animate={{
+            scale: isRevealed ? 1 : 0.5,
+            opacity: isRevealed ? 1 : 0,
+          }}
+          className="text-5xl"
+        >
+          {symbol}
+        </motion.span>
+      </div>
+
+      {/* Scratch Canvas */}
+      {!isRevealed && isCanvasReady && (
+        <canvas
+          ref={canvasRef}
+          className="absolute inset-0 w-full h-full cursor-pointer rounded-xl"
+          onMouseMove={(e) => {
+            if (e.buttons === 1) onScratch(e);
+          }}
+          onMouseDown={onScratch}
+        />
+      )}
+
+      {/* Temporary cover while canvas is loading */}
+      {!isRevealed && !isCanvasReady && (
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-300 to-gray-400 rounded-xl flex items-center justify-center">
+          <span className="text-gray-600 text-xs font-bold animate-pulse">GRATTER</span>
+        </div>
+      )}
+
+      {/* Reveal animation */}
+      <AnimatePresence>
+        {isRevealed && (
+          <motion.div
+            initial={{ scale: 1.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="absolute inset-0 bg-white rounded-xl"
+          />
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
+// Libellé du gain affiché sur la carte gagnante
+function getRewardLabel(result: GameResult): string {
+  if (result.rewardType === 'TOKENS') return `+${result.rewardAmount} Jetons`;
+  if (result.rewardType === 'QUEUE_SKIP') return 'Queue Skip !';
+  return 'Ticket Éternel !';
+}
+
+interface ScratchResultProps {
+  allRevealed: boolean;
+  gameResult: GameResult | null;
+  onReset: () => void;
+}
+
+// Zone de résultat sous la carte (en attente puis verdict)
+function ScratchResult({ allRevealed, gameResult, onReset }: Readonly<ScratchResultProps>) {
+  return (
+    <div className="mt-6 text-center min-h-[80px]">
+      {!allRevealed ? (
+        <motion.p
+          animate={{ opacity: [0.5, 1, 0.5] }}
+          transition={{ duration: 1.5, repeat: Infinity }}
+          className="flex items-center justify-center gap-2 text-white/70"
+        >
+          <Sparkles size={20} className="text-yellow-400" />
+          Grattez pour révéler vos symboles !
+        </motion.p>
+      ) : (
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          className="flex flex-col items-center gap-4"
+        >
+          <div
+            className={`text-2xl font-bold ${
+              gameResult?.isWin ? 'text-green-400' : 'text-red-400'
+            }`}
+          >
+            {gameResult?.isWin ? '🎉 FÉLICITATIONS !' : '😔 Pas de chance...'}
+          </div>
+          <div className="text-white/80">{gameResult?.message}</div>
+
+          {gameResult?.isWin && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center gap-2 text-xl text-yellow-400 font-bold"
+            >
+              <Trophy size={24} />
+              <span>{getRewardLabel(gameResult)}</span>
+            </motion.div>
+          )}
+
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={onReset}
+            className="px-6 py-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"
+          >
+            Acheter un autre ticket
+          </motion.button>
+        </motion.div>
+      )}
+    </div>
+  );
+}
+
 export function ScratchCardDialog({ isOpen, onClose, onTokenUpdate }: ScratchCardDialogProps) {
   const canvasRefs = [
     useRef<HTMLCanvasElement>(null),
@@ -203,6 +348,17 @@ export function ScratchCardDialog({ isOpen, onClose, onTokenUpdate }: ScratchCar
     }
   };
 
+  // Réinitialise tout l'état du jeu pour acheter un autre ticket
+  const resetTicket = () => {
+    setHasBoughtTicket(false);
+    setGameResult(null);
+    setRevealedZones([false, false, false]);
+    setIsCanvasReady(false);
+    setSymbols(['?', '?', '?']);
+    setShowCelebration(false);
+    setParticles([]);
+  };
+
   if (!isOpen) return null;
 
   const content = (
@@ -316,66 +472,16 @@ export function ScratchCardDialog({ isOpen, onClose, onTokenUpdate }: ScratchCar
                       <ScratchParticles particles={particles} />
 
                       {[0, 1, 2].map((index) => (
-                        <motion.div
+                        <ScratchZone
                           key={index}
-                          initial={{ scale: 0, rotate: -10 }}
-                          animate={{ scale: 1, rotate: 0 }}
-                          transition={{ delay: index * 0.1 }}
-                          className="relative w-24 h-24 md:w-28 md:h-28"
-                        >
-                          {/* Symbol underneath */}
-                          <div
-                            className={`absolute inset-0 bg-white rounded-xl flex items-center justify-center shadow-inner transition-all duration-300 ${
-                              revealedZones[index] && isWinning
-                                ? 'ring-4 ring-green-400 shadow-lg shadow-green-400/50'
-                                : ''
-                            }`}
-                          >
-                            <motion.span
-                              initial={{ scale: 0 }}
-                              animate={{
-                                scale: revealedZones[index] ? 1 : 0.5,
-                                opacity: revealedZones[index] ? 1 : 0,
-                              }}
-                              className="text-5xl"
-                            >
-                              {symbols[index]}
-                            </motion.span>
-                          </div>
-
-                          {/* Scratch Canvas */}
-                          {!revealedZones[index] && isCanvasReady && (
-                            <canvas
-                              ref={canvasRefs[index]}
-                              className="absolute inset-0 w-full h-full cursor-pointer rounded-xl"
-                              onMouseMove={(e) => {
-                                if (e.buttons === 1) handleScratch(e, index);
-                              }}
-                              onMouseDown={(e) => handleScratch(e, index)}
-                            />
-                          )}
-
-                          {/* Temporary cover while canvas is loading */}
-                          {!revealedZones[index] && !isCanvasReady && (
-                            <div className="absolute inset-0 bg-gradient-to-br from-gray-300 to-gray-400 rounded-xl flex items-center justify-center">
-                              <span className="text-gray-600 text-xs font-bold animate-pulse">
-                                GRATTER
-                              </span>
-                            </div>
-                          )}
-
-                          {/* Reveal animation */}
-                          <AnimatePresence>
-                            {revealedZones[index] && (
-                              <motion.div
-                                initial={{ scale: 1.5, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 0 }}
-                                transition={{ duration: 0.3 }}
-                                className="absolute inset-0 bg-white rounded-xl"
-                              />
-                            )}
-                          </AnimatePresence>
-                        </motion.div>
+                          index={index}
+                          canvasRef={canvasRefs[index]}
+                          isRevealed={revealedZones[index]}
+                          isWinning={isWinning}
+                          symbol={symbols[index]}
+                          isCanvasReady={isCanvasReady}
+                          onScratch={(e) => handleScratch(e, index)}
+                        />
                       ))}
                     </div>
 
@@ -400,68 +506,11 @@ export function ScratchCardDialog({ isOpen, onClose, onTokenUpdate }: ScratchCar
                 </motion.div>
 
                 {/* Result */}
-                <div className="mt-6 text-center min-h-[80px]">
-                  {!allRevealed ? (
-                    <motion.p
-                      animate={{ opacity: [0.5, 1, 0.5] }}
-                      transition={{ duration: 1.5, repeat: Infinity }}
-                      className="flex items-center justify-center gap-2 text-white/70"
-                    >
-                      <Sparkles size={20} className="text-yellow-400" />
-                      Grattez pour révéler vos symboles !
-                    </motion.p>
-                  ) : (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="flex flex-col items-center gap-4"
-                    >
-                      <div
-                        className={`text-2xl font-bold ${
-                          gameResult?.isWin ? 'text-green-400' : 'text-red-400'
-                        }`}
-                      >
-                        {gameResult?.isWin ? '🎉 FÉLICITATIONS !' : '😔 Pas de chance...'}
-                      </div>
-                      <div className="text-white/80">{gameResult?.message}</div>
-
-                      {gameResult?.isWin && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="flex items-center gap-2 text-xl text-yellow-400 font-bold"
-                        >
-                          <Trophy size={24} />
-                          <span>
-                            {gameResult.rewardType === 'TOKENS'
-                              ? `+${gameResult.rewardAmount} Jetons`
-                              : gameResult.rewardType === 'QUEUE_SKIP'
-                                ? 'Queue Skip !'
-                                : 'Ticket Éternel !'}
-                          </span>
-                        </motion.div>
-                      )}
-
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => {
-                          // Reset all game state when buying another ticket
-                          setHasBoughtTicket(false);
-                          setGameResult(null);
-                          setRevealedZones([false, false, false]);
-                          setIsCanvasReady(false);
-                          setSymbols(['?', '?', '?']);
-                          setShowCelebration(false);
-                          setParticles([]);
-                        }}
-                        className="px-6 py-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"
-                      >
-                        Acheter un autre ticket
-                      </motion.button>
-                    </motion.div>
-                  )}
-                </div>
+                <ScratchResult
+                  allRevealed={allRevealed}
+                  gameResult={gameResult}
+                  onReset={resetTicket}
+                />
               </>
             )}
           </div>

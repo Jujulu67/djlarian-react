@@ -15,6 +15,80 @@ import { applyProjectFilterAndSort, isFilterEmpty, summarizeFilter } from '../fi
 import { logger } from '@/lib/logger';
 
 /**
+ * Détermine le périmètre (scope) des projets listés
+ */
+function resolveListScope(
+  filters: QueryFilters,
+  projects: Project[],
+  context: RouterContext,
+  hasExplicitFilter: boolean,
+  isDetailsViewRequested: boolean,
+  isAllProjectsRequested: boolean
+): {
+  scopeSource: 'LastAppliedFilter' | 'AllProjects' | 'ExplicitFilter';
+  scopedProjects: Project[];
+  effectiveFilter: ProjectFilter;
+} {
+  if (hasExplicitFilter || isAllProjectsRequested) {
+    // Filtre explicite présent OU demande explicite de "tous les projets" : utiliser le filtre
+    logger.warn(
+      `[Router] 📋 LIST avec ${hasExplicitFilter ? 'filtre explicite' : 'demande tous les projets'} → scope = filtre de la commande`
+    );
+    const effectiveFilter: ProjectFilter = {
+      ...filters,
+    };
+    const { filtered } = applyProjectFilterAndSort(projects, effectiveFilter);
+    return { scopeSource: 'ExplicitFilter', scopedProjects: filtered, effectiveFilter };
+  }
+
+  const { lastAppliedFilter } = context;
+
+  if (isDetailsViewRequested && lastAppliedFilter && !isFilterEmpty(lastAppliedFilter)) {
+    // Cas spécial : "voir les détails" sans préciser de filtre, mais on en a un en mémoire
+    // On réapplique le dernier filtre
+    logger.warn('[Router] 📋 LIST sans filtre explicite (vue détails) → scope = last filter');
+    const { filtered } = applyProjectFilterAndSort(projects, lastAppliedFilter);
+    return {
+      scopeSource: 'LastAppliedFilter',
+      scopedProjects: filtered,
+      effectiveFilter: lastAppliedFilter,
+    };
+  }
+
+  // Fallback : tous les projets (pas de working set disponible)
+  logger.warn(
+    '[Router] 📋 LIST sans filtre explicite et sans historique → scope = tous les projets'
+  );
+  return { scopeSource: 'AllProjects', scopedProjects: projects, effectiveFilter: {} };
+}
+
+/**
+ * Champs affichés dans la liste (vue détails forcée à la liste standardisée)
+ */
+function resolveFinalFieldsToShow(
+  fieldsToShow: string[] | undefined,
+  isDetailsViewRequested: boolean,
+  isAllProjectsRequested: boolean
+): string[] {
+  if (isDetailsViewRequested && !isAllProjectsRequested) {
+    return [...DETAILED_FIELDS_TO_SHOW];
+  }
+  if (fieldsToShow && fieldsToShow.length > 0) {
+    return fieldsToShow;
+  }
+  return ['progress', 'status', 'deadline'];
+}
+
+/**
+ * Message de réponse du listing
+ */
+function buildListMessage(isCountOnly: boolean, count: number): string {
+  if (isCountOnly) return `Vous avez ${count} projet(s).`;
+  if (count === 0) return "Je n'ai trouvé aucun projet correspondant.";
+  return `J'ai trouvé ${count} projet(s).`;
+}
+
+/**
  * Gère le listing des projets
  */
 export function handleListCommand(
@@ -40,58 +114,21 @@ export function handleListCommand(
   // Détecter si un filtre explicite est présent
   const hasExplicitFilter = !isFilterEmpty(filters);
 
-  let scopeSource: 'LastAppliedFilter' | 'AllProjects' | 'ExplicitFilter';
-  let scopedProjects: Project[];
-  let effectiveFilter: ProjectFilter;
-
-  if (!hasExplicitFilter && !isAllProjectsRequested) {
-    const { lastAppliedFilter } = context;
-
-    if (isDetailsViewRequested && lastAppliedFilter && !isFilterEmpty(lastAppliedFilter)) {
-      // Cas spécial : "voir les détails" sans préciser de filtre, mais on en a un en mémoire
-      // On réapplique le dernier filtre
-      logger.warn('[Router] 📋 LIST sans filtre explicite (vue détails) → scope = last filter');
-      scopeSource = 'LastAppliedFilter';
-      const { filtered } = applyProjectFilterAndSort(projects, lastAppliedFilter);
-      scopedProjects = filtered;
-      effectiveFilter = lastAppliedFilter;
-    } else {
-      // Fallback : tous les projets (pas de working set disponible)
-      logger.warn(
-        '[Router] 📋 LIST sans filtre explicite et sans historique → scope = tous les projets'
-      );
-      scopeSource = 'AllProjects';
-      scopedProjects = projects;
-      effectiveFilter = {};
-    }
-  } else if (hasExplicitFilter || isAllProjectsRequested) {
-    // Filtre explicite présent OU demande explicite de "tous les projets" : utiliser le filtre
-    logger.warn(
-      `[Router] 📋 LIST avec ${hasExplicitFilter ? 'filtre explicite' : 'demande tous les projets'} → scope = filtre de la commande`
-    );
-    scopeSource = 'ExplicitFilter';
-    effectiveFilter = {
-      ...filters,
-    };
-    const { filtered } = applyProjectFilterAndSort(projects, effectiveFilter);
-    scopedProjects = filtered;
-  } else {
-    // Comportement par défaut : utiliser le filtre (même s'il est vide)
-    scopeSource = 'ExplicitFilter';
-    effectiveFilter = {
-      ...filters,
-    };
-    const { filtered } = applyProjectFilterAndSort(projects, effectiveFilter);
-    scopedProjects = filtered;
-  }
+  const { scopeSource, scopedProjects, effectiveFilter } = resolveListScope(
+    filters,
+    projects,
+    context,
+    hasExplicitFilter,
+    isDetailsViewRequested,
+    isAllProjectsRequested
+  );
 
   // Si c'est une vue détails, forcer fieldsToShow à "all" (liste complète standardisée)
-  const finalFieldsToShow =
-    isDetailsViewRequested && !isAllProjectsRequested
-      ? [...DETAILED_FIELDS_TO_SHOW]
-      : fieldsToShow && fieldsToShow.length > 0
-        ? fieldsToShow
-        : ['progress', 'status', 'deadline'];
+  const finalFieldsToShow = resolveFinalFieldsToShow(
+    fieldsToShow,
+    isDetailsViewRequested,
+    isAllProjectsRequested
+  );
 
   const count = scopedProjects.length;
 
@@ -107,12 +144,7 @@ export function handleListCommand(
     hasExplicitFilter,
   });
 
-  const message =
-    classification.isCount && !classification.isList
-      ? `Vous avez ${count} projet(s).`
-      : count === 0
-        ? "Je n'ai trouvé aucun projet correspondant."
-        : `J'ai trouvé ${count} projet(s).`;
+  const message = buildListMessage(classification.isCount && !classification.isList, count);
 
   return {
     type: ProjectCommandType.LIST,

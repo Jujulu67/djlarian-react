@@ -70,6 +70,128 @@ type Event = {
   publishAt?: string;
 };
 
+// Formater la date
+function formatDate(dateString?: string) {
+  if (!dateString) return '';
+  return formatDateTimeFr(dateString);
+}
+
+// Obtenir le libellé du statut
+function getStatusLabel(status: string) {
+  switch (status) {
+    case 'UPCOMING':
+      return 'À venir';
+    case 'CANCELLED':
+      return 'Annulé';
+    case 'COMPLETED':
+      return 'Terminé';
+    default:
+      return status;
+  }
+}
+
+// Obtenir la couleur du badge selon le statut
+function getStatusColor(status: string) {
+  switch (status) {
+    case 'UPCOMING':
+      return 'bg-blue-600/90';
+    case 'CANCELLED':
+      return 'bg-red-600/90';
+    case 'COMPLETED':
+      return 'bg-gray-600/90';
+    default:
+      return 'bg-blue-600/90';
+  }
+}
+
+function getStatusTextClass(status: string) {
+  if (status === 'UPCOMING') return 'text-blue-400';
+  if (status === 'COMPLETED') return 'text-green-400';
+  return 'text-red-400';
+}
+
+function isNotAdminSession(status: string, role?: string) {
+  return status === 'unauthenticated' || (status === 'authenticated' && role !== 'ADMIN');
+}
+
+function buildFetchEventError(response: Response) {
+  if (response.status === 404) {
+    return new Error('Événement non trouvé');
+  }
+  return new Error(`Erreur ${response.status}: ${response.statusText}`);
+}
+
+// Envoie un PATCH sur l'événement et renvoie les données de la réponse
+async function patchEventData(eventId: string, body: Record<string, unknown>) {
+  const response = await fetchWithAuth(`/api/events/${eventId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+  }
+
+  // La réponse API utilise createSuccessResponse qui retourne { data: Event }
+  const result = await response.json();
+  return result.data;
+}
+
+function EventStatusRows({ event }: Readonly<{ event: Event }>) {
+  return (
+    <>
+      <div className="flex justify-between items-center">
+        <span className="text-gray-400 text-sm">Statut</span>
+        <span className={`text-sm font-medium ${getStatusTextClass(event.status)}`}>
+          {getStatusLabel(event.status)}
+        </span>
+      </div>
+
+      <div className="flex justify-between items-center">
+        <span className="text-gray-400 text-sm">Publication</span>
+        <span
+          className={`text-sm font-medium ${
+            event.isPublished ? 'text-green-400' : 'text-yellow-400'
+          } flex items-center gap-1`}
+        >
+          {event.isPublished ? (
+            <>
+              <Calendar className="w-4 h-4 mr-1 text-green-400" />
+              Publié
+            </>
+          ) : (
+            <>
+              <Clock className="w-4 h-4 mr-1 text-yellow-400" />
+              Brouillon
+            </>
+          )}
+        </span>
+      </div>
+      {/* Date de publication planifiée ou réelle */}
+      {event.publishAt && (
+        <div className="flex justify-between items-center">
+          <span className="text-gray-400 text-sm">
+            {event.isPublished ? 'Publié le' : 'Publication prévue'}
+          </span>
+          <span
+            className={`text-xs font-medium ${event.isPublished ? 'text-green-300' : 'text-yellow-300'} flex items-center gap-1`}
+          >
+            {event.isPublished ? (
+              <Calendar className="w-3.5 h-3.5 mr-1" />
+            ) : (
+              <Clock className="w-3.5 h-3.5 mr-1" />
+            )}
+            {formatDateTimeFr(event.publishAt)}
+          </span>
+        </div>
+      )}
+    </>
+  );
+}
+
 export default function EventDetailsPage() {
   const { data: session, status } = useSession();
   const params = useParams();
@@ -83,10 +205,7 @@ export default function EventDetailsPage() {
 
   // Rediriger si l'utilisateur n'est pas un admin
   useEffect(() => {
-    if (
-      status === 'unauthenticated' ||
-      (status === 'authenticated' && session?.user?.role !== 'ADMIN')
-    ) {
+    if (isNotAdminSession(status, session?.user?.role)) {
       router.push('/');
     }
   }, [session, status, router]);
@@ -98,10 +217,7 @@ export default function EventDetailsPage() {
         const response = await fetchWithAuth(`/api/events/${eventId}`);
 
         if (!response.ok) {
-          if (response.status === 404) {
-            throw new Error('Événement non trouvé');
-          }
-          throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+          throw buildFetchEventError(response);
         }
 
         const result = await response.json();
@@ -145,24 +261,10 @@ export default function EventDetailsPage() {
     if (!event) return;
 
     try {
-      const response = await fetchWithAuth(`/api/events/${eventId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          isPublished: !event.isPublished,
-          publishAt: null,
-        }),
+      const updatedEvent = await patchEventData(eventId, {
+        isPublished: !event.isPublished,
+        publishAt: null,
       });
-
-      if (!response.ok) {
-        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      // La réponse API utilise createSuccessResponse qui retourne { data: Event }
-      const updatedEvent = result.data;
       setEvent(updatedEvent);
     } catch (err) {
       logger.error('Erreur lors de la mise à jour:', err);
@@ -175,61 +277,13 @@ export default function EventDetailsPage() {
     if (!event) return;
 
     try {
-      const response = await fetchWithAuth(`/api/events/${eventId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          featured: !event.featured,
-        }),
+      const updatedEvent = await patchEventData(eventId, {
+        featured: !event.featured,
       });
-
-      if (!response.ok) {
-        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      // La réponse API utilise createSuccessResponse qui retourne { data: Event }
-      const updatedEvent = result.data;
       setEvent(updatedEvent);
     } catch (err) {
       logger.error('Erreur lors de la mise à jour:', err);
       setError("Erreur lors de la mise à jour de l'événement");
-    }
-  };
-
-  // Formater la date
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return '';
-    return formatDateTimeFr(dateString);
-  };
-
-  // Obtenir le libellé du statut
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'UPCOMING':
-        return 'À venir';
-      case 'CANCELLED':
-        return 'Annulé';
-      case 'COMPLETED':
-        return 'Terminé';
-      default:
-        return status;
-    }
-  };
-
-  // Obtenir la couleur du badge selon le statut
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'UPCOMING':
-        return 'bg-blue-600/90';
-      case 'CANCELLED':
-        return 'bg-red-600/90';
-      case 'COMPLETED':
-        return 'bg-gray-600/90';
-      default:
-        return 'bg-blue-600/90';
     }
   };
 
@@ -579,59 +633,7 @@ export default function EventDetailsPage() {
                         </div>
                       </div>
 
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-400 text-sm">Statut</span>
-                        <span
-                          className={`text-sm font-medium ${
-                            event.status === 'UPCOMING'
-                              ? 'text-blue-400'
-                              : event.status === 'COMPLETED'
-                                ? 'text-green-400'
-                                : 'text-red-400'
-                          }`}
-                        >
-                          {getStatusLabel(event.status)}
-                        </span>
-                      </div>
-
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-400 text-sm">Publication</span>
-                        <span
-                          className={`text-sm font-medium ${
-                            event.isPublished ? 'text-green-400' : 'text-yellow-400'
-                          } flex items-center gap-1`}
-                        >
-                          {event.isPublished ? (
-                            <>
-                              <Calendar className="w-4 h-4 mr-1 text-green-400" />
-                              Publié
-                            </>
-                          ) : (
-                            <>
-                              <Clock className="w-4 h-4 mr-1 text-yellow-400" />
-                              Brouillon
-                            </>
-                          )}
-                        </span>
-                      </div>
-                      {/* Date de publication planifiée ou réelle */}
-                      {event.publishAt && (
-                        <div className="flex justify-between items-center">
-                          <span className="text-gray-400 text-sm">
-                            {event.isPublished ? 'Publié le' : 'Publication prévue'}
-                          </span>
-                          <span
-                            className={`text-xs font-medium ${event.isPublished ? 'text-green-300' : 'text-yellow-300'} flex items-center gap-1`}
-                          >
-                            {event.isPublished ? (
-                              <Calendar className="w-3.5 h-3.5 mr-1" />
-                            ) : (
-                              <Clock className="w-3.5 h-3.5 mr-1" />
-                            )}
-                            {formatDateTimeFr(event.publishAt)}
-                          </span>
-                        </div>
-                      )}
+                      <EventStatusRows event={event} />
 
                       {event.tickets?.price && (
                         <div className="flex justify-between items-center">

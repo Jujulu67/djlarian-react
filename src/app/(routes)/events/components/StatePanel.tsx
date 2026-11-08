@@ -28,13 +28,20 @@ export function StatePanel({
   spin = false,
   className,
 }: Readonly<StatePanelProps>) {
+  let role: 'alert' | 'status' | undefined;
+  if (tone === 'error') {
+    role = 'alert';
+  } else if (spin) {
+    role = 'status';
+  }
+
   return (
     <div
       className={cn(
         'mx-auto flex max-w-md flex-col items-center rounded-2xl px-6 py-12 text-center surface-1 md:px-10',
         className
       )}
-      role={tone === 'error' ? 'alert' : spin ? 'status' : undefined}
+      role={role}
     >
       <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-white/[0.04] ring-1 ring-inset ring-white/10">
         <Icon

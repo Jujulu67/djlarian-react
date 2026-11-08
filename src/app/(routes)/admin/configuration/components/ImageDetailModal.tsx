@@ -16,6 +16,12 @@ interface ImageDetailModalProps {
   onShowOriginalFull: () => void;
 }
 
+/** Date affichée sous le nom : celle du recadrage, sinon celle de l'original */
+function formatGroupDate(group: GroupedImage) {
+  const image = group.crop || group.ori;
+  return image ? new Date(image.date).toLocaleString() : '';
+}
+
 export const ImageDetailModal = ({
   selectedGroup,
   onClose,
@@ -111,11 +117,7 @@ export const ImageDetailModal = ({
                 {selectedGroup.crop?.name || selectedGroup.ori?.name}
               </div>
               <div className="text-gray-400 text-xs text-center mt-1">
-                {selectedGroup.crop
-                  ? new Date(selectedGroup.crop.date).toLocaleString()
-                  : selectedGroup.ori
-                    ? new Date(selectedGroup.ori.date).toLocaleString()
-                    : ''}
+                {formatGroupDate(selectedGroup)}
               </div>
             </div>
           </div>

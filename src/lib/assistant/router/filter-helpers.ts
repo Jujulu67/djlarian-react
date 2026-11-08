@@ -183,6 +183,16 @@ export function summarizeFilter(
   }
 
   const summary: Record<string, unknown> = {};
+  addCoreFilterFields(summary, filter);
+  addExtraFilterFields(summary, filter);
+
+  return Object.keys(summary).length === 0 ? { empty: true } : summary;
+}
+
+function addCoreFilterFields(
+  summary: Record<string, unknown>,
+  filter: QueryFilters | ProjectFilter
+): void {
   if (filter.status) summary.status = filter.status;
   if (filter.minProgress !== undefined) summary.minProgress = filter.minProgress;
   if (filter.maxProgress !== undefined) summary.maxProgress = filter.maxProgress;
@@ -192,10 +202,15 @@ export function summarizeFilter(
   if (filter.hasDeadline !== undefined) summary.hasDeadline = filter.hasDeadline;
   if (filter.name) summary.name = filter.name;
   if (filter.noProgress !== undefined) summary.noProgress = filter.noProgress;
+}
+
+function addExtraFilterFields(
+  summary: Record<string, unknown>,
+  filter: QueryFilters | ProjectFilter
+): void {
   if ('year' in filter && filter.year !== undefined) summary.year = filter.year;
   if ('sortBy' in filter && filter.sortBy) summary.sortBy = filter.sortBy;
-  if ('sortDirection' in filter && filter.sortDirection)
+  if ('sortDirection' in filter && filter.sortDirection) {
     summary.sortDirection = filter.sortDirection;
-
-  return Object.keys(summary).length === 0 ? { empty: true } : summary;
+  }
 }

@@ -10,6 +10,16 @@ import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import { addDaysInTimeZone, addMonthsInTimeZone } from '@/lib/utils/timezone';
 
+/** Filtre de publication : un admin peut filtrer par isPublished, un visiteur ne voit que les publiés. */
+function buildPublicationFilter(
+  isAdmin: boolean,
+  isPublishedParam: string | null
+): Prisma.EventWhereInput {
+  if (!isAdmin) return { OR: [{ isPublished: true }, { publishAt: { lte: new Date() } }] };
+  if (isPublishedParam !== null) return { isPublished: isPublishedParam === 'true' };
+  return {};
+}
+
 // GET - Récupérer tous les événements avec filtres optionnels
 export async function GET(request: NextRequest): Promise<Response> {
   try {
@@ -30,11 +40,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     const where: Prisma.EventWhereInput = {
       // Un visiteur ne voit que les événements publiés (ou dont la date de publication est
       // passée : ils sont publiés plus bas). Seul un admin peut filtrer avec isPublished.
-      ...(isAdmin
-        ? isPublishedParam !== null
-          ? { isPublished: isPublishedParam === 'true' }
-          : {}
-        : { OR: [{ isPublished: true }, { publishAt: { lte: new Date() } }] }),
+      ...buildPublicationFilter(isAdmin, isPublishedParam),
 
       // Filtres
       ...(titleFilter
@@ -200,6 +206,190 @@ function generateRecurringDates(
   return dates;
 }
 
+/** Relation vers l'utilisateur connecté, seulement s'il existe en base. */
+async function buildUserConnect(userId: string): Promise<{ User?: { connect: { id: string } } }> {
+  try {
+    const userExists = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+
+    if (userExists) {
+      return { User: { connect: { id: userId } } };
+    }
+    logger.warn(`Utilisateur avec ID ${userId} n'existe pas dans la base de données`);
+  } catch (error) {
+    logger.error("Erreur lors de la vérification de l'utilisateur", error);
+    // On continue sans établir la relation utilisateur
+  }
+  return {};
+}
+
+/** Données communes à l'événement maître et aux événements simples. */
+function buildCommonEventData(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  body: any,
+  userConnect: { User?: { connect: { id: string } } }
+): Prisma.EventCreateInput {
+  const commonEventData: Prisma.EventCreateInput = {
+    title: body.title,
+    description: body.description || '',
+    location: body.location,
+    address: body.address || '',
+    startDate: new Date(body.startDate),
+    endDate: body.endDate ? new Date(body.endDate) : null,
+    imageId: body.imageId || null,
+    status: body.status || 'UPCOMING',
+    isPublished: body.isPublished !== undefined ? body.isPublished : false,
+    featured: body.featured !== undefined ? body.featured : false,
+    ...userConnect, // Ajouter la relation utilisateur seulement si l'utilisateur existe
+  };
+  // Ajout de publishAt si présent
+  if (body.publishAt) {
+    commonEventData.publishAt = new Date(body.publishAt) as Date;
+  }
+  return commonEventData;
+}
+
+/** Fiche billetterie (TicketInfo) créée avec l'événement. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function buildTicketInfoCreate(tickets: any) {
+  return {
+    create: {
+      currency: (tickets.currency || 'EUR') as string,
+      ...(tickets.price !== undefined && { price: Number(tickets.price) }),
+      ...(tickets.buyUrl && { buyUrl: tickets.buyUrl as string }),
+      ...(tickets.quantity !== undefined && { quantity: Number(tickets.quantity) }),
+      ...(tickets.availableFrom && {
+        availableFrom: new Date(tickets.availableFrom),
+      }),
+      ...(tickets.availableTo && { availableTo: new Date(tickets.availableTo) }),
+    } as Prisma.TicketInfoCreateWithoutEventInput,
+  };
+}
+
+/** Crée l'événement maître d'une série récurrente et renvoie la réponse HTTP. */
+async function createRecurringEvent(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  body: any,
+  commonEventData: Prisma.EventCreateInput,
+  userId: string
+): Promise<Response> {
+  try {
+    logger.debug("Création d'un événement récurrent:", {
+      title: body.title,
+      startDate: body.startDate,
+      recurrence: body.recurrence,
+    });
+
+    // Valider les données de récurrence
+    if (!body.recurrence.frequency) {
+      logger.error('Fréquence de récurrence manquante');
+      return NextResponse.json(
+        { error: 'La fréquence de récurrence est requise' },
+        { status: 400 }
+      );
+    }
+
+    // Créer l'événement maître
+    const masterEvent = await prisma.event.create({
+      data: {
+        ...commonEventData,
+        isMasterEvent: true, // Marquer comme événement maître
+        // Créer la configuration de récurrence
+        RecurrenceConfig: {
+          create: {
+            frequency: body.recurrence.frequency,
+            day: body.recurrence.day !== undefined ? Number(body.recurrence.day) : undefined,
+            endDate: body.recurrence.endDate ? new Date(body.recurrence.endDate) : null,
+            excludedDates: body.recurrence.excludedDates || Prisma.JsonNull,
+          },
+        },
+      },
+      include: {
+        RecurrenceConfig: true,
+      },
+    });
+
+    logger.debug('✅ Événement maître créé:', masterEvent.id);
+
+    // Calculer virtuellement combien d'occurrences seraient générées
+    const recurringDates = generateRecurringDates(
+      new Date(body.startDate),
+      body.recurrence,
+      body.recurrence.excludedDates || []
+    );
+
+    logger.debug(`${recurringDates.length} dates seraient générées pour cet événement récurrent`);
+    logger.debug("Les occurrences seront générées virtuellement lors de l'affichage");
+
+    // Envoyer un webhook pour la création
+    const { sendWebhook } = await import('@/lib/api/webhooks');
+    await sendWebhook(
+      'event.created',
+      {
+        eventId: masterEvent.id,
+        title: masterEvent.title,
+        location: masterEvent.location,
+        startDate: masterEvent.startDate.toISOString(),
+        isRecurring: true,
+        occurrencesCount: recurringDates.length,
+      },
+      {
+        userId,
+      }
+    );
+
+    return NextResponse.json(
+      {
+        success: true,
+        event: masterEvent,
+        virtualOccurrencesCount: recurringDates.length,
+      },
+      { status: 201 }
+    );
+  } catch (recurrenceError) {
+    logger.error("Erreur lors de la création d'événement récurrent:", recurrenceError);
+    return NextResponse.json(
+      {
+        error: "Erreur lors de la création d'événement récurrent",
+        details:
+          recurrenceError instanceof Error ? recurrenceError.message : String(recurrenceError),
+      },
+      { status: 500 }
+    );
+  }
+}
+
+/** Crée un événement simple (non récurrent) et renvoie la réponse HTTP. */
+async function createSingleEvent(
+  commonEventData: Prisma.EventCreateInput,
+  userId: string
+): Promise<Response> {
+  // Événement non récurrent - créer un seul événement
+  logger.debug("Création d'un événement simple (non récurrent)");
+  const event = await prisma.event.create({
+    data: commonEventData,
+  });
+
+  // Envoyer un webhook pour la création
+  const { sendWebhook } = await import('@/lib/api/webhooks');
+  await sendWebhook(
+    'event.created',
+    {
+      eventId: event.id,
+      title: event.title,
+      location: event.location,
+      startDate: event.startDate.toISOString(),
+    },
+    {
+      userId,
+    }
+  );
+
+  return NextResponse.json({ success: true, event }, { status: 201 });
+}
+
 // POST - Créer un nouvel événement
 export async function POST(request: NextRequest): Promise<Response> {
   // Rate limiting (20 events/min)
@@ -233,47 +423,10 @@ export async function POST(request: NextRequest): Promise<Response> {
     // Afficher les informations de session pour debug
     logger.debug('Session user info', JSON.stringify(session.user, null, 2));
 
-    // Vérifier si l'utilisateur existe avant d'essayer d'établir la relation
-    let userConnect = {};
-
-    try {
-      const userExists = await prisma.user.findUnique({
-        where: { id: session.user.id },
-        select: { id: true },
-      });
-
-      if (userExists) {
-        userConnect = {
-          User: {
-            connect: { id: session.user.id },
-          },
-        };
-      } else {
-        logger.warn(`Utilisateur avec ID ${session.user.id} n'existe pas dans la base de données`);
-      }
-    } catch (error) {
-      logger.error("Erreur lors de la vérification de l'utilisateur", error);
-      // On continue sans établir la relation utilisateur
-    }
+    const userConnect = await buildUserConnect(session.user.id);
 
     // Préparer les données communes de l'événement
-    const commonEventData: Prisma.EventCreateInput = {
-      title: body.title,
-      description: body.description || '',
-      location: body.location,
-      address: body.address || '',
-      startDate: new Date(body.startDate),
-      endDate: body.endDate ? new Date(body.endDate) : null,
-      imageId: body.imageId || null,
-      status: body.status || 'UPCOMING',
-      isPublished: body.isPublished !== undefined ? body.isPublished : false,
-      featured: body.featured !== undefined ? body.featured : false,
-      ...userConnect, // Ajouter la relation utilisateur seulement si l'utilisateur existe
-    };
-    // Ajout de publishAt si présent
-    if (body.publishAt) {
-      commonEventData.publishAt = new Date(body.publishAt) as Date;
-    }
+    const commonEventData = buildCommonEventData(body, userConnect);
 
     // Log du commonEventData juste avant création
     logger.debug(
@@ -283,132 +436,14 @@ export async function POST(request: NextRequest): Promise<Response> {
 
     // Ajouter tickets si présents
     if (body.tickets) {
-      commonEventData.TicketInfo = {
-        create: {
-          currency: (body.tickets.currency || 'EUR') as string,
-          ...(body.tickets.price !== undefined && { price: Number(body.tickets.price) }),
-          ...(body.tickets.buyUrl && { buyUrl: body.tickets.buyUrl as string }),
-          ...(body.tickets.quantity !== undefined && { quantity: Number(body.tickets.quantity) }),
-          ...(body.tickets.availableFrom && {
-            availableFrom: new Date(body.tickets.availableFrom),
-          }),
-          ...(body.tickets.availableTo && { availableTo: new Date(body.tickets.availableTo) }),
-        } as Prisma.TicketInfoCreateWithoutEventInput,
-      };
+      commonEventData.TicketInfo = buildTicketInfoCreate(body.tickets);
     }
 
     // Vérifier si c'est un événement récurrent
     if (body.recurrence?.isRecurring) {
-      try {
-        logger.debug("Création d'un événement récurrent:", {
-          title: body.title,
-          startDate: body.startDate,
-          recurrence: body.recurrence,
-        });
-
-        // Valider les données de récurrence
-        if (!body.recurrence.frequency) {
-          logger.error('Fréquence de récurrence manquante');
-          return NextResponse.json(
-            { error: 'La fréquence de récurrence est requise' },
-            { status: 400 }
-          );
-        }
-
-        // Créer l'événement maître
-        const masterEvent = await prisma.event.create({
-          data: {
-            ...commonEventData,
-            isMasterEvent: true, // Marquer comme événement maître
-            // Créer la configuration de récurrence
-            RecurrenceConfig: {
-              create: {
-                frequency: body.recurrence.frequency,
-                day: body.recurrence.day !== undefined ? Number(body.recurrence.day) : undefined,
-                endDate: body.recurrence.endDate ? new Date(body.recurrence.endDate) : null,
-                excludedDates: body.recurrence.excludedDates || Prisma.JsonNull,
-              },
-            },
-          },
-          include: {
-            RecurrenceConfig: true,
-          },
-        });
-
-        logger.debug('✅ Événement maître créé:', masterEvent.id);
-
-        // Calculer virtuellement combien d'occurrences seraient générées
-        const recurringDates = generateRecurringDates(
-          new Date(body.startDate),
-          body.recurrence,
-          body.recurrence.excludedDates || []
-        );
-
-        logger.debug(
-          `${recurringDates.length} dates seraient générées pour cet événement récurrent`
-        );
-        logger.debug("Les occurrences seront générées virtuellement lors de l'affichage");
-
-        // Envoyer un webhook pour la création
-        const { sendWebhook } = await import('@/lib/api/webhooks');
-        await sendWebhook(
-          'event.created',
-          {
-            eventId: masterEvent.id,
-            title: masterEvent.title,
-            location: masterEvent.location,
-            startDate: masterEvent.startDate.toISOString(),
-            isRecurring: true,
-            occurrencesCount: recurringDates.length,
-          },
-          {
-            userId: session.user.id,
-          }
-        );
-
-        return NextResponse.json(
-          {
-            success: true,
-            event: masterEvent,
-            virtualOccurrencesCount: recurringDates.length,
-          },
-          { status: 201 }
-        );
-      } catch (recurrenceError) {
-        logger.error("Erreur lors de la création d'événement récurrent:", recurrenceError);
-        return NextResponse.json(
-          {
-            error: "Erreur lors de la création d'événement récurrent",
-            details:
-              recurrenceError instanceof Error ? recurrenceError.message : String(recurrenceError),
-          },
-          { status: 500 }
-        );
-      }
-    } else {
-      // Événement non récurrent - créer un seul événement
-      logger.debug("Création d'un événement simple (non récurrent)");
-      const event = await prisma.event.create({
-        data: commonEventData,
-      });
-
-      // Envoyer un webhook pour la création
-      const { sendWebhook } = await import('@/lib/api/webhooks');
-      await sendWebhook(
-        'event.created',
-        {
-          eventId: event.id,
-          title: event.title,
-          location: event.location,
-          startDate: event.startDate.toISOString(),
-        },
-        {
-          userId: session.user.id,
-        }
-      );
-
-      return NextResponse.json({ success: true, event }, { status: 201 });
+      return await createRecurringEvent(body, commonEventData, session.user.id);
     }
+    return await createSingleEvent(commonEventData, session.user.id);
   } catch (error) {
     logger.error("Erreur lors de la création de l'événement:", error);
     return NextResponse.json(

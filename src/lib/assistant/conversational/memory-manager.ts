@@ -112,6 +112,13 @@ function joinMemoryItems(items: string[], maxTokens: number): string | undefined
 }
 
 /** Ancien format de résumé, quand les échanges ne se séparent pas en faits et notes. */
+/** Liste les premiers sujets (préfixés), suivis de « ... » s'il y en a davantage. */
+function formatTopicList(prefix: string, topics: string[], maxShown: number): string {
+  if (topics.length === 0) return '';
+  const ellipsis = topics.length > maxShown ? '...' : '';
+  return `${prefix}${topics.slice(0, maxShown).join(', ')}${ellipsis}`;
+}
+
 function buildTopicSummary(oldMessages: ConversationMessage[], maxTokens: number): string {
   const userTopics = oldMessages
     .filter((m) => m.role === 'user')
@@ -119,14 +126,8 @@ function buildTopicSummary(oldMessages: ConversationMessage[], maxTokens: number
   const assistantTopics = oldMessages
     .filter((m) => m.role !== 'user')
     .map((m) => truncateMessage(m.content, 50));
-  const userSummary =
-    userTopics.length > 0
-      ? `L'utilisateur a mentionné : ${userTopics.slice(0, 3).join(', ')}${userTopics.length > 3 ? '...' : ''}`
-      : '';
-  const assistantSummary =
-    assistantTopics.length > 0
-      ? `L'assistant a répondu sur : ${assistantTopics.slice(0, 2).join(', ')}${assistantTopics.length > 2 ? '...' : ''}`
-      : '';
+  const userSummary = formatTopicList("L'utilisateur a mentionné : ", userTopics, 3);
+  const assistantSummary = formatTopicList("L'assistant a répondu sur : ", assistantTopics, 2);
   const summary = [userSummary, assistantSummary].filter(Boolean).join('. ');
   return estimateTokens(summary) > maxTokens ? truncateMessage(summary, maxTokens) : summary;
 }

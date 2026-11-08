@@ -40,6 +40,107 @@ interface MusicCardProps {
  * based on whether the card is the currently active track (`isActive`) and the global playback state (`isPlaying`).
  * It uses utility functions for sending commands and applying initial volume.
  */
+type YouTubePlayerState = ReturnType<typeof useYouTubePlayer>;
+type SoundCloudPlayerState = ReturnType<typeof useSoundCloudPlayer>;
+
+/** Lecteurs YouTube et SoundCloud intégrés, affichés selon leur état */
+function MusicCardPlayers({
+  track,
+  youtubePlayer,
+  soundcloudPlayer,
+  onClose,
+}: Readonly<{
+  track: Track;
+  youtubePlayer: YouTubePlayerState;
+  soundcloudPlayer: SoundCloudPlayerState;
+  onClose: (e?: React.MouseEvent) => void;
+}>) {
+  return (
+    <>
+      {track.platforms.youtube &&
+        youtubePlayer.youtubeVideoId &&
+        (youtubePlayer.isYoutubeVisible || youtubePlayer.isYoutubeLoaded) && (
+          <MusicCardPlayer
+            track={track}
+            platform="youtube"
+            videoId={youtubePlayer.youtubeVideoId}
+            currentTime={youtubePlayer.currentTime}
+            iframeRef={youtubePlayer.iframeRef}
+            isVisible={youtubePlayer.isYoutubeVisible}
+            isLoaded={youtubePlayer.isYoutubeLoaded}
+            onLoad={youtubePlayer.handleIframeLoad}
+            onClose={onClose}
+          />
+        )}
+
+      {track.platforms.soundcloud &&
+        soundcloudPlayer.soundcloudUrl &&
+        (soundcloudPlayer.isSoundcloudVisible || soundcloudPlayer.isSoundcloudLoaded) && (
+          <MusicCardPlayer
+            track={track}
+            platform="soundcloud"
+            embedUrl={soundcloudPlayer.getSoundcloudEmbedUrl(soundcloudPlayer.soundcloudUrl)}
+            iframeRef={soundcloudPlayer.soundcloudIframeRef}
+            isVisible={soundcloudPlayer.isSoundcloudVisible}
+            isLoaded={soundcloudPlayer.isSoundcloudLoaded}
+            onLoad={soundcloudPlayer.handleSoundcloudIframeLoad}
+            onClose={onClose}
+          />
+        )}
+    </>
+  );
+}
+
+/** Iframe du lecteur visible à analyser pour les fréquences (factice si aucun lecteur visible) */
+function resolveAudioIframeRef(
+  isPlayerVisible: boolean,
+  youtubePlayer: YouTubePlayerState,
+  soundcloudPlayer: SoundCloudPlayerState
+) {
+  if (!isPlayerVisible) return { current: null };
+  return youtubePlayer.isYoutubeVisible
+    ? youtubePlayer.iframeRef
+    : soundcloudPlayer.soundcloudIframeRef;
+}
+
+/**
+ * Décide si un clic sur la carte doit lancer la lecture.
+ * Les boutons et liens sont ignorés ; les iframes ne relancent que si la carte est inactive ou en pause.
+ */
+function shouldPlayOnCardClick(
+  target: HTMLElement,
+  trackId: string,
+  isActive: boolean,
+  isPlaying: boolean
+): boolean {
+  // Always ignore clicks on actual buttons and links (not iframes)
+  if (target.closest('button, a')) {
+    logger.debug(`[MusicCard ${trackId}] Card click on button/link, ignoring`);
+    return false;
+  }
+
+  // For iframes: allow click if card is not active or if it's paused
+  // This allows re-clicking on an old card to reactivate it
+  if (target.closest('iframe')) {
+    if (!isActive || !isPlaying) {
+      logger.debug(
+        `[MusicCard ${trackId}] Card click on iframe - card not active or paused, allowing play`
+      );
+      return true;
+    }
+    logger.debug(
+      `[MusicCard ${trackId}] Card click on iframe - card already active and playing, ignoring`
+    );
+    return false;
+  }
+
+  // For other clicks (on the card itself), always allow
+  logger.debug(
+    `[MusicCard ${trackId}] Card clicked - target: ${target.tagName}, calling handlePlayClick`
+  );
+  return true;
+}
+
 const MusicCardComponent: React.FC<MusicCardProps> = ({
   track,
   onPlay,
@@ -83,15 +184,10 @@ const MusicCardComponent: React.FC<MusicCardProps> = ({
   const isPlayerVisible = youtubePlayer.isYoutubeVisible || soundcloudPlayer.isSoundcloudVisible;
 
   // Try to capture real audio frequencies
-  const activeIframeRef = isPlayerVisible
-    ? youtubePlayer.isYoutubeVisible
-      ? youtubePlayer.iframeRef
-      : soundcloudPlayer.soundcloudIframeRef
-    : null;
 
   // Disable audio capture on mobile for performance
   const audioCapture = useAudioFrequencyCapture({
-    iframeRef: activeIframeRef || { current: null },
+    iframeRef: resolveAudioIframeRef(isPlayerVisible, youtubePlayer, soundcloudPlayer),
     isPlaying: isPlaying && isActive && !isMobile,
     isVisible: isPlayerVisible && !isMobile,
   });
@@ -135,9 +231,7 @@ const MusicCardComponent: React.FC<MusicCardProps> = ({
   // Handle close player (combines both platforms)
   const handleClosePlayer = useCallback(
     (e?: React.MouseEvent) => {
-      if (e) {
-        e.stopPropagation();
-      }
+      e?.stopPropagation();
 
       youtubePlayer.handleClosePlayer(e);
       soundcloudPlayer.handleClosePlayer(e);
@@ -149,36 +243,9 @@ const MusicCardComponent: React.FC<MusicCardProps> = ({
   const handleCardClick = useCallback(
     (e: React.MouseEvent) => {
       const target = e.target as HTMLElement;
-
-      // Always ignore clicks on actual buttons and links (not iframes)
-      const isButtonOrLink = target.closest('button, a');
-      if (isButtonOrLink) {
-        logger.debug(`[MusicCard ${track.id}] Card click on button/link, ignoring`);
-        return;
+      if (shouldPlayOnCardClick(target, track.id, isActive, isPlaying)) {
+        handlePlayClick();
       }
-
-      // For iframes: allow click if card is not active or if it's paused
-      // This allows re-clicking on an old card to reactivate it
-      const isIframe = target.closest('iframe');
-      if (isIframe) {
-        if (!isActive || !isPlaying) {
-          logger.debug(
-            `[MusicCard ${track.id}] Card click on iframe - card not active or paused, allowing play`
-          );
-          handlePlayClick();
-        } else {
-          logger.debug(
-            `[MusicCard ${track.id}] Card click on iframe - card already active and playing, ignoring`
-          );
-        }
-        return;
-      }
-
-      // For other clicks (on the card itself), always allow
-      logger.debug(
-        `[MusicCard ${track.id}] Card clicked - target: ${target.tagName}, calling handlePlayClick`
-      );
-      handlePlayClick();
     },
     [handlePlayClick, track.id, isActive, isPlaying]
   );
@@ -205,36 +272,12 @@ const MusicCardComponent: React.FC<MusicCardProps> = ({
           className="relative overflow-hidden rounded-xl bg-black/40"
           style={{ aspectRatio: isPlayerActive ? '16/9' : '1/1' }}
         >
-          {track.platforms.youtube &&
-            youtubePlayer.youtubeVideoId &&
-            (youtubePlayer.isYoutubeVisible || youtubePlayer.isYoutubeLoaded) && (
-              <MusicCardPlayer
-                track={track}
-                platform="youtube"
-                videoId={youtubePlayer.youtubeVideoId}
-                currentTime={youtubePlayer.currentTime}
-                iframeRef={youtubePlayer.iframeRef}
-                isVisible={youtubePlayer.isYoutubeVisible}
-                isLoaded={youtubePlayer.isYoutubeLoaded}
-                onLoad={youtubePlayer.handleIframeLoad}
-                onClose={handleClosePlayer}
-              />
-            )}
-
-          {track.platforms.soundcloud &&
-            soundcloudPlayer.soundcloudUrl &&
-            (soundcloudPlayer.isSoundcloudVisible || soundcloudPlayer.isSoundcloudLoaded) && (
-              <MusicCardPlayer
-                track={track}
-                platform="soundcloud"
-                embedUrl={soundcloudPlayer.getSoundcloudEmbedUrl(soundcloudPlayer.soundcloudUrl)}
-                iframeRef={soundcloudPlayer.soundcloudIframeRef}
-                isVisible={soundcloudPlayer.isSoundcloudVisible}
-                isLoaded={soundcloudPlayer.isSoundcloudLoaded}
-                onLoad={soundcloudPlayer.handleSoundcloudIframeLoad}
-                onClose={handleClosePlayer}
-              />
-            )}
+          <MusicCardPlayers
+            track={track}
+            youtubePlayer={youtubePlayer}
+            soundcloudPlayer={soundcloudPlayer}
+            onClose={handleClosePlayer}
+          />
 
           {!isPlayerVisible && (
             <>
@@ -302,38 +345,12 @@ const MusicCardComponent: React.FC<MusicCardProps> = ({
           aspectRatio: isPlayerActive ? '16/9' : '1/1',
         }}
       >
-        {/* YouTube Player */}
-        {track.platforms.youtube &&
-          youtubePlayer.youtubeVideoId &&
-          (youtubePlayer.isYoutubeVisible || youtubePlayer.isYoutubeLoaded) && (
-            <MusicCardPlayer
-              track={track}
-              platform="youtube"
-              videoId={youtubePlayer.youtubeVideoId}
-              currentTime={youtubePlayer.currentTime}
-              iframeRef={youtubePlayer.iframeRef}
-              isVisible={youtubePlayer.isYoutubeVisible}
-              isLoaded={youtubePlayer.isYoutubeLoaded}
-              onLoad={youtubePlayer.handleIframeLoad}
-              onClose={handleClosePlayer}
-            />
-          )}
-
-        {/* SoundCloud Player */}
-        {track.platforms.soundcloud &&
-          soundcloudPlayer.soundcloudUrl &&
-          (soundcloudPlayer.isSoundcloudVisible || soundcloudPlayer.isSoundcloudLoaded) && (
-            <MusicCardPlayer
-              track={track}
-              platform="soundcloud"
-              embedUrl={soundcloudPlayer.getSoundcloudEmbedUrl(soundcloudPlayer.soundcloudUrl)}
-              iframeRef={soundcloudPlayer.soundcloudIframeRef}
-              isVisible={soundcloudPlayer.isSoundcloudVisible}
-              isLoaded={soundcloudPlayer.isSoundcloudLoaded}
-              onLoad={soundcloudPlayer.handleSoundcloudIframeLoad}
-              onClose={handleClosePlayer}
-            />
-          )}
+        <MusicCardPlayers
+          track={track}
+          youtubePlayer={youtubePlayer}
+          soundcloudPlayer={soundcloudPlayer}
+          onClose={handleClosePlayer}
+        />
 
         {/* Normal image - visible when no player is active */}
         {!isPlayerVisible && (

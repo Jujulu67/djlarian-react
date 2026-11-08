@@ -150,6 +150,25 @@ const STATUS_EMPTY_LABEL: Record<string, string> = {
   CANCELLED: 'annulé',
 };
 
+// Libellé du statut dans la version legacy (UPCOMING / COMPLETED / autre = annulé)
+function getLegacyStatusLabel(selectedStatus: string): string {
+  if (selectedStatus === 'UPCOMING') return 'à venir';
+  if (selectedStatus === 'COMPLETED') return 'passé';
+  return 'annulé';
+}
+
+function getV2EmptyDescription(searchTerm: string, selectedStatus: string): string {
+  if (searchTerm) return `Aucun résultat pour « ${searchTerm} ».`;
+  if (selectedStatus === 'all') return 'Aucune date annoncée pour le moment. Revenez bientôt.';
+  return `Aucun événement ${STATUS_EMPTY_LABEL[selectedStatus] ?? 'annulé'} pour le moment.`;
+}
+
+function getLegacyEmptyDescription(searchTerm: string, selectedStatus: string): string {
+  if (searchTerm) return `Aucun résultat ne correspond à "${searchTerm}"`;
+  if (selectedStatus === 'all') return 'Aucun événement disponible pour le moment';
+  return `Aucun événement ${getLegacyStatusLabel(selectedStatus)}`;
+}
+
 interface EventsEmptyStateProps {
   searchTerm: string;
   selectedStatus: string;
@@ -168,13 +187,7 @@ export function EventsEmptyState({
       <StatePanel
         icon={Calendar}
         title="Aucun événement trouvé"
-        description={
-          searchTerm
-            ? `Aucun résultat pour « ${searchTerm} ».`
-            : selectedStatus === 'all'
-              ? 'Aucune date annoncée pour le moment. Revenez bientôt.'
-              : `Aucun événement ${STATUS_EMPTY_LABEL[selectedStatus] ?? 'annulé'} pour le moment.`
-        }
+        description={getV2EmptyDescription(searchTerm, selectedStatus)}
         action={
           searchTerm ? (
             <Button variant="outline" onClick={onClearSearch}>
@@ -193,11 +206,7 @@ export function EventsEmptyState({
       </div>
       <h2 className="text-2xl font-bold text-white mb-3">Aucun événement trouvé</h2>
       <p className="text-gray-400 mb-6 max-w-md mx-auto">
-        {searchTerm
-          ? `Aucun résultat ne correspond à "${searchTerm}"`
-          : selectedStatus === 'all'
-            ? 'Aucun événement disponible pour le moment'
-            : `Aucun événement ${selectedStatus === 'UPCOMING' ? 'à venir' : selectedStatus === 'COMPLETED' ? 'passé' : 'annulé'}`}
+        {getLegacyEmptyDescription(searchTerm, selectedStatus)}
       </p>
       {searchTerm && (
         <button

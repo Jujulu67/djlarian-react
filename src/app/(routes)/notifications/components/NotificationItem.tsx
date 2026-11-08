@@ -23,6 +23,16 @@ interface NotificationItemProps {
   onReply: (notification: Notification) => void;
 }
 
+function getRowStateClass(isUnread: boolean, isSentMessage: boolean): string {
+  if (isUnread) {
+    return 'bg-purple-500/5 border-l-2 sm:border-l-4 border-purple-500 v2:bg-brand/[0.06] v2:border-brand';
+  }
+  if (isSentMessage) {
+    return 'bg-green-500/5 border-l-2 sm:border-l-4 border-green-500/50 v2:bg-white/[0.02] v2:border-white/20';
+  }
+  return 'border-l-2 sm:border-l-4 border-transparent';
+}
+
 /**
  * Carte d'une notification (ou d'un message) avec ses réponses en thread
  */
@@ -70,13 +80,7 @@ export function NotificationItem({
         hasReplies
           ? 'cursor-pointer'
           : ''
-      } ${
-        isUnread
-          ? 'bg-purple-500/5 border-l-2 sm:border-l-4 border-purple-500 v2:bg-brand/[0.06] v2:border-brand'
-          : isSentMessage
-            ? 'bg-green-500/5 border-l-2 sm:border-l-4 border-green-500/50 v2:bg-white/[0.02] v2:border-white/20'
-            : 'border-l-2 sm:border-l-4 border-transparent'
-      }`}
+      } ${getRowStateClass(isUnread, isSentMessage)}`}
     >
       <div className="flex items-start gap-2 sm:gap-3 md:gap-4">
         {/* Badge de type */}

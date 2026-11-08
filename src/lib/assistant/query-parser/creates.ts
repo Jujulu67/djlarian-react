@@ -5,6 +5,18 @@ import { parseRelativeDate } from '../parsers/date-parser';
 import { findStyleFromString } from '../parsers/style-matcher';
 import { logger } from '@/lib/logger';
 
+const IGNORED_NAME_WORDS = new Set([
+  'le',
+  'la',
+  'les',
+  'un',
+  'une',
+  'projet',
+  'project',
+  'nouveau',
+  'new',
+]);
+
 export interface CreateData {
   name: string;
   collab?: string;
@@ -52,17 +64,9 @@ const collabPatterns = [
 ];
 
 /**
- * Extrait les données de création depuis une requête
+ * Extrait le nom du projet (chaîne vide si non trouvé)
  */
-export function extractCreateData(
-  query: string,
-  lowerQuery: string,
-  availableCollabs: string[],
-  availableStyles: string[]
-): CreateData | null {
-  const createData: CreateData = { name: '' };
-
-  // Essayer différents patterns pour trouver le nom
+function extractName(query: string): string {
   const namePatterns = [
     // Pattern le plus spécifique en premier : "ajoute le projet X" ou "créer le projet X"
     /(?:ajoute|ajouter|créer|créez|créé|crée|creer|creez|cree|add|create)\s+(?:(?:le|un|une|mon|nouveau|the|a|new)\s+)*(?:projet\s+|project\s+)?([a-z0-9_\s]+?)(?:\s+(?:en\s+collab|collab|avec|deadline|avancé|avance|progress|progression|il\s+est|c['’]?est|it\s+is|it['’]?s|status|statut)|$)/i,
@@ -79,68 +83,68 @@ export function extractCreateData(
     if (match?.[1]) {
       const potentialName = match[1].trim();
       // Vérifier que ce n'est pas un mot-clé ignoré
-      const ignoredWords = ['le', 'la', 'les', 'un', 'une', 'projet', 'project', 'nouveau', 'new'];
-      if (potentialName && !ignoredWords.includes(potentialName.toLowerCase())) {
-        createData.name = potentialName;
-        logger.warn(
-          '[Parse Query API] ✅ Nom extrait avec pattern:',
-          pattern,
-          '→',
-          createData.name
-        );
-        break;
+      if (potentialName && !IGNORED_NAME_WORDS.has(potentialName.toLowerCase())) {
+        logger.warn('[Parse Query API] ✅ Nom extrait avec pattern:', pattern, '→', potentialName);
+        return potentialName;
       }
     }
   }
 
   // Si pas de nom trouvé, essayer un pattern simple (un seul mot après "ajoute le projet")
-  if (!createData.name) {
-    const simplePattern =
-      /(?:ajoute|ajouter|créer|créez|créé|crée|creer|creez|cree|add|create)\s+(?:(?:le|un|une|mon|nouveau|the|a|new)\s+)*(?:projet\s+|project\s+)?(\w+)(?:\s|$)/i;
-    const match = simplePattern.exec(query);
-    if (match?.[1]) {
-      const potentialName = match[1].trim();
-      const ignoredWords = ['le', 'la', 'les', 'un', 'une', 'projet', 'project', 'nouveau', 'new'];
-      if (!ignoredWords.includes(potentialName.toLowerCase())) {
-        createData.name = potentialName;
-        logger.warn('[Parse Query API] ✅ Nom extrait avec pattern simple →', createData.name);
-      }
+  const simplePattern =
+    /(?:ajoute|ajouter|créer|créez|créé|crée|creer|creez|cree|add|create)\s+(?:(?:le|un|une|mon|nouveau|the|a|new)\s+)*(?:projet\s+|project\s+)?(\w+)(?:\s|$)/i;
+  const simpleMatch = simplePattern.exec(query);
+  if (simpleMatch?.[1]) {
+    const potentialName = simpleMatch[1].trim();
+    if (!IGNORED_NAME_WORDS.has(potentialName.toLowerCase())) {
+      logger.warn('[Parse Query API] ✅ Nom extrait avec pattern simple →', potentialName);
+      return potentialName;
     }
   }
 
-  // Extraire collab (réutiliser la logique existante avec collabPatterns)
+  return '';
+}
+
+/**
+ * Extrait le collaborateur (undefined si non trouvé)
+ */
+function extractCollab(query: string, availableCollabs: string[]): string | undefined {
+  const ignoredWords = new Set([
+    'projets',
+    'projet',
+    'les',
+    'mes',
+    'de',
+    'en',
+    'le',
+    'la',
+    'avec',
+    'quelles',
+    'quels',
+    'ai',
+    'j',
+  ]);
   for (const pattern of collabPatterns) {
     const match = pattern.exec(query);
     if (match?.[1]) {
       const collabName = match[1].trim();
-      const ignoredWords = [
-        'projets',
-        'projet',
-        'les',
-        'mes',
-        'de',
-        'en',
-        'le',
-        'la',
-        'avec',
-        'quelles',
-        'quels',
-        'ai',
-        'j',
-      ];
-      if (!ignoredWords.includes(collabName.toLowerCase())) {
+      if (!ignoredWords.has(collabName.toLowerCase())) {
         const matchedCollab = availableCollabs.find(
           (c) =>
             c.toLowerCase().includes(collabName.toLowerCase()) ||
             collabName.toLowerCase().includes(c.toLowerCase())
         );
-        createData.collab = matchedCollab || collabName;
-        break;
+        return matchedCollab || collabName;
       }
     }
   }
+  return undefined;
+}
 
-  // Extraire deadline
+/**
+ * Extrait la deadline (null si non trouvée)
+ */
+function extractDeadline(query: string): ReturnType<typeof parseRelativeDate> | null {
   const deadlinePatterns = [
     /deadline\s+(?:pour\s+)?(?:le\s+)?(semaine\s+pro|semaine\s+prochaine|next\s+week|demain|tomorrow|aujourd['’]hui|today|après[- ]?demain|day\s+after\s+tomorrow|dans\s+\d+\s+(?:jours?|semaines?|mois)|in\s+\d+\s+(?:days?|weeks?|months?)|\d{4}-\d{2}-\d{2})/i,
     /(?:avec\s+)?deadline\s+(semaine\s+pro|semaine\s+prochaine|next\s+week|demain|tomorrow|aujourd['’]hui|today|après[- ]?demain|day\s+after\s+tomorrow|dans\s+\d+\s+(?:jours?|semaines?|mois)|in\s+\d+\s+(?:days?|weeks?|months?)|\d{4}-\d{2}-\d{2})/i,
@@ -155,13 +159,17 @@ export function extractCreateData(
       const dateStr = match[1].trim();
       const parsedDate = parseRelativeDate(dateStr);
       if (parsedDate) {
-        createData.deadline = parsedDate;
-        break;
+        return parsedDate;
       }
     }
   }
+  return null;
+}
 
-  // Extraire progress (e.g., "70%", "avancé à 70%")
+/**
+ * Extrait l'avancement en % (undefined si non trouvé)
+ */
+function extractProgress(query: string): number | undefined {
   const progressPatterns = [
     /(?:avancé|avance|progress|progression)\s*(?:à|de|à\s+)?(\d+)\s*%/i,
     /(?<!\d)(\d+)\s*%\s*(?:d['’]?avancement|de\s+progress|de\s+progression)?/i,
@@ -173,24 +181,53 @@ export function extractCreateData(
     if (match?.[1]) {
       const progressValue = Number.parseInt(match[1], 10);
       if (!Number.isNaN(progressValue) && progressValue >= 0 && progressValue <= 100) {
-        createData.progress = progressValue;
-        break;
+        return progressValue;
       }
     }
   }
+  return undefined;
+}
 
-  // Extraire status si mentionné (sinon default à EN_COURS)
+/**
+ * Extrait le statut ; EN_COURS par défaut
+ */
+function extractStatus(lowerQuery: string): string {
   for (const { pattern, status } of statusPatterns) {
     if (pattern.test(lowerQuery)) {
-      createData.status = status;
-      break;
+      return status;
     }
   }
+  return 'EN_COURS';
+}
 
-  // Si pas de status spécifié, default à EN_COURS
-  if (!createData.status) {
-    createData.status = 'EN_COURS';
+/**
+ * Extrait les données de création depuis une requête
+ */
+export function extractCreateData(
+  query: string,
+  lowerQuery: string,
+  availableCollabs: string[],
+  availableStyles: string[]
+): CreateData | null {
+  const createData: CreateData = { name: extractName(query) };
+
+  const collab = extractCollab(query, availableCollabs);
+  if (collab !== undefined) {
+    createData.collab = collab;
   }
+
+  const deadline = extractDeadline(query);
+  if (deadline) {
+    createData.deadline = deadline;
+  }
+
+  const progress = extractProgress(query);
+  if (progress !== undefined) {
+    createData.progress = progress;
+  }
+
+  // Extraire status si mentionné (sinon default à EN_COURS)
+  createData.status = extractStatus(lowerQuery);
 
   // Extraire style avec détection améliorée (variations, alias, et dans le nom)
   // Le style est détecté mais on garde le nom tel quel (ex: "epic dnb" reste "epic dnb")

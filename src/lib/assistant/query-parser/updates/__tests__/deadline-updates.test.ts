@@ -28,28 +28,30 @@ describe('extractDeadlineUpdate - Parsing des deltas temporels', () => {
       expect(updateData.hasDeadline).toBe(true);
     });
 
-    it('devrait détecter "pousse leur deadline d\'un mois"', () => {
-      extractDeadlineUpdate(
+    it.each([
+      [
+        'devrait détecter "pousse leur deadline d\'un mois"',
         "pousse leur deadline d'un mois",
-        "pousse leur deadline d'un mois",
-        mockFilters,
-        updateData
-      );
+        'months',
+        1,
+      ],
+      [
+        'devrait détecter "repousse la deadline d\'un mois"',
+        "repousse la deadline d'un mois",
+        'months',
+        1,
+      ],
+      [
+        'devrait détecter "ajoute 1 mois à la deadline"',
+        'ajoute 1 mois à la deadline',
+        'months',
+        1,
+      ],
+    ] as const)('%s', (_title, input, unit, value) => {
+      extractDeadlineUpdate(input, input, mockFilters, updateData);
 
       expect(updateData.pushDeadlineBy).toBeDefined();
-      expect(updateData.pushDeadlineBy?.months).toBe(1);
-    });
-
-    it('devrait détecter "repousse la deadline d\'un mois"', () => {
-      extractDeadlineUpdate(
-        "repousse la deadline d'un mois",
-        "repousse la deadline d'un mois",
-        mockFilters,
-        updateData
-      );
-
-      expect(updateData.pushDeadlineBy).toBeDefined();
-      expect(updateData.pushDeadlineBy?.months).toBe(1);
+      expect(updateData.pushDeadlineBy?.[unit]).toBe(value);
     });
 
     it('devrait détecter "décale la date limite de 2 semaines"', () => {
@@ -70,52 +72,22 @@ describe('extractDeadlineUpdate - Parsing des deltas temporels', () => {
       expect(updateData.pushDeadlineBy).toBeDefined();
       expect(updateData.pushDeadlineBy?.days).toBe(10);
     });
-
-    it('devrait détecter "ajoute 1 mois à la deadline"', () => {
-      extractDeadlineUpdate(
-        'ajoute 1 mois à la deadline',
-        'ajoute 1 mois à la deadline',
-        mockFilters,
-        updateData
-      );
-
-      expect(updateData.pushDeadlineBy).toBeDefined();
-      expect(updateData.pushDeadlineBy?.months).toBe(1);
-    });
   });
 
   describe('Parsing des articles', () => {
-    it('devrait parser "d\'un mois" comme 1 mois', () => {
-      extractDeadlineUpdate(
-        "pousse leur deadline d'un mois",
-        "pousse leur deadline d'un mois",
-        mockFilters,
-        updateData
-      );
-
-      expect(updateData.pushDeadlineBy?.months).toBe(1);
-    });
-
-    it('devrait parser "d\'une semaine" comme 1 semaine', () => {
-      extractDeadlineUpdate(
+    it.each([
+      ['devrait parser "d\'un mois" comme 1 mois', "pousse leur deadline d'un mois", 'months', 1],
+      [
+        'devrait parser "d\'une semaine" comme 1 semaine',
         "pousse leur deadline d'une semaine",
-        "pousse leur deadline d'une semaine",
-        mockFilters,
-        updateData
-      );
+        'weeks',
+        1,
+      ],
+      ['devrait parser "de un mois" comme 1 mois', 'pousse leur deadline de un mois', 'months', 1],
+    ] as const)('%s', (_title, input, unit, value) => {
+      extractDeadlineUpdate(input, input, mockFilters, updateData);
 
-      expect(updateData.pushDeadlineBy?.weeks).toBe(1);
-    });
-
-    it('devrait parser "de un mois" comme 1 mois', () => {
-      extractDeadlineUpdate(
-        'pousse leur deadline de un mois',
-        'pousse leur deadline de un mois',
-        mockFilters,
-        updateData
-      );
-
-      expect(updateData.pushDeadlineBy?.months).toBe(1);
+      expect(updateData.pushDeadlineBy?.[unit]).toBe(value);
     });
   });
 
@@ -129,37 +101,14 @@ describe('extractDeadlineUpdate - Parsing des deltas temporels', () => {
   });
 
   describe('Unités supportées', () => {
-    it('devrait supporter "jours"', () => {
-      extractDeadlineUpdate(
-        'pousse leur deadline de 5 jours',
-        'pousse leur deadline de 5 jours',
-        mockFilters,
-        updateData
-      );
+    it.each([
+      ['devrait supporter "jours"', 'pousse leur deadline de 5 jours', 'days', 5],
+      ['devrait supporter "semaines"', 'pousse leur deadline de 3 semaines', 'weeks', 3],
+      ['devrait supporter "mois"', 'pousse leur deadline de 2 mois', 'months', 2],
+    ] as const)('%s', (_title, input, unit, value) => {
+      extractDeadlineUpdate(input, input, mockFilters, updateData);
 
-      expect(updateData.pushDeadlineBy?.days).toBe(5);
-    });
-
-    it('devrait supporter "semaines"', () => {
-      extractDeadlineUpdate(
-        'pousse leur deadline de 3 semaines',
-        'pousse leur deadline de 3 semaines',
-        mockFilters,
-        updateData
-      );
-
-      expect(updateData.pushDeadlineBy?.weeks).toBe(3);
-    });
-
-    it('devrait supporter "mois"', () => {
-      extractDeadlineUpdate(
-        'pousse leur deadline de 2 mois',
-        'pousse leur deadline de 2 mois',
-        mockFilters,
-        updateData
-      );
-
-      expect(updateData.pushDeadlineBy?.months).toBe(2);
+      expect(updateData.pushDeadlineBy?.[unit]).toBe(value);
     });
   });
 });

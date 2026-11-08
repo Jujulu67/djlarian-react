@@ -9,6 +9,69 @@ import { getPrismaClient, updateDefaultPrismaClient } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { requireAdmin } from '@/lib/api/requireAuth';
 
+type AdminSession = Awaited<ReturnType<typeof requireAdmin>>['session'];
+
+function isProductionDbUrl(url: string | undefined): boolean {
+  if (!url) {
+    return false;
+  }
+  return ['neon.tech', 'vercel', 'production', 'prod'].some((marker) => url.includes(marker));
+}
+
+function isProdDbAllowedByEnv(): boolean {
+  return process.env.ALLOW_PROD_DB === '1' || process.env.ALLOW_PROD_DB === 'true';
+}
+
+function assertProductionSwitchAllowed(session: AdminSession) {
+  const isAdmin = session?.user?.role === 'ADMIN';
+  const allowProdDb = isAdmin || isProdDbAllowedByEnv();
+
+  // Vérifier si DATABASE_URL_PRODUCTION pointe vers un environnement de production
+  const isProdUrl = isProductionDbUrl(process.env.DATABASE_URL_PRODUCTION);
+
+  if (isProdUrl && !allowProdDb) {
+    throw new Error(
+      '⚠️  PROTECTION: Tentative de pointer vers une base de données de production.\n' +
+        '   Accès refusé. Seuls les administrateurs authentifiés peuvent accéder à la production.\n' +
+        '   Alternative: définissez ALLOW_PROD_DB=1 dans .env.local pour les scripts automatisés.'
+    );
+  }
+
+  // Logger l'accès à la production pour traçabilité
+  if (isProdUrl && isAdmin) {
+    logger.warn(
+      `[DB SWITCH] ⚠️  Switch vers base de production autorisé pour admin: ${session.user.email || session.user.id}`
+    );
+  }
+}
+
+function checkDatabaseEnv(useProduction: boolean) {
+  if (useProduction && !process.env.DATABASE_URL_PRODUCTION) {
+    throw new Error("DATABASE_URL_PRODUCTION n'est pas définie dans les variables d'environnement");
+  }
+
+  if (!useProduction && !process.env.DATABASE_URL_LOCAL) {
+    // Utiliser l'URL par défaut si DATABASE_URL_LOCAL n'est pas définie
+    logger.warn(
+      "[DB SWITCH] DATABASE_URL_LOCAL non défini, utilisation de l'URL par défaut (Docker Compose)"
+    );
+  }
+}
+
+async function applyBlobTokenForTarget(target: Parameters<typeof getBlobTokenForTarget>[0]) {
+  // ⚠️ IMPORTANT: Mettre à jour process.env.BLOB_READ_WRITE_TOKEN pour que @vercel/blob l'utilise
+  // Le SDK @vercel/blob lit directement process.env.BLOB_READ_WRITE_TOKEN
+  const blobToken = await getBlobTokenForTarget(target);
+  if (blobToken) {
+    process.env.BLOB_READ_WRITE_TOKEN = blobToken;
+    logger.info(`[DB SWITCH] BLOB_READ_WRITE_TOKEN mis à jour pour la cible: ${target}`);
+  } else {
+    // Si pas de token pour cette cible, supprimer la variable (Blob ne sera pas disponible)
+    delete process.env.BLOB_READ_WRITE_TOKEN;
+    logger.warn(`[DB SWITCH] Aucun token Blob pour la cible: ${target}`);
+  }
+}
+
 /**
  * Route pour basculer entre base locale et production (HOT SWAP)
  *
@@ -33,51 +96,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     // Protection anti-prod: vérifier les garde-fous
     if (useProduction) {
-      const isAdmin = session?.user?.role === 'ADMIN';
-      const allowProdDbEnv =
-        process.env.ALLOW_PROD_DB === '1' || process.env.ALLOW_PROD_DB === 'true';
-      const allowProdDb = isAdmin || allowProdDbEnv;
-
-      // Vérifier si DATABASE_URL_PRODUCTION pointe vers un environnement de production
-      const prodDbUrl = process.env.DATABASE_URL_PRODUCTION;
-      const isProdUrl =
-        prodDbUrl &&
-        (prodDbUrl.includes('neon.tech') ||
-          prodDbUrl.includes('vercel') ||
-          prodDbUrl.includes('production') ||
-          prodDbUrl.includes('prod'));
-
-      if (isProdUrl && !allowProdDb) {
-        throw new Error(
-          '⚠️  PROTECTION: Tentative de pointer vers une base de données de production.\n' +
-            '   Accès refusé. Seuls les administrateurs authentifiés peuvent accéder à la production.\n' +
-            '   Alternative: définissez ALLOW_PROD_DB=1 dans .env.local pour les scripts automatisés.'
-        );
-      }
-
-      // Logger l'accès à la production pour traçabilité
-      if (isProdUrl && isAdmin) {
-        logger.warn(
-          `[DB SWITCH] ⚠️  Switch vers base de production autorisé pour admin: ${session.user.email || session.user.id}`
-        );
-      }
+      assertProductionSwitchAllowed(session);
     }
 
     // Vérifier que les variables d'environnement nécessaires sont définies
     const target = useProduction ? 'production' : 'local';
 
-    if (useProduction && !process.env.DATABASE_URL_PRODUCTION) {
-      throw new Error(
-        "DATABASE_URL_PRODUCTION n'est pas définie dans les variables d'environnement"
-      );
-    }
-
-    if (!useProduction && !process.env.DATABASE_URL_LOCAL) {
-      // Utiliser l'URL par défaut si DATABASE_URL_LOCAL n'est pas définie
-      logger.warn(
-        "[DB SWITCH] DATABASE_URL_LOCAL non défini, utilisation de l'URL par défaut (Docker Compose)"
-      );
-    }
+    checkDatabaseEnv(useProduction);
 
     // ⚠️ HOT SWAP: Changer la cible DB en runtime (sans redémarrage)
     const userId = session.user.email || session.user.id;
@@ -109,17 +134,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // ⚠️ IMPORTANT: Mettre à jour process.env.BLOB_READ_WRITE_TOKEN pour que @vercel/blob l'utilise
-    // Le SDK @vercel/blob lit directement process.env.BLOB_READ_WRITE_TOKEN
-    const blobToken = await getBlobTokenForTarget(target);
-    if (blobToken) {
-      process.env.BLOB_READ_WRITE_TOKEN = blobToken;
-      logger.info(`[DB SWITCH] BLOB_READ_WRITE_TOKEN mis à jour pour la cible: ${target}`);
-    } else {
-      // Si pas de token pour cette cible, supprimer la variable (Blob ne sera pas disponible)
-      delete process.env.BLOB_READ_WRITE_TOKEN;
-      logger.warn(`[DB SWITCH] Aucun token Blob pour la cible: ${target}`);
-    }
+    await applyBlobTokenForTarget(target);
 
     return NextResponse.json({
       success: true,

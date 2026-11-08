@@ -14,17 +14,8 @@ export function formatLocalDate(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-/**
- * Convertit une date relative en format ISO (YYYY-MM-DD)
- * Supporte : "aujourd'hui", "demain", "après-demain", "semaine prochaine", "mois prochain",
- * "dans X jours/semaines/mois", et les dates ISO existantes
- */
-export function parseRelativeDate(dateStr: string): string | null {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const lowerDateStr = dateStr.toLowerCase().trim();
-
+/** "aujourd'hui", "demain", "après-demain" */
+function parseDayKeyword(lowerDateStr: string, today: Date): string | null {
   if (lowerDateStr === "aujourd'hui" || lowerDateStr === 'today') {
     return formatLocalDate(today);
   }
@@ -41,6 +32,11 @@ export function parseRelativeDate(dateStr: string): string | null {
     return formatLocalDate(dayAfter);
   }
 
+  return null;
+}
+
+/** "semaine prochaine" (= dans 7 jours) et "mois prochain" */
+function parseNextPeriod(lowerDateStr: string, today: Date): string | null {
   // "semaine pro", "semaine prochaine", "next week"
   // Interpréter comme "dans 7 jours" (plus simple et prévisible)
   if (
@@ -60,6 +56,11 @@ export function parseRelativeDate(dateStr: string): string | null {
     return formatLocalDate(nextMonth);
   }
 
+  return null;
+}
+
+/** "dans X mois", "dans X jours", "dans X semaines" (et équivalents anglais) */
+function parseDuration(lowerDateStr: string, today: Date): string | null {
   // "dans X mois" / "in X months" / "dans X month"
   const dansMoisMatch = /dans\s+(\d+)\s+mois|in\s+(\d+)\s+months?/i.exec(lowerDateStr);
   if (dansMoisMatch) {
@@ -93,6 +94,11 @@ export function parseRelativeDate(dateStr: string): string | null {
     }
   }
 
+  return null;
+}
+
+/** Fins et débuts de période : fin de semaine, fin/début de mois, quinzaine */
+function parsePeriodBoundary(lowerDateStr: string, today: Date): string | null {
   // "fin de semaine", "fin de la semaine", "end of week"
   if (
     lowerDateStr.includes('fin de semaine') ||
@@ -137,25 +143,29 @@ export function parseRelativeDate(dateStr: string): string | null {
     return formatLocalDate(fortnight);
   }
 
-  // Jours nommés : "lundi prochain", "mardi prochain", etc.
-  const dayNames: Record<string, number> = {
-    dimanche: 0,
-    lundi: 1,
-    mardi: 2,
-    mercredi: 3,
-    jeudi: 4,
-    vendredi: 5,
-    samedi: 6,
-    sunday: 0,
-    monday: 1,
-    tuesday: 2,
-    wednesday: 3,
-    thursday: 4,
-    friday: 5,
-    saturday: 6,
-  };
+  return null;
+}
 
-  for (const [dayName, dayNumber] of Object.entries(dayNames)) {
+const DAY_NAMES: Record<string, number> = {
+  dimanche: 0,
+  lundi: 1,
+  mardi: 2,
+  mercredi: 3,
+  jeudi: 4,
+  vendredi: 5,
+  samedi: 6,
+  sunday: 0,
+  monday: 1,
+  tuesday: 2,
+  wednesday: 3,
+  thursday: 4,
+  friday: 5,
+  saturday: 6,
+};
+
+/** Jours nommés : "lundi prochain", "mardi prochain", etc. */
+function parseNamedDay(lowerDateStr: string, today: Date): string | null {
+  for (const [dayName, dayNumber] of Object.entries(DAY_NAMES)) {
     const namedDayPattern = new RegExp(String.raw`${dayName}\s*(?:prochain|next)?`, 'i');
     if (namedDayPattern.test(lowerDateStr)) {
       const namedDay = new Date(today);
@@ -169,7 +179,11 @@ export function parseRelativeDate(dateStr: string): string | null {
       return formatLocalDate(namedDay);
     }
   }
+  return null;
+}
 
+/** Date ISO (YYYY-MM-DD) déjà formatée, ou DD/MM/YYYY / DD-MM-YYYY */
+function parseAbsoluteDate(dateStr: string): string | null {
   // Si c'est déjà une date ISO, la retourner
   if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
     return dateStr;
@@ -189,4 +203,26 @@ export function parseRelativeDate(dateStr: string): string | null {
   }
 
   return null;
+}
+
+/**
+ * Convertit une date relative en format ISO (YYYY-MM-DD)
+ * Supporte : "aujourd'hui", "demain", "après-demain", "semaine prochaine", "mois prochain",
+ * "dans X jours/semaines/mois", et les dates ISO existantes
+ */
+export function parseRelativeDate(dateStr: string): string | null {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const lowerDateStr = dateStr.toLowerCase().trim();
+
+  // L'ordre des analyseurs est significatif : le premier qui reconnaît la chaîne gagne
+  return (
+    parseDayKeyword(lowerDateStr, today) ??
+    parseNextPeriod(lowerDateStr, today) ??
+    parseDuration(lowerDateStr, today) ??
+    parsePeriodBoundary(lowerDateStr, today) ??
+    parseNamedDay(lowerDateStr, today) ??
+    parseAbsoluteDate(dateStr)
+  );
 }

@@ -185,6 +185,24 @@ export function initializeGame(
   };
 }
 
+/** Position horizontale suggérée par les fréquences dominantes (undefined si pas de données). */
+function getAudioX(frequencyData: Uint8Array | undefined, canvasWidth: number): number | undefined {
+  if (!frequencyData || frequencyData.length === 0) return undefined;
+
+  const topFrequencies = findTopFrequencies(frequencyData, 3);
+  if (topFrequencies.length === 0) return undefined;
+
+  let weightedSum = 0;
+  let totalWeight = 0;
+  for (const { index, value } of topFrequencies) {
+    const normalizedIndex = index / frequencyData.length;
+    weightedSum += normalizedIndex * canvasWidth * (value / 255);
+    totalWeight += value / 255;
+  }
+
+  return totalWeight > 0 ? weightedSum / totalWeight : canvasWidth / 2;
+}
+
 // Création d'un nouveau pattern
 export function addPattern(
   state: GameState,
@@ -218,22 +236,11 @@ export function addPattern(
     speed += avgEnergy * 3;
     radius += avgEnergy * 15;
 
-    if (frequencyData && frequencyData.length > 0) {
-      const topFrequencies = findTopFrequencies(frequencyData, 3);
-      if (topFrequencies.length > 0) {
-        let weightedSum = 0;
-        let totalWeight = 0;
-        for (const { index, value } of topFrequencies) {
-          const normalizedIndex = index / frequencyData.length;
-          weightedSum += normalizedIndex * canvasWidth * (value / 255);
-          totalWeight += value / 255;
-        }
-
-        const audioX = totalWeight > 0 ? weightedSum / totalWeight : canvasWidth / 2;
-        // Mix 60% random, 40% audio pour garder de l'imprévisible
-        x = x * 0.6 + audioX * 0.4;
-        x = Math.max(50, Math.min(x, canvasWidth - 50));
-      }
+    const audioX = getAudioX(frequencyData, canvasWidth);
+    if (audioX !== undefined) {
+      // Mix 60% random, 40% audio pour garder de l'imprévisible
+      x = x * 0.6 + audioX * 0.4;
+      x = Math.max(50, Math.min(x, canvasWidth - 50));
     }
   }
 
@@ -407,15 +414,9 @@ export function updateGame(
         pattern.active &&
         !pattern.wasHit
       ) {
-        const dx = cursorPosition.x - x;
-        const dy = cursorPosition.y - y;
-        const dist = Math.hypot(dx, dy);
-
-        // Rayon d'attraction
-        if (dist < 400 && y > 0) {
-          x += (dx / dist) * 7; // Attraction latérale
-          y += (dy / dist) * 7; // Attraction verticale
-        }
+        const pulled = applyMagnetPull(x, y, cursorPosition);
+        x = pulled.x;
+        y = pulled.y;
       }
 
       // Mouvement normal vers le bas
@@ -441,17 +442,7 @@ export function updateGame(
           return { ...pattern, active: false, wasHit: true };
         }
 
-        updatedState.player.combo = 0;
-        updatedState.player.missedPatterns++;
-        updatedState.player.totalNotes++;
-
-        if (state.mode === 'DEATH') {
-          updatedState.player.lives--;
-          if (updatedState.player.lives <= 0) {
-            updatedState.isGameOver = true;
-            updatedState.isActive = false;
-          }
-        }
+        applyMiss(updatedState, state.mode);
       }
 
       return {
@@ -573,6 +564,96 @@ export function checkCollisions(
   return { collided: false };
 }
 
+/** Attraction magnétique vers le curseur : déplacement latéral et vertical. */
+function applyMagnetPull(x: number, y: number, cursor: Point): { x: number; y: number } {
+  const dx = cursor.x - x;
+  const dy = cursor.y - y;
+  const dist = Math.hypot(dx, dy);
+
+  // Rayon d'attraction
+  if (dist < 400 && y > 0) {
+    return { x: x + (dx / dist) * 7, y: y + (dy / dist) * 7 };
+  }
+  return { x, y };
+}
+
+/** Conséquences d'un raté : combo remis à zéro et, en mode mort, perte d'une vie. */
+function applyMiss(state: GameState, mode: GameMode): void {
+  state.player.combo = 0;
+  state.player.missedPatterns++;
+  state.player.totalNotes++;
+
+  if (mode === 'DEATH') {
+    state.player.lives--;
+    if (state.player.lives <= 0) {
+      state.isGameOver = true;
+      state.isActive = false;
+    }
+  }
+}
+
+/** Conséquences d'un coup réussi (qualité PERFECT, GOOD ou OK). */
+function applyHit(state: GameState, quality: HitQuality, points: number): void {
+  state.player.score += points;
+  state.player.combo += 1;
+  state.player.highScore = Math.max(state.player.highScore, state.player.score);
+  state.player.totalNotes += 1;
+
+  switch (quality) {
+    case 'PERFECT':
+      state.player.perfectHits += 1;
+      break;
+    case 'GOOD':
+      state.player.goodHits += 1;
+      break;
+    case 'OK':
+      state.player.okHits += 1;
+      break;
+  }
+}
+
+/** Power-up FIREBALL : détruit tous les patterns actifs et donne leurs points. */
+function applyFireball(state: GameState): void {
+  const activePatterns = state.patterns.filter((p) => p.active);
+  let fireballPoints = 0;
+  activePatterns.forEach((p) => {
+    fireballPoints += p.points;
+  });
+  state.player.score += fireballPoints;
+  state.patterns = state.patterns.map((p) => ({
+    ...p,
+    active: false,
+    wasHit: true,
+  }));
+}
+
+/** Applique l'effet d'un power-up ramassé. */
+function applyPowerUpEffect(state: GameState, powerUpType: PowerUpType, mode: GameMode): void {
+  switch (powerUpType) {
+    case PowerUpType.FIREBALL:
+      applyFireball(state);
+      break;
+    case PowerUpType.MAGNET:
+      state.activePowerUps.magnet = true;
+      state.activePowerUps.magnetEndTime = Date.now() + 5000; // 5 secondes
+      break;
+    case PowerUpType.SLOW_MO:
+      state.activePowerUps.slowMo = true;
+      state.activePowerUps.slowMoEndTime = Date.now() + 8000; // 8 secondes
+      break;
+    case PowerUpType.LIFE:
+      if (mode === 'DEATH') {
+        state.player.lives = Math.min(state.player.lives + 1, state.player.maxLives);
+      } else {
+        state.player.score += 1000; // Bonus points si pas en Death Mode
+      }
+      break;
+    case PowerUpType.SHIELD:
+      state.activePowerUps.shield = true;
+      break;
+  }
+}
+
 // Gestion des collisions détectées (Apply State Changes)
 export function handleCollision(state: GameState, collisionResult: CollisionResult): GameState {
   if (!collisionResult.collided) {
@@ -585,46 +666,7 @@ export function handleCollision(state: GameState, collisionResult: CollisionResu
   if (collisionResult.powerUpId && collisionResult.powerUpType) {
     updatedState.powerUps = updatedState.powerUps.filter((p) => p.id !== collisionResult.powerUpId);
     updatedState.player.score += collisionResult.points || 0;
-
-    // Apply Effect
-    switch (collisionResult.powerUpType) {
-      case PowerUpType.FIREBALL: {
-        // Détruit tous les patterns à l'écran et donne les points
-        const activePatterns = updatedState.patterns.filter((p) => p.active);
-        let fireballPoints = 0;
-        activePatterns.forEach((p) => {
-          fireballPoints += p.points;
-        });
-        updatedState.player.score += fireballPoints;
-        updatedState.patterns = updatedState.patterns.map((p) => ({
-          ...p,
-          active: false,
-          wasHit: true,
-        }));
-        break;
-      }
-      case PowerUpType.MAGNET:
-        updatedState.activePowerUps.magnet = true;
-        updatedState.activePowerUps.magnetEndTime = Date.now() + 5000; // 5 secondes
-        break;
-      case PowerUpType.SLOW_MO:
-        updatedState.activePowerUps.slowMo = true;
-        updatedState.activePowerUps.slowMoEndTime = Date.now() + 8000; // 8 secondes
-        break;
-      case PowerUpType.LIFE:
-        if (state.mode === 'DEATH') {
-          updatedState.player.lives = Math.min(
-            updatedState.player.lives + 1,
-            updatedState.player.maxLives
-          );
-        } else {
-          updatedState.player.score += 1000; // Bonus points si pas en Death Mode
-        }
-        break;
-      case PowerUpType.SHIELD:
-        updatedState.activePowerUps.shield = true;
-        break;
-    }
+    applyPowerUpEffect(updatedState, collisionResult.powerUpType, state.mode);
     return updatedState;
   }
 
@@ -640,37 +682,9 @@ export function handleCollision(state: GameState, collisionResult: CollisionResu
     };
 
     if (collisionResult.quality !== 'MISS') {
-      updatedState.player.score += collisionResult.points || 0;
-      updatedState.player.combo += 1;
-      updatedState.player.highScore = Math.max(
-        updatedState.player.highScore,
-        updatedState.player.score
-      );
-      updatedState.player.totalNotes += 1;
-
-      switch (collisionResult.quality) {
-        case 'PERFECT':
-          updatedState.player.perfectHits += 1;
-          break;
-        case 'GOOD':
-          updatedState.player.goodHits += 1;
-          break;
-        case 'OK':
-          updatedState.player.okHits += 1;
-          break;
-      }
+      applyHit(updatedState, collisionResult.quality, collisionResult.points || 0);
     } else {
-      updatedState.player.combo = 0;
-      updatedState.player.missedPatterns++;
-      updatedState.player.totalNotes++;
-
-      if (state.mode === 'DEATH') {
-        updatedState.player.lives--;
-        if (updatedState.player.lives <= 0) {
-          updatedState.isGameOver = true;
-          updatedState.isActive = false;
-        }
-      }
+      applyMiss(updatedState, state.mode);
     }
   }
 

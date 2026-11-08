@@ -101,9 +101,14 @@ describe('checkUpcomingReleases', () => {
       expect(result.skipped).toBe(1);
     });
 
-    it('should create notification for release in 7 days', async () => {
+    it.each([
+      ['should create notification for release in 7 days', 7, 'INFO', '7 jours'],
+      ['should create notification for release in 3 days', 3, 'WARNING', '3 jours'],
+      ['should create notification for release in 5 days', 5, 'INFO', '5 jours'],
+      ['should create notification for release tomorrow', 1, 'WARNING', 'demain'],
+    ])('%s', async (_title, days, type, titleText) => {
       const releaseDate = new Date();
-      releaseDate.setDate(releaseDate.getDate() + 7);
+      releaseDate.setDate(releaseDate.getDate() + days);
       releaseDate.setHours(0, 0, 0, 0);
       jest.setSystemTime(new Date());
 
@@ -124,38 +129,8 @@ describe('checkUpcomingReleases', () => {
       expect(mockPrisma.notification.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            type: 'INFO',
-            title: expect.stringContaining('7 jours'),
-          }),
-        })
-      );
-    });
-
-    it('should create notification for release in 3 days', async () => {
-      const releaseDate = new Date();
-      releaseDate.setDate(releaseDate.getDate() + 3);
-      releaseDate.setHours(0, 0, 0, 0);
-      jest.setSystemTime(new Date());
-
-      mockPrisma.project.findUnique.mockResolvedValue({
-        id: 'project-1',
-        userId: 'user-1',
-        name: 'Test Project',
-        releaseDate,
-      } as any);
-      mockPrisma.notification.findMany.mockResolvedValue([]);
-      mockPrisma.notification.create.mockResolvedValue({
-        id: 'notif-1',
-      } as any);
-
-      const result = await checkProjectUpcomingRelease('project-1', 'user-1');
-
-      expect(result.created).toBe(1);
-      expect(mockPrisma.notification.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            type: 'WARNING',
-            title: expect.stringContaining('3 jours'),
+            type,
+            title: expect.stringContaining(titleText),
           }),
         })
       );
@@ -185,66 +160,6 @@ describe('checkUpcomingReleases', () => {
           data: expect.objectContaining({
             type: 'INFO',
             title: expect.stringContaining("aujourd'hui"),
-          }),
-        })
-      );
-    });
-
-    it('should create notification for release in 5 days', async () => {
-      const releaseDate = new Date();
-      releaseDate.setDate(releaseDate.getDate() + 5);
-      releaseDate.setHours(0, 0, 0, 0);
-      jest.setSystemTime(new Date());
-
-      mockPrisma.project.findUnique.mockResolvedValue({
-        id: 'project-1',
-        userId: 'user-1',
-        name: 'Test Project',
-        releaseDate,
-      } as any);
-      mockPrisma.notification.findMany.mockResolvedValue([]);
-      mockPrisma.notification.create.mockResolvedValue({
-        id: 'notif-1',
-      } as any);
-
-      const result = await checkProjectUpcomingRelease('project-1', 'user-1');
-
-      expect(result.created).toBe(1);
-      expect(mockPrisma.notification.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            type: 'INFO',
-            title: expect.stringContaining('5 jours'),
-          }),
-        })
-      );
-    });
-
-    it('should create notification for release tomorrow', async () => {
-      const releaseDate = new Date();
-      releaseDate.setDate(releaseDate.getDate() + 1);
-      releaseDate.setHours(0, 0, 0, 0);
-      jest.setSystemTime(new Date());
-
-      mockPrisma.project.findUnique.mockResolvedValue({
-        id: 'project-1',
-        userId: 'user-1',
-        name: 'Test Project',
-        releaseDate,
-      } as any);
-      mockPrisma.notification.findMany.mockResolvedValue([]);
-      mockPrisma.notification.create.mockResolvedValue({
-        id: 'notif-1',
-      } as any);
-
-      const result = await checkProjectUpcomingRelease('project-1', 'user-1');
-
-      expect(result.created).toBe(1);
-      expect(mockPrisma.notification.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            type: 'WARNING',
-            title: expect.stringContaining('demain'),
           }),
         })
       );

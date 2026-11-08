@@ -72,27 +72,19 @@ describe('Verification: Creation and Notes', () => {
   });
 
   describe('Add Note Detection (Fix Verification)', () => {
-    it('should classify "Ajoute une note à Symphony" as isUpdate (NOT isCreate)', () => {
-      const query = "Ajoute une note à Symphony, j'ai refait le mix";
+    it.each([
+      [
+        'should classify "Ajoute une note à Symphony" as isUpdate (NOT isCreate)',
+        "Ajoute une note à Symphony, j'ai refait le mix",
+      ],
+      ['should classify "Note pour Magnetize" as isUpdate', 'Note pour Magnetize: super session'],
+      [
+        'should classify "Session Magnetize du jour" as isUpdate',
+        'Session Magnetize du jour, avancement sur le drop',
+      ],
+    ])('%s', (_title, query) => {
       const result = classifyQuery(query, query.toLowerCase(), emptyFilters);
-
-      // CRITICAL: Must be isUpdate to trigger local parser execution
-      expect(result.isUpdate).toBe(true);
-      // specific check: should NOT be isCreate anymore for this specific phrasing if strictly separated,
-      // but if regexes overlap, at least isUpdate MUST be true.
-      // In current logic, both might be true, but assistant.ts checks isCreate LAST or separate.
-      // Let's verify isUpdate is present.
-    });
-
-    it('should classify "Note pour Magnetize" as isUpdate', () => {
-      const query = 'Note pour Magnetize: super session';
-      const result = classifyQuery(query, query.toLowerCase(), emptyFilters);
-      expect(result.isUpdate).toBe(true);
-    });
-
-    it('should classify "Session Magnetize du jour" as isUpdate', () => {
-      const query = 'Session Magnetize du jour, avancement sur le drop';
-      const result = classifyQuery(query, query.toLowerCase(), emptyFilters);
+      // CRITICAL for the first phrasing: must be isUpdate to trigger local parser execution
       expect(result.isUpdate).toBe(true);
     });
   });

@@ -91,10 +91,15 @@ describe('handleApiError', () => {
     expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('[POST /api/test]'), error);
   });
 
-  it('should handle Prisma P2003 error with collectionId', () => {
+  it.each([
+    ['should handle Prisma P2003 error with collectionId', 'collectionId', 'music collection'],
+    ['should handle Prisma P2003 error with imageId', 'imageId', 'image'],
+    ['should handle Prisma P2003 error with userId', 'userId', 'user'],
+    ['should handle Prisma P2003 error with unknown field', 'unknownField', 'Invalid reference'],
+  ])('%s', (_title, fieldName, expectedText) => {
     const prismaError = {
       code: 'P2003',
-      meta: { field_name: 'collectionId' },
+      meta: { field_name: fieldName },
       message: 'Foreign key constraint failed',
     } as Prisma.PrismaClientKnownRequestError;
 
@@ -103,55 +108,7 @@ describe('handleApiError', () => {
     expect(response.status).toBe(400);
     const data = response.json() as Promise<{ error: string }>;
     return data.then((result) => {
-      expect(result.error).toContain('music collection');
-    });
-  });
-
-  it('should handle Prisma P2003 error with imageId', () => {
-    const prismaError = {
-      code: 'P2003',
-      meta: { field_name: 'imageId' },
-      message: 'Foreign key constraint failed',
-    } as Prisma.PrismaClientKnownRequestError;
-
-    const response = handleApiError(prismaError, 'POST /api/test');
-
-    expect(response.status).toBe(400);
-    const data = response.json() as Promise<{ error: string }>;
-    return data.then((result) => {
-      expect(result.error).toContain('image');
-    });
-  });
-
-  it('should handle Prisma P2003 error with userId', () => {
-    const prismaError = {
-      code: 'P2003',
-      meta: { field_name: 'userId' },
-      message: 'Foreign key constraint failed',
-    } as Prisma.PrismaClientKnownRequestError;
-
-    const response = handleApiError(prismaError, 'POST /api/test');
-
-    expect(response.status).toBe(400);
-    const data = response.json() as Promise<{ error: string }>;
-    return data.then((result) => {
-      expect(result.error).toContain('user');
-    });
-  });
-
-  it('should handle Prisma P2003 error with unknown field', () => {
-    const prismaError = {
-      code: 'P2003',
-      meta: { field_name: 'unknownField' },
-      message: 'Foreign key constraint failed',
-    } as Prisma.PrismaClientKnownRequestError;
-
-    const response = handleApiError(prismaError, 'POST /api/test');
-
-    expect(response.status).toBe(400);
-    const data = response.json() as Promise<{ error: string }>;
-    return data.then((result) => {
-      expect(result.error).toContain('Invalid reference');
+      expect(result.error).toContain(expectedText);
     });
   });
 

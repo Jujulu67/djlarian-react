@@ -19,6 +19,14 @@ const ALLOWED_MIME_TYPES = new Set([
 /**
  * Valide un fichier audio (utilisable côté client)
  */
+/** Extension audio autorisée (.mp3 ou .wav), ou chaîne vide */
+function getAudioExtension(fileName: string) {
+  const lowerName = fileName.toLowerCase();
+  if (lowerName.endsWith('.mp3')) return '.mp3';
+  if (lowerName.endsWith('.wav')) return '.wav';
+  return '';
+}
+
 export function validateAudioFile(file: File): { valid: boolean; error?: string } {
   // Vérifier le type MIME
   if (!ALLOWED_MIME_TYPES.has(file.type)) {
@@ -37,11 +45,7 @@ export function validateAudioFile(file: File): { valid: boolean; error?: string 
   }
 
   // Vérifier l'extension
-  const extension = file.name.toLowerCase().endsWith('.mp3')
-    ? '.mp3'
-    : file.name.toLowerCase().endsWith('.wav')
-      ? '.wav'
-      : '';
+  const extension = getAudioExtension(file.name);
   if (extension !== '.mp3' && extension !== '.wav') {
     return {
       valid: false,

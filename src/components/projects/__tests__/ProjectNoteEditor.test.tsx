@@ -267,7 +267,11 @@ describe('ProjectNoteEditor', () => {
     expect(mockOnChange).toHaveBeenCalled();
   });
 
-  it('should insert version template', () => {
+  it.each([
+    ['version', 'Version'],
+    ['phase', 'Phase'],
+    ['evolution', 'Évolution'],
+  ])('should insert %s template', (_title, buttonText) => {
     render(
       <ProjectNoteEditor
         value=""
@@ -278,40 +282,7 @@ describe('ProjectNoteEditor', () => {
     );
 
     ensureEditMode();
-    const versionButton = screen.getByText('Version');
-    fireEvent.click(versionButton);
-
-    expect(mockOnChange).toHaveBeenCalled();
-  });
-
-  it('should insert phase template', () => {
-    render(
-      <ProjectNoteEditor
-        value=""
-        onChange={mockOnChange}
-        onSave={mockOnSave}
-        onCancel={mockOnCancel}
-      />
-    );
-
-    const phaseButton = screen.getByText('Phase');
-    fireEvent.click(phaseButton);
-
-    expect(mockOnChange).toHaveBeenCalled();
-  });
-
-  it('should insert evolution template', () => {
-    render(
-      <ProjectNoteEditor
-        value=""
-        onChange={mockOnChange}
-        onSave={mockOnSave}
-        onCancel={mockOnCancel}
-      />
-    );
-
-    const evolutionButton = screen.getByText('Évolution');
-    fireEvent.click(evolutionButton);
+    fireEvent.click(screen.getByText(buttonText));
 
     expect(mockOnChange).toHaveBeenCalled();
   });
@@ -686,10 +657,14 @@ describe('ProjectNoteEditor', () => {
     expect(screen.getByText('Link2')).toBeInTheDocument();
   });
 
-  it('should handle markdown with multiple bold sections', () => {
+  it.each([
+    ['multiple bold sections', '**bold1** text **bold2**', ['bold1', 'bold2']],
+    ['multiple italic sections', '*italic1* text *italic2*', ['italic1', 'italic2']],
+    ['text before and after matches', 'Before **bold** after', ['Before', 'bold', 'after']],
+  ])('should handle markdown with %s', (_title, value, expectedTexts) => {
     render(
       <ProjectNoteEditor
-        value="**bold1** text **bold2**"
+        value={value}
         onChange={mockOnChange}
         onSave={mockOnSave}
         onCancel={mockOnCancel}
@@ -698,41 +673,9 @@ describe('ProjectNoteEditor', () => {
 
     fireEvent.click(screen.getByText('Aperçu'));
 
-    expect(screen.getByText(/bold1/)).toBeInTheDocument();
-    expect(screen.getByText(/bold2/)).toBeInTheDocument();
-  });
-
-  it('should handle markdown with multiple italic sections', () => {
-    render(
-      <ProjectNoteEditor
-        value="*italic1* text *italic2*"
-        onChange={mockOnChange}
-        onSave={mockOnSave}
-        onCancel={mockOnCancel}
-      />
-    );
-
-    fireEvent.click(screen.getByText('Aperçu'));
-
-    expect(screen.getByText(/italic1/)).toBeInTheDocument();
-    expect(screen.getByText(/italic2/)).toBeInTheDocument();
-  });
-
-  it('should handle markdown with text before and after matches', () => {
-    render(
-      <ProjectNoteEditor
-        value="Before **bold** after"
-        onChange={mockOnChange}
-        onSave={mockOnSave}
-        onCancel={mockOnCancel}
-      />
-    );
-
-    fireEvent.click(screen.getByText('Aperçu'));
-
-    expect(screen.getByText(/Before/)).toBeInTheDocument();
-    expect(screen.getByText(/bold/)).toBeInTheDocument();
-    expect(screen.getByText(/after/)).toBeInTheDocument();
+    expectedTexts.forEach((text) => {
+      expect(screen.getByText(new RegExp(text))).toBeInTheDocument();
+    });
   });
 
   it('should handle markdown with only matches and no text around', () => {
@@ -1342,46 +1285,14 @@ describe('ProjectNoteEditor', () => {
     expect(container?.textContent).toMatch(/Task 3/);
   });
 
-  it('should handle markdown with ### heading closing both list types', () => {
+  it.each([
+    ['###', '- Item\\n- [x] Task\\n### Heading'],
+    ['##', '- Item\\n- [x] Task\\n## Heading'],
+    ['#', '- Item\\n- [x] Task\\n# Heading'],
+  ])('should handle markdown with %s heading closing both list types', (_title, value) => {
     render(
       <ProjectNoteEditor
-        value="- Item\n- [x] Task\n### Heading"
-        onChange={mockOnChange}
-        onSave={mockOnSave}
-        onCancel={mockOnCancel}
-      />
-    );
-
-    fireEvent.click(screen.getByText('Aperçu'));
-
-    expect(screen.getByText(/Item/)).toBeInTheDocument();
-    const container = document.querySelector('.text-gray-200');
-    expect(container?.textContent).toMatch(/Task/);
-    expect(screen.getByText(/Heading/)).toBeInTheDocument();
-  });
-
-  it('should handle markdown with ## heading closing both list types', () => {
-    render(
-      <ProjectNoteEditor
-        value="- Item\n- [x] Task\n## Heading"
-        onChange={mockOnChange}
-        onSave={mockOnSave}
-        onCancel={mockOnCancel}
-      />
-    );
-
-    fireEvent.click(screen.getByText('Aperçu'));
-
-    expect(screen.getByText(/Item/)).toBeInTheDocument();
-    const container = document.querySelector('.text-gray-200');
-    expect(container?.textContent).toMatch(/Task/);
-    expect(screen.getByText(/Heading/)).toBeInTheDocument();
-  });
-
-  it('should handle markdown with # heading closing both list types', () => {
-    render(
-      <ProjectNoteEditor
-        value="- Item\n- [x] Task\n# Heading"
+        value={value}
         onChange={mockOnChange}
         onSave={mockOnSave}
         onCancel={mockOnCancel}

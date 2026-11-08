@@ -24,6 +24,17 @@ interface ProjectMobileCardProps {
   expandedStreams: Set<string>;
 }
 
+function getHighlightClass(isPersistentGold: boolean, isHighlighted: boolean) {
+  if (isPersistentGold) return 'animate-highlight-gold';
+  if (isHighlighted) return 'animate-highlight-purple ring-2 ring-purple-500/50';
+  return '';
+}
+
+function getNoteTitle(note: string | null | undefined) {
+  if (!note) return 'Ajouter une note';
+  return `Note: ${note.substring(0, 50)}${note.length > 50 ? '...' : ''}`;
+}
+
 export function ProjectMobileCard({
   deletingId,
   handleDelete,
@@ -57,13 +68,7 @@ export function ProjectMobileCard({
         border-l-4 ${getStatusBorderColor(project.status)}
         shadow-lg shadow-black/20
         transition-all duration-300
-        ${
-          isPersistentGold
-            ? 'animate-highlight-gold'
-            : isHighlighted
-              ? 'animate-highlight-purple ring-2 ring-purple-500/50'
-              : ''
-        }
+        ${getHighlightClass(isPersistentGold, isHighlighted)}
       `}
     >
       {/* Header avec nom et actions */}
@@ -142,11 +147,7 @@ export function ProjectMobileCard({
                   ? 'text-blue-400 bg-blue-500/10 hover:bg-blue-500/20'
                   : 'text-gray-400 bg-gray-500/10 hover:bg-gray-500/20'
               }`}
-              title={
-                project.note
-                  ? `Note: ${project.note.substring(0, 50)}${project.note.length > 50 ? '...' : ''}`
-                  : 'Ajouter une note'
-              }
+              title={getNoteTitle(project.note)}
               aria-label={project.note ? 'Voir/modifier la note' : 'Ajouter une note'}
             >
               <FileText size={18} aria-hidden="true" />

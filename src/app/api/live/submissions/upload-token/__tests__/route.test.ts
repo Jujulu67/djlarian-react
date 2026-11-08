@@ -84,14 +84,12 @@ describe('/api/live/submissions/upload-token', () => {
     expect(response.status).toBe(400);
   });
 
-  it("renvoie 400 pour le chemin d'un autre utilisateur", async () => {
-    const response = await POST(makeRequest('live-audio/live-audio-user2-1700000000000-abc.mp3'));
-
-    expect(response.status).toBe(400);
-  });
-
-  it('renvoie 400 pour un chemin hors du dossier live-audio', async () => {
-    const response = await POST(makeRequest('avatars/live-audio-user1-1700000000000-abc.mp3'));
+  it.each([
+    ["pour le chemin d'un autre utilisateur", 'live-audio/live-audio-user2-1700000000000-abc.mp3'],
+    ['pour un chemin hors du dossier live-audio', 'avatars/live-audio-user1-1700000000000-abc.mp3'],
+    ['pour une extension .svg', 'live-audio/live-audio-user1-1700000000000-abc.svg'],
+  ])('renvoie 400 %s', async (_label, path) => {
+    const response = await POST(makeRequest(path));
 
     expect(response.status).toBe(400);
   });
@@ -99,12 +97,6 @@ describe('/api/live/submissions/upload-token', () => {
   it('renvoie 400 pour un chemin avec sous-dossier ou ..', async () => {
     expect((await POST(makeRequest('live-audio/live-audio-user1-/../x.mp3'))).status).toBe(400);
     expect((await POST(makeRequest('live-audio/live-audio-user1-a/b.mp3'))).status).toBe(400);
-  });
-
-  it('renvoie 400 pour une extension .svg', async () => {
-    const response = await POST(makeRequest('live-audio/live-audio-user1-1700000000000-abc.svg'));
-
-    expect(response.status).toBe(400);
   });
 
   it('renvoie 200 avec les restrictions pour un chemin valide, sans fuite du token du store', async () => {

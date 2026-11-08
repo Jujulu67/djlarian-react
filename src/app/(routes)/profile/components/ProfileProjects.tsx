@@ -88,52 +88,54 @@ export function ProfileProjects({
             <div className="flex items-center justify-center py-4 flex-1">
               <Loader2 className="w-5 h-5 text-purple-400 animate-spin v2:text-white/50" />
             </div>
-          ) : recentProjects.length > 0 ? (
-            <div className="space-y-2 sm:space-y-2.5 lg:space-y-2 mb-3 sm:mb-4 lg:mb-3">
-              {recentProjects.map((project) => {
-                const updatedDate = project.updatedAt
-                  ? new Date(project.updatedAt).toLocaleDateString('fr-FR', {
-                      day: 'numeric',
-                      month: 'short',
-                    })
-                  : null;
-                return (
-                  <Link key={project.id} href={`/projects#${project.id}`} className="block group">
-                    <motion.div
-                      whileHover={{ scale: 1.02, x: 4 }}
-                      className="p-2 sm:p-2.5 lg:p-2 rounded-xl bg-gradient-to-r from-purple-500/5 to-blue-500/5 border border-purple-500/10 hover:border-purple-500/30 transition-all cursor-pointer v2:bg-none v2:bg-white/[0.03] v2:border-white/[0.08] v2:hover:border-white/15 v2:hover:bg-white/[0.05]"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-sm sm:text-base lg:text-sm font-semibold text-white truncate mb-1">
-                            {project.name}
-                          </h3>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <ProjectStatusBadge
-                              status={project.status as ProjectStatus}
-                              size="sm"
-                            />
-                            {updatedDate && (
-                              <span className="text-xs text-gray-400 flex items-center gap-1 v2:text-white/60">
-                                <Calendar className="w-3 h-3" />
-                                {updatedDate}
-                              </span>
-                            )}
+          ) : (
+            (recentProjects.length > 0 && (
+              <div className="space-y-2 sm:space-y-2.5 lg:space-y-2 mb-3 sm:mb-4 lg:mb-3">
+                {recentProjects.map((project) => {
+                  const updatedDate = project.updatedAt
+                    ? new Date(project.updatedAt).toLocaleDateString('fr-FR', {
+                        day: 'numeric',
+                        month: 'short',
+                      })
+                    : null;
+                  return (
+                    <Link key={project.id} href={`/projects#${project.id}`} className="block group">
+                      <motion.div
+                        whileHover={{ scale: 1.02, x: 4 }}
+                        className="p-2 sm:p-2.5 lg:p-2 rounded-xl bg-gradient-to-r from-purple-500/5 to-blue-500/5 border border-purple-500/10 hover:border-purple-500/30 transition-all cursor-pointer v2:bg-none v2:bg-white/[0.03] v2:border-white/[0.08] v2:hover:border-white/15 v2:hover:bg-white/[0.05]"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-sm sm:text-base lg:text-sm font-semibold text-white truncate mb-1">
+                              {project.name}
+                            </h3>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <ProjectStatusBadge
+                                status={project.status as ProjectStatus}
+                                size="sm"
+                              />
+                              {updatedDate && (
+                                <span className="text-xs text-gray-400 flex items-center gap-1 v2:text-white/60">
+                                  <Calendar className="w-3 h-3" />
+                                  {updatedDate}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity v2:text-white/60">
+                            <FolderKanban size={16} className="sm:w-4 sm:h-4 lg:w-3.5 lg:h-3.5" />
                           </div>
                         </div>
-                        <div className="text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity v2:text-white/60">
-                          <FolderKanban size={16} className="sm:w-4 sm:h-4 lg:w-3.5 lg:h-3.5" />
-                        </div>
-                      </div>
-                    </motion.div>
-                  </Link>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="text-sm text-gray-400 v2:text-white/60 text-center py-4 mb-3 sm:mb-4 lg:mb-3 flex-1 flex items-center justify-center">
-              Aucun projet récent
-            </p>
+                      </motion.div>
+                    </Link>
+                  );
+                })}
+              </div>
+            )) || (
+              <p className="text-sm text-gray-400 v2:text-white/60 text-center py-4 mb-3 sm:mb-4 lg:mb-3 flex-1 flex items-center justify-center">
+                Aucun projet récent
+              </p>
+            )
           )}
         </div>
 

@@ -10,6 +10,7 @@
  * - userId persiste entre sessions (localStorage)
  */
 import { useState, useRef, useEffect, useCallback } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Project } from '@/components/projects/types';
 import type { Message, QueryFilters, UpdateData } from '../types';
@@ -31,6 +32,7 @@ import {
   debugMemoryState,
 } from '@/lib/assistant/memory';
 import { logger } from '@/lib/logger';
+import type { routeProjectCommandClient } from '@/lib/assistant/router/client-router';
 
 export interface UseAssistantChatOptions {
   projects: Project[];
@@ -53,6 +55,119 @@ export interface UseAssistantChatReturn {
   handleReset: () => void;
   handleSubmit: (e: React.FormEvent) => Promise<void>;
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
+}
+
+type CreateRouteResult = Extract<
+  Awaited<ReturnType<typeof routeProjectCommandClient>>,
+  { type: 'create' }
+>;
+
+/** Noms des filtres réellement appliqués (valeurs truthy) pour les logs de debug. */
+function summarizeAppliedFilter(filter: object | null | undefined): string[] {
+  if (!filter) return [];
+  return Object.keys(filter).filter((k) => (filter as Record<string, unknown>)[k]);
+}
+
+/** Date limite au format YYYY-MM-DD si c'est un Date, sinon la valeur telle quelle. */
+function toDeadlineValue(deadline: unknown): string | null | undefined {
+  if (deadline && typeof deadline !== 'string') {
+    return (deadline as Date).toISOString().split('T')[0];
+  }
+  return deadline as string | null | undefined;
+}
+
+function buildCreateDataFromProject(project: CreateRouteResult['project']) {
+  return {
+    name: project.name,
+    status: project.status,
+    progress: project.progress,
+    collab: project.collab,
+    style: project.style,
+    deadline: toDeadlineValue(project.deadline),
+  };
+}
+
+/** Contexte de debug envoyé avant l'appel au routeur. */
+function buildRouterDebugPayload(
+  requestId: string,
+  currentInput: string,
+  projects: unknown[],
+  listedIds: string[] | null | undefined,
+  appliedFilter: object | null | undefined
+) {
+  return {
+    requestId,
+    message: currentInput.substring(0, 100),
+    projectsCount: projects.length,
+    lastListedProjectIdsCount: listedIds?.length ?? 0,
+    lastAppliedFilter: appliedFilter,
+    contextPassed: {
+      lastListedProjectIds: listedIds?.slice(0, 5) ?? [], // Afficher seulement les 5 premiers
+      lastAppliedFilterSummary: summarizeAppliedFilter(appliedFilter),
+    },
+  };
+}
+
+type PendingAction = Extract<
+  Awaited<ReturnType<typeof routeProjectCommandClient>>,
+  { pendingAction: unknown }
+>['pendingAction'];
+
+/** Liste des projets affectés affichée sous une modification (rien pour une note ciblée). */
+function buildUpdateListData(pendingAction: PendingAction, isSpecificProjectNote: boolean) {
+  if (isSpecificProjectNote) return undefined;
+  return {
+    projects: pendingAction.affectedProjects,
+    type: 'update' as const,
+    fieldsToShow: pendingAction.fieldsToShow,
+  };
+}
+
+type GeneralRouteResult = Extract<
+  Awaited<ReturnType<typeof routeProjectCommandClient>>,
+  { type: 'general' }
+>;
+
+/** Réponse générale : confirmation de scope manquant, ou réponse Groq conversationnelle. */
+function applyGeneralResult(
+  result: GeneralRouteResult,
+  currentInput: string,
+  sessionId: string,
+  setMessages: Dispatch<SetStateAction<Message[]>>
+) {
+  // Vérifier si c'est une confirmation de scope manquant
+  if ('confirmationType' in result && result.confirmationType === 'scope_missing') {
+    // Confirmation de scope manquant : afficher warning avec mutation proposée
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: 'assistant',
+        content: result.response,
+        timestamp: new Date(),
+        scopeConfirmation: {
+          proposedMutation: result.proposedMutation as UpdateData,
+          totalProjectsCount: result.totalProjectsCount,
+        },
+        // Note: requestId peut être stocké dans un champ séparé si nécessaire
+      },
+    ]);
+    return;
+  }
+
+  // Question généraliste (Groq)
+  // 🔒 Tracker dans ConversationMemory (chat uniquement)
+  trackChatMessage(sessionId, 'user', currentInput);
+  trackChatMessage(sessionId, 'assistant', result.response);
+  debugMemoryState(sessionId);
+
+  setMessages((prev) => [
+    ...prev,
+    {
+      role: 'assistant',
+      content: result.response,
+      timestamp: new Date(),
+    },
+  ]);
 }
 
 export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssistantChatReturn {
@@ -165,22 +280,17 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
         });
 
         // Logs avant appel routeur (debug)
-        debugLog('hook', `[${requestId}] 📤 Avant appel routeur`, {
-          requestId,
-          message: currentInput.substring(0, 100),
-          projectsCount: localProjectsRef.current.length,
-          lastListedProjectIdsCount: lastListedProjectIdsRef.current?.length || 0,
-          lastAppliedFilter: lastAppliedFilterRef.current,
-          contextPassed: {
-            lastListedProjectIds: lastListedProjectIdsRef.current?.slice(0, 5) || [], // Afficher seulement les 5 premiers
-            lastAppliedFilterSummary: lastAppliedFilterRef.current
-              ? Object.keys(lastAppliedFilterRef.current).filter(
-                  (k) =>
-                    lastAppliedFilterRef.current?.[k as keyof typeof lastAppliedFilterRef.current]
-                )
-              : [],
-          },
-        });
+        debugLog(
+          'hook',
+          `[${requestId}] 📤 Avant appel routeur`,
+          buildRouterDebugPayload(
+            requestId,
+            currentInput,
+            localProjectsRef.current,
+            lastListedProjectIdsRef.current,
+            lastAppliedFilterRef.current
+          )
+        );
 
         const { routeProjectCommandClient } = await import('@/lib/assistant/router/client-router');
         const result = await routeProjectCommandClient(currentInput, localProjectsRef.current, {
@@ -225,17 +335,7 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
           ]);
         } else if (result.type === 'create') {
           // Création : appeler l'API serveur pour persister
-          const createData = result.createData || {
-            name: result.project.name,
-            status: result.project.status,
-            progress: result.project.progress,
-            collab: result.project.collab,
-            style: result.project.style,
-            deadline:
-              result.project.deadline && typeof result.project.deadline !== 'string'
-                ? (result.project.deadline as Date).toISOString().split('T')[0]
-                : (result.project.deadline as string | null | undefined),
-          };
+          const createData = result.createData || buildCreateDataFromProject(result.project);
 
           const createPayload = {
             name: createData.name,
@@ -301,7 +401,7 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
           trackActionContext(
             sessionIdRef.current,
             result.type === 'add_note' ? 'NOTE' : 'UPDATE',
-            result.pendingAction.affectedProjectIds || []
+            result.pendingAction.affectedProjectIds ?? []
           );
           debugMemoryState(sessionIdRef.current);
 
@@ -313,13 +413,7 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
               content: result.message,
               timestamp: new Date(),
               // Afficher les projets affectés comme un listing (sauf pour note spécifique)
-              data: isSpecificProjectNote
-                ? undefined
-                : {
-                    projects: result.pendingAction.affectedProjects,
-                    type: 'update',
-                    fieldsToShow: result.pendingAction.fieldsToShow,
-                  },
+              data: buildUpdateListData(result.pendingAction, isSpecificProjectNote),
               updateConfirmation: {
                 filters: result.pendingAction.filters,
                 updateData: mutation,
@@ -335,38 +429,7 @@ export function useAssistantChat({ projects }: UseAssistantChatOptions): UseAssi
             },
           ]);
         } else if (result.type === 'general') {
-          // Vérifier si c'est une confirmation de scope manquant
-          if ('confirmationType' in result && result.confirmationType === 'scope_missing') {
-            // Confirmation de scope manquant : afficher warning avec mutation proposée
-            setMessages((prev) => [
-              ...prev,
-              {
-                role: 'assistant',
-                content: result.response,
-                timestamp: new Date(),
-                scopeConfirmation: {
-                  proposedMutation: result.proposedMutation as UpdateData,
-                  totalProjectsCount: result.totalProjectsCount,
-                },
-                // Note: requestId peut être stocké dans un champ séparé si nécessaire
-              },
-            ]);
-          } else {
-            // Question généraliste (Groq)
-            // 🔒 Tracker dans ConversationMemory (chat uniquement)
-            trackChatMessage(sessionIdRef.current, 'user', currentInput);
-            trackChatMessage(sessionIdRef.current, 'assistant', result.response);
-            debugMemoryState(sessionIdRef.current);
-
-            setMessages((prev) => [
-              ...prev,
-              {
-                role: 'assistant',
-                content: result.response,
-                timestamp: new Date(),
-              },
-            ]);
-          }
+          applyGeneralResult(result, currentInput, sessionIdRef.current, setMessages);
         }
       } catch (err) {
         setMessages((prev) => [

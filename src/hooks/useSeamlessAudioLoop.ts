@@ -11,6 +11,17 @@ declare global {
 }
 
 // Generate smooth S-curve (sigmoid) crossfade for transparent transitions
+/** Arrête et déconnecte une source audio ; les erreurs (source déjà arrêtée) sont ignorées. */
+function disposeAudioSource(node: AudioSource): void {
+  try {
+    node.source.stop();
+    node.source.disconnect();
+    node.gain.disconnect();
+  } catch (e) {
+    // Ignore already stopped
+  }
+}
+
 function generateCrossfadeCurves(steps: number): {
   fadeIn: Float32Array;
   fadeOut: Float32Array;
@@ -445,6 +456,15 @@ export function useSeamlessAudioLoop({
     isSchedulingRef.current = false;
   }, []);
 
+  // Position normalisée (0-1) dans la boucle du fichier en cours
+  const getLoopPosition = (now: number): number => {
+    if (!currentSourceRef.current || !currentFileRef.current) return 0;
+    const currentBuffer = buffersRef.current.get(currentFileRef.current);
+    if (!currentBuffer || currentBuffer.duration <= 0) return 0;
+    const elapsed = now - currentSourceRef.current.startTime;
+    return (elapsed % currentBuffer.duration) / currentBuffer.duration;
+  };
+
   // Switch to a different file while maintaining playback
   const switchTo = useCallback(
     async (file: string) => {
@@ -472,14 +492,7 @@ export function useSeamlessAudioLoop({
         const switchDuration = crossfadeDuration;
 
         // Calculate current position in the loop (normalized 0-1)
-        let currentPosition = 0;
-        if (currentSourceRef.current && currentFileRef.current) {
-          const currentBuffer = buffersRef.current.get(currentFileRef.current);
-          if (currentBuffer && currentBuffer.duration > 0) {
-            const elapsed = now - currentSourceRef.current.startTime;
-            currentPosition = (elapsed % currentBuffer.duration) / currentBuffer.duration;
-          }
-        }
+        const currentPosition = getLoopPosition(now);
 
         // Create new source at the same relative position
         const startOffset = currentPosition * buffer.duration;
@@ -501,25 +514,13 @@ export function useSeamlessAudioLoop({
 
           const oldSource = currentSourceRef.current;
           setTimeout(() => {
-            try {
-              oldSource.source.stop();
-              oldSource.source.disconnect();
-              oldSource.gain.disconnect();
-            } catch (e) {
-              // Ignore already stopped
-            }
+            disposeAudioSource(oldSource);
           }, switchDuration * 1000);
         }
 
         // Cancel any scheduled next source
         if (nextSourceRef.current) {
-          try {
-            nextSourceRef.current.source.stop();
-            nextSourceRef.current.source.disconnect();
-            nextSourceRef.current.gain.disconnect();
-          } catch (e) {
-            // Ignore
-          }
+          disposeAudioSource(nextSourceRef.current);
           nextSourceRef.current = null;
         }
 

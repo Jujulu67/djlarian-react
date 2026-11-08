@@ -8,6 +8,18 @@ import { useUiVersion } from '@/hooks/useUiVersion';
 import { MusicHeader } from './MusicHeader';
 import { StatePanel } from './StatePanel';
 
+function getEmptyDescriptionV2(searchTerm: string, typeLabel: string | undefined): string {
+  if (searchTerm) return `Aucun résultat pour « ${searchTerm} ».`;
+  if (typeLabel) return `Aucun morceau dans « ${typeLabel} » pour le moment.`;
+  return 'Aucun morceau disponible pour le moment.';
+}
+
+function getEmptyDescriptionLegacy(searchTerm: string, typeLabel: string | undefined): string {
+  if (searchTerm) return `Aucun résultat ne correspond à "${searchTerm}"`;
+  if (!typeLabel) return 'Aucun morceau disponible pour le moment';
+  return `Aucun morceau de type "${typeLabel}"`;
+}
+
 /** Conteneur de page : dégradé legacy, transparent en v2 (fond ambiant visible) */
 export const MUSIC_PAGE_CLASS =
   'min-h-[calc(100vh-4rem)] bg-gradient-to-b from-gray-900 to-black p-8 pt-28 pb-20 v2:bg-none v2:bg-transparent v2:px-4 v2:pb-24 v2:pt-28 sm:v2:px-6 md:v2:pt-36';
@@ -134,13 +146,7 @@ export function MusicEmptyState({
       <StatePanel
         icon={Music}
         title="Aucun morceau trouvé"
-        description={
-          searchTerm
-            ? `Aucun résultat pour « ${searchTerm} ».`
-            : typeLabel
-              ? `Aucun morceau dans « ${typeLabel} » pour le moment.`
-              : 'Aucun morceau disponible pour le moment.'
-        }
+        description={getEmptyDescriptionV2(searchTerm, typeLabel)}
         action={
           searchTerm ? (
             <Button variant="outline" onClick={onClearSearch}>
@@ -159,11 +165,7 @@ export function MusicEmptyState({
       </div>
       <h2 className="text-2xl font-bold text-white mb-3">Aucun morceau trouvé</h2>
       <p className="text-gray-400 mb-6 max-w-md mx-auto">
-        {searchTerm
-          ? `Aucun résultat ne correspond à "${searchTerm}"`
-          : !typeLabel
-            ? 'Aucun morceau disponible pour le moment'
-            : `Aucun morceau de type "${typeLabel}"`}
+        {getEmptyDescriptionLegacy(searchTerm, typeLabel)}
       </p>
       {searchTerm && (
         <button

@@ -146,19 +146,13 @@ export class GroqPayloadBuilder {
    * Construit le payload Groq depuis ConversationMemoryStore.
    * INVARIANT I1: N'accepte QUE des ChatMessage (kind='chat')
    */
-  build(store: ConversationMemoryStore, currentUserMessage?: string): GroqPayload {
-    const messages: GroqMessage[] = [];
-
-    // System prompt (toujours en premier)
-    messages.push({ role: 'system', content: this.options.systemPrompt });
-
-    // Messages validés depuis le store
-    let totalTokens = this.estimateTokens(this.options.systemPrompt);
-
-    const storeMessages = store.getMessages();
+  /**
+   * Filtre les messages du store : seuls les ChatMessage valides (I1) et non pollués sont gardés
+   */
+  private collectValidMessages(store: ConversationMemoryStore): GroqMessage[] {
     const validMessages: GroqMessage[] = [];
 
-    for (const msg of storeMessages) {
+    for (const msg of store.getMessages()) {
       // INVARIANT I1: Vérification stricte kind='chat'
       if (!isChatMessage(msg)) {
         this.logViolation(`Non-chat message rejected: kind=${(msg as { kind?: string }).kind}`);
@@ -177,25 +171,66 @@ export class GroqPayloadBuilder {
       });
     }
 
+    return validMessages;
+  }
+
+  /**
+   * Retire les plus anciens messages tant que le budget est dépassé (garde au moins 2 messages)
+   */
+  private trimToBudget(
+    validMessages: GroqMessage[],
+    totalTokens: number
+  ): { messages: GroqMessage[]; totalTokens: number } {
+    let messagesToInclude = [...validMessages];
+    let currentTotal = totalTokens;
+
+    while (currentTotal > this.tokenBudget.productSoftLimit && messagesToInclude.length > 2) {
+      const removed = messagesToInclude.shift();
+      if (removed) {
+        currentTotal -= this.estimateTokens(removed.content);
+        this.log(
+          `TRIMMED: oldest message removed (budget: ${currentTotal}/${this.tokenBudget.productSoftLimit})`
+        );
+      }
+    }
+
+    return { messages: messagesToInclude, totalTokens: currentTotal };
+  }
+
+  private logBuiltPayload(messages: GroqMessage[], totalTokens: number): void {
+    logger.debug('[GroqPayloadBuilder] Payload built:', {
+      messageCount: messages.length,
+      estimatedTokens: totalTokens,
+      modelId: this.options.model,
+      messagesPreview: messages.slice(-3).map((m) => ({
+        role: m.role,
+        contentLength: m.content.length,
+        preview: m.content.substring(0, 30) + '...',
+      })),
+    });
+  }
+
+  build(store: ConversationMemoryStore, currentUserMessage?: string): GroqPayload {
+    const messages: GroqMessage[] = [];
+
+    // System prompt (toujours en premier)
+    messages.push({ role: 'system', content: this.options.systemPrompt });
+
+    // Messages validés depuis le store
+    let totalTokens = this.estimateTokens(this.options.systemPrompt);
+
+    const validMessages = this.collectValidMessages(store);
+
     // Calculer tokens totaux
     for (const msg of validMessages) {
       totalTokens += this.estimateTokens(msg.content);
     }
 
     // Trimming FIFO si dépassement du productSoftLimit (O4: seule source de vérité)
-    let messagesToInclude = [...validMessages];
+    const trimmed = this.trimToBudget(validMessages, totalTokens);
+    totalTokens = trimmed.totalTokens;
 
-    while (totalTokens > this.tokenBudget.productSoftLimit && messagesToInclude.length > 2) {
-      const removed = messagesToInclude.shift();
-      if (removed) {
-        totalTokens -= this.estimateTokens(removed.content);
-        this.log(
-          `TRIMMED: oldest message removed (budget: ${totalTokens}/${this.tokenBudget.productSoftLimit})`
-        );
-      }
-    }
-
-    messages.push(...messagesToInclude);
+    messages.push(...trimmed.messages);
 
     // Message utilisateur courant
     if (currentUserMessage?.trim()) {
@@ -209,16 +244,7 @@ export class GroqPayloadBuilder {
 
     // Log debug sanitisé
     if (this.debug) {
-      logger.debug('[GroqPayloadBuilder] Payload built:', {
-        messageCount: messages.length,
-        estimatedTokens: totalTokens,
-        modelId: this.options.model,
-        messagesPreview: messages.slice(-3).map((m) => ({
-          role: m.role,
-          contentLength: m.content.length,
-          preview: m.content.substring(0, 30) + '...',
-        })),
-      });
+      this.logBuiltPayload(messages, totalTokens);
     }
 
     // O6: Cap max_completion_tokens selon les limites du modèle

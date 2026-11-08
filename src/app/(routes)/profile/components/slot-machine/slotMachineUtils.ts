@@ -12,6 +12,17 @@ export function isNearMiss(symbols: SymbolType[]): boolean {
 }
 
 /** Win tier used for the visual intensity of a winning spin. */
+/** Intensité visuelle du gain, de la plus forte à la plus faible */
+function resolveWinIntensity(
+  isJackpot: boolean,
+  isBigWin: boolean,
+  isMediumWin: boolean
+): WinIntensity {
+  if (isJackpot) return 'jackpot';
+  if (isBigWin) return 'high';
+  return isMediumWin ? 'medium' : 'low';
+}
+
 export function getWinTier(result: Pick<SpinResult, 'rewardType' | 'rewardAmount'>): {
   isJackpot: boolean;
   isBigWin: boolean;
@@ -22,13 +33,7 @@ export function getWinTier(result: Pick<SpinResult, 'rewardType' | 'rewardAmount
   const isBigWin = result.rewardAmount >= 50 || isJackpot;
   const isMediumWin = result.rewardAmount >= 15;
 
-  const intensity: WinIntensity = isJackpot
-    ? 'jackpot'
-    : isBigWin
-      ? 'high'
-      : isMediumWin
-        ? 'medium'
-        : 'low';
+  const intensity = resolveWinIntensity(isJackpot, isBigWin, isMediumWin);
 
   return { isJackpot, isBigWin, isMediumWin, intensity };
 }

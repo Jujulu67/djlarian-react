@@ -22,6 +22,132 @@ const insufficientTokens = (tokens: number, totalCost: number) =>
     { status: 400 }
   );
 
+type SpinReward = ReturnType<typeof determineReward>;
+
+/** Bonus de jetons pour les gains spéciaux, ajouté au message du spin. */
+function applySpecialRewardBonus(reward: SpinReward): number {
+  if (reward.rewardType === RewardType.QUEUE_SKIP) {
+    reward.message += ` (+${100} jetons)`;
+    return 100;
+  }
+  if (reward.rewardType === RewardType.ETERNAL_TICKET) {
+    reward.message += ` (+${50} jetons)`;
+    return 50;
+  }
+  return 0;
+}
+
+/** Simule tous les spins du lot et agrège les gains. */
+function simulateSpinBatch(count: number, useBooster: boolean) {
+  let totalTokensWon = 0;
+  let totalWins = 0;
+  let queueSkips = 0;
+  let eternalTickets = 0;
+  const results: SpinResult[] = [];
+
+  // Pour l'affichage final (dernier spin)
+  const lastSpinSymbols: [SymbolType, SymbolType, SymbolType] = [
+    getRandomSymbol(useBooster),
+    getRandomSymbol(useBooster),
+    getRandomSymbol(useBooster),
+  ];
+  let lastReward: {
+    rewardType: RewardType | null;
+    rewardAmount: number;
+    isWin: boolean;
+    message: string;
+  } | null = null;
+
+  for (let i = 0; i < count; i++) {
+    const symbols: [SymbolType, SymbolType, SymbolType] = [
+      getRandomSymbol(useBooster),
+      getRandomSymbol(useBooster),
+      getRandomSymbol(useBooster),
+    ];
+    const reward = determineReward(symbols);
+    const tokenBonus = applySpecialRewardBonus(reward);
+
+    // Stocker le résultat individuel
+    results.push({
+      symbols,
+      rewardType: reward.rewardType,
+      rewardAmount: reward.rewardAmount,
+      isWin: reward.isWin,
+      message: reward.message,
+    });
+
+    if (i === count - 1) {
+      // Garder le dernier spin pour l'affichage principal
+      lastSpinSymbols[0] = symbols[0];
+      lastSpinSymbols[1] = symbols[1];
+      lastSpinSymbols[2] = symbols[2];
+      lastReward = reward;
+    }
+
+    if (reward.isWin) {
+      totalWins++;
+      if (reward.rewardType === RewardType.QUEUE_SKIP) {
+        queueSkips++;
+        totalTokensWon += tokenBonus;
+      } else if (reward.rewardType === RewardType.ETERNAL_TICKET) {
+        eternalTickets++;
+        totalTokensWon += tokenBonus;
+      } else if (reward.rewardType === RewardType.TOKENS) {
+        // Jetons classiques : pas de bonus
+        totalTokensWon += reward.rewardAmount;
+      }
+    }
+  }
+
+  return {
+    results,
+    lastSpinSymbols,
+    lastReward,
+    totalTokensWon,
+    totalWins,
+    queueSkips,
+    eternalTickets,
+  };
+}
+
+/** Lignes du récapitulatif pour les gains du lot. */
+function buildGainLines(queueSkips: number, eternalTickets: number, totalTokensWon: number) {
+  const messageParts: string[] = [];
+  if (queueSkips > 0) {
+    messageParts.push(`🎁 ${queueSkips} Queue Skip${queueSkips > 1 ? 's' : ''}`);
+  }
+  if (eternalTickets > 0) {
+    messageParts.push(
+      `🎫 ${eternalTickets} Ticket${eternalTickets > 1 ? 's' : ''} Éternel${eternalTickets > 1 ? 's' : ''}`
+    );
+  }
+  if (totalTokensWon > 0) {
+    messageParts.push(`💰 ${totalTokensWon} jeton${totalTokensWon > 1 ? 's' : ''}`);
+  }
+  return messageParts;
+}
+
+/** Message récapitulatif affiché après le lot. */
+function buildBatchMessage(
+  count: number,
+  totalWins: number,
+  queueSkips: number,
+  eternalTickets: number,
+  totalTokensWon: number
+): string {
+  const messageParts = buildGainLines(queueSkips, eternalTickets, totalTokensWon);
+
+  let message = `🎰 ${count} spins : ${totalWins} victoires !`;
+  if (messageParts.length > 0) {
+    message += `\n${messageParts.join('\n')}`;
+  }
+
+  if (queueSkips === 0 && eternalTickets === 0 && totalTokensWon === 0) {
+    message += '\n😔 Aucun gain cette fois...';
+  }
+  return message;
+}
+
 /**
  * POST /api/slot-machine/spin-batch
  * Calcule plusieurs spins en une fois et retourne le résultat agrégé. Le débit des jetons,
@@ -60,77 +186,16 @@ export async function POST(request: NextRequest) {
     const winRate = userTokens.totalSpins > 10 ? userTokens.totalWins / userTokens.totalSpins : 1;
     const useBooster = winRate < 0.45;
 
-    // Simuler tous les spins
-    let totalTokensWon = 0;
-    let totalWins = 0;
-    let queueSkips = 0;
-    let eternalTickets = 0;
-    const results: SpinResult[] = [];
-
-    // Pour l'affichage final (dernier spin)
-    const lastSpinSymbols: [SymbolType, SymbolType, SymbolType] = [
-      getRandomSymbol(useBooster),
-      getRandomSymbol(useBooster),
-      getRandomSymbol(useBooster),
-    ];
-    let lastReward: {
-      rewardType: RewardType | null;
-      rewardAmount: number;
-      isWin: boolean;
-      message: string;
-    } | null = null;
-
-    for (let i = 0; i < count; i++) {
-      const symbols: [SymbolType, SymbolType, SymbolType] = [
-        getRandomSymbol(useBooster),
-        getRandomSymbol(useBooster),
-        getRandomSymbol(useBooster),
-      ];
-      const reward = determineReward(symbols);
-
-      // --- SPECIAL REWARD BONUS ---
-      // User request: "sousous avec les big wins"
-      let tokenBonus = 0;
-      if (reward.rewardType === RewardType.QUEUE_SKIP) {
-        tokenBonus = 100;
-        reward.message += ` (+${tokenBonus} jetons)`;
-      } else if (reward.rewardType === RewardType.ETERNAL_TICKET) {
-        tokenBonus = 50;
-        reward.message += ` (+${tokenBonus} jetons)`;
-      }
-
-      // Stocker le résultat individuel
-      results.push({
-        symbols,
-        rewardType: reward.rewardType,
-        rewardAmount: reward.rewardAmount,
-        isWin: reward.isWin,
-        message: reward.message,
-      });
-
-      if (i === count - 1) {
-        // Garder le dernier spin pour l'affichage principal
-        lastSpinSymbols[0] = symbols[0];
-        lastSpinSymbols[1] = symbols[1];
-        lastSpinSymbols[2] = symbols[2];
-        lastReward = reward;
-      }
-
-      if (reward.isWin) {
-        totalWins++;
-        if (reward.rewardType === RewardType.QUEUE_SKIP) {
-          queueSkips++;
-          totalTokensWon += tokenBonus; // Add bonus tokens to total
-        } else if (reward.rewardType === RewardType.ETERNAL_TICKET) {
-          eternalTickets++;
-          totalTokensWon += tokenBonus; // Add bonus tokens to total
-        } else if (reward.rewardType === RewardType.TOKENS) {
-          totalTokensWon += reward.rewardAmount; // include bonus? No, regular amount + 0 bonus
-          // Wait, logic above says tokensWon = amount + bonus.
-          // For regular tokens, bonus is 0.
-        }
-      }
-    }
+    const batch = simulateSpinBatch(count, useBooster);
+    const {
+      totalTokensWon,
+      totalWins,
+      queueSkips,
+      eternalTickets,
+      results,
+      lastSpinSymbols,
+      lastReward,
+    } = batch;
 
     const applied = await applySpinOutcome(userId, {
       cost: totalCost,
@@ -144,28 +209,7 @@ export async function POST(request: NextRequest) {
       return insufficientTokens(userTokens.tokens, totalCost);
     }
 
-    // Construire le message récapitulatif
-    const messageParts = [];
-    if (queueSkips > 0) {
-      messageParts.push(`🎁 ${queueSkips} Queue Skip${queueSkips > 1 ? 's' : ''}`);
-    }
-    if (eternalTickets > 0) {
-      messageParts.push(
-        `🎫 ${eternalTickets} Ticket${eternalTickets > 1 ? 's' : ''} Éternel${eternalTickets > 1 ? 's' : ''}`
-      );
-    }
-    if (totalTokensWon > 0) {
-      messageParts.push(`💰 ${totalTokensWon} jeton${totalTokensWon > 1 ? 's' : ''}`);
-    }
-
-    let message = `🎰 ${count} spins : ${totalWins} victoires !`;
-    if (messageParts.length > 0) {
-      message += `\n${messageParts.join('\n')}`;
-    }
-
-    if (queueSkips === 0 && eternalTickets === 0 && totalTokensWon === 0) {
-      message += '\n😔 Aucun gain cette fois...';
-    }
+    const message = buildBatchMessage(count, totalWins, queueSkips, eternalTickets, totalTokensWon);
 
     // Calculer les stats pour le résumé
     const netProfit = totalTokensWon - totalCost;

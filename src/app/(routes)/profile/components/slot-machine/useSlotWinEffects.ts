@@ -10,6 +10,111 @@ interface UseSlotWinEffectsParams {
   playJackpotSound: () => void;
 }
 
+type BoolSetter = (value: boolean) => void;
+type Schedule = (fn: () => void, ms: number) => unknown;
+
+/** Trois cerises alignées : déclenche le bonus */
+function isCherryTriple(symbols: SpinResult['symbols']) {
+  return (
+    symbols?.[0] === SymbolType.CHERRY &&
+    symbols[1] === SymbolType.CHERRY &&
+    symbols[2] === SymbolType.CHERRY
+  );
+}
+
+interface WinStreakTargets {
+  schedule: Schedule;
+  setLuckyIntro: BoolSetter;
+  setWasHotStreak: BoolSetter;
+  setIsHotStreak: BoolSetter;
+}
+
+/** Avance la série de victoires ; l'intro « lucky » se déclenche au début d'une série chaude */
+function advanceWinStreak(prev: number, wasHotStreak: boolean, targets: WinStreakTargets) {
+  const newStreak = prev + 1;
+  const nowHotStreak = newStreak >= 2;
+
+  // Detect hot streak START
+  if (nowHotStreak && !wasHotStreak) {
+    targets.setLuckyIntro(true);
+    targets.schedule(() => targets.setLuckyIntro(false), 1500);
+  }
+  targets.setWasHotStreak(nowHotStreak);
+  targets.setIsHotStreak(nowHotStreak);
+  return newStreak;
+}
+
+interface TierVisualTargets {
+  schedule: Schedule;
+  setConfetti: BoolSetter;
+  setCoinsRain: BoolSetter;
+  setWinAnimation: BoolSetter;
+}
+
+/** Effets visuels du palier de gain, coupés après un délai */
+function triggerTierVisuals(
+  { isJackpot, isBigWin, isMediumWin }: ReturnType<typeof getWinTier>,
+  targets: TierVisualTargets
+) {
+  const { schedule, setConfetti, setCoinsRain, setWinAnimation } = targets;
+  if (isJackpot) {
+    setConfetti(true);
+    setCoinsRain(true);
+    setWinAnimation(true);
+    schedule(() => {
+      setConfetti(false);
+      setCoinsRain(false);
+      setWinAnimation(false);
+    }, 4000);
+  } else if (isBigWin) {
+    setConfetti(true);
+    setWinAnimation(true);
+    schedule(() => {
+      setConfetti(false);
+      setWinAnimation(false);
+    }, 3000);
+  } else if (isMediumWin) {
+    setCoinsRain(true);
+    schedule(() => setCoinsRain(false), 2000);
+  }
+}
+
+interface LossTargets {
+  schedule: Schedule;
+  setNearMiss: BoolSetter;
+  setWinStreak: (value: number) => void;
+  setIsHotStreak: BoolSetter;
+  setWasHotStreak: BoolSetter;
+  setWinIntensity: (value: 'low') => void;
+}
+
+/** Perte : near-miss éventuel, puis reset de la série */
+function applyLoss(lastResult: SpinResult, targets: LossTargets) {
+  // Loss - check for near-miss
+  if (lastResult.symbols && isNearMiss(lastResult.symbols)) {
+    targets.setNearMiss(true);
+    targets.schedule(() => targets.setNearMiss(false), 600);
+  }
+
+  // Reset streak
+  targets.setWinStreak(0);
+  targets.setIsHotStreak(false);
+  targets.setWasHotStreak(false);
+  targets.setWinIntensity('low');
+}
+
+/** Multiplicateur affiché pour un gain en jetons */
+function triggerMultiplier(
+  lastResult: SpinResult,
+  targets: { schedule: Schedule; setAmount: (value: number) => void; setShow: BoolSetter }
+) {
+  if (lastResult.rewardAmount > 0 && lastResult.rewardType === 'TOKENS') {
+    targets.setAmount(lastResult.rewardAmount);
+    targets.setShow(true);
+    targets.schedule(() => targets.setShow(false), 2000);
+  }
+}
+
 export function useSlotWinEffects({
   lastResult,
   isSpinning,
@@ -75,80 +180,54 @@ export function useSlotWinEffects({
         scheduleEffectTimeout(() => setShowScreenFlash(false), 300);
 
         // Update streak using functional update to avoid dependency
-        setWinStreak((prev) => {
-          const newStreak = prev + 1;
-          const nowHotStreak = newStreak >= 2;
-
-          // Detect hot streak START
-          if (nowHotStreak && !wasHotStreak) {
-            setShowLuckyIntro(true);
-            scheduleEffectTimeout(() => setShowLuckyIntro(false), 1500);
-          }
-          setWasHotStreak(nowHotStreak);
-          setIsHotStreak(nowHotStreak);
-          return newStreak;
-        });
+        setWinStreak((prev) =>
+          advanceWinStreak(prev, wasHotStreak, {
+            schedule: scheduleEffectTimeout,
+            setLuckyIntro: setShowLuckyIntro,
+            setWasHotStreak,
+            setIsHotStreak,
+          })
+        );
 
         // Determine win intensity
-        const { isJackpot, isBigWin, isMediumWin, intensity } = getWinTier(lastResult);
-        setWinIntensity(intensity);
+        const tier = getWinTier(lastResult);
+        setWinIntensity(tier.intensity);
 
         // Show multiplier popup
-        if (lastResult.rewardAmount > 0 && lastResult.rewardType === 'TOKENS') {
-          setMultiplierAmount(lastResult.rewardAmount);
-          setShowMultiplier(true);
-          scheduleEffectTimeout(() => setShowMultiplier(false), 2000);
-        }
+        triggerMultiplier(lastResult, {
+          schedule: scheduleEffectTimeout,
+          setAmount: setMultiplierAmount,
+          setShow: setShowMultiplier,
+        });
 
         // Sound effects
-        if (isBigWin || isJackpot) {
+        if (tier.isBigWin || tier.isJackpot) {
           playJackpotSound();
         } else {
           playWinSound();
         }
 
         // Trigger BONUS GAME on triple cherry (rare special event)
-        if (
-          lastResult.symbols?.[0] === SymbolType.CHERRY &&
-          lastResult.symbols[1] === SymbolType.CHERRY &&
-          lastResult.symbols[2] === SymbolType.CHERRY
-        ) {
+        if (isCherryTriple(lastResult.symbols)) {
           scheduleEffectTimeout(() => setShowBonusGame(true), 1000);
         }
 
         // Visual effects based on intensity
-        if (isJackpot) {
-          setShowConfetti(true);
-          setShowCoinsRain(true);
-          setShowWinAnimation(true);
-          scheduleEffectTimeout(() => {
-            setShowConfetti(false);
-            setShowCoinsRain(false);
-            setShowWinAnimation(false);
-          }, 4000);
-        } else if (isBigWin) {
-          setShowConfetti(true);
-          setShowWinAnimation(true);
-          scheduleEffectTimeout(() => {
-            setShowConfetti(false);
-            setShowWinAnimation(false);
-          }, 3000);
-        } else if (isMediumWin) {
-          setShowCoinsRain(true);
-          scheduleEffectTimeout(() => setShowCoinsRain(false), 2000);
-        }
+        triggerTierVisuals(tier, {
+          schedule: scheduleEffectTimeout,
+          setConfetti: setShowConfetti,
+          setCoinsRain: setShowCoinsRain,
+          setWinAnimation: setShowWinAnimation,
+        });
       } else {
-        // Loss - check for near-miss
-        if (lastResult.symbols && isNearMiss(lastResult.symbols)) {
-          setShowNearMiss(true);
-          scheduleEffectTimeout(() => setShowNearMiss(false), 600);
-        }
-
-        // Reset streak
-        setWinStreak(0);
-        setIsHotStreak(false);
-        setWasHotStreak(false);
-        setWinIntensity('low');
+        applyLoss(lastResult, {
+          schedule: scheduleEffectTimeout,
+          setNearMiss: setShowNearMiss,
+          setWinStreak,
+          setIsHotStreak,
+          setWasHotStreak,
+          setWinIntensity,
+        });
       }
     }
   }, [lastResult, isSpinning, playWinSound, playJackpotSound, scheduleEffectTimeout, wasHotStreak]);

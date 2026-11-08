@@ -5,6 +5,16 @@ import { createSuccessResponse, createUnauthorizedResponse } from '@/lib/api/res
 import prisma from '@/lib/prisma';
 import { requireAuth } from '@/lib/api/requireAuth';
 
+/** Date sérialisée en ISO si c'est un objet Date ; la valeur est renvoyée telle quelle sinon. */
+function toIsoString<T>(value: T): T | string {
+  return value instanceof Date ? value.toISOString() : value;
+}
+
+/** Comme toIsoString, mais une valeur absente (null/undefined) donne null. */
+function toNullableIsoString<T>(value: T): string | T | null {
+  return value ? toIsoString(value) : null;
+}
+
 export type NotificationType =
   | 'MILESTONE'
   | 'ADMIN_MESSAGE'
@@ -188,18 +198,9 @@ export async function GET(request: NextRequest) {
             metadata: reply.metadata,
             isRead: Boolean(reply.isRead),
             isArchived: Boolean(reply.isArchived ?? false),
-            deletedAt: reply.deletedAt
-              ? reply.deletedAt instanceof Date
-                ? reply.deletedAt.toISOString()
-                : reply.deletedAt
-              : null,
-            createdAt:
-              reply.createdAt instanceof Date ? reply.createdAt.toISOString() : reply.createdAt,
-            readAt: reply.readAt
-              ? reply.readAt instanceof Date
-                ? reply.readAt.toISOString()
-                : reply.readAt
-              : null,
+            deletedAt: toNullableIsoString(reply.deletedAt),
+            createdAt: toIsoString(reply.createdAt),
+            readAt: toNullableIsoString(reply.readAt),
             projectId: reply.projectId,
             parentId: reply.parentId,
             threadId: reply.threadId,
@@ -215,18 +216,9 @@ export async function GET(request: NextRequest) {
         metadata: notif.metadata,
         isRead: Boolean(notif.isRead),
         isArchived: Boolean(notif.isArchived ?? false),
-        deletedAt: notif.deletedAt
-          ? notif.deletedAt instanceof Date
-            ? notif.deletedAt.toISOString()
-            : notif.deletedAt
-          : null,
-        createdAt:
-          notif.createdAt instanceof Date ? notif.createdAt.toISOString() : notif.createdAt,
-        readAt: notif.readAt
-          ? notif.readAt instanceof Date
-            ? notif.readAt.toISOString()
-            : notif.readAt
-          : null,
+        deletedAt: toNullableIsoString(notif.deletedAt),
+        createdAt: toIsoString(notif.createdAt),
+        readAt: toNullableIsoString(notif.readAt),
         projectId: notif.projectId,
         parentId: notif.parentId,
         threadId: notif.threadId,
@@ -235,11 +227,7 @@ export async function GET(request: NextRequest) {
           ? {
               id: notif.Project.id,
               name: notif.Project.name,
-              releaseDate: notif.Project.releaseDate
-                ? notif.Project.releaseDate instanceof Date
-                  ? notif.Project.releaseDate.toISOString()
-                  : notif.Project.releaseDate
-                : null,
+              releaseDate: toNullableIsoString(notif.Project.releaseDate),
               streamsJ180: notif.Project.streamsJ180,
               streamsJ365: notif.Project.streamsJ365,
             }

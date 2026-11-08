@@ -48,6 +48,167 @@ export async function GET() {
   }
 }
 
+type SubmissionFormResult =
+  | { success: true; data: z.infer<typeof submissionSchema> }
+  | { success: false; response: NextResponse };
+
+/** Valide le titre et la description d'une soumission. */
+function parseSubmissionForm(title: string, description: string | null): SubmissionFormResult {
+  if (!title) {
+    return {
+      success: false,
+      response: NextResponse.json({ error: 'Titre requis' }, { status: 400 }),
+    };
+  }
+
+  const validationResult = submissionSchema.safeParse({
+    title,
+    description: description || undefined,
+  });
+
+  if (validationResult.success) {
+    return { success: true, data: validationResult.data };
+  }
+  return {
+    success: false,
+    response: NextResponse.json(
+      { error: 'Données invalides', details: validationResult.error.flatten() },
+      { status: 400 }
+    ),
+  };
+}
+
+/** Les soumissions sont activées par défaut, sauf réglage admin contraire. */
+async function isTrackSubmissionsEnabled(): Promise<boolean> {
+  const trackSubmissionsSetting = await prisma.adminSettings.findUnique({
+    where: { key: 'trackSubmissions' },
+  });
+
+  return trackSubmissionsSetting ? JSON.parse(trackSubmissionsSetting.value) : true;
+}
+
+/** Convertit un brouillon existant en soumission. */
+async function convertDraftToSubmission(
+  draftId: string,
+  userId: string,
+  title: string,
+  description: string | null
+): Promise<Response> {
+  const validation = parseSubmissionForm(title, description);
+  if (!validation.success) return validation.response;
+
+  const { title: validatedTitle, description: validatedDescription } = validation.data;
+
+  // Vérifier que le draft existe et appartient à l'utilisateur
+  const draft = await prisma.liveSubmission.findUnique({
+    where: { id: draftId },
+  });
+
+  if (!draft) {
+    return NextResponse.json({ error: 'Draft non trouvé' }, { status: 404 });
+  }
+
+  if (draft.userId !== userId || !draft.isDraft) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
+  }
+
+  // Convertir le draft en soumission
+  const submission = await prisma.liveSubmission.update({
+    where: { id: draftId },
+    data: {
+      title: validatedTitle,
+      description: validatedDescription || null,
+      status: LiveSubmissionStatus.PENDING,
+      isDraft: false,
+    },
+  });
+
+  logger.debug(`[Live] Draft converti en soumission: ${submission.id}`);
+
+  return createSuccessResponse(submission, 201, 'Soumission créée avec succès');
+}
+
+/** Crée une soumission à partir d'un fichier déjà uploadé vers Blob. */
+async function createSubmissionFromUploadedFile(
+  fileUrl: string,
+  fileName: string,
+  title: string,
+  description: string | null,
+  userId: string
+): Promise<Response> {
+  if (!isOwnLiveAudioUrl(fileUrl, userId)) {
+    return NextResponse.json({ error: 'URL de fichier invalide' }, { status: 400 });
+  }
+
+  const validation = parseSubmissionForm(title, description);
+  if (!validation.success) return validation.response;
+
+  const { title: validatedTitle, description: validatedDescription } = validation.data;
+
+  // Créer la soumission avec l'URL du fichier déjà uploadé
+  const submission = await prisma.liveSubmission.create({
+    data: {
+      userId,
+      fileName,
+      fileUrl,
+      title: validatedTitle,
+      description: validatedDescription || null,
+      status: LiveSubmissionStatus.PENDING,
+      isDraft: false,
+    },
+  });
+
+  logger.debug(`[Live] Soumission créée avec fichier uploadé: ${submission.id}`);
+
+  return createSuccessResponse(submission, 201, 'Soumission créée avec succès');
+}
+
+/** Upload un nouveau fichier audio (FormData) puis crée la soumission. */
+async function uploadAndCreateSubmission(
+  file: File | null,
+  title: string,
+  description: string | null,
+  userId: string
+): Promise<Response> {
+  if (!file) {
+    return NextResponse.json({ error: 'Fichier audio requis' }, { status: 400 });
+  }
+
+  // Valider le fichier
+  const fileValidation = validateAudioFile(file);
+  if (!fileValidation.valid) {
+    return NextResponse.json({ error: fileValidation.error }, { status: 400 });
+  }
+
+  const validation = parseSubmissionForm(title, description);
+  if (!validation.success) return validation.response;
+
+  const { title: validatedTitle, description: validatedDescription } = validation.data;
+
+  // Générer un ID unique pour le fichier
+  const fileId = generateAudioFileId(userId, file.name);
+
+  // Upload le fichier
+  const { url: uploadedFileUrl } = await uploadAudioFile(file, fileId, userId);
+
+  // Créer la soumission dans la base de données
+  const submission = await prisma.liveSubmission.create({
+    data: {
+      userId,
+      fileName: file.name,
+      fileUrl: uploadedFileUrl,
+      title: validatedTitle,
+      description: validatedDescription || null,
+      status: LiveSubmissionStatus.PENDING,
+      isDraft: false,
+    },
+  });
+
+  logger.debug(`[Live] Soumission créée: ${submission.id}`);
+
+  return createSuccessResponse(submission, 201, 'Soumission créée avec succès');
+}
+
 /**
  * POST /api/live/submissions
  * Soumet un fichier audio
@@ -68,15 +229,7 @@ export async function POST(request: NextRequest) {
     if (error) return error;
 
     // Vérifier si les soumissions sont activées
-    const trackSubmissionsSetting = await prisma.adminSettings.findUnique({
-      where: { key: 'trackSubmissions' },
-    });
-
-    const trackSubmissions = trackSubmissionsSetting
-      ? JSON.parse(trackSubmissionsSetting.value)
-      : true; // Par défaut activé
-
-    if (!trackSubmissions) {
+    if (!(await isTrackSubmissionsEnabled())) {
       return NextResponse.json(
         { error: 'Les soumissions sont indisponibles pour le moment' },
         { status: 503 }
@@ -109,149 +262,29 @@ export async function POST(request: NextRequest) {
       draftId = formData.get('draftId') as string | null;
     }
 
-    // Si un draftId est fourni, convertir le draft en soumission
-    if (draftId) {
-      // Valider les données
-      if (!title) {
-        return NextResponse.json({ error: 'Titre requis' }, { status: 400 });
-      }
-
-      // Valider les données du formulaire
-      const validationResult = submissionSchema.safeParse({
-        title,
-        description: description || undefined,
-      });
-
-      if (!validationResult.success) {
-        return NextResponse.json(
-          { error: 'Données invalides', details: validationResult.error.flatten() },
-          { status: 400 }
-        );
-      }
-
-      const { title: validatedTitle, description: validatedDescription } = validationResult.data;
-
-      // Vérifier que le draft existe et appartient à l'utilisateur
-      const draft = await prisma.liveSubmission.findUnique({
-        where: { id: draftId },
-      });
-
-      if (!draft) {
-        return NextResponse.json({ error: 'Draft non trouvé' }, { status: 404 });
-      }
-
-      if (draft.userId !== session.user.id || !draft.isDraft) {
-        return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
-      }
-
-      // Convertir le draft en soumission
-      const submission = await prisma.liveSubmission.update({
-        where: { id: draftId },
-        data: {
-          title: validatedTitle,
-          description: validatedDescription || null,
-          status: LiveSubmissionStatus.PENDING,
-          isDraft: false,
-        },
-      });
-
-      logger.debug(`[Live] Draft converti en soumission: ${submission.id}`);
-
-      return createSuccessResponse(submission, 201, 'Soumission créée avec succès');
-    }
-
-    // Sinon, créer une nouvelle soumission
-    // Valider les données
+    // Valider les données (commun à tous les cas)
     if (!title) {
       return NextResponse.json({ error: 'Titre requis' }, { status: 400 });
     }
 
+    // Si un draftId est fourni, convertir le draft en soumission
+    if (draftId) {
+      return await convertDraftToSubmission(draftId, session.user.id, title, description);
+    }
+
     // Si fileUrl est fourni, le fichier est déjà uploadé vers Blob
     if (fileUrl && fileName) {
-      if (!isOwnLiveAudioUrl(fileUrl, session.user.id)) {
-        return NextResponse.json({ error: 'URL de fichier invalide' }, { status: 400 });
-      }
-      // Valider les données du formulaire
-      const validationResult = submissionSchema.safeParse({
+      return await createSubmissionFromUploadedFile(
+        fileUrl,
+        fileName,
         title,
-        description: description || undefined,
-      });
-
-      if (!validationResult.success) {
-        return NextResponse.json(
-          { error: 'Données invalides', details: validationResult.error.flatten() },
-          { status: 400 }
-        );
-      }
-
-      const { title: validatedTitle, description: validatedDescription } = validationResult.data;
-
-      // Créer la soumission avec l'URL du fichier déjà uploadé
-      const submission = await prisma.liveSubmission.create({
-        data: {
-          userId: session.user.id,
-          fileName,
-          fileUrl,
-          title: validatedTitle,
-          description: validatedDescription || null,
-          status: LiveSubmissionStatus.PENDING,
-          isDraft: false,
-        },
-      });
-
-      logger.debug(`[Live] Soumission créée avec fichier uploadé: ${submission.id}`);
-
-      return createSuccessResponse(submission, 201, 'Soumission créée avec succès');
-    }
-
-    // Sinon, comportement classique (upload nouveau fichier via FormData)
-    if (!file) {
-      return NextResponse.json({ error: 'Fichier audio requis' }, { status: 400 });
-    }
-
-    // Valider le fichier
-    const validation = validateAudioFile(file);
-    if (!validation.valid) {
-      return NextResponse.json({ error: validation.error }, { status: 400 });
-    }
-
-    // Valider les données du formulaire
-    const validationResult = submissionSchema.safeParse({
-      title,
-      description: description || undefined,
-    });
-
-    if (!validationResult.success) {
-      return NextResponse.json(
-        { error: 'Données invalides', details: validationResult.error.flatten() },
-        { status: 400 }
+        description,
+        session.user.id
       );
     }
 
-    const { title: validatedTitle, description: validatedDescription } = validationResult.data;
-
-    // Générer un ID unique pour le fichier
-    const fileId = generateAudioFileId(session.user.id, file.name);
-
-    // Upload le fichier
-    const { url: uploadedFileUrl } = await uploadAudioFile(file, fileId, session.user.id);
-
-    // Créer la soumission dans la base de données
-    const submission = await prisma.liveSubmission.create({
-      data: {
-        userId: session.user.id,
-        fileName: file.name,
-        fileUrl: uploadedFileUrl,
-        title: validatedTitle,
-        description: validatedDescription || null,
-        status: LiveSubmissionStatus.PENDING,
-        isDraft: false,
-      },
-    });
-
-    logger.debug(`[Live] Soumission créée: ${submission.id}`);
-
-    return createSuccessResponse(submission, 201, 'Soumission créée avec succès');
+    // Sinon, comportement classique (upload nouveau fichier via FormData)
+    return await uploadAndCreateSubmission(file, title, description, session.user.id);
   } catch (error) {
     return handleApiError(error, 'POST /api/live/submissions');
   }

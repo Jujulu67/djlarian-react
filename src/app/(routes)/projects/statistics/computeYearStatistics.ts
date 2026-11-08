@@ -6,6 +6,14 @@ import { MILESTONE_DAYS, type StatisticsData } from './types';
  * Recalcule les statistiques pour une année donnée (projets créés dans l'année,
  * même sans date de sortie), à partir des statistiques globales et des projets.
  */
+// Valeur de streams utilisable : nombre fini positif, sinon 0
+function readStreamValue(value: number | null | undefined): number {
+  if (value != null && Number.isFinite(value) && value >= 0) {
+    return value;
+  }
+  return 0;
+}
+
 export function computeYearStatistics(
   statistics: StatisticsData,
   initialProjects: Project[],
@@ -119,59 +127,35 @@ export function computeYearStatistics(
       streams: [
         {
           day: 7,
-          value:
-            p.streamsJ7 != null && Number.isFinite(p.streamsJ7) && p.streamsJ7 >= 0
-              ? p.streamsJ7
-              : 0,
+          value: readStreamValue(p.streamsJ7),
         },
         {
           day: 14,
-          value:
-            p.streamsJ14 != null && Number.isFinite(p.streamsJ14) && p.streamsJ14 >= 0
-              ? p.streamsJ14
-              : 0,
+          value: readStreamValue(p.streamsJ14),
         },
         {
           day: 21,
-          value:
-            p.streamsJ21 != null && Number.isFinite(p.streamsJ21) && p.streamsJ21 >= 0
-              ? p.streamsJ21
-              : 0,
+          value: readStreamValue(p.streamsJ21),
         },
         {
           day: 28,
-          value:
-            p.streamsJ28 != null && Number.isFinite(p.streamsJ28) && p.streamsJ28 >= 0
-              ? p.streamsJ28
-              : 0,
+          value: readStreamValue(p.streamsJ28),
         },
         {
           day: 56,
-          value:
-            p.streamsJ56 != null && Number.isFinite(p.streamsJ56) && p.streamsJ56 >= 0
-              ? p.streamsJ56
-              : 0,
+          value: readStreamValue(p.streamsJ56),
         },
         {
           day: 84,
-          value:
-            p.streamsJ84 != null && Number.isFinite(p.streamsJ84) && p.streamsJ84 >= 0
-              ? p.streamsJ84
-              : 0,
+          value: readStreamValue(p.streamsJ84),
         },
         {
           day: 180,
-          value:
-            p.streamsJ180 != null && Number.isFinite(p.streamsJ180) && p.streamsJ180 >= 0
-              ? p.streamsJ180
-              : 0,
+          value: readStreamValue(p.streamsJ180),
         },
         {
           day: 365,
-          value:
-            p.streamsJ365 != null && Number.isFinite(p.streamsJ365) && p.streamsJ365 >= 0
-              ? p.streamsJ365
-              : 0,
+          value: readStreamValue(p.streamsJ365),
         },
       ],
     }));

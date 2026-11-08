@@ -133,6 +133,25 @@ export default function AdminShopClient({ initialSettings }: Readonly<AdminShopC
     setSaving(false);
   };
 
+  let saveButtonContent: React.ReactNode;
+  if (saving) {
+    saveButtonContent = <RefreshCw className="w-5 h-5 animate-spin" />;
+  } else if (saved) {
+    saveButtonContent = (
+      <>
+        <Check className="w-5 h-5" />
+        Enregistré !
+      </>
+    );
+  } else {
+    saveButtonContent = (
+      <>
+        <Save className="w-5 h-5" />
+        Enregistrer les modifications
+      </>
+    );
+  }
+
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-black via-[#0c0117] to-black">
       <div className="container mx-auto px-4 py-8">
@@ -317,19 +336,7 @@ export default function AdminShopClient({ initialSettings }: Readonly<AdminShopC
                 : 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white'
             }`}
           >
-            {saving ? (
-              <RefreshCw className="w-5 h-5 animate-spin" />
-            ) : saved ? (
-              <>
-                <Check className="w-5 h-5" />
-                Enregistré !
-              </>
-            ) : (
-              <>
-                <Save className="w-5 h-5" />
-                Enregistrer les modifications
-              </>
-            )}
+            {saveButtonContent}
           </button>
 
           {/* Quick Links */}

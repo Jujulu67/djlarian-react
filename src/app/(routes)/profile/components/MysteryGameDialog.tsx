@@ -36,6 +36,97 @@ interface ScorePopup {
   combo: number;
 }
 
+function getNeighborCells(row: number, col: number): Array<[number, number]> {
+  const neighbors: Array<[number, number]> = [
+    [row + 1, col],
+    [row - 1, col],
+    [row, col + 1],
+    [row, col - 1],
+  ];
+  return neighbors.filter(([nr, nc]) => nr >= 0 && nr < GRID_SIZE && nc >= 0 && nc < GRID_SIZE);
+}
+
+function findConnectedGroup(row: number, col: number, currentGrid: string[][]): Set<string> {
+  const color = currentGrid[row][col];
+  if (!color) return new Set();
+
+  const group = new Set<string>();
+  const queue = [[row, col]];
+  group.add(`${row},${col}`);
+
+  while (queue.length > 0) {
+    const [r, c] = queue.shift()!;
+
+    for (const [nr, nc] of getNeighborCells(r, c)) {
+      if (currentGrid[nr][nc] === color && !group.has(`${nr},${nc}`)) {
+        group.add(`${nr},${nc}`);
+        queue.push([nr, nc]);
+      }
+    }
+  }
+
+  return group;
+}
+
+function checkGameOver(currentGrid: string[][]) {
+  // Check if any moves are possible
+  for (let r = 0; r < GRID_SIZE; r++) {
+    for (let c = 0; c < GRID_SIZE; c++) {
+      const color = currentGrid[r][c];
+      if (!color) continue;
+
+      // Check neighbors
+      if (getNeighborCells(r, c).some(([nr, nc]) => currentGrid[nr][nc] === color)) {
+        return false; // Move possible
+      }
+    }
+  }
+  return true; // No moves possible
+}
+
+function applyGravity(grid: string[][]) {
+  for (let c = 0; c < GRID_SIZE; c++) {
+    let writeRow = GRID_SIZE - 1;
+    for (let r = GRID_SIZE - 1; r >= 0; r--) {
+      if (grid[r][c] !== '') {
+        grid[writeRow][c] = grid[r][c];
+        if (writeRow !== r) grid[r][c] = '';
+        writeRow--;
+      }
+    }
+  }
+}
+
+function getComboBadgeClass(combo: number) {
+  if (combo >= 5) {
+    return 'bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white';
+  }
+  if (combo >= 3) {
+    return 'bg-gradient-to-r from-purple-500 to-pink-500 text-white';
+  }
+  return 'bg-blue-500/50 text-blue-200';
+}
+
+function getComboIcon(combo: number) {
+  if (combo >= 5) {
+    return '🔥';
+  }
+  if (combo >= 3) {
+    return '⚡';
+  }
+  return '✨';
+}
+
+function getRewardLabel(result: GameResult) {
+  if (result.rewardType === 'TOKENS') {
+    return `+${result.rewardAmount} Jetons`;
+  }
+  if (result.rewardType === 'QUEUE_SKIP') {
+    return 'Queue Skip !';
+  }
+  return 'Ticket Éternel !';
+}
+
 export function MysteryGameDialog({ isOpen, onClose, onTokenUpdate }: MysteryGameDialogProps) {
   const [grid, setGrid] = useState<string[][]>([]);
   const [score, setScore] = useState(0);
@@ -91,60 +182,6 @@ export function MysteryGameDialog({ isOpen, onClose, onTokenUpdate }: MysteryGam
       setIsPlaying(true);
       initGame();
     }
-  };
-
-  const findConnectedGroup = (row: number, col: number, currentGrid: string[][]): Set<string> => {
-    const color = currentGrid[row][col];
-    if (!color) return new Set();
-
-    const group = new Set<string>();
-    const queue = [[row, col]];
-    group.add(`${row},${col}`);
-
-    while (queue.length > 0) {
-      const [r, c] = queue.shift()!;
-      const neighbors = [
-        [r + 1, c],
-        [r - 1, c],
-        [r, c + 1],
-        [r, c - 1],
-      ];
-
-      for (const [nr, nc] of neighbors) {
-        if (nr >= 0 && nr < GRID_SIZE && nc >= 0 && nc < GRID_SIZE) {
-          if (currentGrid[nr][nc] === color && !group.has(`${nr},${nc}`)) {
-            group.add(`${nr},${nc}`);
-            queue.push([nr, nc]);
-          }
-        }
-      }
-    }
-
-    return group;
-  };
-
-  const checkGameOver = (currentGrid: string[][]) => {
-    // Check if any moves are possible
-    for (let r = 0; r < GRID_SIZE; r++) {
-      for (let c = 0; c < GRID_SIZE; c++) {
-        const color = currentGrid[r][c];
-        if (!color) continue;
-
-        // Check neighbors
-        const neighbors = [
-          [r + 1, c],
-          [r - 1, c],
-          [r, c + 1],
-          [r, c - 1],
-        ];
-        for (const [nr, nc] of neighbors) {
-          if (nr >= 0 && nr < GRID_SIZE && nc >= 0 && nc < GRID_SIZE) {
-            if (currentGrid[nr][nc] === color) return false; // Move possible
-          }
-        }
-      }
-    }
-    return true; // No moves possible
   };
 
   const handleHover = (row: number, col: number) => {
@@ -238,16 +275,7 @@ export function MysteryGameDialog({ isOpen, onClose, onTokenUpdate }: MysteryGam
 
     // Apply gravity with delay for visual effect
     setTimeout(() => {
-      for (let c = 0; c < GRID_SIZE; c++) {
-        let writeRow = GRID_SIZE - 1;
-        for (let r = GRID_SIZE - 1; r >= 0; r--) {
-          if (newGrid[r][c] !== '') {
-            newGrid[writeRow][c] = newGrid[r][c];
-            if (writeRow !== r) newGrid[r][c] = '';
-            writeRow--;
-          }
-        }
-      }
+      applyGravity(newGrid);
       setGrid([...newGrid]);
 
       if (checkGameOver(newGrid)) {
@@ -397,19 +425,13 @@ export function MysteryGameDialog({ isOpen, onClose, onTokenUpdate }: MysteryGam
                         className="flex items-center gap-2"
                       >
                         <div
-                          className={`px-4 py-2 rounded-full font-bold ${
-                            combo >= 5
-                              ? 'bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white'
-                              : combo >= 3
-                                ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
-                                : 'bg-blue-500/50 text-blue-200'
-                          }`}
+                          className={`px-4 py-2 rounded-full font-bold ${getComboBadgeClass(combo)}`}
                         >
                           <motion.span
                             animate={{ scale: [1, 1.2, 1] }}
                             transition={{ duration: 0.3, repeat: combo >= 3 ? Infinity : 0 }}
                           >
-                            {combo >= 5 ? '🔥' : combo >= 3 ? '⚡' : '✨'} x{combo}
+                            {getComboIcon(combo)} x{combo}
                           </motion.span>
                         </div>
                       </motion.div>
@@ -555,13 +577,7 @@ export function MysteryGameDialog({ isOpen, onClose, onTokenUpdate }: MysteryGam
                                 className="flex items-center justify-center gap-2 text-xl font-bold text-yellow-400 mb-6"
                               >
                                 <Trophy size={24} />
-                                <span>
-                                  {gameResult.rewardType === 'TOKENS'
-                                    ? `+${gameResult.rewardAmount} Jetons`
-                                    : gameResult.rewardType === 'QUEUE_SKIP'
-                                      ? 'Queue Skip !'
-                                      : 'Ticket Éternel !'}
-                                </span>
+                                <span>{getRewardLabel(gameResult)}</span>
                               </motion.div>
                             )}
 

@@ -19,6 +19,13 @@ import { EncryptJWT, base64url, calculateJwkThumbprint } from 'jose';
 /** Tentatives de connexion par minute et par IP. */
 const SIGNIN_RATE_LIMIT = 10;
 
+/** Algorithme de hachage du thumbprint JWK, selon la taille de la clé en bits */
+function getThumbprintHashAlg(keyBits: number) {
+  if (keyBits === 512) return 'sha512';
+  if (keyBits === 384) return 'sha384';
+  return 'sha256';
+}
+
 export async function POST(request: NextRequest) {
   const rateLimitResponse = await rateLimit(request, SIGNIN_RATE_LIMIT);
   if (rateLimitResponse) return rateLimitResponse;
@@ -97,12 +104,7 @@ export async function POST(request: NextRequest) {
     );
 
     // Calculer le thumbprint pour le kid
-    const hashAlg =
-      encryptionSecret.byteLength << 3 === 512
-        ? 'sha512'
-        : encryptionSecret.byteLength << 3 === 384
-          ? 'sha384'
-          : 'sha256';
+    const hashAlg = getThumbprintHashAlg(encryptionSecret.byteLength << 3);
     const thumbprint = await calculateJwkThumbprint(
       { kty: 'oct', k: base64url.encode(encryptionSecret) },
       hashAlg

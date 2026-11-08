@@ -13,14 +13,13 @@ describe('upload-client', () => {
   });
 
   describe('validateAudioFile', () => {
-    it('should validate valid MP3 file', () => {
-      const file = new File(['audio content'], 'test.mp3', { type: 'audio/mpeg' });
-      const result = validateAudioFile(file);
-      expect(result.valid).toBe(true);
-    });
-
-    it('should validate valid WAV file', () => {
-      const file = new File(['audio content'], 'test.wav', { type: 'audio/wav' });
+    it.each([
+      ['should validate valid MP3 file', 'test.mp3', 'audio/mpeg'],
+      ['should validate valid WAV file', 'test.wav', 'audio/wav'],
+      ['should accept audio/x-wav MIME type', 'test.wav', 'audio/x-wav'],
+      ['should accept audio/wave MIME type', 'test.wav', 'audio/wave'],
+    ])('%s', (_title, fileName, mimeType) => {
+      const file = new File(['audio content'], fileName, { type: mimeType });
       const result = validateAudioFile(file);
       expect(result.valid).toBe(true);
     });
@@ -46,18 +45,6 @@ describe('upload-client', () => {
       const result = validateAudioFile(file);
       expect(result.valid).toBe(false);
       expect(result.error).toContain('extension');
-    });
-
-    it('should accept audio/x-wav MIME type', () => {
-      const file = new File(['content'], 'test.wav', { type: 'audio/x-wav' });
-      const result = validateAudioFile(file);
-      expect(result.valid).toBe(true);
-    });
-
-    it('should accept audio/wave MIME type', () => {
-      const file = new File(['content'], 'test.wav', { type: 'audio/wave' });
-      const result = validateAudioFile(file);
-      expect(result.valid).toBe(true);
     });
   });
 

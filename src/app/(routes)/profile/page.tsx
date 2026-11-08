@@ -21,6 +21,27 @@ import { ProfileOAuth } from './components/ProfileOAuth';
 import { ProfilePasswordModal } from './components/ProfilePasswordModal';
 import { logger } from '@/lib/logger';
 
+// Validation du formulaire de mot de passe : message d'erreur ou null si valide
+function validatePasswordChange(
+  passwordData: { currentPassword: string; newPassword: string; confirmPassword: string },
+  hasPassword: boolean
+): string | null {
+  // Modification : vérifier l'ancien mot de passe
+  if (hasPassword && !passwordData.currentPassword) {
+    return 'Veuillez entrer votre mot de passe actuel';
+  }
+  if (!passwordData.newPassword) {
+    return 'Veuillez entrer un nouveau mot de passe';
+  }
+  if (passwordData.newPassword.length < 6) {
+    return 'Le mot de passe doit contenir au moins 6 caractères';
+  }
+  if (passwordData.newPassword !== passwordData.confirmPassword) {
+    return 'Les mots de passe ne correspondent pas';
+  }
+  return null;
+}
+
 function ProfileContent() {
   const { data: session, status, update: updateSession } = useSession();
   const router = useRouter();
@@ -392,26 +413,12 @@ function ProfileContent() {
     setPasswordError(null);
 
     // Validation
-    if (oauthSecurity?.hasPassword) {
-      // Modification : vérifier l'ancien mot de passe
-      if (!passwordData.currentPassword) {
-        setPasswordError('Veuillez entrer votre mot de passe actuel');
-        return;
-      }
-    }
-
-    if (!passwordData.newPassword) {
-      setPasswordError('Veuillez entrer un nouveau mot de passe');
-      return;
-    }
-
-    if (passwordData.newPassword.length < 6) {
-      setPasswordError('Le mot de passe doit contenir au moins 6 caractères');
-      return;
-    }
-
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setPasswordError('Les mots de passe ne correspondent pas');
+    const validationError = validatePasswordChange(
+      passwordData,
+      Boolean(oauthSecurity?.hasPassword)
+    );
+    if (validationError) {
+      setPasswordError(validationError);
       return;
     }
 

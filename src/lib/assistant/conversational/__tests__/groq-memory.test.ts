@@ -56,54 +56,35 @@ describe('Conversation Memory - Parser Context', () => {
 
   describe('detectContextReference', () => {
     describe('pronoms', () => {
-      it('détecte "met les à 80%"', () => {
-        const result = detectContextReference('met les à 80%');
-        expect(result.hasContextReference).toBe(true);
-        expect(result.referenceType).toBe('pronoun');
-      });
-
-      it('détecte "passe les en terminé"', () => {
-        const result = detectContextReference('passe les en terminé');
-        expect(result.hasContextReference).toBe(true);
-        expect(result.referenceType).toBe('pronoun');
-      });
-
-      it('détecte "met-les à 100%"', () => {
-        const result = detectContextReference('met-les à 100%');
+      it.each([
+        ['détecte "met les à 80%"', 'met les à 80%'],
+        ['détecte "passe les en terminé"', 'passe les en terminé'],
+        ['détecte "met-les à 100%"', 'met-les à 100%'],
+      ])('%s', (_title, input) => {
+        const result = detectContextReference(input);
         expect(result.hasContextReference).toBe(true);
         expect(result.referenceType).toBe('pronoun');
       });
     });
 
     describe('démonstratifs', () => {
-      it('détecte "ceux-là"', () => {
-        const result = detectContextReference('modifie ceux-là');
-        expect(result.hasContextReference).toBe(true);
-        expect(result.referenceType).toBe('demonstrative');
-      });
-
-      it('détecte "ces projets"', () => {
-        const result = detectContextReference('met ces projets à 50%');
+      it.each([
+        ['détecte "ceux-là"', 'modifie ceux-là'],
+        ['détecte "ces projets"', 'met ces projets à 50%'],
+      ])('%s', (_title, input) => {
+        const result = detectContextReference(input);
         expect(result.hasContextReference).toBe(true);
         expect(result.referenceType).toBe('demonstrative');
       });
     });
 
     describe('références implicites', () => {
-      it('détecte "maintenant met à 80%"', () => {
-        const result = detectContextReference('maintenant met à 80%');
-        expect(result.hasContextReference).toBe(true);
-        expect(result.referenceType).toBe('implicit');
-      });
-
-      it('détecte "et passe en terminé"', () => {
-        const result = detectContextReference('et passe en terminé');
-        expect(result.hasContextReference).toBe(true);
-        expect(result.referenceType).toBe('implicit');
-      });
-
-      it('détecte "puis marque comme annulé"', () => {
-        const result = detectContextReference('puis marque comme annulé');
+      it.each([
+        ['détecte "maintenant met à 80%"', 'maintenant met à 80%'],
+        ['détecte "et passe en terminé"', 'et passe en terminé'],
+        ['détecte "puis marque comme annulé"', 'puis marque comme annulé'],
+      ])('%s', (_title, input) => {
+        const result = detectContextReference(input);
         expect(result.hasContextReference).toBe(true);
         expect(result.referenceType).toBe('implicit');
       });

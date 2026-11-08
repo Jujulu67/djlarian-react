@@ -239,6 +239,16 @@ export function safeDebugLog(
 /**
  * Redacte récursivement les strings dans un objet.
  */
+function redactArrayItem(v: unknown): unknown {
+  if (typeof v === 'string') {
+    return redactPii(v);
+  }
+  if (typeof v === 'object' && v !== null) {
+    return redactObject(v as Record<string, unknown>);
+  }
+  return v;
+}
+
 export function redactObject(obj: Record<string, unknown>): Record<string, unknown> {
   const result: Record<string, unknown> = {};
 
@@ -246,13 +256,7 @@ export function redactObject(obj: Record<string, unknown>): Record<string, unkno
     if (typeof value === 'string') {
       result[key] = redactPii(value);
     } else if (Array.isArray(value)) {
-      result[key] = value.map((v) =>
-        typeof v === 'string'
-          ? redactPii(v)
-          : typeof v === 'object' && v !== null
-            ? redactObject(v as Record<string, unknown>)
-            : v
-      );
+      result[key] = value.map((v) => redactArrayItem(v));
     } else if (typeof value === 'object' && value !== null) {
       result[key] = redactObject(value as Record<string, unknown>);
     } else {

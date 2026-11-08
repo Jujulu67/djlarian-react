@@ -17,6 +17,99 @@ export interface GetProjectsToolParams {
   isTestMode: boolean;
 }
 
+interface GetProjectsInput {
+  minProgress?: number;
+  maxProgress?: number;
+  status?: string;
+  hasDeadline?: boolean;
+  deadlineDate?: string;
+}
+
+/**
+ * Complète les filtres absents de l'appel de l'IA par détection dans la requête utilisateur
+ */
+function resolveDetectedFilters(params: GetProjectsInput, normalizedInput: string) {
+  const { minProgress, maxProgress, status, hasDeadline, deadlineDate } = params;
+
+  let finalStatus = status;
+  let finalMinProgress = minProgress;
+  let finalMaxProgress = maxProgress;
+  let finalHasDeadline = hasDeadline;
+  let finalDeadlineDate = deadlineDate;
+
+  // Détecter le statut si non fourni ou undefined (utilise la similarité de chaînes, pas d'IA intermédiaire)
+  // Même si l'IA passe status: undefined, on doit détecter automatiquement
+  if (!finalStatus || finalStatus === 'undefined' || finalStatus === 'null') {
+    const detectedStatus = detectStatusFromQuery(normalizedInput);
+    if (detectedStatus) {
+      logger.warn(
+        `[Assistant] Statut détecté automatiquement: ${detectedStatus} (non fourni par l'IA ou undefined)`
+      );
+      finalStatus = detectedStatus as
+        | 'EN_COURS'
+        | 'TERMINE'
+        | 'ANNULE'
+        | 'A_REWORK'
+        | 'GHOST_PRODUCTION'
+        | 'ARCHIVE';
+    }
+  }
+
+  // Détecter la progression si non fournie
+  if (finalMinProgress === undefined && finalMaxProgress === undefined) {
+    const detectedProgress = detectProgressFromQuery(normalizedInput);
+    if (detectedProgress.minProgress !== undefined) {
+      finalMinProgress = detectedProgress.minProgress;
+    }
+    if (detectedProgress.maxProgress !== undefined) {
+      finalMaxProgress = detectedProgress.maxProgress;
+    }
+  }
+
+  // Détecter les filtres de deadline si non fournis
+  if (finalHasDeadline === undefined && !finalDeadlineDate) {
+    const detectedDeadline = detectDeadlineFromQuery(normalizedInput);
+    if (detectedDeadline.hasDeadline !== undefined) {
+      finalHasDeadline = detectedDeadline.hasDeadline;
+    }
+    if (detectedDeadline.deadlineDate) {
+      finalDeadlineDate = detectedDeadline.deadlineDate;
+    }
+  }
+
+  return {
+    finalStatus,
+    finalMinProgress,
+    finalMaxProgress,
+    finalHasDeadline,
+    finalDeadlineDate,
+  };
+}
+
+/**
+ * Projets simulés pour le mode test
+ */
+function buildSimulatedResult(params: GetProjectsInput) {
+  const { minProgress, status, deadlineDate } = params;
+  const simulatedCount = Math.floor(Math.random() * 5) + 1; // 1-5 projets
+  const parsedDeadline = deadlineDate ? parseRelativeDate(deadlineDate) : null;
+  return {
+    count: simulatedCount,
+    projects: Array.from({ length: simulatedCount }, (_, i) => ({
+      id: `test-${i + 1}`,
+      name: `Projet test ${i + 1}`,
+      progress: minProgress ?? Math.floor(Math.random() * 100),
+      status: status || 'EN_COURS',
+      deadline: parsedDeadline,
+      collab: i % 2 === 0 ? `Collab ${i + 1}` : null,
+      style: i % 3 === 0 ? ['Techno', 'House', 'DNB'][i % 3] : null,
+      releaseDate:
+        i % 4 === 0 ? new Date(Date.now() + i * 86400000).toISOString().split('T')[0] : null,
+    })),
+    message: `J'ai trouvé ${simulatedCount} projet(s) correspondant aux critères.`,
+  };
+}
+
 /**
  * Crée l'outil getProjects pour les questions (lecture seule)
  */
@@ -63,63 +156,19 @@ export function createGetProjectsTool({
       "Comprends les variations et fautes d'orthographe : 'ghos prod', 'ghost prod', 'ghost production' → GHOST_PRODUCTION, " +
       "'annulé' ou 'annulés' → ANNULE, 'terminé' ou 'fini' → TERMINE, etc.",
     inputSchema: parameters,
-    execute: async (params: {
-      minProgress?: number;
-      maxProgress?: number;
-      status?: string;
-      hasDeadline?: boolean;
-      deadlineDate?: string;
-    }) => {
-      const { minProgress, maxProgress, status, hasDeadline, deadlineDate } = params;
+    execute: async (params: GetProjectsInput) => {
+      const { minProgress, status, deadlineDate } = params;
       // Obtenir l'ID utilisateur cible (par nom ou utilisateur connecté)
       const targetUserId = await getTargetUserId(normalizedInput);
 
       // Détection intelligente des paramètres depuis la requête (fallback si l'IA ne les fournit pas)
-      let finalStatus = status;
-      let finalMinProgress = minProgress;
-      let finalMaxProgress = maxProgress;
-      let finalHasDeadline = hasDeadline;
-      let finalDeadlineDate = deadlineDate;
-
-      // Détecter le statut si non fourni ou undefined (utilise la similarité de chaînes, pas d'IA intermédiaire)
-      // Même si l'IA passe status: undefined, on doit détecter automatiquement
-      if (!finalStatus || finalStatus === 'undefined' || finalStatus === 'null') {
-        const detectedStatus = detectStatusFromQuery(normalizedInput);
-        if (detectedStatus) {
-          logger.warn(
-            `[Assistant] Statut détecté automatiquement: ${detectedStatus} (non fourni par l'IA ou undefined)`
-          );
-          finalStatus = detectedStatus as
-            | 'EN_COURS'
-            | 'TERMINE'
-            | 'ANNULE'
-            | 'A_REWORK'
-            | 'GHOST_PRODUCTION'
-            | 'ARCHIVE';
-        }
-      }
-
-      // Détecter la progression si non fournie
-      if (finalMinProgress === undefined && finalMaxProgress === undefined) {
-        const detectedProgress = detectProgressFromQuery(normalizedInput);
-        if (detectedProgress.minProgress !== undefined) {
-          finalMinProgress = detectedProgress.minProgress;
-        }
-        if (detectedProgress.maxProgress !== undefined) {
-          finalMaxProgress = detectedProgress.maxProgress;
-        }
-      }
-
-      // Détecter les filtres de deadline si non fournis
-      if (finalHasDeadline === undefined && !finalDeadlineDate) {
-        const detectedDeadline = detectDeadlineFromQuery(normalizedInput);
-        if (detectedDeadline.hasDeadline !== undefined) {
-          finalHasDeadline = detectedDeadline.hasDeadline;
-        }
-        if (detectedDeadline.deadlineDate) {
-          finalDeadlineDate = detectedDeadline.deadlineDate;
-        }
-      }
+      const {
+        finalStatus,
+        finalMinProgress,
+        finalMaxProgress,
+        finalHasDeadline,
+        finalDeadlineDate,
+      } = resolveDetectedFilters(params, normalizedInput);
 
       // Construire la clause WHERE
       const whereClause = buildWhereClause(
@@ -134,24 +183,7 @@ export function createGetProjectsTool({
       // Mode test : retourner des données simulées
       if (isTestMode) {
         logger.warn('[TEST MODE] Simulation de lecture:', { where: whereClause });
-        // Simuler des projets
-        const simulatedCount = Math.floor(Math.random() * 5) + 1; // 1-5 projets
-        const parsedDeadline = deadlineDate ? parseRelativeDate(deadlineDate) : null;
-        return {
-          count: simulatedCount,
-          projects: Array.from({ length: simulatedCount }, (_, i) => ({
-            id: `test-${i + 1}`,
-            name: `Projet test ${i + 1}`,
-            progress: minProgress ?? Math.floor(Math.random() * 100),
-            status: status || 'EN_COURS',
-            deadline: parsedDeadline,
-            collab: i % 2 === 0 ? `Collab ${i + 1}` : null,
-            style: i % 3 === 0 ? ['Techno', 'House', 'DNB'][i % 3] : null,
-            releaseDate:
-              i % 4 === 0 ? new Date(Date.now() + i * 86400000).toISOString().split('T')[0] : null,
-          })),
-          message: `J'ai trouvé ${simulatedCount} projet(s) correspondant aux critères.`,
-        };
+        return buildSimulatedResult({ minProgress, status, deadlineDate });
       }
 
       // Lecture réelle depuis la base de données

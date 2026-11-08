@@ -25,6 +25,11 @@ export function getCropCanvasSize(
   return { width, height: Math.max(1, Math.round(height)) };
 }
 
+function getCropShapeLabel(circular: boolean, aspect: number): string {
+  if (circular) return 'rond';
+  return aspect === 1 ? 'carré' : '16:9';
+}
+
 interface ImageCropModalProps {
   imageToEdit: string | null;
   aspect: number;
@@ -142,7 +147,7 @@ const ImageCropModal: React.FC<ImageCropModalProps> = ({
       <div className="flex flex-col w-full">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold text-white">
-            {title ?? `Recadrer l'image (${circular ? 'rond' : aspect === 1 ? 'carré' : '16:9'})`}
+            {title ?? `Recadrer l'image (${getCropShapeLabel(circular, aspect)})`}
           </h3>
         </div>
         <div className="max-h-[70vh] overflow-auto flex justify-center items-center mb-4 pb-8">

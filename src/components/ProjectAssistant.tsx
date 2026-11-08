@@ -426,21 +426,29 @@ function MessageBubble({
   );
 }
 
-function ScopeMissingWarning({
-  msg,
-  idx,
-  router,
-  setIsLoading,
-  setMessages,
-  setLocalProjects,
-  localProjectsRef,
-  setLastFilters,
-}: Readonly<MessageBubbleProps>) {
-  if (!msg.scopeConfirmation) return null;
+type ProposedMutation = NonNullable<
+  NonNullable<import('./assistant/types').Message['scopeConfirmation']>['proposedMutation']
+>;
 
-  const { proposedMutation, totalProjectsCount } = msg.scopeConfirmation;
+/** Formate un décalage signé (ex. « +2 semaines », « -1 jour ») */
+function formatShift(value: number, singular: string, plural = singular) {
+  const sign = value > 0 ? '+' : '';
+  const unit = value !== 1 ? plural : singular;
+  return `${sign}${value} ${unit}`;
+}
 
-  // Construire la description de la mutation
+/** Décrit le décalage de deadline (ex. « +2 semaines », « +1 mois ») */
+function describeDeadlineShift(delta: NonNullable<ProposedMutation['pushDeadlineBy']>): string[] {
+  const parts: string[] = [];
+  if (delta.days) parts.push(formatShift(delta.days, 'jour', 'jours'));
+  if (delta.weeks) parts.push(formatShift(delta.weeks, 'semaine', 'semaines'));
+  if (delta.months) parts.push(formatShift(delta.months, 'mois'));
+  if (delta.years) parts.push(formatShift(delta.years, 'an', 'ans'));
+  return parts;
+}
+
+/** Liste lisible des changements proposés pour l'ensemble des projets */
+function describeProposedMutation(proposedMutation: ProposedMutation): string[] {
   const mutationParts: string[] = [];
   if (proposedMutation.newProgress !== undefined) {
     mutationParts.push(`progression → ${proposedMutation.newProgress}%`);
@@ -452,17 +460,7 @@ function ScopeMissingWarning({
     mutationParts.push(`deadline → ${proposedMutation.newDeadline}`);
   }
   if (proposedMutation.pushDeadlineBy) {
-    const delta = proposedMutation.pushDeadlineBy;
-    const parts: string[] = [];
-    if (delta.days)
-      parts.push(`${delta.days > 0 ? '+' : ''}${delta.days} jour${delta.days !== 1 ? 's' : ''}`);
-    if (delta.weeks)
-      parts.push(
-        `${delta.weeks > 0 ? '+' : ''}${delta.weeks} semaine${delta.weeks !== 1 ? 's' : ''}`
-      );
-    if (delta.months) parts.push(`${delta.months > 0 ? '+' : ''}${delta.months} mois`);
-    if (delta.years)
-      parts.push(`${delta.years > 0 ? '+' : ''}${delta.years} an${delta.years !== 1 ? 's' : ''}`);
+    const parts = describeDeadlineShift(proposedMutation.pushDeadlineBy);
     if (parts.length > 0) {
       mutationParts.push(`décaler deadline de ${parts.join(', ')}`);
     }
@@ -484,32 +482,93 @@ function ScopeMissingWarning({
       `note → ${proposedMutation.newNote.substring(0, 50)}${proposedMutation.newNote.length > 50 ? '...' : ''}`
     );
   }
+  return mutationParts;
+}
 
-  const handleConfirm = async () => {
-    // Créer une action de confirmation avec AllProjects comme scope
-    const confirmationMsg: Message = {
-      role: 'assistant',
-      content: `Modification de tous les projets (${totalProjectsCount}) : ${mutationParts.join(', ')}`,
-      timestamp: new Date(),
-      updateConfirmation: {
-        filters: {},
-        updateData: proposedMutation,
-        affectedProjects: [], // Sera rempli par le handler
-        scopeSource: 'AllProjects',
-        fieldsToShow: ['progress', 'status', 'deadline'],
-      },
-    };
+/** Confirme une modification appliquée à tous les projets (sans scope récent) */
+async function confirmAllProjectsMutation({
+  proposedMutation,
+  totalProjectsCount,
+  mutationParts,
+  idx,
+  router,
+  setIsLoading,
+  setMessages,
+  setLocalProjects,
+  localProjectsRef,
+  setLastFilters,
+}: Readonly<
+  Pick<
+    MessageBubbleProps,
+    | 'idx'
+    | 'router'
+    | 'setIsLoading'
+    | 'setMessages'
+    | 'setLocalProjects'
+    | 'localProjectsRef'
+    | 'setLastFilters'
+  > & {
+    proposedMutation: ProposedMutation;
+    totalProjectsCount: number;
+    mutationParts: string[];
+  }
+>) {
+  // Créer une action de confirmation avec AllProjects comme scope
+  const confirmationMsg: Message = {
+    role: 'assistant',
+    content: `Modification de tous les projets (${totalProjectsCount}) : ${mutationParts.join(', ')}`,
+    timestamp: new Date(),
+    updateConfirmation: {
+      filters: {},
+      updateData: proposedMutation,
+      affectedProjects: [], // Sera rempli par le handler
+      scopeSource: 'AllProjects',
+      fieldsToShow: ['progress', 'status', 'deadline'],
+    },
+  };
 
-    // Remplacer le message actuel par la confirmation
-    setMessages((prev) => {
-      const newMessages = [...prev];
-      newMessages[idx] = confirmationMsg;
-      return newMessages;
-    });
+  // Remplacer le message actuel par la confirmation
+  setMessages((prev) => {
+    const newMessages = [...prev];
+    newMessages[idx] = confirmationMsg;
+    return newMessages;
+  });
 
-    // Déclencher la confirmation
-    await handleConfirmUpdate({
-      msg: confirmationMsg,
+  // Déclencher la confirmation
+  await handleConfirmUpdate({
+    msg: confirmationMsg,
+    idx,
+    router,
+    setIsLoading,
+    setMessages,
+    setLocalProjects,
+    localProjectsRef,
+    setLastFilters,
+  });
+}
+
+function ScopeMissingWarning({
+  msg,
+  idx,
+  router,
+  setIsLoading,
+  setMessages,
+  setLocalProjects,
+  localProjectsRef,
+  setLastFilters,
+}: Readonly<MessageBubbleProps>) {
+  if (!msg.scopeConfirmation) return null;
+
+  const { proposedMutation, totalProjectsCount } = msg.scopeConfirmation;
+
+  // Construire la description de la mutation
+  const mutationParts = describeProposedMutation(proposedMutation);
+
+  const handleConfirm = () =>
+    confirmAllProjectsMutation({
+      proposedMutation,
+      totalProjectsCount,
+      mutationParts,
       idx,
       router,
       setIsLoading,
@@ -518,7 +577,6 @@ function ScopeMissingWarning({
       localProjectsRef,
       setLastFilters,
     });
-  };
 
   return (
     <div className="mt-3 w-full">

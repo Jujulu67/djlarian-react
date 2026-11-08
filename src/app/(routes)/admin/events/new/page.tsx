@@ -32,6 +32,38 @@ const formatDateForInput = (dateString: string | null | undefined): string => {
   }
 };
 
+// Envoie les deux fichiers image (recadré + original) au serveur
+async function uploadEventImages(
+  imageId: string,
+  croppedImageFile: File,
+  originalImageFile: File
+): Promise<void> {
+  const formDataUpload = new FormData();
+  formDataUpload.append('imageId', imageId);
+  formDataUpload.append('croppedImage', croppedImageFile, 'event-crop.jpg');
+  formDataUpload.append('originalImage', originalImageFile, originalImageFile.name);
+  const uploadResponse = await fetch('/api/upload', {
+    method: 'POST',
+    body: formDataUpload,
+  });
+  if (!uploadResponse.ok) {
+    throw new Error("Erreur lors de l'upload de l'image");
+  }
+}
+
+// Données billetterie envoyées à l'API (valeurs par défaut si non renseignées)
+function buildTicketsPayload(tickets: EventFormData['tickets'] | undefined) {
+  return {
+    price: tickets?.price !== undefined ? Number.parseFloat(String(tickets.price)) || 0 : 0,
+    currency: tickets?.currency || 'EUR',
+    buyUrl: tickets?.buyUrl || '',
+    quantity:
+      tickets?.quantity !== undefined ? Number.parseInt(String(tickets.quantity), 10) || 0 : 0,
+    availableFrom: localInputToIso(tickets?.availableFrom),
+    availableTo: localInputToIso(tickets?.availableTo),
+  };
+}
+
 function EventFormContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -316,17 +348,7 @@ function EventFormContent() {
       }
       // Upload DRY des deux fichiers si présents
       if (croppedImageFile && originalImageFile && imageId) {
-        const formDataUpload = new FormData();
-        formDataUpload.append('imageId', imageId);
-        formDataUpload.append('croppedImage', croppedImageFile, 'event-crop.jpg');
-        formDataUpload.append('originalImage', originalImageFile, originalImageFile.name);
-        const uploadResponse = await fetch('/api/upload', {
-          method: 'POST',
-          body: formDataUpload,
-        });
-        if (!uploadResponse.ok) {
-          throw new Error("Erreur lors de l'upload de l'image");
-        }
+        await uploadEventImages(imageId, croppedImageFile, originalImageFile);
       }
       // Préparer les données avec gestion explicite des valeurs optionnelles
       const addressValue: string = formData.address ?? '';
@@ -370,22 +392,7 @@ function EventFormContent() {
         publishAt: localInputToIso(formData.publishAt),
         featured: formData.featured || false,
         imageId: imageId,
-        tickets: formData.hasTickets
-          ? {
-              price:
-                formData.tickets?.price !== undefined
-                  ? Number.parseFloat(String(formData.tickets.price)) || 0
-                  : 0,
-              currency: formData.tickets?.currency || 'EUR',
-              buyUrl: formData.tickets?.buyUrl || '',
-              quantity:
-                formData.tickets?.quantity !== undefined
-                  ? Number.parseInt(String(formData.tickets.quantity), 10) || 0
-                  : 0,
-              availableFrom: localInputToIso(formData.tickets?.availableFrom),
-              availableTo: localInputToIso(formData.tickets?.availableTo),
-            }
-          : undefined,
+        tickets: formData.hasTickets ? buildTicketsPayload(formData.tickets) : undefined,
         recurrence:
           isEditMode || formData.recurrence
             ? {

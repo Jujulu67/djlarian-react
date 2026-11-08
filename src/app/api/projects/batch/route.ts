@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { revalidateTag } from 'next/cache';
+import type { Prisma } from '@prisma/client';
 
 import { handleApiError } from '@/lib/api/errorHandler';
 import {
@@ -48,6 +49,188 @@ interface BatchCreateResult {
   projects: Project[];
   errors: Array<{ index: number; data: BatchProjectData; error: string }>;
   duplicatesExcluded?: number;
+}
+
+type UrlUtils = typeof import('@/lib/utils/validateUrl');
+type TransactionClient = Prisma.TransactionClient;
+type ValidBatchProject = {
+  data: BatchProjectData;
+  index: number;
+  isUpdate?: boolean;
+};
+
+// Fonction helper pour parser les valeurs de streams avec validation
+function parseStreamValue(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+  const parsed = typeof value === 'number' ? value : Number.parseInt(String(value), 10);
+  if (Number.isNaN(parsed) || parsed < 0) {
+    return null; // Rejeter les valeurs négatives ou invalides
+  }
+  // Limite de sécurité : max 2^31 - 1 (valeur max pour un entier 32 bits)
+  if (parsed > 2147483647) {
+    return null;
+  }
+  return parsed;
+}
+
+// Champs communs à la création et à la mise à jour d'un projet
+function buildProjectFields(data: BatchProjectData, sanitizeUrl: UrlUtils['sanitizeUrl']) {
+  return {
+    name: data.name.trim(),
+    style: data.style?.trim() || null,
+    status: data.status || 'EN_COURS',
+    collab: data.collab?.trim() || null,
+    label: data.label?.trim() || null,
+    labelFinal: data.labelFinal?.trim() || null,
+    releaseDate: data.releaseDate ? new Date(data.releaseDate) : null,
+    externalLink: data.externalLink ? sanitizeUrl(data.externalLink.trim()) : null,
+    streamsJ7: parseStreamValue(data.streamsJ7),
+    streamsJ14: parseStreamValue(data.streamsJ14),
+    streamsJ21: parseStreamValue(data.streamsJ21),
+    streamsJ28: parseStreamValue(data.streamsJ28),
+    streamsJ56: parseStreamValue(data.streamsJ56),
+    streamsJ84: parseStreamValue(data.streamsJ84),
+    streamsJ180: parseStreamValue(data.streamsJ180),
+    streamsJ365: parseStreamValue(data.streamsJ365),
+  };
+}
+
+// Validation basique + détection des doublons (nom + statut, insensible à la casse)
+function validateBatchProjects(
+  projectsData: BatchProjectData[],
+  existingKeys: Set<string>,
+  overwriteDuplicates: boolean,
+  result: BatchCreateResult
+): ValidBatchProject[] {
+  const validProjects: ValidBatchProject[] = [];
+
+  for (let i = 0; i < projectsData.length; i++) {
+    const projectData = projectsData[i];
+
+    // Validation basique
+    if (
+      !projectData.name ||
+      typeof projectData.name !== 'string' ||
+      projectData.name.trim() === ''
+    ) {
+      result.errors.push({
+        index: i,
+        data: projectData,
+        error: 'Le nom du projet est requis',
+      });
+      result.failed++;
+      continue;
+    }
+
+    // Vérifier si le projet existe déjà (comparaison case-insensitive sur nom + statut)
+    const normalizedName = projectData.name.trim().toLowerCase();
+    const projectStatus = projectData.status || 'EN_COURS';
+    const projectKey = `${normalizedName}|${projectStatus}`;
+    if (existingKeys.has(projectKey)) {
+      if (overwriteDuplicates) {
+        // Si on veut écraser, ajouter à la liste des projets à mettre à jour
+        validProjects.push({ data: projectData, index: i, isUpdate: true });
+      } else {
+        result.errors.push({
+          index: i,
+          data: projectData,
+          error: `Un projet avec le nom "${projectData.name.trim()}" et le statut "${projectStatus}" existe déjà`,
+        });
+        result.failed++;
+      }
+      continue;
+    }
+
+    validProjects.push({ data: projectData, index: i });
+  }
+
+  return validProjects;
+}
+
+async function createBatchProjects(
+  tx: TransactionClient,
+  userId: string,
+  projectsToCreate: ValidBatchProject[],
+  startOrder: number,
+  result: BatchCreateResult,
+  urlUtils: UrlUtils
+): Promise<Project[]> {
+  const createdProjects: Project[] = [];
+  let currentOrder = startOrder;
+
+  for (const { data, index } of projectsToCreate) {
+    // Valider externalLink si fourni
+    if (data.externalLink && data.externalLink.trim() !== '') {
+      if (!urlUtils.isValidUrl(data.externalLink, false)) {
+        result.errors.push({
+          index,
+          data,
+          error: "L'URL externe fournie n'est pas valide",
+        });
+        result.failed++;
+        continue;
+      }
+    }
+
+    const project = await tx.project.create({
+      data: {
+        userId,
+        order: currentOrder++,
+        ...buildProjectFields(data, urlUtils.sanitizeUrl),
+      },
+      include: {
+        User: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+    createdProjects.push(serializeProject(project));
+  }
+
+  return createdProjects;
+}
+
+async function updateBatchProjects(
+  tx: TransactionClient,
+  projectsToUpdate: ValidBatchProject[],
+  projectsToUpdateMap: Map<string, string>,
+  sanitizeUrl: UrlUtils['sanitizeUrl']
+): Promise<Project[]> {
+  const updatedProjects: Project[] = [];
+
+  for (const { data } of projectsToUpdate) {
+    const normalizedName = data.name.trim().toLowerCase();
+    const projectStatus = data.status || 'EN_COURS';
+    const projectKey = `${normalizedName}|${projectStatus}`;
+    const projectId = projectsToUpdateMap.get(projectKey);
+    if (!projectId) {
+      throw new Error(
+        `Projet "${data.name.trim()}" avec statut "${projectStatus}" introuvable pour mise à jour`
+      );
+    }
+    const updated = await tx.project.update({
+      where: { id: projectId },
+      data: buildProjectFields(data, sanitizeUrl),
+      include: {
+        User: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+    updatedProjects.push(serializeProject(updated));
+  }
+
+  return updatedProjects;
 }
 
 // POST /api/projects/batch - Crée plusieurs projets en batch
@@ -107,51 +290,12 @@ export async function POST(request: NextRequest) {
     };
 
     // Valider chaque projet avant de créer
-    const validProjects: Array<{
-      data: BatchProjectData & { userId: string };
-      index: number;
-      isUpdate?: boolean;
-    }> = [];
-
-    for (let i = 0; i < projectsData.length; i++) {
-      const projectData = projectsData[i];
-
-      // Validation basique
-      if (
-        !projectData.name ||
-        typeof projectData.name !== 'string' ||
-        projectData.name.trim() === ''
-      ) {
-        result.errors.push({
-          index: i,
-          data: projectData,
-          error: 'Le nom du projet est requis',
-        });
-        result.failed++;
-        continue;
-      }
-
-      // Vérifier si le projet existe déjà (comparaison case-insensitive sur nom + statut)
-      const normalizedName = projectData.name.trim().toLowerCase();
-      const projectStatus = projectData.status || 'EN_COURS';
-      const projectKey = `${normalizedName}|${projectStatus}`;
-      if (existingKeys.has(projectKey)) {
-        if (overwriteDuplicates) {
-          // Si on veut écraser, ajouter à la liste des projets à mettre à jour
-          validProjects.push({ data: projectData, index: i, isUpdate: true });
-        } else {
-          result.errors.push({
-            index: i,
-            data: projectData,
-            error: `Un projet avec le nom "${projectData.name.trim()}" et le statut "${projectStatus}" existe déjà`,
-          });
-          result.failed++;
-        }
-        continue;
-      }
-
-      validProjects.push({ data: projectData, index: i });
-    }
+    const validProjects = validateBatchProjects(
+      projectsData,
+      existingKeys,
+      overwriteDuplicates,
+      result
+    );
 
     // Si aucune donnée valide, retourner les erreurs
     if (validProjects.length === 0) {
@@ -197,122 +341,33 @@ export async function POST(request: NextRequest) {
       orderBy: { order: 'desc' },
       select: { order: true },
     });
-    let currentOrder = (maxOrderProject?.order ?? -1) + 1;
-
-    // Fonction helper pour parser les valeurs de streams avec validation
-    const parseStreamValue = (value: unknown): number | null => {
-      if (value === null || value === undefined || value === '') {
-        return null;
-      }
-      const parsed = typeof value === 'number' ? value : Number.parseInt(String(value), 10);
-      if (Number.isNaN(parsed) || parsed < 0) {
-        return null; // Rejeter les valeurs négatives ou invalides
-      }
-      // Limite de sécurité : max 2^31 - 1 (valeur max pour un entier 32 bits)
-      if (parsed > 2147483647) {
-        return null;
-      }
-      return parsed;
-    };
+    const startOrder = (maxOrderProject?.order ?? -1) + 1;
 
     // Importer les fonctions de validation URL
-    const { isValidUrl, sanitizeUrl } = await import('@/lib/utils/validateUrl');
+    const urlUtils: UrlUtils = await import('@/lib/utils/validateUrl');
 
     // Créer les projets séquentiellement dans une transaction pour préserver l'ordre d'import
     // Timeout augmenté à 30 secondes pour gérer les imports batch volumineux
     await prisma.$transaction(
       async (tx) => {
-        for (const { data, index } of projectsToCreate) {
-          // Valider externalLink si fourni
-          if (data.externalLink && data.externalLink.trim() !== '') {
-            if (!isValidUrl(data.externalLink, false)) {
-              result.errors.push({
-                index,
-                data,
-                error: "L'URL externe fournie n'est pas valide",
-              });
-              result.failed++;
-              continue;
-            }
-          }
-
-          const project = await tx.project.create({
-            data: {
-              userId: session.user.id,
-              order: currentOrder++,
-              name: data.name.trim(),
-              style: data.style?.trim() || null,
-              status: data.status || 'EN_COURS',
-              collab: data.collab?.trim() || null,
-              label: data.label?.trim() || null,
-              labelFinal: data.labelFinal?.trim() || null,
-              releaseDate: data.releaseDate ? new Date(data.releaseDate) : null,
-              externalLink: data.externalLink ? sanitizeUrl(data.externalLink.trim()) : null,
-              streamsJ7: parseStreamValue(data.streamsJ7),
-              streamsJ14: parseStreamValue(data.streamsJ14),
-              streamsJ21: parseStreamValue(data.streamsJ21),
-              streamsJ28: parseStreamValue(data.streamsJ28),
-              streamsJ56: parseStreamValue(data.streamsJ56),
-              streamsJ84: parseStreamValue(data.streamsJ84),
-              streamsJ180: parseStreamValue(data.streamsJ180),
-              streamsJ365: parseStreamValue(data.streamsJ365),
-            },
-            include: {
-              User: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                },
-              },
-            },
-          });
-          createdProjects.push(serializeProject(project));
-        }
-
-        // Mettre à jour les projets existants
-        for (const { data } of projectsToUpdate) {
-          const normalizedName = data.name.trim().toLowerCase();
-          const projectStatus = data.status || 'EN_COURS';
-          const projectKey = `${normalizedName}|${projectStatus}`;
-          const projectId = projectsToUpdateMap.get(projectKey);
-          if (!projectId) {
-            throw new Error(
-              `Projet "${data.name.trim()}" avec statut "${projectStatus}" introuvable pour mise à jour`
-            );
-          }
-          const updated = await tx.project.update({
-            where: { id: projectId },
-            data: {
-              name: data.name.trim(),
-              style: data.style?.trim() || null,
-              status: data.status || 'EN_COURS',
-              collab: data.collab?.trim() || null,
-              label: data.label?.trim() || null,
-              labelFinal: data.labelFinal?.trim() || null,
-              releaseDate: data.releaseDate ? new Date(data.releaseDate) : null,
-              externalLink: data.externalLink ? sanitizeUrl(data.externalLink.trim()) : null,
-              streamsJ7: parseStreamValue(data.streamsJ7),
-              streamsJ14: parseStreamValue(data.streamsJ14),
-              streamsJ21: parseStreamValue(data.streamsJ21),
-              streamsJ28: parseStreamValue(data.streamsJ28),
-              streamsJ56: parseStreamValue(data.streamsJ56),
-              streamsJ84: parseStreamValue(data.streamsJ84),
-              streamsJ180: parseStreamValue(data.streamsJ180),
-              streamsJ365: parseStreamValue(data.streamsJ365),
-            },
-            include: {
-              User: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                },
-              },
-            },
-          });
-          updatedProjects.push(serializeProject(updated));
-        }
+        createdProjects.push(
+          ...(await createBatchProjects(
+            tx,
+            session.user.id,
+            projectsToCreate,
+            startOrder,
+            result,
+            urlUtils
+          ))
+        );
+        updatedProjects.push(
+          ...(await updateBatchProjects(
+            tx,
+            projectsToUpdate,
+            projectsToUpdateMap,
+            urlUtils.sanitizeUrl
+          ))
+        );
       },
       {
         maxWait: 30000, // 30 secondes d'attente maximum pour acquérir le verrou

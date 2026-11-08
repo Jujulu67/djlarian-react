@@ -29,124 +29,83 @@ export interface QueryClassification {
 /**
  * Classifie une requête utilisateur
  */
-export function classifyQuery(
-  query: string,
-  lowerQuery: string,
-  filters: Record<string, unknown>
-): QueryClassification {
-  // ... (keeping lines 34-341 as is in the file, we are just fixing the interface and the end)
+/** Détection : isMetaQuestion. */
+function detectIsMetaQuestion(lowerQuery: string): boolean {
+  return /(tu sais faire|tes capacit|tes possibilit|tes fonctionnalit|que peux[- ]?tu|what can you|qui es[- ]?tu|tu t['’]?appelles|who are you|aide[- ]?moi|help me|comment [çc]a marche|how does it work)/i.test(
+    lowerQuery
+  );
+}
 
-  // Détecter si c'est une question sur l'assistant lui-même (pas sur les projets)
-  const isMetaQuestion =
-    /(tu sais faire|tes capacit|tes possibilit|tes fonctionnalit|que peux[- ]?tu|what can you|qui es[- ]?tu|tu t['’]?appelles|who are you|aide[- ]?moi|help me|comment [çc]a marche|how does it work)/i.test(
-      lowerQuery
-    );
-
-  // Demande de conseil (« donne-moi une idée », « conseille-moi ») : réponse de l'IA,
-  // même si « donne » ressemble à une demande de liste
-  const isAdviceRequest =
+/** Détection : isAdviceRequest. */
+function detectIsAdviceRequest(lowerQuery: string): boolean {
+  return (
     /(?:donn|propos|trouv|fil)\w*[-\s]+(?:moi\s+|nous\s+)?(?:une?|des|quelques|ton|votre|d['’]autres)\s+(?:idées?|conseils?|astuces?|avis|suggestions?|pistes?|recommandations?|tips?|stratégies?|méthodes?)\b/i.test(
       lowerQuery
     ) ||
     /\b(?:conseill|recommand|sugg[èeé]r)\w*[-\s]+(?:moi|nous)\b/i.test(lowerQuery) ||
-    /\b(?:tu|vous)\s+(?:me|nous)\s+(?:conseill|recommand|sugg[èeé]r)/i.test(lowerQuery);
+    /\b(?:tu|vous)\s+(?:me|nous)\s+(?:conseill|recommand|sugg[èeé]r)/i.test(lowerQuery)
+  );
+}
 
-  // Détecter type de requête (FR + EN) - UPDATE et CREATE doivent être détectés AVANT count/list
-  // Inclure aussi les patterns simples comme "deadline à X" qui sont des mises à jour
-  // Inclure aussi "en collab avec X à Y" qui est une mise à jour
-  // UPDATE - Tolérer les verbes tronqués courants (fautes de frappe)
-  // IMPORTANT: Ne pas confondre "combie" (faute de "combien") avec "modifie"
-  // On vérifie que ce n'est pas "combie" avant de détecter comme update
-  // IMPORTANT: Exclure "ajoute le projet" / "ajouter un projet" du pattern isUpdate (c'est une création)
-  const hasCombieTypo = /(?:^combie)|(?:combie\s+de)/i.test(lowerQuery);
-  const isProjectCreation =
-    /(?:ajoute|ajouter|ajout|créer|créé|creer|créa)\s+(?:le\s+)?(?:projet|project|un\s+projet|a\s+project)/i.test(
-      lowerQuery
-    );
-  let isUpdate =
-    !hasCombieTypo &&
-    !isProjectCreation &&
-    /(?:modifie|modifier|modifi|modif|modifs|modifiez|change|changer|chang|chg|changes|changez|mets|met|mt|mett|mettez|mettre|passe|passer|pass|pas[sz]|passes|passez|met\s+à\s+jour|mettre\s+à\s+jour|update|updat|set|déplace|déplacer|deplac|pousse|pousser|recul|reculer|retarde|retarder|décal|décaler|marque|marquer|marqu|mrq|marques|marquez|supprime|supprimer|supprim|retire|retirer|remove|delete|enlève|enlever|enleve|prévoit|prévoir|avance|avancer|^deadline\s+(?:à|a|pour)|(?:en\s+)?(?:collab|collaborateur)\s+avec\s+[a-z0-9_\s]+\s+[àa]|ajoute\s+(?:une\s+)?note|ajouter\s+(?:une\s+)?note|note\s+pour|session\s+.*du\s+jour|^note\s+)/i.test(
-      lowerQuery
-    );
-  let isCreate =
-    /(?:ajoute|ajouter|ajout|créer|créé|creer|créa|\bcr[ée](?:e|es|ez|ent)(?![a-zà-ÿ])|nouveau\s+projet|add|create|new\s+project)/i.test(
-      lowerQuery
-    );
-
-  // CONFLICT RESOLUTION:
-  // If both isCreate and isUpdate are true, we need to decide.
-  // "Ajoute une note" -> Should be isUpdate (Parser handles notes)
-  // "Ajoute un projet" -> Should be isCreate (LLM handles creation)
-  if (isCreate && isUpdate) {
-    const isNoteAddition = /(?:note|session)/i.test(lowerQuery);
-    if (isNoteAddition) {
-      isCreate = false; // Force it to be treated as an Update
-    } else {
-      isUpdate = false; // Force it to be treated as a Creation
-    }
-  }
-  // Comptage - tolérant aux fautes de frappe courantes
-  // IMPORTANT: Ne détecter "combien" que s'il est suivi de mots liés aux projets
-  // pour éviter de détecter des questions conversationnelles comme "combien de temps", "combien ça coûte"
-  const hasCountWord =
-    /combien|cb|cbn|combiens?|combie|combin|cobien|conbien|nombre|nombres?|compte|compter|total|how\s*many|count|howmany/i.test(
-      lowerQuery
-    );
-  // Vérifier que "combien" (ou ses variantes cb, cbn, count, etc.) est suivi de mots liés aux projets
-  // IMPORTANT: Inclure toutes les variantes de "combien" utilisées dans hasCountWord
-  const hasProjectContextAfterCount =
-    /(?:combien|cb|cbn|combiens?|combie|combin|cobien|conbien|conbin|count|how\s*many).*(?:projets?|projects?|en\s+cours|encours|terminés?|termines?|annulés?|annules?|ghost|collab|collaborations?|styles?|labels?|sous\s+les?\s+\d+%|avec|sans)/i.test(
-      lowerQuery
-    );
-  // Ou si c'est "nombre de projets" / "total projets" / "compte projets"
-  const hasExplicitProjectCount = /(?:nombre|total|compte).*(?:projets?|projects?)/i.test(
+/** Détection : isProjectCreation. */
+function detectIsProjectCreation(lowerQuery: string): boolean {
+  return /(?:ajoute|ajouter|ajout|créer|créé|creer|créa)\s+(?:le\s+)?(?:projet|project|un\s+projet|a\s+project)/i.test(
     lowerQuery
   );
+}
 
-  const isCount = hasCountWord && (hasProjectContextAfterCount || hasExplicitProjectCount);
-  // Détecter "liste" mais être plus strict avec "quels/quelle" - seulement si suivi de "projets" ou autre contexte
-  // AUSSI: Détecter les questions implicites comme "et les terminés?", "et les ghost prod?" qui sont des questions de liste
-  // Tolérer les verbes tronqués courants (fautes de frappe)
-  const hasExplicitListVerb =
-    /liste|listes?|lister?|list|montre|montres?|montrer?|montr|affiche|affiches?|afficher?|affic|donne|donnes?|donner?|donn|lesquels|show|display/i.test(
-      lowerQuery
-    );
-  const hasQuestionWord =
-    /(?:quels?|quelle|which|what)\s+(?:sont|sont\s+les?|are|are\s+the|projets?|projects?|mes|nos|tes|vos)/i.test(
-      lowerQuery
-    );
-  // Inclure les variations de "ghost prod" avec fautes d'orthographe
-  const hasImplicitListPattern =
-    /(?:^|\s)(?:et\s+)?(?:les?|des?)\s+(?:terminés?|termines?|fini|finis|finit|ghost\s*prod(?:uction)?|ghostprod|gost\s*prod|ghosprod|gausprod|goastprod|ghosp\s*rod|goes\s*prod|gosht\s*prod|gauspraud|gausteprauds|annulés?|annules?|anul|archivés?|archives?|arkiv|rework|rwork|en\s*cours|encours|ancours)\s*[?]?$/i.test(
-      lowerQuery.trim()
-    );
+/** Détection : hasCountWord. */
+function detectHasCountWord(lowerQuery: string): boolean {
+  return /combien|cb|cbn|combiens?|combie|combin|cobien|conbien|nombre|nombres?|compte|compter|total|how\s*many|count|howmany/i.test(
+    lowerQuery
+  );
+}
 
-  // Détecter les phrases courtes avec statut/filtre mais sans verbe d'action explicite
-  // Exemples: "projets terminés", "projets en cours", "ghost production"
-  // Mais PAS: "et nos projets alors?" (début conversationnel)
-  const hasProjectMentionForList = /projets?|projects?|projts?|projs?/i.test(lowerQuery);
-  // Inclure les variations de "ghost prod" avec fautes d'orthographe étendues
-  const hasStatusOrFilter =
-    /(?:terminés?|termines?|fini|finis|finit|treminer|termi|ghost\s*prod(?:uction)?|ghostprod|gost\s*prod|ghosprod|gausprod|goastprod|ghosp\s*rod|goes\s*prod|gosht\s*prod|gauspraud|gausteprauds|annulés?|annules?|anul|archivés?|archives?|arkiv|rework|rwork|en\s*cours|en\s*courrs|encours|ancours|emcours|sous\s*les?\s*\d+|avec|collab)/i.test(
-      lowerQuery
-    );
-  const isShortListRequest =
-    hasProjectMentionForList &&
-    hasStatusOrFilter &&
-    !hasExplicitListVerb &&
-    !hasQuestionWord &&
-    query.length < 50;
-  // Ne pas détecter comme liste si c'est clairement conversationnel (début par "et", "alors", etc. sans verbe d'action)
-  const isConversationalStart =
-    /^(?:et|alors|ok|ouais|oui|bah|ben|hein|dis|écoute|regarde|tiens|voilà|bon|bien|d'accord|daccord|okay|oké|okey)\s+(?:nos|mes|les|des|concernant|pour|sur|à\s+propos\s+de)\s+(?:projets?|projects?)/i.test(
-      lowerQuery.trim()
-    );
-  const isShortListButConversational = isShortListRequest && isConversationalStart;
+/** Détection : hasProjectContextAfterCount. */
+function detectHasProjectContextAfterCount(lowerQuery: string): boolean {
+  return /(?:combien|cb|cbn|combiens?|combie|combin|cobien|conbien|conbin|count|how\s*many).*(?:projets?|projects?|en\s+cours|encours|terminés?|termines?|annulés?|annules?|ghost|collab|collaborations?|styles?|labels?|sous\s+les?\s+\d+%|avec|sans)/i.test(
+    lowerQuery
+  );
+}
 
-  // Détecter les demandes de détails (avec ou sans verbe explicite)
-  // IMPORTANT: "tous les détails" ne signifie PAS "tous les projets", c'est juste "tous les champs"
-  const hasDetailsRequest =
+/** Détection : hasExplicitListVerb. */
+function detectHasExplicitListVerb(lowerQuery: string): boolean {
+  return /liste|listes?|lister?|list|montre|montres?|montrer?|montr|affiche|affiches?|afficher?|affic|donne|donnes?|donner?|donn|lesquels|show|display/i.test(
+    lowerQuery
+  );
+}
+
+/** Détection : hasQuestionWord. */
+function detectHasQuestionWord(lowerQuery: string): boolean {
+  return /(?:quels?|quelle|which|what)\s+(?:sont|sont\s+les?|are|are\s+the|projets?|projects?|mes|nos|tes|vos)/i.test(
+    lowerQuery
+  );
+}
+
+/** Détection : hasImplicitListPattern. */
+function detectHasImplicitListPattern(lowerQuery: string): boolean {
+  return /(?:^|\s)(?:et\s+)?(?:les?|des?)\s+(?:terminés?|termines?|fini|finis|finit|ghost\s*prod(?:uction)?|ghostprod|gost\s*prod|ghosprod|gausprod|goastprod|ghosp\s*rod|goes\s*prod|gosht\s*prod|gauspraud|gausteprauds|annulés?|annules?|anul|archivés?|archives?|arkiv|rework|rwork|en\s*cours|encours|ancours)\s*[?]?$/i.test(
+    lowerQuery.trim()
+  );
+}
+
+/** Détection : hasStatusOrFilter. */
+function detectHasStatusOrFilter(lowerQuery: string): boolean {
+  return /(?:terminés?|termines?|fini|finis|finit|treminer|termi|ghost\s*prod(?:uction)?|ghostprod|gost\s*prod|ghosprod|gausprod|goastprod|ghosp\s*rod|goes\s*prod|gosht\s*prod|gauspraud|gausteprauds|annulés?|annules?|anul|archivés?|archives?|arkiv|rework|rwork|en\s*cours|en\s*courrs|encours|ancours|emcours|sous\s*les?\s*\d+|avec|collab)/i.test(
+    lowerQuery
+  );
+}
+
+/** Détection : isConversationalStart. */
+function detectIsConversationalStart(lowerQuery: string): boolean {
+  return /^(?:et|alors|ok|ouais|oui|bah|ben|hein|dis|écoute|regarde|tiens|voilà|bon|bien|d'accord|daccord|okay|oké|okey)\s+(?:nos|mes|les|des|concernant|pour|sur|à\s+propos\s+de)\s+(?:projets?|projects?)/i.test(
+    lowerQuery.trim()
+  );
+}
+
+/** Détection : hasDetailsRequest. */
+function detectHasDetailsRequest(lowerQuery: string): boolean {
+  return (
     /(?:avec|donne|montre|affiche)\s+(?:tous\s+les?\s+)?(?:les?\s+)?(?:détails?|details?|infos?|informations?)/i.test(
       lowerQuery
     ) ||
@@ -155,76 +114,52 @@ export function classifyQuery(
     ) ||
     /(?:détails?|details?)\s+complets?|toutes?\s+les?\s+infos?|tout\s+afficher|affiche\s+tout/i.test(
       lowerQuery
-    );
+    )
+  );
+}
 
-  // Détecter une demande explicite de "tous les projets" / "global" / "sans filtre"
-  // IMPORTANT: Distinguer "tous les détails" (champs) de "tous les projets" (scope)
-  const isAllProjectsRequested =
+/** Détection : isAllProjectsRequested. */
+function detectIsAllProjectsRequested(lowerQuery: string): boolean {
+  return (
     /(?:tous\s+les?\s+projets?|toutes?\s+les?\s+projets?|l['’]?ensemble\s+des?\s+projets?|global|sans\s+filtre|aucun\s+filtre)/i.test(
       lowerQuery
     ) ||
     // "affiche tous les détails de tous les projets" -> isAllProjectsRequested = true
     /(?:détails?|details?|infos?)\s+(?:de|des?|sur)\s+(?:tous\s+les?\s+projets?|toutes?\s+les?\s+projets?|l['’]?ensemble)/i.test(
       lowerQuery
-    );
+    )
+  );
+}
 
-  // Détecter une demande de vue détails (sans mention explicite de "tous les projets")
-  // Si "tous les détails" est présent MAIS PAS "tous les projets", c'est une vue détails
-  const isDetailsViewRequested = hasDetailsRequest && !isAllProjectsRequested;
+/** Détection : isNoteAdditionPattern. */
+function detectIsNoteAdditionPattern(lowerQuery: string): boolean {
+  return /(?:ajoute|ajouter)\s+(?:une\s+)?note|note\s+(?:pour|à)|session\s+.*du\s+jour/i.test(
+    lowerQuery
+  );
+}
 
-  // PRIORITÉ : Si c'est un ajout de note, forcer isUpdate et désactiver isList
-  // pour éviter que les patterns d'ajout de note soient interceptés par la détection de filtres
-  const isNoteAdditionPattern =
-    /(?:ajoute|ajouter)\s+(?:une\s+)?note|note\s+(?:pour|à)|session\s+.*du\s+jour/i.test(
-      lowerQuery
-    );
+/** Détection : isEnglish. */
+function detectIsEnglish(lowerQuery: string): boolean {
+  return /\b(how|many|project|under|list|show|which|what|with|no\s*progress|in\s*the\s*works|finished|completed|cancelled)\b/i.test(
+    lowerQuery
+  );
+}
 
-  const isList =
-    !isNoteAdditionPattern && // Ne pas détecter comme liste si c'est un ajout de note
-    !isAdviceRequest &&
-    // « crée un projet X avec collab Y » : le « avec » ne fait pas de cette commande une liste
-    !(isCreate && !isUpdate && !hasExplicitListVerb && !hasQuestionWord) &&
-    (hasExplicitListVerb ||
-      hasQuestionWord ||
-      hasImplicitListPattern ||
-      hasDetailsRequest ||
-      (isShortListRequest && !isShortListButConversational));
-
-  // Détecter la langue de la requête
-  const isEnglish =
-    /\b(how|many|project|under|list|show|which|what|with|no\s*progress|in\s*the\s*works|finished|completed|cancelled)\b/i.test(
-      lowerQuery
-    );
-  const lang = isEnglish ? 'en' : 'fr';
-
-  // Détecter si c'est une question conversationnelle (pas une vraie commande)
-  // IMPORTANT: Si on a un verbe d'action clair (liste, montre, combien, etc.), ce n'est PAS conversationnel
-  // même si ça commence par "et" ou "alors", SAUF si la requête n'est pas liée aux projets
-  const hasActionVerb = isList || isCount || isCreate || isUpdate;
-
-  // Détecter mention de "projet" mais exclure les contextes non musicaux
-  // Exemples à exclure : "projet de macron", "projet de loi", "projet politique", etc.
-  const hasProjectMentionRaw = /projet|project/i.test(lowerQuery);
-
-  // Debug log (utilise le système de debug existant)
-  // Removed hardcoded fetch to localhost endpoint - use debugLog instead
-  const isProjectInNonMusicalContext =
+/** Détection : isProjectInNonMusicalContext. */
+function detectIsProjectInNonMusicalContext(lowerQuery: string): boolean {
+  return (
     /projet\s+(?:de|du|des?|politique|loi|réforme|société|économique|social|éducatif|culturel|scientifique|recherche|construction|bâtiment|immobilier|développement|numérique|informatique|web|site|application|logiciel|software)/i.test(
       lowerQuery
     ) ||
     /(?:politique|loi|réforme|société|économique|social|éducatif|culturel|scientifique|recherche|construction|bâtiment|immobilier|développement|numérique|informatique|web|site|application|logiciel|software)\s+(?:de\s+)?(?:projet|project)/i.test(
       lowerQuery
-    );
+    )
+  );
+}
 
-  // "projet" est pertinent seulement si ce n'est PAS dans un contexte non musical
-  const hasProjectMention = hasProjectMentionRaw && !isProjectInNonMusicalContext;
-  const hasProjectRelatedFilters = Object.keys(filters).length > 0 || hasProjectMention;
-
-  // Si on a un verbe d'action mais que la requête n'est pas liée aux projets, c'est conversationnel
-  const isActionVerbButNotProjectRelated = hasActionVerb && !hasProjectRelatedFilters;
-
-  // Détecter les questions sur les projets de l'assistant (possessif 2e personne) - c'est conversationnel
-  const isQuestionAboutAssistantProjects =
+/** Détection : isQuestionAboutAssistantProjects. */
+function detectIsQuestionAboutAssistantProjects(lowerQuery: string): boolean {
+  return (
     /(?:tes|vos|ton|votre|your)\s+(?:projets?|projects?)/i.test(lowerQuery) ||
     /(?:projets?|projects?)\s+(?:de\s+)?(?:toi|vous|you)/i.test(lowerQuery) ||
     // "tu as", "tu gères", "tu fais" + "projets" (avant ou après)
@@ -247,16 +182,13 @@ export function classifyQuery(
     // "quels projets tu gères" / "which projects you manage"
     /(?:quels?|which|what)\s+(?:projets?|projects?)\s+(?:tu|vous|you)\s+(?:gères?|geres|géres|manage|manages|as|a|have|has)/i.test(
       lowerQuery
-    );
+    )
+  );
+}
 
-  if (isQuestionAboutAssistantProjects) {
-    logger.warn("[Parse Query API] Question sur les projets de l'assistant détectée pour:", query);
-  }
-
-  // Détecter les messages très longs qui sont clairement conversationnels
-  // Si le message fait plus de 200 caractères, ne mentionne pas "projet" dans un contexte musical,
-  // et contient des informations personnelles (âge, salaire, lieu, etc.), c'est conversationnel
-  const hasPersonalInfo =
+/** Détection : hasPersonalInfo. */
+function detectHasPersonalInfo(lowerQuery: string): boolean {
+  return (
     /j['’]?ai\s+\d+\s+ans|j['’]?ai\s+\d+\s+années|i\s+am\s+\d+|i\s+have\s+\d+\s+years/i.test(
       lowerQuery
     ) ||
@@ -266,31 +198,45 @@ export function classifyQuery(
     /objectif|goal|but|souhaite|wish|want/i.test(lowerQuery) ||
     /contraintes?|constraints?|constraintes?/i.test(lowerQuery) ||
     /profil\s+personnel|personal\s+profile/i.test(lowerQuery) ||
-    /informations?\s+personnelles?|personal\s+information/i.test(lowerQuery);
+    /informations?\s+personnelles?|personal\s+information/i.test(lowerQuery)
+  );
+}
 
-  // Un message long avec infos personnelles est TOUJOURS conversationnel,
-  // même s'il contient des verbes d'action (comme "fais", "dis") qui ne sont pas des commandes projet
-  const isLongPersonalMessage = query.length > 200 && !hasProjectMention && hasPersonalInfo;
-
-  // Debug pour les messages longs
-  if (query.length > 200) {
-    logger.warn('[Parse Query API] 🔍 Détection message long:', {
-      length: query.length,
-      hasProjectMention,
-      hasActionVerb,
-      hasPersonalInfo,
-      isLongPersonalMessage,
-    });
+/** Détection : isConversationalQuestion. */
+function detectIsConversationalQuestion(
+  lowerQuery: string,
+  flags: {
+    isQuestionAboutAssistantProjects: boolean;
+    isAdviceRequest: boolean;
+    isCreate: boolean;
+    isUpdate: boolean;
+    isLongPersonalMessage: boolean;
+    isActionVerbButNotProjectRelated: boolean;
+    hasActionVerbWithProjects: boolean;
+    hasActionVerb: boolean;
+    hasExplicitListVerb: boolean;
+    isCount: boolean;
+    isList: boolean;
+    hasProjectMention: boolean;
+    filters: Record<string, unknown>;
   }
-
-  // Patterns qui indiquent une conversation plutôt qu'une commande
-  // IMPORTANT: Si on demande les projets de l'assistant, c'est TOUJOURS conversationnel
-  // même si on a un verbe d'action (liste, montre, etc.)
-  // Si on a un verbe d'action clair ET que c'est lié aux projets de l'utilisateur, ce n'est PAS conversationnel
-  // même si ça commence par "et" ou "alors"
-  const hasActionVerbWithProjects = hasActionVerb && hasProjectMention;
-
-  const isConversationalQuestion =
+): boolean {
+  const {
+    isQuestionAboutAssistantProjects,
+    isAdviceRequest,
+    isCreate,
+    isUpdate,
+    isLongPersonalMessage,
+    isActionVerbButNotProjectRelated,
+    hasActionVerbWithProjects,
+    hasActionVerb,
+    hasExplicitListVerb,
+    isCount,
+    isList,
+    hasProjectMention,
+    filters,
+  } = flags;
+  return (
     // Si on demande les projets de l'assistant (pas de l'utilisateur), c'est TOUJOURS conversationnel
     // même si on a un verbe d'action (liste, montre, etc.) - PRIORITÉ ABSOLUE
     isQuestionAboutAssistantProjects ||
@@ -369,7 +315,292 @@ export function classifyQuery(
         (/^combien/i.test(lowerQuery.trim()) &&
           !isCount && // Pas détecté comme isCount (donc pas lié aux projets)
           !hasProjectMention && // Pas de mention de projet
-          Object.keys(filters).length === 0)));
+          Object.keys(filters).length === 0)))
+  );
+}
+
+/** Détection : isList. */
+function detectIsList(
+  lowerQuery: string,
+  flags: {
+    isNoteAdditionPattern: boolean;
+    isAdviceRequest: boolean;
+    isCreate: boolean;
+    isUpdate: boolean;
+    hasExplicitListVerb: boolean;
+    hasQuestionWord: boolean;
+    hasImplicitListPattern: boolean;
+    hasDetailsRequest: boolean;
+    isShortListRequest: boolean;
+    isShortListButConversational: boolean;
+  }
+): boolean {
+  const {
+    isNoteAdditionPattern,
+    isAdviceRequest,
+    isCreate,
+    isUpdate,
+    hasExplicitListVerb,
+    hasQuestionWord,
+    hasImplicitListPattern,
+    hasDetailsRequest,
+    isShortListRequest,
+    isShortListButConversational,
+  } = flags;
+  return (
+    !isNoteAdditionPattern && // Ne pas détecter comme liste si c'est un ajout de note
+    !isAdviceRequest &&
+    // « crée un projet X avec collab Y » : le « avec » ne fait pas de cette commande une liste
+    !(isCreate && !isUpdate && !hasExplicitListVerb && !hasQuestionWord) &&
+    (hasExplicitListVerb ||
+      hasQuestionWord ||
+      hasImplicitListPattern ||
+      hasDetailsRequest ||
+      (isShortListRequest && !isShortListButConversational))
+  );
+}
+
+/** Conflit création / modification : « Ajoute une note » est une modification, « Ajoute un projet » une création. */
+function resolveCreateUpdateConflict(
+  lowerQuery: string,
+  isCreate: boolean,
+  isUpdate: boolean
+): { isCreate: boolean; isUpdate: boolean } {
+  if (!(isCreate && isUpdate)) return { isCreate, isUpdate };
+  const isNoteAddition = /(?:note|session)/i.test(lowerQuery);
+  return isNoteAddition ? { isCreate: false, isUpdate } : { isCreate, isUpdate: false };
+}
+
+/** Requête courte de liste avec statut ou filtre, sans verbe d'action explicite. */
+function detectIsShortListRequest(
+  query: string,
+  flags: {
+    hasProjectMentionForList: boolean;
+    hasStatusOrFilter: boolean;
+    hasExplicitListVerb: boolean;
+    hasQuestionWord: boolean;
+  }
+): boolean {
+  const { hasProjectMentionForList, hasStatusOrFilter, hasExplicitListVerb, hasQuestionWord } =
+    flags;
+  return (
+    hasProjectMentionForList &&
+    hasStatusOrFilter &&
+    !hasExplicitListVerb &&
+    !hasQuestionWord &&
+    query.length < 50
+  );
+}
+
+function logAssistantProjectsQuestion(isQuestion: boolean, query: string): void {
+  if (isQuestion) {
+    logger.warn("[Parse Query API] Question sur les projets de l'assistant détectée pour:", query);
+  }
+}
+
+function logLongMessageDetection(
+  query: string,
+  flags: {
+    hasProjectMention: boolean;
+    hasActionVerb: boolean;
+    hasPersonalInfo: boolean;
+    isLongPersonalMessage: boolean;
+  }
+): void {
+  if (query.length > 200) {
+    logger.warn('[Parse Query API] 🔍 Détection message long:', {
+      length: query.length,
+      ...flags,
+    });
+  }
+}
+
+/** Comptage de projets : « combien » suivi de termes liés aux projets, ou « nombre de projets ». */
+function detectIsCount(
+  hasCountWord: boolean,
+  hasProjectContextAfterCount: boolean,
+  hasExplicitProjectCount: boolean
+): boolean {
+  return hasCountWord && (hasProjectContextAfterCount || hasExplicitProjectCount);
+}
+
+function toLang(isEnglish: boolean): 'en' | 'fr' {
+  return isEnglish ? 'en' : 'fr';
+}
+
+export function classifyQuery(
+  query: string,
+  lowerQuery: string,
+  filters: Record<string, unknown>
+): QueryClassification {
+  // ... (keeping lines 34-341 as is in the file, we are just fixing the interface and the end)
+
+  // Détecter si c'est une question sur l'assistant lui-même (pas sur les projets)
+  const isMetaQuestion = detectIsMetaQuestion(lowerQuery);
+
+  // Demande de conseil (« donne-moi une idée », « conseille-moi ») : réponse de l'IA,
+  // même si « donne » ressemble à une demande de liste
+  const isAdviceRequest = detectIsAdviceRequest(lowerQuery);
+
+  // Détecter type de requête (FR + EN) - UPDATE et CREATE doivent être détectés AVANT count/list
+  // Inclure aussi les patterns simples comme "deadline à X" qui sont des mises à jour
+  // Inclure aussi "en collab avec X à Y" qui est une mise à jour
+  // UPDATE - Tolérer les verbes tronqués courants (fautes de frappe)
+  // IMPORTANT: Ne pas confondre "combie" (faute de "combien") avec "modifie"
+  // On vérifie que ce n'est pas "combie" avant de détecter comme update
+  // IMPORTANT: Exclure "ajoute le projet" / "ajouter un projet" du pattern isUpdate (c'est une création)
+  const hasCombieTypo = /(?:^combie)|(?:combie\s+de)/i.test(lowerQuery);
+  const isProjectCreation = detectIsProjectCreation(lowerQuery);
+  let isUpdate =
+    !hasCombieTypo &&
+    !isProjectCreation &&
+    /(?:modifie|modifier|modifi|modif|modifs|modifiez|change|changer|chang|chg|changes|changez|mets|met|mt|mett|mettez|mettre|passe|passer|pass|pas[sz]|passes|passez|met\s+à\s+jour|mettre\s+à\s+jour|update|updat|set|déplace|déplacer|deplac|pousse|pousser|recul|reculer|retarde|retarder|décal|décaler|marque|marquer|marqu|mrq|marques|marquez|supprime|supprimer|supprim|retire|retirer|remove|delete|enlève|enlever|enleve|prévoit|prévoir|avance|avancer|^deadline\s+(?:à|a|pour)|(?:en\s+)?(?:collab|collaborateur)\s+avec\s+[a-z0-9_\s]+\s+[àa]|ajoute\s+(?:une\s+)?note|ajouter\s+(?:une\s+)?note|note\s+pour|session\s+.*du\s+jour|^note\s+)/i.test(
+      lowerQuery
+    );
+  let isCreate =
+    /(?:ajoute|ajouter|ajout|créer|créé|creer|créa|\bcr[ée](?:e|es|ez|ent)(?![a-zà-ÿ])|nouveau\s+projet|add|create|new\s+project)/i.test(
+      lowerQuery
+    );
+
+  // CONFLICT RESOLUTION:
+  // If both isCreate and isUpdate are true, we need to decide.
+  // "Ajoute une note" -> Should be isUpdate (Parser handles notes)
+  // "Ajoute un projet" -> Should be isCreate (LLM handles creation)
+  ({ isCreate, isUpdate } = resolveCreateUpdateConflict(lowerQuery, isCreate, isUpdate));
+  // Comptage - tolérant aux fautes de frappe courantes
+  // IMPORTANT: Ne détecter "combien" que s'il est suivi de mots liés aux projets
+  // pour éviter de détecter des questions conversationnelles comme "combien de temps", "combien ça coûte"
+  const hasCountWord = detectHasCountWord(lowerQuery);
+  // Vérifier que "combien" (ou ses variantes cb, cbn, count, etc.) est suivi de mots liés aux projets
+  // IMPORTANT: Inclure toutes les variantes de "combien" utilisées dans hasCountWord
+  const hasProjectContextAfterCount = detectHasProjectContextAfterCount(lowerQuery);
+  // Ou si c'est "nombre de projets" / "total projets" / "compte projets"
+  const hasExplicitProjectCount = /(?:nombre|total|compte).*(?:projets?|projects?)/i.test(
+    lowerQuery
+  );
+
+  const isCount = detectIsCount(hasCountWord, hasProjectContextAfterCount, hasExplicitProjectCount);
+  // Détecter "liste" mais être plus strict avec "quels/quelle" - seulement si suivi de "projets" ou autre contexte
+  // AUSSI: Détecter les questions implicites comme "et les terminés?", "et les ghost prod?" qui sont des questions de liste
+  // Tolérer les verbes tronqués courants (fautes de frappe)
+  const hasExplicitListVerb = detectHasExplicitListVerb(lowerQuery);
+  const hasQuestionWord = detectHasQuestionWord(lowerQuery);
+  // Inclure les variations de "ghost prod" avec fautes d'orthographe
+  const hasImplicitListPattern = detectHasImplicitListPattern(lowerQuery);
+
+  // Détecter les phrases courtes avec statut/filtre mais sans verbe d'action explicite
+  // Exemples: "projets terminés", "projets en cours", "ghost production"
+  // Mais PAS: "et nos projets alors?" (début conversationnel)
+  const hasProjectMentionForList = /projets?|projects?|projts?|projs?/i.test(lowerQuery);
+  // Inclure les variations de "ghost prod" avec fautes d'orthographe étendues
+  const hasStatusOrFilter = detectHasStatusOrFilter(lowerQuery);
+  const isShortListRequest = detectIsShortListRequest(query, {
+    hasProjectMentionForList,
+    hasStatusOrFilter,
+    hasExplicitListVerb,
+    hasQuestionWord,
+  });
+  // Ne pas détecter comme liste si c'est clairement conversationnel (début par "et", "alors", etc. sans verbe d'action)
+  const isConversationalStart = detectIsConversationalStart(lowerQuery);
+  const isShortListButConversational = isShortListRequest && isConversationalStart;
+
+  // Détecter les demandes de détails (avec ou sans verbe explicite)
+  // IMPORTANT: "tous les détails" ne signifie PAS "tous les projets", c'est juste "tous les champs"
+  const hasDetailsRequest = detectHasDetailsRequest(lowerQuery);
+
+  // Détecter une demande explicite de "tous les projets" / "global" / "sans filtre"
+  // IMPORTANT: Distinguer "tous les détails" (champs) de "tous les projets" (scope)
+  const isAllProjectsRequested = detectIsAllProjectsRequested(lowerQuery);
+
+  // Détecter une demande de vue détails (sans mention explicite de "tous les projets")
+  // Si "tous les détails" est présent MAIS PAS "tous les projets", c'est une vue détails
+  const isDetailsViewRequested = hasDetailsRequest && !isAllProjectsRequested;
+
+  // PRIORITÉ : Si c'est un ajout de note, forcer isUpdate et désactiver isList
+  // pour éviter que les patterns d'ajout de note soient interceptés par la détection de filtres
+  const isNoteAdditionPattern = detectIsNoteAdditionPattern(lowerQuery);
+
+  const isList = detectIsList(lowerQuery, {
+    isNoteAdditionPattern,
+    isAdviceRequest,
+    isCreate,
+    isUpdate,
+    hasExplicitListVerb,
+    hasQuestionWord,
+    hasImplicitListPattern,
+    hasDetailsRequest,
+    isShortListRequest,
+    isShortListButConversational,
+  });
+
+  // Détecter la langue de la requête
+  const isEnglish = detectIsEnglish(lowerQuery);
+  const lang = toLang(isEnglish);
+
+  // Détecter si c'est une question conversationnelle (pas une vraie commande)
+  // IMPORTANT: Si on a un verbe d'action clair (liste, montre, combien, etc.), ce n'est PAS conversationnel
+  // même si ça commence par "et" ou "alors", SAUF si la requête n'est pas liée aux projets
+  const hasActionVerb = isList || isCount || isCreate || isUpdate;
+
+  // Détecter mention de "projet" mais exclure les contextes non musicaux
+  // Exemples à exclure : "projet de macron", "projet de loi", "projet politique", etc.
+  const hasProjectMentionRaw = /projet|project/i.test(lowerQuery);
+
+  // Debug log (utilise le système de debug existant)
+  // Removed hardcoded fetch to localhost endpoint - use debugLog instead
+  const isProjectInNonMusicalContext = detectIsProjectInNonMusicalContext(lowerQuery);
+
+  // "projet" est pertinent seulement si ce n'est PAS dans un contexte non musical
+  const hasProjectMention = hasProjectMentionRaw && !isProjectInNonMusicalContext;
+  const hasProjectRelatedFilters = Object.keys(filters).length > 0 || hasProjectMention;
+
+  // Si on a un verbe d'action mais que la requête n'est pas liée aux projets, c'est conversationnel
+  const isActionVerbButNotProjectRelated = hasActionVerb && !hasProjectRelatedFilters;
+
+  // Détecter les questions sur les projets de l'assistant (possessif 2e personne) - c'est conversationnel
+  const isQuestionAboutAssistantProjects = detectIsQuestionAboutAssistantProjects(lowerQuery);
+
+  logAssistantProjectsQuestion(isQuestionAboutAssistantProjects, query);
+
+  // Détecter les messages très longs qui sont clairement conversationnels
+  // Si le message fait plus de 200 caractères, ne mentionne pas "projet" dans un contexte musical,
+  // et contient des informations personnelles (âge, salaire, lieu, etc.), c'est conversationnel
+  const hasPersonalInfo = detectHasPersonalInfo(lowerQuery);
+
+  // Un message long avec infos personnelles est TOUJOURS conversationnel,
+  // même s'il contient des verbes d'action (comme "fais", "dis") qui ne sont pas des commandes projet
+  const isLongPersonalMessage = query.length > 200 && !hasProjectMention && hasPersonalInfo;
+
+  // Debug pour les messages longs
+  logLongMessageDetection(query, {
+    hasProjectMention,
+    hasActionVerb,
+    hasPersonalInfo,
+    isLongPersonalMessage,
+  });
+
+  // Patterns qui indiquent une conversation plutôt qu'une commande
+  // IMPORTANT: Si on demande les projets de l'assistant, c'est TOUJOURS conversationnel
+  // même si on a un verbe d'action (liste, montre, etc.)
+  // Si on a un verbe d'action clair ET que c'est lié aux projets de l'utilisateur, ce n'est PAS conversationnel
+  // même si ça commence par "et" ou "alors"
+  const hasActionVerbWithProjects = hasActionVerb && hasProjectMention;
+
+  const isConversationalQuestion = detectIsConversationalQuestion(lowerQuery, {
+    isQuestionAboutAssistantProjects,
+    isAdviceRequest,
+    isCreate,
+    isUpdate,
+    isLongPersonalMessage,
+    isActionVerbButNotProjectRelated,
+    hasActionVerbWithProjects,
+    hasActionVerb,
+    hasExplicitListVerb,
+    isCount,
+    isList,
+    hasProjectMention,
+    filters,
+  });
 
   // Comprendre les expressions liées aux projets (FR + EN)
   // Ne considérer comme "understood" que si :

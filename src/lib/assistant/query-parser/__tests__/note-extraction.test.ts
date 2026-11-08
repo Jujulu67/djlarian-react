@@ -151,25 +151,27 @@ describe('Extraction de notes - Patterns de base', () => {
 
 describe('Extraction de notes - Cas farfelus et variations', () => {
   describe("Variations d'orthographe et fautes", () => {
-    it('devrait gérer "Session magnetise du jour" (sans "d")', () => {
-      const result = extractNoteData('Session magnetise du jour, test');
+    it.each([
+      [
+        'devrait gérer "Session magnetise du jour" (sans "d")',
+        'Session magnetise du jour, test',
+        'magnetise',
+      ],
+      [
+        'devrait gérer "Session magnetiz du jour" (tronqué)',
+        'Session magnetiz du jour, test',
+        'magnetiz',
+      ],
+      [
+        'devrait gérer "Session magnetize du jour" (avec espace bizarre)',
+        'Session  magnetize  du  jour, test',
+        'magnetize',
+      ],
+    ])('%s', (_title, query, projectName) => {
+      const result = extractNoteData(query);
 
       expect(result).not.toBeNull();
-      expect(result?.projectName).toBe('magnetise');
-    });
-
-    it('devrait gérer "Session magnetiz du jour" (tronqué)', () => {
-      const result = extractNoteData('Session magnetiz du jour, test');
-
-      expect(result).not.toBeNull();
-      expect(result?.projectName).toBe('magnetiz');
-    });
-
-    it('devrait gérer "Session magnetize du jour" (avec espace bizarre)', () => {
-      const result = extractNoteData('Session  magnetize  du  jour, test');
-
-      expect(result).not.toBeNull();
-      expect(result?.projectName).toBe('magnetize');
+      expect(result?.projectName).toBe(projectName);
     });
 
     it('devrait gérer "Session MAGNETIZE du jour" (tout en majuscules)', () => {
@@ -188,73 +190,58 @@ describe('Extraction de notes - Cas farfelus et variations', () => {
   });
 
   describe('Ponctuation bizarre', () => {
-    it('devrait gérer "Session magnetize du jour, test" (avec virgule standard)', () => {
-      const result = extractNoteData('Session magnetize du jour, test');
+    it.each([
+      [
+        'devrait gérer "Session magnetize du jour, test" (avec virgule standard)',
+        'Session magnetize du jour, test',
+      ],
+      [
+        'devrait gérer "Session magnetize du jour, test" (avec virgule - points d\'exclamation non supportés)',
+        'Session magnetize du jour, test',
+      ],
+      [
+        'devrait gérer "Session magnetize du jour - test" (tiret)',
+        'Session magnetize du jour - test',
+      ],
+      [
+        'devrait gérer "Session magnetize du jour, test" (avec virgule - point-virgule peut ne pas être supporté)',
+        'Session magnetize du jour, test',
+      ],
+    ])('%s', (_title, query) => {
+      const result = extractNoteData(query);
 
       expect(result).not.toBeNull();
       expect(result?.projectName).toBe('magnetize');
-
-      // Note: les points de suspension peuvent ne pas être reconnus comme séparateur
-      // Le pattern attend une virgule, deux-points ou espace après "du jour"
-    });
-
-    it('devrait gérer "Session magnetize du jour, test" (avec virgule - points d\'exclamation non supportés)', () => {
-      const result = extractNoteData('Session magnetize du jour, test');
-
-      expect(result).not.toBeNull();
-      expect(result?.projectName).toBe('magnetize');
-
-      // Note: les points d'exclamation peuvent ne pas être reconnus comme séparateur
-      // Le pattern attend une virgule, deux-points ou espace après "du jour"
-    });
-
-    it('devrait gérer "Session magnetize du jour - test" (tiret)', () => {
-      const result = extractNoteData('Session magnetize du jour - test');
-
-      expect(result).not.toBeNull();
-      expect(result?.projectName).toBe('magnetize');
-    });
-
-    it('devrait gérer "Session magnetize du jour, test" (avec virgule - point-virgule peut ne pas être supporté)', () => {
-      const result = extractNoteData('Session magnetize du jour, test');
-
-      expect(result).not.toBeNull();
-      expect(result?.projectName).toBe('magnetize');
-
-      // Note: le point-virgule peut ne pas être reconnu comme séparateur
-      // Le pattern attend principalement une virgule ou deux-points
     });
   });
 
   describe('Noms de projets complexes', () => {
-    it('devrait gérer "Session myawesomeproject du jour, test" (sans tirets - les tirets ne sont pas encore supportés)', () => {
-      const result = extractNoteData('Session myawesomeproject du jour, test');
+    it.each([
+      [
+        'devrait gérer "Session myawesomeproject du jour, test" (sans tirets - les tirets ne sont pas encore supportés)',
+        'Session myawesomeproject du jour, test',
+        'myawesomeproject',
+      ],
+      [
+        'devrait gérer "Session project_123 du jour, test" (avec underscore et chiffres)',
+        'Session project_123 du jour, test',
+        'project_123',
+      ],
+      [
+        'devrait gérer "Session project name du jour, test" (nom avec espace)',
+        'Session project name du jour, test',
+        'project name',
+      ],
+      [
+        'devrait gérer "Session project123 du jour, test" (nom avec chiffres)',
+        'Session project123 du jour, test',
+        'project123',
+      ],
+    ])('%s', (_title, query, projectName) => {
+      const result = extractNoteData(query);
 
       expect(result).not.toBeNull();
-      expect(result?.projectName).toBe('myawesomeproject');
-
-      // Note: les tirets dans les noms de projets ne sont pas encore supportés par les patterns regex
-    });
-
-    it('devrait gérer "Session project_123 du jour, test" (avec underscore et chiffres)', () => {
-      const result = extractNoteData('Session project_123 du jour, test');
-
-      expect(result).not.toBeNull();
-      expect(result?.projectName).toBe('project_123');
-    });
-
-    it('devrait gérer "Session project name du jour, test" (nom avec espace)', () => {
-      const result = extractNoteData('Session project name du jour, test');
-
-      expect(result).not.toBeNull();
-      expect(result?.projectName).toBe('project name');
-    });
-
-    it('devrait gérer "Session project123 du jour, test" (nom avec chiffres)', () => {
-      const result = extractNoteData('Session project123 du jour, test');
-
-      expect(result).not.toBeNull();
-      expect(result?.projectName).toBe('project123');
+      expect(result?.projectName).toBe(projectName);
     });
   });
 
@@ -303,37 +290,18 @@ describe('Extraction de notes - Cas farfelus et variations', () => {
   });
 
   describe('Patterns qui ne devraient PAS matcher', () => {
-    it('ne devrait PAS matcher "Session du jour" (pas de nom de projet)', () => {
-      const result = extractNoteData('Session du jour, test');
+    it.each([
+      ['ne devrait PAS matcher "Session du jour" (pas de nom de projet)', 'Session du jour, test'],
+      ['ne devrait PAS matcher "Session magnetize" (sans "du jour")', 'Session magnetize, test'],
+      ['ne devrait PAS matcher "magnetize" seul (sans contexte)', 'magnetize'],
+      ['ne devrait PAS matcher "Session" seul', 'Session'],
+      [
+        'ne devrait PAS matcher des mots communs comme "session" comme nom de projet',
+        'session du jour, test',
+      ],
+    ])('%s', (_title, query) => {
+      const result = extractNoteData(query);
 
-      expect(result).toBeNull();
-    });
-
-    it('ne devrait PAS matcher "Session magnetize" (sans "du jour")', () => {
-      const result = extractNoteData('Session magnetize, test');
-
-      // Ce pattern n'est pas dans les patterns de base, donc devrait retourner null
-      // Mais "magnetize du jour" pourrait matcher le pattern direct
-      // Donc on teste avec un pattern qui ne devrait vraiment pas matcher
-      expect(result).toBeNull();
-    });
-
-    it('ne devrait PAS matcher "magnetize" seul (sans contexte)', () => {
-      const result = extractNoteData('magnetize');
-
-      expect(result).toBeNull();
-    });
-
-    it('ne devrait PAS matcher "Session" seul', () => {
-      const result = extractNoteData('Session');
-
-      expect(result).toBeNull();
-    });
-
-    it('ne devrait PAS matcher des mots communs comme "session" comme nom de projet', () => {
-      const result = extractNoteData('session du jour, test');
-
-      // "session" est dans la liste des mots communs, donc devrait être ignoré
       expect(result).toBeNull();
     });
   });
@@ -428,20 +396,37 @@ describe('Extraction de notes - Cas farfelus et variations', () => {
   });
 
   describe('Patterns alternatifs', () => {
-    it('devrait détecter "Note magnetize, test" (pattern simple)', () => {
-      const result = extractNoteData('Note magnetize, test');
+    it.each([
+      [
+        'devrait détecter "Note magnetize, test" (pattern simple)',
+        'Note magnetize, test',
+        'magnetize',
+        'test',
+      ],
+      [
+        'devrait détecter "Note magnetize: test" (avec deux-points)',
+        'Note magnetize: test',
+        'magnetize',
+        'test',
+      ],
+      [
+        'devrait détecter "myproject, test" (pattern direct simple)',
+        'myproject, test',
+        'myproject',
+        'test',
+      ],
+      [
+        'devrait détecter "project123, reste à faire mix" (pattern direct avec tâches)',
+        'project123, reste à faire mix',
+        'project123',
+        'reste à faire mix',
+      ],
+    ])('%s', (_title, query, projectName, newNote) => {
+      const result = extractNoteData(query);
 
       expect(result).not.toBeNull();
-      expect(result?.projectName).toBe('magnetize');
-      expect(result?.newNote).toBe('test');
-    });
-
-    it('devrait détecter "Note magnetize: test" (avec deux-points)', () => {
-      const result = extractNoteData('Note magnetize: test');
-
-      expect(result).not.toBeNull();
-      expect(result?.projectName).toBe('magnetize');
-      expect(result?.newNote).toBe('test');
+      expect(result?.projectName).toBe(projectName);
+      expect(result?.newNote).toBe(newNote);
     });
 
     it('devrait détecter "magnetize, aujourd\'hui j\'ai fait le break 2" (pattern direct)', () => {
@@ -455,44 +440,14 @@ describe('Extraction de notes - Cas farfelus et variations', () => {
       expect(result?.newNote).toContain('reste a gérer le mix du drop');
     });
 
-    it('devrait détecter "myproject, test" (pattern direct simple)', () => {
-      const result = extractNoteData('myproject, test');
+    it.each([
+      ['ne devrait PAS détecter "le, test" (mot commun)', 'le, test'],
+      ['ne devrait PAS détecter "la, test" (mot commun)', 'la, test'],
+      ['ne devrait PAS détecter "jour, test" (mot commun)', 'jour, test'],
+      ['ne devrait PAS détecter "ab, test" (trop court pour pattern direct)', 'ab, test'],
+    ])('%s', (_title, query) => {
+      const result = extractNoteData(query);
 
-      expect(result).not.toBeNull();
-      expect(result?.projectName).toBe('myproject');
-      expect(result?.newNote).toBe('test');
-    });
-
-    it('devrait détecter "project123, reste à faire mix" (pattern direct avec tâches)', () => {
-      const result = extractNoteData('project123, reste à faire mix');
-
-      expect(result).not.toBeNull();
-      expect(result?.projectName).toBe('project123');
-      expect(result?.newNote).toBe('reste à faire mix');
-    });
-
-    it('ne devrait PAS détecter "le, test" (mot commun)', () => {
-      const result = extractNoteData('le, test');
-
-      expect(result).toBeNull();
-    });
-
-    it('ne devrait PAS détecter "la, test" (mot commun)', () => {
-      const result = extractNoteData('la, test');
-
-      expect(result).toBeNull();
-    });
-
-    it('ne devrait PAS détecter "jour, test" (mot commun)', () => {
-      const result = extractNoteData('jour, test');
-
-      expect(result).toBeNull();
-    });
-
-    it('ne devrait PAS détecter "ab, test" (trop court pour pattern direct)', () => {
-      const result = extractNoteData('ab, test');
-
-      // Le pattern direct exige au moins 3 caractères
       expect(result).toBeNull();
     });
   });

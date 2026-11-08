@@ -9,9 +9,10 @@ import {
   useSpring,
   useTransform,
 } from 'framer-motion';
+import type { MotionValue } from 'framer-motion';
 import Image from 'next/image';
 import { Fragment, useEffect, useRef, useState } from 'react';
-import type { PointerEvent, ReactNode } from 'react';
+import type { PointerEvent, ReactNode, SyntheticEvent } from 'react';
 
 import { Button } from '@/components/ui/Button';
 import { useUiVersion } from '@/hooks/useUiVersion';
@@ -37,6 +38,46 @@ function generateParticles() {
 const TITLE_WORD_STAGGER = 0.08;
 /** Amplitude max de l'effet magnétique du CTA principal (px) */
 const MAGNET_MAX_OFFSET = 6;
+
+/** Flou appliqué au contenu du hero pendant le scroll (v2, desktop) */
+function v2BlurFilter(progress: number) {
+  const blur = Math.min(progress / 0.55, 1) * 6;
+  return blur < 0.1 ? 'none' : `blur(${blur.toFixed(2)}px)`;
+}
+
+/** Entrée v2 : le contenu apparaît tout de suite */
+function v2EnterProps(reduceMotion: boolean, delay: number) {
+  return {
+    initial: reduceMotion ? false : { y: 12, opacity: 0 },
+    animate: { y: 0, opacity: 1 },
+    transition: { duration: durations.slower, ease: easeOutExpo, delay },
+  };
+}
+
+/** Entrée de l'UI legacy : fondu + glissement vertical (désactivé sur mobile) */
+function legacyEnterProps({
+  isMobile,
+  ready,
+  fromY,
+  delay,
+}: Readonly<{ isMobile: boolean; ready: boolean; fromY: number; delay?: number }>) {
+  if (isMobile) {
+    return { initial: { opacity: 1 }, animate: undefined, transition: undefined };
+  }
+  return {
+    initial: { y: fromY, opacity: 0 },
+    animate: ready ? { y: 0, opacity: 1 } : { y: fromY, opacity: 0 },
+    transition: { duration: 0.6, ease: 'easeOut' as const, delay },
+  };
+}
+
+/** Relance la vidéo de la waveform en boucle */
+function loopWaveformVideo(event: SyntheticEvent<HTMLVideoElement>) {
+  const video = event.currentTarget;
+  if (video.duration && video.currentTime >= video.duration - 0.1) {
+    video.currentTime = 0;
+  }
+}
 
 /**
  * Titre du hero en v2 : chaque mot monte de 100 % à 0 dans un masque (overflow-hidden).
@@ -112,65 +153,14 @@ function Magnetic({ children, disabled }: Readonly<{ children: ReactNode; disabl
   );
 }
 
-export default function HeroSection({ config }: Readonly<HeroSectionProps>) {
-  const isV2 = useUiVersion() !== 'legacy';
-  const reduceMotion = useReducedMotion() ?? false;
-  const containerRef = useRef<HTMLDivElement>(null);
-  const isMobile = useMediaQuery('(max-width: 768px)');
-  const [waveformAnimationReady, setWaveformAnimationReady] = useState(false);
-  const [videoLoaded, setVideoLoaded] = useState(false);
-  const [videoFailed, setVideoFailed] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [readyForOtherAnimations, setReadyForOtherAnimations] = useState(false);
-  const criticalDataLoaded = true; // Déjà chargé côté serveur
-
-  // Démarrer la vidéo uniquement après que l'animation de déploiement soit terminée
-  useEffect(() => {
-    if (waveformAnimationReady && videoLoaded && !videoFailed && videoRef.current) {
-      const video = videoRef.current;
-      video.currentTime = 0;
-      video.play().catch((err) => {
-        logger.warn('[Waveform] Erreur lors du démarrage de la vidéo:', err);
-      });
-    }
-  }, [waveformAnimationReady, videoLoaded, videoFailed]);
-
-  // Optimiser useScroll sur mobile
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ['start start', 'end start'],
-  });
-
-  const opacity = useTransform(scrollYProgress, [0, 0.5], [1, isMobile ? 1 : 0]);
-  const scale = useTransform(scrollYProgress, [0, 0.5], [1, isMobile ? 1 : 0.8]);
-  const heroY = useTransform(scrollYProgress, [0, 1], [0, isMobile ? 0 : -50]);
-
-  // Sortie v2 liée au scroll : fondu, léger recul et flou (flou desktop uniquement).
-  // Le filtre reste à `none` au repos : un filtre actif couperait le backdrop-filter du verre.
-  const v2Opacity = useTransform(scrollYProgress, [0, 0.55], [1, 0]);
-  const v2Scale = useTransform(scrollYProgress, [0, 0.55], [1, 0.96]);
-  const v2Filter = useTransform(scrollYProgress, (progress) => {
-    const blur = Math.min(progress / 0.55, 1) * 6;
-    return blur < 0.1 ? 'none' : `blur(${blur.toFixed(2)}px)`;
-  });
-
+/** Fonds animés (legacy), image de bandeau et particules flottantes */
+function HeroBackground({ isMobile }: Readonly<{ isMobile: boolean }>) {
   // Générer des particules flottantes - désactivées sur mobile
   // Utilisation de useState avec initialisation lazy pour éviter les appels impurs pendant le rendu
   const [particles] = useState(() => generateParticles());
 
-  // v2 : le contenu apparaît tout de suite (le titre ne dépend plus du déploiement du waveform)
-  const v2Enter = (delay: number) => ({
-    initial: reduceMotion ? false : { y: 12, opacity: 0 },
-    animate: { y: 0, opacity: 1 },
-    transition: { duration: durations.slower, ease: easeOutExpo, delay },
-  });
-
   return (
-    <div
-      ref={containerRef}
-      className="min-h-[calc(100vh-4rem)] relative overflow-hidden v2:min-h-svh v2:first:-mt-20"
-      style={{ position: 'relative' }}
-    >
+    <>
       {/* Animated Gradient Background Layers */}
       <div className="absolute inset-0 z-0 v2:hidden">
         <div
@@ -227,282 +217,369 @@ export default function HeroSection({ config }: Readonly<HeroSectionProps>) {
             }}
           />
         ))}
+    </>
+  );
+}
+
+/** Titre du hero en legacy (animé par glissement) */
+function LegacyHeroTitle({
+  title,
+  isMobile,
+  ready,
+}: Readonly<{ title: string; isMobile: boolean; ready: boolean }>) {
+  return (
+    <motion.h1
+      {...legacyEnterProps({ isMobile, ready, fromY: 20, delay: 0.1 })}
+      className={`text-5xl md:text-7xl lg:text-8xl font-audiowide mb-6 ${isMobile ? 'text-gradient' : 'text-gradient-animated'}`}
+      style={{ willChange: isMobile ? 'auto' : 'transform, opacity' }}
+    >
+      {title}
+    </motion.h1>
+  );
+}
+
+/** Waveform animée : vidéo en boucle, avec dégradé CSS de secours */
+function HeroWaveform({ isV2, onReady }: Readonly<{ isV2: boolean; onReady: () => void }>) {
+  const [waveformAnimationReady, setWaveformAnimationReady] = useState(false);
+  const [videoLoaded, setVideoLoaded] = useState(false);
+  const [videoFailed, setVideoFailed] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const criticalDataLoaded = true; // Déjà chargé côté serveur
+
+  // Démarrer la vidéo uniquement après que l'animation de déploiement soit terminée
+  useEffect(() => {
+    if (waveformAnimationReady && videoLoaded && !videoFailed && videoRef.current) {
+      const video = videoRef.current;
+      video.currentTime = 0;
+      video.play().catch((err) => {
+        logger.warn('[Waveform] Erreur lors du démarrage de la vidéo:', err);
+      });
+    }
+  }, [waveformAnimationReady, videoLoaded, videoFailed]);
+
+  const fallbackHidden = !videoLoaded || videoFailed;
+  const animatedClass = fallbackHidden && waveformAnimationReady ? 'waveform-animated' : '';
+  const legacyFallbackClass = `absolute inset-0 bg-gradient-to-r from-purple-500 via-blue-500 to-purple-500 bg-[length:200%_100%] ${animatedClass}`;
+  const waveformOpacity = isV2 ? 0.9 : 0.7;
+
+  return (
+    <motion.div
+      initial={{ scaleX: 0, opacity: 0 }}
+      animate={
+        criticalDataLoaded ? { scaleX: 1, opacity: waveformOpacity } : { scaleX: 0, opacity: 0 }
+      }
+      transition={
+        isV2
+          ? { duration: durations.slower, ease: easeOutExpo, delay: 0.25 }
+          : {
+              duration: 0.8,
+              ease: [0.25, 0.1, 0.25, 1],
+              delay: 0,
+            }
+      }
+      onAnimationComplete={() => {
+        setWaveformAnimationReady(true);
+        onReady();
+      }}
+      className={
+        isV2
+          ? 'waveform relative mx-auto h-12 w-full max-w-sm overflow-hidden rounded-full ring-1 ring-inset ring-white/10'
+          : 'waveform w-full max-w-md h-16 rounded-lg glow-purple mx-auto relative overflow-hidden'
+      }
+      style={{
+        position: 'relative',
+        willChange: 'transform, opacity',
+        transform: 'translateZ(0)',
+        backfaceVisibility: 'hidden',
+        WebkitBackfaceVisibility: 'hidden',
+        isolation: 'isolate',
+        contain: 'layout style paint',
+      }}
+    >
+      {/* Video - Lazy loaded avec preload metadata */}
+      {!videoFailed && (
+        <video
+          autoPlay={false}
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          className="absolute inset-0 w-full h-full object-cover opacity-50 mix-blend-overlay"
+          style={{
+            opacity: videoLoaded && waveformAnimationReady ? 0.5 : 0,
+            transition: 'opacity 0.3s ease-in',
+          }}
+          ref={videoRef}
+          onLoadedData={() => {
+            setVideoLoaded(true);
+          }}
+          onTimeUpdate={loopWaveformVideo}
+          onError={() => {
+            setVideoFailed(true);
+            setWaveformAnimationReady(true);
+          }}
+        >
+          <source src="/videos/waveform-gradient.mp4" type="video/mp4" />
+        </video>
+      )}
+
+      {/* Fallback gradient CSS (v2 : dégradé fixe, pas d'animation en boucle) */}
+      <div
+        className={
+          isV2
+            ? 'absolute inset-0 bg-gradient-to-r from-brand-indigo via-brand to-brand-magenta'
+            : legacyFallbackClass
+        }
+        style={{
+          opacity: fallbackHidden ? 1 : 0,
+          display: fallbackHidden ? 'block' : 'none',
+          transition: 'opacity 0.3s ease-out',
+        }}
+      />
+    </motion.div>
+  );
+}
+
+/** Boutons d'action v2 */
+function HeroCtasV2({
+  config,
+  reduceMotion,
+}: Readonly<{ config: HomepageConfig; reduceMotion: boolean }>) {
+  return (
+    <motion.div
+      {...v2EnterProps(reduceMotion, 0.5)}
+      className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row"
+    >
+      <Magnetic disabled={reduceMotion}>
+        <Button asChild size="lg" className="h-12 w-full px-7 text-base sm:w-auto">
+          <a href={config.heroExploreButtonUrl} aria-label={config.heroExploreButtonText}>
+            {config.heroExploreButtonText}
+          </a>
+        </Button>
+      </Magnetic>
+      <Button asChild size="lg" variant="outline" className="h-12 w-full px-7 text-base sm:w-auto">
+        <a href={config.heroEventsButtonUrl} aria-label={config.heroEventsButtonText}>
+          {config.heroEventsButtonText}
+        </a>
+      </Button>
+    </motion.div>
+  );
+}
+
+/** Boutons d'action legacy */
+function HeroCtasLegacy({
+  config,
+  isMobile,
+  ready,
+}: Readonly<{ config: HomepageConfig; isMobile: boolean; ready: boolean }>) {
+  return (
+    <motion.div
+      {...legacyEnterProps({ isMobile, ready, fromY: 20, delay: 0.8 })}
+      className="flex flex-col sm:flex-row gap-4 mt-12 justify-center items-center"
+      style={{
+        position: 'relative',
+        willChange: isMobile ? 'auto' : 'transform, opacity',
+      }}
+    >
+      <a
+        href={config.heroExploreButtonUrl}
+        className="btn-modern px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-full font-montserrat font-semibold text-lg relative overflow-hidden glow-purple animate-glow-pulse focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-black"
+        aria-label={config.heroExploreButtonText}
+      >
+        <span className="relative z-10">{config.heroExploreButtonText}</span>
+      </a>
+      <a
+        href={config.heroEventsButtonUrl}
+        className="btn-modern px-8 py-4 border-2 border-white/30 hover:border-white/60 text-white rounded-full font-montserrat font-semibold text-lg relative overflow-hidden glass-modern-hover backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-black"
+        aria-label={config.heroEventsButtonText}
+      >
+        <span className="relative z-10">{config.heroEventsButtonText}</span>
+      </a>
+    </motion.div>
+  );
+}
+
+/** Indicateur de scroll v2 (suit la sortie du hero) */
+function ScrollIndicatorV2({ opacity }: Readonly<{ opacity: MotionValue<number> }>) {
+  return (
+    <motion.div
+      style={{ opacity }}
+      className="pointer-events-none absolute bottom-8 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center gap-3 [@media(max-height:880px)]:hidden"
+      aria-hidden="true"
+    >
+      <span className="text-[11px] font-medium uppercase tracking-[0.3em] text-white/40">
+        Scroll
+      </span>
+      <span className="h-10 w-px bg-gradient-to-b from-white/40 to-transparent" />
+    </motion.div>
+  );
+}
+
+/** Indicateur de scroll legacy */
+function ScrollIndicatorLegacy() {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ delay: 1, duration: 1 }}
+      className="absolute bottom-16 left-1/2 transform -translate-x-1/2 flex flex-col items-center z-20 glass-modern px-4 py-3 rounded-full"
+      aria-label="Scroll Indicator"
+    >
+      <span className="text-white text-sm mb-2 font-montserrat">Scroll to Explore</span>
+      <div className="w-0.5 h-8 bg-white/30 relative overflow-hidden rounded-full">
+        <motion.div
+          animate={{
+            y: [0, 32, 0],
+          }}
+          transition={{
+            duration: 1.5,
+            repeat: Infinity,
+            ease: 'linear',
+          }}
+          className="w-full h-1/3 bg-gradient-to-b from-purple-400 to-blue-400 absolute top-0 rounded-full"
+          aria-hidden="true"
+        />
+      </div>
+    </motion.div>
+  );
+}
+
+/** Carte centrale du hero : photo, titre, sous-titre, waveform et boutons */
+function HeroCard({
+  config,
+  isV2,
+  isMobile,
+  reduceMotion,
+  ready,
+  onReady,
+}: Readonly<{
+  config: HomepageConfig;
+  isV2: boolean;
+  isMobile: boolean;
+  reduceMotion: boolean;
+  ready: boolean;
+  onReady: () => void;
+}>) {
+  const profileEnter = isV2
+    ? v2EnterProps(reduceMotion, 0)
+    : legacyEnterProps({ isMobile, ready, fromY: -20 });
+  const subtitleEnter = isV2
+    ? v2EnterProps(reduceMotion, 0.35)
+    : legacyEnterProps({ isMobile, ready, fromY: 20, delay: 0.3 });
+
+  return (
+    <div
+      className={
+        isV2
+          ? 'surface-1 w-full max-w-3xl rounded-[2rem] px-6 py-10 sm:px-10 md:px-14 md:py-14'
+          : 'glass-modern rounded-3xl p-8 md:p-12 backdrop-blur-xl border border-white/20 shadow-2xl'
+      }
+      style={{ willChange: isMobile ? 'auto' : 'transform' }}
+    >
+      {/* Profile Picture */}
+      <motion.div
+        {...profileEnter}
+        className="mb-8 relative w-24 h-24 md:w-32 md:h-32 mx-auto rounded-full overflow-hidden shadow-2xl ring-4 ring-white/10 v2:mb-7 v2:h-20 v2:w-20 md:v2:h-24 md:v2:w-24 v2:shadow-none v2:ring-1 v2:ring-white/15"
+        style={{ willChange: isMobile ? 'auto' : 'transform, opacity' }}
+      >
+        <Image
+          src="/images/spotify/profile_pic.jpg"
+          alt="Larian Profile"
+          fill
+          className="object-cover"
+          style={{ objectPosition: '50% 20%' }}
+          priority
+        />
+      </motion.div>
+
+      {isV2 ? (
+        <MaskedTitle text={config.heroTitle} reduceMotion={reduceMotion} />
+      ) : (
+        <LegacyHeroTitle title={config.heroTitle} isMobile={isMobile} ready={ready} />
+      )}
+
+      <motion.p
+        {...subtitleEnter}
+        className="text-xl md:text-2xl text-gray-200 font-montserrat mb-8 max-w-2xl drop-shadow-lg v2:mx-auto v2:max-w-xl v2:text-base sm:v2:text-lg md:v2:text-xl v2:leading-relaxed v2:text-white/60 v2:drop-shadow-none"
+        style={{ willChange: isMobile ? 'auto' : 'transform, opacity' }}
+      >
+        {config.heroSubtitle}
+      </motion.p>
+
+      {/* Enhanced Animated Waveform */}
+      <HeroWaveform isV2={isV2} onReady={onReady} />
+
+      {/* CTA Buttons */}
+      {isV2 ? (
+        <HeroCtasV2 config={config} reduceMotion={reduceMotion} />
+      ) : (
+        <HeroCtasLegacy config={config} isMobile={isMobile} ready={ready} />
+      )}
+    </div>
+  );
+}
+
+export default function HeroSection({ config }: Readonly<HeroSectionProps>) {
+  const isV2 = useUiVersion() !== 'legacy';
+  const reduceMotion = useReducedMotion() ?? false;
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isMobile = useMediaQuery('(max-width: 768px)');
+  const [readyForOtherAnimations, setReadyForOtherAnimations] = useState(false);
+
+  // Optimiser useScroll sur mobile
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ['start start', 'end start'],
+  });
+
+  const opacity = useTransform(scrollYProgress, [0, 0.5], [1, isMobile ? 1 : 0]);
+  const scale = useTransform(scrollYProgress, [0, 0.5], [1, isMobile ? 1 : 0.8]);
+  const heroY = useTransform(scrollYProgress, [0, 1], [0, isMobile ? 0 : -50]);
+
+  // Sortie v2 liée au scroll : fondu, léger recul et flou (flou desktop uniquement).
+  // Le filtre reste à `none` au repos : un filtre actif couperait le backdrop-filter du verre.
+  const v2Opacity = useTransform(scrollYProgress, [0, 0.55], [1, 0]);
+  const v2Scale = useTransform(scrollYProgress, [0, 0.55], [1, 0.96]);
+  const v2Filter = useTransform(scrollYProgress, v2BlurFilter);
+
+  const legacyOpacity = isMobile ? 1 : opacity;
+  const legacyScale = isMobile ? 1 : scale;
+  const v2ContentFilter = isMobile ? undefined : v2Filter;
+  const heroContentStyle = isV2
+    ? {
+        opacity: v2Opacity,
+        scale: v2Scale,
+        filter: v2ContentFilter,
+        y: heroY,
+        position: 'relative' as const,
+      }
+    : { opacity: legacyOpacity, scale: legacyScale, y: heroY, position: 'relative' as const };
+
+  return (
+    <div
+      ref={containerRef}
+      className="min-h-[calc(100vh-4rem)] relative overflow-hidden v2:min-h-svh v2:first:-mt-20"
+      style={{ position: 'relative' }}
+    >
+      <HeroBackground isMobile={isMobile} />
 
       {/* Hero Content */}
       <motion.div
-        style={
-          isV2
-            ? {
-                opacity: v2Opacity,
-                scale: v2Scale,
-                filter: isMobile ? undefined : v2Filter,
-                y: heroY,
-                position: 'relative',
-              }
-            : {
-                opacity: isMobile ? 1 : opacity,
-                scale: isMobile ? 1 : scale,
-                y: heroY,
-                position: 'relative',
-              }
-        }
+        style={heroContentStyle}
         className="relative z-20 h-[calc(100vh-4rem)] flex flex-col items-center justify-center text-center px-4 v2:h-svh v2:min-h-[34rem] v2:pt-20"
       >
-        <div
-          className={
-            isV2
-              ? 'surface-1 w-full max-w-3xl rounded-[2rem] px-6 py-10 sm:px-10 md:px-14 md:py-14'
-              : 'glass-modern rounded-3xl p-8 md:p-12 backdrop-blur-xl border border-white/20 shadow-2xl'
-          }
-          style={{ willChange: isMobile ? 'auto' : 'transform' }}
-        >
-          {/* Profile Picture */}
-          <motion.div
-            {...(isV2
-              ? v2Enter(0)
-              : {
-                  initial: isMobile ? { opacity: 1 } : { y: -20, opacity: 0 },
-                  animate:
-                    isMobile || readyForOtherAnimations
-                      ? isMobile
-                        ? undefined
-                        : { y: 0, opacity: 1 }
-                      : { y: -20, opacity: 0 },
-                  transition: isMobile ? undefined : { duration: 0.6, ease: 'easeOut' },
-                })}
-            className="mb-8 relative w-24 h-24 md:w-32 md:h-32 mx-auto rounded-full overflow-hidden shadow-2xl ring-4 ring-white/10 v2:mb-7 v2:h-20 v2:w-20 md:v2:h-24 md:v2:w-24 v2:shadow-none v2:ring-1 v2:ring-white/15"
-            style={{ willChange: isMobile ? 'auto' : 'transform, opacity' }}
-          >
-            <Image
-              src="/images/spotify/profile_pic.jpg"
-              alt="Larian Profile"
-              fill
-              className="object-cover"
-              style={{ objectPosition: '50% 20%' }}
-              priority
-            />
-          </motion.div>
-
-          {isV2 ? (
-            <MaskedTitle text={config.heroTitle} reduceMotion={reduceMotion} />
-          ) : (
-            <motion.h1
-              initial={isMobile ? { opacity: 1 } : { y: 20, opacity: 0 }}
-              animate={
-                isMobile || readyForOtherAnimations
-                  ? isMobile
-                    ? undefined
-                    : { y: 0, opacity: 1 }
-                  : { y: 20, opacity: 0 }
-              }
-              transition={isMobile ? undefined : { duration: 0.6, ease: 'easeOut', delay: 0.1 }}
-              className={`text-5xl md:text-7xl lg:text-8xl font-audiowide mb-6 ${isMobile ? 'text-gradient' : 'text-gradient-animated'}`}
-              style={{ willChange: isMobile ? 'auto' : 'transform, opacity' }}
-            >
-              {config.heroTitle}
-            </motion.h1>
-          )}
-
-          <motion.p
-            {...(isV2
-              ? v2Enter(0.35)
-              : {
-                  initial: isMobile ? { opacity: 1 } : { y: 20, opacity: 0 },
-                  animate:
-                    isMobile || readyForOtherAnimations
-                      ? isMobile
-                        ? undefined
-                        : { y: 0, opacity: 1 }
-                      : { y: 20, opacity: 0 },
-                  transition: isMobile ? undefined : { duration: 0.6, ease: 'easeOut', delay: 0.3 },
-                })}
-            className="text-xl md:text-2xl text-gray-200 font-montserrat mb-8 max-w-2xl drop-shadow-lg v2:mx-auto v2:max-w-xl v2:text-base sm:v2:text-lg md:v2:text-xl v2:leading-relaxed v2:text-white/60 v2:drop-shadow-none"
-            style={{ willChange: isMobile ? 'auto' : 'transform, opacity' }}
-          >
-            {config.heroSubtitle}
-          </motion.p>
-
-          {/* Enhanced Animated Waveform */}
-          <motion.div
-            initial={{ scaleX: 0, opacity: 0 }}
-            animate={
-              criticalDataLoaded
-                ? { scaleX: 1, opacity: isV2 ? 0.9 : 0.7 }
-                : { scaleX: 0, opacity: 0 }
-            }
-            transition={
-              isV2
-                ? { duration: durations.slower, ease: easeOutExpo, delay: 0.25 }
-                : {
-                    duration: 0.8,
-                    ease: [0.25, 0.1, 0.25, 1],
-                    delay: 0,
-                  }
-            }
-            onAnimationComplete={() => {
-              setWaveformAnimationReady(true);
-              setReadyForOtherAnimations(true);
-            }}
-            className={
-              isV2
-                ? 'waveform relative mx-auto h-12 w-full max-w-sm overflow-hidden rounded-full ring-1 ring-inset ring-white/10'
-                : 'waveform w-full max-w-md h-16 rounded-lg glow-purple mx-auto relative overflow-hidden'
-            }
-            style={{
-              position: 'relative',
-              willChange: 'transform, opacity',
-              transform: 'translateZ(0)',
-              backfaceVisibility: 'hidden',
-              WebkitBackfaceVisibility: 'hidden',
-              isolation: 'isolate',
-              contain: 'layout style paint',
-            }}
-          >
-            {/* Video - Lazy loaded avec preload metadata */}
-            {!videoFailed && (
-              <video
-                autoPlay={false}
-                muted
-                loop
-                playsInline
-                preload="metadata"
-                className="absolute inset-0 w-full h-full object-cover opacity-50 mix-blend-overlay"
-                style={{
-                  opacity: videoLoaded && waveformAnimationReady ? 0.5 : 0,
-                  transition: 'opacity 0.3s ease-in',
-                }}
-                ref={videoRef}
-                onLoadedData={() => {
-                  setVideoLoaded(true);
-                }}
-                onTimeUpdate={(e) => {
-                  const video = e.currentTarget;
-                  if (video.duration && video.currentTime >= video.duration - 0.1) {
-                    video.currentTime = 0;
-                  }
-                }}
-                onError={() => {
-                  setVideoFailed(true);
-                  setWaveformAnimationReady(true);
-                }}
-              >
-                <source src="/videos/waveform-gradient.mp4" type="video/mp4" />
-              </video>
-            )}
-
-            {/* Fallback gradient CSS (v2 : dégradé fixe, pas d'animation en boucle) */}
-            <div
-              className={
-                isV2
-                  ? 'absolute inset-0 bg-gradient-to-r from-brand-indigo via-brand to-brand-magenta'
-                  : `absolute inset-0 bg-gradient-to-r from-purple-500 via-blue-500 to-purple-500 bg-[length:200%_100%] ${(!videoLoaded || videoFailed) && waveformAnimationReady ? 'waveform-animated' : ''}`
-              }
-              style={{
-                opacity: !videoLoaded || videoFailed ? 1 : 0,
-                display: !videoLoaded || videoFailed ? 'block' : 'none',
-                transition: 'opacity 0.3s ease-out',
-              }}
-            />
-          </motion.div>
-
-          {/* CTA Buttons */}
-          {isV2 ? (
-            <motion.div
-              {...v2Enter(0.5)}
-              className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row"
-            >
-              <Magnetic disabled={reduceMotion}>
-                <Button asChild size="lg" className="h-12 w-full px-7 text-base sm:w-auto">
-                  <a href={config.heroExploreButtonUrl} aria-label={config.heroExploreButtonText}>
-                    {config.heroExploreButtonText}
-                  </a>
-                </Button>
-              </Magnetic>
-              <Button
-                asChild
-                size="lg"
-                variant="outline"
-                className="h-12 w-full px-7 text-base sm:w-auto"
-              >
-                <a href={config.heroEventsButtonUrl} aria-label={config.heroEventsButtonText}>
-                  {config.heroEventsButtonText}
-                </a>
-              </Button>
-            </motion.div>
-          ) : (
-            <motion.div
-              initial={isMobile ? { opacity: 1 } : { y: 20, opacity: 0 }}
-              animate={
-                isMobile || readyForOtherAnimations
-                  ? isMobile
-                    ? undefined
-                    : { y: 0, opacity: 1 }
-                  : { y: 20, opacity: 0 }
-              }
-              transition={isMobile ? undefined : { duration: 0.6, ease: 'easeOut', delay: 0.8 }}
-              className="flex flex-col sm:flex-row gap-4 mt-12 justify-center items-center"
-              style={{
-                position: 'relative',
-                willChange: isMobile ? 'auto' : 'transform, opacity',
-              }}
-            >
-              <a
-                href={config.heroExploreButtonUrl}
-                className="btn-modern px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-full font-montserrat font-semibold text-lg relative overflow-hidden glow-purple animate-glow-pulse focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-black"
-                aria-label={config.heroExploreButtonText}
-              >
-                <span className="relative z-10">{config.heroExploreButtonText}</span>
-              </a>
-              <a
-                href={config.heroEventsButtonUrl}
-                className="btn-modern px-8 py-4 border-2 border-white/30 hover:border-white/60 text-white rounded-full font-montserrat font-semibold text-lg relative overflow-hidden glass-modern-hover backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-black"
-                aria-label={config.heroEventsButtonText}
-              >
-                <span className="relative z-10">{config.heroEventsButtonText}</span>
-              </a>
-            </motion.div>
-          )}
-        </div>
+        <HeroCard
+          config={config}
+          isV2={isV2}
+          isMobile={isMobile}
+          reduceMotion={reduceMotion}
+          ready={readyForOtherAnimations}
+          onReady={() => setReadyForOtherAnimations(true)}
+        />
       </motion.div>
 
       {/* Scroll Indicator */}
-      {!isMobile &&
-        (isV2 ? (
-          <motion.div
-            style={{ opacity: v2Opacity }}
-            className="pointer-events-none absolute bottom-8 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center gap-3 [@media(max-height:880px)]:hidden"
-            aria-hidden="true"
-          >
-            <span className="text-[11px] font-medium uppercase tracking-[0.3em] text-white/40">
-              Scroll
-            </span>
-            <span className="h-10 w-px bg-gradient-to-b from-white/40 to-transparent" />
-          </motion.div>
-        ) : (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1, duration: 1 }}
-            className="absolute bottom-16 left-1/2 transform -translate-x-1/2 flex flex-col items-center z-20 glass-modern px-4 py-3 rounded-full"
-            aria-label="Scroll Indicator"
-          >
-            <span className="text-white text-sm mb-2 font-montserrat">Scroll to Explore</span>
-            <div className="w-0.5 h-8 bg-white/30 relative overflow-hidden rounded-full">
-              <motion.div
-                animate={{
-                  y: [0, 32, 0],
-                }}
-                transition={{
-                  duration: 1.5,
-                  repeat: Infinity,
-                  ease: 'linear',
-                }}
-                className="w-full h-1/3 bg-gradient-to-b from-purple-400 to-blue-400 absolute top-0 rounded-full"
-                aria-hidden="true"
-              />
-            </div>
-          </motion.div>
-        ))}
+      {!isMobile && (isV2 ? <ScrollIndicatorV2 opacity={v2Opacity} /> : <ScrollIndicatorLegacy />)}
     </div>
   );
 }

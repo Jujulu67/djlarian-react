@@ -74,20 +74,12 @@ describe('music-service', () => {
       expect(result).toBe('artist/track-name');
     });
 
-    it('should return null for invalid Spotify URL', () => {
-      const result = extractPlatformId('https://example.com', 'spotify');
-
-      expect(result).toBeNull();
-    });
-
-    it('should return null for invalid YouTube URL', () => {
-      const result = extractPlatformId('https://example.com', 'youtube');
-
-      expect(result).toBeNull();
-    });
-
-    it('should return null for invalid SoundCloud URL', () => {
-      const result = extractPlatformId('https://example.com', 'soundcloud');
+    it.each([
+      ['should return null for invalid Spotify URL', 'spotify'],
+      ['should return null for invalid YouTube URL', 'youtube'],
+      ['should return null for invalid SoundCloud URL', 'soundcloud'],
+    ] as const)('%s', (_title, platform) => {
+      const result = extractPlatformId('https://example.com', platform);
 
       expect(result).toBeNull();
     });

@@ -36,6 +36,12 @@ interface FriendsListProps {
   onSendMessage?: (userId: string) => void;
 }
 
+function getEmptyUsersMessage(trimmedQuery: string, availableCount: number): string {
+  if (trimmedQuery) return 'Aucun utilisateur trouvé';
+  if (availableCount === 0) return 'Aucun utilisateur disponible';
+  return 'Commencez à taper pour rechercher';
+}
+
 export function FriendsList({ onSendMessage }: Readonly<FriendsListProps>) {
   const {
     friends,
@@ -201,22 +207,20 @@ export function FriendsList({ onSendMessage }: Readonly<FriendsListProps>) {
             </div>
 
             {/* Liste des utilisateurs */}
-            {isLoadingUsers ? (
+            {isLoadingUsers && (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-6 h-6 animate-spin text-purple-500 v2:text-white/50" />
               </div>
-            ) : filteredAvailableUsers.length === 0 ? (
+            )}
+            {!isLoadingUsers && filteredAvailableUsers.length === 0 && (
               <div className="text-center py-6">
                 <User className="w-10 h-10 text-gray-600 mx-auto mb-2" />
                 <p className="text-sm text-gray-400">
-                  {searchQuery.trim()
-                    ? 'Aucun utilisateur trouvé'
-                    : availableUsers.length === 0
-                      ? 'Aucun utilisateur disponible'
-                      : 'Commencez à taper pour rechercher'}
+                  {getEmptyUsersMessage(searchQuery.trim(), availableUsers.length)}
                 </p>
               </div>
-            ) : (
+            )}
+            {!isLoadingUsers && filteredAvailableUsers.length > 0 && (
               <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar">
                 {filteredAvailableUsers.map((user) => (
                   <div

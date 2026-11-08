@@ -44,25 +44,29 @@ describe('parseExcelData', () => {
     expect(result[0].name).toBe('Project 1');
   });
 
-  it('should parse date in French format', () => {
-    const csvData = 'Nom Projet,Date Sortie\nProject 1,01/01/2024';
-    const result = parseExcelData(csvData, true, 'fr');
+  it.each([
+    [
+      'should parse date in French format',
+      'Nom Projet,Date Sortie\nProject 1,01/01/2024',
+      'fr',
+      '2024-01-01',
+    ],
+    [
+      'should parse date in English format',
+      'Nom Projet,Date Sortie\nProject 1,01/15/2024',
+      'en',
+      '2024-01-15',
+    ],
+    [
+      'should parse ISO date format',
+      'Nom Projet,Date Sortie\nProject 1,2024-01-01',
+      'fr',
+      '2024-01-01',
+    ],
+  ] as const)('%s', (_title, csvData, dateFormat, expected) => {
+    const result = parseExcelData(csvData, true, dateFormat);
 
-    expect(result[0].releaseDate).toBe('2024-01-01');
-  });
-
-  it('should parse date in English format', () => {
-    const csvData = 'Nom Projet,Date Sortie\nProject 1,01/15/2024';
-    const result = parseExcelData(csvData, true, 'en');
-
-    expect(result[0].releaseDate).toBe('2024-01-15');
-  });
-
-  it('should parse ISO date format', () => {
-    const csvData = 'Nom Projet,Date Sortie\nProject 1,2024-01-01';
-    const result = parseExcelData(csvData);
-
-    expect(result[0].releaseDate).toBe('2024-01-01');
+    expect(result[0].releaseDate).toBe(expected);
   });
 
   it('should parse streams columns', () => {
@@ -94,25 +98,25 @@ describe('parseExcelData', () => {
     expect(result[0].name).toBe('Project 1');
   });
 
-  it('should format title case for names', () => {
-    const csvData = 'Nom Projet\nDONT GO';
+  it.each([
+    ['should format title case for names', 'Nom Projet\nDONT GO', 'name', 'Dont Go'],
+    ['should parse status correctly', 'Nom Projet,Statut\nProject 1,TERMINÉ', 'status', 'TERMINE'],
+    [
+      'should parse collab field',
+      'Nom Projet,Collab\nProject 1,Artist Name',
+      'collab',
+      'Artist Name',
+    ],
+    [
+      'should parse external link',
+      'Nom Projet,Lien\nProject 1,https://example.com',
+      'externalLink',
+      'https://example.com',
+    ],
+  ] as const)('%s', (_title, csvData, field, expected) => {
     const result = parseExcelData(csvData);
 
-    expect(result[0].name).toBe('Dont Go');
-  });
-
-  it('should parse status correctly', () => {
-    const csvData = 'Nom Projet,Statut\nProject 1,TERMINÉ';
-    const result = parseExcelData(csvData);
-
-    expect(result[0].status).toBe('TERMINE');
-  });
-
-  it('should parse collab field', () => {
-    const csvData = 'Nom Projet,Collab\nProject 1,Artist Name';
-    const result = parseExcelData(csvData);
-
-    expect(result[0].collab).toBe('Artist Name');
+    expect(result[0][field]).toBe(expected);
   });
 
   it('should parse label fields', () => {
@@ -121,13 +125,6 @@ describe('parseExcelData', () => {
 
     expect(result[0].label).toBe('Label1');
     expect(result[0].labelFinal).toBe('Label2');
-  });
-
-  it('should parse external link', () => {
-    const csvData = 'Nom Projet,Lien\nProject 1,https://example.com';
-    const result = parseExcelData(csvData);
-
-    expect(result[0].externalLink).toBe('https://example.com');
   });
 
   it('should handle CSV with quotes', () => {

@@ -36,6 +36,23 @@ export function extractProjectNameFromFileName(fileName: string): string {
 }
 
 /**
+ * Date au format YYYY-MM-DD : ISO tel quel, sinon reformatée depuis une autre date valide
+ */
+function parseCsvDate(dateStr: string): string | null {
+  // Format ISO (YYYY-MM-DD)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+
+  // Essayer de parser d'autres formats
+  const parsedDate = new Date(dateStr);
+  if (Number.isNaN(parsedDate.getTime())) return null;
+
+  const year = parsedDate.getFullYear();
+  const month = String(parsedDate.getMonth() + 1).padStart(2, '0');
+  const day = String(parsedDate.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
  * Parse un fichier CSV de streams
  */
 export function parseStreamsCsv(fileContent: string, fileName: string): StreamsCsvData {
@@ -75,21 +92,7 @@ export function parseStreamsCsv(fileContent: string, fileName: string): StreamsC
     const [dateStr, streamsStr] = parts;
 
     // Parser la date
-    let date: string | null = null;
-
-    // Format ISO (YYYY-MM-DD)
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-      date = dateStr;
-    } else {
-      // Essayer de parser d'autres formats
-      const parsedDate = new Date(dateStr);
-      if (!Number.isNaN(parsedDate.getTime())) {
-        const year = parsedDate.getFullYear();
-        const month = String(parsedDate.getMonth() + 1).padStart(2, '0');
-        const day = String(parsedDate.getDate()).padStart(2, '0');
-        date = `${year}-${month}-${day}`;
-      }
-    }
+    const date = parseCsvDate(dateStr);
 
     if (!date) {
       errors.push(`Ligne ${i + 1}: Date invalide "${dateStr}"`);

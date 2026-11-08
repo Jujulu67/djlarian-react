@@ -14,6 +14,61 @@ function readToken(name: string, fallback: string) {
   return value ? `rgb(${value.split(' ').join(',')})` : fallback;
 }
 
+interface WaveLayer {
+  color: string;
+  alpha: number;
+  amp: number;
+  freq: number;
+  speed: number;
+  lineWidth: number;
+  blur: number;
+}
+
+interface WaveFrame {
+  time: number;
+  kick: number;
+  mid: number;
+  width: number;
+  reduceMotion: boolean;
+  pointerX: number;
+  pointerStrength: number;
+}
+
+/** Trace une couche d'onde sur toute la largeur du canvas */
+function drawWaveLayer(ctx: CanvasRenderingContext2D, layer: WaveLayer, frame: WaveFrame): void {
+  const { time, kick, mid, width, reduceMotion, pointerX, pointerStrength } = frame;
+  ctx.beginPath();
+  ctx.strokeStyle = layer.color;
+  ctx.globalAlpha = layer.alpha;
+  ctx.lineWidth = layer.lineWidth;
+  ctx.shadowColor = layer.color;
+  ctx.shadowBlur = layer.blur;
+
+  for (let x = 0; x <= width; x += 3) {
+    const u = x / width;
+    // Fenêtre : le signal s'éteint vers les bords
+    const windowing = Math.sin(Math.PI * u) ** 1.5;
+    const t = reduceMotion ? 0 : time * layer.speed;
+    let y =
+      Math.sin(u * Math.PI * 2 * layer.freq + t) * 0.6 +
+      Math.sin(u * Math.PI * 2 * layer.freq * 2.7 - t * 1.3) * 0.25 +
+      Math.sin(u * Math.PI * 2 * layer.freq * 0.5 + t * 0.7) * 0.15;
+    y *= layer.amp * (1 + kick * 1.4);
+
+    // Bosse autour du pointeur
+    if (pointerStrength > 0.01) {
+      const d = (x - pointerX) / (width * 0.08);
+      y +=
+        Math.exp(-d * d) * 0.55 * pointerStrength * Math.sin(time * 0.02 + u * 40) * layer.amp * 2;
+    }
+
+    const py = mid + y * windowing * mid;
+    if (x === 0) ctx.moveTo(x, py);
+    else ctx.lineTo(x, py);
+  }
+  ctx.stroke();
+}
+
 /**
  * Oscilloscope génératif : plusieurs harmoniques qui respirent au tempo, une impulsion
  * à chaque temps (plus forte sur le premier temps de la mesure), et une bosse qui suit
@@ -57,53 +112,28 @@ export default function SignalWave({ bpm = 124, className }: Readonly<SignalWave
       // Enveloppe du kick : attaque instantanée, décroissance exponentielle sur le temps
       const beatPhase = (time % beatMs) / beatMs;
       const isDownbeat = Math.floor(time / beatMs) % 4 === 0;
-      const kick = reduceMotion ? 0 : Math.exp(-beatPhase * 6) * (isDownbeat ? 1 : 0.6);
+      const kickEnvelope = isDownbeat ? 1 : 0.6;
+      const kick = reduceMotion ? 0 : Math.exp(-beatPhase * 6) * kickEnvelope;
 
       pointer.x += (pointer.target - pointer.x) * 0.12;
       pointer.strength += ((pointer.target >= 0 ? 1 : 0) - pointer.strength) * 0.08;
 
-      const layers = [
+      const layers: WaveLayer[] = [
         { color: brand, alpha: 0.35, amp: 0.34, freq: 1.6, speed: 0.00035, lineWidth: 6, blur: 18 },
         { color: ink, alpha: 0.9, amp: 0.26, freq: 2.4, speed: 0.0006, lineWidth: 1.25, blur: 0 },
         { color: ink, alpha: 0.35, amp: 0.18, freq: 5.2, speed: 0.0011, lineWidth: 1, blur: 0 },
       ];
 
       for (const layer of layers) {
-        ctx.beginPath();
-        ctx.strokeStyle = layer.color;
-        ctx.globalAlpha = layer.alpha;
-        ctx.lineWidth = layer.lineWidth;
-        ctx.shadowColor = layer.color;
-        ctx.shadowBlur = layer.blur;
-
-        for (let x = 0; x <= width; x += 3) {
-          const u = x / width;
-          // Fenêtre : le signal s'éteint vers les bords
-          const windowing = Math.sin(Math.PI * u) ** 1.5;
-          const t = reduceMotion ? 0 : time * layer.speed;
-          let y =
-            Math.sin(u * Math.PI * 2 * layer.freq + t) * 0.6 +
-            Math.sin(u * Math.PI * 2 * layer.freq * 2.7 - t * 1.3) * 0.25 +
-            Math.sin(u * Math.PI * 2 * layer.freq * 0.5 + t * 0.7) * 0.15;
-          y *= layer.amp * (1 + kick * 1.4);
-
-          // Bosse autour du pointeur
-          if (pointer.strength > 0.01) {
-            const d = (x - pointer.x) / (width * 0.08);
-            y +=
-              Math.exp(-d * d) *
-              0.55 *
-              pointer.strength *
-              Math.sin(time * 0.02 + u * 40) *
-              layer.amp *
-              2;
-          }
-
-          const py = mid + y * windowing * mid;
-          if (x === 0) ctx.moveTo(x, py);
-          else ctx.lineTo(x, py);
-        }
-        ctx.stroke();
+        drawWaveLayer(ctx, layer, {
+          time,
+          kick,
+          mid,
+          width,
+          reduceMotion,
+          pointerX: pointer.x,
+          pointerStrength: pointer.strength,
+        });
       }
 
       // Impulsion « signal » sur le premier temps : un trait vertical bref au centre

@@ -63,25 +63,26 @@ describe('sanitizeForLogs', () => {
   });
 
   describe('API key masking', () => {
-    it('should mask API keys starting with sk-', () => {
-      const input = 'API key: sk-live_1234567890abcdefghijklmnopqrstuvwxyz';
+    it.each([
+      [
+        'should mask API keys starting with sk-',
+        'API key: sk-live_1234567890abcdefghijklmnopqrstuvwxyz',
+        'sk-live_1234567890abcdefghijklmnopqrstuvwxyz',
+      ],
+      [
+        'should mask API keys starting with pk_',
+        'Public key: pk_test_abcdefghijklmnopqrstuvwxyz1234567890',
+        'pk_test_abcdefghijklmnopqrstuvwxyz1234567890',
+      ],
+      [
+        'should mask Bearer tokens',
+        'Authorization: Bearer abc123def456ghi789jkl012mno345pqr678',
+        'abc123def456ghi789jkl012mno345pqr678',
+      ],
+    ])('%s', (_title, input, secret) => {
       const result = sanitizeForLogs(input);
       expect(result).toContain('[api-key-redacted]');
-      expect(result).not.toContain('sk-live_1234567890abcdefghijklmnopqrstuvwxyz');
-    });
-
-    it('should mask API keys starting with pk_', () => {
-      const input = 'Public key: pk_test_abcdefghijklmnopqrstuvwxyz1234567890';
-      const result = sanitizeForLogs(input);
-      expect(result).toContain('[api-key-redacted]');
-      expect(result).not.toContain('pk_test_abcdefghijklmnopqrstuvwxyz1234567890');
-    });
-
-    it('should mask Bearer tokens', () => {
-      const input = 'Authorization: Bearer abc123def456ghi789jkl012mno345pqr678';
-      const result = sanitizeForLogs(input);
-      expect(result).toContain('[api-key-redacted]');
-      expect(result).not.toContain('abc123def456ghi789jkl012mno345pqr678');
+      expect(result).not.toContain(secret);
     });
 
     it('should be case insensitive for Bearer', () => {
@@ -123,25 +124,26 @@ describe('sanitizeForLogs', () => {
   });
 
   describe('Credit card masking', () => {
-    it('should mask credit card numbers with spaces', () => {
-      const input = 'Card: 4532 1234 5678 9010';
+    it.each([
+      [
+        'should mask credit card numbers with spaces',
+        'Card: 4532 1234 5678 9010',
+        '4532 1234 5678 9010',
+      ],
+      [
+        'should mask credit card numbers with dashes',
+        'Card: 4532-1234-5678-9010',
+        '4532-1234-5678-9010',
+      ],
+      [
+        'should mask credit card numbers without separators',
+        'Card: 4532123456789010',
+        '4532123456789010',
+      ],
+    ])('%s', (_title, input, cardNumber) => {
       const result = sanitizeForLogs(input);
       expect(result).toContain('[card-redacted]');
-      expect(result).not.toContain('4532 1234 5678 9010');
-    });
-
-    it('should mask credit card numbers with dashes', () => {
-      const input = 'Card: 4532-1234-5678-9010';
-      const result = sanitizeForLogs(input);
-      expect(result).toContain('[card-redacted]');
-      expect(result).not.toContain('4532-1234-5678-9010');
-    });
-
-    it('should mask credit card numbers without separators', () => {
-      const input = 'Card: 4532123456789010';
-      const result = sanitizeForLogs(input);
-      expect(result).toContain('[card-redacted]');
-      expect(result).not.toContain('4532123456789010');
+      expect(result).not.toContain(cardNumber);
     });
 
     it('should not mask non-card 16-digit numbers (like project IDs)', () => {

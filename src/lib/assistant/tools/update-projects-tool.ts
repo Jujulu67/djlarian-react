@@ -8,6 +8,75 @@ import { buildWhereClause, buildUpdateData, findProjectByName } from './tool-hel
 import { generateNoteFromContent } from '../parsers/note-generator';
 import { logger } from '@/lib/logger';
 
+/** Ajoute une note à un projet identifié par son nom (ou propose des suggestions s'il n'existe pas). */
+async function addNoteToProject(
+  projectName: string,
+  newNote: string,
+  targetUserId: string,
+  isTestMode: boolean
+) {
+  // Trouver le projet par nom
+  const projectMatch = await findProjectByName(projectName, targetUserId);
+
+  if (!projectMatch) {
+    // Chercher des suggestions de projets similaires
+    const allProjects = await prisma.project.findMany({
+      where: { userId: targetUserId },
+      select: { name: true },
+      take: 10,
+    });
+
+    const suggestions = allProjects
+      .map((p) => p.name)
+      .slice(0, 5)
+      .join(', ');
+
+    return {
+      count: 0,
+      message: `Aucun projet trouvé correspondant à "${projectName}".${
+        suggestions ? ` Projets disponibles : ${suggestions}` : ''
+      }`,
+    };
+  }
+
+  // Récupérer le projet complet avec sa note actuelle
+  const existingProject = await prisma.project.findUnique({
+    where: { id: projectMatch.project.id },
+    select: { note: true },
+  });
+
+  // Générer la nouvelle note avec le template
+  const generatedNote = generateNoteFromContent(newNote);
+
+  // Préfixer la nouvelle note AVANT la note existante (notes plus récentes en premier)
+  const updatedNote = existingProject?.note
+    ? `${generatedNote}\n\n---\n\n${existingProject.note}`
+    : generatedNote;
+
+  // Mode test : ne pas modifier la base de données
+  if (isTestMode) {
+    logger.warn("[TEST MODE] Simulation d'ajout de note:", {
+      projectName: projectMatch.project.name,
+      generatedNote: generatedNote.substring(0, 100) + '...',
+    });
+    return {
+      count: 1,
+      message: `[MODE TEST] Simulation : Note ajoutée au projet "${projectMatch.project.name}".`,
+    };
+  }
+
+  // Mettre à jour le projet avec la nouvelle note
+  await prisma.project.update({
+    where: { id: projectMatch.project.id },
+    data: { note: updatedNote },
+  });
+
+  return {
+    count: 1,
+    message: `Note ajoutée au projet "${projectMatch.project.name}".`,
+  };
+}
+
 export interface UpdateProjectsToolParams {
   getTargetUserId: (query?: string) => Promise<string>;
   normalizedInput: string;
@@ -73,66 +142,7 @@ export function createUpdateProjectsTool({
 
       // Cas spécial : ajout de note à un projet spécifique
       if (projectName && newNote) {
-        // Trouver le projet par nom
-        const projectMatch = await findProjectByName(projectName, targetUserId);
-
-        if (!projectMatch) {
-          // Chercher des suggestions de projets similaires
-          const allProjects = await prisma.project.findMany({
-            where: { userId: targetUserId },
-            select: { name: true },
-            take: 10,
-          });
-
-          const suggestions = allProjects
-            .map((p) => p.name)
-            .slice(0, 5)
-            .join(', ');
-
-          return {
-            count: 0,
-            message: `Aucun projet trouvé correspondant à "${projectName}".${
-              suggestions ? ` Projets disponibles : ${suggestions}` : ''
-            }`,
-          };
-        }
-
-        // Récupérer le projet complet avec sa note actuelle
-        const existingProject = await prisma.project.findUnique({
-          where: { id: projectMatch.project.id },
-          select: { note: true },
-        });
-
-        // Générer la nouvelle note avec le template
-        const generatedNote = generateNoteFromContent(newNote);
-
-        // Préfixer la nouvelle note AVANT la note existante (notes plus récentes en premier)
-        const updatedNote = existingProject?.note
-          ? `${generatedNote}\n\n---\n\n${existingProject.note}`
-          : generatedNote;
-
-        // Mode test : ne pas modifier la base de données
-        if (isTestMode) {
-          logger.warn("[TEST MODE] Simulation d'ajout de note:", {
-            projectName: projectMatch.project.name,
-            generatedNote: generatedNote.substring(0, 100) + '...',
-          });
-          return {
-            count: 1,
-            message: `[MODE TEST] Simulation : Note ajoutée au projet "${projectMatch.project.name}".`,
-          };
-        }
-
-        // Mettre à jour le projet avec la nouvelle note
-        await prisma.project.update({
-          where: { id: projectMatch.project.id },
-          data: { note: updatedNote },
-        });
-
-        return {
-          count: 1,
-          message: `Note ajoutée au projet "${projectMatch.project.name}".`,
-        };
+        return addNoteToProject(projectName, newNote, targetUserId, isTestMode);
       }
 
       // Cas normal : mise à jour en masse par critères

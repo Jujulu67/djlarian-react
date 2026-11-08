@@ -268,38 +268,12 @@ describe('Auth Module Tests', () => {
       expect(createdUser?.email).toBe('newuser@example.com');
     });
 
-    it('should sanitize null image value', () => {
-      const imageValue = null;
-      const shouldBeNull =
-        !imageValue ||
-        (typeof imageValue === 'string' &&
-          (imageValue.trim() === '' || imageValue === 'null' || imageValue === 'undefined'));
-
-      expect(shouldBeNull).toBe(true);
-    });
-
-    it('should sanitize empty string image value', () => {
-      const imageValue = '';
-      const shouldBeNull =
-        !imageValue ||
-        (typeof imageValue === 'string' &&
-          (imageValue.trim() === '' || imageValue === 'null' || imageValue === 'undefined'));
-
-      expect(shouldBeNull).toBe(true);
-    });
-
-    it('should sanitize "null" string image value', () => {
-      const imageValue = 'null';
-      const shouldBeNull =
-        !imageValue ||
-        (typeof imageValue === 'string' &&
-          (imageValue.trim() === '' || imageValue === 'null' || imageValue === 'undefined'));
-
-      expect(shouldBeNull).toBe(true);
-    });
-
-    it('should sanitize "undefined" string image value', () => {
-      const imageValue = 'undefined';
+    it.each([
+      ['null', null],
+      ['empty string', ''],
+      ['"null" string', 'null'],
+      ['"undefined" string', 'undefined'],
+    ])('should sanitize %s image value', (_label, imageValue) => {
       const shouldBeNull =
         !imageValue ||
         (typeof imageValue === 'string' &&

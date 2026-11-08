@@ -41,8 +41,14 @@ jest.mock('ai', () => ({
 
 // Import après les mocks
 jest.mock('@/lib/api/requireAuth', () => ({
-  requireAuth: jest.fn(async () => ({ session: { user: { id: 'u1', role: 'ADMIN' } }, error: null })),
-  requireAdmin: jest.fn(async () => ({ session: { user: { id: 'u1', role: 'ADMIN' } }, error: null })),
+  requireAuth: jest.fn(async () => ({
+    session: { user: { id: 'u1', role: 'ADMIN' } },
+    error: null,
+  })),
+  requireAdmin: jest.fn(async () => ({
+    session: { user: { id: 'u1', role: 'ADMIN' } },
+    error: null,
+  })),
   isInternalRequest: jest.fn(() => false),
 }));
 
@@ -470,26 +476,12 @@ describe("parseQuery API - Tests unitaires et d'intégration", () => {
 
   // Tests pour les dates relatives
   describe('Parsing de dates relatives', () => {
-    it('devrait parser "demain" correctement', async () => {
-      const request = createRequest('met les deadlines à demain');
-      const response = await POST(request);
-      const data = await response.json();
-
-      expect(data.understood).toBe(true);
-      expect(data.updateData?.newDeadline).toBeDefined();
-    });
-
-    it('devrait parser "semaine prochaine" correctement', async () => {
-      const request = createRequest('met les deadlines à la semaine prochaine');
-      const response = await POST(request);
-      const data = await response.json();
-
-      expect(data.understood).toBe(true);
-      expect(data.updateData?.newDeadline).toBeDefined();
-    });
-
-    it('devrait parser "mois prochain" correctement', async () => {
-      const request = createRequest('met les deadlines au mois prochain');
+    it.each([
+      ['demain', 'met les deadlines à demain'],
+      ['semaine prochaine', 'met les deadlines à la semaine prochaine'],
+      ['mois prochain', 'met les deadlines au mois prochain'],
+    ])('devrait parser "%s" correctement', async (_label, query) => {
+      const request = createRequest(query);
       const response = await POST(request);
       const data = await response.json();
 

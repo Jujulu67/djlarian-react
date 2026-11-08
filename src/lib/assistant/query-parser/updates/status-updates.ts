@@ -11,6 +11,79 @@ interface BestMatch {
   matchLength: number;
 }
 
+/** Motif d'un statut : GHOST_PRODUCTION a une forme dédiée pour éviter les faux positifs. */
+function withGhostBoundary(status: string, source: string): string {
+  return status === 'GHOST_PRODUCTION'
+    ? String.raw`(?:ghost|gost)\s+prod(?:uction)?|ghostprod`
+    : source;
+}
+
+/** Teste une paire de statuts (« X en Y » ou « de X à Y ») et renvoie le match valide. */
+function matchStatusPair(
+  cleanedQuery: string,
+  first: StatusCandidate,
+  second: StatusCandidate
+): BestMatch | null {
+  const { source: pattern1Source, status: status1 } = first;
+  const { source: pattern2Source, status: status2 } = second;
+  const pattern1WithBoundary = withGhostBoundary(status1, pattern1Source);
+  const pattern2WithBoundary = withGhostBoundary(status2, pattern2Source);
+
+  // Pattern "X en Y"
+  const XEnYPattern = new RegExp(
+    String.raw`(?:marque|marquer|marques|marquez|mets?|met|mettez|mettre|change|changer|changes|changez|modifie|modifier|modifiez|passe|passer|passes|passez)\s+(?:les?\s+)?(?:projets?\s+)?(${pattern1WithBoundary})\s+en\s+(${pattern2WithBoundary})`,
+    'i'
+  );
+
+  // Pattern "de X à Y"
+  const deXaYPattern = new RegExp(
+    String.raw`(?:marque|marquer|marques|marquez|mets?|met|mettez|mettre|change|changer|changes|changez|modifie|modifier|modifiez|passe|passer|passes|passez)\s+(?:les?\s+)?(?:projets?\s+)?de\s+${pattern1Source}\s+à\s+${pattern2Source}(?:\s|$)`,
+    'i'
+  );
+
+  const XEnYMatch = XEnYPattern.test(cleanedQuery);
+  const deXaYMatch = deXaYPattern.test(cleanedQuery);
+  if (!XEnYMatch && !deXaYMatch) return null;
+
+  const isValid = validateStatusMatch(
+    cleanedQuery,
+    XEnYMatch ? XEnYPattern : null,
+    deXaYMatch ? deXaYPattern : null,
+    first,
+    second
+  );
+  if (!isValid) return null;
+
+  const match = (XEnYMatch ? XEnYPattern : deXaYPattern).exec(cleanedQuery);
+  return { status1, status2, matchLength: match ? match[0].length : 0 };
+}
+
+/** Meilleur match « X en Y » / « de X à Y » (le plus long) parmi toutes les paires de statuts. */
+function findBestStatusMatch(cleanedQuery: string): BestMatch | null {
+  let bestMatch: BestMatch | null = null;
+  const toCandidate = (p: (typeof statusPatterns)[number]): StatusCandidate => ({
+    pattern: p.pattern,
+    source: p.pattern.source,
+    status: p.status,
+  });
+
+  for (const firstPattern of statusPatterns) {
+    for (const secondPattern of statusPatterns) {
+      if (firstPattern.status === secondPattern.status) continue;
+
+      const match = matchStatusPair(
+        cleanedQuery,
+        toCandidate(firstPattern),
+        toCandidate(secondPattern)
+      );
+      if (match && (!bestMatch || match.matchLength > bestMatch.matchLength)) {
+        bestMatch = match;
+      }
+    }
+  }
+  return bestMatch;
+}
+
 /**
  * Extrait les données de changement de statut depuis une requête
  * Détecte les patterns "X en Y" (ex: "projets en cours en annulé")
@@ -23,60 +96,7 @@ export function extractStatusUpdate(
   updateData: UpdateData
 ): boolean {
   let foundEnXenYPattern = false;
-  let bestMatch: BestMatch | null = null;
-
-  // Chercher les patterns "[statut1] en [statut2]" ou "de [statut1] à [statut2]"
-  for (const { pattern: pattern1, status: status1 } of statusPatterns) {
-    for (const { pattern: pattern2, status: status2 } of statusPatterns) {
-      if (status1 === status2) continue;
-
-      const pattern1Source = pattern1.source;
-      const pattern2Source = pattern2.source;
-
-      // Gérer GHOST_PRODUCTION spécialement pour éviter faux positifs
-      const pattern1WithBoundary =
-        status1 === 'GHOST_PRODUCTION'
-          ? String.raw`(?:ghost|gost)\s+prod(?:uction)?|ghostprod`
-          : pattern1Source;
-      const pattern2WithBoundary =
-        status2 === 'GHOST_PRODUCTION'
-          ? String.raw`(?:ghost|gost)\s+prod(?:uction)?|ghostprod`
-          : pattern2Source;
-
-      // Pattern "X en Y"
-      const XEnYPattern = new RegExp(
-        String.raw`(?:marque|marquer|marques|marquez|mets?|met|mettez|mettre|change|changer|changes|changez|modifie|modifier|modifiez|passe|passer|passes|passez)\s+(?:les?\s+)?(?:projets?\s+)?(${pattern1WithBoundary})\s+en\s+(${pattern2WithBoundary})`,
-        'i'
-      );
-
-      // Pattern "de X à Y"
-      const deXaYPattern = new RegExp(
-        String.raw`(?:marque|marquer|marques|marquez|mets?|met|mettez|mettre|change|changer|changes|changez|modifie|modifier|modifiez|passe|passer|passes|passez)\s+(?:les?\s+)?(?:projets?\s+)?de\s+${pattern1Source}\s+à\s+${pattern2Source}(?:\s|$)`,
-        'i'
-      );
-
-      const XEnYMatch = XEnYPattern.test(cleanedQuery);
-      const deXaYMatch = deXaYPattern.test(cleanedQuery);
-
-      if (XEnYMatch || deXaYMatch) {
-        const isValid = validateStatusMatch(
-          cleanedQuery,
-          XEnYMatch ? XEnYPattern : null,
-          deXaYMatch ? deXaYPattern : null,
-          { pattern: pattern1, source: pattern1Source, status: status1 },
-          { pattern: pattern2, source: pattern2Source, status: status2 }
-        );
-
-        if (isValid) {
-          const match = (XEnYMatch ? XEnYPattern : deXaYPattern).exec(cleanedQuery);
-          const matchLength = match ? match[0].length : 0;
-          if (!bestMatch || matchLength > bestMatch.matchLength) {
-            bestMatch = { status1, status2, matchLength };
-          }
-        }
-      }
-    }
-  }
+  const bestMatch = findBestStatusMatch(cleanedQuery);
 
   // Appliquer le meilleur match trouvé
   if (bestMatch) {
@@ -112,6 +132,36 @@ interface StatusCandidate {
   status: string;
 }
 
+/** Un texte capturé est valide pour un statut GHOST_PRODUCTION s'il contient « ghost » ou « gost ». */
+function isGhostTextValid(status: string, trimmedText: string): boolean {
+  return (
+    status !== 'GHOST_PRODUCTION' || trimmedText.includes('ghost') || trimmedText.includes('gost')
+  );
+}
+
+/** Valide la capture « X en Y » : chaque partie doit correspondre à son statut et ne pas être un « projet ». */
+function validateXEnYCapture(
+  match: RegExpExecArray | null,
+  first: StatusCandidate,
+  second: StatusCandidate
+): boolean {
+  if (!match?.[1] || !match[2]) return false;
+
+  const match1Trimmed = match[1].trim().toLowerCase();
+  const match2Trimmed = match[2].trim().toLowerCase();
+
+  // Vérifier que les matches correspondent aux patterns
+  const isMatch1Valid =
+    first.pattern.test(match[1]) && isGhostTextValid(first.status, match1Trimmed);
+  const isMatch2Valid =
+    second.pattern.test(match[2]) && isGhostTextValid(second.status, match2Trimmed);
+
+  // Vérifier que ce n'est pas dans "projets"
+  const isNotProjet = (text: string) => !text.includes('projets') && !text.includes('projet');
+
+  return isMatch1Valid && isMatch2Valid && isNotProjet(match1Trimmed) && isNotProjet(match2Trimmed);
+}
+
 /**
  * Valide qu'un match de statut est correct (pas un faux positif)
  */
@@ -122,38 +172,10 @@ function validateStatusMatch(
   first: StatusCandidate,
   second: StatusCandidate
 ): boolean {
-  const { pattern: pattern1, source: pattern1Source, status: status1 } = first;
-  const { pattern: pattern2, source: pattern2Source, status: status2 } = second;
+  const { pattern: pattern1, source: pattern1Source } = first;
+  const { pattern: pattern2, source: pattern2Source } = second;
   if (XEnYPattern) {
-    const match = XEnYPattern.exec(cleanedQuery);
-    if (!match?.[1] || !match[2]) return false;
-
-    const match1Trimmed = match[1].trim().toLowerCase();
-    const match2Trimmed = match[2].trim().toLowerCase();
-
-    // Vérifier que les matches correspondent aux patterns
-    const match1IsStatus1 = pattern1.test(match[1]);
-    const match2IsStatus2 = pattern2.test(match[2]);
-
-    // Pour GHOST_PRODUCTION, doit contenir "ghost"
-    const isMatch1Valid =
-      match1IsStatus1 &&
-      (status1 === 'GHOST_PRODUCTION'
-        ? match1Trimmed.includes('ghost') || match1Trimmed.includes('gost')
-        : true);
-    const isMatch2Valid =
-      match2IsStatus2 &&
-      (status2 === 'GHOST_PRODUCTION'
-        ? match2Trimmed.includes('ghost') || match2Trimmed.includes('gost')
-        : true);
-
-    // Vérifier que ce n'est pas dans "projets"
-    const match1NotInProjets =
-      !match1Trimmed.includes('projets') && !match1Trimmed.includes('projet');
-    const match2NotInProjets =
-      !match2Trimmed.includes('projets') && !match2Trimmed.includes('projet');
-
-    return isMatch1Valid && isMatch2Valid && match1NotInProjets && match2NotInProjets;
+    return validateXEnYCapture(XEnYPattern.exec(cleanedQuery), first, second);
   }
 
   if (deXaYPattern) {

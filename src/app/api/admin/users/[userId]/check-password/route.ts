@@ -4,6 +4,16 @@ import prisma from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { requireAdmin } from '@/lib/api/requireAuth';
 
+function getSecurityStatus(canUnlink: boolean, oauthAccountCount: number, hasPassword: boolean) {
+  if (!canUnlink) {
+    return 'critical';
+  }
+  if (oauthAccountCount === 1 && hasPassword) {
+    return 'warning';
+  }
+  return 'ok';
+}
+
 /**
  * Route pour vérifier si un utilisateur a un mot de passe et des comptes OAuth
  * GET /api/admin/users/[userId]/check-password
@@ -88,11 +98,7 @@ export async function GET(
       })),
       totalAccounts: user.Account.length,
       canUnlink,
-      securityStatus: canUnlink
-        ? oauthAccounts.length === 1 && hasPassword
-          ? 'warning'
-          : 'ok'
-        : 'critical',
+      securityStatus: getSecurityStatus(canUnlink, oauthAccounts.length, hasPassword),
     });
   } catch (error) {
     logger.error('[Admin] Erreur vérification mot de passe:', error);

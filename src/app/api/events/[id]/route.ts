@@ -8,6 +8,80 @@ import { createSuccessResponse, createForbiddenResponse } from '@/lib/api/respon
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 
+type EventSource = Record<string, unknown> & {
+  startDate: Date | string;
+  endDate: Date | string | null;
+};
+
+function buildVirtualEventResponse(
+  event: EventSource,
+  id: string,
+  virtualStartDate: string
+): Response {
+  try {
+    logger.debug(
+      `Creating virtual event based on master event ${id} with date ${virtualStartDate}`
+    );
+
+    // Calculer la durée entre la date de début et de fin de l'événement original
+    let duration = 0;
+    if (event.endDate) {
+      duration = new Date(event.endDate).getTime() - new Date(event.startDate).getTime();
+      logger.debug(`Original event duration: ${duration}ms`);
+    }
+
+    // Convertir la date virtuelle en objet Date puis en chaîne ISO pour assurer la cohérence
+    const virtualDate = new Date(virtualStartDate);
+    const formattedVirtualDate = virtualDate.toISOString();
+
+    // Créer un événement virtuel basé sur l'événement maître
+    const virtualEvent = {
+      ...event,
+      // Générer un ID virtuel pour référence interne uniquement
+      id: `${id}___VIRTUAL___${formattedVirtualDate}`,
+      // Remplacer complètement la date de début par la date virtuelle
+      startDate: formattedVirtualDate,
+      // Si l'événement a une date de fin, calculer la nouvelle date de fin
+      endDate: event.endDate ? new Date(virtualDate.getTime() + duration).toISOString() : null,
+      isVirtualOccurrence: true,
+      virtualStartDate: formattedVirtualDate,
+      masterId: id,
+    };
+
+    logger.debug(`Returning virtual event with date: ${virtualEvent.startDate}`);
+    // Assurons-nous que la date virtuelle est bien appliquée
+    logger.debug(
+      `Date comparison - Original: ${event.startDate}, Virtual: ${virtualEvent.startDate}`
+    );
+    return createSuccessResponse(virtualEvent);
+  } catch (error) {
+    logger.error(`Error creating virtual event:`, error);
+    return handleApiError(error, 'GET /api/events/[id]');
+  }
+}
+
+// Renomme les relations Prisma au format attendu par le client
+function formatEventForClient(event: Record<string, unknown>): Record<string, unknown> {
+  const formattedEvent: Record<string, unknown> = { ...event };
+
+  if ('TicketInfo' in event) {
+    formattedEvent.tickets = event.TicketInfo;
+    delete formattedEvent.TicketInfo;
+  }
+
+  if ('RecurrenceConfig' in event) {
+    formattedEvent.recurrenceConfig = event.RecurrenceConfig;
+    delete formattedEvent.RecurrenceConfig;
+  }
+
+  if ('User' in event) {
+    formattedEvent.user = event.User;
+    delete formattedEvent.User;
+  }
+
+  return formattedEvent;
+}
+
 // GET - Récupérer un événement spécifique par son ID
 export async function GET(
   request: NextRequest,
@@ -79,70 +153,13 @@ export async function GET(
 
     // Si c'est un événement virtuel avec une date valide, modifier les dates
     if (virtualStartDate) {
-      try {
-        logger.debug(
-          `Creating virtual event based on master event ${id} with date ${virtualStartDate}`
-        );
-
-        // Calculer la durée entre la date de début et de fin de l'événement original
-        let duration = 0;
-        if (event.endDate) {
-          duration = new Date(event.endDate).getTime() - new Date(event.startDate).getTime();
-          logger.debug(`Original event duration: ${duration}ms`);
-        }
-
-        // Convertir la date virtuelle en objet Date puis en chaîne ISO pour assurer la cohérence
-        const virtualDate = new Date(virtualStartDate);
-        const formattedVirtualDate = virtualDate.toISOString();
-
-        // Créer un événement virtuel basé sur l'événement maître
-        const virtualEvent = {
-          ...event,
-          // Générer un ID virtuel pour référence interne uniquement
-          id: `${id}___VIRTUAL___${formattedVirtualDate}`,
-          // Remplacer complètement la date de début par la date virtuelle
-          startDate: formattedVirtualDate,
-          // Si l'événement a une date de fin, calculer la nouvelle date de fin
-          endDate: event.endDate ? new Date(virtualDate.getTime() + duration).toISOString() : null,
-          isVirtualOccurrence: true,
-          virtualStartDate: formattedVirtualDate,
-          masterId: id,
-        };
-
-        logger.debug(`Returning virtual event with date: ${virtualEvent.startDate}`);
-        // Assurons-nous que la date virtuelle est bien appliquée
-        logger.debug(
-          `Date comparison - Original: ${event.startDate}, Virtual: ${virtualEvent.startDate}`
-        );
-        return createSuccessResponse(virtualEvent);
-      } catch (error) {
-        logger.error(`Error creating virtual event:`, error);
-        return handleApiError(error, 'GET /api/events/[id]');
-      }
+      return buildVirtualEventResponse(event, id, virtualStartDate);
     }
 
     logger.debug(`Returning regular event with date: ${event.startDate}`);
 
     // Formater l'événement pour correspondre à ce qu'attend le client
-    const formattedEvent: Record<string, unknown> = { ...event };
-
-    // Renommer les propriétés s'ils existent
-    if ('TicketInfo' in event) {
-      formattedEvent.tickets = event.TicketInfo;
-      delete formattedEvent.TicketInfo;
-    }
-
-    if ('RecurrenceConfig' in event) {
-      formattedEvent.recurrenceConfig = event.RecurrenceConfig;
-      delete formattedEvent.RecurrenceConfig;
-    }
-
-    if ('User' in event) {
-      formattedEvent.user = event.User;
-      delete formattedEvent.User;
-    }
-
-    return createSuccessResponse(formattedEvent);
+    return createSuccessResponse(formatEventForClient(event));
   } catch (error) {
     return handleApiError(error, 'GET /api/events/[id]');
   }
@@ -151,42 +168,39 @@ export async function GET(
 type JsonBody = Awaited<ReturnType<NextRequest['json']>>;
 
 /** Champs simples de l'événement : seuls ceux présents dans la requête sont modifiés. */
-function buildEventUpdate(body: JsonBody): Prisma.EventUpdateInput {
-  const {
-    title,
-    description,
-    location,
-    address,
-    startDate,
-    endDate,
-    status,
-    isPublished,
-    featured,
-    imageId,
-    publishAt,
-  } = body;
-
-  const dataToUpdate: Prisma.EventUpdateInput = {};
+function applySimpleFields(dataToUpdate: Prisma.EventUpdateInput, body: JsonBody) {
+  const { title, description, location, address, status, isPublished, featured, imageId } = body;
 
   if (title !== undefined) dataToUpdate.title = title;
   if (description !== undefined) dataToUpdate.description = description;
   if (location !== undefined) dataToUpdate.location = location;
   if (address !== undefined) dataToUpdate.address = address;
+  if (status !== undefined) dataToUpdate.status = status;
+  if (isPublished !== undefined) dataToUpdate.isPublished = isPublished;
+  if (featured !== undefined) dataToUpdate.featured = featured;
+  if (imageId !== undefined) {
+    dataToUpdate.imageId = imageId;
+  }
+}
+
+/** Dates de l'événement : converties en Date, vidées si la valeur est falsy. */
+function applyDateFields(dataToUpdate: Prisma.EventUpdateInput, body: JsonBody) {
+  const { startDate, endDate, publishAt } = body;
+
   if (startDate !== undefined) {
     dataToUpdate.startDate = startDate ? new Date(startDate) : undefined;
   }
   if (endDate !== undefined) {
     dataToUpdate.endDate = endDate ? new Date(endDate) : undefined;
   }
-  if (status !== undefined) dataToUpdate.status = status;
-  if (isPublished !== undefined) dataToUpdate.isPublished = isPublished;
-  if (featured !== undefined) dataToUpdate.featured = featured;
   if (publishAt !== undefined) dataToUpdate.publishAt = publishAt ? new Date(publishAt) : null;
+}
 
-  if (imageId !== undefined) {
-    dataToUpdate.imageId = imageId;
-  }
-
+/** Champs simples de l'événement : seuls ceux présents dans la requête sont modifiés. */
+function buildEventUpdate(body: JsonBody): Prisma.EventUpdateInput {
+  const dataToUpdate: Prisma.EventUpdateInput = {};
+  applySimpleFields(dataToUpdate, body);
+  applyDateFields(dataToUpdate, body);
   return dataToUpdate;
 }
 
@@ -212,6 +226,28 @@ async function connectEditor(dataToUpdate: Prisma.EventUpdateInput, userId: stri
   }
 }
 
+function buildTicketUpdate(tickets: JsonBody) {
+  return {
+    price: tickets.price !== undefined ? Number(tickets.price) : undefined,
+    currency: tickets.currency || undefined,
+    buyUrl: tickets.buyUrl || undefined,
+    quantity: tickets.quantity !== undefined ? Number(tickets.quantity) : undefined,
+    availableFrom: tickets.availableFrom ? new Date(tickets.availableFrom) : undefined,
+    availableTo: tickets.availableTo ? new Date(tickets.availableTo) : undefined,
+  };
+}
+
+function buildTicketCreate(tickets: JsonBody) {
+  return {
+    currency: (tickets.currency || 'EUR') as string,
+    ...(tickets.price !== undefined && { price: Number(tickets.price) }),
+    ...(tickets.buyUrl && { buyUrl: tickets.buyUrl as string }),
+    ...(tickets.quantity !== undefined && { quantity: Number(tickets.quantity) }),
+    ...(tickets.availableFrom && { availableFrom: new Date(tickets.availableFrom) }),
+    ...(tickets.availableTo && { availableTo: new Date(tickets.availableTo) }),
+  } as Prisma.TicketInfoCreateWithoutEventInput;
+}
+
 async function applyTickets(
   dataToUpdate: Prisma.EventUpdateInput,
   id: string,
@@ -225,28 +261,10 @@ async function applyTickets(
 
     if (existingTickets) {
       // Mettre à jour les tickets existants
-      dataToUpdate.TicketInfo = {
-        update: {
-          price: tickets.price !== undefined ? Number(tickets.price) : undefined,
-          currency: tickets.currency || undefined,
-          buyUrl: tickets.buyUrl || undefined,
-          quantity: tickets.quantity !== undefined ? Number(tickets.quantity) : undefined,
-          availableFrom: tickets.availableFrom ? new Date(tickets.availableFrom) : undefined,
-          availableTo: tickets.availableTo ? new Date(tickets.availableTo) : undefined,
-        },
-      };
+      dataToUpdate.TicketInfo = { update: buildTicketUpdate(tickets) };
     } else {
       // Créer de nouveaux tickets
-      dataToUpdate.TicketInfo = {
-        create: {
-          currency: (tickets.currency || 'EUR') as string,
-          ...(tickets.price !== undefined && { price: Number(tickets.price) }),
-          ...(tickets.buyUrl && { buyUrl: tickets.buyUrl as string }),
-          ...(tickets.quantity !== undefined && { quantity: Number(tickets.quantity) }),
-          ...(tickets.availableFrom && { availableFrom: new Date(tickets.availableFrom) }),
-          ...(tickets.availableTo && { availableTo: new Date(tickets.availableTo) }),
-        } as Prisma.TicketInfoCreateWithoutEventInput,
-      };
+      dataToUpdate.TicketInfo = { create: buildTicketCreate(tickets) };
     }
   } catch (error) {
     logger.error('Erreur lors de la mise à jour des tickets:', error);

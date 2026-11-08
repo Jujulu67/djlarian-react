@@ -279,11 +279,13 @@ export default function HistoryModal({
                   <div className="flex justify-center p-8">
                     <RefreshCw className="h-8 w-8 text-purple-400 animate-spin" />
                   </div>
-                ) : history.length === 0 ? (
+                ) : null}
+                {!loading && history.length === 0 ? (
                   <div className="text-center p-8 text-gray-400">
                     Aucune modification enregistrée
                   </div>
-                ) : (
+                ) : null}
+                {!loading && history.length > 0 ? (
                   <div className="space-y-3">
                     {history.map((item) => (
                       <div
@@ -373,7 +375,7 @@ export default function HistoryModal({
                       </div>
                     ))}
                   </div>
-                )}
+                ) : null}
               </div>
             </TabsContent>
 

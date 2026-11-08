@@ -50,6 +50,65 @@ function waitForAudioReady(audio: HTMLAudioElement | null): Promise<void> {
 
 const SUBMISSIONS_STATUS_REFRESH_MS = 60_000;
 
+/** Supprime les clés de brouillon du sessionStorage (erreurs journalisées). */
+function clearLiveFormSession(): void {
+  try {
+    sessionStorage.removeItem('liveSubmissionForm');
+    sessionStorage.removeItem('liveSubmissionDraftId');
+  } catch (error) {
+    logger.error('Erreur lors du nettoyage de sessionStorage:', error);
+  }
+}
+
+/** Message d'erreur affiché quand l'envoi d'un brouillon échoue. */
+function getDraftSubmitErrorMessage(status: number, errorData: { error?: string }): string {
+  if (status === 503) return 'Les soumissions sont indisponibles pour le moment';
+  return errorData.error || 'Erreur lors de la soumission';
+}
+
+/** Lit l'analyse audio mise en cache dans sessionStorage (null si absente ou illisible). */
+function readCachedAnalysis(): AudioAnalysisResult | null {
+  try {
+    const cached = sessionStorage.getItem('liveSubmissionAnalysis');
+    return cached ? JSON.parse(cached) : null;
+  } catch (error) {
+    logger.warn("Erreur lors de la lecture de l'analyse en cache:", error);
+    return null;
+  }
+}
+
+/** Fichier provisoire (vide) portant le nom du brouillon, le temps du téléchargement. */
+function buildPlaceholderAudioFile(fileName: string): File {
+  return new File([new Blob([''], { type: 'audio/mpeg' })], fileName, {
+    type: 'audio/mpeg',
+    lastModified: Date.now(),
+  });
+}
+
+/** Sauvegarde l'analyse audio dans sessionStorage (erreurs journalisées). */
+function saveAnalysisCache(analysis: AudioAnalysisResult): void {
+  try {
+    sessionStorage.setItem('liveSubmissionAnalysis', JSON.stringify(analysis));
+  } catch (error) {
+    logger.warn("Impossible de sauvegarder l'analyse:", error);
+  }
+}
+
+/** Branche l'URL blob sur l'élément audio au prochain tick. */
+function attachAudioSource(audioRef: { current: HTMLAudioElement | null }, audioUrl: string): void {
+  setTimeout(() => {
+    if (audioRef.current) {
+      // Nettoyer l'ancienne source si elle existe
+      if (audioRef.current.src?.startsWith('blob:')) {
+        audioRef.current.pause();
+        URL.revokeObjectURL(audioRef.current.src);
+      }
+      audioRef.current.src = audioUrl;
+      audioRef.current.load();
+    }
+  }, 0);
+}
+
 export function LiveSubmissionForm() {
   const { data: session } = useSession();
   const [title, setTitle] = useState('');
@@ -348,32 +407,75 @@ export function LiveSubmissionForm() {
     [handleFileSelect]
   );
 
+  const submitEdit = useCallback(
+    async (submissionId: string) => {
+      if (!title.trim()) {
+        toast.error('Veuillez entrer un titre');
+        return;
+      }
+
+      const result = await updateSubmission(submissionId, {
+        title: title.trim(),
+        description: description.trim() || undefined,
+      });
+
+      if (result.success) {
+        toast.success('Soumission mise à jour !');
+        setIsEditing(false);
+      } else {
+        toast.error(result.error || 'Erreur lors de la mise à jour');
+      }
+    },
+    [title, description, updateSubmission]
+  );
+
+  const submitDraft = useCallback(
+    async (currentDraftId: string) => {
+      const formData = new FormData();
+      formData.append('draftId', currentDraftId);
+      formData.append('title', title.trim());
+      if (description.trim()) {
+        formData.append('description', description.trim());
+      }
+
+      const response = await fetchWithAuth('/api/live/submissions', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        toast.error(getDraftSubmitErrorMessage(response.status, errorData));
+        return;
+      }
+
+      toast.success('Soumission envoyée avec succès !');
+      // Recharger les soumissions pour passer en mode "Submitted"
+      await loadSubmissions();
+
+      // Déclencher un événement pour recharger les chances immédiatement
+      window.dispatchEvent(new CustomEvent('liveSubmissionSuccess'));
+
+      // Nettoyer le formulaire
+      setDraftId(null);
+      // On garde title/desc/file pour l'affichage en mode "Submitted"
+
+      clearLiveFormSession();
+    },
+    [title, description, loadSubmissions]
+  );
+
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
 
       if (activeSubmission && isEditing) {
         // Mode édition : mise à jour
-        if (!title.trim()) {
-          toast.error('Veuillez entrer un titre');
-          return;
-        }
-
-        const result = await updateSubmission(activeSubmission.id, {
-          title: title.trim(),
-          description: description.trim() || undefined,
-        });
-
-        if (result.success) {
-          toast.success('Soumission mise à jour !');
-          setIsEditing(false);
-        } else {
-          toast.error(result.error || 'Erreur lors de la mise à jour');
-        }
+        await submitEdit(activeSubmission.id);
         return;
       }
 
-      // Mode création (code existant)
+      // Mode création
       if (!selectedFile && !draftId) {
         toast.error('Veuillez sélectionner un fichier audio');
         return;
@@ -385,77 +487,33 @@ export function LiveSubmissionForm() {
       }
 
       try {
-        // Note: isSubmitting est géré par useLiveSubmissions
-
         // Si on a un draft, convertir le draft en soumission
         if (draftId) {
-          const formData = new FormData();
-          formData.append('draftId', draftId);
-          formData.append('title', title.trim());
-          if (description.trim()) {
-            formData.append('description', description.trim());
-          }
-
-          const response = await fetchWithAuth('/api/live/submissions', {
-            method: 'POST',
-            body: formData,
-          });
-
-          if (response.ok) {
-            toast.success('Soumission envoyée avec succès !');
-            // Recharger les soumissions pour passer en mode "Submitted"
-            await loadSubmissions();
-
-            // Déclencher un événement pour recharger les chances immédiatement
-            window.dispatchEvent(new CustomEvent('liveSubmissionSuccess'));
-
-            // Nettoyer le formulaire
-            setDraftId(null);
-            // On garde title/desc/file pour l'affichage en mode "Submitted"
-
-            // Nettoyer sessionStorage
-            try {
-              sessionStorage.removeItem('liveSubmissionForm');
-              sessionStorage.removeItem('liveSubmissionDraftId');
-            } catch (error) {
-              logger.error('Erreur lors du nettoyage de sessionStorage:', error);
-            }
-          } else {
-            const errorData = await response.json();
-            if (response.status === 503) {
-              toast.error('Les soumissions sont indisponibles pour le moment');
-            } else {
-              toast.error(errorData.error || 'Erreur lors de la soumission');
-            }
-          }
-        } else {
-          // Comportement classique si pas de draft
-          const result = await submitFile({
-            file: selectedFile!,
-            title: title.trim(),
-            description: description.trim() || undefined,
-          });
-
-          if (result.success) {
-            toast.success('Soumission envoyée avec succès !');
-            // Le hook a déjà rechargé les soumissions, donc l'effet va se déclencher
-
-            // Déclencher un événement pour recharger les chances immédiatement
-            window.dispatchEvent(new CustomEvent('liveSubmissionSuccess'));
-
-            setDraftId(null);
-
-            // Nettoyer sessionStorage
-            try {
-              sessionStorage.removeItem('liveSubmissionForm');
-              sessionStorage.removeItem('liveSubmissionDraftId');
-            } catch (error) {
-              logger.error('Erreur lors du nettoyage de sessionStorage:', error);
-            }
-          } else {
-            toast.error(result.error || 'Erreur lors de la soumission');
-          }
+          await submitDraft(draftId);
+          return;
         }
+
+        // Comportement classique si pas de draft
+        const result = await submitFile({
+          file: selectedFile!,
+          title: title.trim(),
+          description: description.trim() || undefined,
+        });
+
+        if (!result.success) {
+          toast.error(result.error || 'Erreur lors de la soumission');
+          return;
+        }
+
+        toast.success('Soumission envoyée avec succès !');
+        // Le hook a déjà rechargé les soumissions, donc l'effet va se déclencher
+
+        // Déclencher un événement pour recharger les chances immédiatement
+        window.dispatchEvent(new CustomEvent('liveSubmissionSuccess'));
+
+        setDraftId(null);
+
+        clearLiveFormSession();
       } catch (error) {
         logger.error('Erreur soumission:', error);
         toast.error('Erreur de connexion');
@@ -469,8 +527,8 @@ export function LiveSubmissionForm() {
       submitFile,
       activeSubmission,
       isEditing,
-      updateSubmission,
-      loadSubmissions,
+      submitEdit,
+      submitDraft,
     ]
   );
 
@@ -545,7 +603,7 @@ export function LiveSubmissionForm() {
   }, [isPlaying, selectedFile]);
 
   const handleWaveformClick = useCallback(
-    async (e: React.MouseEvent<HTMLDivElement>) => {
+    async (e: React.MouseEvent<HTMLElement>) => {
       if (!audioRef.current || !audioAnalysis || !selectedFile) {
         if (!selectedFile) {
           toast.error('Aucun fichier sélectionné. Veuillez recharger votre fichier.');
@@ -682,87 +740,58 @@ export function LiveSubmissionForm() {
         if (!savedDraftId) return;
 
         // Vérifier d'abord si l'analyse est en cache pour restaurer immédiatement
-        let cachedAnalysis: AudioAnalysisResult | null = null;
-        try {
-          const cached = sessionStorage.getItem('liveSubmissionAnalysis');
-          if (cached) {
-            cachedAnalysis = JSON.parse(cached);
-          }
-        } catch (error) {
-          logger.warn("Erreur lors de la lecture de l'analyse en cache:", error);
-        }
+        let cachedAnalysis = readCachedAnalysis();
 
         // Récupérer le draft depuis le serveur
         const response = await fetchWithAuth('/api/live/submissions/draft');
-        if (response.ok) {
-          const data = await response.json();
-          const draft = data.data;
+        if (!response.ok) return;
+        const data = await response.json();
+        const draft = data.data;
+        if (draft?.id !== savedDraftId) return;
 
-          if (draft?.id === savedDraftId) {
-            setDraftId(draft.id);
-            setTitle(draft.title || '');
-            setDescription(draft.description || '');
+        setDraftId(draft.id);
+        setTitle(draft.title || '');
+        setDescription(draft.description || '');
 
-            // Si l'analyse est en cache et correspond, l'afficher immédiatement
-            if (cachedAnalysis && cachedAnalysis.fileName === draft.fileName) {
-              setAudioAnalysis(cachedAnalysis);
-              // Créer un fichier temporaire avec juste le nom pour éviter le flash de la zone de drop
-              // Le vrai fichier sera remplacé une fois téléchargé
-              const tempFile = new File([new Blob([''], { type: 'audio/mpeg' })], draft.fileName, {
-                type: 'audio/mpeg',
-                lastModified: Date.now(),
-              });
-              setSelectedFile(tempFile);
-              // Ne pas afficher le loader si l'analyse est en cache
-            } else {
-              cachedAnalysis = null; // L'analyse ne correspond pas, on la refait
-              setIsAnalyzing(true);
-            }
+        // Si l'analyse est en cache et correspond, l'afficher immédiatement
+        if (cachedAnalysis && cachedAnalysis.fileName === draft.fileName) {
+          setAudioAnalysis(cachedAnalysis);
+          // Créer un fichier temporaire avec juste le nom pour éviter le flash de la zone de drop
+          // Le vrai fichier sera remplacé une fois téléchargé
+          setSelectedFile(buildPlaceholderAudioFile(draft.fileName));
+          // Ne pas afficher le loader si l'analyse est en cache
+        } else {
+          cachedAnalysis = null; // L'analyse ne correspond pas, on la refait
+          setIsAnalyzing(true);
+        }
 
-            // Télécharger le fichier en arrière-plan
-            try {
-              const fileResponse = await fetch(draft.fileUrl);
-              if (fileResponse.ok) {
-                const blob = await fileResponse.blob();
-                const file = new File([blob], draft.fileName, { type: blob.type || 'audio/mpeg' });
-                setSelectedFile(file); // Remplacer le fichier temporaire par le vrai fichier
+        // Télécharger le fichier en arrière-plan
+        try {
+          const fileResponse = await fetch(draft.fileUrl);
+          if (fileResponse.ok) {
+            const blob = await fileResponse.blob();
+            const file = new File([blob], draft.fileName, { type: blob.type || 'audio/mpeg' });
+            setSelectedFile(file); // Remplacer le fichier temporaire par le vrai fichier
 
-                // Si l'analyse n'est pas en cache, l'analyser (c'est la partie la plus lente)
-                if (!cachedAnalysis) {
-                  const analysis = await analyzeAudioFile(file);
-                  setAudioAnalysis(analysis);
-                  setIsAnalyzing(false);
-                  // Sauvegarder l'analyse pour la prochaine fois
-                  try {
-                    sessionStorage.setItem('liveSubmissionAnalysis', JSON.stringify(analysis));
-                  } catch (error) {
-                    logger.warn("Impossible de sauvegarder l'analyse:", error);
-                  }
-                } else {
-                  // L'analyse était en cache, on peut arrêter le loader
-                  setIsAnalyzing(false);
-                }
-
-                // Créer une URL pour l'audio
-                const audioUrl = URL.createObjectURL(file);
-                setTimeout(() => {
-                  if (audioRef.current) {
-                    // Nettoyer l'ancienne source si elle existe
-                    if (audioRef.current.src?.startsWith('blob:')) {
-                      audioRef.current.pause();
-                      URL.revokeObjectURL(audioRef.current.src);
-                    }
-                    audioRef.current.src = audioUrl;
-                    audioRef.current.load();
-                  }
-                }, 0);
-              }
-            } catch (error) {
-              logger.error('Erreur lors du téléchargement du fichier:', error);
-              toast.error('Erreur lors de la restauration du fichier');
+            if (cachedAnalysis) {
+              // L'analyse était en cache, on peut arrêter le loader
               setIsAnalyzing(false);
+            } else {
+              // Analyser le fichier (c'est la partie la plus lente)
+              const analysis = await analyzeAudioFile(file);
+              setAudioAnalysis(analysis);
+              setIsAnalyzing(false);
+              // Sauvegarder l'analyse pour la prochaine fois
+              saveAnalysisCache(analysis);
             }
+
+            // Créer une URL pour l'audio
+            attachAudioSource(audioRef, URL.createObjectURL(file));
           }
+        } catch (error) {
+          logger.error('Erreur lors du téléchargement du fichier:', error);
+          toast.error('Erreur lors de la restauration du fichier');
+          setIsAnalyzing(false);
         }
       } catch (error) {
         logger.error('Erreur lors de la restauration du draft:', error);

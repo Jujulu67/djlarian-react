@@ -26,22 +26,14 @@ describe('Live Calculations', () => {
       expect(calculateMultiplier(now, now)).toBe(1.0);
     });
 
-    it('should return approx 1.4 for 15 minutes elapsed', () => {
+    it.each([
+      ['should return approx 1.4 for 15 minutes elapsed', 15, 1.4],
+      ['should return 2.0 for 30 minutes elapsed', 30, 2.0],
+      ['should return 4.0 for 60 minutes elapsed', 60, 4.0],
+    ])('%s', (_title, minutes, expected) => {
       const start = new Date();
-      const submission = new Date(start.getTime() - 15 * 60 * 1000);
-      expect(calculateMultiplier(submission, start)).toBe(1.4);
-    });
-
-    it('should return 2.0 for 30 minutes elapsed', () => {
-      const start = new Date();
-      const submission = new Date(start.getTime() - 30 * 60 * 1000);
-      expect(calculateMultiplier(submission, start)).toBe(2.0);
-    });
-
-    it('should return 4.0 for 60 minutes elapsed', () => {
-      const start = new Date();
-      const submission = new Date(start.getTime() - 60 * 60 * 1000);
-      expect(calculateMultiplier(submission, start)).toBe(4.0);
+      const submission = new Date(start.getTime() - minutes * 60 * 1000);
+      expect(calculateMultiplier(submission, start)).toBe(expected);
     });
 
     it('should handle time offset', () => {

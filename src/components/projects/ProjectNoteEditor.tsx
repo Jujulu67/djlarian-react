@@ -113,6 +113,140 @@ const parseMarkdownInline = (text: string): React.ReactNode => {
   return parts.length > 0 ? <>{parts}</> : text;
 };
 
+const HEADING_RENDERERS: Array<{
+  prefix: string;
+  render: (key: number, content: React.ReactNode) => React.ReactNode;
+}> = [
+  {
+    prefix: '### ',
+    render: (key, content) => (
+      <h3 key={key} className="text-white font-semibold text-base mt-4 mb-2">
+        {content}
+      </h3>
+    ),
+  },
+  {
+    prefix: '## ',
+    render: (key, content) => (
+      <h2 key={key} className="text-white font-bold text-lg mt-6 mb-3">
+        {content}
+      </h2>
+    ),
+  },
+  {
+    prefix: '# ',
+    render: (key, content) => (
+      <h1 key={key} className="text-white font-bold text-xl mt-8 mb-4">
+        {content}
+      </h1>
+    ),
+  },
+];
+
+// Rendu de l'aperçu markdown (titres, listes, cases à cocher, paragraphes)
+function renderMarkdownPreview(value: string): React.ReactNode {
+  if (!value) {
+    return <p className="text-gray-500 italic">Aucun contenu à prévisualiser</p>;
+  }
+
+  const lines = value.split('\n');
+  const elements: React.ReactNode[] = [];
+  let currentList: React.ReactNode[] = [];
+  let currentTaskList: React.ReactNode[] = [];
+  let inList = false;
+  let inTaskList = false;
+
+  const closeBulletList = (suffix: string | number) => {
+    if (inList) {
+      elements.push(
+        <ul key={`list-${suffix}`} className="list-disc ml-6 my-2">
+          {currentList}
+        </ul>
+      );
+      currentList = [];
+      inList = false;
+    }
+  };
+
+  const closeTaskList = (suffix: string | number) => {
+    if (inTaskList) {
+      elements.push(
+        <ul key={`tasklist-${suffix}`} className="ml-6 my-2 space-y-1">
+          {currentTaskList}
+        </ul>
+      );
+      currentTaskList = [];
+      inTaskList = false;
+    }
+  };
+
+  const closeAllLists = (suffix: string | number) => {
+    closeBulletList(suffix);
+    closeTaskList(suffix);
+  };
+
+  lines.forEach((line, index) => {
+    // Titres
+    const heading = HEADING_RENDERERS.find((h) => line.startsWith(h.prefix));
+    if (heading) {
+      closeAllLists(index);
+      elements.push(heading.render(index, parseMarkdownInline(line.replace(heading.prefix, ''))));
+      return;
+    }
+
+    // Listes de tâches
+    if (/^- \[([ x])\] /i.exec(line)) {
+      closeBulletList(index);
+      const match = /^- \[([ x])\] (.+)/i.exec(line);
+      if (match) {
+        const checked = match[1].toLowerCase() === 'x';
+        const content = match[2];
+        currentTaskList.push(
+          <li key={index} className="flex items-start">
+            <input type="checkbox" checked={checked} disabled className="mr-2 mt-1" />
+            <span className={checked ? 'line-through text-gray-400' : ''}>
+              {parseMarkdownInline(content)}
+            </span>
+          </li>
+        );
+        inTaskList = true;
+      }
+      return;
+    }
+
+    // Listes à puces
+    if (line.startsWith('- ')) {
+      closeTaskList(index);
+      const content = line.replace('- ', '');
+      currentList.push(<li key={index}>{parseMarkdownInline(content)}</li>);
+      inList = true;
+      return;
+    }
+
+    // Ligne vide - fermer les listes
+    if (line.trim() === '') {
+      closeAllLists(index);
+      elements.push(<br key={index} />);
+      return;
+    }
+
+    // Fermer les listes avant un paragraphe
+    closeAllLists(index);
+
+    // Paragraphe normal
+    elements.push(
+      <p key={index} className="mb-2 text-sm">
+        {parseMarkdownInline(line)}
+      </p>
+    );
+  });
+
+  // Fermer les listes restantes
+  closeAllLists('end');
+
+  return <div className="text-gray-200 text-sm">{elements}</div>;
+}
+
 export const ProjectNoteEditor = ({
   value,
   onChange,
@@ -233,221 +367,6 @@ export const ProjectNoteEditor = ({
     }
   };
 
-  const renderPreview = () => {
-    if (!value) {
-      return <p className="text-gray-500 italic">Aucun contenu à prévisualiser</p>;
-    }
-
-    const lines = value.split('\n');
-    const elements: React.ReactNode[] = [];
-    let currentList: React.ReactNode[] = [];
-    let currentTaskList: React.ReactNode[] = [];
-    let inList = false;
-    let inTaskList = false;
-
-    lines.forEach((line, index) => {
-      // Titres
-      if (line.startsWith('### ')) {
-        if (inList || inTaskList) {
-          if (inList) {
-            elements.push(
-              <ul key={`list-${index}`} className="list-disc ml-6 my-2">
-                {currentList}
-              </ul>
-            );
-            currentList = [];
-            inList = false;
-          }
-          if (inTaskList) {
-            elements.push(
-              <ul key={`tasklist-${index}`} className="ml-6 my-2 space-y-1">
-                {currentTaskList}
-              </ul>
-            );
-            currentTaskList = [];
-            inTaskList = false;
-          }
-        }
-        elements.push(
-          <h3 key={index} className="text-white font-semibold text-base mt-4 mb-2">
-            {parseMarkdownInline(line.replace('### ', ''))}
-          </h3>
-        );
-        return;
-      }
-      if (line.startsWith('## ')) {
-        if (inList || inTaskList) {
-          if (inList) {
-            elements.push(
-              <ul key={`list-${index}`} className="list-disc ml-6 my-2">
-                {currentList}
-              </ul>
-            );
-            currentList = [];
-            inList = false;
-          }
-          if (inTaskList) {
-            elements.push(
-              <ul key={`tasklist-${index}`} className="ml-6 my-2 space-y-1">
-                {currentTaskList}
-              </ul>
-            );
-            currentTaskList = [];
-            inTaskList = false;
-          }
-        }
-        elements.push(
-          <h2 key={index} className="text-white font-bold text-lg mt-6 mb-3">
-            {parseMarkdownInline(line.replace('## ', ''))}
-          </h2>
-        );
-        return;
-      }
-      if (line.startsWith('# ')) {
-        if (inList || inTaskList) {
-          if (inList) {
-            elements.push(
-              <ul key={`list-${index}`} className="list-disc ml-6 my-2">
-                {currentList}
-              </ul>
-            );
-            currentList = [];
-            inList = false;
-          }
-          if (inTaskList) {
-            elements.push(
-              <ul key={`tasklist-${index}`} className="ml-6 my-2 space-y-1">
-                {currentTaskList}
-              </ul>
-            );
-            currentTaskList = [];
-            inTaskList = false;
-          }
-        }
-        elements.push(
-          <h1 key={index} className="text-white font-bold text-xl mt-8 mb-4">
-            {parseMarkdownInline(line.replace('# ', ''))}
-          </h1>
-        );
-        return;
-      }
-
-      // Listes de tâches
-      if (/^- \[([ x])\] /i.exec(line)) {
-        if (inList) {
-          elements.push(
-            <ul key={`list-${index}`} className="list-disc ml-6 my-2">
-              {currentList}
-            </ul>
-          );
-          currentList = [];
-          inList = false;
-        }
-        const match = /^- \[([ x])\] (.+)/i.exec(line);
-        if (match) {
-          const checked = match[1].toLowerCase() === 'x';
-          const content = match[2];
-          currentTaskList.push(
-            <li key={index} className="flex items-start">
-              <input type="checkbox" checked={checked} disabled className="mr-2 mt-1" />
-              <span className={checked ? 'line-through text-gray-400' : ''}>
-                {parseMarkdownInline(content)}
-              </span>
-            </li>
-          );
-          inTaskList = true;
-        }
-        return;
-      }
-
-      // Listes à puces
-      if (line.startsWith('- ')) {
-        if (inTaskList) {
-          elements.push(
-            <ul key={`tasklist-${index}`} className="ml-6 my-2 space-y-1">
-              {currentTaskList}
-            </ul>
-          );
-          currentTaskList = [];
-          inTaskList = false;
-        }
-        const content = line.replace('- ', '');
-        currentList.push(<li key={index}>{parseMarkdownInline(content)}</li>);
-        inList = true;
-        return;
-      }
-
-      // Ligne vide - fermer les listes
-      if (line.trim() === '') {
-        if (inList) {
-          elements.push(
-            <ul key={`list-${index}`} className="list-disc ml-6 my-2">
-              {currentList}
-            </ul>
-          );
-          currentList = [];
-          inList = false;
-        }
-        if (inTaskList) {
-          elements.push(
-            <ul key={`tasklist-${index}`} className="ml-6 my-2 space-y-1">
-              {currentTaskList}
-            </ul>
-          );
-          currentTaskList = [];
-          inTaskList = false;
-        }
-        elements.push(<br key={index} />);
-        return;
-      }
-
-      // Fermer les listes avant un paragraphe
-      if (inList) {
-        elements.push(
-          <ul key={`list-${index}`} className="list-disc ml-6 my-2">
-            {currentList}
-          </ul>
-        );
-        currentList = [];
-        inList = false;
-      }
-      if (inTaskList) {
-        elements.push(
-          <ul key={`tasklist-${index}`} className="ml-6 my-2 space-y-1">
-            {currentTaskList}
-          </ul>
-        );
-        currentTaskList = [];
-        inTaskList = false;
-      }
-
-      // Paragraphe normal
-      elements.push(
-        <p key={index} className="mb-2 text-sm">
-          {parseMarkdownInline(line)}
-        </p>
-      );
-    });
-
-    // Fermer les listes restantes
-    if (inList) {
-      elements.push(
-        <ul key="list-end" className="list-disc ml-6 my-2">
-          {currentList}
-        </ul>
-      );
-    }
-    if (inTaskList) {
-      elements.push(
-        <ul key="tasklist-end" className="ml-6 my-2 space-y-1">
-          {currentTaskList}
-        </ul>
-      );
-    }
-
-    return <div className="text-gray-200 text-sm">{elements}</div>;
-  };
-
   return (
     <div className="bg-gradient-to-br from-[#1a0f2a] via-[#0c0117] to-[#1a0f2a] border border-purple-500/30 rounded-xl p-6 max-w-6xl w-full mx-4 max-h-[95vh] min-h-[80vh] flex flex-col">
       <div className="flex items-center justify-between mb-4">
@@ -560,7 +479,7 @@ export const ProjectNoteEditor = ({
           />
         ) : (
           <div className="flex-1 min-h-[60vh] overflow-y-auto px-4 py-3 bg-gray-800/30 border border-gray-700 rounded-lg">
-            {renderPreview()}
+            {renderMarkdownPreview(value)}
           </div>
         )}
       </div>

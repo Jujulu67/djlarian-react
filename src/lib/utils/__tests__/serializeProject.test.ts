@@ -122,58 +122,68 @@ describe('serializeProject', () => {
     });
   });
 
-  it('should normalize progress to 100 for TERMINE status when progress is null', () => {
+  it.each([
+    [
+      'should normalize progress to 100 for TERMINE status when progress is null',
+      'project-6',
+      'Completed Project',
+      'TERMINE',
+      null,
+      'TERMINE',
+      100,
+    ],
+    [
+      'should keep existing progress for TERMINE status when progress is not null',
+      'project-7',
+      'Completed Project',
+      'TERMINE',
+      90,
+      'TERMINE',
+      90,
+    ],
+    [
+      'should not normalize progress for non-TERMINE status',
+      'project-8',
+      'In Progress Project',
+      'EN_COURS',
+      50,
+      'EN_COURS',
+      50,
+    ],
+    [
+      'should handle TERMINE status with progress 100',
+      'project-11',
+      'Completed Project',
+      'TERMINE',
+      100,
+      'TERMINE',
+      100,
+    ],
+    [
+      'should handle TERMINE status with progress not null and not 100',
+      'project-12',
+      'Completed Project',
+      'TERMINE',
+      90,
+      'TERMINE',
+      90,
+    ],
+  ] as const)('%s', (_title, id, name, status, progress, expectedStatus, expectedProgress) => {
     const prismaProject = {
-      id: 'project-6',
-      name: 'Completed Project',
-      status: 'TERMINE',
+      id,
+      name,
+      status,
       userId: 'user-1',
       releaseDate: null,
-      progress: null,
+      progress,
       createdAt: new Date('2024-01-01T00:00:00Z'),
       updatedAt: new Date('2024-01-02T00:00:00Z'),
     } as PrismaProject;
 
     const result = serializeProject(prismaProject);
 
-    expect(result.status).toBe('TERMINE');
-    expect(result.progress).toBe(100);
-  });
-
-  it('should keep existing progress for TERMINE status when progress is not null', () => {
-    const prismaProject = {
-      id: 'project-7',
-      name: 'Completed Project',
-      status: 'TERMINE',
-      userId: 'user-1',
-      releaseDate: null,
-      progress: 90,
-      createdAt: new Date('2024-01-01T00:00:00Z'),
-      updatedAt: new Date('2024-01-02T00:00:00Z'),
-    } as PrismaProject;
-
-    const result = serializeProject(prismaProject);
-
-    expect(result.status).toBe('TERMINE');
-    expect(result.progress).toBe(90);
-  });
-
-  it('should not normalize progress for non-TERMINE status', () => {
-    const prismaProject = {
-      id: 'project-8',
-      name: 'In Progress Project',
-      status: 'EN_COURS',
-      userId: 'user-1',
-      releaseDate: null,
-      progress: 50,
-      createdAt: new Date('2024-01-01T00:00:00Z'),
-      updatedAt: new Date('2024-01-02T00:00:00Z'),
-    } as PrismaProject;
-
-    const result = serializeProject(prismaProject);
-
-    expect(result.status).toBe('EN_COURS');
-    expect(result.progress).toBe(50);
+    expect(result.status).toBe(expectedStatus);
+    expect(result.progress).toBe(expectedProgress);
   });
 
   it('should handle null deadline', () => {
@@ -208,42 +218,6 @@ describe('serializeProject', () => {
     const result = serializeProject(prismaProject);
 
     expect(result.deadline).toBe('2024-12-31T00:00:00.000Z');
-  });
-
-  it('should handle TERMINE status with progress 100', () => {
-    const prismaProject = {
-      id: 'project-11',
-      name: 'Completed Project',
-      status: 'TERMINE',
-      userId: 'user-1',
-      releaseDate: null,
-      progress: 100,
-      createdAt: new Date('2024-01-01T00:00:00Z'),
-      updatedAt: new Date('2024-01-02T00:00:00Z'),
-    } as PrismaProject;
-
-    const result = serializeProject(prismaProject);
-
-    expect(result.status).toBe('TERMINE');
-    expect(result.progress).toBe(100);
-  });
-
-  it('should handle TERMINE status with progress not null and not 100', () => {
-    const prismaProject = {
-      id: 'project-12',
-      name: 'Completed Project',
-      status: 'TERMINE',
-      userId: 'user-1',
-      releaseDate: null,
-      progress: 90,
-      createdAt: new Date('2024-01-01T00:00:00Z'),
-      updatedAt: new Date('2024-01-02T00:00:00Z'),
-    } as PrismaProject;
-
-    const result = serializeProject(prismaProject);
-
-    expect(result.status).toBe('TERMINE');
-    expect(result.progress).toBe(90);
   });
 
   it('should handle project with all optional fields null', () => {

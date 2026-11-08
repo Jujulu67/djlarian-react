@@ -92,11 +92,9 @@ function getPrismaLogConfig(): Array<'query' | 'error' | 'warn' | 'info'> {
   const shouldLogQueries =
     process.env.PRISMA_LOG_QUERIES === 'true' || process.env.PRISMA_LOG_QUERIES === '1';
 
-  return process.env.NODE_ENV === 'development'
-    ? shouldLogQueries
-      ? ['query', 'error', 'warn']
-      : ['error', 'warn']
-    : ['error'];
+  if (process.env.NODE_ENV !== 'development') return ['error'];
+  if (shouldLogQueries) return ['query', 'error', 'warn'];
+  return ['error', 'warn'];
 }
 
 /**

@@ -234,6 +234,30 @@ export default function GestionImages({
     ]
   );
 
+  const duplicatesContent =
+    doublonFamilies.length === 0 ? (
+      <div className="text-center py-10 text-gray-400">Aucun doublon détecté.</div>
+    ) : (
+      <>
+        {doublonFamilies.map((family) => (
+          <DuplicateFamilyCard
+            key={family.signature}
+            family={family}
+            isMultiSelectMode={isMultiSelectMode}
+            selectedImageIds={selectedImageIds}
+            onSelectImage={(imageId) => toggleImageSelection(imageId)}
+            onDeselectImage={(imageId) => {
+              setSelectedImageIds((prev) => prev.filter((id) => id !== imageId));
+            }}
+            onViewImage={(group) => setSelectedGroup(group)}
+            onDownload={handleDownload}
+            onDelete={(image) => setDeleteTarget(image)}
+            onFusion={() => openFusionModal(family)}
+          />
+        ))}
+      </>
+    );
+
   return (
     <div className="w-full">
       {showHeader && (
@@ -300,62 +324,41 @@ export default function GestionImages({
         <div className="flex justify-center items-center h-64">
           <ClipLoader size={40} color="#9042f5" />
         </div>
-      ) : showDuplicates ? (
-        doublonFamilies.length === 0 ? (
-          <div className="text-center py-10 text-gray-400">Aucun doublon détecté.</div>
-        ) : (
+      ) : (
+        (showDuplicates && duplicatesContent) || (
           <>
-            {doublonFamilies.map((family) => (
-              <DuplicateFamilyCard
-                key={family.signature}
-                family={family}
-                isMultiSelectMode={isMultiSelectMode}
-                selectedImageIds={selectedImageIds}
-                onSelectImage={(imageId) => toggleImageSelection(imageId)}
-                onDeselectImage={(imageId) => {
-                  setSelectedImageIds((prev) => prev.filter((id) => id !== imageId));
-                }}
-                onViewImage={(group) => setSelectedGroup(group)}
-                onDownload={handleDownload}
-                onDelete={(image) => setDeleteTarget(image)}
-                onFusion={() => openFusionModal(family)}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+              {paginatedGroups.map((group) => {
+                const image = group.crop || group.ori;
+                if (!image) return null;
+                const isSelected = selectedImageIds.includes(image.id);
+                return (
+                  <ImageCard
+                    key={group.imageId}
+                    group={group}
+                    isSelected={isSelected}
+                    isMultiSelectMode={isMultiSelectMode}
+                    onSelect={() => toggleImageSelection(image.id)}
+                    onDeselect={() => {
+                      setSelectedImageIds((prev) => prev.filter((id) => id !== image.id));
+                    }}
+                    onView={() => setSelectedGroup(group)}
+                    onDownload={handleDownload}
+                    onDelete={(image) => setDeleteTarget(image)}
+                  />
+                );
+              })}
+            </div>
+            <div className="mt-8">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                className="justify-center"
               />
-            ))}
+            </div>
           </>
         )
-      ) : (
-        <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {paginatedGroups.map((group) => {
-              const image = group.crop || group.ori;
-              if (!image) return null;
-              const isSelected = selectedImageIds.includes(image.id);
-              return (
-                <ImageCard
-                  key={group.imageId}
-                  group={group}
-                  isSelected={isSelected}
-                  isMultiSelectMode={isMultiSelectMode}
-                  onSelect={() => toggleImageSelection(image.id)}
-                  onDeselect={() => {
-                    setSelectedImageIds((prev) => prev.filter((id) => id !== image.id));
-                  }}
-                  onView={() => setSelectedGroup(group)}
-                  onDownload={handleDownload}
-                  onDelete={(image) => setDeleteTarget(image)}
-                />
-              );
-            })}
-          </div>
-          <div className="mt-8">
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
-              className="justify-center"
-            />
-          </div>
-        </>
       )}
       {selectedGroup && (
         <ImageDetailModal

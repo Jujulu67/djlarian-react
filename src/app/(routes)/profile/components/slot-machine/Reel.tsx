@@ -15,6 +15,22 @@ interface ReelProps {
   isWinning?: boolean; // For glowing winning symbols
 }
 
+function getSpinAnimate(isAnimating: boolean, isSlowingDown: boolean) {
+  if (!isAnimating) {
+    return { scale: [1.15, 1], y: 0 };
+  }
+  // Bigger movement when slowing
+  return isSlowingDown ? { y: [0, -30, 0] } : { y: [0, -20, 0] };
+}
+
+function getSpinTransition(isAnimating: boolean, isSlowingDown: boolean) {
+  if (!isAnimating) {
+    return { duration: 0.2, type: 'spring' as const };
+  }
+  // Slower animation when slowing
+  return isSlowingDown ? { duration: 0.3, repeat: Infinity } : { duration: 0.1, repeat: Infinity };
+}
+
 export function Reel({
   symbol,
   isSpinning,
@@ -92,6 +108,9 @@ export function Reel({
     }
   }, [isSpinning, symbol]);
 
+  const spinAnimate = getSpinAnimate(isAnimating, isSlowingDown);
+  const spinTransition = getSpinTransition(isAnimating, isSlowingDown);
+
   return (
     <div className="relative w-28 h-36 sm:w-36 sm:h-48 mx-1">
       {/* Cadre du rouleau */}
@@ -107,20 +126,8 @@ export function Reel({
           <motion.div
             key={spinKey}
             className="w-full h-full flex items-center justify-center"
-            animate={
-              isAnimating
-                ? isSlowingDown
-                  ? { y: [0, -30, 0] } // Bigger movement when slowing
-                  : { y: [0, -20, 0] }
-                : { scale: [1.15, 1], y: 0 }
-            }
-            transition={
-              isAnimating
-                ? isSlowingDown
-                  ? { duration: 0.3, repeat: Infinity } // Slower animation
-                  : { duration: 0.1, repeat: Infinity }
-                : { duration: 0.2, type: 'spring' }
-            }
+            animate={spinAnimate}
+            transition={spinTransition}
           >
             <motion.div
               className={`

@@ -30,6 +30,13 @@ interface WeekData {
   quarter: number;
 }
 
+function getQuarterRowClass(quarter: number): string {
+  if (quarter === 1) return 'bg-yellow-500/10';
+  if (quarter === 2) return 'bg-red-500/10';
+  if (quarter === 3) return 'bg-blue-500/10';
+  return 'bg-green-500/10';
+}
+
 export const ReleaseCalendar = ({ projects, onUpdate }: ReleaseCalendarProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -195,15 +202,7 @@ export const ReleaseCalendar = ({ projects, onUpdate }: ReleaseCalendarProps) =>
                       {quarter.weeks.map((week) => (
                         <tr
                           key={week.weekNumber}
-                          className={`border-b border-gray-700/30 hover:bg-gray-700/20 transition-colors ${
-                            week.quarter === 1
-                              ? 'bg-yellow-500/10'
-                              : week.quarter === 2
-                                ? 'bg-red-500/10'
-                                : week.quarter === 3
-                                  ? 'bg-blue-500/10'
-                                  : 'bg-green-500/10'
-                          }`}
+                          className={`border-b border-gray-700/30 hover:bg-gray-700/20 transition-colors ${getQuarterRowClass(week.quarter)}`}
                         >
                           <td className="py-2 px-2">
                             <span className="text-xs font-medium text-white">{week.weekLabel}</span>

@@ -14,14 +14,68 @@ export interface MilestoneCheckResult {
   errors: Array<{ projectId: string; error: string }>;
 }
 
+const MILESTONE_DAYS: Record<MilestoneType, number> = {
+  J90: 90,
+  J180: 180,
+  J365: 365,
+};
+
+const MILESTONE_LABELS: Record<MilestoneType, string> = {
+  J90: '3 mois',
+  J180: '6 mois',
+  J365: '1 an',
+};
+
 /**
  * Calcule la date d'un jalon basé sur la date de release
  */
 function calculateMilestoneDate(releaseDate: Date, milestoneType: MilestoneType): Date {
   const date = new Date(releaseDate);
-  const days = milestoneType === 'J90' ? 90 : milestoneType === 'J180' ? 180 : 365;
-  date.setDate(date.getDate() + days);
+  date.setDate(date.getDate() + MILESTONE_DAYS[milestoneType]);
   return date;
+}
+
+/** Vrai si une notification MILESTONE existante concerne déjà ce jalon. */
+function hasNotifiedMilestone(
+  notifications: Array<{ metadata: string | null }>,
+  milestoneType: MilestoneType
+): boolean {
+  return notifications.some((notif) => {
+    if (!notif.metadata) return false;
+    try {
+      const meta = JSON.parse(notif.metadata);
+      return meta.milestoneType === milestoneType;
+    } catch {
+      return false;
+    }
+  });
+}
+
+/** Crée la notification « jalon atteint, streams non renseignés » pour un projet. */
+async function createMilestoneNotification(
+  project: { id: string; userId: string; name: string },
+  milestoneType: MilestoneType
+): Promise<void> {
+  const milestoneLabel = MILESTONE_LABELS[milestoneType];
+
+  await prisma.notification.create({
+    data: {
+      userId: project.userId,
+      type: 'MILESTONE',
+      title: `Jalon ${milestoneLabel} atteint - Streams non renseignés`,
+      message: `Le projet "${project.name}" a atteint le jalon ${milestoneLabel} mais les streams ne sont pas encore renseignés`,
+      metadata: JSON.stringify({
+        milestoneType,
+        projectId: project.id,
+        projectName: project.name,
+        streams: null, // Les streams ne sont pas renseignés
+      }),
+      projectId: project.id,
+      isRead: false,
+      isArchived: false,
+      deletedAt: null,
+    },
+  });
 }
 
 /**
@@ -130,43 +184,13 @@ export async function checkProjectMilestones(
         });
 
         // Vérifier si une notification avec ce milestoneType existe déjà
-        const alreadyNotified = existingNotifications.some((notif) => {
-          if (!notif.metadata) return false;
-          try {
-            const meta = JSON.parse(notif.metadata);
-            return meta.milestoneType === milestoneType;
-          } catch {
-            return false;
-          }
-        });
-
-        if (alreadyNotified) {
+        if (hasNotifiedMilestone(existingNotifications, milestoneType)) {
           result.skipped++;
           continue;
         }
 
         // Créer la notification avec le nouveau système générique
-        const milestoneLabel =
-          milestoneType === 'J180' ? '6 mois' : milestoneType === 'J365' ? '1 an' : '3 mois';
-
-        await prisma.notification.create({
-          data: {
-            userId: project.userId,
-            type: 'MILESTONE',
-            title: `Jalon ${milestoneLabel} atteint - Streams non renseignés`,
-            message: `Le projet "${project.name}" a atteint le jalon ${milestoneLabel} mais les streams ne sont pas encore renseignés`,
-            metadata: JSON.stringify({
-              milestoneType,
-              projectId: project.id,
-              projectName: project.name,
-              streams: null, // Les streams ne sont pas renseignés
-            }),
-            projectId: project.id,
-            isRead: false,
-            isArchived: false,
-            deletedAt: null,
-          },
-        });
+        await createMilestoneNotification(project, milestoneType);
 
         result.created++;
       } catch (error) {

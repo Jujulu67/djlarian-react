@@ -22,6 +22,52 @@ import { logger } from '@/lib/logger';
 export type { UpdateData } from './updates/types';
 
 /**
+ * Copie le filtre de style, sauf faux positif « Progressive » issu de « progression »
+ */
+function copyStyleFilter(
+  cleanedQuery: string,
+  filters: Record<string, unknown>,
+  updateData: UpdateData
+) {
+  if (!filters.style || typeof filters.style !== 'string') return;
+
+  // IMPORTANT: Ne pas copier filters.style si c'est un faux positif "Progressive" via "progression"
+  const queryLower = cleanedQuery.toLowerCase();
+  const hasProgressionKeywords =
+    queryLower.includes('progression') ||
+    queryLower.includes('avancement') ||
+    (queryLower.includes('progress') && !queryLower.includes('progressive'));
+  const hasExplicitStyleKeyword = queryLower.includes('style');
+
+  // Si c'est "Progressive" et qu'on a des mots de progression sans "style", ignorer
+  const isProgressionFalsePositive =
+    filters.style === 'Progressive' && hasProgressionKeywords && !hasExplicitStyleKeyword;
+
+  if (!isProgressionFalsePositive) {
+    updateData.style = filters.style;
+  } else {
+    logger.warn(
+      '[Parse Query API] ⚠️ filters.style "Progressive" ignoré dans updateData (faux positif via "prog" dans "progression")'
+    );
+  }
+}
+
+/** Vrai si au moins une modification a été détectée */
+function hasAnyChange(updateData: UpdateData) {
+  return (
+    updateData.newProgress !== undefined ||
+    updateData.newStatus !== undefined ||
+    updateData.newDeadline !== undefined ||
+    updateData.pushDeadlineBy !== undefined ||
+    updateData.newCollab !== undefined ||
+    updateData.newStyle !== undefined ||
+    updateData.newLabel !== undefined ||
+    updateData.newLabelFinal !== undefined ||
+    updateData.newNote !== undefined
+  );
+}
+
+/**
  * Extrait les données de mise à jour depuis une requête
  */
 export function extractUpdateData(
@@ -60,27 +106,7 @@ export function extractUpdateData(
   }
 
   // Extraire style (filtre)
-  // IMPORTANT: Ne pas copier filters.style si c'est un faux positif "Progressive" via "progression"
-  if (filters.style && typeof filters.style === 'string') {
-    const queryLower = cleanedQuery.toLowerCase();
-    const hasProgressionKeywords =
-      queryLower.includes('progression') ||
-      queryLower.includes('avancement') ||
-      (queryLower.includes('progress') && !queryLower.includes('progressive'));
-    const hasExplicitStyleKeyword = queryLower.includes('style');
-
-    // Si c'est "Progressive" et qu'on a des mots de progression sans "style", ignorer
-    const isProgressionFalsePositive =
-      filters.style === 'Progressive' && hasProgressionKeywords && !hasExplicitStyleKeyword;
-
-    if (!isProgressionFalsePositive) {
-      updateData.style = filters.style;
-    } else {
-      logger.warn(
-        '[Parse Query API] ⚠️ filters.style "Progressive" ignoré dans updateData (faux positif via "prog" dans "progression")'
-      );
-    }
-  }
+  copyStyleFilter(cleanedQuery, filters, updateData);
 
   // Extraire label (filtre)
   if (filters.label && typeof filters.label === 'string') {
@@ -119,17 +145,7 @@ export function extractUpdateData(
   }
 
   // Si on a au moins une modification à faire, c'est une commande de modification valide
-  if (
-    updateData.newProgress !== undefined ||
-    updateData.newStatus !== undefined ||
-    updateData.newDeadline !== undefined ||
-    updateData.pushDeadlineBy !== undefined ||
-    updateData.newCollab !== undefined ||
-    updateData.newStyle !== undefined ||
-    updateData.newLabel !== undefined ||
-    updateData.newLabelFinal !== undefined ||
-    updateData.newNote !== undefined
-  ) {
+  if (hasAnyChange(updateData)) {
     logger.warn('[Parse Query API] updateData final:', updateData);
     return updateData;
   }

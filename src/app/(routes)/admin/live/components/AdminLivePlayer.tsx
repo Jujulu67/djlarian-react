@@ -1,5 +1,6 @@
 'use client';
 
+import { WaveformSeekInput } from '@/components/ui/WaveformSeekInput';
 import { motion } from 'framer-motion';
 import { useState, useRef, useCallback } from 'react';
 import Image from 'next/image';
@@ -76,7 +77,7 @@ export function AdminLivePlayer() {
     );
   }
 
-  const handleWaveformClick = async (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleWaveformClick = async (e: React.MouseEvent<HTMLElement>) => {
     if (!audioAnalysis || !audioRef.current) return;
 
     const waveformContainer = e.currentTarget;
@@ -158,9 +159,7 @@ export function AdminLivePlayer() {
         <>
           {/* Waveform */}
           <div
-            role="presentation"
             className="w-full h-20 rounded-lg relative group overflow-hidden mb-4 cursor-pointer"
-            onClick={handleWaveformClick}
             style={{ backgroundColor: 'rgba(30, 30, 35, 0.9)' }}
           >
             {/* Waveform bars - style Mofalk */}
@@ -206,6 +205,16 @@ export function AdminLivePlayer() {
             >
               {formatDuration(currentTime)} / {formatDuration(duration || audioAnalysis.duration)}
             </div>
+
+            <WaveformSeekInput
+              duration={audioAnalysis.duration}
+              currentTime={currentTime}
+              onSeek={(time) => {
+                if (audioRef.current) audioRef.current.currentTime = time;
+                handleSeek(time);
+              }}
+              onClick={handleWaveformClick}
+            />
           </div>
 
           {/* Description ou "No Description" */}

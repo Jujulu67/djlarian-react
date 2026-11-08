@@ -72,6 +72,46 @@ const saveVolumeToLocalStorage = (volume: number): void => {
 type PlayerPlatform = 'youtube' | 'soundcloud';
 type PlayerCommand = 'play' | 'pause' | 'setVolume' | 'seekTo'; // Added seekTo for future use
 
+/** Commande YouTube (postMessage) ; null si la commande n'est pas supportée. */
+function buildYouTubeCommand(
+  command: PlayerCommand,
+  value?: number
+): { func: string; args: (string | number | boolean)[] } | null {
+  switch (command) {
+    case 'play':
+      return { func: 'playVideo', args: [] };
+    case 'pause':
+      return { func: 'pauseVideo', args: [] };
+    case 'setVolume':
+      return { func: 'setVolume', args: [value !== undefined ? Math.round(value * 100) : 50] };
+    case 'seekTo':
+      return { func: 'seekTo', args: [value ?? 0, true] };
+    default:
+      logger.error(`Unsupported YouTube command: ${command}`);
+      return null;
+  }
+}
+
+/** Commande SoundCloud (postMessage) ; null si la commande n'est pas supportée. */
+function buildSoundCloudCommand(
+  command: PlayerCommand,
+  value?: number
+): { method: string; value: string | number | undefined } | null {
+  switch (command) {
+    case 'play':
+      return { method: 'play', value };
+    case 'pause':
+      return { method: 'pause', value };
+    case 'setVolume':
+      return { method: 'setVolume', value: value !== undefined ? Math.round(value * 100) : 50 };
+    case 'seekTo':
+      return { method: 'seekTo', value: value !== undefined ? value * 1000 : 0 };
+    default:
+      logger.error(`Unsupported SoundCloud command: ${command}`);
+      return null;
+  }
+}
+
 /**
  * Sends a command to a specific player iframe using postMessage.
  *
@@ -94,60 +134,22 @@ export const sendPlayerCommand = (
   if (!targetOrigin) return;
 
   try {
-    let message: string;
-
     if (platform === 'youtube') {
-      let func: string;
-      let args: (string | number | boolean)[] = [];
-
-      switch (command) {
-        case 'play':
-          func = 'playVideo';
-          break;
-        case 'pause':
-          func = 'pauseVideo';
-          break;
-        case 'setVolume':
-          func = 'setVolume';
-          args = [value !== undefined ? Math.round(value * 100) : 50];
-          break;
-        case 'seekTo':
-          func = 'seekTo';
-          args = [value ?? 0, true];
-          break;
-        default:
-          logger.error(`Unsupported YouTube command: ${command}`);
-          return;
-      }
-      message = JSON.stringify({ event: 'command', func, args });
+      const ytCommand = buildYouTubeCommand(command, value);
+      if (!ytCommand) return;
+      const message = JSON.stringify({
+        event: 'command',
+        func: ytCommand.func,
+        args: ytCommand.args,
+      });
       logger.remote(
         `[CMD-YT] ${command}${value !== undefined ? ' (' + value + ')' : ''} to ${iframe.id || 'unknown'}`
       );
       iframe.contentWindow.postMessage(message, targetOrigin);
     } else if (platform === 'soundcloud') {
-      let method: string;
-      let methodValue: string | number | undefined = value;
-
-      switch (command) {
-        case 'play':
-          method = 'play';
-          break;
-        case 'pause':
-          method = 'pause';
-          break;
-        case 'setVolume':
-          method = 'setVolume';
-          methodValue = value !== undefined ? Math.round(value * 100) : 50;
-          break;
-        case 'seekTo':
-          method = 'seekTo';
-          methodValue = value !== undefined ? value * 1000 : 0;
-          break;
-        default:
-          logger.error(`Unsupported SoundCloud command: ${command}`);
-          return;
-      }
-      message = JSON.stringify({ method, value: methodValue });
+      const scCommand = buildSoundCloudCommand(command, value);
+      if (!scCommand) return;
+      const message = JSON.stringify({ method: scCommand.method, value: scCommand.value });
       logger.remote(
         `[CMD-SC] ${command}${value !== undefined ? ' (' + value + ')' : ''} to ${iframe.id || 'unknown'}`
       );

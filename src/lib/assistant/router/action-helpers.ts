@@ -18,6 +18,52 @@ export function generateActionId(): string {
   return `action_${Date.now()}_${randomToken(9)}`;
 }
 
+/** Date au format court français (JJ/MM/AA) */
+function formatShortDate(date: Date): string {
+  return date.toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit',
+  });
+}
+
+/** Libellé de la deadline avant/après un décalage par unités (jours, semaines, mois, années) */
+function formatDeadlineShiftChange(
+  deadline: NonNullable<Project['deadline']>,
+  pushDeadlineBy: NonNullable<ProjectMutation['pushDeadlineBy']>
+): string {
+  const beforeDate = new Date(deadline);
+  const afterDate = new Date(beforeDate);
+  if (pushDeadlineBy.days) {
+    afterDate.setDate(afterDate.getDate() + pushDeadlineBy.days);
+  }
+  if (pushDeadlineBy.weeks) {
+    afterDate.setDate(afterDate.getDate() + pushDeadlineBy.weeks * 7);
+  }
+  if (pushDeadlineBy.months) {
+    afterDate.setMonth(afterDate.getMonth() + pushDeadlineBy.months);
+  }
+  if (pushDeadlineBy.years) {
+    afterDate.setFullYear(afterDate.getFullYear() + pushDeadlineBy.years);
+  }
+  return `deadline ${formatShortDate(beforeDate)} → ${formatShortDate(afterDate)}`;
+}
+
+/** Libellé de la deadline quand on la remplace par une nouvelle valeur */
+function formatDeadlineReplaceChange(
+  project: Project,
+  newDeadline: ProjectMutation['newDeadline']
+): string {
+  const before = project.deadline ? formatShortDate(new Date(project.deadline)) : '-';
+  const after = newDeadline ? formatShortDate(new Date(newDeadline)) : '-';
+  return `deadline ${before} → ${after}`;
+}
+
+/** Libellé de la note ajoutée (tronquée à 30 caractères) */
+function formatNoteChange(newNote: string): string {
+  return `note + "${newNote.substring(0, 30)}${newNote.length > 30 ? '...' : ''}"`;
+}
+
 /**
  * Génère un diff avant→après pour un projet
  */
@@ -44,47 +90,9 @@ export function generateProjectPreviewDiff(
 
   // Deadline
   if (mutation.pushDeadlineBy && project.deadline) {
-    const beforeDate = new Date(project.deadline);
-    const afterDate = new Date(beforeDate);
-    if (mutation.pushDeadlineBy.days) {
-      afterDate.setDate(afterDate.getDate() + mutation.pushDeadlineBy.days);
-    }
-    if (mutation.pushDeadlineBy.weeks) {
-      afterDate.setDate(afterDate.getDate() + mutation.pushDeadlineBy.weeks * 7);
-    }
-    if (mutation.pushDeadlineBy.months) {
-      afterDate.setMonth(afterDate.getMonth() + mutation.pushDeadlineBy.months);
-    }
-    if (mutation.pushDeadlineBy.years) {
-      afterDate.setFullYear(afterDate.getFullYear() + mutation.pushDeadlineBy.years);
-    }
-    const beforeStr = beforeDate.toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: '2-digit',
-    });
-    const afterStr = afterDate.toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: '2-digit',
-    });
-    changes.push(`deadline ${beforeStr} → ${afterStr}`);
+    changes.push(formatDeadlineShiftChange(project.deadline, mutation.pushDeadlineBy));
   } else if (mutation.newDeadline !== undefined) {
-    const before = project.deadline
-      ? new Date(project.deadline).toLocaleDateString('fr-FR', {
-          day: '2-digit',
-          month: '2-digit',
-          year: '2-digit',
-        })
-      : '-';
-    const after = mutation.newDeadline
-      ? new Date(mutation.newDeadline).toLocaleDateString('fr-FR', {
-          day: '2-digit',
-          month: '2-digit',
-          year: '2-digit',
-        })
-      : '-';
-    changes.push(`deadline ${before} → ${after}`);
+    changes.push(formatDeadlineReplaceChange(project, mutation.newDeadline));
   }
 
   // Label
@@ -103,9 +111,7 @@ export function generateProjectPreviewDiff(
 
   // Note (ajout)
   if (mutation.newNote) {
-    changes.push(
-      `note + "${mutation.newNote.substring(0, 30)}${mutation.newNote.length > 30 ? '...' : ''}"`
-    );
+    changes.push(formatNoteChange(mutation.newNote));
   }
 
   return {

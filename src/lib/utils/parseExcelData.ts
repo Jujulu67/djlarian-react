@@ -169,6 +169,40 @@ function formatTitleCase(text: string): string {
  * @param value - Valeur à parser
  * @param dateFormat - Format de date: 'fr' (DD/MM/YYYY) ou 'en' (MM/DD/YYYY)
  */
+/**
+ * Construit une date ISO (YYYY-MM-DD) à partir de jour/mois/année, si elle est valide
+ */
+function toIsoFromParts(day: string, month: string, year: string): string | null {
+  const date = new Date(Number.parseInt(year), Number.parseInt(month) - 1, Number.parseInt(day));
+  if (
+    !Number.isNaN(date.getTime()) &&
+    date.getDate() === Number.parseInt(day) &&
+    date.getMonth() === Number.parseInt(month) - 1
+  ) {
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  }
+  return null;
+}
+
+/**
+ * Parse une date numérique DD/MM/YYYY (fr) ou MM/DD/YYYY (en), séparateurs / ou -
+ */
+function parseNumericDate(trimmed: string, dateFormat: 'fr' | 'en'): string | null {
+  const match = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/.exec(trimmed);
+  if (!match) {
+    return null;
+  }
+  const [, first, second, year] = match;
+  return dateFormat === 'fr'
+    ? toIsoFromParts(first, second, year)
+    : toIsoFromParts(second, first, year);
+}
+
+/**
+ * Parse une valeur de date (supporte plusieurs formats)
+ * @param value - Valeur à parser
+ * @param dateFormat - Format de date: 'fr' (DD/MM/YYYY) ou 'en' (MM/DD/YYYY)
+ */
 function parseDate(value: string, dateFormat: 'fr' | 'en' = 'fr'): string | null {
   if (!value || value.trim() === '') return null;
 
@@ -180,42 +214,9 @@ function parseDate(value: string, dateFormat: 'fr' | 'en' = 'fr'): string | null
   }
 
   // Parser selon le format spécifié
-  if (dateFormat === 'fr') {
-    // Format français : DD/MM/YYYY ou DD-MM-YYYY
-    const frMatch = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/.exec(trimmed);
-    if (frMatch) {
-      const [, day, month, year] = frMatch;
-      const date = new Date(
-        Number.parseInt(year),
-        Number.parseInt(month) - 1,
-        Number.parseInt(day)
-      );
-      if (
-        !Number.isNaN(date.getTime()) &&
-        date.getDate() === Number.parseInt(day) &&
-        date.getMonth() === Number.parseInt(month) - 1
-      ) {
-        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-      }
-    }
-  } else {
-    // Format anglais : MM/DD/YYYY ou MM-DD-YYYY
-    const enMatch = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/.exec(trimmed);
-    if (enMatch) {
-      const [, month, day, year] = enMatch;
-      const date = new Date(
-        Number.parseInt(year),
-        Number.parseInt(month) - 1,
-        Number.parseInt(day)
-      );
-      if (
-        !Number.isNaN(date.getTime()) &&
-        date.getDate() === Number.parseInt(day) &&
-        date.getMonth() === Number.parseInt(month) - 1
-      ) {
-        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-      }
-    }
+  const numericDate = parseNumericDate(trimmed, dateFormat);
+  if (numericDate) {
+    return numericDate;
   }
 
   // Essayer de parser avec Date (fallback)

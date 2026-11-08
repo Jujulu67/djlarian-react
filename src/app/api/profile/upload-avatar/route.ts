@@ -19,6 +19,92 @@ const AVATAR_EXTENSIONS: Record<string, string> = {
   'image/gif': 'gif',
 };
 
+/** Convertit l'image en WebP si possible ; sinon (ou en cas d'échec) garde l'original */
+async function prepareAvatarImage(file: File, bytes: Buffer) {
+  if (canConvertToWebP(file.type)) {
+    try {
+      const buffer = await convertToWebP(bytes);
+      logger.debug('Avatar converti en WebP');
+      return { buffer, contentType: 'image/webp', isWebP: true };
+    } catch (error) {
+      logger.warn('Erreur conversion WebP, utilisation originale', error);
+    }
+  } else {
+    // Type non supporté pour conversion WebP (ex: SVG, HEIC, etc.)
+    logger.warn(`Type d'image non supporté pour conversion WebP: ${file.type}`);
+  }
+  return { buffer: bytes, contentType: file.type, isWebP: false };
+}
+
+/** Upload vers Vercel Blob puis enregistrement de l'URL et du hash en base */
+async function saveAvatarToBlob(
+  key: string,
+  imageId: string,
+  buffer: Buffer,
+  contentType: string
+): Promise<string> {
+  // OPTIMISATION: Vérifier si l'avatar existe déjà avant d'uploader (évite put() redondant)
+  const { url, hash } = await uploadToBlobWithCheck(key, buffer, contentType, imageId, false);
+  logger.debug(`Avatar: ${url}`);
+
+  // Stocker l'URL et le hash dans la DB
+  await prisma.image.upsert({
+    where: { imageId },
+    create: {
+      imageId,
+      blobUrl: url,
+      size: buffer.length,
+      contentType,
+      hash,
+    },
+    update: {
+      blobUrl: url,
+      size: buffer.length,
+      contentType,
+      hash,
+    },
+  });
+  return url;
+}
+
+/** Supprime l'ancienne photo locale si elle existe (ne bloque pas l'upload en cas d'échec) */
+function deleteOldLocalAvatar(oldImage: string | null | undefined) {
+  if (!oldImage?.startsWith('/uploads/avatars/')) return;
+
+  const oldImagePath = path.join(process.cwd(), 'public', oldImage);
+  if (!fs.existsSync(oldImagePath)) return;
+  try {
+    fs.unlinkSync(oldImagePath);
+    logger.debug(`Ancienne photo supprimée: ${oldImagePath}`);
+  } catch (error) {
+    logger.warn('Erreur suppression ancienne photo', error);
+  }
+}
+
+/** Sauvegarde locale dans public/uploads/avatars/ */
+function saveAvatarLocally(
+  oldImage: string | null | undefined,
+  imageId: string,
+  extension: string,
+  buffer: Buffer,
+  contentType: string
+): string {
+  const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'avatars');
+
+  // Créer le dossier s'il n'existe pas
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+
+  deleteOldLocalAvatar(oldImage);
+
+  // Sauvegarder la nouvelle image avec la bonne extension
+  const imagePath = path.join(uploadsDir, `${imageId}.${extension}`);
+  fs.writeFileSync(imagePath, buffer);
+  logger.debug(`Avatar sauvegardé localement: ${imagePath} (type: ${contentType})`);
+  return `/uploads/avatars/${imageId}.${extension}`;
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Vérifier l'authentification
@@ -55,105 +141,42 @@ export async function POST(request: NextRequest) {
     // Générer un ID unique pour l'image
     const imageId = `avatar-${session.user.id}-${Date.now()}`;
 
-    // Convertir l'image en buffer
+    // Convertir l'image (WebP si possible) en buffer
     const imageBytes = await imageFile.arrayBuffer();
-    let imageBuffer: Buffer = Buffer.from(imageBytes);
-    let isWebP = false;
-    let contentType = imageFile.type;
+    const {
+      buffer: imageBuffer,
+      contentType,
+      isWebP,
+    } = await prepareAvatarImage(imageFile, Buffer.from(imageBytes));
 
-    // Convertir en WebP si possible - FORCER la conversion pour tous les types supportés
-    if (canConvertToWebP(imageFile.type)) {
-      try {
-        imageBuffer = await convertToWebP(imageBuffer);
-        isWebP = true;
-        contentType = 'image/webp';
-        logger.debug('Avatar converti en WebP');
-      } catch (error) {
-        logger.warn('Erreur conversion WebP, utilisation originale', error);
-        // Si la conversion échoue, on garde l'original avec son type d'origine
-        isWebP = false;
-        contentType = imageFile.type;
-      }
-    } else {
-      // Type non supporté pour conversion WebP (ex: SVG, HEIC, etc.)
-      logger.warn(`Type d'image non supporté pour conversion WebP: ${imageFile.type}`);
-      // On garde l'original avec son type d'origine
-      contentType = imageFile.type;
-    }
+    // Utiliser la bonne extension selon le type final
+    const extension = isWebP ? 'webp' : AVATAR_EXTENSIONS[imageFile.type];
 
     // Déterminer si on utilise Blob Storage
     const useBlobStorage = await shouldUseBlobStorage();
     let imageUrl: string;
 
     if (useBlobStorage) {
-      // Upload vers Vercel Blob
       try {
-        // Utiliser la bonne extension selon le type final
-        const extension = isWebP ? 'webp' : AVATAR_EXTENSIONS[imageFile.type];
-        const key = `uploads/avatars/${imageId}.${extension}`;
-        // OPTIMISATION: Vérifier si l'avatar existe déjà avant d'uploader (évite put() redondant)
-        const { url, hash } = await uploadToBlobWithCheck(
-          key,
-          imageBuffer,
-          contentType,
+        imageUrl = await saveAvatarToBlob(
+          `uploads/avatars/${imageId}.${extension}`,
           imageId,
-          false
+          imageBuffer,
+          contentType
         );
-        imageUrl = url;
-        logger.debug(`Avatar: ${imageUrl}`);
-
-        // Stocker l'URL et le hash dans la DB
-        await prisma.image.upsert({
-          where: { imageId },
-          create: {
-            imageId,
-            blobUrl: imageUrl,
-            size: imageBuffer.length,
-            contentType,
-            hash,
-          },
-          update: {
-            blobUrl: imageUrl,
-            size: imageBuffer.length,
-            contentType,
-            hash,
-          },
-        });
       } catch (error) {
         logger.error('Erreur upload avatar vers Blob', error);
         return NextResponse.json({ error: "Erreur lors de l'upload" }, { status: 500 });
       }
     } else {
-      // Sauvegarder localement dans public/uploads/avatars/
       try {
-        const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'avatars');
-
-        // Créer le dossier s'il n'existe pas
-        if (!fs.existsSync(uploadsDir)) {
-          fs.mkdirSync(uploadsDir, { recursive: true });
-        }
-
-        // Supprimer l'ancienne photo de profil si elle existe (uniquement si c'est une image locale)
-        const oldImage = session.user.image;
-        if (oldImage?.startsWith('/uploads/avatars/')) {
-          const oldImagePath = path.join(process.cwd(), 'public', oldImage);
-          if (fs.existsSync(oldImagePath)) {
-            try {
-              fs.unlinkSync(oldImagePath);
-              logger.debug(`Ancienne photo supprimée: ${oldImagePath}`);
-            } catch (error) {
-              logger.warn('Erreur suppression ancienne photo', error);
-              // Ne pas bloquer l'upload si la suppression échoue
-            }
-          }
-        }
-
-        // Sauvegarder la nouvelle image avec la bonne extension
-        const extension = isWebP ? 'webp' : AVATAR_EXTENSIONS[imageFile.type];
-        const imagePath = path.join(uploadsDir, `${imageId}.${extension}`);
-        fs.writeFileSync(imagePath, imageBuffer);
-        imageUrl = `/uploads/avatars/${imageId}.${extension}`;
-        logger.debug(`Avatar sauvegardé localement: ${imagePath} (type: ${contentType})`);
+        imageUrl = saveAvatarLocally(
+          session.user.image,
+          imageId,
+          extension,
+          imageBuffer,
+          contentType
+        );
       } catch (error) {
         logger.error('Erreur sauvegarde avatar locale', error);
         return NextResponse.json({ error: "Erreur lors de l'upload" }, { status: 500 });

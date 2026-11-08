@@ -46,74 +46,40 @@ describe('setupConsoleFilters', () => {
     expect(typeof cleanup).toBe('function');
   });
 
-  it('should filter React Router warnings', () => {
-    const originalWarn = console.warn;
-    const warnSpy = jest.fn();
-    console.warn = warnSpy;
+  it.each([
+    [
+      'React Router warnings',
+      'warn',
+      ['react router future flag', 'v7_starttransition', 'v7_relativesplatpath'],
+    ],
+    [
+      'Framer Motion warnings',
+      'warn',
+      ['motion versions', 'attempting to mix motion versions', 'non-static position'],
+    ],
+    [
+      'SecurityError messages',
+      'error',
+      ['getlayoutmap error', 'securityerror occurred', 'permission policy violation'],
+    ],
+    [
+      'Twitch-related errors',
+      'error',
+      ['twitch error', '429 too many requests', 'autoplay disabled'],
+    ],
+  ] as const)('should filter %s', (_label, method, messages) => {
+    const original = console[method];
+    const spy = jest.fn();
+    console[method] = spy;
 
     setupConsoleFilters();
 
-    console.warn('react router future flag');
-    console.warn('v7_starttransition');
-    console.warn('v7_relativesplatpath');
+    messages.forEach((message) => console[method](message));
 
-    // These should be filtered, so the original warn should not be called
-    // setupConsoleFilters replaces console.warn, so warnSpy won't be called
-    // Instead, we check that filtered messages don't reach the original
-    expect(warnSpy).not.toHaveBeenCalled();
+    // These should be filtered, so the original method should not be called
+    expect(spy).not.toHaveBeenCalled();
 
-    console.warn = originalWarn;
-  });
-
-  it('should filter Framer Motion warnings', () => {
-    const originalWarn = console.warn;
-    const warnSpy = jest.fn();
-    console.warn = warnSpy;
-
-    setupConsoleFilters();
-
-    console.warn('motion versions');
-    console.warn('attempting to mix motion versions');
-    console.warn('non-static position');
-
-    // These should be filtered
-    expect(warnSpy).not.toHaveBeenCalled();
-
-    console.warn = originalWarn;
-  });
-
-  it('should filter SecurityError messages', () => {
-    const originalError = console.error;
-    const errorSpy = jest.fn();
-    console.error = errorSpy;
-
-    setupConsoleFilters();
-
-    console.error('getlayoutmap error');
-    console.error('securityerror occurred');
-    console.error('permission policy violation');
-
-    // These should be filtered
-    expect(errorSpy).not.toHaveBeenCalled();
-
-    console.error = originalError;
-  });
-
-  it('should filter Twitch-related errors', () => {
-    const originalError = console.error;
-    const errorSpy = jest.fn();
-    console.error = errorSpy;
-
-    setupConsoleFilters();
-
-    console.error('twitch error');
-    console.error('429 too many requests');
-    console.error('autoplay disabled');
-
-    // These should be filtered
-    expect(errorSpy).not.toHaveBeenCalled();
-
-    console.error = originalError;
+    console[method] = original;
   });
 
   it('should allow non-filtered messages through', () => {
@@ -296,32 +262,31 @@ describe('setupConsoleFilters', () => {
     expect(mockOnError).toHaveBeenCalled();
   });
 
-  it('should filter window.onerror with getlayoutmap', () => {
+  it.each([
+    ['getlayoutmap', 'getlayoutmap error', 'test.js'],
+    ['twitch source', 'Error', 'twitch.tv/test.js'],
+    ['uploads source and -ori.', '404', '/uploads/image-ori.jpg'],
+    [
+      'cannot read properties pattern',
+      'Cannot read properties of undefined (reading "test")',
+      'test.js',
+    ],
+    ['source containing twitch.tv', 'Error', 'https://twitch.tv/script.js'],
+    ['source containing extension://', 'Error', 'extension://test/script.js'],
+    ['source containing _next/static/media', 'Error', '/_next/static/media/font.woff2'],
+    ['source containing passport.twitch.tv', 'Error', 'https://passport.twitch.tv/auth'],
+    ['source containing gql.twitch.tv', 'Error', 'https://gql.twitch.tv/gql'],
+    ['source containing /uploads/', 'Error', '/uploads/image.jpg'],
+    ['localhost:3001 source', 'Error', 'localhost:3001/script.js'],
+    ['content_script.js in source', 'Error', 'content_script.js'],
+    ['non-static position message', 'non-static position error', 'test.js'],
+    ['scroll offset message', 'scroll offset error', 'test.js'],
+  ])('should filter window.onerror with %s', (_label, message, source) => {
     window.onerror = null;
     setupConsoleFilters();
 
     const onErrorHandler = window.onerror as typeof window.onerror;
-    const result = onErrorHandler?.('getlayoutmap error', 'test.js', 1, 1, new Error('test'));
-
-    expect(result).toBe(true);
-  });
-
-  it('should filter window.onerror with twitch source', () => {
-    window.onerror = null;
-    setupConsoleFilters();
-
-    const onErrorHandler = window.onerror as typeof window.onerror;
-    const result = onErrorHandler?.('Error', 'twitch.tv/test.js', 1, 1, new Error('test'));
-
-    expect(result).toBe(true);
-  });
-
-  it('should filter window.onerror with uploads source and -ori.', () => {
-    window.onerror = null;
-    setupConsoleFilters();
-
-    const onErrorHandler = window.onerror as typeof window.onerror;
-    const result = onErrorHandler?.('404', '/uploads/image-ori.jpg', 1, 1, new Error('test'));
+    const result = onErrorHandler?.(message, source, 1, 1, new Error('test'));
 
     expect(result).toBe(true);
   });
@@ -345,7 +310,48 @@ describe('setupConsoleFilters', () => {
     }
   });
 
-  it('should handle unhandledrejection with reason as object with message', () => {
+  it.each([
+    [
+      'should handle unhandledrejection with reason as object with message',
+      'securityerror occurred',
+    ],
+    [
+      'should handle unhandledrejection with reason as object with message containing getlayoutmap',
+      'getlayoutmap error occurred',
+    ],
+    [
+      'should handle unhandledrejection with reason as object with message containing securityerror',
+      'securityerror occurred',
+    ],
+    [
+      'should handle unhandledrejection with reason as object with message containing non-static position',
+      'non-static position error',
+    ],
+    [
+      'should handle unhandledrejection with reason as object with message containing scroll offset',
+      'scroll offset error',
+    ],
+    [
+      'should handle unhandledrejection with reason as object with message containing cannot read properties',
+      'Cannot read properties of undefined (reading "test")',
+    ],
+    [
+      'should handle unhandledrejection with reason as object with message containing message port closed',
+      'message port closed',
+    ],
+    [
+      'should handle unhandledrejection with reason as object with message containing runtime.lasterror',
+      'runtime.lasterror occurred',
+    ],
+    [
+      'should handle unhandledrejection with reason as object with message containing err_connection_refused',
+      'err_connection_refused',
+    ],
+    [
+      'should handle unhandledrejection with reason as object with message containing content_script.js',
+      'content_script.js error',
+    ],
+  ])('%s', (_title, message) => {
     setupConsoleFilters();
     const addEventListenerCalls = (window.addEventListener as jest.Mock).mock.calls;
     const unhandledRejectionHandler = addEventListenerCalls.find(
@@ -354,7 +360,7 @@ describe('setupConsoleFilters', () => {
 
     if (unhandledRejectionHandler) {
       const event = {
-        reason: { message: 'securityerror occurred' },
+        reason: { message },
         preventDefault: jest.fn(),
       } as unknown as PromiseRejectionEvent;
 
@@ -534,100 +540,6 @@ describe('setupConsoleFilters', () => {
     expect(result).toBe(false);
   });
 
-  it('should filter window.onerror with cannot read properties pattern', () => {
-    window.onerror = null;
-    setupConsoleFilters();
-
-    const onErrorHandler = window.onerror as typeof window.onerror;
-    const result = onErrorHandler?.(
-      'Cannot read properties of undefined (reading "test")',
-      'test.js',
-      1,
-      1,
-      new Error('test')
-    );
-
-    expect(result).toBe(true);
-  });
-
-  it('should filter window.onerror with source containing twitch.tv', () => {
-    window.onerror = null;
-    setupConsoleFilters();
-
-    const onErrorHandler = window.onerror as typeof window.onerror;
-    const result = onErrorHandler?.(
-      'Error',
-      'https://twitch.tv/script.js',
-      1,
-      1,
-      new Error('test')
-    );
-
-    expect(result).toBe(true);
-  });
-
-  it('should filter window.onerror with source containing extension://', () => {
-    window.onerror = null;
-    setupConsoleFilters();
-
-    const onErrorHandler = window.onerror as typeof window.onerror;
-    const result = onErrorHandler?.('Error', 'extension://test/script.js', 1, 1, new Error('test'));
-
-    expect(result).toBe(true);
-  });
-
-  it('should filter window.onerror with source containing _next/static/media', () => {
-    window.onerror = null;
-    setupConsoleFilters();
-
-    const onErrorHandler = window.onerror as typeof window.onerror;
-    const result = onErrorHandler?.(
-      'Error',
-      '/_next/static/media/font.woff2',
-      1,
-      1,
-      new Error('test')
-    );
-
-    expect(result).toBe(true);
-  });
-
-  it('should filter window.onerror with source containing passport.twitch.tv', () => {
-    window.onerror = null;
-    setupConsoleFilters();
-
-    const onErrorHandler = window.onerror as typeof window.onerror;
-    const result = onErrorHandler?.(
-      'Error',
-      'https://passport.twitch.tv/auth',
-      1,
-      1,
-      new Error('test')
-    );
-
-    expect(result).toBe(true);
-  });
-
-  it('should filter window.onerror with source containing gql.twitch.tv', () => {
-    window.onerror = null;
-    setupConsoleFilters();
-
-    const onErrorHandler = window.onerror as typeof window.onerror;
-    const result = onErrorHandler?.('Error', 'https://gql.twitch.tv/gql', 1, 1, new Error('test'));
-
-    expect(result).toBe(true);
-  });
-
-  it('should filter window.onerror with source containing /uploads/', () => {
-    window.onerror = null;
-    setupConsoleFilters();
-
-    const onErrorHandler = window.onerror as typeof window.onerror;
-    const result = onErrorHandler?.('Error', '/uploads/image.jpg', 1, 1, new Error('test'));
-
-    expect(result).toBe(true);
-  });
-
   it('should handle unhandledrejection with reason as object without message', () => {
     setupConsoleFilters();
     const addEventListenerCalls = (window.addEventListener as jest.Mock).mock.calls;
@@ -705,223 +617,6 @@ describe('setupConsoleFilters', () => {
 
       // Should not prevent default for objects without message
       expect(event.preventDefault).not.toHaveBeenCalled();
-    }
-  });
-
-  it('should filter window.onerror with localhost:3001 source', () => {
-    window.onerror = null;
-    setupConsoleFilters();
-
-    const onErrorHandler = window.onerror as typeof window.onerror;
-    const result = onErrorHandler?.('Error', 'localhost:3001/script.js', 1, 1, new Error('test'));
-
-    expect(result).toBe(true);
-  });
-
-  it('should filter window.onerror with content_script.js in source', () => {
-    window.onerror = null;
-    setupConsoleFilters();
-
-    const onErrorHandler = window.onerror as typeof window.onerror;
-    const result = onErrorHandler?.('Error', 'content_script.js', 1, 1, new Error('test'));
-
-    expect(result).toBe(true);
-  });
-
-  it('should filter window.onerror with non-static position message', () => {
-    window.onerror = null;
-    setupConsoleFilters();
-
-    const onErrorHandler = window.onerror as typeof window.onerror;
-    const result = onErrorHandler?.(
-      'non-static position error',
-      'test.js',
-      1,
-      1,
-      new Error('test')
-    );
-
-    expect(result).toBe(true);
-  });
-
-  it('should filter window.onerror with scroll offset message', () => {
-    window.onerror = null;
-    setupConsoleFilters();
-
-    const onErrorHandler = window.onerror as typeof window.onerror;
-    const result = onErrorHandler?.('scroll offset error', 'test.js', 1, 1, new Error('test'));
-
-    expect(result).toBe(true);
-  });
-
-  it('should handle unhandledrejection with reason as object with message containing getlayoutmap', () => {
-    setupConsoleFilters();
-    const addEventListenerCalls = (window.addEventListener as jest.Mock).mock.calls;
-    const unhandledRejectionHandler = addEventListenerCalls.find(
-      (call) => call[0] === 'unhandledrejection'
-    )?.[1];
-
-    if (unhandledRejectionHandler) {
-      const event = {
-        reason: { message: 'getlayoutmap error occurred' },
-        preventDefault: jest.fn(),
-      } as unknown as PromiseRejectionEvent;
-
-      unhandledRejectionHandler(event);
-
-      expect(event.preventDefault).toHaveBeenCalled();
-    }
-  });
-
-  it('should handle unhandledrejection with reason as object with message containing securityerror', () => {
-    setupConsoleFilters();
-    const addEventListenerCalls = (window.addEventListener as jest.Mock).mock.calls;
-    const unhandledRejectionHandler = addEventListenerCalls.find(
-      (call) => call[0] === 'unhandledrejection'
-    )?.[1];
-
-    if (unhandledRejectionHandler) {
-      const event = {
-        reason: { message: 'securityerror occurred' },
-        preventDefault: jest.fn(),
-      } as unknown as PromiseRejectionEvent;
-
-      unhandledRejectionHandler(event);
-
-      expect(event.preventDefault).toHaveBeenCalled();
-    }
-  });
-
-  it('should handle unhandledrejection with reason as object with message containing non-static position', () => {
-    setupConsoleFilters();
-    const addEventListenerCalls = (window.addEventListener as jest.Mock).mock.calls;
-    const unhandledRejectionHandler = addEventListenerCalls.find(
-      (call) => call[0] === 'unhandledrejection'
-    )?.[1];
-
-    if (unhandledRejectionHandler) {
-      const event = {
-        reason: { message: 'non-static position error' },
-        preventDefault: jest.fn(),
-      } as unknown as PromiseRejectionEvent;
-
-      unhandledRejectionHandler(event);
-
-      expect(event.preventDefault).toHaveBeenCalled();
-    }
-  });
-
-  it('should handle unhandledrejection with reason as object with message containing scroll offset', () => {
-    setupConsoleFilters();
-    const addEventListenerCalls = (window.addEventListener as jest.Mock).mock.calls;
-    const unhandledRejectionHandler = addEventListenerCalls.find(
-      (call) => call[0] === 'unhandledrejection'
-    )?.[1];
-
-    if (unhandledRejectionHandler) {
-      const event = {
-        reason: { message: 'scroll offset error' },
-        preventDefault: jest.fn(),
-      } as unknown as PromiseRejectionEvent;
-
-      unhandledRejectionHandler(event);
-
-      expect(event.preventDefault).toHaveBeenCalled();
-    }
-  });
-
-  it('should handle unhandledrejection with reason as object with message containing cannot read properties', () => {
-    setupConsoleFilters();
-    const addEventListenerCalls = (window.addEventListener as jest.Mock).mock.calls;
-    const unhandledRejectionHandler = addEventListenerCalls.find(
-      (call) => call[0] === 'unhandledrejection'
-    )?.[1];
-
-    if (unhandledRejectionHandler) {
-      const event = {
-        reason: { message: 'Cannot read properties of undefined (reading "test")' },
-        preventDefault: jest.fn(),
-      } as unknown as PromiseRejectionEvent;
-
-      unhandledRejectionHandler(event);
-
-      expect(event.preventDefault).toHaveBeenCalled();
-    }
-  });
-
-  it('should handle unhandledrejection with reason as object with message containing message port closed', () => {
-    setupConsoleFilters();
-    const addEventListenerCalls = (window.addEventListener as jest.Mock).mock.calls;
-    const unhandledRejectionHandler = addEventListenerCalls.find(
-      (call) => call[0] === 'unhandledrejection'
-    )?.[1];
-
-    if (unhandledRejectionHandler) {
-      const event = {
-        reason: { message: 'message port closed' },
-        preventDefault: jest.fn(),
-      } as unknown as PromiseRejectionEvent;
-
-      unhandledRejectionHandler(event);
-
-      expect(event.preventDefault).toHaveBeenCalled();
-    }
-  });
-
-  it('should handle unhandledrejection with reason as object with message containing runtime.lasterror', () => {
-    setupConsoleFilters();
-    const addEventListenerCalls = (window.addEventListener as jest.Mock).mock.calls;
-    const unhandledRejectionHandler = addEventListenerCalls.find(
-      (call) => call[0] === 'unhandledrejection'
-    )?.[1];
-
-    if (unhandledRejectionHandler) {
-      const event = {
-        reason: { message: 'runtime.lasterror occurred' },
-        preventDefault: jest.fn(),
-      } as unknown as PromiseRejectionEvent;
-
-      unhandledRejectionHandler(event);
-
-      expect(event.preventDefault).toHaveBeenCalled();
-    }
-  });
-
-  it('should handle unhandledrejection with reason as object with message containing err_connection_refused', () => {
-    setupConsoleFilters();
-    const addEventListenerCalls = (window.addEventListener as jest.Mock).mock.calls;
-    const unhandledRejectionHandler = addEventListenerCalls.find(
-      (call) => call[0] === 'unhandledrejection'
-    )?.[1];
-
-    if (unhandledRejectionHandler) {
-      const event = {
-        reason: { message: 'err_connection_refused' },
-        preventDefault: jest.fn(),
-      } as unknown as PromiseRejectionEvent;
-
-      unhandledRejectionHandler(event);
-
-      expect(event.preventDefault).toHaveBeenCalled();
-    }
-  });
-
-  it('should handle unhandledrejection with reason as object with message containing content_script.js', () => {
-    setupConsoleFilters();
-    const addEventListenerCalls = (window.addEventListener as jest.Mock).mock.calls;
-    const unhandledRejectionHandler = addEventListenerCalls.find(
-      (call) => call[0] === 'unhandledrejection'
-    )?.[1];
-
-    if (unhandledRejectionHandler) {
-      const event = {
-        reason: { message: 'content_script.js error' },
-        preventDefault: jest.fn(),
-      } as unknown as PromiseRejectionEvent;
-
-      unhandledRejectionHandler(event);
-
-      expect(event.preventDefault).toHaveBeenCalled();
     }
   });
 });
