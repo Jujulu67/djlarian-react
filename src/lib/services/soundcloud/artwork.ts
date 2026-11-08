@@ -19,7 +19,7 @@ export function extractArtworkUrlFromScript(content: string): string | null {
   }
 
   const artworkMatch = /"artwork_url"\s*:\s*"([^"]+)"/.exec(content);
-  if (artworkMatch && artworkMatch[1]) {
+  if (artworkMatch?.[1]) {
     return normalizeThumbnailUrl(artworkMatch[1]);
   }
 

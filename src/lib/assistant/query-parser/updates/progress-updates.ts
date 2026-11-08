@@ -94,7 +94,7 @@ function findNumberProgress(
   filters: Record<string, unknown>
 ): number | undefined {
   for (const pattern of NUMBER_WITHOUT_PERCENT_PATTERNS) {
-    const value = Number.parseInt(cleanedQuery.match(pattern)?.[1] ?? '', 10);
+    const value = Number.parseInt(pattern.exec(cleanedQuery)?.[1] ?? '', 10);
     if (isValidProgress(value) && !isUsedAsFilter(filters, value)) return value;
   }
   return undefined;
@@ -139,7 +139,7 @@ function findExplicitProgress(
 ): number | undefined {
   const hasUpdateVerb = UPDATE_VERB_PATTERN.test(cleanedQuery);
   for (const pattern of EXPLICIT_NEW_PROGRESS_PATTERNS) {
-    const value = Number.parseInt(cleanedQuery.match(pattern)?.[1] ?? '', 10);
+    const value = Number.parseInt(pattern.exec(cleanedQuery)?.[1] ?? '', 10);
     if (isValidProgress(value) && (!isUsedAsFilter(filters, value) || hasUpdateVerb)) return value;
   }
   return undefined;

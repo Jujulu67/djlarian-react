@@ -33,7 +33,7 @@ export function detectDeadlineFromQuery(query: string): {
   ];
 
   for (const pattern of datePatterns) {
-    const match = lowerQuery.match(pattern);
+    const match = pattern.exec(lowerQuery);
     if (match) {
       // Utiliser parseRelativeDate pour convertir
       const dateStr = match[0];

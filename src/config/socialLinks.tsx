@@ -13,6 +13,7 @@ export const socialLinks: SocialLink[] = [
     url: 'https://instagram.com/djlarian',
     icon: (
       <svg
+        aria-hidden="true"
         xmlns="http://www.w3.org/2000/svg"
         className="h-6 w-6"
         fill="currentColor"
@@ -27,6 +28,7 @@ export const socialLinks: SocialLink[] = [
     url: 'https://twitter.com/djlarian',
     icon: (
       <svg
+        aria-hidden="true"
         xmlns="http://www.w3.org/2000/svg"
         className="h-6 w-6"
         fill="currentColor"
@@ -41,6 +43,7 @@ export const socialLinks: SocialLink[] = [
     url: 'https://facebook.com/djlarian',
     icon: (
       <svg
+        aria-hidden="true"
         xmlns="http://www.w3.org/2000/svg"
         className="h-6 w-6"
         fill="currentColor"
@@ -55,6 +58,7 @@ export const socialLinks: SocialLink[] = [
     url: 'https://youtube.com/djlarian',
     icon: (
       <svg
+        aria-hidden="true"
         xmlns="http://www.w3.org/2000/svg"
         className="h-6 w-6"
         fill="currentColor"

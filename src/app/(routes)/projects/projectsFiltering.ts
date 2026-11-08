@@ -63,10 +63,10 @@ export function filterAndSortProjects(
     filtered = filtered.filter(
       (p) =>
         p.name.toLowerCase().includes(search) ||
-        (p.style && p.style.toLowerCase().includes(search)) ||
-        (p.collab && p.collab.toLowerCase().includes(search)) ||
-        (p.label && p.label.toLowerCase().includes(search)) ||
-        (p.labelFinal && p.labelFinal.toLowerCase().includes(search))
+        p.style?.toLowerCase().includes(search) ||
+        p.collab?.toLowerCase().includes(search) ||
+        p.label?.toLowerCase().includes(search) ||
+        p.labelFinal?.toLowerCase().includes(search)
     );
   }
 

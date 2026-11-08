@@ -324,7 +324,7 @@ function extractNoteUpdateData(query: string, _lowerQuery: string): NoteData | n
   if (isConversationalQuery(query)) return null;
 
   for (let i = 0; i < NOTE_PATTERNS.length; i++) {
-    const match = query.match(NOTE_PATTERNS[i]);
+    const match = NOTE_PATTERNS[i].exec(query);
     const note = match?.[1] && match[2] ? parseNoteMatch(match, i) : null;
     if (note) return note;
   }

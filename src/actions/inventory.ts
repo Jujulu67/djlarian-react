@@ -10,7 +10,7 @@ export async function getInventory(userId: string) {
   const t0 = perf.start();
   try {
     const session = await auth();
-    if (!session?.user || session.user.role !== 'ADMIN') {
+    if (session?.user?.role !== 'ADMIN') {
       throw new Error('Unauthorized');
     }
 
@@ -43,7 +43,7 @@ export async function getInventory(userId: string) {
 export async function getAllItems() {
   try {
     const session = await auth();
-    if (!session?.user || session.user.role !== 'ADMIN') {
+    if (session?.user?.role !== 'ADMIN') {
       throw new Error('Unauthorized');
     }
 
@@ -64,7 +64,7 @@ export async function addItemToUser(userId: string, itemId: string, quantity: nu
   const t0 = perf.start();
   try {
     const session = await auth();
-    if (!session?.user || session.user.role !== 'ADMIN') {
+    if (session?.user?.role !== 'ADMIN') {
       throw new Error('Unauthorized');
     }
 
@@ -120,7 +120,7 @@ export async function removeItemFromUser(userId: string, itemId: string, quantit
   const t0 = perf.start();
   try {
     const session = await auth();
-    if (!session?.user || session.user.role !== 'ADMIN') {
+    if (session?.user?.role !== 'ADMIN') {
       throw new Error('Unauthorized');
     }
 
@@ -181,7 +181,7 @@ export async function removeItemFromUser(userId: string, itemId: string, quantit
 export async function activateItem(userItemId: string) {
   try {
     const session = await auth();
-    if (!session?.user || session.user.role !== 'ADMIN') {
+    if (session?.user?.role !== 'ADMIN') {
       throw new Error('Unauthorized');
     }
 
@@ -275,7 +275,7 @@ export async function activateItem(userItemId: string) {
 export async function deactivateItem(userItemId: string) {
   try {
     const session = await auth();
-    if (!session?.user || session.user.role !== 'ADMIN') {
+    if (session?.user?.role !== 'ADMIN') {
       throw new Error('Unauthorized');
     }
 
@@ -321,7 +321,7 @@ export async function deactivateItem(userItemId: string) {
 export async function toggleItemActivation(userItemId: string) {
   try {
     const session = await auth();
-    if (!session?.user || session.user.role !== 'ADMIN') {
+    if (session?.user?.role !== 'ADMIN') {
       throw new Error('Unauthorized');
     }
 
@@ -351,7 +351,7 @@ export async function toggleItemActivation(userItemId: string) {
 export async function searchUsers(query: string) {
   try {
     const session = await auth();
-    if (!session?.user || session.user.role !== 'ADMIN') {
+    if (session?.user?.role !== 'ADMIN') {
       throw new Error('Unauthorized');
     }
 

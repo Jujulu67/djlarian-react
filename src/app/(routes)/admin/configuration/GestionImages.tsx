@@ -167,7 +167,7 @@ export default function GestionImages({
 
   // Gestion de la suppression multiple
   const handleMultiDelete = useCallback(async () => {
-    if (!deleteTarget || deleteTarget.id !== 'multi') return;
+    if (deleteTarget?.id !== 'multi') return;
 
     setError(null);
     let errorCount = 0;

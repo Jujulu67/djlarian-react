@@ -221,7 +221,7 @@ export async function scrapeSoundCloudTracksPage(profileName: string): Promise<S
 
         // Vérifier que c'est bien une track de ce profil
         const trackMatch = /soundcloud\.com\/([^/]+)\/([^/?]+)/.exec(trackUrl);
-        if (!trackMatch || trackMatch[1] !== profileName) return;
+        if (trackMatch?.[1] !== profileName) return;
 
         // Éviter les doublons
         if (seenUrls.has(trackUrl)) return;
@@ -323,12 +323,12 @@ export async function scrapeSoundCloudTracksPage(profileName: string): Promise<S
               // Pattern pour extraire le titre depuis "Titre : ... par ..."
               // Le pattern doit gérer &nbsp; et les entités HTML
               const titleMatch = matchTitreField(decoded);
-              if (titleMatch && titleMatch[1]) {
+              if (titleMatch?.[1]) {
                 title = titleMatch[1].trim();
               } else {
                 // Si pas de pattern, prendre tout après "Titre" ou tout le contenu
                 const simpleMatch = /Titre\s*[:\u00A0]\s*(.+)/i.exec(decoded);
-                if (simpleMatch && simpleMatch[1]) {
+                if (simpleMatch?.[1]) {
                   title = simpleMatch[1].split(/(?<!\s)\s+par\s+/i)[0].trim();
                 } else {
                   // Si aucun pattern ne fonctionne, utiliser tout le contenu décodé
@@ -377,11 +377,11 @@ export async function scrapeSoundCloudTracksPage(profileName: string): Promise<S
               innerHTML: '',
             });
             const titleMatch = matchTitreField(decoded);
-            if (titleMatch && titleMatch[1]) {
+            if (titleMatch?.[1]) {
               title = titleMatch[1].trim();
             } else {
               const simpleMatch = /Titre\s*[:\u00A0]\s*(.+)/i.exec(decoded);
-              if (simpleMatch && simpleMatch[1]) {
+              if (simpleMatch?.[1]) {
                 title = simpleMatch[1].split(/(?<!\s)\s+par\s+/i)[0].trim();
               } else {
                 title = decoded;
@@ -415,7 +415,7 @@ export async function scrapeSoundCloudTracksPage(profileName: string): Promise<S
         if (imageSpan) {
           const style = imageSpan.getAttribute('style') || '';
           const imageMatch = /url\(["']?([^"')]+)["']?\)/i.exec(style);
-          if (imageMatch && imageMatch[1]) {
+          if (imageMatch?.[1]) {
             imageUrl = imageMatch[1]
               .replace(/\\/g, '')
               .replace('-t200x200', '-t500x500')

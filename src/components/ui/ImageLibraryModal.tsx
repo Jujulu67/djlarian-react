@@ -39,7 +39,7 @@ const getImageUrlForModal = (img: ImageMeta) => {
   }
 
   // Sinon, utiliser l'URL telle quelle ou construire depuis le nom
-  if (img.url && img.url.startsWith('/uploads/')) {
+  if (img.url?.startsWith('/uploads/')) {
     return img.url;
   }
 

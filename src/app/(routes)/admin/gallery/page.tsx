@@ -37,6 +37,7 @@ export default async function AdminGalleryPage() {
                 <div className="flex space-x-2">
                   <button className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full">
                     <svg
+                      aria-hidden="true"
                       xmlns="http://www.w3.org/2000/svg"
                       className="h-5 w-5"
                       viewBox="0 0 20 20"
@@ -47,6 +48,7 @@ export default async function AdminGalleryPage() {
                   </button>
                   <button className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-full">
                     <svg
+                      aria-hidden="true"
                       xmlns="http://www.w3.org/2000/svg"
                       className="h-5 w-5"
                       viewBox="0 0 20 20"

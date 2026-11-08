@@ -67,8 +67,8 @@ function extractFact(question: string, answer: string): string | null {
 
 function findPreference(answer: string): string | null {
   for (const pattern of PREFERENCE_PATTERNS) {
-    const preference = answer
-      .match(pattern)?.[1]
+    const preference = pattern
+      .exec(answer)?.[1]
       ?.trim()
       .replace(PREFERENCE_TAIL_PATTERN, '')
       .trim();

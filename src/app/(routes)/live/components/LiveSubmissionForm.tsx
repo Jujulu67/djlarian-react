@@ -297,7 +297,7 @@ export function LiveSubmissionForm() {
         setTimeout(() => {
           if (audioRef.current) {
             // Nettoyer l'ancienne URL si elle existe
-            if (audioRef.current.src && audioRef.current.src.startsWith('blob:')) {
+            if (audioRef.current.src?.startsWith('blob:')) {
               URL.revokeObjectURL(audioRef.current.src);
             }
             audioRef.current.src = audioUrl;
@@ -698,7 +698,7 @@ export function LiveSubmissionForm() {
           const data = await response.json();
           const draft = data.data;
 
-          if (draft && draft.id === savedDraftId) {
+          if (draft?.id === savedDraftId) {
             setDraftId(draft.id);
             setTitle(draft.title || '');
             setDescription(draft.description || '');
@@ -748,7 +748,7 @@ export function LiveSubmissionForm() {
                 setTimeout(() => {
                   if (audioRef.current) {
                     // Nettoyer l'ancienne source si elle existe
-                    if (audioRef.current.src && audioRef.current.src.startsWith('blob:')) {
+                    if (audioRef.current.src?.startsWith('blob:')) {
                       audioRef.current.pause();
                       URL.revokeObjectURL(audioRef.current.src);
                     }

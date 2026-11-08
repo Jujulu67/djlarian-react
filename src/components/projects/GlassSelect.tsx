@@ -81,10 +81,7 @@ export const GlassSelect = ({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
-      if (
-        (selectRef.current && selectRef.current.contains(target)) ||
-        (dropdownRef.current && dropdownRef.current.contains(target))
-      ) {
+      if (selectRef.current?.contains(target) || dropdownRef.current?.contains(target)) {
         return;
       }
       if (selectRef.current && !selectRef.current.contains(target)) {

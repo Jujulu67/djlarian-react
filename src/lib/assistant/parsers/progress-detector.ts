@@ -23,7 +23,7 @@ export function detectProgressFromQuery(query: string): {
   ];
 
   for (const pattern of inferieurPatterns) {
-    const match = lowerQuery.match(pattern);
+    const match = pattern.exec(lowerQuery);
     if (match) {
       result.maxProgress = Number.parseInt(match[1], 10);
       logger.warn(`[Assistant] Progression max détectée (inférieur à): ${result.maxProgress}%`);
@@ -39,7 +39,7 @@ export function detectProgressFromQuery(query: string): {
   ];
 
   for (const pattern of superieurPatterns) {
-    const match = lowerQuery.match(pattern);
+    const match = pattern.exec(lowerQuery);
     if (match) {
       result.minProgress = Number.parseInt(match[1], 10);
       logger.warn(`[Assistant] Progression min détectée (supérieur à): ${result.minProgress}%`);
@@ -62,7 +62,7 @@ export function detectProgressFromQuery(query: string): {
   ];
 
   for (const pattern of percentagePatterns) {
-    const match = lowerQuery.match(pattern);
+    const match = pattern.exec(lowerQuery);
     if (match) {
       if (match[2]) {
         // Pattern "entre X et Y"
@@ -116,8 +116,8 @@ export function detectProgressFromQuery(query: string): {
   ];
 
   for (const pattern of decimalPatterns) {
-    const match = lowerQuery.match(pattern);
-    if (match && match[1]) {
+    const match = pattern.exec(lowerQuery);
+    if (match?.[1]) {
       const decimalValue = Number.parseFloat(match[1].replace(',', '.'));
       if (decimalValue > 0 && decimalValue <= 1) {
         const percentValue = Math.round(decimalValue * 100);

@@ -223,7 +223,7 @@ export const applyVolumeToAllPlayers = (
     if (gainNode) {
       // Ensure audio context is running (might be suspended by browser policy)
       const audioContext = (window as WindowWithAudio).globalAudioContext;
-      if (audioContext && audioContext.state === 'suspended') {
+      if (audioContext?.state === 'suspended') {
         audioContext.resume().catch((err) => logger.error('Error resuming AudioContext:', err));
       }
       gainNode.gain.value = safeVolume;

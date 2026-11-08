@@ -121,9 +121,7 @@ export const ProjectNoteEditor = ({
   projectName,
 }: ProjectNoteEditorProps) => {
   // Par défaut, on ouvre en mode "aperçu" si la note existe déjà, sinon en mode "éditer"
-  const [viewMode, setViewMode] = useState<'edit' | 'preview'>(
-    value && value.trim() ? 'preview' : 'edit'
-  );
+  const [viewMode, setViewMode] = useState<'edit' | 'preview'>(value?.trim() ? 'preview' : 'edit');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   // Focus à l'ouverture de l'éditeur (au lieu d'autoFocus, Sonar S9379)
   const setTextareaRef = useCallback((element: HTMLTextAreaElement | null) => {

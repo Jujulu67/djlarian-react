@@ -165,8 +165,7 @@ export const useSoundCloudPlayer = ({
       // Direct access check for faster filtering
       if (
         event.origin !== 'https://w.soundcloud.com' ||
-        !soundcloudIframeRef.current ||
-        event.source !== soundcloudIframeRef.current.contentWindow
+        event.source !== soundcloudIframeRef.current?.contentWindow
       ) {
         return;
       }
@@ -221,7 +220,7 @@ export const useSoundCloudPlayer = ({
   // Pause and hide SoundCloud player
   const pauseAndHideSoundcloud = useCallback(() => {
     try {
-      if (soundcloudIframeRef.current && soundcloudIframeRef.current.contentWindow) {
+      if (soundcloudIframeRef.current?.contentWindow) {
         sendPlayerCommand(soundcloudIframeRef.current, 'soundcloud', 'pause');
       }
     } catch (e) {
@@ -239,7 +238,7 @@ export const useSoundCloudPlayer = ({
     }
 
     try {
-      if (soundcloudIframeRef.current && soundcloudIframeRef.current.contentWindow) {
+      if (soundcloudIframeRef.current?.contentWindow) {
         setTimeout(() => {
           sendPlayerCommand(soundcloudIframeRef.current, 'soundcloud', 'play');
         }, 100);
@@ -258,7 +257,7 @@ export const useSoundCloudPlayer = ({
 
       if (isSoundcloudVisible) {
         try {
-          if (soundcloudIframeRef.current && soundcloudIframeRef.current.contentWindow) {
+          if (soundcloudIframeRef.current?.contentWindow) {
             sendPlayerCommand(soundcloudIframeRef.current, 'soundcloud', 'pause');
           }
         } catch (error) {
