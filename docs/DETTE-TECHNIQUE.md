@@ -27,6 +27,16 @@ https://sonarcloud.io/summary/overall?id=Jujulu67_djlarian-react. Effets React, 
 mort sont réglés, Playwright tourne en CI, et il ne reste que 3 fonctions au-dessus de 50 de complexité,
 laissées de côté pour des raisons précises (voir ci-dessous).
 
+**Mesure SonarCloud du 08/11/2026** (après les PR #61 à #67) : sécurité, fiabilité et maintenabilité **A**,
+dette 0,0 %, duplication 2,0 %, 2 remarques ouvertes (1 094 au début de la journée). Environ 400 remarques
+sont marquées « Accepted », chacune avec sa justification en commentaire dans SonarCloud : regex du parseur
+de l'assistant (entrée bornée à 2 000 caractères, `redos.test.ts`), `!important` volontaires, traitements
+séquentiels voulus, listes positionnelles, cartes cliquables contenant d'autres contrôles.
+
+Dette réelle restante : les 2 remarques de complexité de `src/lib/services/soundcloud/scrapeTracksPage.ts`
+(l'une à 134). Ce code s'exécute dans le navigateur via `page.evaluate` et n'a aucun test : le découper
+demande d'abord un test sur un vrai navigateur. Elles restent ouvertes volontairement.
+
 ## Chantiers, par priorité
 
 ### 1. Fonctions complexes (complexité cognitive, seuil 15)
