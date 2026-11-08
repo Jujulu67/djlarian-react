@@ -288,7 +288,7 @@ export async function POST(request: NextRequest): Promise<Response> {
         // Handle optional genreNames
         const genres = isNotEmpty(dataForPrisma.genreNames)
           ? await Promise.all(
-              dataForPrisma.genreNames.map(async (name: string) => {
+              dataForPrisma.genreNames.map((name: string) => {
                 const normalizedName = name.trim().toLowerCase();
                 return tx.genre.upsert({
                   where: { name: normalizedName },

@@ -8,13 +8,13 @@ import bcrypt from 'bcryptjs';
 /**
  * Compare un mot de passe en clair avec un hash bcrypt
  */
-export async function compare(password: string, hash: string): Promise<boolean> {
+export function compare(password: string, hash: string): Promise<boolean> {
   return bcrypt.compare(password, hash);
 }
 
 /**
  * Hash un mot de passe avec bcrypt
  */
-export async function hash(password: string, saltRounds: number = 10): Promise<string> {
+export function hash(password: string, saltRounds: number = 10): Promise<string> {
   return bcrypt.hash(password, saltRounds);
 }

@@ -150,7 +150,7 @@ export async function PUT(
     if (genreNames !== undefined) {
       await prisma.genresOnTracks.deleteMany({ where: { trackId: id } });
       if (isNotEmpty(genreNames)) {
-        const genrePromises = genreNames.map(async (name) => {
+        const genrePromises = genreNames.map((name) => {
           const normalizedName = name.trim().toLowerCase();
           return prisma.genre.upsert({
             where: { name: normalizedName },
@@ -193,7 +193,7 @@ export async function PUT(
 
     // Mettre à jour la piste avec SEULEMENT les champs scalaires et les relations préparées
     const updatedTrack = await prisma.$transaction(
-      async (
+      (
         tx: Omit<
           typeof prisma,
           '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'

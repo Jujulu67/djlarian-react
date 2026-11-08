@@ -51,7 +51,7 @@ export function rewardToLiveItemType(rewardType: RewardType | null): LiveItemTyp
 }
 
 /** Récupère le LiveItem d'un type, en le créant s'il n'existe pas encore. */
-export async function getOrCreateLiveItem(db: Db, itemType: LiveItemType) {
+export function getOrCreateLiveItem(db: Db, itemType: LiveItemType) {
   return db.liveItem.upsert({
     where: { type: itemType },
     update: {},
@@ -153,7 +153,7 @@ export type SpinOutcome = {
  * (refusé si le solde est insuffisant au moment de l'écriture), crédit des gains, statistiques
  * et octroi des items. Renvoie false si le solde ne couvrait pas le coût (rien n'est écrit).
  */
-export async function applySpinOutcome(userId: string, outcome: SpinOutcome): Promise<boolean> {
+export function applySpinOutcome(userId: string, outcome: SpinOutcome): Promise<boolean> {
   return prisma.$transaction(async (tx) => {
     const debit = await tx.userSlotMachineTokens.updateMany({
       where: { userId, tokens: { gte: outcome.cost } },

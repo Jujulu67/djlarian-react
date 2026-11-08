@@ -400,7 +400,7 @@ export const authConfig = {
         );
       }
     },
-    async redirect({ url, baseUrl }) {
+    redirect({ url, baseUrl }) {
       // Nettoyer l'URL pour éviter les boucles de callbackUrl
       try {
         // Si l'URL est la baseUrl ou la page d'accueil, retourner baseUrl sans query params

@@ -13,7 +13,7 @@ function isAuthCookie(name: string): boolean {
  * morceaux `session-token.0`, `.1`… d'un jeton découpé).
  * Pas de GET : un simple lien ou une image vers cette adresse déconnectait l'utilisateur.
  */
-export async function POST(request: NextRequest) {
+export function POST(request: NextRequest) {
   const response = NextResponse.json({ success: true }, { status: 200 });
 
   for (const { name } of request.cookies.getAll()) {

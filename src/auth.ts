@@ -52,7 +52,7 @@ const customAdapter: Adapter = {
     // Si le compte n'existe pas, retourner null (NextAuth créera un nouveau compte)
     return null;
   },
-  async getUserByEmail(email) {
+  getUserByEmail(email) {
     // Utiliser la méthode de base pour obtenir l'utilisateur par email
     // NextAuth utilisera cette méthode pour vérifier si un utilisateur existe
     // Si un utilisateur existe, NextAuth appellera createUser qui retournera l'utilisateur existant

@@ -201,7 +201,7 @@ export function useSeamlessAudioLoop({
 
   // Create a new audio source with gain node
   const createSource = useCallback(
-    async (buffer: AudioBuffer, startOffset: number = 0): Promise<AudioSource> => {
+    (buffer: AudioBuffer, startOffset: number = 0): AudioSource => {
       const ctx = resumeAudioContext();
       if (!ctx) throw new Error('No audio context');
       const source = ctx.createBufferSource();
@@ -250,55 +250,54 @@ export function useSeamlessAudioLoop({
       const loopDuration = buffer.duration - loopStartOffset;
 
       // Create next source starting at loop point
-      createSource(buffer, loopStartOffset).then((nextAudio) => {
-        nextSourceRef.current = nextAudio;
+      const nextAudio = createSource(buffer, loopStartOffset);
+      nextSourceRef.current = nextAudio;
 
-        // Schedule crossfade for current source (fade out)
-        if (currentSourceRef.current) {
-          const currentGain = currentSourceRef.current.gain.gain;
-          try {
-            currentGain.cancelScheduledValues(crossfadeStart);
-            currentGain.setValueAtTime(1, crossfadeStart);
-            currentGain.setValueCurveAtTime(fadeOut, crossfadeStart, crossfadeDuration);
-          } catch (e) {
-            // Ignore scheduling conflicts
-          }
-        }
-
-        // Schedule next source to start at loop offset and fade in
+      // Schedule crossfade for current source (fade out)
+      if (currentSourceRef.current) {
+        const currentGain = currentSourceRef.current.gain.gain;
         try {
-          nextAudio.source.start(crossfadeStart, loopStartOffset);
-          nextAudio.gain.gain.cancelScheduledValues(crossfadeStart);
-          nextAudio.gain.gain.setValueAtTime(0, crossfadeStart);
-          nextAudio.gain.gain.setValueCurveAtTime(fadeIn, crossfadeStart, crossfadeDuration);
+          currentGain.cancelScheduledValues(crossfadeStart);
+          currentGain.setValueAtTime(1, crossfadeStart);
+          currentGain.setValueCurveAtTime(fadeOut, crossfadeStart, crossfadeDuration);
         } catch (e) {
           // Ignore scheduling conflicts
         }
+      }
 
-        // Update timing based on loop region duration
-        nextAudio.startTime = crossfadeStart;
-        nextAudio.endTime = crossfadeStart + loopDuration;
-        scheduledEndRef.current = nextAudio.endTime;
+      // Schedule next source to start at loop offset and fade in
+      try {
+        nextAudio.source.start(crossfadeStart, loopStartOffset);
+        nextAudio.gain.gain.cancelScheduledValues(crossfadeStart);
+        nextAudio.gain.gain.setValueAtTime(0, crossfadeStart);
+        nextAudio.gain.gain.setValueCurveAtTime(fadeIn, crossfadeStart, crossfadeDuration);
+      } catch (e) {
+        // Ignore scheduling conflicts
+      }
 
-        // When crossfade is done, swap references
-        setTimeout(
-          () => {
-            if (currentSourceRef.current) {
-              try {
-                currentSourceRef.current.source.stop();
-                currentSourceRef.current.source.disconnect();
-                currentSourceRef.current.gain.disconnect();
-              } catch (e) {
-                // Ignore if already stopped
-              }
+      // Update timing based on loop region duration
+      nextAudio.startTime = crossfadeStart;
+      nextAudio.endTime = crossfadeStart + loopDuration;
+      scheduledEndRef.current = nextAudio.endTime;
+
+      // When crossfade is done, swap references
+      setTimeout(
+        () => {
+          if (currentSourceRef.current) {
+            try {
+              currentSourceRef.current.source.stop();
+              currentSourceRef.current.source.disconnect();
+              currentSourceRef.current.gain.disconnect();
+            } catch (e) {
+              // Ignore if already stopped
             }
-            currentSourceRef.current = nextSourceRef.current;
-            nextSourceRef.current = null;
-            isSchedulingRef.current = false;
-          },
-          (crossfadeStart - now + crossfadeDuration) * 1000
-        );
-      });
+          }
+          currentSourceRef.current = nextSourceRef.current;
+          nextSourceRef.current = null;
+          isSchedulingRef.current = false;
+        },
+        (crossfadeStart - now + crossfadeDuration) * 1000
+      );
     }
   }, [isPlaying, crossfadeDuration, createSource, fadeIn, fadeOut, loopLastSeconds]);
 

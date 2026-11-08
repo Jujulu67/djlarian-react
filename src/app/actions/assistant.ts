@@ -335,7 +335,7 @@ async function askModel({
 Date: ${today}\nUtilisateur: ${currentUserName || 'Inconnu'}\n${isAdmin ? 'Rôle: ADMIN' : ''}\n\n${contextResolutionMessage ? 'CONTEXTE: ' + contextResolutionMessage + '\n\n' : ''}User Query: ${normalizedInput}`,
       // @ts-expect-error - SDK AI v5 type inference issue with tool types
       tools: Object.keys(availableTools).length > 0 ? availableTools : undefined,
-    }).catch(async (error: unknown) => {
+    }).catch((error: unknown) => {
       logger.error('[Assistant] Erreur lors de generateText:', error);
       throw error;
     });
