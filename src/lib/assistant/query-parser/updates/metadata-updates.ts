@@ -39,8 +39,8 @@ function extractCollabUpdate(
   ];
 
   for (const pattern of collabPatterns) {
-    const match = query.match(pattern);
-    if (match && match[1] && match[2]) {
+    const match = pattern.exec(query);
+    if (match?.[1] && match[2]) {
       const filterCollab = match[1].trim();
       let newCollab = match[2].trim();
 
@@ -83,8 +83,8 @@ function extractCollabUpdate(
   ];
 
   for (const pattern of simplePatterns) {
-    const match = query.match(pattern);
-    if (match && match[1]) {
+    const match = pattern.exec(query);
+    if (match?.[1]) {
       let collabName = match[1].trim();
       const ignoredWords = ['projets', 'projet', 'les', 'mes', 'de', 'en', 'le', 'la', 'avec'];
       if (collabName.toLowerCase().startsWith('avec ')) {
@@ -175,8 +175,8 @@ function extractStyleUpdate(
   ]);
 
   for (const pattern of newStylePatterns) {
-    const match = cleanedQuery.match(pattern);
-    if (match && match[1]) {
+    const match = pattern.exec(cleanedQuery);
+    if (match?.[1]) {
       const styleName = match[1].trim();
 
       // Ignorer les mots liés à la progression/avancement
@@ -219,7 +219,7 @@ function extractStyleUpdate(
 
       // Vérification finale : si on a matché "Progressive" mais que la requête contient "progression" ou "avancement",
       // c'est un faux positif (car "progression" contient "prog" qui est une variation de "Progressive")
-      if (styleMatch && styleMatch.style === 'Progressive') {
+      if (styleMatch?.style === 'Progressive') {
         // Si la requête contient "progression" ou "avancement" sans "style", ignorer
         if (hasProgressionKeywords && !hasExplicitStyleKeyword) {
           logger.warn(
@@ -271,8 +271,8 @@ function extractLabelUpdate(query: string, updateData: UpdateData): void {
   ]);
 
   for (const pattern of patterns) {
-    const match = query.match(pattern);
-    if (match && match[1]) {
+    const match = pattern.exec(query);
+    if (match?.[1]) {
       const labelName = match[1].trim();
       if (!ignoredWords.has(labelName.toLowerCase())) {
         updateData.newLabel = labelName;
@@ -307,8 +307,8 @@ function extractLabelFinalUpdate(query: string, updateData: UpdateData): void {
   ]);
 
   for (const pattern of patterns) {
-    const match = query.match(pattern);
-    if (match && match[1]) {
+    const match = pattern.exec(query);
+    if (match?.[1]) {
       const labelFinalName = match[1].trim();
       if (!ignoredWords.has(labelFinalName.toLowerCase())) {
         updateData.newLabelFinal = labelFinalName;

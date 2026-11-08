@@ -326,6 +326,7 @@ const TwitchStream = () => {
                 whileTap={{ scale: 0.95 }}
               >
                 <svg
+                  aria-hidden="true"
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
                   fill="currentColor"
@@ -443,6 +444,7 @@ const TwitchStream = () => {
                     className="mb-4 md:mb-6"
                   >
                     <svg
+                      aria-hidden="true"
                       xmlns="http://www.w3.org/2000/svg"
                       viewBox="0 0 24 24"
                       fill="currentColor"
@@ -486,6 +488,7 @@ const TwitchStream = () => {
                     aria-label="Visit LarianMusic Twitch channel"
                   >
                     <svg
+                      aria-hidden="true"
                       xmlns="http://www.w3.org/2000/svg"
                       viewBox="0 0 24 24"
                       fill="currentColor"

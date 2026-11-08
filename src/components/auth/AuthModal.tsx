@@ -345,7 +345,7 @@ export default function AuthModal({ isOpen, onClose }: Readonly<AuthModalProps>)
             >
               {isLoading ? (
                 <>
-                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                  <svg aria-hidden="true" className="animate-spin h-5 w-5" viewBox="0 0 24 24">
                     <circle
                       className="opacity-25"
                       cx="12"

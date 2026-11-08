@@ -96,8 +96,8 @@ export default function AdminEventsPage() {
       const matchesSearch =
         searchTerm === '' ||
         event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (event.description && event.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (event.location && event.location.toLowerCase().includes(searchTerm.toLowerCase()));
+        event.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        event.location?.toLowerCase().includes(searchTerm.toLowerCase());
 
       // Filtre de statut (utiliser event.status)
       const matchesStatus = statusFilter === 'ALL' || event.status === statusFilter;

@@ -72,3 +72,41 @@ export function calculateColumnWidths(text: string, separator: string): number[]
   // Ajouter un peu de padding
   return widths.map((w) => Math.min(w + 3, 50)); // Max 50 caractères par colonne
 }
+
+/** Date en YYYY-MM-DD si elle est lisible, sinon la valeur d'origine */
+function toIsoDate(releaseDate: string): string {
+  if (!releaseDate || /^\d{4}-\d{2}-\d{2}$/.test(releaseDate)) return releaseDate;
+  const date = new Date(releaseDate);
+  if (Number.isNaN(date.getTime())) return releaseDate;
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Si le contenu est un CSV Spotify (colonnes song et release_date), le reformate
+ * en deux colonnes séparées par des tabulations (Nom Projet, Date Sortie).
+ * Retourne null pour tout autre contenu.
+ */
+export function formatSpotifyCsv(content: string): string | null {
+  const lines = content.split('\n').filter((line) => line.trim());
+  if (lines.length === 0) return null;
+
+  const normalizedHeaders = parseCsvLine(lines[0], ',').map((h) => h.trim().toLowerCase());
+  const songIndex = normalizedHeaders.indexOf('song');
+  const releaseDateIndex = normalizedHeaders.findIndex(
+    (h) => h === 'release_date' || h === 'release date'
+  );
+  if (songIndex === -1 || releaseDateIndex === -1) return null;
+
+  return lines
+    .map((line, lineIndex) => {
+      if (lineIndex === 0) return 'Nom Projet\tDate Sortie';
+      const cells = parseCsvLine(line, ',');
+      const song = cells[songIndex]?.trim() || '';
+      const releaseDate = cells[releaseDateIndex]?.trim() || '';
+      return `${song}\t${toIsoDate(releaseDate)}`;
+    })
+    .join('\n');
+}

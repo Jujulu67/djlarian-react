@@ -66,9 +66,7 @@ export function CreateLicenseModal({ isOpen, onClose }: Readonly<CreateLicenseMo
       const lower = email.toLowerCase();
       const matches = users
         .filter(
-          (u) =>
-            u.email.toLowerCase().includes(lower) ||
-            (u.name && u.name.toLowerCase().includes(lower))
+          (u) => u.email.toLowerCase().includes(lower) || u.name?.toLowerCase().includes(lower)
         )
         .slice(0, 5); // Limit to 5 suggestions
       setFilteredUsers(matches);
@@ -176,7 +174,7 @@ export function CreateLicenseModal({ isOpen, onClose }: Readonly<CreateLicenseMo
               )}
             </div>
 
-            {!isExistingUser && email && email.includes('@') && (
+            {!isExistingUser && email?.includes('@') && (
               <div className="flex items-center space-x-2 mt-2 p-2 bg-yellow-900/20 border border-yellow-700/30 rounded">
                 <input
                   type="checkbox"

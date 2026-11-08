@@ -188,6 +188,8 @@ export function RandomWheel({
         className="relative"
       >
         <svg
+          role="img"
+          aria-label="Roue de tirage au sort"
           width={wheelRadius * 2}
           height={wheelRadius * 2}
           viewBox={`0 0 ${wheelRadius * 2} ${wheelRadius * 2}`}

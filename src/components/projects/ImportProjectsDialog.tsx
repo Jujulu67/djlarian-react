@@ -9,7 +9,12 @@ import { PasteStep } from './import-projects/PasteStep';
 import { PreviewStep } from './import-projects/PreviewStep';
 import { ResultStep } from './import-projects/ResultStep';
 import type { DialogStep, ImportResult } from './import-projects/types';
-import { calculateColumnWidths, formatTitleCase, parseCsvLine } from './importProjectsUtils';
+import {
+  calculateColumnWidths,
+  formatSpotifyCsv,
+  formatTitleCase,
+  parseCsvLine,
+} from './importProjectsUtils';
 import { ProjectStatus, PROJECT_STATUSES } from './types';
 import { logger } from '@/lib/logger';
 
@@ -349,78 +354,25 @@ export const ImportProjectsDialog = ({ isOpen, onClose, onImport }: ImportProjec
 
   const readFileContent = useCallback((file: File) => {
     const handleContent = (content: string) => {
-      if (content) {
-        // Détecter si c'est un CSV Spotify (avec colonnes song, release_date, etc.)
-        const lines = content.split('\n').filter((line) => line.trim());
-        if (lines.length > 0) {
-          const headerLine = lines[0];
-          const headerCells = parseCsvLine(headerLine, ',');
-          const normalizedHeaders = headerCells.map((h) => h.trim().toLowerCase());
+      if (!content) return;
 
-          // Vérifier si c'est un CSV Spotify (contient song et release_date)
-          const isSpotifyCsv =
-            normalizedHeaders.includes('song') &&
-            (normalizedHeaders.includes('release_date') ||
-              normalizedHeaders.includes('release date'));
-
-          if (isSpotifyCsv) {
-            // Reformater pour ne garder que song et release_date
-            const songIndex = normalizedHeaders.indexOf('song');
-            const releaseDateIndex = normalizedHeaders.findIndex(
-              (h) => h === 'release_date' || h === 'release date'
-            );
-
-            if (songIndex !== -1 && releaseDateIndex !== -1) {
-              // Reformater avec tabulation pour un meilleur alignement
-              const formattedLines = lines.map((line, lineIndex) => {
-                if (lineIndex === 0) {
-                  // En-tête : Nom Projet\tDate Sortie
-                  return 'Nom Projet\tDate Sortie';
-                }
-
-                const cells = parseCsvLine(line, ',');
-                const song = cells[songIndex]?.trim() || '';
-                const releaseDate = cells[releaseDateIndex]?.trim() || '';
-
-                // Formater la date si nécessaire (YYYY-MM-DD)
-                let formattedDate = releaseDate;
-                if (releaseDate && !/^\d{4}-\d{2}-\d{2}$/.test(releaseDate)) {
-                  // Essayer de parser la date
-                  const date = new Date(releaseDate);
-                  if (!Number.isNaN(date.getTime())) {
-                    const year = date.getFullYear();
-                    const month = String(date.getMonth() + 1).padStart(2, '0');
-                    const day = String(date.getDate()).padStart(2, '0');
-                    formattedDate = `${year}-${month}-${day}`;
-                  }
-                }
-
-                return `${song}\t${formattedDate}`;
-              });
-
-              const formattedContent = formattedLines.join('\n');
-              setPastedText(formattedContent);
-              setIsSpotifyCsv(true); // Marquer comme CSV Spotify
-
-              // Recalculer les largeurs
-              if (formattedContent.trim()) {
-                const widths = calculateColumnWidths(formattedContent, '\t');
-                setColumnWidths(widths);
-              }
-              return;
-            }
-          }
+      // CSV Spotify (colonnes song, release_date…) : reformaté en « Nom Projet / Date Sortie »
+      const spotifyContent = formatSpotifyCsv(content);
+      if (spotifyContent !== null) {
+        setPastedText(spotifyContent);
+        setIsSpotifyCsv(true);
+        if (spotifyContent.trim()) {
+          setColumnWidths(calculateColumnWidths(spotifyContent, '\t'));
         }
+        return;
+      }
 
-        // Sinon, utiliser le contenu tel quel
-        setPastedText(content);
-        setIsSpotifyCsv(false); // Pas un CSV Spotify
-        // Recalculer les largeurs si on a du texte
-        if (content.trim()) {
-          const separator = content.includes('\t') ? '\t' : ',';
-          const widths = calculateColumnWidths(content, separator);
-          setColumnWidths(widths);
-        }
+      // Sinon, utiliser le contenu tel quel
+      setPastedText(content);
+      setIsSpotifyCsv(false);
+      if (content.trim()) {
+        const separator = content.includes('\t') ? '\t' : ',';
+        setColumnWidths(calculateColumnWidths(content, separator));
       }
     };
     file.text().then(handleContent, () => {

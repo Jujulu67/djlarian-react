@@ -109,8 +109,7 @@ export function useSlotWinEffects({
 
         // Trigger BONUS GAME on triple cherry (rare special event)
         if (
-          lastResult.symbols &&
-          lastResult.symbols[0] === SymbolType.CHERRY &&
+          lastResult.symbols?.[0] === SymbolType.CHERRY &&
           lastResult.symbols[1] === SymbolType.CHERRY &&
           lastResult.symbols[2] === SymbolType.CHERRY
         ) {

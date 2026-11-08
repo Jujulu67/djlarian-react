@@ -74,10 +74,8 @@ export function findNamedProject(message: string, projects: Project[]): NamedPro
       .trim()
       .replace(/\s+/g, ' ');
     if (name.length < 3 || RESERVED_NAMES.has(name)) continue;
-    const pattern = new RegExp(
-      String.raw`(?<![\p{L}\p{N}])${escapeRegExp(name).replace(/ /g, String.raw`\s+`)}(?![\p{L}\p{N}])`,
-      'u'
-    );
+    const flexibleName = escapeRegExp(name).replace(/ /g, String.raw`\s+`);
+    const pattern = new RegExp(String.raw`(?<![\p{L}\p{N}])${flexibleName}(?![\p{L}\p{N}])`, 'u');
     const match = pattern.exec(folded);
     if (!match) continue;
     candidatesByName.set(name, [...(candidatesByName.get(name) ?? []), project]);

@@ -71,7 +71,7 @@ if (typeof window !== 'undefined') {
         .then((response) => {
           // Vérifier si la réponse est du HTML au lieu de JSON (erreur NextAuth)
           const contentType = response.headers.get('content-type');
-          if (contentType && contentType.includes('text/html')) {
+          if (contentType?.includes('text/html')) {
             // Si c'est du HTML, NextAuth a probablement redirigé vers la page de sign-in
             // Créer une réponse JSON valide avec { user: null } pour éviter l'erreur
             const jsonResponse = new Response(JSON.stringify({ user: null, expires: null }), {

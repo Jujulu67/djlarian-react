@@ -75,8 +75,8 @@ export function extractCreateData(
   ];
 
   for (const pattern of namePatterns) {
-    const match = query.match(pattern);
-    if (match && match[1]) {
+    const match = pattern.exec(query);
+    if (match?.[1]) {
       const potentialName = match[1].trim();
       // Vérifier que ce n'est pas un mot-clé ignoré
       const ignoredWords = ['le', 'la', 'les', 'un', 'une', 'projet', 'project', 'nouveau', 'new'];
@@ -98,7 +98,7 @@ export function extractCreateData(
     const simplePattern =
       /(?:ajoute|ajouter|créer|créez|créé|crée|creer|creez|cree|add|create)\s+(?:(?:le|un|une|mon|nouveau|the|a|new)\s+)*(?:projet\s+|project\s+)?(\w+)(?:\s|$)/i;
     const match = simplePattern.exec(query);
-    if (match && match[1]) {
+    if (match?.[1]) {
       const potentialName = match[1].trim();
       const ignoredWords = ['le', 'la', 'les', 'un', 'une', 'projet', 'project', 'nouveau', 'new'];
       if (!ignoredWords.includes(potentialName.toLowerCase())) {
@@ -110,8 +110,8 @@ export function extractCreateData(
 
   // Extraire collab (réutiliser la logique existante avec collabPatterns)
   for (const pattern of collabPatterns) {
-    const match = query.match(pattern);
-    if (match && match[1]) {
+    const match = pattern.exec(query);
+    if (match?.[1]) {
       const collabName = match[1].trim();
       const ignoredWords = [
         'projets',
@@ -150,8 +150,8 @@ export function extractCreateData(
   ];
 
   for (const pattern of deadlinePatterns) {
-    const match = query.match(pattern);
-    if (match && match[1]) {
+    const match = pattern.exec(query);
+    if (match?.[1]) {
       const dateStr = match[1].trim();
       const parsedDate = parseRelativeDate(dateStr);
       if (parsedDate) {
@@ -169,8 +169,8 @@ export function extractCreateData(
   ];
 
   for (const pattern of progressPatterns) {
-    const match = query.match(pattern);
-    if (match && match[1]) {
+    const match = pattern.exec(query);
+    if (match?.[1]) {
       const progressValue = Number.parseInt(match[1], 10);
       if (!Number.isNaN(progressValue) && progressValue >= 0 && progressValue <= 100) {
         createData.progress = progressValue;

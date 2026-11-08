@@ -287,6 +287,7 @@ export default function AdminMusicPage() {
       {success.successTrackId && !successTrackInList && (
         <div className="fixed left-1/2 z-50 -translate-x-1/2 top-[80px] bg-green-600/90 text-white px-6 py-4 rounded-xl shadow-lg flex items-center gap-4 animate-highlight-ring transition-opacity duration-500">
           <svg
+            aria-hidden="true"
             xmlns="http://www.w3.org/2000/svg"
             className="w-8 h-8 text-white animate-pulse"
             fill="none"

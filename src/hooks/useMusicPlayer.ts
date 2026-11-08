@@ -82,7 +82,7 @@ export function useMusicPlayer({ filteredTracks }: UseMusicPlayerParams): UseMus
       }
 
       // If same track, toggle play/pause
-      if (currentTrack && currentTrack.id === track.id) {
+      if (currentTrack?.id === track.id) {
         logger.debug(`[playTrack] Same track - toggle play/pause`);
         const willPlay = !isPlaying;
         setIsPlaying(willPlay);
@@ -203,7 +203,7 @@ export function useMusicPlayer({ filteredTracks }: UseMusicPlayerParams): UseMus
         playTrack(trackToPlay);
 
         // Clean URL
-        if (window.history && window.history.replaceState) {
+        if (window.history?.replaceState) {
           const url = new URL(window.location.href);
           url.searchParams.delete('play');
           window.history.replaceState({}, document.title, url.toString());

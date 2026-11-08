@@ -70,7 +70,7 @@ function ComparisonTooltip({
       <div className="space-y-1">
         {projectsToShow.map((mapping: ProjectMapping, index: number) => {
           const data = payload.find((p) => p.dataKey === mapping.dataKey);
-          if (!data || data.value === null || data.value === undefined) return null;
+          if (data?.value === null || data?.value === undefined) return null;
           const numValue = Number(data.value);
           if (!Number.isFinite(numValue) || numValue < 0) return null;
           const color = getColorForIndex(index, projectsToShow.length);

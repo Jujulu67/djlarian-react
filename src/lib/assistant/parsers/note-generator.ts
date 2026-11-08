@@ -25,8 +25,8 @@ function extractTasks(content: string): string[] {
   ];
 
   for (const pattern of taskPatterns) {
-    const match = content.match(pattern);
-    if (match && match[1]) {
+    const match = pattern.exec(content);
+    if (match?.[1]) {
       // Séparer par virgule, "et", ou "puis"
       const taskText = match[1].trim();
       // Espaces unifiés d'abord : le découpage n'a plus que des séparateurs fixes (Sonar S8786)

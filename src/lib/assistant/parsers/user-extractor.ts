@@ -27,8 +27,8 @@ export function extractUserNameFromQuery(query: string): string | null {
   ];
 
   for (const pattern of patterns) {
-    const match = query.match(pattern);
-    if (match && match[1]) {
+    const match = pattern.exec(query);
+    if (match?.[1]) {
       const extracted = match[1];
       // Ignorer les mots communs
       if (

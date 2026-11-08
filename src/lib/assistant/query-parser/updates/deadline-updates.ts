@@ -169,7 +169,7 @@ function extractPushDeadline(
   updateData: UpdateData
 ): boolean {
   for (const pattern of PUSH_DEADLINE_PATTERNS) {
-    const match = query.match(pattern);
+    const match = pattern.exec(query);
     const delta = match && parseDeadlineDelta(match);
     if (delta) {
       // hasDeadline qualifie la mutation (il faut une deadline à décaler). Il ne devient un
@@ -207,7 +207,7 @@ function extractNewDeadline(query: string, updateData: UpdateData): void {
   ];
 
   for (const pattern of newDeadlinePatterns) {
-    const match = query.match(pattern);
+    const match = pattern.exec(query);
     if (match) {
       const dateStr = (match[2] || match[1]).trim();
       const parsedDate = parseRelativeDate(dateStr);

@@ -227,7 +227,7 @@ export function ProfileOAuth({
             )}
 
             {/* Avertissement si dernier compte OAuth */}
-            {oauthSecurity && oauthSecurity.oauthCount === 1 && !oauthSecurity.hasPassword && (
+            {oauthSecurity?.oauthCount === 1 && !oauthSecurity.hasPassword && (
               <div className="rounded-xl bg-amber-500/10 border border-amber-500/30 p-3 sm:p-4 flex items-start gap-3 v2:bg-amber-500/[0.06] v2:border-amber-500/20">
                 <AlertTriangle size={18} className="text-amber-400 mt-0.5 flex-shrink-0" />
                 <div className="flex-1">

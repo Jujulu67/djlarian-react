@@ -248,12 +248,7 @@ export const ImportStreamsDialog = ({
 
   const handleValidateAndContinue = useCallback(() => {
     const currentFile = filesData[currentFileIndex];
-    if (
-      currentFile &&
-      currentFile.selectedProjectId &&
-      currentFile.milestones &&
-      !currentFile.error
-    ) {
+    if (currentFile?.selectedProjectId && currentFile.milestones && !currentFile.error) {
       const updated = [...filesData];
       updated[currentFileIndex] = {
         ...updated[currentFileIndex],

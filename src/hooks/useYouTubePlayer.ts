@@ -73,13 +73,13 @@ export const useYouTubePlayer = ({
 
     // Standard formats: youtube.com/watch?v=ID or youtu.be/ID
     const match = /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/.exec(url);
-    if (match && match[1]) {
+    if (match?.[1]) {
       return match[1];
     }
 
     // Alternative formats: youtube.com/embed/ID
     const embedMatch = /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/.exec(url);
-    if (embedMatch && embedMatch[1]) {
+    if (embedMatch?.[1]) {
       return embedMatch[1];
     }
 
@@ -244,7 +244,7 @@ export const useYouTubePlayer = ({
   // Pause and hide YouTube player
   const pauseAndHideYoutube = useCallback(() => {
     try {
-      if (iframeRef.current && iframeRef.current.contentWindow) {
+      if (iframeRef.current?.contentWindow) {
         sendPlayerCommand(iframeRef.current, 'youtube', 'pause');
       }
     } catch (e) {
@@ -262,7 +262,7 @@ export const useYouTubePlayer = ({
     }
 
     try {
-      if (iframeRef.current && iframeRef.current.contentWindow) {
+      if (iframeRef.current?.contentWindow) {
         setTimeout(() => {
           sendPlayerCommand(iframeRef.current, 'youtube', 'play');
         }, 100);
@@ -281,7 +281,7 @@ export const useYouTubePlayer = ({
 
       if (isYoutubeVisible) {
         try {
-          if (iframeRef.current && iframeRef.current.contentWindow) {
+          if (iframeRef.current?.contentWindow) {
             sendPlayerCommand(iframeRef.current, 'youtube', 'pause');
           }
         } catch (error) {

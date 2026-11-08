@@ -173,7 +173,7 @@ function detectExactProgress(query: string, filters: Filters): void {
   ];
 
   for (let i = 0; i < exactProgressPatterns.length; i++) {
-    const exactMatch = query.match(exactProgressPatterns[i]);
+    const exactMatch = exactProgressPatterns[i].exec(query);
     if (!exactMatch) continue;
     const exactValue = Number.parseInt(exactMatch[1], 10);
     if (Number.isNaN(exactValue) || exactValue < 0 || exactValue > 100) continue;
@@ -193,7 +193,7 @@ function detectProgressRange(lowerQuery: string, filters: Filters): void {
     /(?<!\d)(\d+)\s*(?:%|pourcent)\s*(?:max|maximum)/i,
   ];
   for (const pattern of maxPatterns) {
-    const match = lowerQuery.match(pattern);
+    const match = pattern.exec(lowerQuery);
     if (match) {
       filters.maxProgress = Number.parseInt(match[1], 10);
       break;
@@ -207,7 +207,7 @@ function detectProgressRange(lowerQuery: string, filters: Filters): void {
   ];
 
   for (const pattern of minPatternsCorrect) {
-    const match = lowerQuery.match(pattern);
+    const match = pattern.exec(lowerQuery);
     if (match) {
       filters.minProgress = Number.parseInt(match[1], 10);
       break;
@@ -274,7 +274,7 @@ function detectExplicitStatus(query: string, lowerQuery: string, filters: Filter
   ];
 
   for (const explicitPattern of explicitFilterPatterns) {
-    const explicitMatch = lowerQuery.match(explicitPattern);
+    const explicitMatch = explicitPattern.exec(lowerQuery);
     if (explicitMatch) {
       const statusText = explicitMatch[1]?.toLowerCase().trim();
       if (statusText) {
@@ -317,7 +317,7 @@ function detectExplicitStatus(query: string, lowerQuery: string, filters: Filter
 
 /** Le statut suit « à », « en » ou « comme » : c'est la nouvelle valeur, pas un filtre. */
 function isNewStatusValue(lowerQuery: string, pattern: RegExp): boolean {
-  const match = lowerQuery.match(pattern);
+  const match = pattern.exec(lowerQuery);
   if (match?.index === undefined) return false;
   const statusIndex = match.index;
   const textBeforeStatus = lowerQuery.substring(0, statusIndex).trim();
@@ -429,7 +429,7 @@ function detectCollab(query: string, filters: Filters, availableCollabs: string[
   ];
   for (const pattern of collabPatterns) {
     // Garder la casse originale
-    const collabName = query.match(pattern)?.[1]?.trim();
+    const collabName = pattern.exec(query)?.[1]?.trim();
     const collab = collabName ? resolveCollab(collabName, availableCollabs) : null;
     if (collab) {
       filters.collab = collab;
@@ -502,8 +502,8 @@ function detectLabel(query: string, filters: Filters): void {
     /(?:projets?\s+)?(?:avec\s+)?label\s+([a-z0-9_\s]+)/i,
   ];
   for (const pattern of labelPatterns) {
-    const match = query.match(pattern);
-    if (match && match[1]) {
+    const match = pattern.exec(query);
+    if (match?.[1]) {
       const labelName = match[1].trim();
       const ignoredWords = [
         'projets',
@@ -535,8 +535,8 @@ function detectLabelFinal(query: string, filters: Filters): void {
     /sign[ée]\s+chez\s+([a-z0-9_\s]+)/i,
   ];
   for (const pattern of labelFinalPatterns) {
-    const match = query.match(pattern);
-    if (match && match[1]) {
+    const match = pattern.exec(query);
+    if (match?.[1]) {
       const labelFinalName = match[1].trim();
       const ignoredWords = [
         'projets',
@@ -637,8 +637,8 @@ function detectExcludedStatuses(query: string, lowerQuery: string, filters: Filt
   };
 
   for (const pattern of exclusionPatterns) {
-    const match = lowerQuery.match(pattern);
-    if (match && match[1]) {
+    const match = pattern.exec(lowerQuery);
+    if (match?.[1]) {
       const excludedStatusText = match[1].toLowerCase().trim();
       const excludedStatus = statusMappingForExclusion[excludedStatusText];
       if (excludedStatus) {

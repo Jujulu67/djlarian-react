@@ -68,7 +68,7 @@ export function extractStatusUpdate(
         );
 
         if (isValid) {
-          const match = cleanedQuery.match(XEnYMatch ? XEnYPattern : deXaYPattern);
+          const match = (XEnYMatch ? XEnYPattern : deXaYPattern).exec(cleanedQuery);
           const matchLength = match ? match[0].length : 0;
           if (!bestMatch || matchLength > bestMatch.matchLength) {
             bestMatch = { status1, status2, matchLength };
@@ -125,7 +125,7 @@ function validateStatusMatch(
   const { pattern: pattern1, source: pattern1Source, status: status1 } = first;
   const { pattern: pattern2, source: pattern2Source, status: status2 } = second;
   if (XEnYPattern) {
-    const match = cleanedQuery.match(XEnYPattern);
+    const match = XEnYPattern.exec(cleanedQuery);
     if (!match?.[1] || !match[2]) return false;
 
     const match1Trimmed = match[1].trim().toLowerCase();
@@ -161,7 +161,7 @@ function validateStatusMatch(
       String.raw`(?:marque|marquer|marques|marquez|mets?|met|mettez|mettre|change|changer|changes|changez|modifie|modifier|modifiez|passe|passer|passes|passez)\s+(?:les?\s+)?(?:projets?\s+)?de\s+(${pattern1Source})\s+à\s+(${pattern2Source})(?:\s|$)`,
       'i'
     );
-    const match = cleanedQuery.match(patternWithCapture);
+    const match = patternWithCapture.exec(cleanedQuery);
     if (!match?.[1] || !match[2]) return false;
 
     return pattern1.test(match[1]) && pattern2.test(match[2]);
@@ -189,6 +189,7 @@ function extractSimpleStatusUpdate(
       if (!statusAfterEnOrA) continue;
     }
 
+    const statusWords = status.replace(/_/g, String.raw`[\s_]`).replace(/\s+/g, String.raw`[\s_]+`);
     const updateVerbPatterns = [
       new RegExp(
         String.raw`(?:marque|marquer|marques|marquez|mets?|met|mettez|mettre|change|changer|changes|changez|modifie|modifier|modifiez|passe|passer|passes|passez)\s+(?:les?\s+)?(?:projets?\s+)?(?:en|à|comme|as)\s+${pattern.source}`,
@@ -196,7 +197,7 @@ function extractSimpleStatusUpdate(
       ),
       new RegExp(String.raw`(?:set|update|change|mark)\s+(?:to|as)\s+${pattern.source}`, 'i'),
       new RegExp(
-        String.raw`(?:marque|marquer|marques|marquez|mets?|met|mettez|mettre|change|changer|changes|changez|modifie|modifier|modifiez|passe|passer|passes|passez)\s+(?:les?\s+)?(?:projets?\s+)?(?:en|à)\s+(${status.replace(/_/g, String.raw`[\s_]`).replace(/\s+/g, String.raw`[\s_]+`)})`,
+        String.raw`(?:marque|marquer|marques|marquez|mets?|met|mettez|mettre|change|changer|changes|changez|modifie|modifier|modifiez|passe|passer|passes|passez)\s+(?:les?\s+)?(?:projets?\s+)?(?:en|à)\s+(${statusWords})`,
         'i'
       ),
       new RegExp(

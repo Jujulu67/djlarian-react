@@ -29,6 +29,7 @@ export default function LoadingSpinner({
         }}
       >
         <svg
+          aria-hidden="true"
           className="w-full h-full"
           viewBox="0 0 24 24"
           fill="none"

@@ -82,13 +82,11 @@ export function useImageGrouping() {
 
   const syncImagesWithGroups = useCallback((images: ImageMeta[], groups: GroupedImage[]) => {
     return images.map((img) => {
-      const found = groups.find(
-        (g) => (g.crop && g.crop.id === img.id) || (g.ori && g.ori.id === img.id)
-      );
+      const found = groups.find((g) => g.crop?.id === img.id || g.ori?.id === img.id);
       if (!found) return img;
       const isDuplicate =
-        (found.crop && found.crop.id === img.id && found.crop.isDuplicate) ||
-        (found.ori && found.ori.id === img.id && found.ori.isDuplicate) ||
+        (found.crop?.id === img.id && found.crop.isDuplicate) ||
+        (found.ori?.id === img.id && found.ori.isDuplicate) ||
         false;
       return { ...img, isDuplicate };
     });

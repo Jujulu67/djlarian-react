@@ -532,6 +532,7 @@ export default function GalleryPage() {
                       <div className="absolute inset-0 flex items-center justify-center z-20">
                         <div className="w-16 h-16 bg-purple-600/80 rounded-full flex items-center justify-center">
                           <svg
+                            aria-hidden="true"
                             xmlns="http://www.w3.org/2000/svg"
                             className="h-8 w-8 text-white"
                             viewBox="0 0 20 20"
@@ -598,6 +599,7 @@ export default function GalleryPage() {
                         {/* Badge Instagram */}
                         <div className="absolute top-2 right-2 z-20 bg-gradient-to-r from-purple-600 to-pink-600 px-3 py-1 rounded-full flex items-center gap-1">
                           <svg
+                            aria-hidden="true"
                             xmlns="http://www.w3.org/2000/svg"
                             className="h-4 w-4 text-white"
                             viewBox="0 0 24 24"
@@ -622,6 +624,7 @@ export default function GalleryPage() {
                             <div className="absolute inset-0 flex items-center justify-center z-20">
                               <div className="w-16 h-16 bg-purple-600/80 rounded-full flex items-center justify-center">
                                 <svg
+                                  aria-hidden="true"
                                   xmlns="http://www.w3.org/2000/svg"
                                   className="h-8 w-8 text-white"
                                   viewBox="0 0 20 20"
@@ -649,6 +652,7 @@ export default function GalleryPage() {
                         {post.mediaType === 'CAROUSEL_ALBUM' && (
                           <div className="absolute top-2 left-2 z-20 bg-black/60 px-2 py-1 rounded flex items-center gap-1">
                             <svg
+                              aria-hidden="true"
                               xmlns="http://www.w3.org/2000/svg"
                               className="h-4 w-4 text-white"
                               viewBox="0 0 20 20"

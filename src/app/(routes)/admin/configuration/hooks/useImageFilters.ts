@@ -44,9 +44,7 @@ export function useImageFilters(
   const filteredGroups = useMemo(() => {
     let result = groupedImages;
     if (showDuplicatesState) {
-      result = result.filter(
-        (group) => (group.crop && group.crop.isDuplicate) || (group.ori && group.ori.isDuplicate)
-      );
+      result = result.filter((group) => group.crop?.isDuplicate || group.ori?.isDuplicate);
     }
     return result;
   }, [groupedImages, showDuplicatesState]);

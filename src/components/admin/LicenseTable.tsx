@@ -73,8 +73,8 @@ export function LicenseTable({ licenses }: Readonly<LicenseTableProps>) {
     const query = searchQuery.toLowerCase();
     const matchesSearch =
       license.licenseKey.toLowerCase().includes(query) ||
-      (license.user.email && license.user.email.toLowerCase().includes(query)) ||
-      (license.user.name && license.user.name.toLowerCase().includes(query));
+      license.user.email?.toLowerCase().includes(query) ||
+      license.user.name?.toLowerCase().includes(query);
 
     // Type filter
     const matchesType = filterType === 'ALL' || license.licenseType === filterType;

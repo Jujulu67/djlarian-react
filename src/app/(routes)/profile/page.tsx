@@ -345,7 +345,7 @@ function ProfileContent() {
     if (!accountId) return;
 
     // Vérifier si c'est le dernier compte OAuth et s'il n'y a pas de mot de passe
-    if (oauthSecurity && oauthSecurity.oauthCount === 1 && !oauthSecurity.hasPassword) {
+    if (oauthSecurity?.oauthCount === 1 && !oauthSecurity.hasPassword) {
       toast.error(
         "Impossible de désassocier le dernier compte OAuth. Veuillez d'abord définir un mot de passe.",
         { duration: 5000 }

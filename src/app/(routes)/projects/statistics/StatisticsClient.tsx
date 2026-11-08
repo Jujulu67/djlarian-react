@@ -233,11 +233,9 @@ export const StatisticsClient = ({ initialProjects }: StatisticsClientProps) => 
       )}
 
       {/* Liste des projets terminés de l'année sélectionnée (mode année) */}
-      {yearViewMode === 'year' &&
-        statistics?.projectsByYearDetails &&
-        statistics.projectsByYearDetails[selectedYear.toString()] && (
-          <YearProjectsList statistics={statistics} selectedYear={selectedYear} />
-        )}
+      {yearViewMode === 'year' && statistics?.projectsByYearDetails?.[selectedYear.toString()] && (
+        <YearProjectsList statistics={statistics} selectedYear={selectedYear} />
+      )}
 
       {/* Métriques des streams - Moyennes par jalon */}
       <StreamsMetrics displayStats={displayStats} />

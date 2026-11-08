@@ -102,7 +102,7 @@ export function RecurringDates({ formData, setFormData }: Readonly<RecurringDate
           disabled={futureOccurrences.length === 0}
           onClick={() => {
             const dateSelect = document.getElementById('new-excluded-date') as HTMLSelectElement;
-            if (dateSelect && dateSelect.value) {
+            if (dateSelect?.value) {
               // Vérifier si la date n'est pas déjà dans la liste
               const dateExists = formData.recurrence?.excludedDates?.includes(dateSelect.value);
 
