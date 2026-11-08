@@ -98,8 +98,8 @@ export function PreviewStep({
                         <div className="text-xs text-gray-300 space-y-1">
                           {detectedColumns
                             .filter((c) => !c.mapped)
-                            .map((col, i) => (
-                              <div key={i} className="flex items-center gap-2">
+                            .map((col) => (
+                              <div key={col.original} className="flex items-center gap-2">
                                 <span className="text-yellow-400">•</span>
                                 <span className="font-mono">{col.original}</span>
                               </div>
@@ -255,8 +255,8 @@ export function PreviewStep({
                         <AlertCircle size={16} className="text-red-400 cursor-help" />
                         <div className="absolute left-0 top-6 z-20 hidden group-hover:block bg-gray-900 border border-red-500/50 rounded-lg p-2 shadow-lg min-w-[200px]">
                           <div className="text-xs text-red-400 space-y-1">
-                            {row.errors?.map((err, i) => (
-                              <div key={i}>{err}</div>
+                            {row.errors?.map((err) => (
+                              <div key={err}>{err}</div>
                             ))}
                           </div>
                         </div>

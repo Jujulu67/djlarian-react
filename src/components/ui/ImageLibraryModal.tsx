@@ -103,19 +103,12 @@ const ImageLibraryModal: React.FC<ImageLibraryModalProps> = ({ open, onClose, on
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {filtered.map((img) => (
-            <div
+            <button
+              type="button"
               key={img.id}
-              role="button"
-              className="cursor-pointer bg-gray-800 rounded-lg p-2 hover:ring-2 hover:ring-purple-500 transition"
+              className="block w-full text-left cursor-pointer bg-gray-800 rounded-lg p-2 hover:ring-2 hover:ring-purple-500 transition"
               onClick={() => selectImage(img)}
-              tabIndex={0}
               aria-label={`Sélectionner ${img.name}`}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  logger.debug('[BIBLIO] Image sélectionnée', img);
-                  onSelect(img);
-                }
-              }}
             >
               <Image
                 src={getImageUrlForModal(img) || '/placeholder-image.jpg'}
@@ -130,7 +123,7 @@ const ImageLibraryModal: React.FC<ImageLibraryModalProps> = ({ open, onClose, on
               </div>
               <div className="text-xs text-gray-400">{(img.size / 1024).toFixed(1)} Ko</div>
               <div className="text-xs text-gray-500">{getImageDate(img)}</div>
-            </div>
+            </button>
           ))}
         </div>
       )}

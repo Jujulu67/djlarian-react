@@ -25,7 +25,6 @@ import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
 import { LicenseDetailsModal } from './LicenseDetailsModal';
-import { onActivateKey } from '@/lib/a11y';
 
 interface LicenseActivation {
   id: string;
@@ -268,34 +267,24 @@ export function LicenseTable({ licenses }: Readonly<LicenseTableProps>) {
               filteredLicenses.map((license) => (
                 <TableRow key={license.id} className="border-purple-500/10 hover:bg-purple-500/5">
                   <TableCell className="font-mono text-gray-300">
-                    <div
-                      role="button"
-                      tabIndex={0}
-                      className="group flex items-center space-x-2 cursor-pointer hover:text-white transition-colors"
+                    <button
+                      type="button"
+                      className="text-left group flex items-center space-x-2 cursor-pointer hover:text-white transition-colors"
                       onClick={() => copyToClipboard(license.licenseKey, 'Clé de licence')}
-                      onKeyDown={onActivateKey(() =>
-                        copyToClipboard(license.licenseKey, 'Clé de licence')
-                      )}
                       title="Cliquez pour copier"
                     >
                       <span>{maskLicenseKey(license.licenseKey)}</span>
                       <Copy className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity text-purple-400" />
-                    </div>
+                    </button>
                   </TableCell>
                   <TableCell className="text-gray-300">
-                    <div
-                      role="button"
-                      tabIndex={0}
-                      className="flex flex-col group cursor-pointer"
+                    <button
+                      type="button"
+                      className="text-left flex flex-col group cursor-pointer"
                       onClick={() =>
                         license.user.email &&
                         copyToClipboard(license.user.email, 'Email utilisateur')
                       }
-                      onKeyDown={onActivateKey(
-                        () =>
-                          license.user.email &&
-                          copyToClipboard(license.user.email, 'Email utilisateur')
-                      )}
                     >
                       <div className="flex items-center space-x-1">
                         <span className="font-medium text-white group-hover:text-purple-300 transition-colors">
@@ -304,7 +293,7 @@ export function LicenseTable({ licenses }: Readonly<LicenseTableProps>) {
                         <Copy className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity text-purple-400" />
                       </div>
                       <span className="text-xs text-gray-500">{license.user.name}</span>
-                    </div>
+                    </button>
                   </TableCell>
                   <TableCell>{getTypeBadge(license.licenseType)}</TableCell>
                   <TableCell className="text-gray-300">

@@ -19,9 +19,9 @@ export function TechSpecsSection() {
       </h2>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {TECH_SPECS.map((spec, idx) => (
+        {TECH_SPECS.map((spec) => (
           <div
-            key={idx}
+            key={spec.label}
             className={`p-4 rounded-xl transition-all duration-300 ${
               spec.highlight
                 ? 'bg-gradient-to-br from-purple-500/10 to-blue-500/10 border border-purple-500/20 v2:bg-none v2:bg-brand/[0.06] v2:border-brand/20'

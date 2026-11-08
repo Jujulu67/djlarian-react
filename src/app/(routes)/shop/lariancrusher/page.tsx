@@ -82,7 +82,7 @@ export default function LarianCrusherPage() {
 
           <RevealGroup className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {FEATURES.map((feature, idx) => (
-              <RevealItem key={idx} className="h-full">
+              <RevealItem key={feature.title} className="h-full">
                 <FeatureCard feature={feature} index={idx} />
               </RevealItem>
             ))}

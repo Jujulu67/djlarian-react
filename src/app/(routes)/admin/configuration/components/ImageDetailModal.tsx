@@ -126,24 +126,14 @@ export const ImageDetailModal = ({
             const linked = selectedGroup.linkedTo;
             return (
               <div className="w-full flex flex-col items-center mb-6 gap-3">
-                <span
-                  role="button"
-                  tabIndex={0}
+                <button
+                  type="button"
                   aria-label={`Voir la page liée à ${linked.title}`}
                   onClick={() => {
                     if (linked.type === 'track') {
                       window.open(`/admin/music?edit=${linked.id}`, '_blank');
                     } else {
                       window.open(`/admin/events/${linked.id}`, '_blank');
-                    }
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      if (linked.type === 'track') {
-                        window.open(`/admin/music?edit=${linked.id}`, '_blank');
-                      } else {
-                        window.open(`/admin/events/${linked.id}`, '_blank');
-                      }
                     }
                   }}
                   className={`flex items-center gap-3 px-6 py-3 rounded-xl font-semibold text-lg w-full max-w-xl justify-center transition-all duration-200 cursor-pointer outline-none focus:outline-none focus:ring-2 ${
@@ -160,7 +150,7 @@ export const ImageDetailModal = ({
                     <Calendar className="w-6 h-6 flex-shrink-0" />
                   )}
                   <span className="truncate">{linked.title}</span>
-                </span>
+                </button>
               </div>
             );
           })()}

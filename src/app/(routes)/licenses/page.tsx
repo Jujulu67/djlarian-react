@@ -65,10 +65,10 @@ function LicensesPageV2({
 }>) {
   if (status === 'loading' || isLoading) {
     return (
-      <div className="flex min-h-[70vh] items-center justify-center" role="status">
+      <output className="flex min-h-[70vh] items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-white/50" aria-hidden="true" />
         <span className="sr-only">Chargement...</span>
-      </div>
+      </output>
     );
   }
 

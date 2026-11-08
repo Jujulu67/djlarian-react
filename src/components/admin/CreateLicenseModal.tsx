@@ -16,7 +16,6 @@ import { Loader2, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
-import { onActivateKey } from '@/lib/a11y';
 
 interface CreateLicenseModalProps {
   isOpen: boolean;
@@ -152,23 +151,18 @@ export function CreateLicenseModal({ isOpen, onClose }: Readonly<CreateLicenseMo
               {showSuggestions && filteredUsers.length > 0 && (
                 <div className="absolute z-[100] w-full mt-1 bg-gray-950 border border-purple-500/30 rounded-md shadow-2xl">
                   {filteredUsers.map((user) => (
-                    <div
-                      role="button"
-                      tabIndex={0}
+                    <button
+                      type="button"
                       key={user.id}
-                      className="px-4 py-2 hover:bg-purple-900/30 cursor-pointer text-sm border-b border-purple-500/10 last:border-0"
+                      className="block w-full text-left px-4 py-2 hover:bg-purple-900/30 cursor-pointer text-sm border-b border-purple-500/10 last:border-0"
                       onClick={() => {
                         setEmail(user.email);
                         setShowSuggestions(false);
                       }}
-                      onKeyDown={onActivateKey(() => {
-                        setEmail(user.email);
-                        setShowSuggestions(false);
-                      })}
                     >
                       <div className="text-white font-medium">{user.email}</div>
                       {user.name && <div className="text-gray-400 text-xs">{user.name}</div>}
-                    </div>
+                    </button>
                   ))}
                 </div>
               )}
