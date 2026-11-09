@@ -388,11 +388,7 @@ export default function AddUserForm({ onSuccess, userToEdit }: Readonly<AddUserF
       </fieldset>
       {/* Fin du remplacement */}
 
-      <ToggleSwitch
-        id={idFor('isVip-edit', 'isVip-add')}
-        checked={isVip}
-        onChange={setIsVip}
-      >
+      <ToggleSwitch id={idFor('isVip-edit', 'isVip-add')} checked={isVip} onChange={setIsVip}>
         <Star className="h-4 w-4 text-amber-400 mr-1" />
         Marquer comme VIP
       </ToggleSwitch>
