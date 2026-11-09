@@ -159,6 +159,7 @@ model User {
   isVip                  Boolean                 @default(false)
   gameHighScore          Int                     @default(0)
   hasDiscoveredCasino    Boolean                 @default(false)
+  canHostPolls           Boolean                 @default(false) // Droit d'animer des votes en live (accordé par un admin)
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
   Account                Account[]
@@ -175,6 +176,8 @@ model User {
   FriendshipReceived     Friendship[]            @relation("FriendshipRecipient")
   assistantConfirmations AssistantConfirmation[]
   licenses               License[]
+  hostedPolls            Poll[]
+  pollVotes              PollVote[]
 }
 
 model VerificationToken {
@@ -454,58 +457,128 @@ model UserSlotMachineTokens {
 // LICENSING MODELS
 // ============================================================================
 model License {
-  id              String        @id @default(cuid())
-  licenseKey      String        @unique  // Format: LARIAN-XXXX-XXXX-XXXX
-  
+  id         String @id @default(cuid())
+  licenseKey String @unique // Format: LARIAN-XXXX-XXXX-XXXX
+
   // Owner
-  userId          String
-  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   // License config
-  licenseType     LicenseType   @default(STANDARD)
-  maxActivations  Int           @default(3)
-  expirationDate  DateTime?     // null = perpétuelle
-  
+  licenseType    LicenseType @default(STANDARD)
+  maxActivations Int         @default(3)
+  expirationDate DateTime? // null = perpétuelle
+
   // Status
-  revoked         Boolean       @default(false)
-  revokedReason   String?
-  
+  revoked       Boolean @default(false)
+  revokedReason String?
+
   // Metadata
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  notes           String?       // Admin notes
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  notes     String? // Admin notes
+
   // Payment (pour plus tard)
   stripePaymentId String?
-  
+
   // Relations
-  activations     Activation[]
+  activations Activation[]
 }
 
 model Activation {
-  id            String   @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // License reference
-  licenseId     String
-  license       License  @relation(fields: [licenseId], references: [id], onDelete: Cascade)
-  
+  licenseId String
+  license   License @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+
   // Machine info
-  machineId     String   // SHA-256 hardware fingerprint
-  osInfo        String?  // ex: "macOS 14.0", "Windows 11"
-  pluginVersion String?  // ex: "1.0.0"
-  
+  machineId     String // SHA-256 hardware fingerprint
+  osInfo        String? // ex: "macOS 14.0", "Windows 11"
+  pluginVersion String? // ex: "1.0.0"
+
   // Timestamps
   activatedAt   DateTime @default(now())
   lastValidated DateTime @default(now())
-  
+
   // Unique constraint: 1 machine = 1 activation per license
   @@unique([licenseId, machineId])
 }
 
 enum LicenseType {
-  STANDARD   // Licence standard
-  EDU        // Éducation (-50%)
-  NFR        // Not For Resale (reviewers)
-  BETA       // Beta testers
-  LIFETIME   // Achat lifetime deal
+  STANDARD // Licence standard
+  EDU // Éducation (-50%)
+  NFR // Not For Resale (reviewers)
+  BETA // Beta testers
+  LIFETIME // Achat lifetime deal
+}
+
+// Votes en live (équivalent StrawPoll) : un sondage a plusieurs manches, chaque égalité
+// ouvre une manche de départage limitée aux ex æquo.
+model Poll {
+  id             String       @id @default(cuid())
+  code           String       @unique // Code court public (URL /vote/[code])
+  title          String
+  hostId         String
+  status         String       @default("DRAFT") // DRAFT, ACTIVE, FINISHED
+  requireOAuth   Boolean      @default(true) // Voter exige un compte relié à Twitch ou Google
+  winnerOptionId String?
+  winnerByDraw   Boolean      @default(false) // Gagnant tiré au sort parmi les ex æquo
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  Host           User         @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  options        PollOption[]
+  rounds         PollRound[]
+
+  @@index([hostId, createdAt])
+}
+
+model PollOption {
+  id          String               @id @default(cuid())
+  pollId      String
+  label       String
+  position    Int
+  Poll        Poll                 @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  candidacies PollRoundCandidate[]
+  votes       PollVote[]
+
+  @@unique([pollId, position])
+}
+
+model PollRound {
+  id              String               @id @default(cuid())
+  pollId          String
+  number          Int
+  startedAt       DateTime             @default(now())
+  endsAt          DateTime
+  resultsRevealed Boolean              @default(false)
+  Poll            Poll                 @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  candidates      PollRoundCandidate[]
+  votes           PollVote[]
+
+  @@unique([pollId, number])
+}
+
+model PollRoundCandidate {
+  roundId  String
+  optionId String
+  Round    PollRound  @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  Option   PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
+  @@id([roundId, optionId])
+}
+
+model PollVote {
+  id        String     @id @default(cuid())
+  roundId   String
+  userId    String
+  optionId  String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  Round     PollRound  @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  User      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Option    PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
+  @@unique([roundId, userId])
+  @@index([roundId, optionId])
 }

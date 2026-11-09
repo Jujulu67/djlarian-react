@@ -28,6 +28,11 @@ const ClientLayout = ({ children, session }: ClientLayoutProps) => {
   // Pas de footer sur les espaces de travail (admin, projets)
   const showFooter = isV2 && !/^\/(admin|projects)(\/|$)/.test(pathname ?? '');
 
+  // Overlay OBS : la page seule, sans navigation, fond ni curseur
+  if (/^\/vote\/[^/]+\/overlay$/.test(pathname ?? '')) {
+    return <AuthProvider session={session}>{children}</AuthProvider>;
+  }
+
   return (
     <AuthProvider session={session}>
       {/* Respecte prefers-reduced-motion pour toutes les animations framer-motion */}

@@ -54,12 +54,14 @@ export default async function InterceptedEditUserPage({
     name?: string | null;
     role: string;
     isVip: boolean;
+    canHostPolls: boolean;
   } = {
     id: user.id,
     email: user.email ?? 'N/A', // Fournir une valeur par défaut si null
     name: user.name,
     role: user.role ?? 'USER', // Fournir une valeur par défaut si null
     isVip: (user as { isVip?: boolean }).isVip ?? false,
+    canHostPolls: user.canHostPolls,
   };
 
   return <AddUserModal userToEdit={userForModal} />;

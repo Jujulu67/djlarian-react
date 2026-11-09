@@ -17,6 +17,7 @@ const updateUserSchema = z
     password: z.string().min(6, 'Le mot de passe doit contenir au moins 6 caractères.').optional(),
     role: z.string().optional(),
     isVip: z.boolean().optional(),
+    canHostPolls: z.boolean().optional(),
   })
   .strict();
 
@@ -26,10 +27,11 @@ type UserUpdateInput = {
   password?: string;
   role?: string;
   isVip?: boolean;
+  canHostPolls?: boolean;
 };
 
 // Construit les champs à mettre à jour (le mot de passe est haché à part)
-function buildUserFieldsUpdate({ email, name, role, isVip }: UserUpdateInput) {
+function buildUserFieldsUpdate({ email, name, role, isVip, canHostPolls }: UserUpdateInput) {
   const dataToUpdate: Partial<PrismaUser> = {};
   if (email !== undefined) dataToUpdate.email = email;
   if (name !== undefined) dataToUpdate.name = name;
@@ -38,6 +40,7 @@ function buildUserFieldsUpdate({ email, name, role, isVip }: UserUpdateInput) {
     // isVip est un champ Prisma, utiliser un cast sécurisé
     (dataToUpdate as PrismaUser & { isVip?: boolean }).isVip = isVip;
   }
+  if (canHostPolls !== undefined) dataToUpdate.canHostPolls = canHostPolls;
   return dataToUpdate;
 }
 
@@ -47,14 +50,14 @@ async function prepareUserUpdate(
   isAdmin: boolean,
   userId: string
 ): Promise<{ response: NextResponse } | { data: Partial<PrismaUser> }> {
-  const { email, name, password, role, isVip } = input;
+  const { email, name, password, role, isVip, canHostPolls } = input;
 
-  // Seul un admin peut changer un rôle ou le statut VIP
-  if (!isAdmin && (role !== undefined || isVip !== undefined)) {
+  // Seul un admin peut changer un rôle, le statut VIP ou le droit d'animer des votes
+  if (!isAdmin && (role !== undefined || isVip !== undefined || canHostPolls !== undefined)) {
     return { response: NextResponse.json({ error: 'Non autorisé' }, { status: 403 }) };
   }
 
-  const dataToUpdate = buildUserFieldsUpdate({ email, name, role, isVip });
+  const dataToUpdate = buildUserFieldsUpdate({ email, name, role, isVip, canHostPolls });
   if (password) {
     try {
       // Assurez-vous que le champ dans Prisma s'appelle bien hashedPassword
